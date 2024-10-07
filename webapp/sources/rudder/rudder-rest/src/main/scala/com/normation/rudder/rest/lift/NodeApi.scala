@@ -65,8 +65,11 @@ import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.properties.CompareProperties
+import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.domain.properties.NodePropertyError
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
+import com.normation.rudder.domain.properties.NodePropertySpecificError
 import com.normation.rudder.domain.properties.Visibility.Displayed
 import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.queries.Query
@@ -77,7 +80,6 @@ import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.facts.nodes.SelectNodeStatus
-import com.normation.rudder.properties.MergeNodeProperties
 import com.normation.rudder.properties.NodePropertiesService
 import com.normation.rudder.properties.PropertiesRepository
 import com.normation.rudder.reports.ReportingConfiguration
@@ -765,25 +767,31 @@ class NodeApiInheritedProperties(
       qc: QueryContext
   ): IOResult[JRNodeInheritedProperties] = {
     for {
-      properties       <- propRepo.getNodeProps(nodeId).notOptional(s"Node with ID '${nodeId.value}' was not found.'")
-      propertiesDetails = properties
-                            .filter(_.prop.visibility == Displayed)
-                            .groupBy(_.prop.name)
-                            .map(props => {
-                              val hasConflicts = MergeNodeProperties
-                                .checkValueTypes(props._2.toList)
-                                .isLeft
-                              (
-                                props._1,
-                                props._2 -> hasConflicts
-                              )
-                            })
+      properties       <- propRepo.getNodeProps(nodeId).notOptional(s"Node or properties with ID '${nodeId.value}' was not found.'")
+      propertiesDetails = {
+        val success = properties.resolved.collect {
+          case p if p.prop.visibility == Displayed => InheritedPropertyStatus.from(p)
+        }
+        val error   = properties match {
+          case f: FailedNodePropertyHierarchy =>
+            f.error match {
+              case propsErrors: NodePropertySpecificError => // these are individual errors by property that can be resolved and rendered individually
+                Chunk.from(propsErrors.propertiesErrors).map {
+                  case (k, (cp, errorMessage)) => // property is known to have an error message
+                    ErrorInheritedPropertyStatus.from(k, cp, errorMessage)
+                }
+              case _:           NodePropertyError         =>
+                // we don't know the errored props, it may be all of them and there may be a global status error
+                Chunk(GlobalPropertyStatus.fromResolvedNodeProperty(f))
+            }
+          case _ => Chunk.empty
+        }
+        success ++ error
+      }
     } yield {
       JRNodeInheritedProperties.fromNode(
         nodeId,
-        propertiesDetails.values.toList.flatMap {
-          case (parent, hasConflicts) => parent.map(p => (p, p.hierarchy, hasConflicts))
-        },
+        propertiesDetails,
         renderInHtml
       )
     }
@@ -973,23 +981,22 @@ class NodeApiService(
   def getNodesPropertiesTree(
       nodeInfos:  MapView[NodeId, CoreNodeFact],
       properties: List[String]
-  )(implicit qc: QueryContext): IOResult[Map[NodeId, List[NodePropertyHierarchy]]] = {
+  )(implicit qc: QueryContext): IOResult[Map[NodeId, Chunk[NodePropertyHierarchy]]] = {
     for {
       properties <-
         ZIO.foreach(nodeInfos.values) { fact =>
           propertiesRepo
             .getNodeProps(fact.id)
-            .notOptional(s"Properties for node with '${fact.id.value}' were not found")
             .fold(
               err =>
                 (
                   fact.id,
-                  fact.properties.toList.collect { case p if properties.contains(p.name) => NodePropertyHierarchy(p, Nil) }
+                  fact.properties.collect { case p if properties.contains(p.name) => NodePropertyHierarchy(p, Nil) }
                 ),
-              props => {
+              optHierarchy => {
                 // here we can have the whole parent hierarchy like in node properties details with p.toApiJsonRenderParents but it needs
                 // adaptation in datatable display
-                (fact.id, props.toList.collect { case p if properties.contains(p.prop.name) => p })
+                (fact.id, optHierarchy.orEmpty.resolved.filter(p => properties.contains(p.prop.name)))
               }
             )
         }

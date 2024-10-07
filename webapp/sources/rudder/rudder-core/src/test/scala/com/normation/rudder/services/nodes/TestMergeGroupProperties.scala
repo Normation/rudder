@@ -37,13 +37,12 @@
 
 package com.normation.rudder.services.nodes
 
+import cats.data.Ior
 import com.normation.GitVersion
 import com.normation.errors.PureResult
-import com.normation.errors.RudderError
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.FullGroupTarget
-import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
@@ -51,13 +50,16 @@ import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.JsonPropertySerialisation.*
 import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.domain.properties.NodePropertyError
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.ResultTransformation.*
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.properties.GroupProp
+import com.normation.rudder.properties.GroupProp.*
 import com.normation.rudder.properties.MergeNodeProperties
 import com.normation.rudder.services.policies.NodeConfigData
 import com.softwaremill.quicklens.*
@@ -66,8 +68,11 @@ import com.typesafe.config.ConfigValueFactory
 import net.liftweb.json.*
 import net.liftweb.json.JsonDSL.*
 import org.junit.runner.*
+import org.specs2.matcher.Matcher
 import org.specs2.mutable.*
 import org.specs2.runner.*
+import scala.reflect.ClassTag
+import zio.NonEmptyChunk
 
 /*
  * This class test the JsEngine. 6.0
@@ -81,9 +86,9 @@ class TestMergeGroupProperties extends Specification {
   sequential
 
   implicit class ToTarget(g: NodeGroup) {
-    def toTarget:    FullRuleTargetInfo =
-      FullRuleTargetInfo(FullGroupTarget(GroupTarget(g.id), g), g.name, "", isEnabled = true, isSystem = true)
-    def toCriterion: CriterionLine      =
+    def toTarget:    FullGroupTarget =
+      FullGroupTarget(GroupTarget(g.id), g)
+    def toCriterion: CriterionLine   =
       CriterionLine(null, Criterion("some ldap attr", SubGroupComparator(null), null), null, g.id.serialize)
   }
 
@@ -177,26 +182,48 @@ class TestMergeGroupProperties extends Specification {
     NodeConfigData.node1.modify(_.node.properties).setTo(NodeProperty("foo", "barNode".toConfigValue, None, None) :: Nil)
 
   "overriding a property in a hierarchy should work" >> {
-    val merged   = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: child.toTarget :: Nil, Map())
-    val expected = List(child, parent1).toH1("foo") :: Nil
-    merged must beRight(expected)
+    val merged       = MergeNodeProperties
+      .checkPropertyMerge(
+        Map(parent1.id -> parent1.toGroupProp, parent2.id -> parent2.toGroupProp, child.id -> child.toGroupProp),
+        Map()
+      )
+    // there is a conflict between parent2 (bar2) and child (baz) < parent1 (bar1)
+    val expectedProp = List(child, parent1).toH1("foo")
+    merged must beBoth(
+      NodePropertyError.PropertyInheritanceConflicts(
+        Map(
+          expectedProp.prop ->
+          NonEmptyChunk(expectedProp.hierarchy, List(parent2).toH1("foo").hierarchy)
+        )
+      ),
+      List.empty
+    )
   }
 
   "if the composition is OR, subgroup must be ignored" >> {
-    val ct2    = child.modify(_.query).setTo(Some(query.modify(_.composition).setTo(Or))).toTarget
-    val merged = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: ct2 :: Nil, Map())
-    merged must beLeft
+    val ct2          = child.modify(_.query).setTo(Some(query.modify(_.composition).setTo(Or)))
+    val merged       =
+      MergeNodeProperties.checkPropertyMerge(Map(parent1.id -> parent1.toGroupProp, ct2.id -> ct2.toGroupProp), Map())
+    // it appears as an inheritance conflict
+    val expectedProp = List(parent1).toH1("foo")
+    merged must beBoth(
+      NodePropertyError.PropertyInheritanceConflicts(
+        Map(expectedProp.prop -> NonEmptyChunk(expectedProp.hierarchy, List(ct2).toH1("foo").hierarchy))
+      ),
+      List.empty
+    )
   }
 
   "when the parent is in not in an inverted query and is missing, its an error" >> {
-    val merged = MergeNodeProperties.checkPropertyMerge(child.toTarget :: Nil, Map())
-    merged must beLeft
+    val merged = MergeNodeProperties.checkPropertyMerge(Map(child.id -> child.toGroupProp), Map())
+    // this is the consequence of having recoverted from sortGroups output to a Both, to ignore group properties
+    merged must beBoth[NodePropertyError.DAGError](List.empty)
   }
 
   "when the parent is in an inverted query, its properties are not inherited" >> {
-    val ct2      = child.modify(_.query).setTo(Some(query.modify(_.transform).setTo(ResultTransformation.Invert))).toTarget
-    val merged   = MergeNodeProperties.checkPropertyMerge(ct2 :: Nil, Map())
-    val expected = List(child).toH1("foo")
+    val ct2      = child.modify(_.query).setTo(Some(query.modify(_.transform).setTo(ResultTransformation.Invert)))
+    val merged   = MergeNodeProperties.checkPropertyMerge(Map(ct2.id -> ct2.toGroupProp), Map())
+    val expected = List(ct2).toH1("foo")
     (merged must beRight(expected :: Nil)) and (merged.getOrElse(Nil).head.prop.valueAsString === "baz")
   }
 
@@ -207,9 +234,12 @@ class TestMergeGroupProperties extends Specification {
       .setTo(Some(q2)) // parent 2 wins
       .modify(_.properties)
       .setTo(Nil)      // remove child property to get one of parent
-      .toTarget
 
-    val merged   = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: parent2.toTarget :: ct2 :: Nil, Map())
+    val merged   = MergeNodeProperties
+      .checkPropertyMerge(
+        Map(parent1.id -> parent1.toGroupProp, parent2.id -> parent2.toGroupProp, ct2.id -> ct2.toGroupProp),
+        Map()
+      )
     val expected = List(parent2, parent1).toH1("foo")
     (merged must beRight(expected :: Nil)) and (merged.getOrElse(Nil).head.prop.valueAsString === "bar2")
   }
@@ -238,12 +268,21 @@ class TestMergeGroupProperties extends Specification {
         _isEnabled = true
       )
 
-      val merged = MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: parent2.toTarget :: Nil, Map())
-
-      merged must beLeft[RudderError].like {
-        case e =>
-          e.fullMsg must =~("find overrides for group property 'dns'. Several groups")
+      val merged = {
+        MergeNodeProperties
+          .checkPropertyMerge(Map(parent1.id -> parent1.toGroupProp, parent2.id -> parent2.toGroupProp), Map())
       }
+
+      val expectedProp = List(parent1).toH1("dns")
+      merged must beBoth(
+        NodePropertyError.PropertyInheritanceConflicts(
+          Map(
+            expectedProp.prop ->
+            NonEmptyChunk(expectedProp.hierarchy, List(parent2).toH1("dns").hierarchy)
+          )
+        ),
+        List.empty
+      )
     }
 
     "be able to correct conflict" in {
@@ -278,8 +317,13 @@ class TestMergeGroupProperties extends Specification {
         _isEnabled = true
       )
 
-      val merged   =
-        MergeNodeProperties.checkPropertyMerge(parent1.toTarget :: parent2.toTarget :: prioritize.toTarget :: Nil, Map())
+      val merged   = {
+        MergeNodeProperties
+          .checkPropertyMerge(
+            Map(parent1.id -> parent1.toGroupProp, parent2.id -> parent2.toGroupProp, prioritize.id -> prioritize.toGroupProp),
+            Map()
+          )
+      }
       val expected = List(parent2, parent1).toH1("dns") :: Nil
       merged must beRight(expected)
     }
@@ -334,7 +378,16 @@ class TestMergeGroupProperties extends Specification {
         _isEnabled = true
       )
 
-      val merged   = MergeNodeProperties.checkPropertyMerge(List(parent1, parent2, prioritize, parent4).map(_.toTarget), Map())
+      val merged   = MergeNodeProperties
+        .checkPropertyMerge(
+          Map(
+            parent1.id    -> parent1.toGroupProp,
+            parent2.id    -> parent2.toGroupProp,
+            prioritize.id -> prioritize.toGroupProp,
+            parent4.id    -> parent4.toGroupProp
+          ),
+          Map()
+        )
       val expected = List(parent2, parent1).toH1("dns") :: Nil
       merged must beRight(expected)
     }
@@ -342,7 +395,7 @@ class TestMergeGroupProperties extends Specification {
 
   "global parameter are inherited" >> {
     val g      = "bar".toConfigValue
-    val merged = MergeNodeProperties.checkPropertyMerge(Nil, Map("foo" -> g.toGP("foo")))
+    val merged = MergeNodeProperties.checkPropertyMerge(Map.empty, Map("foo" -> g.toGP("foo")))
     merged must beRight(List(g.toG("foo")))
   }
 
@@ -350,7 +403,11 @@ class TestMergeGroupProperties extends Specification {
     // empty properties, see if global is duplicated
     val p2       = parent2.copy(properties = Nil)
     val g        = "bar".toConfigValue
-    val merged   = MergeNodeProperties.checkPropertyMerge(List(parent1, p2, child).map(_.toTarget), Map("foo" -> g.toGP("foo")))
+    val merged   = MergeNodeProperties
+      .checkPropertyMerge(
+        Map(parent1.id -> parent1.toGroupProp, p2.id -> p2.toGroupProp, child.id -> child.toGroupProp),
+        Map("foo"      -> g.toGP("foo"))
+      )
     val expected = List(child, parent1).toH3("foo", g) :: Nil
     merged must beRight(expected)
   }
@@ -389,19 +446,21 @@ class TestMergeGroupProperties extends Specification {
     }
 
     "global append mode" in {
-      val merged = MergeNodeProperties.checkPropertyMerge(
-        List(p1.toTarget, p2.toTarget, c.toTarget),
-        Map(
-          "foo" -> GlobalParameter(
-            "foo",
-            GitVersion.DEFAULT_REV,
-            globalProperty,
-            maaInheritMode,
-            "",
-            None
+      val merged = MergeNodeProperties
+        .checkPropertyMerge(
+          Map(p1.id -> p1.toGroupProp, p2.id -> p2.toGroupProp, c.id -> c.toGroupProp),
+          Map(
+            "foo"   -> GlobalParameter(
+              "foo",
+              GitVersion.DEFAULT_REV,
+              globalProperty,
+              maaInheritMode,
+              "",
+              None
+            )
           )
         )
-      )
+        .toEither
 
       (merged must beRight(
         beMerged(
@@ -412,19 +471,21 @@ class TestMergeGroupProperties extends Specification {
       ))
     }
     "global prepend mode" in {
-      val merged = MergeNodeProperties.checkPropertyMerge(
-        List(p1.toTarget, p2.toTarget, c.toTarget),
-        Map(
-          "foo" -> GlobalParameter(
-            "foo",
-            GitVersion.DEFAULT_REV,
-            globalProperty,
-            mpaInheritMode,
-            "",
-            None
+      val merged = MergeNodeProperties
+        .checkPropertyMerge(
+          Map(p1.id -> p1.toGroupProp, p2.id -> p2.toGroupProp, c.id -> c.toGroupProp),
+          Map(
+            "foo"   -> GlobalParameter(
+              "foo",
+              GitVersion.DEFAULT_REV,
+              globalProperty,
+              mpaInheritMode,
+              "",
+              None
+            )
           )
         )
-      )
+        .toEither
       (merged must beRight(
         beMerged(
           ConfigValueFactory.fromIterable(java.util.Arrays.asList("node", "p2", "p1")),
@@ -435,10 +496,12 @@ class TestMergeGroupProperties extends Specification {
     }
 
     "none global mode with default 'override' mode" in {
-      val merged = MergeNodeProperties.checkPropertyMerge(
-        List(p1.toTarget, p2.toTarget, c.toTarget),
-        Map.empty
-      )
+      val merged = MergeNodeProperties
+        .checkPropertyMerge(
+          Map(p1.id -> p1.toGroupProp, p2.id -> p2.toGroupProp, c.id -> c.toGroupProp),
+          Map.empty
+        )
+        .toEither
       (merged must beRight(
         beMerged(ConfigValueFactory.fromIterable(java.util.Arrays.asList("node")), None, None)
       ))
@@ -447,9 +510,8 @@ class TestMergeGroupProperties extends Specification {
 
   "when overriding json we" should {
     def getOverrides(groups: List[NodeGroup]): Map[String, String] = {
-
-      MergeNodeProperties.checkPropertyMerge(groups.map(_.toTarget), Map()) match {
-        case Left(e)  => throw new IllegalArgumentException(s"Error when overriding properties: ${e.fullMsg}")
+      MergeNodeProperties.checkPropertyMerge(groups.map(el => el.id -> el.toGroupProp).toMap, Map()).toEither match {
+        case Left(e)  => throw new IllegalArgumentException(s"Error when overriding properties: ${e.message}")
         case Right(v) => v.map(p => (p.prop.name, GenericProperty.serializeToHocon(p.prop.value))).toMap
       }
     }
@@ -522,7 +584,7 @@ class TestMergeGroupProperties extends Specification {
   "preparing value for API" should {
 
     "present only node value for override" in {
-      val globals = Map(
+      val globals       = Map(
         ("foo" -> GlobalParameter(
           "foo",
           GitVersion.DEFAULT_REV,
@@ -532,7 +594,7 @@ class TestMergeGroupProperties extends Specification {
           None
         ))
       )
-      val parent  = parent1
+      val parent        = parent1
         .modify(_.properties)
         .setTo(
           List(
@@ -541,7 +603,7 @@ class TestMergeGroupProperties extends Specification {
               .forceGet
           )
         )
-      val child_  = child
+      val child_        = child
         .modify(_.properties)
         .setTo(
           List(
@@ -550,18 +612,19 @@ class TestMergeGroupProperties extends Specification {
               .forceGet
           )
         )
-      val node    = nodeInfo
+      val node          = nodeInfo
         .modify(_.node.properties)
         .setTo(List(NodeProperty.parse("foo", """{"node"  :"node value"  , "override":"node"  }""", None, None).forceGet))
-      val merged  = MergeNodeProperties
+      val successMerged = MergeNodeProperties
         .forNode(
           NodeFact.fromCompat(node, Left(AcceptedInventory), Seq(), None).toCore,
           List(parent, child_).map(_.toTarget),
           globals
         )
-        .forceGet
 
-      val actual   = merged.toList.toApiJsonRenderParents
+      successMerged must haveClass[SuccessNodePropertyHierarchy]
+      val props    = successMerged.resolved
+      val actual   = props.toList.toApiJsonRenderParents
       val expected = JArray(
         List(
           ("name"          -> "foo")
@@ -601,5 +664,52 @@ class TestMergeGroupProperties extends Specification {
 
       actual must beEqualTo(expected)
     }
+  }
+
+  // only match error sub type to expected one
+  def beBoth[E <: NodePropertyError: ClassTag](success: List[NodePropertyHierarchy]) = {
+    (ior: Ior[NodePropertyError, List[NodePropertyHierarchy]]) =>
+      ior match {
+        case Ior.Both(l: E, r) =>
+          if (success == r) { // strict equality and not same elements
+            ok("")
+          } else {
+            ko(
+              s"Properties were not the ones expected, got Both with left : ${l} and right ${r}\nbut expected left specific error type and right ${success}"
+            )
+          }
+        case o: Ior[?, ?] =>
+          ko(s"Result was not the one expected, expected Ior.Both with specific error type but got ${o}")
+      }
+  }
+  def beBoth(
+      leftError:    NodePropertyError,
+      rightSuccess: List[NodePropertyHierarchy]
+  ): Matcher[Ior[NodePropertyError, List[NodePropertyHierarchy]]] = {
+    (ior: Ior[NodePropertyError, List[NodePropertyHierarchy]]) =>
+      ior match {
+        case Ior.Both(l, r) =>
+          if (leftError == l && rightSuccess == r.props) { // strict equality and not same elements
+            ok("")
+          } else {
+            ko(
+              s"Properties were not the ones expected, got Both with left : ${l} and right ${r}\nbut expected left ${leftError} and right ${rightSuccess}"
+            )
+          }
+        case o: Ior[?, ?] =>
+          ko(s"Result was not the one expected, expected Ior.Both but got ${o}")
+      }
+  }
+  def beRight(value: List[NodePropertyHierarchy]): Matcher[Ior[NodePropertyError, List[NodePropertyHierarchy]]] = {
+    (ior: Ior[NodePropertyError, List[NodePropertyHierarchy]]) =>
+      ior match {
+        case Ior.Right(v) =>
+          if (v == value) // strict equality and not same elements
+            ok("")
+          else
+            ko(s"Properties were not the ones expected, expected ${value}, got ${v}")
+        case o: Ior[?, ?] =>
+          ko(s"Result was not the one expected, expected Ior.Right but got ${o}")
+      }
   }
 }

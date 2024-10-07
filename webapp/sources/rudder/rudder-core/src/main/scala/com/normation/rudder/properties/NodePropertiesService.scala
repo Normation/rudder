@@ -38,11 +38,14 @@
 package com.normation.rudder.properties
 
 import com.normation.errors.*
+import com.normation.rudder.domain.logger.NodePropertiesLoggerPure
+import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
+import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoParameterRepository
-import zio.*
+import com.typesafe.config.ConfigRenderOptions
 
 /*
  * This file contains a cache/in-memory repository for inherited node properties, ie the result
@@ -66,17 +69,49 @@ class NodePropertiesServiceImpl(
 ) extends NodePropertiesService {
   override def updateAll(): IOResult[Unit] = {
     for {
-      params       <- globalPropsRepo.getAllGlobalParameters().map(_.map(x => (x.name, x)).toMap)
-      groups       <- roNodeGroupRepository.getFullGroupLibrary()
-      nodes        <- nodeFactRepository.getAll()(QueryContext.systemQC).map(_.values)
-      mergedGroups <- ZIO.foreach(groups.allGroups.keys) { gid =>
-                        MergeNodeProperties.forGroup(gid, groups.allGroups, params).toIO.map(p => (gid, p))
-                      }
-      mergedNodes  <- ZIO.foreach(nodes)(n =>
-                        MergeNodeProperties.forNode(n, groups.getTarget(n).values.toList, params).toIO.map(p => (n.id, p))
-                      )
-      _            <- propertiesRepository.saveNodeProps(mergedNodes.toMap)
-      _            <- propertiesRepository.saveGroupProps(mergedGroups.toMap)
+      params      <- globalPropsRepo.getAllGlobalParameters().map(_.map(x => (x.name, x)).toMap)
+      groups      <- roNodeGroupRepository.getFullGroupLibrary()
+      nodes       <- nodeFactRepository.getAll()(QueryContext.systemQC).map(_.values)
+      mergedGroups = {
+        groups.allGroups.map {
+          case (gid, group) =>
+            val resolved = MergeNodeProperties.forGroup(group, groups.allGroups, params)
+            resolved match {
+              case f: FailedNodePropertyHierarchy  =>
+                NodePropertiesLoggerPure.logEffect.debug(
+                  s"Node property for group ${gid.serialize} has a failure : ${f.getMessage}"
+                )
+              case s: SuccessNodePropertyHierarchy =>
+                NodePropertiesLoggerPure.logEffect
+                  .trace(
+                    s"Node properties for group ${gid.serialize} has been updated with the following : ${s.resolved
+                        .map(p => s"[${p.prop.name}=${p.prop.value.render(ConfigRenderOptions.concise().setComments(true))}]")
+                        .mkString}"
+                  )
+            }
+            gid -> resolved
+        }
+      }
+      mergedNodes  = {
+        nodes
+          .map(n => {
+            val resolved = MergeNodeProperties.forNode(n, groups.getGroupTarget(n).values, params)
+            resolved match {
+              case f: FailedNodePropertyHierarchy  =>
+                NodePropertiesLoggerPure.logEffect.debug(s"Node property for node ${n.id.value} has a failure : ${f.getMessage}")
+              case s: SuccessNodePropertyHierarchy =>
+                NodePropertiesLoggerPure.logEffect
+                  .trace(
+                    s"Node properties for node ${n.id.value} has been updated with the following : ${s.resolved
+                        .map(p => s"[${p.prop.name}=${p.prop.value.render(ConfigRenderOptions.concise().setComments(true))}]")
+                        .mkString}"
+                  )
+            }
+            n.id -> resolved
+          })
+      }
+      _           <- propertiesRepository.saveNodeProps(mergedNodes.toMap)
+      _           <- propertiesRepository.saveGroupProps(mergedGroups.toMap)
     } yield ()
   }
 }
