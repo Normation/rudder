@@ -490,17 +490,17 @@ object DisplayPriority {
  * - `weighted`
  *    compliance value will be the weighted contribution of all direct sub-elements
  * - `worst case (weight = 1)`
- *    compliance value will have the same level as the worst case, and will have weight 1
+ *    compliance value will have the same level as the worst case in all elements in the sub-tree, and will have weight 1
  * - `worst case (weight = sum all)`
- *    compliance value will have the same level as the worst case, and will have weight equals
+ *    compliance value will have the same level as the worst case in all elements in the sub-tree, and will have weight equals
  *    to the sum of weight of all sub components.
- * - `worst case by percent`
- *    compliance value will have the same level as the worst case with the least compliance percent
+ * - `focus worst`
+ *    compliance value will have the same level as the worst case with the least compliance percent of direct subelements
  *
  * Illustration :
  *
  *
- * BLOCK                                          FOCUS ON C1                        WEIGHTED                     WORST-1 on B1                    WORST-SUM on B1              WORST-PERCENT on BLOCK
+ * BLOCK                                          FOCUS ON C1                        WEIGHTED                     WORST-1 on B1                    WORST-SUM on B1               FOCUS-WORST on BLOCK
  * |                                                     |                               |                                |                                |                                |
  * +-- B1                                                |                               |                    +-----------------------+        +-----------------------+        +-----------------------+
  * |   |                                                 |                               |                    | B1 worst      = 1E    |        | B1 worst      = 1E    |        | B1 weighted   = 2S-1E |
@@ -546,8 +546,8 @@ object ReportingLogic {
   case object WorstReportWeightedSum             extends WorstReportWeightedReportingLogic {
     val value = "worst-case-weighted-sum"
   }
-  case object WorstReportByPercent               extends WorstReportReportingLogic         {
-    val value = "worst-case-percent"
+  case object FocusWorst                         extends WorstReportReportingLogic         {
+    val value = "focus-worst"
   }
 
   case object WeightedReport extends ReportingLogic {
@@ -558,7 +558,7 @@ object ReportingLogic {
     value.toLowerCase match {
       case WorstReportWeightedOne.value => Right(WorstReportWeightedOne)
       case WorstReportWeightedSum.value => Right(WorstReportWeightedSum)
-      case WorstReportByPercent.value   => Right(WorstReportByPercent)
+      case FocusWorst.value             => Right(FocusWorst)
       case WeightedReport.value         => Right(WeightedReport)
       case s"${FocusReport.key}:${a}"   => Right(FocusReport(a))
       case FocusReport.key              => Right(FocusReport(defaultFocusKey))
