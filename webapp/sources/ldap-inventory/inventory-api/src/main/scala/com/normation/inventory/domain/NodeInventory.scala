@@ -205,6 +205,7 @@ object LinuxType {
       :: RockyLinux
       :: AlmaLinux
       :: Raspbian
+      :: Tuxedo
       :: Nil
   )
 }
@@ -226,6 +227,7 @@ case object AmazonLinux      extends LinuxType { val name = "AmazonLinux"  }
 case object RockyLinux       extends LinuxType { val name = "RockyLinux"   }
 case object AlmaLinux        extends LinuxType { val name = "AlmaLinux"    }
 case object Raspbian         extends LinuxType { val name = "Raspbian"     }
+case object Tuxedo           extends LinuxType { val name = "Tuxedo"       }
 
 //solaris has only one flavour for now
 //to be updated in the future with OSS verison
@@ -366,6 +368,7 @@ object ParseOSType {
         else if (x.contains("rocky")) RockyLinux
         else if (x.contains("almalinux")) AlmaLinux
         else if (x.contains("raspbian")) Raspbian
+        else if (x.contains("tuxedo")) Tuxedo
         else UnknownLinuxType
 
       case ("solaris", _, _) => SolarisOS
