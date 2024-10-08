@@ -132,7 +132,7 @@ class GlobalScoreRepositoryImpl(doobie: Doobie) extends GlobalScoreRepository {
   }
 
   override def delete(id: NodeId): IOResult[Unit] = {
-    val q = sql"delete from GlobalScore nodeId = ${id.value}"
-    transactIOResult(s"error when getting global score for node ${id.value}")(xa => q.update.run.transact(xa).unit)
+    val q = sql"delete from GlobalScore where nodeId = ${id.value}"
+    transactIOResult(s"error when deleting global score for node ${id.value}")(xa => q.update.run.transact(xa).unit)
   }
 }
