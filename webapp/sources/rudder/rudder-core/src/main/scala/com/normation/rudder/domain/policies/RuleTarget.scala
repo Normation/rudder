@@ -339,7 +339,7 @@ object RuleTarget extends Loggable {
       case TargetUnion(targets) =>
         val nodeSets = targets.map(t => getNodeIdsChunkRec(Chunk(t), allNodes, groups))
         // Compute the union of the sets of Nodes
-        val union    = nodeSets.foldLeft(Chunk[NodeId]()) { case (currentUnion, nodes) => currentUnion.concat(nodes) }
+        val union    = nodeSets.foldLeft(Chunk[NodeId]()) { case (currentUnion, nodes) => currentUnion ++ nodes }
         Right(union)
 
       case TargetExclusion(included, excluded) =>
