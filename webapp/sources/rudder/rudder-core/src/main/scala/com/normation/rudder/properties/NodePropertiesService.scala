@@ -79,7 +79,9 @@ class NodePropertiesServiceImpl(
             resolved match {
               case f: FailedNodePropertyHierarchy  =>
                 NodePropertiesLoggerPure.logEffect.debug(
-                  s"Node property for group ${gid.serialize} has a failure : ${f.getMessage}"
+                  s"Node property for group ${gid.serialize} has a failure : ${f.getMessage}. Success values : ${f.resolved
+                      .map(p => s"[${p.prop.name}=${p.prop.value.render(ConfigRenderOptions.concise().setComments(true))}]")
+                      .mkString}"
                 )
               case s: SuccessNodePropertyHierarchy =>
                 NodePropertiesLoggerPure.logEffect
@@ -98,7 +100,11 @@ class NodePropertiesServiceImpl(
             val resolved = MergeNodeProperties.forNode(n, groups.getGroupTarget(n).values, params)
             resolved match {
               case f: FailedNodePropertyHierarchy  =>
-                NodePropertiesLoggerPure.logEffect.debug(s"Node property for node ${n.id.value} has a failure : ${f.getMessage}")
+                NodePropertiesLoggerPure.logEffect.debug(
+                  s"Node property for node ${n.id.value} has a failure : ${f.getMessage}. Success values : ${f.resolved
+                      .map(p => s"[${p.prop.name}=${p.prop.value.render(ConfigRenderOptions.concise().setComments(true))}]")
+                      .mkString}"
+                )
               case s: SuccessNodePropertyHierarchy =>
                 NodePropertiesLoggerPure.logEffect
                   .trace(

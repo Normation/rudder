@@ -1376,13 +1376,16 @@ object JsonResponseObjects {
 
     /**
      * Transform proprety hierarchy into HTML or JSON
+     * Provided hierarchy should be sorted from original order of parent properties : 
+     * - nodes
+     * - groups
+     * - global params
      */
     private def transformParentProperties(
         hierarchy:    List[ParentProperty],
         renderInHtml: RenderInheritedProperties,
         escapeHtml:   Boolean
     ): Option[JRPropertyHierarchy] = {
-      // FIXME: instead of having a reverse hierarchy we should have the list sorted, and reflected in the type
       hierarchy.reverse match {
         case Nil  => None
         case list =>
@@ -1406,8 +1409,6 @@ object JsonResponseObjects {
 
     /**
      * The first element of the hierarchy in the original order is the original value
-     * FIXME: there is an ordering, we could enforce a specific sorted hierarchy 
-     * instead of passing a list around without knowing how it's sorted
      */
     private def getHierarchyOriginalValue(hierarchy: List[ParentProperty]): Option[ConfigValue] =
       hierarchy.headOption.map(_.value)
@@ -1678,7 +1679,6 @@ object JsonResponseObjects {
     }
 
     // Ideally, this should be a set : some nodes may inherit the same hierarchy so we wan to avoid duplicates
-    // FIXME: also, we will want to sort the whole hierarchy in the end
     private def mergeHierarchies(left: List[ParentProperty], right: List[ParentProperty]): List[ParentProperty] = {
       (left ++ right).distinct
     }
