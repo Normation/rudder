@@ -310,7 +310,7 @@ function doughnutChart (id,data,colors,hoverColors) {
                           objectType: "software"
 												 , attribute : "cn"
 												 , comparator: "regex"
-												 , value     : "rudder-agent|Rudder agent \\(DSC\\)"
+												 , value     : "rudder-agent|Rudder [aA]gent \\(DSC\\)"
                       },{
                           objectType: "software"
                         , attribute : "softwareVersion"
