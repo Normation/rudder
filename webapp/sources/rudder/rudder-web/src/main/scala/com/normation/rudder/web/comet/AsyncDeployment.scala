@@ -116,8 +116,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   private def displayTime(label: String, time: DateTime): NodeSeq = {
     val t = time.toString("yyyy-MM-dd HH:mm:ssZ")
     val d = DateFormaterService.getFormatedPeriod(time, DateTime.now)
-    // exceptionally not putting {} to remove the node
-    <span>{label + t}</span><div class="help-block">{"↳ " + d} ago</div>
+    <span>{s"${label} ${d} ago"}<div class="help-block"><em>↳ at {t}</em></div></span>
   }
   private def displayDate(label: String, time: DateTime): NodeSeq = {
     val t = time.toString("yyyy-MM-dd HH:mm:ssZ")
@@ -125,11 +124,11 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
   private def updateDuration = {
     val content = deploymentStatus.current match {
-      case SuccessStatus(_, _, end, _) => displayTime("Ended at ", end)
-      case ErrorStatus(_, _, end, _)   => displayTime("Ended at ", end)
-      case _                           => NodeSeq.Empty
+      case s: SuccessStatus => displayTime("Started", s.started)
+      case s: ErrorStatus   => displayTime("Started", s.started)
+      case _ => NodeSeq.Empty
     }
-    SetHtml("deployment-end", content)
+    SetHtml("deployment-start", content)
   }
 
   override def render: RenderOut = {
@@ -166,88 +165,141 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     }
   }
 
-  private def lastStatus = {
+  private def showGeneration(hasLastBottomBorder: Boolean): NodeSeq = {
+    def showDetailsPopup(details: NodeSeq): NodeSeq = {
+      val callback =
+        () => JsRaw("initBsModal('errorDetailsDialog');") & SetHtml("errorDetailsMessage", details) // JsRaw ok, const
+      (<li class="list-group-item p-0">
+      {SHtml.ajaxButton(Text("Details"), callback, ("class", "generationDetails btn py-2 rounded-0"))}
+      </li>)
+    }
+    def showGeneratePoliciesPopup:          NodeSeq = {
+      val callback = () => Run("initBsModal('generatePoliciesDialog')") // JsRaw ok, const
+      if (havePerm(AuthorizationType.Deployer.Write)) {
+        <li class="list-group-item p-0">{
+          SHtml.ajaxButton(
+            Text("Regenerate all policies"),
+            callback,
+            ("class", "regeneratePolicies btn py-2 rounded-top-0") // fills the li item
+          )
+        }
+        </li>
+      } else NodeSeq.Empty
+    }
+
     def commonStatement(
         start:        DateTime,
         end:          DateTime,
-        durationText: String,
+        durationText: Option[String],
         headText:     String,
         iconClass:    String,
         statusClass:  String
-    ) = {
-      <li><a href="#" class={statusClass + " no-click"}><span class={iconClass}></span>{headText}</a></li>
-      <li><a href="#" class="no-click"><span class={statusClass + " fa fa-hourglass-start"}></span>{
-        displayTime("Started at ", start)
-      }</a>
-      </li>
-      <li><a href="#" class="no-click"><span class={statusClass + " fa fa-hourglass-end"}></span><span id="deployment-end">{
-        displayTime("Ended at ", end)
-      }</span></a></li>
-      <li><a href="#" class="no-click"><span class={statusClass + " fa fa-clock-o"}></span>{durationText} {
-        DateFormaterService.getFormatedPeriod(start, end)
-      }</a></li>
+    ): NodeSeq = {
+      <li class="list-group-item"><a href="#" class={statusClass + " no-click"}><span class={iconClass}></span>{headText}</a></li>
+      <li class="list-group-item"><a href="#" class="no-click">
+      <span class={statusClass + " fa fa-hourglass-start"}></span><span id="deployment-start">{
+        displayTime("Started", start)
+      }</span>
+      </a>
+      </li> ++ {
+        durationText
+          .map(dur => {
+            <li class="list-group-item"><a href="#" class="no-click"><span class={statusClass + " fa fa-clock-o"}></span>{
+              dur
+            } {
+              DateFormaterService.getFormatedPeriod(start, end)
+            }</a></li>
+          })
+          .getOrElse(NodeSeq.Empty)
+      }
     }
-    def loadingStatement(start: DateTime) = {
-      <li class="dropdown-header">Policies building...</li>
-      <li>{displayDate("Started at ", start)}</li>
+    def loadingStatement(start: DateTime):  NodeSeq = {
+      <li class="list-group-item">Policies building...</li>
+      <li class="list-group-item" >{displayDate("Started at ", start)}</li>
     }
-    deploymentStatus.processing match {
+    val (titleIconClass: String, items: NodeSeq) = deploymentStatus.processing match {
       case IdleDeployer                                        =>
         deploymentStatus.current match {
-          case NoStatus                                          => <li class="dropdown-header">Policy update status unavailable</li>
+          case NoStatus                                          => "fa-minus-circle" -> <li class="list-group-item">Policy update status unavailable</li>
           case SuccessStatus(id, start, end, configurationNodes) =>
-            commonStatement(start, end, "Update took", "Policies updated", "text-success fa fa-check", "text-success")
-          case ErrorStatus(id, start, end, failure)              =>
-            val popupContent = {
-              failure.messageChain match {
-                case deployementErrorMessage(chain, error) =>
-                  <div class="alert alert-danger" role="alert">
-                  {chain.split("<-").map(x => { <b>⇨&nbsp;</b> } ++ Text(x) ++ { <br/> })}
-                </div>
-                <br/>
-                <div class="panel-group" role="tablist">
-                  <div class="panel panel-default">
-                    <a class="" id="showTechnicalErrorDetails" role="button" data-bs-toggle="collapse" href="#collapseListGroup1" aria-expanded="true" aria-controls="collapseListGroup1" onclick="reverseErrorDetails()">
-                      <div class="panel-heading" role="tab" id="collapseListGroupHeading1">
-                        <h4 class="panel-title">
-                          Show technical details
-                          <span id="showhidetechnicalerrors" class="fa fa-chevron-up up"></span>
-                        </h4>
-                      </div>
-                    </a>
-                    <div id="collapseListGroup1" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="collapseListGroupHeading1" aria-expanded="true">
-                      <ul id="deploymentErrorMsg" class="list-group">
-                        {error.split("<-").map(x => <li class="list-group-item">{"⇨ " + x}</li>)}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                case _ =>
-                  <pre class="code">{
-                    failure.messageChain
-                      .split("<- ")
-                      .map(x => Text("⇨ " + x.replace("cause was:", "\n    cause was:")) ++ { <br/> })
-                  }</pre>
-              }
-            }
-
-            val callback =
-              JsRaw("initBsModal('errorDetailsDialog');") & SetHtml("errorDetailsMessage", popupContent) // JsRaw ok, const
-
-            commonStatement(
+            "fa-check-circle" -> commonStatement(
               start,
               end,
-              "Error occurred in",
+              Some("Update took"),
+              "Policies updated",
+              "text-success fa fa-check",
+              "text-success"
+            )
+          case ErrorStatus(id, start, end, failure)              =>
+            "fa-times-circle" -> (commonStatement(
+              start,
+              end,
+              None,
               "Error during policy update",
               "text-danger fa fa-times",
               "text-danger"
-            ) ++
-            <li class="footer">{SHtml.a(Text("Details"), callback, ("href", "#"), ("style", "color:#DA291C !important;"))}</li>
+            ) ++ showDetailsPopup(detailsPopup(failure)))
         }
-      case Processing(id, start)                               => loadingStatement(start)
-      case ProcessingAndPendingAuto(asked, current, a, e)      => loadingStatement(current.started)
-      case ProcessingAndPendingManual(asked, current, a, e, r) => loadingStatement(current.started)
+      case Processing(id, start)                               => "fa-arrows-rotate" -> loadingStatement(start)
+      case ProcessingAndPendingAuto(asked, current, a, e)      => "fa-arrows-rotate" -> loadingStatement(current.started)
+      case ProcessingAndPendingManual(asked, current, a, e, r) => "fa-arrows-rotate" -> loadingStatement(current.started)
+    }
+    val titleIconColorClass                      = deploymentStatus.processing match {
+      case IdleDeployer =>
+        deploymentStatus.current match {
+          case _: ErrorStatus   => "text-danger"
+          case _: SuccessStatus => "text-success"
+          case NoStatus => "text-muted"
+        }
+      case _            => "text-muted"
+    }
+    <li class={"card border-start-0 border-end-0 border-top-0 p-0" + (if (hasLastBottomBorder) "" else " rounded-0")}>
+      <div class="card-body status-card">
+        <button class="card-title btn status-card-title" data-bs-toggle="collapse" data-bs-target="#policy-generation-collapse" aria-expanded="true" aria-controls="policy-generation-collapse">
+          <div class="status-card-title-caret"/>
+          Policy generation <i class={"ps-1 fa " + titleIconClass + " " + titleIconColorClass}/>
+        </button>
+        <div id="policy-generation-collapse" class="collapse show">
+          <ul class="list-group policy-generation">
+          {items}
+          {showGeneratePoliciesPopup}
+          </ul>
+        </div>
+      </div>
+    </li>
+  }
+
+  private def detailsPopup(failure: Failure): NodeSeq = {
+    failure.messageChain match {
+      case deployementErrorMessage(chain, error) =>
+        <div class="alert alert-danger" role="alert">
+          {chain.split("<-").map(x => { <b>⇨&nbsp;</b> } ++ Text(x) ++ { <br/> })}
+        </div>
+        <br/>
+        <div class="panel-group" role="tablist">
+          <div class="panel panel-default">
+            <a class="" id="showTechnicalErrorDetails" role="button" data-bs-toggle="collapse" href="#collapseListGroup1" aria-expanded="true" aria-controls="collapseListGroup1" onclick="reverseErrorDetails()">
+              <div class="panel-heading" role="tab" id="collapseListGroupHeading1">
+                <h4 class="panel-title">
+                  Show technical details
+                  <span id="showhidetechnicalerrors" class="fa fa-chevron-up up"></span>
+                </h4>
+              </div>
+            </a>
+            <div id="collapseListGroup1" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="collapseListGroupHeading1" aria-expanded="true">
+              <ul id="deploymentErrorMsg" class="list-group">
+                {error.split("<-").map(x => <li class="list-group-item">{"⇨ " + x}</li>)}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      case _ =>
+        <pre class="code">{
+          failure.messageChain
+            .split("<- ")
+            .map(x => Text("⇨ " + x.replace("cause was:", "\n    cause was:")) ++ { <br/> })
+        }</pre>
     }
   }
 
@@ -273,18 +325,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     } else NodeSeq.Empty
   }
 
-  private def showGeneratePoliciesPopup: NodeSeq = {
-    val callback = JsRaw("initBsModal('generatePoliciesDialog')") // JsRaw ok, const
-    if (havePerm(AuthorizationType.Deployer.Write)) {
-      SHtml.a(
-        Text("Regenerate all policies"),
-        callback,
-        ("class", "regeneratePolicies")
-      )
-    } else NodeSeq.Empty
-  }
-
-  private def showGroups:      NodeSeq = {
+  private def showGroups(hasLastBottomBorder: Boolean): NodeSeq = {
     def tooltipContent(error: String):       String  = {
       s"<h4 class='tags-tooltip-title'>Properties error</h4><div class='tooltip-inner-content'><pre class=\"code\">${StringEscapeUtils
           .escapeHtml4(error)}</pre></div>"
@@ -308,13 +349,14 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     groupsErrors.toList match {
       case Nil    => NodeSeq.Empty
       case errors =>
-        <li class="card border-start-0 border-end-0 border-top-0">
-          <div class="card-body">
-            <h5 class="card-title d-flex justify-content-between">
-              Group configuration errors
-              <span class="badge bg-danger">{errors.size}</span>
-            </h5>
-            <ul class="list-group">
+        <li class={"card border-start-0 border-end-0 border-top-0" + (if (hasLastBottomBorder) "" else " rounded-0")}>
+          <div class="card-body status-card">
+            <button class="card-title btn status-card-title" data-bs-toggle="collapse" data-bs-target="#group-configuration-collapse" aria-expanded="true" aria-controls="group-configuration-collapse">
+              <div class="status-card-title-caret"/>
+              Group configuration errors <span class="badge bg-danger">{errors.size}</span>
+            </button>
+            <div id="group-configuration-collapse" class="collapse show">
+              <ul class="list-group">
             {
           NodeSeq.fromSeq(
             errors.map {
@@ -335,12 +377,13 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             )
           )
         }
-            </ul>
+              </ul>
+            </div>
           </div>
         </li>
     }
   }
-  private def showNodes:       NodeSeq = {
+  private def showNodes(hasLastBottomBorder: Boolean):  NodeSeq = {
     def tooltipContent(error: String): String                                = {
       s"<h4 class='tags-tooltip-title'>Properties error</h4><div class='tooltip-inner-content'><pre class=\"code\">${StringEscapeUtils
           .escapeHtml4(error)}</pre></div>"
@@ -362,39 +405,51 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     nodesErrors.toList match {
       case Nil    => NodeSeq.Empty
       case errors =>
-        <li class="card border-start-0 border-end-0 border-top-0">
-          <div class="card-body">
-            <h5 class="card-title d-flex justify-content-between">
-              Node configuration errors
-              <span class="badge bg-danger">{errors.size}</span>
-            </h5>
-            <ul class="list-group">
+        <li class={"card border-start-0 border-end-0 border-top-0" + (if (hasLastBottomBorder) "" else " rounded-0")}>
+          <div class="card-body status-card">
+            <button class="card-title btn status-card-title" data-bs-toggle="collapse" data-bs-target="#node-configuration-collapse" aria-expanded="true" aria-controls="node-configuration-collapse">
+              <div class="status-card-title-caret"/>
+              Node configuration errors <span class="badge bg-danger">{errors.size}</span>
+            </button>
+            <div id="node-configuration-collapse" class="collapse show">
+              <ul class="list-group">
+            {
+          // prevent the same error to repeat many times for nodes
+          // 3 seems to be a reasonable size for a sample of nodes in error
+          if (errors.size > 3)
+            <em class="help-block d-flex align-items-baseline justify-content-center mb-2"><i class="fa fa-info-circle text-secondary pe-2"></i>only displaying the first 3 nodes in errors</em>
+          else NodeSeq.Empty
+        }
             {
           NodeSeq.fromSeq(
-            errors.map {
-              case (n, err) =>
-                <li class="list-group-item d-flex justify-content-between align-items-center">
+            errors
+              .take(3)
+              .map {
+                case (n, err) =>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
                   <button id={nodeBtnId(n.id)} class="btn btn-link text-start">
                     {StringEscapeUtils.escapeHtml4(n.fqdn)} <i class="fa fa-external-link"/>
                   </button>
                   {nodeLinkScript(n.id)}
                   <span>
                     <i class="fa fa-question-circle info" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-original-title={
-                  tooltipContent(err)
-                }></i>
+                    tooltipContent(err)
+                  }></i>
                   </span>
                 </li>
-            }.toList ++ WithNonce.scriptWithNonce(
+              }
+              .toList ++ WithNonce.scriptWithNonce(
               Script(OnLoad(JsRaw("""initBsTooltips();""")))
             )
           )
         }
-            </ul>
+              </ul>
+            </div>
           </div>
         </li>
     }
   }
-  private def showCompilation: NodeSeq = {
+  private def showCompilation:                          NodeSeq = {
     def tooltipContent(error: EditorTechniqueError):      String  = {
       s"<h4 class='tags-tooltip-title'>Technique compilation output in ${StringEscapeUtils.escapeHtml4(error.id.value)}/${StringEscapeUtils
           .escapeHtml4(error.version.value)}</h4><div class='tooltip-inner-content'><pre class=\"code\">${error.errorMessage}</pre></div>"
@@ -413,12 +468,13 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         NodeSeq.Empty
       case CompilationStatusErrors(techniquesInError) =>
         <li class="card border-start-0 border-end-0 border-top-0">
-          <div class="card-body">
-            <h5 class="card-title d-flex">
-              Technique compilation errors 
-              <span class="badge bg-danger float h-25">{techniquesInError.size}</span>
-            </h5>
-            <ul class="list-group">
+          <div class="card-body status-card">
+            <button class="card-title btn status-card-title" data-bs-toggle="collapse" data-bs-target="#technique-compilation-collapse" aria-expanded="true" aria-controls="technique-compilation-collapse">
+              <div class="status-card-title-caret"/>
+              Technique compilation errors <span class="badge bg-danger float h-25">{techniquesInError.size}</span>
+            </button>
+            <div id="technique-compilation-collapse" class="collapse show">
+              <ul class="list-group">
             {
           NodeSeq.fromSeq(
             techniquesInError
@@ -440,7 +496,8 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             )
           )
         }
-            </ul>
+              </ul>
+            </div>
           </div>
         </li>
     }
@@ -448,23 +505,26 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   private def layout = {
     if (havePerm(AuthorizationType.Deployment.Read)) {
+      // We have to compute in reverse order to know if the bottom border should be specialized
+      val compilation = showCompilation
+      val nodes       = showNodes(hasLastBottomBorder = compilation.isEmpty)
+      val groups      = showGroups(hasLastBottomBorder = compilation.isEmpty && nodes.isEmpty)
+      val generation  =
+        showGeneration(hasLastBottomBorder = compilation.isEmpty && nodes.isEmpty && groups.isEmpty)
 
-      <li class={"nav-item dropdown notifications-menu " ++ statusBackground}>
-        <a href="#" class="dropdown-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+      (<li class={"nav-item dropdown notifications-menu " ++ statusBackground}>
+        <a href="#" class="dropdown-toggle status-dropdown" id="statusDropdownLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           Status
           <i class="fa fa-heartbeat"></i>
           <span id="generation-status" class="label"><span></span></span>
         </a>
-        <ul class="dropdown-menu">
-          {lastStatus}
-          <li class="footer">
-            {showGeneratePoliciesPopup}
-          </li>
-          {showGroups}
-          {showNodes}
-          {showCompilation}
+        <ul class="dropdown-menu" aria-labelledby="statusDropdownLink">
+          {generation}
+          {groups}
+          {nodes}
+          {compilation}
         </ul>
-      </li> ++ errorPopup ++ generatePoliciesPopup
+      </li> ++ errorPopup ++ generatePoliciesPopup ++ scriptStatusLayout)
 
     } else NodeSeq.Empty
   }
@@ -521,6 +581,23 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         </div>
       </div>
     </div>
+  }
+
+  private def scriptStatusLayout = {
+    // logic to keep the status dropdown displayed
+    WithNonce.scriptWithNonce(
+      Script(
+        OnLoad(JsRaw(s"""
+            $$('.status-dropdown').on('hide.bs.dropdown', function () {
+              return false
+            }).on('click', function () {
+              var dropdown = $$(this);
+              var id = dropdown.attr("id");
+              $$('.dropdown-menu[aria-labelledby="'+ id + '"]').toggle()
+            });
+            """))
+      )
+    )
   }
 
   private def scriptLinkButton(btnId: String, link: String): Node = {

@@ -35,6 +35,9 @@
 *************************************************************************************
 */
 
+@import "../../node_modules/bootstrap/scss/functions";
+@import "../../node_modules/bootstrap/scss/variables";
+@import "../../node_modules/bootstrap/scss/mixins";
 
 $navbar-hover-color : #F4F4F4;
 
@@ -480,23 +483,95 @@ header.main-header .logo-lg img{
   list-style: none;
   overflow-x: hidden
 }
-.navbar-nav .notifications-menu>.dropdown-menu > li a,
 .navbar-nav>.tasks-menu>.dropdown-menu > li > a {
   display: block;
   white-space: nowrap;
-  border-bottom: 1px solid #f4f4f4
+  border-bottom: 1px solid #f4f4f4;
 }
-.navbar-nav .notifications-menu>.dropdown-menu > li a:hover,
-.navbar-nav>.tasks-menu>.dropdown-menu > li > a:hover {
-  background: $navbar-hover-color;
-  text-decoration: none
-}
-.navbar-nav .notifications-menu>.dropdown-menu > li a {
-  color: #444;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 10px
+.navbar-nav .notifications-menu>.dropdown-menu {
+  &>li a {
+    display: block;
+    white-space: nowrap;
+
+    color: #444;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 5px 10px;
+    pointer-events: none;
+  }
+
+  &>li {
+    .help-block {
+      font-size:80%;
+    }
+    #deployment-start .help-block {
+      margin:5px 0 0 10px;
+    }
+  }
+
+  .status-card {
+    button.status-card-title {
+      display: flex;
+      align-items: baseline;
+      font-size: 1.2rem;
+      text-align: left;
+      border: none;
+      &:hover,
+      &:active {
+        box-shadow: none;
+        outline: none !important;
+      }
+      .status-card-title-caret {
+        font-size: $h5-font-size;
+        transform: scale(1.1);
+        margin-right: .5rem !important;
+        color: $secondary;
+      }
+      &[aria-expanded="false"] > .status-card-title-caret {
+        @include caret(end);
+        &::after {
+          vertical-align: 0.05em;
+          margin-right: 0.2em;
+          transform: scaleY(0.9);
+          transition: ease;
+        }
+      }
+      &[aria-expanded="true"] > .status-card-title-caret {
+        @include caret(down);
+        &::after {
+          vertical-align: 0.1em;
+          transform: translate(-0.25rem) scaleY(0.9);
+          transition: ease;
+        }
+      }
+    }
+  }
+
+  button.regeneratePolicies,button.generationDetails {
+    pointer-events: all;
+    width: 100%;
+    display: flex;
+    padding: 0 26px;
+    color:#DA291C !important;
+  
+    &:hover {
+      background-color: #DA291C !important;
+      color: #fff !important;
+    }
+  } 
+
+  // this css is only used in other menus (api-authorization plugin) 
+  // and need to be more specific than just "a" tag
+  :not(.policy-generation)>li a {
+    border-bottom: 1px solid #f4f4f4;
+    padding: 10px;
+
+    &:hover {
+      background: $navbar-hover-color;
+      text-decoration: none
+    }
+  }
 }
 .navbar-nav .notifications-menu>.dropdown-menu > li a > .fa, .navbar-nav .notifications-menu>.dropdown-menu > li > a > .ion {
   width: 20px
@@ -860,16 +935,8 @@ header.main-header .logo-lg img{
 .navbar-nav .notifications-menu>.dropdown-menu>li.footer>a{
   font-size:14px !important;
 }
-.navbar-nav .notifications-menu>.dropdown-menu>li.footer>a.regeneratePolicies{
-  color:#DA291C !important;
-}
 .content-wrapper #generatePoliciesDialog button.btn{
   min-width:130px;
-}
-.navbar-nav .notifications-menu>.dropdown-menu>li.footer>a.regeneratePolicies:hover{
-  background-color: #DA291C !important;
-  color: #fff !important;
-  border-bottom-color: #DA291C;
 }
 .navbar .navbar-nav li.notifications-menu> a{
   height: 100%;
@@ -1011,13 +1078,6 @@ header.main-header .logo-lg img{
   border-top-right-radius: 0!important;
   border-color:#E2E2E2;
   border-bottom: none;
-}
-.navbar-nav .notifications-menu>.dropdown-menu > li > a .help-block{
-  font-size:80%;
-  margin:5px 0 0 30px;
-}
-.navbar-nav .notifications-menu>.dropdown-menu > li > a:hover, .navbar-nav .messages-menu .dropdown-menu > li > a:hover, .navbar-nav .tasks-menu .dropdown-menu > li > a:hover {
-  background: #F8F9FC;
 }
 .navbar-nav li>.dropdown-menu .menu{
   border-bottom: none;
