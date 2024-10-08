@@ -37,6 +37,10 @@
 
 package com.normation.rudder.domain.queries
 
+import com.comcast.ip4s.Cidr
+import com.comcast.ip4s.IpAddress
+import com.comcast.ip4s.Ipv4Address
+import com.comcast.ip4s.Ipv6Address
 import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.MachineType
@@ -242,7 +246,7 @@ class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository) {
         Criterion(A_OS_SWAP, MemoryComparator, UnsupportedByNodeMinimalApi),
         Criterion(A_AGENTS_NAME, AgentComparator, AgentMatcher),
         Criterion(A_ACCOUNT, StringComparator, UnsupportedByNodeMinimalApi),
-        Criterion(A_LIST_OF_IP, NodeIpListComparator, NodeCriterionMatcherString(_.ipAddresses.map(_.inet))),
+        Criterion(A_LIST_OF_IP, NodeIpListComparator, NodeCriterionMatcherIpaddress),
         Criterion(A_ROOT_USER, StringComparator, NodeCriterionMatcherString(_.rudderAgent.user.wrap)),
         Criterion(A_INVENTORY_DATE, DateComparator, NodeCriterionMatcherDate(_.lastInventoryDate.toChunk)),
         Criterion(
@@ -517,6 +521,50 @@ final case class NodeCriterionMatcherString(extractor: CoreNodeFact => Chunk[Str
   override def parseNum(value: String): Option[String] = Some(value)
   override def serialise(a:    String): String         = a
   val order: Ordering[String] = Ordering.String
+}
+
+/*
+ * We want to match IP address:
+ * - if equals or not equals, parse as CIDR or else IP address and work on that
+ * - if regex and other cases, parse as string
+ */
+object NodeCriterionMatcherIpaddress extends NodeCriterionMatcher {
+  private val extractor     = (n: CoreNodeFact) => n.ipAddresses.map(_.inet)
+  private val stringMatcher = NodeCriterionMatcherString(extractor)
+
+  override def matches(n: CoreNodeFact, comparator: CriterionComparator, value: String): IOResult[Boolean] = {
+    comparator match {
+      case Equals    =>
+        NodeCriterionMatcherIpaddress.buildMatcher(value, extractor(n), (ips, cidr) => ips.exists(ip => cidr.contains(ip)))
+      case NotEquals =>
+        NodeCriterionMatcherIpaddress.buildMatcher(value, extractor(n), (ips, cidr) => ips.forall(ip => !cidr.contains(ip)))
+      case c         =>
+        stringMatcher.matches(n, c, value)
+    }
+  }
+
+  /*
+   * From an input 'value' that can be a cidr or an ip, build a matcher on values
+   */
+  def buildMatcher(value: String, facts: Chunk[String], m: (Chunk[IpAddress], Cidr[IpAddress]) => Boolean): IOResult[Boolean] = {
+    Cidr
+      .fromString(value)
+      .orElse(IpAddress.fromString(value).map {
+        case ip: Ipv4Address => Cidr(ip, 32)
+        case ip: Ipv6Address => Cidr(ip, 128)
+      }) match {
+      case None       =>
+        FactQueryProcessorLoggerPure.trace(s"    - '${value}' can not be parsed into an IP address or CIDR: false'") *>
+        false.succeed
+      case Some(cidr) =>
+        implicit val ser = (ip: IpAddress) => ip.toString
+        MatchHolder[IpAddress](
+          DebugInfo(Equals.id, Some(value)),
+          facts.flatMap(IpAddress.fromString), // ignore IP that can't be parsed as IP.
+          m(_, cidr)
+        ).matches
+    }
+  }
 }
 
 /*
