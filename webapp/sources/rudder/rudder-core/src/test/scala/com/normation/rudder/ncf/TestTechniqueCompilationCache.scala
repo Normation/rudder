@@ -48,13 +48,13 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.BeforeAfterAll
-import zio.Chunk
-import zio.NonEmptyChunk
-import zio.ZIO
+import zio.*
 import zio.syntax.*
 
 @RunWith(classOf[JUnitRunner])
 class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
+
+  sequential
 
   /*
    * Reading things
@@ -141,8 +141,15 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
       )
   }
 
+  val msgLock            = Semaphore.make(1).runNow
   // sync with actor
-  private val mockActor  = new MockLiftActor
+  private val mockActor  = new MockLiftActor {
+    override def !(param: Any): Unit = msgLock
+      .withPermit(
+        super.!(param).succeed
+      )
+      .runNow
+  }
   private val writeCache = TechniqueCompilationErrorsActorSync.make(mockActor, compilationStatusService).runNow
 
   // create output test files for each technique
@@ -154,11 +161,29 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
       .runNow
   }
 
-  val expectedListOfOutputs: List[EditorTechniqueCompilationResult] = List(
+  val expectedListOfOutputs:     List[EditorTechniqueCompilationResult] = List(
     EditorTechniqueCompilationResult(technique1.id, technique1.version, technique1.name, CompilationResult.Error("tech1 error")),
     EditorTechniqueCompilationResult(technique2.id, technique2.version, technique2.name, CompilationResult.Success),
     EditorTechniqueCompilationResult(technique3.id, technique3.version, technique3.name, CompilationResult.Error("tech3 error"))
   )
+  val expectedCompilationStatus: CompilationStatusErrors                = {
+    CompilationStatusErrors(
+      NonEmptyChunk(
+        EditorTechniqueError(
+          technique1.id,
+          technique1.version,
+          technique1.name,
+          "tech1 error"
+        ),
+        EditorTechniqueError(
+          technique3.id,
+          technique3.version,
+          technique3.name,
+          "tech3 error"
+        )
+      )
+    )
+  }
 
   override def afterAll(): Unit = {
     compilationDir.delete()
@@ -172,42 +197,32 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
 
   "Error repository" should {
     "Correctly build the status" in {
-      writeCache.updateStatus(expectedListOfOutputs).runNow must beEqualTo(
-        CompilationStatusErrors(
-          NonEmptyChunk(
-            EditorTechniqueError(
-              technique1.id,
-              technique1.version,
-              technique1.name,
-              "tech1 error"
-            ),
-            EditorTechniqueError(
-              technique3.id,
-              technique3.version,
-              technique3.name,
-              "tech3 error"
-            )
-          )
-        )
-      )
+      writeCache.updateStatus(expectedListOfOutputs).runNow must beEqualTo(expectedCompilationStatus)
     }
 
     "sync with UI" in {
-      (writeCache.syncOne(expectedListOfOutputs.head) *> IOResult.attempt(
-        mockActor hasReceivedMessage_? (UpdateCompilationStatus(
-          CompilationStatusErrors(
-            NonEmptyChunk(
-              EditorTechniqueError(
-                technique1.id,
-                technique1.version,
-                technique1.name,
-                "tech1 error"
-              )
-            )
+      val newError       = {
+        EditorTechniqueCompilationResult(
+          BundleName("new tech"),
+          technique1.version,
+          "new tech",
+          CompilationResult.Error("new tech error")
+        )
+      }
+      val expectedStatus = CompilationStatusErrors(
+        NonEmptyChunk(
+          EditorTechniqueError(
+            newError.id,
+            newError.version,
+            newError.name,
+            "new tech error"
           )
-        ))
-      )).runNow
-
+        )
+      )
+      (writeCache.syncOne(newError) *> // println(mockActor.messages.head).succeed *>
+      msgLock.withPermit(
+        (mockActor hasReceivedMessage_? UpdateCompilationStatus(expectedCompilationStatus ++ expectedStatus)).succeed
+      )).runNow must beTrue and (mockActor.messageCount must beEqualTo(1))
     }
   }
 }

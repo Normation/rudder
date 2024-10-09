@@ -76,7 +76,11 @@ case class EditorTechniqueError(
 
 sealed trait CompilationStatus
 case object CompilationStatusAllSuccess                                                    extends CompilationStatus
-case class CompilationStatusErrors(techniquesInError: NonEmptyChunk[EditorTechniqueError]) extends CompilationStatus
+case class CompilationStatusErrors(techniquesInError: NonEmptyChunk[EditorTechniqueError]) extends CompilationStatus {
+  def ++(other: CompilationStatusErrors): CompilationStatusErrors = CompilationStatusErrors(
+    this.techniquesInError ++ other.techniquesInError
+  )
+}
 
 /**
   * Get latest global techniques compilation results
