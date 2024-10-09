@@ -44,6 +44,7 @@ import com.normation.inventory.domain.AcceptedInventory
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.GroupProperty
@@ -72,6 +73,7 @@ import org.specs2.matcher.Matcher
 import org.specs2.mutable.*
 import org.specs2.runner.*
 import scala.reflect.ClassTag
+import zio.Chunk
 import zio.NonEmptyChunk
 
 /*
@@ -216,8 +218,12 @@ class TestMergeGroupProperties extends Specification {
 
   "when the parent is in not in an inverted query and is missing, its an error" >> {
     val merged = MergeNodeProperties.checkPropertyMerge(Map(child.id -> child.toGroupProp), Map())
-    // this is the consequence of having recoverted from sortGroups output to a Both, to ignore group properties
     merged must beBoth[NodePropertyError.DAGError](List.empty)
+    merged.left must beLike {
+      case Some(err: NodePropertyError.DAGError) =>
+        (err.message must =~("Error when looking for parent group 'parent1' of group 'child'")) and
+        (err.message must =~("Please check criterium for that group"))
+    }
   }
 
   "when the parent is in an inverted query, its properties are not inherited" >> {
@@ -391,6 +397,20 @@ class TestMergeGroupProperties extends Specification {
       val expected = List(parent2, parent1).toH1("dns") :: Nil
       merged must beRight(expected)
     }
+  }
+
+  "when computing group properties" should {
+    "have error when parent group is missing" >> {
+      val res = MergeNodeProperties.forGroup(child.toTarget, Map(child.id -> child.toTarget), Map())
+      res must beEqualTo(
+        FailedNodePropertyHierarchy(
+          Chunk.empty,
+          NodePropertyError.MissingParentGroup(child.id, child.name, parent1.id.serialize),
+          ""
+        )
+      )
+    }
+
   }
 
   "global parameter are inherited" >> {
@@ -663,6 +683,14 @@ class TestMergeGroupProperties extends Specification {
       )
 
       actual must beEqualTo(expected)
+    }
+  }
+  // only match error sub type to expected one
+  def beLeft[E <: NodePropertyError: ClassTag] = { (ior: Ior[NodePropertyError, List[NodePropertyHierarchy]]) =>
+    ior match {
+      case Ior.Left(l: E) => ok("")
+      case o: Ior[?, ?] =>
+        ko(s"Result was not the one expected, expected Ior.Left with specific error type but got ${o}")
     }
   }
 

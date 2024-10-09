@@ -1058,10 +1058,6 @@ object NodePropertyError         {
   // The message can be very broad or specific here, it is known from the DAG resolution
   case class DAGError(override val message: String) extends NodePropertyError
 
-  // The model can end up with having an empty list of properties, so a this subtype may replace the Option API
-  case object NotFound extends NodePropertyError {
-    def message: String = "not found"
-  }
   // There are conflicts by node property
   case class PropertyInheritanceConflicts(
       conflicts: Map[NodeProperty, NonEmptyChunk[List[ParentProperty]]]
