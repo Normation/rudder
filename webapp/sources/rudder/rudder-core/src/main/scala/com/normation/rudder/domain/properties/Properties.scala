@@ -1032,6 +1032,8 @@ object JsonPropertySerialisation {
   */
 sealed trait NodePropertyError {
   def message: String
+
+  def debugString: String
 }
 
 /**
@@ -1048,7 +1050,9 @@ sealed trait NodePropertySpecificError extends NodePropertyError {
 }
 object NodePropertyError         {
   case class MissingParentGroup(groupId: NodeGroupId, groupName: String, parentGroupId: String) extends NodePropertyError {
-    def message: String = s"parent group with id '${parentGroupId}' is missing for group '${groupName}'(${groupId.serialize})"
+    def message:     String = s"parent group with id '${parentGroupId}' is missing for group '${groupName}'(${groupId.serialize})"
+    def debugString: String =
+      s"MissingParentGroup(groupId=${groupId.serialize},groupName=${groupName},parentGroupId=${parentGroupId})"
   }
   object MissingParentGroup {
     def apply(group: NodeGroup, parentGroupId: String): MissingParentGroup =
@@ -1056,11 +1060,14 @@ object NodePropertyError         {
   }
 
   // The message can be very broad or specific here, it is known from the DAG resolution
-  case class DAGError(override val message: String) extends NodePropertyError
+  case class DAGError(override val message: String) extends NodePropertyError {
+    def debugString: String = "DAGError"
+  }
 
   // The model can end up with having an empty list of properties, so a this subtype may replace the Option API
   case object NotFound extends NodePropertyError {
-    def message: String = "not found"
+    def message:     String = "not found"
+    def debugString: String = "NotFound"
   }
   // There are conflicts by node property
   case class PropertyInheritanceConflicts(
@@ -1070,6 +1077,13 @@ object NodePropertyError         {
       case (conflicting, error) =>
         s"In hierarchy with ${conflicting.map(_.displayName).mkString(", ")} :\n${error}"
     }.mkString("\n")
+
+    def debugString: String = s"PropertyInheritanceConflicts([${conflicts.map {
+        case (prop, c) =>
+          prop.name + "->" + c
+            .map(_.map(_.displayName).mkString(",")) // H = G1 (g1-uuid), G2 (g2-uuid)
+            .mkString("{", "|", "}") // conflicting hierarchies : {HA|HB|...}
+      }.mkString(",")}])"
 
     def ++(that: PropertyInheritanceConflicts): PropertyInheritanceConflicts = {
       PropertyInheritanceConflicts(conflicts ++ that.conflicts)

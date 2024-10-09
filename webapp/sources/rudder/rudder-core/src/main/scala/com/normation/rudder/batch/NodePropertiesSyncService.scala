@@ -38,8 +38,6 @@
 package com.normation.rudder.batch
 
 import com.normation.errors.IOResult
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.properties.NodePropertiesService
 import com.normation.rudder.properties.PropertiesRepository
@@ -63,13 +61,14 @@ class NodePropertiesSyncServiceImpl(
 
   override def syncProperties()(implicit qc: QueryContext): IOResult[Unit] = {
     for {
-      _        <- propertiesService.updateAll()
-      resolved <- propertiesRepository.getAllNodeProps()
-      _        <- syncWithUi(resolved)
+      _              <- propertiesService.updateAll()
+      resolvedNodes  <- propertiesRepository.getAllNodeProps()
+      resolvedGroups <- propertiesRepository.getAllGroupProps()
+      _              <- syncWithUi(UpdatePropertiesStatus(resolvedNodes, resolvedGroups))
     } yield {}
   }
 
-  private[batch] def syncWithUi(resolved: Map[NodeId, ResolvedNodePropertyHierarchy]): IOResult[Unit] = {
-    IOResult.attempt(actor ! UpdatePropertiesStatus(resolved))
+  private[batch] def syncWithUi(msg: UpdatePropertiesStatus): IOResult[Unit] = {
+    IOResult.attempt(actor ! msg)
   }
 }
