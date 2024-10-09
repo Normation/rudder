@@ -234,19 +234,17 @@ class ReportDisplayer(
 
         case R.KeepLastCompliance =>
           (
-            <p>No recent reports have been received for this node in the grace period since the last configuration policy change.
-              The grace period is expired since {displayDateOpt(info.expiredSince)}.
-               Still, this node has a configuration to keep its last known compliance until {
-              displayDateOpt(info.expirationDateTime)
-            }.</p><p>{
-              info.lastRunDateTime match {
-                case None    =>
-                  "We don't have more information about a run that might have provided compliance."
-                case Some(t) =>
-                  s"The run from which that compliance was computed started at ${displayDate(t)}."
+            <p>This node is in "keep compliance" mode because it didn't received any reports recently.</p>
+            <p>The last reports received are from 🕔 <b>{displayDateOpt(info.expiredSince)}</b>.</p>
+            <p>That mode will expire if no reports are received before {displayDateOpt(info.expirationDateTime)}.</p> ++ {
+              info.lastRunConfigId match {
+                case Some(id) =>
+                  <p>The last compliance was for configuration ID '{id.value}' for a run executed at {
+                    displayDateOpt(info.lastRunDateTime)
+                  }</p>
+                case None     => NodeSeq.Empty
               }
-            }</p><p>For information, expected node policies are displayed below.</p>
-            <p>{currentConfigId(info)}.</p>
+            }
           )
 
         case R.NoRunNoExpectedReport =>
@@ -333,9 +331,10 @@ class ReportDisplayer(
                 report.compliance.total
               } total reports) are not in Success, and may require attention.</p>
             )
+          } else if (report.runInfo.kind == R.KeepLastCompliance) {
+            ("alert alert-warning", NodeSeq.Empty)
           } else if (report.compliance.computePercent().pending > 0) {
             ("alert alert-info", NodeSeq.Empty)
-
           } else {
             ("alert alert-success", <p>All reports received for this node are in Success.</p>)
           }
