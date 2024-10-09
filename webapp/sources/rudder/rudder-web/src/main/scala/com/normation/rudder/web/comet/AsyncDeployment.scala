@@ -43,6 +43,8 @@ import bootstrap.liftweb.RudderConfig.clearCacheService
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.batch.*
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
@@ -72,18 +74,26 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private val nodeFactRepo         = RudderConfig.nodeFactRepository
+  private val nodeGroupRepo        = RudderConfig.roNodeGroupRepository
   private val linkUtil             = RudderConfig.linkUtil
 
   // current states of the deployment
   private var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
-  private var compilationStatus:         CompilationStatus                                                     = CompilationStatusAllSuccess
-  private var propertiesStatus:          Map[NodeId, ResolvedNodePropertyHierarchy]                            = Map.empty
-  private def globalStatus:              (CurrentDeploymentStatus, CompilationStatus, NodeConfigurationStatus) =
-    (deploymentStatus.current, compilationStatus, NodeConfigurationStatus.fromProperties(propertiesStatus))
+  private var compilationStatus:         CompilationStatus                                                                               = CompilationStatusAllSuccess
+  private var nodeProperties:            Map[NodeId, ResolvedNodePropertyHierarchy]                                                      = Map.empty
+  private var groupProperties:           Map[NodeGroupId, ResolvedNodePropertyHierarchy]                                                 = Map.empty
+  private def globalStatus:              (CurrentDeploymentStatus, CompilationStatus, NodeConfigurationStatus, GroupConfigurationStatus) = {
+    (
+      deploymentStatus.current,
+      compilationStatus,
+      NodeConfigurationStatus.fromProperties(nodeProperties),
+      GroupConfigurationStatus.fromProperties(groupProperties)
+    )
+  }
   // we need to get current user from SpringSecurity because it is not set in session anymore,
   // and comet doesn't know about requests
-  private val currentUser:               Option[RudderUserDetail]                                              = FindCurrentUser.get()
-  def havePerm(perm: AuthorizationType): Boolean                                                               = {
+  private val currentUser:               Option[RudderUserDetail]                                                                        = FindCurrentUser.get()
+  def havePerm(perm: AuthorizationType): Boolean                                                                                         = {
     currentUser match {
       case None    => false
       case Some(u) => u.checkRights(perm)
@@ -98,7 +108,8 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     case msg: AsyncDeploymentActorCreateUpdate =>
       deploymentStatus = msg.deploymentStatus
       compilationStatus = msg.compilationStatus
-      propertiesStatus = msg.propertiesStatus
+      nodeProperties = msg.nodeProperties
+      groupProperties = msg.groupProperties
       reRender()
   }
 
@@ -132,15 +143,22 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     deploymentStatus.processing match {
       case IdleDeployer =>
         globalStatus match {
-          case (_: ErrorStatus, _, _)                                                           =>
+          case (_: ErrorStatus, _, _, _)                 =>
             "bg-error"
-          case (_, _: CompilationStatusErrors, _)                                               =>
+          case (_, _: CompilationStatusErrors, _, _)     =>
             "bg-error"
-          case (_, _, NodeConfigurationStatus.Error)                                            =>
+          case (_, _, NodeConfigurationStatus.Error, _)  =>
             "bg-error"
-          case (NoStatus, _, _)                                                                 =>
+          case (_, _, _, GroupConfigurationStatus.Error) =>
+            "bg-error"
+          case (NoStatus, _, _, _)                       =>
             "bg-neutral"
-          case (_: SuccessStatus, CompilationStatusAllSuccess, NodeConfigurationStatus.Success) =>
+          case (
+                _: SuccessStatus,
+                CompilationStatusAllSuccess,
+                NodeConfigurationStatus.Success,
+                GroupConfigurationStatus.Success
+              ) =>
             "bg-ok"
         }
       case _            =>
@@ -266,7 +284,63 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     } else NodeSeq.Empty
   }
 
-  private def showProperties:  NodeSeq = {
+  private def showGroups:      NodeSeq = {
+    def tooltipContent(error: String):       String  = {
+      s"<h4 class='tags-tooltip-title'>Properties error</h4><div class='tooltip-inner-content'><pre class=\"code\">${StringEscapeUtils
+          .escapeHtml4(error)}</pre></div>"
+    }
+    def groupBtnId(group: NodeGroupId):      String  = {
+      StringEscapeUtils.escapeHtml4(s"status-group-${group.serialize}")
+    }
+    def groupLinkScript(group: NodeGroupId): NodeSeq = {
+      val link  = linkUtil.groupLink(group)
+      val btnId = groupBtnId(group)
+      scriptLinkButton(btnId, link)
+    }
+
+    val failures = groupProperties.collect { case (id, f: FailedNodePropertyHierarchy) => id -> f }
+    val groupsErrors: Map[NodeGroup, String] = failures.toList match {
+      case Nil      => Map.empty
+      case statuses =>
+        val groups = nodeGroupRepo.getAllByIds(statuses.map { case (id, _) => id }).runNow
+        groups.flatMap(g => failures.get(g.id).map(f => g -> f.getMessage)).toMap
+    }
+    groupsErrors.toList match {
+      case Nil    => NodeSeq.Empty
+      case errors =>
+        <li class="card border-start-0 border-end-0 border-top-0">
+          <div class="card-body">
+            <h5 class="card-title d-flex justify-content-between">
+              Group configuration errors
+              <span class="badge bg-danger">{errors.size}</span>
+            </h5>
+            <ul class="list-group">
+            {
+          NodeSeq.fromSeq(
+            errors.map {
+              case (g, err) =>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <button id={groupBtnId(g.id)} class="btn btn-link text-start">
+                    {StringEscapeUtils.escapeHtml4(g.name)} <i class="fa fa-external-link"/>
+                  </button>
+                  {groupLinkScript(g.id)}
+                  <span>
+                    <i class="fa fa-question-circle info" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-original-title={
+                  tooltipContent(err)
+                }></i>
+                  </span>
+                </li>
+            }.toList ++ WithNonce.scriptWithNonce(
+              Script(OnLoad(JsRaw("""initBsTooltips();""")))
+            )
+          )
+        }
+            </ul>
+          </div>
+        </li>
+    }
+  }
+  private def showNodes:       NodeSeq = {
     def tooltipContent(error: String): String                                = {
       s"<h4 class='tags-tooltip-title'>Properties error</h4><div class='tooltip-inner-content'><pre class=\"code\">${StringEscapeUtils
           .escapeHtml4(error)}</pre></div>"
@@ -281,7 +355,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       scriptLinkButton(btnId, link)
     }
     val allNodes = nodeFactRepo.getAll()(QueryContext.systemQC).runNow
-    val nodesErrors:                   Map[MinimalNodeFactInterface, String] = propertiesStatus.flatMap {
+    val nodesErrors:                   Map[MinimalNodeFactInterface, String] = nodeProperties.flatMap {
       case (_, _: SuccessNodePropertyHierarchy)     => None
       case (nodeId, f: FailedNodePropertyHierarchy) => allNodes.get(nodeId).map(_ -> f.getMessage)
     }
@@ -386,7 +460,8 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
           <li class="footer">
             {showGeneratePoliciesPopup}
           </li>
-          {showProperties}
+          {showGroups}
+          {showNodes}
           {showCompilation}
         </ul>
       </li> ++ errorPopup ++ generatePoliciesPopup
@@ -470,6 +545,20 @@ private object AsyncDeployment {
     case object Success extends NodeConfigurationStatus
 
     def fromProperties(properties: Map[NodeId, ResolvedNodePropertyHierarchy]): NodeConfigurationStatus = {
+      val hasError = properties.collectFirst { case (_, _: FailedNodePropertyHierarchy) => () }.isDefined
+      if (hasError) Error
+      else Success
+    }
+  }
+
+  sealed trait GroupConfigurationStatus
+
+  object GroupConfigurationStatus {
+
+    case object Error   extends GroupConfigurationStatus
+    case object Success extends GroupConfigurationStatus
+
+    def fromProperties(properties: Map[NodeGroupId, ResolvedNodePropertyHierarchy]): GroupConfigurationStatus = {
       val hasError = properties.collectFirst { case (_, _: FailedNodePropertyHierarchy) => () }.isDefined
       if (hasError) Error
       else Success

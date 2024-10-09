@@ -56,6 +56,8 @@ trait PropertiesRepository {
 
   def getAllNodeProps()(implicit qc: QueryContext): IOResult[Map[NodeId, ResolvedNodePropertyHierarchy]]
 
+  def getAllGroupProps(): IOResult[Map[NodeGroupId, ResolvedNodePropertyHierarchy]]
+
   /*
    * Get all properties for node with given ID
    */
@@ -128,6 +130,10 @@ class InMemoryPropertiesRepository(
     } yield {
       props.filter { case (id, _) => ids.contains(id) }
     }
+  }
+
+  override def getAllGroupProps(): IOResult[Map[NodeGroupId, ResolvedNodePropertyHierarchy]] = {
+    groupProps.get
   }
 
   override def getNodeProps(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Option[ResolvedNodePropertyHierarchy]] = {
