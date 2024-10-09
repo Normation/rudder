@@ -103,7 +103,7 @@ chmod +x rudder-setup
 
 ## FAQ
 
-
+<a name="rudder-core"></a>
 ### Is Rudder open-source? Is it free? What is Rudder Core?
 
 Rudder has adopted an _open-core_ model:
