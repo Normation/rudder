@@ -44,9 +44,8 @@
       app.ports.errorNotification.subscribe(function(str) {
         createErrorNotification(str)
       });
-
       app.ports.copy.subscribe(function(str) {
-        navigator.clipboard.writeText(str);
+        copy(str);
       });
 
       // Change the URL upon request, inform app of the change.
