@@ -40,8 +40,14 @@ package com.normation.rudder.web.comet
 import bootstrap.liftweb.FindCurrentUser
 import bootstrap.liftweb.RudderConfig
 import bootstrap.liftweb.RudderConfig.clearCacheService
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.batch.*
+import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
+import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
+import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
+import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.ncf.CompilationStatus
 import com.normation.rudder.ncf.CompilationStatusAllSuccess
 import com.normation.rudder.ncf.CompilationStatusErrors
@@ -50,27 +56,34 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.web.snippet.WithNonce
 import com.normation.utils.DateFormaterService
+import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
+import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import scala.util.matching.Regex
 import scala.xml.*
 
 class AsyncDeployment extends CometActor with CometListener with Loggable {
+  import AsyncDeployment.*
 
   private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
+  private val nodeFactRepo         = RudderConfig.nodeFactRepository
   private val linkUtil             = RudderConfig.linkUtil
 
   // current states of the deployment
   private var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
-  private var compilationStatus:         CompilationStatus        = CompilationStatusAllSuccess
+  private var compilationStatus:         CompilationStatus                                                     = CompilationStatusAllSuccess
+  private var propertiesStatus:          Map[NodeId, ResolvedNodePropertyHierarchy]                            = Map.empty
+  private def globalStatus:              (CurrentDeploymentStatus, CompilationStatus, NodeConfigurationStatus) =
+    (deploymentStatus.current, compilationStatus, NodeConfigurationStatus.fromProperties(propertiesStatus))
   // we need to get current user from SpringSecurity because it is not set in session anymore,
   // and comet doesn't know about requests
-  private val currentUser:               Option[RudderUserDetail] = FindCurrentUser.get()
-  def havePerm(perm: AuthorizationType): Boolean                  = {
+  private val currentUser:               Option[RudderUserDetail]                                              = FindCurrentUser.get()
+  def havePerm(perm: AuthorizationType): Boolean                                                               = {
     currentUser match {
       case None    => false
       case Some(u) => u.checkRights(perm)
@@ -85,6 +98,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     case msg: AsyncDeploymentActorCreateUpdate =>
       deploymentStatus = msg.deploymentStatus
       compilationStatus = msg.compilationStatus
+      propertiesStatus = msg.propertiesStatus
       reRender()
   }
 
@@ -117,14 +131,16 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   private def statusBackground: String = {
     deploymentStatus.processing match {
       case IdleDeployer =>
-        (deploymentStatus.current, compilationStatus) match {
-          case (_: ErrorStatus, _)                             =>
+        globalStatus match {
+          case (_: ErrorStatus, _, _)                                                           =>
             "bg-error"
-          case (_, _: CompilationStatusErrors)                 =>
+          case (_, _: CompilationStatusErrors, _)                                               =>
             "bg-error"
-          case (NoStatus, _)                                   =>
+          case (_, _, NodeConfigurationStatus.Error)                                            =>
+            "bg-error"
+          case (NoStatus, _, _)                                                                 =>
             "bg-neutral"
-          case (_: SuccessStatus, CompilationStatusAllSuccess) =>
+          case (_: SuccessStatus, CompilationStatusAllSuccess, NodeConfigurationStatus.Success) =>
             "bg-ok"
         }
       case _            =>
@@ -250,26 +266,73 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     } else NodeSeq.Empty
   }
 
+  private def showProperties:  NodeSeq = {
+    def tooltipContent(error: String): String                                = {
+      s"<h4 class='tags-tooltip-title'>Properties error</h4><div class='tooltip-inner-content'><pre class=\"code\">${StringEscapeUtils
+          .escapeHtml4(error)}</pre></div>"
+    }
+    def nodeBtnId(node: NodeId):       String                                = {
+      s"status-node-${StringEscapeUtils.escapeHtml4(node.value)}"
+    }
+    // The "a" tag has special display in the content, we need a button that opens link in new tab
+    def nodeLinkScript(node: NodeId):  NodeSeq                               = {
+      val link  = linkUtil.nodeLink(node)
+      val btnId = nodeBtnId(node)
+      scriptLinkButton(btnId, link)
+    }
+    val allNodes = nodeFactRepo.getAll()(QueryContext.systemQC).runNow
+    val nodesErrors:                   Map[MinimalNodeFactInterface, String] = propertiesStatus.flatMap {
+      case (_, _: SuccessNodePropertyHierarchy)     => None
+      case (nodeId, f: FailedNodePropertyHierarchy) => allNodes.get(nodeId).map(_ -> f.getMessage)
+    }
+    nodesErrors.toList match {
+      case Nil    => NodeSeq.Empty
+      case errors =>
+        <li class="card border-start-0 border-end-0 border-top-0">
+          <div class="card-body">
+            <h5 class="card-title d-flex justify-content-between">
+              Node configuration errors
+              <span class="badge bg-danger">{errors.size}</span>
+            </h5>
+            <ul class="list-group">
+            {
+          NodeSeq.fromSeq(
+            errors.map {
+              case (n, err) =>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <button id={nodeBtnId(n.id)} class="btn btn-link text-start">
+                    {StringEscapeUtils.escapeHtml4(n.fqdn)} <i class="fa fa-external-link"/>
+                  </button>
+                  {nodeLinkScript(n.id)}
+                  <span>
+                    <i class="fa fa-question-circle info" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-original-title={
+                  tooltipContent(err)
+                }></i>
+                  </span>
+                </li>
+            }.toList ++ WithNonce.scriptWithNonce(
+              Script(OnLoad(JsRaw("""initBsTooltips();""")))
+            )
+          )
+        }
+            </ul>
+          </div>
+        </li>
+    }
+  }
   private def showCompilation: NodeSeq = {
     def tooltipContent(error: EditorTechniqueError):      String  = {
-      s"<h4 class='tags-tooltip-title'>Technique compilation output in ${error.id.value}/${error.version.value}</h4><div class='tooltip-inner-content'><pre class=\"code\">${error.errorMessage}</pre></div>"
+      s"<h4 class='tags-tooltip-title'>Technique compilation output in ${StringEscapeUtils.escapeHtml4(error.id.value)}/${StringEscapeUtils
+          .escapeHtml4(error.version.value)}</h4><div class='tooltip-inner-content'><pre class=\"code\">${error.errorMessage}</pre></div>"
     }
     def techniqueBtnId(error: EditorTechniqueError):      String  = {
-      s"status-compilation-${error.id.value}-${error.version.value}"
+      s"status-compilation-${StringEscapeUtils.escapeHtml4(error.id.value)}-${StringEscapeUtils.escapeHtml4(error.version.value)}"
     }
     // The "a" tag has special display in the content, we need a button that opens link in new tab
     def techniqueLinkScript(error: EditorTechniqueError): NodeSeq = {
       val link  = linkUtil.techniqueLink(error.id.value)
       val btnId = techniqueBtnId(error)
-      WithNonce.scriptWithNonce(
-        Script(
-          OnLoad(JsRaw(s"""
-            document.getElementById("${btnId}").onclick = function () {
-              window.open("${link}", "_blank");
-            };
-            """))
-        )
-      )
+      scriptLinkButton(btnId, link)
     }
     compilationStatus match {
       case CompilationStatusAllSuccess                =>
@@ -288,7 +351,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
               .map(t => {
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                   <button id={techniqueBtnId(t)} class="btn btn-link text-start">
-                    {t.name} <i class="fa fa-external-link"/>
+                    {StringEscapeUtils.escapeHtml4(t.name)} <i class="fa fa-external-link"/>
                   </button>
                   {techniqueLinkScript(t)}
                   <span>
@@ -323,6 +386,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
           <li class="footer">
             {showGeneratePoliciesPopup}
           </li>
+          {showProperties}
           {showCompilation}
         </ul>
       </li> ++ errorPopup ++ generatePoliciesPopup
@@ -382,5 +446,33 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         </div>
       </div>
     </div>
+  }
+
+  private def scriptLinkButton(btnId: String, link: String): Node = {
+    WithNonce.scriptWithNonce(
+      Script(
+        OnLoad(JsRaw(s"""
+            document.getElementById("${StringEscapeUtils.escapeEcmaScript(btnId)}").onclick = function () {
+              window.open("${StringEscapeUtils.escapeEcmaScript(link)}", "_blank");
+            };
+            """))
+      )
+    )
+  }
+}
+
+private object AsyncDeployment {
+  sealed trait NodeConfigurationStatus
+
+  object NodeConfigurationStatus {
+
+    case object Error   extends NodeConfigurationStatus
+    case object Success extends NodeConfigurationStatus
+
+    def fromProperties(properties: Map[NodeId, ResolvedNodePropertyHierarchy]): NodeConfigurationStatus = {
+      val hasError = properties.collectFirst { case (_, _: FailedNodePropertyHierarchy) => () }.isDefined
+      if (hasError) Error
+      else Success
+    }
   }
 }

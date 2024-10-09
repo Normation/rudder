@@ -34,21 +34,42 @@
  *
  *************************************************************************************
  */
-package com.normation.rudder.domain.logger
 
-import com.normation.NamedZioLogger
+package com.normation.rudder.batch
 
-/**
- * Applicative pure logger for configuration status that may have vary in Rudder, 
- * from success to errors in different configuration management parts of Rudder
- */
-object StatusLoggerPure extends NamedZioLogger { parent =>
-  override def loggerName: String = "status"
+import com.normation.errors.IOResult
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
+import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.properties.NodePropertiesService
+import com.normation.rudder.properties.PropertiesRepository
+import net.liftweb.common.SimpleActor
 
-  object Techniques extends NamedZioLogger {
-    def loggerName: String = parent.loggerName + ".techniques"
+trait NodePropertiesSyncService {
+
+  /**
+    * Do actions to update all node properties with the current state 
+    * of group configuration and parameters accross groups and nodes 
+    */
+  def syncProperties()(implicit qc: QueryContext): IOResult[Unit]
+
+}
+
+class NodePropertiesSyncServiceImpl(
+    propertiesService:    NodePropertiesService,
+    propertiesRepository: PropertiesRepository,
+    actor:                SimpleActor[UpdatePropertiesStatus]
+) extends NodePropertiesSyncService {
+
+  override def syncProperties()(implicit qc: QueryContext): IOResult[Unit] = {
+    for {
+      _        <- propertiesService.updateAll()
+      resolved <- propertiesRepository.getAllNodeProps()
+      _        <- syncWithUi(resolved)
+    } yield {}
   }
-  object Properties extends NamedZioLogger {
-    def loggerName: String = parent.loggerName + ".properties"
+
+  private[batch] def syncWithUi(resolved: Map[NodeId, ResolvedNodePropertyHierarchy]): IOResult[Unit] = {
+    IOResult.attempt(actor ! UpdatePropertiesStatus(resolved))
   }
 }

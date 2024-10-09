@@ -50,6 +50,9 @@ import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.domain.logger.StatusLoggerPure
+import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
+import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
+import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.ncf.CompilationStatus
 import com.normation.rudder.ncf.CompilationStatusAllSuccess
 import com.normation.rudder.ncf.CompilationStatusErrors
@@ -143,9 +146,14 @@ case class UpdateCompilationStatus(
     status: CompilationStatus
 )
 
+case class UpdatePropertiesStatus(
+    status: Map[NodeId, ResolvedNodePropertyHierarchy]
+)
+
 final case class AsyncDeploymentActorCreateUpdate(
     deploymentStatus:  DeploymentStatus,
-    compilationStatus: CompilationStatus
+    compilationStatus: CompilationStatus,
+    propertiesStatus:  Map[NodeId, ResolvedNodePropertyHierarchy]
 )
 
 /**
@@ -185,9 +193,10 @@ final class AsyncDeploymentActor(
   // message from manager to deployment agent
   private case class NewDeployment(id: Long, modId: ModificationId, started: DateTime, actor: EventActor, eventLogId: Int)
 
-  private var lastFinishedDeployement: CurrentDeploymentStatus = getLastFinishedDeployment
-  private var compilationStatus:       CompilationStatus       = CompilationStatusAllSuccess
-  private var currentDeployerState:    DeployerState           = IdleDeployer
+  private var lastFinishedDeployement: CurrentDeploymentStatus                    = getLastFinishedDeployment
+  private var compilationStatus:       CompilationStatus                          = CompilationStatusAllSuccess
+  private var propertiesStatus:        Map[NodeId, ResolvedNodePropertyHierarchy] = Map.empty
+  private var currentDeployerState:    DeployerState                              = IdleDeployer
   private var currentDeploymentId = lastFinishedDeployement match {
     case NoStatus => 0L
     case a: SuccessStatus => a.id
@@ -217,7 +226,11 @@ final class AsyncDeploymentActor(
    * Manage what we send on other listener actors
    */
   override def createUpdate: AsyncDeploymentActorCreateUpdate = {
-    AsyncDeploymentActorCreateUpdate(DeploymentStatus(lastFinishedDeployement, currentDeployerState), compilationStatus)
+    AsyncDeploymentActorCreateUpdate(
+      DeploymentStatus(lastFinishedDeployement, currentDeployerState),
+      compilationStatus,
+      propertiesStatus
+    )
   }
 
   private def WithDetails(xml: NodeSeq)(implicit actor: EventActor, reason: Option[String] = None) = {
@@ -468,6 +481,33 @@ final class AsyncDeploymentActor(
             StatusLoggerPure.Techniques.logEffect.debug(
               s"Status of technique compilation has changed to success from previous : ${compilationStatus}"
             )
+        }
+        updateListeners()
+      }
+    }
+
+    //
+    // Updating state from properties status change
+    //
+    case UpdatePropertiesStatus(status)                                                    => {
+      StatusLoggerPure.Properties.logEffect.trace(
+        s"Properties status actor has a new update command with payload : ${status}"
+      )
+      // detecting change on status could be done more accurately
+      // than just strict equality check : ordering may change
+      // it only has impact on logs so it is sufficient
+      if (propertiesStatus != status) {
+        propertiesStatus = status
+        val (errors, _) = status.partitionMap {
+          case (nid, f: FailedNodePropertyHierarchy)  => Left(nid.value)
+          case (nid, s: SuccessNodePropertyHierarchy) => Right(nid.value)
+        }
+        if (errors.nonEmpty) {
+          StatusLoggerPure.Properties.logEffect.warn(s"Status of properties has errors for nodes ${errors.mkString(",")}")
+        } else {
+          StatusLoggerPure.Properties.logEffect.debug(
+            s"Status of properties has changed to success from previous : ${status}"
+          )
         }
         updateListeners()
       }
