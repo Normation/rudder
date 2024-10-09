@@ -50,6 +50,7 @@ import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLoggerPure
 import com.normation.rudder.domain.logger.StatusLoggerPure
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
@@ -147,13 +148,26 @@ case class UpdateCompilationStatus(
 )
 
 case class UpdatePropertiesStatus(
-    status: Map[NodeId, ResolvedNodePropertyHierarchy]
-)
+    nodes:  Map[NodeId, ResolvedNodePropertyHierarchy],
+    groups: Map[NodeGroupId, ResolvedNodePropertyHierarchy]
+) {
+  private[batch] def display: String = {
+    val displayResolved: ResolvedNodePropertyHierarchy => String = {
+      case f: FailedNodePropertyHierarchy  => f.error.debugString + (if (f.noResolved) "" else s"${f.success.size} success")
+      case s: SuccessNodePropertyHierarchy => s"${s.resolved.size} success"
+    }
+    val displayNodes = nodes.map { case (id, r) => s"${id.value}(${displayResolved(r)})" }.mkString("[", ",", "]")
+    val displayGroups = nodes.map { case (id, r) => s"${id.value}(${displayResolved(r)})" }.mkString("[", ",", "]")
+
+    s"UpdatePropertiesStatus(nodes = ${displayNodes}, groups = ${displayGroups})"
+  }
+}
 
 final case class AsyncDeploymentActorCreateUpdate(
     deploymentStatus:  DeploymentStatus,
     compilationStatus: CompilationStatus,
-    propertiesStatus:  Map[NodeId, ResolvedNodePropertyHierarchy]
+    nodeProperties:    Map[NodeId, ResolvedNodePropertyHierarchy],
+    groupProperties:   Map[NodeGroupId, ResolvedNodePropertyHierarchy]
 )
 
 /**
@@ -193,10 +207,11 @@ final class AsyncDeploymentActor(
   // message from manager to deployment agent
   private case class NewDeployment(id: Long, modId: ModificationId, started: DateTime, actor: EventActor, eventLogId: Int)
 
-  private var lastFinishedDeployement: CurrentDeploymentStatus                    = getLastFinishedDeployment
-  private var compilationStatus:       CompilationStatus                          = CompilationStatusAllSuccess
-  private var propertiesStatus:        Map[NodeId, ResolvedNodePropertyHierarchy] = Map.empty
-  private var currentDeployerState:    DeployerState                              = IdleDeployer
+  private var lastFinishedDeployement: CurrentDeploymentStatus                         = getLastFinishedDeployment
+  private var compilationStatus:       CompilationStatus                               = CompilationStatusAllSuccess
+  private var nodeProperties:          Map[NodeId, ResolvedNodePropertyHierarchy]      = Map.empty
+  private var groupProperties:         Map[NodeGroupId, ResolvedNodePropertyHierarchy] = Map.empty
+  private var currentDeployerState:    DeployerState                                   = IdleDeployer
   private var currentDeploymentId = lastFinishedDeployement match {
     case NoStatus => 0L
     case a: SuccessStatus => a.id
@@ -229,7 +244,8 @@ final class AsyncDeploymentActor(
     AsyncDeploymentActorCreateUpdate(
       DeploymentStatus(lastFinishedDeployement, currentDeployerState),
       compilationStatus,
-      propertiesStatus
+      nodeProperties,
+      groupProperties
     )
   }
 
@@ -489,24 +505,33 @@ final class AsyncDeploymentActor(
     //
     // Updating state from properties status change
     //
-    case UpdatePropertiesStatus(status)                                                    => {
+    case s @ UpdatePropertiesStatus(nodes, groups)                                         => {
       StatusLoggerPure.Properties.logEffect.trace(
-        s"Properties status actor has a new update command with payload : ${status}"
+        s"Properties status actor has a new update command with payload : ${s.display}"
       )
       // detecting change on status could be done more accurately
       // than just strict equality check : ordering may change
       // it only has impact on logs so it is sufficient
-      if (propertiesStatus != status) {
-        propertiesStatus = status
-        val (errors, _) = status.partitionMap {
-          case (nid, f: FailedNodePropertyHierarchy)  => Left(nid.value)
-          case (nid, s: SuccessNodePropertyHierarchy) => Right(nid.value)
+      if (nodeProperties != nodes || groupProperties != groups) {
+        nodeProperties = nodes
+        groupProperties = groups
+        val (nodesErrors, _)  = nodes.partitionMap {
+          case (nid, _: FailedNodePropertyHierarchy)  => Left(nid.value)
+          case (nid, _: SuccessNodePropertyHierarchy) => Right(nid.value)
         }
-        if (errors.nonEmpty) {
-          StatusLoggerPure.Properties.logEffect.warn(s"Status of properties has errors for nodes ${errors.mkString(",")}")
-        } else {
+        val (groupsErrors, _) = groups.partitionMap {
+          case (gid, _: FailedNodePropertyHierarchy)  => Left(gid.serialize)
+          case (gid, _: SuccessNodePropertyHierarchy) => Right(gid.serialize)
+        }
+        if (nodesErrors.nonEmpty) {
+          StatusLoggerPure.Properties.logEffect.warn(s"Status of properties has errors for nodes ${nodesErrors.mkString(",")}")
+        }
+        if (groupsErrors.nonEmpty) {
+          StatusLoggerPure.Properties.logEffect.warn(s"Status of properties has errors for groups ${groupsErrors.mkString(",")}")
+        }
+        if (nodesErrors.isEmpty && groupsErrors.isEmpty) {
           StatusLoggerPure.Properties.logEffect.debug(
-            s"Status of properties has changed to success from previous : ${status}"
+            s"Status of properties has changed to success from previous : ${s.display}"
           )
         }
         updateListeners()
