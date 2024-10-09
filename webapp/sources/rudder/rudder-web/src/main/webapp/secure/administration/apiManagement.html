@@ -39,7 +39,7 @@
         });
 
         app.ports.copy.subscribe(function (str) {
-          navigator.clipboard.writeText(str);
+          copy(str);
         });
         // Initialize tooltips
         app.ports.initTooltips.subscribe(function (msg) {

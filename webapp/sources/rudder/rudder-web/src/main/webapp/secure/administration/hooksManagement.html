@@ -32,7 +32,7 @@
         createSuccessNotification(message);
       });
       app.ports.copy.subscribe(function(str) {
-        navigator.clipboard.writeText(str);
+        copy(str);
       });
     </script>
 </lift:surround>

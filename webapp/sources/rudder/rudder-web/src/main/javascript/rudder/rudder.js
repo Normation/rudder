@@ -852,3 +852,7 @@ function initBsTabs(){
     });
 });
 }
+
+function copy(value) {
+  navigator.clipboard.writeText(value).then(function(){ createInfoNotification("Copied to clipboard!") }, function() {createErrorNotification("Could not copy to clipboard")})
+}
