@@ -34,6 +34,11 @@ type alias EditProperty =
 
 type ValueFormat = JsonFormat | StringFormat
 
+type alias InheritedProperties = 
+  { properties : List Property
+  , errorMessage : Maybe String
+  }
+
 type alias Property =
   { name      : String
   , value     : Value
@@ -46,6 +51,7 @@ type alias Property =
 type alias HierarchyStatus =
   { hasChildTypeConflicts : Bool
   , fullHierarchy : List ParentProperty
+  , errorMessage : Maybe String
   }
 
 type alias ParentGlobalProperty = { valueType : String }
@@ -99,6 +105,7 @@ type alias Model =
   , properties       : List Property
   , newProperty      : EditProperty
   , ui               : UI
+  , errorMessage     : Maybe String
   }
 
 getPageMax : TablePagination -> Int
@@ -133,7 +140,7 @@ type Msg
   | Copy String
   | CallApi (Model -> Cmd Msg)
   | SaveProperty String (Result Error (List Property))
-  | GetNodeProperties (Result Error (List Property))
+  | GetInheritedProperties (Result Error InheritedProperties)
   | FindPropertyUsage String (Result Error (List SearchResult))
   | UpdateNewProperty EditProperty
   | UpdateProperty String EditProperty

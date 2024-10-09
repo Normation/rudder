@@ -8,7 +8,7 @@ import Html.Events exposing (onClick, onInput)
 
 import NodeProperties.DataTypes exposing (..)
 import NodeProperties.ViewUtils exposing (..)
-import NodeProperties.ApiCalls exposing (getNodeProperties)
+import NodeProperties.ApiCalls exposing (getInheritedProperties)
 
 
 view : Model -> Html Msg
@@ -31,13 +31,13 @@ view model =
     in
       div[]
       [ div [class "row", id "nodeProp"]
-        [ div [ class "col-sm-12" ] [
-            div [ class "alert alert-info" ] [
-                text "These are properties that can be used in directive inputs with the "
-              , b [ class "code" ] [ text "${node.properties[NAME]}" ]
-              , text " syntax."
-              ]
-          ]
+        [ div [ class "col-sm-12" ] 
+          (( div [ class "alert alert-info" ] 
+            [ text "These are properties that can be used in directive inputs with the "
+            , b [ class "code" ] [ text "${node.properties[NAME]}" ]
+            , text " syntax."
+            ]
+          ) :: (displayPropertiesError model))
         , ( if model.ui.hasNodeWrite then
           div[class "col-lg-7 col-md-8 col-xs-12 add-prop-form"]
           [ label[for "newPropName", class "fw-bold"][text "Add a new property:"]
@@ -95,7 +95,7 @@ view model =
         , div [class "col-sm-12 tab-table-content"]
           [ div [class "table-header"]
             [ input [type_ "text", placeholder "Filter", class "input-sm form-control", onInput (\s -> UpdateTableFiltersProperty {filters | filter = s})][]
-            , button [class "btn btn-default", onClick (CallApi getNodeProperties)] [ i [class "fa fa-refresh"][] ]
+            , button [class "btn btn-default", onClick (CallApi getInheritedProperties)] [ i [class "fa fa-refresh"][] ]
             ]
             , div [class "table-container"]
               [ table [class "no-footer dataTable", id "nodePropertiesTab"]
