@@ -615,6 +615,7 @@ class ComplianceAPIService(
              })
   }
 
+  // this method only get userCompliance (system rule not included in rulesRepo.getAll)
   private def getByDirectivesCompliance(
       directives:    Seq[Directive],
       allDirectives: Map[DirectiveId, (FullActiveTechnique, Directive)], // to compute policy mode for each rule
@@ -652,7 +653,9 @@ class ComplianceAPIService(
 
       globalPolicyMode <- getGlobalPolicyMode
 
-      reportsByRule = reportsByNode.flatMap { case (_, status) => status.reports.flatMap(_._2.reports).toSeq }.groupBy(_.ruleId)
+      reportsByRule = reportsByNode.flatMap {
+                        case (_, status) => status.reports.get(PolicyTypeName.rudderBase).map(_.reports).getOrElse(Nil)
+                      }.groupBy(_.ruleId)
       t7           <- currentTimeMillis
       _            <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - group reports by rules in ${t7 - t6} ms")
 
@@ -723,7 +726,7 @@ class ComplianceAPIService(
 
   /**
    * Get the compliance for everything
-   * level is optionnally the selected level.
+   * level is optionally the selected level.
    * level 1 includes rules but not directives
    * level 2 includes directives, but not component
    * level 3 includes components, but not nodes
