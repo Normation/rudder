@@ -197,7 +197,7 @@ class NodeGroupForm(
         showFormNodeGroup(group)(html) ++ showRelatedRulesTree(GroupTarget(group.id)) ++ showGroupCompliance(
           group.id.uid.value
         )
-    }) ++ Script(OnLoad(JsRaw(s"""new ClipboardJS('[data-clipboard-text]');""")))
+    })
   }
 
   private def showRelatedRulesTree(target: RuleTarget): NodeSeq = {
@@ -294,8 +294,8 @@ class NodeGroupForm(
                       <label class="wbBaseFieldLabel">Group ID</label>
                       <div class="position-relative align-items-center">
                         <input readonly="" class="form-control" value={nodeGroup.id.serialize}/>
-                          <a class="my-2 mx-3 position-absolute end-0 top-0" title="Copy to clipboard" data-clipboard-text={
-        nodeGroup.id.serialize
+                          <a class="my-2 mx-3 position-absolute end-0 top-0" title="Copy to clipboard" onclick={
+        s"copy('${nodeGroup.id.serialize}')"
       }>
                             <i class="fa fa-clipboard"></i>
                         </a>
@@ -389,8 +389,8 @@ class NodeGroupForm(
                     <label class="wbBaseFieldLabel">Group ID</label>
                     <div class="position-relative align-items-center">
                       <input readonly="" class="form-control" value={target.target}/>
-                        <a class="my-2 mx-3 position-absolute end-0 top-0" title="Copy to clipboard" data-clipboard-text={
-      target.target
+                        <a class="my-2 mx-3 position-absolute end-0 top-0" title="Copy to clipboard" onclick={
+      s"copy('${target.target}')"
     }>
                           <i class="fa fa-clipboard"></i>
                       </a>
