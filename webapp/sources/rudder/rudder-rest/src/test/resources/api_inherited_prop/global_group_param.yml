@@ -1,0 +1,827 @@
+---
+description: List parameters
+method: GET
+url: /api/latest/parameters
+response:
+  code: 200
+  content: >-
+    {
+      "action":"listParameters",
+      "result":"success",
+      "data":{
+        "parameters":[
+          {
+            "id" : "badOverrideType",
+            "value" : "a string",
+            "description" : "a string at first"
+          },
+          {
+            "id":"jsonParam",
+            "value":{"array":[1,3,2], "json":{"var1":"val1","var2":"val2"}, "string":"a string"},
+            "description":"a simple string param"
+          },
+          {
+            "id":"modeParam",
+            "value":"some string",
+            "description":"a simple string param",
+            "inheritMode":"opa"
+          },
+          {
+            "id" : "rudder",
+            "value" : {
+              "compliance_expiration_policy" : {
+                "mode" : "expire_immediately"
+              }
+            },
+            "description" : "rudder system config",
+            "provider" : "system"
+          },
+          {
+            "id":"stringParam",
+            "value":"some string",
+            "description":"a simple string param"
+          },
+          {
+            "id":"systemParam",
+            "value":"some string",
+            "description":"a simple string param",
+            "provider":"system"
+          }
+        ]
+      }
+    }
+---
+description: Get a group
+method: GET
+url: /api/latest/groups/0000f5d3-8c61-4d20-88a7-bb947705ba8a
+response:
+  code: 200
+  content: >-
+    {
+      "action":"groupDetails",
+      "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+      "result":"success",
+      "data":{
+        "groups":[
+          {
+            "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName":"Real nodes",
+            "description":"",
+            "category":"category1",
+            "query":{
+              "select":"nodeAndPolicyServer",
+              "composition":"or",
+              "where":[
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"node1"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"node2"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"root"
+                }
+              ]
+            },
+           "nodeIds":[
+              "node1",
+              "node2",
+              "root"
+            ],
+            "dynamic":false,
+            "enabled":true,
+            "groupClass":[
+              "group_0000f5d3_8c61_4d20_88a7_bb947705ba8a",
+              "group_real_nodes"
+            ],
+            "properties":[
+              {"name":"stringParam","value":"string","inheritMode":"map","provider":"datasources"},
+              {"name":"jsonParam","value":{"array":[5,6],"group":"string","json":{"g1":"g1"}}},
+              {"name":"badOverrideType","value" : {"now" :"a json"}}
+            ],
+            "target":"group:0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
+          }
+        ]
+      }
+    }
+---
+description: Get a group inherited properties in JSON
+method: GET
+url: /api/latest/groups/0000f5d3-8c61-4d20-88a7-bb947705ba8a/inheritedProperties
+response:
+  code: 200
+  content: >-
+    {
+      "action":"groupInheritedProperties",
+      "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+      "result":"success",
+      "data":{
+        "groups":[
+              {
+                "groupId":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                "properties":[
+              {
+                "name" : "badOverrideType",
+                "value" : {
+                  "now" : "ajson"
+                },
+                "provider" : "overridden",
+                "hierarchy" : [
+                  {
+                    "kind" : "global",
+                    "value" : "astring"
+                  },
+                  {
+                    "kind" : "group",
+                    "name" : "thisgroup",
+                    "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                    "value" : {
+                      "now" : "ajson"
+                    }
+                  }
+                ],
+                "hierarchyStatus" : {
+                  "hasChildTypeConflicts" : true,
+                  "fullHierarchy" : [
+                    {
+                      "kind" : "global",
+                      "valueType" : "String"
+                    },
+                    {
+                      "kind" : "group",
+                      "name" : "Realnodes",
+                      "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                      "valueType" : "Object"
+                    }
+                  ]
+                },
+                "origval" : {
+                  "now" : "ajson"
+                }
+              },
+              {
+                "name":"jsonParam",
+                "value":{
+                  "array":[5,6],
+                  "group":"string",
+                  "json":{"g1":"g1","var1":"val1","var2":"val2"},
+                  "string":"a string"
+                },
+                "provider":"overridden",
+                "hierarchy":[
+                  {
+                    "kind":"global",
+                    "value":{"array":[1,3,2],"json":{"var1":"val1","var2":"val2"},"string":"a string"}
+                  },
+                  {
+                    "kind":"group",
+                    "name":"this group",
+                    "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                    "value":{
+                      "array":[5,6],
+                      "group":"string",
+                      "json":{"g1":"g1"}
+                    }
+                  }
+                ],
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":[
+                    {
+                      "kind":"global",
+                      "valueType":"Object"
+                    },
+                    {
+                      "kind":"group",
+                      "name":"Real nodes",
+                      "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                      "valueType":"Object"
+                    }
+                  ]
+                },
+                "origval":{
+                  "array":[5,6],
+                  "group":"string",
+                  "json":{"g1":"g1"}
+                }
+              },
+              {
+                "name":"modeParam",
+                "value":"some string",
+                "inheritMode":"opa",
+                "provider":"inherited",
+                "hierarchy":[
+                  {
+                    "kind":"global",
+                    "value":"some string"
+                  }
+                ],
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":[
+                    {
+                      "kind":"global",
+                      "valueType":"String"
+                    }
+                  ]
+                },
+                "origval":"some string"
+              },
+              {
+                "name":"stringParam",
+                "value":"stringsome string",
+                "inheritMode":"map",
+                "provider":"overridden",
+                "hierarchy":[
+                  {
+                    "kind":"global",
+                    "value":"some string"
+                  },
+                  {
+                    "kind":"group",
+                    "name":"this group",
+                    "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                    "value":"string"
+                  }
+                ],
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":[
+                    {
+                      "kind":"global",
+                      "valueType":"String"
+                    },
+                    {
+                      "kind":"group",
+                      "name":"Real nodes",
+                      "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                      "valueType":"String"
+                    }
+                  ]
+                },
+                "origval":"string"
+              },
+              {
+                "name":"systemParam",
+                "value":"some string",
+                "provider":"inherited",
+                "hierarchy":[
+                  {
+                    "kind":"global",
+                    "value":"some string"
+                  }
+                ],
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":[
+                    {
+                      "kind":"global",
+                      "valueType":"String"
+                    }
+                  ]
+                },
+                "origval":"some string"
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Get a group inherited properties in HTML
+method: GET
+url: /secure/api/groups/0000f5d3-8c61-4d20-88a7-bb947705ba8a/displayInheritedProperties
+response:
+  code: 200
+  content: >-
+    {
+      "action":"groupDisplayInheritedProperties",
+      "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+      "result":"success",
+      "data": {
+        "groups": [
+          {
+            "groupId":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "properties":[
+              {
+                "name" : "badOverrideType",
+                "value" : {
+                  "now" : "ajson"
+                },
+                "provider" : "overridden",
+                "hierarchy" : "<p>from<b>GlobalParameter</b>:<pre>\"astring\"</pre></p><p>from<b>thisgroup(0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>{\n\"now\":\"ajson\"\n}\n</pre></p>",
+                "hierarchyStatus" : {
+                  "hasChildTypeConflicts" : true,
+                  "fullHierarchy" : [
+                    {
+                      "kind" : "global",
+                      "valueType" : "String"
+                    },
+                    {
+                      "kind" : "group",
+                      "name" : "Realnodes",
+                      "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                      "valueType" : "Object"
+                    }
+                  ]
+                },
+                "origval" : {
+                  "now" : "ajson"
+                }
+              },
+              {
+                "name":"jsonParam",
+                "value":{
+                  "array":[5,6],
+                  "group":"string",
+                  "json":{"g1":"g1","var1":"val1","var2":"val2"},
+                  "string":"a string"
+                },
+                "provider":"overridden",
+                "hierarchy":"<p>from <b>Global Parameter</b>:<pre>{\n \"array\":[\n 1,\n 3,\n 2\n ],\n \"json\":{\n \"var1\":\"val1\",\n \"var2\":\"val2\"\n },\n \"string\":\"a string\"\n}\n</pre></p><p>from <b>this group (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>{\n \"array\":[\n 5,\n 6\n ],\n \"group\":\"string\",\n \"json\":{\n \"g1\":\"g1\"\n }\n}\n</pre></p>",
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":[
+                    {
+                      "kind":"global",
+                      "valueType":"Object"
+                    },
+                    {
+                      "kind":"group",
+                      "name":"Real nodes",
+                      "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                      "valueType":"Object"
+                    }
+                  ]
+                },
+                "origval":{
+                  "array":[5,6],
+                  "group":"string",
+                  "json":{"g1":"g1"}
+                }
+              },
+              {
+                "name":"modeParam",
+                "value":"some string",
+                "inheritMode":"opa",
+                "provider":"inherited",
+                "hierarchy":"<p>from <b>Global Parameter</b>:<pre>\"some string\"</pre></p>",
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":[
+                    {
+                      "kind":"global",
+                      "valueType":"String"
+                    }
+                  ]
+                },
+                "origval":"some string"
+              },
+              {
+                "name":"stringParam",
+                "value":"stringsome string",
+                "inheritMode":"map",
+                "provider":"overridden",
+                "hierarchy":"<p>from <b>Global Parameter</b>:<pre>\"some string\"</pre></p><p>from <b>this group (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>\"string\"</pre></p>",
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":[
+                    {
+                      "kind":"global",
+                      "valueType":"String"
+                    },
+                    {
+                      "kind":"group",
+                      "name":"Real nodes",
+                      "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                      "valueType":"String"
+                    }
+                  ]
+                },
+                "origval":"string"
+              },
+              {
+                "name":"systemParam",
+                "value":"some string",
+                "provider":"inherited",
+                "hierarchy":"<p>from <b>Global Parameter</b>:<pre>\"some string\"</pre></p>",
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":[
+                    {
+                      "kind":"global",
+                      "valueType":"String"
+                    }
+                  ]
+                },
+                "origval":"some string"
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: List groups
+method: GET
+url: /api/latest/groups
+response:
+  code: 200
+  content: >-
+    {
+      "action":"listGroups",
+      "result":"success",
+      "data":{
+        "groups":[
+          {
+            "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName":"Real nodes",
+            "description":"",
+            "category":"category1",
+            "query":{
+              "select":"nodeAndPolicyServer",
+              "composition":"or",
+              "where":[
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"node1"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"node2"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"root"
+                }
+              ]
+            },
+            "nodeIds":["node1","node2","root"],
+            "dynamic":false,
+            "enabled":true,
+            "groupClass":[
+              "group_0000f5d3_8c61_4d20_88a7_bb947705ba8a",
+              "group_real_nodes"
+            ],
+            "properties":[
+              {"name":"stringParam","value":"string","inheritMode":"map","provider":"datasources"},
+              {"name":"jsonParam","value":{"array":[5,6],"group":"string","json":{"g1":"g1"}}},
+              {"name":"badOverrideType","value" : {"now" :"a json"}}
+            ],
+            "target":"group:0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
+          },
+          {
+            "id":"1111f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName":"Empty group",
+            "description":"",
+            "category":"GroupRoot",
+            "nodeIds":[],
+            "dynamic":false,
+            "enabled":true,
+            "groupClass":[
+              "group_1111f5d3_8c61_4d20_88a7_bb947705ba8a",
+              "group_empty_group"
+            ],
+            "properties":[],
+            "target":"group:1111f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
+          },
+          {
+            "id":"2222f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName":"only root",
+            "description":"",
+            "category":"GroupRoot",
+            "nodeIds":["root"],
+            "dynamic":false,
+            "enabled":true,
+            "groupClass":[
+              "group_2222f5d3_8c61_4d20_88a7_bb947705ba8a",
+              "group_only_root"
+            ],
+            "properties":[],
+            "target":"group:2222f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
+          },
+          {
+            "id":"3333f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName":"Even nodes",
+            "description":"",
+            "category":"GroupRoot",
+            "nodeIds":["0","10","2","4","6","8"],
+            "dynamic":false,
+            "enabled":true,
+            "groupClass":[
+              "group_3333f5d3_8c61_4d20_88a7_bb947705ba8a",
+              "group_even_nodes"
+            ],
+            "properties":[],
+            "target":"group:3333f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
+          },
+          {
+            "id":"4444f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName":"Odd nodes",
+            "description":"",
+            "category":"GroupRoot",
+            "nodeIds":["1","3","5","7","9"],
+            "dynamic":false,
+            "enabled":true,
+            "groupClass":[
+              "group_4444f5d3_8c61_4d20_88a7_bb947705ba8a",
+              "group_odd_nodes"
+            ],
+            "properties":[],
+            "target":"group:4444f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
+          },
+          {
+            "id":"5555f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName":"Nodes id divided by 3",
+            "description":"",
+            "category":"GroupRoot",
+            "nodeIds":["0","3","6","9"],
+            "dynamic":false,
+            "enabled":true,
+            "groupClass":[
+              "group_5555f5d3_8c61_4d20_88a7_bb947705ba8a",
+              "group_nodes_id_divided_by_3"
+            ],
+            "properties":[],
+            "target":"group:5555f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
+          },
+          {
+            "id":"6666f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName":"Nodes id divided by 5",
+            "description":"",
+            "category":"GroupRoot",
+            "nodeIds":["0","10","5"],
+            "dynamic":false,
+            "enabled":true,
+            "groupClass":[
+              "group_6666f5d3_8c61_4d20_88a7_bb947705ba8a",
+              "group_nodes_id_divided_by_5"
+            ],
+            "properties":[],
+            "target":"group:6666f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
+          },
+          {
+            "id":"a-group-for-root-only",
+            "displayName":"Serveurs [€ðŋ]cassés",
+            "description":"Liste de l'ensemble de serveurs cassés àréparer",
+            "category":"GroupRoot",
+            "nodeIds":["root"],
+            "dynamic":true,
+            "enabled":true,
+            "groupClass":[
+              "group_a_group_for_root_only",
+              "group_serveurs_______casses"
+            ],
+            "properties":[],
+            "target":"group:a-group-for-root-only",
+            "system":false
+          },
+          {
+            "id" : "all-nodes",
+            "displayName" : "All nodes",
+            "description" : "All nodes known by Rudder(including Rudder policy servers)",
+            "category" : "GroupRoot",
+            "nodeIds" : [
+              "0",
+              "1",
+              "10",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9"
+            ],
+            "dynamic" : false,
+            "enabled" : true,
+            "groupClass" : [
+              "group_all_nodes",
+              "group_all_nodes"
+            ],
+            "properties" : [],
+            "target" : "group:all-nodes",
+            "system" : true
+          }
+        ]
+      }
+    }
+---
+description: Get node (inherited properties)
+method: GET
+url: /api/latest/nodes/node1/inheritedProperties
+response:
+  code: 200
+  content: >-
+    {
+      "action":"nodeInheritedProperties",
+      "result":"success",
+      "data":[
+        {
+          "nodeId":"node1",
+          "properties":[
+            {
+              "name":"badOverrideType",
+              "value":{
+                "now":"a json"
+              },
+              "provider":"inherited",
+              "hierarchy":[
+                {
+                  "kind":"global",
+                  "value":"a string"
+                },
+                {
+                  "kind":"group",
+                  "name":"Real nodes",
+                  "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                  "value":{
+                    "now":"a json"
+                  }
+                }
+              ],
+              "origval":{
+                "now":"a json"
+              },
+              "hierarchyStatus":{
+                "hasChildTypeConflicts":true,
+                "fullHierarchy":[
+                  {
+                    "kind":"global",
+                    "valueType":"String"
+                  },
+                  {
+                    "kind":"group",
+                    "valueType":"Object",
+                    "name":"Real nodes",
+                    "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a"
+                  }
+                ]
+              }
+            },
+            {
+              "name":"jsonParam",
+              "value":{
+                "array":[5, 6],
+                "group":"string",
+                "json":{
+                  "g1":"g1",
+                  "var1":"val1",
+                  "var2":"val2"
+                },
+                "string":"a string"
+              },
+              "provider":"inherited",
+              "hierarchy":[
+                {
+                  "kind":"global",
+                  "value":{
+                    "array":[1,3,2],
+                    "json":{
+                      "var1":"val1",
+                      "var2":"val2"
+                    },
+                    "string":"a string"
+                  }
+                },
+                {
+                  "kind":"group",
+                  "name":"Real nodes",
+                  "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                  "value":{
+                    "array":[5,6],
+                    "group":"string",
+                    "json":{
+                      "g1":"g1"
+                    }
+                  }
+                }
+              ],
+              "origval":{
+                "array":[5,6],
+                "group":"string",
+                "json":{
+                  "g1":"g1"
+                }
+              },
+              "hierarchyStatus":{
+                "hasChildTypeConflicts":false,
+                "fullHierarchy":[
+                  {
+                    "kind":"global",
+                    "valueType":"Object"
+                  },
+                  {
+                    "kind":"group",
+                    "valueType":"Object",
+                    "name":"Real nodes",
+                    "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a"
+                  }
+                ]
+              }
+            },
+            {
+              "name":"modeParam",
+              "value":"some string",
+              "provider":"inherited",
+              "inheritMode":"opa",
+              "hierarchy":[
+                {
+                  "kind":"global",
+                  "value":"some string"
+                }
+              ],
+              "origval":"some string",
+              "hierarchyStatus":{
+                "hasChildTypeConflicts":false,
+                "fullHierarchy":[
+                  {
+                    "kind":"global",
+                    "valueType":"String"
+                  }
+                ]
+              }
+            },
+            {
+              "name":"stringParam",
+              "value":"stringsome string",
+              "provider":"inherited",
+              "inheritMode":"map",
+              "hierarchy":[
+                {
+                  "kind":"global",
+                  "value":"some string"
+                },
+                {
+                  "kind":"group",
+                  "name":"Real nodes",
+                  "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                  "value":"string"
+                }
+              ],
+              "origval":"string",
+              "hierarchyStatus":{
+                "hasChildTypeConflicts":false,
+                "fullHierarchy":[
+                  {
+                    "kind":"global",
+                    "valueType":"String"
+                  },
+                  {
+                    "kind":"group",
+                    "valueType":"String",
+                    "name":"Real nodes",
+                    "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a"
+                  }
+                ]
+              }
+            },
+            {
+              "name":"systemParam",
+              "value":"some string",
+              "provider":"inherited",
+              "hierarchy":[
+                {
+                  "kind":"global",
+                  "value":"some string"
+                }
+              ],
+              "origval":"some string",
+              "hierarchyStatus":{
+                "hasChildTypeConflicts":false,
+                "fullHierarchy":[
+                  {
+                    "kind":"global",
+                    "valueType":"String"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
