@@ -54,8 +54,6 @@ import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
-import com.normation.rudder.domain.properties.NodePropertyError
-import com.normation.rudder.domain.properties.NodePropertySpecificError
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.domain.properties.Visibility.Displayed
 import com.normation.rudder.facts.nodes.ChangeContext
@@ -1379,71 +1377,66 @@ class GroupApiService14(
       nodes <- nodeFactRepo.getAll().map(_.filterKeys(serverList.contains(_)).values)
 
       // gather successfully resolved properties, for now nothing is done when there is an error for a failed one for a group (contrary to a node)
-      parentProperties <-
-        propertiesRepo.getGroupProps(groupId).notOptional(s"Group with ID '${groupId.serialize}' was not found").map(_.resolved)
-      properties       <- ZIO.foreach(nodes) { nodeFact =>
-                            // for each property, find merged properties for nodes in the group
-                            propertiesRepo
-                              .getNodeProps(nodeFact.id)
-                              .map(
-                                _.orEmpty // having no node properties means it's empty for that node
-                                  .prependFailureMessage(
-                                    s"Inherited properties are in an error state when searching properties in relation with group ${allGroups
-                                        .get(groupId)
-                                        .map(_.nodeGroup.name)
-                                        .getOrElse("current group")} (with ID '${groupId.serialize}') and all its nodes: "
-                                  )
-                              )
-                              .map(resolvedProperties => {
-                                // for each property of the group, search all properties in node properties
-                                // and take them into account for property status
-                                val childProperties = resolvedProperties.resolved
-                                val success         = parentProperties.collect {
-                                  case p if p.prop.visibility == Displayed =>
-                                    // a single node prop should be matching the current one
-                                    // and we should validate the found the hierarchy of the child node property found
-                                    val matchingChildProperties = childProperties.collectFirst {
-                                      case cp if cp.prop.name == p.prop.name => cp.hierarchy
-                                    }
-                                    InheritedPropertyStatus.fromChildren(
-                                      p,
-                                      matchingChildProperties
-                                    )
-                                }
-                                val error           = resolvedProperties match {
-                                  case f: FailedNodePropertyHierarchy  =>
-                                    // there has been some errors when computing the hierarchy
-                                    // aggregate properties that have still been resolved first and combine them with errors
-                                    f.error match {
-                                      case propsErrors: NodePropertySpecificError =>
-                                        // there are individual errors by property that can be resolved and rendered individually
-                                        parentProperties.collect {
-                                          case p if p.prop.visibility == Displayed =>
-                                            propsErrors.propertiesErrors
-                                              .get(p.prop.name)
-                                              .map {
-                                                case (cp, errorMessage) =>
-                                                  ErrorInheritedPropertyStatus.from(p.prop.name, cp, errorMessage)
-                                              }
-                                        }.flatten
-                                      case _:           NodePropertyError         =>
-                                        // we don't know the errored props, it may be all of them and there may be a global status error
-                                        Chunk(GlobalPropertyStatus.fromResolvedNodeProperty(f))
-                                    }
-                                  case s: SuccessNodePropertyHierarchy => Chunk.empty
-                                }
+      parentProperties      <-
+        propertiesRepo.getGroupProps(groupId).notOptional(s"Group with ID '${groupId.serialize}' was not found")
+      checkedNodeProperties <-
+        // to check for potential type conflicts in the properties of node, we need to look at each node
+        ZIO.when(nodes.nonEmpty) {
+          ZIO.foreach(nodes) { nodeFact =>
+            // for each property, find merged properties for nodes in the group
+            propertiesRepo
+              .getNodeProps(nodeFact.id)
+              .map(
+                _.orEmpty // having no node properties means it's empty for that node
+                  .prependFailureMessage(
+                    s"Inherited properties are in an error state when searching properties in relation with group ${allGroups
+                        .get(groupId)
+                        .map(_.nodeGroup.name)
+                        .getOrElse("current group")} (with ID '${groupId.serialize}') and all its nodes: "
+                  )
+              )
+              .map(resolvedProperties => {
+                // for each property of the group, search all properties in node properties
+                // and take them into account for property status
+                val childProperties = resolvedProperties.resolved
+                val success         = parentProperties.resolved.collect {
+                  case p if p.prop.visibility == Displayed =>
+                    // a single node prop should be matching the current one
+                    // and we should validate the found the hierarchy of the child node property found
+                    val matchingChildProperties = childProperties.collectFirst {
+                      case cp if cp.prop.name == p.prop.name => cp.hierarchy
+                    }
+                    InheritedPropertyStatus.fromChildren(
+                      p,
+                      matchingChildProperties
+                    )
+                }
+                val error           = resolvedProperties match {
+                  case f: FailedNodePropertyHierarchy  => PropertyStatus.fromFailedHierarchy(f)
+                  case s: SuccessNodePropertyHierarchy => Chunk.empty
+                }
 
-                                success ++ error
-                              })
-                          }
-
+                success ++ error
+              })
+          }
+        }
+      groupPropertyStatuses: Iterable[PropertyStatus] = checkedNodeProperties match {
+                                                          case None            => // no Node is group : just use resolved group properties
+                                                            parentProperties match {
+                                                              case s: SuccessNodePropertyHierarchy =>
+                                                                s.resolved.map(InheritedPropertyStatus.from(_))
+                                                              case f: FailedNodePropertyHierarchy  =>
+                                                                PropertyStatus.fromFailedHierarchy(f)
+                                                            }
+                                                          case Some(nodeProps) =>
+                                                            nodeProps.flatten // gather all properties on every node
+                                                        }
     } yield {
       JRGroupInheritedProperties.fromGroup(
         groupId,
-        Chunk.from(properties.flatten),
+        Chunk.from(groupPropertyStatuses),
         renderInHtml
       )
     }
   }
-
 }
