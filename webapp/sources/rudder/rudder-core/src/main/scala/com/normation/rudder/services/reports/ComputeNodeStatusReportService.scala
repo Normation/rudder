@@ -263,8 +263,12 @@ class ComputeNodeStatusReportServiceImpl(
           case _                                            =>
             val impactedNodeIds = actions.map(x => x.nodeId)
             for {
-              x <- ZIO.foreach(impactedNodeIds.grouped(batchSize).to(Seq)) { updatedNodes =>
+              _ <- ZIO.foreach(impactedNodeIds.grouped(batchSize).to(Seq)) { updatedNodes =>
                      for {
+                       _       <- ReportLoggerPure.Cache.debug(s"Nodes asked to recompute compliance: ${updatedNodes.size}")
+                       _       <- ReportLoggerPure.Cache.trace(
+                                    s"Nodes asked to recompute compliance: ${updatedNodes.map(_.value).mkString(", ")}"
+                                  )
                        updated <- findNewNodeStatusReports
                                     .findRuleNodeStatusReports(updatedNodes.toSet)(QueryContext.systemQC)
                        _       <- saveUpdatedCompliance(updated)
@@ -318,22 +322,23 @@ class ComputeNodeStatusReportServiceImpl(
                                     case (Some(NodeComplianceExpiration(NodeComplianceExpirationMode.KeepLast, Some(d))), Some(expiration)) =>
                                       val keepUntil = expiration.plus(d.toMillis)
                                       if (now.isBefore(keepUntil)) {
-                                        ComplianceLoggerPure.info(
-                                          s"Node with id '${id.value}' hasn't send report in expected time but " +
-                                          s"${NodePropertyBasedComplianceExpirationService.PROP_NAME}.${NodePropertyBasedComplianceExpirationService.PROP_SUB_NAME} " +
-                                          s"is configured to keep compliance for ${d}: waiting until ${keepUntil.toString(DateFormaterService.rfcDateformat)}"
-                                        ) *>
-                                        ComplianceLoggerPure.trace(s"Last run info for '${id.value}': ${r.runInfo}") *>
-                                        (
-                                          id,
-                                          r
-                                            .modify(_.runInfo.kind)
-                                            .setTo(RunAnalysisKind.KeepLastCompliance)
-                                            .modify(_.runInfo.expiredSince)
-                                            .setTo(r.runInfo.expirationDateTime)
-                                            .modify(_.runInfo.expirationDateTime)
-                                            .setTo(Some(keepUntil))
-                                        ).succeed
+                                        for {
+                                          _ <-
+                                            ComplianceLoggerPure.info(
+                                              s"Node with id '${id.value}' hasn't send report in expected time but " +
+                                              s"${NodePropertyBasedComplianceExpirationService.PROP_NAME}.${NodePropertyBasedComplianceExpirationService.PROP_SUB_NAME} " +
+                                              s"is configured to keep compliance for ${d}: waiting until ${keepUntil.toString(DateFormaterService.rfcDateformat)}"
+                                            )
+                                          _ <- ComplianceLoggerPure.trace(s"Last run info for '${id.value}': ${r.runInfo.debugString}")
+                                          k  = r
+                                                 .modify(_.runInfo.kind)
+                                                 .setTo(RunAnalysisKind.KeepLastCompliance)
+                                                 .modify(_.runInfo.expiredSince)
+                                                 .setTo(r.runInfo.expirationDateTime)
+                                                 .modify(_.runInfo.expirationDateTime)
+                                                 .setTo(Some(keepUntil))
+                                          _ <- ComplianceLoggerPure.trace(s"Updated run to keep for '${id.value}': ${k.runInfo.debugString}")
+                                        } yield (id, k)
                                       } else {
                                         ComplianceLoggerPure.debug(
                                           s"Node with id '${id.value}' hasn't send report in expected time and the additional duration from policy expired at ${keepUntil
