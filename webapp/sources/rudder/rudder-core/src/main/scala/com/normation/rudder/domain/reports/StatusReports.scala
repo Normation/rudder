@@ -131,7 +131,21 @@ final case class RunAnalysis(
     lastRunDateTime:     Option[DateTime],
     lastRunConfigId:     Option[NodeConfigId],
     lastRunExpiration:   Option[DateTime]
-)
+) {
+  def debugString: String = {
+    def d(o: Option[DateTime]): String = {
+      o.map(_.toString).getOrElse("N/A")
+    }
+
+    def i(o: Option[NodeConfigId]): String = {
+      o.map(_.value).getOrElse("no id")
+    }
+
+    s"[${kind.entryName}] expected CID: '${i(expectedConfigId)}'; expected start: '${d(expectedConfigStart)}'; " +
+    s"expired since: ${d(expiredSince)}; expiration: '${d(expirationDateTime)}'; last run: '${i(lastRunConfigId)}' " +
+    s"${d(lastRunDateTime)} -> ${d(lastRunExpiration)}]"
+  }
+}
 
 final case class NodeStatusReport(
     nodeId:     NodeId,

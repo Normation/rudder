@@ -159,10 +159,16 @@ class NodeStatusReportRepositoryImpl(
                          case RunAnalysisKind.KeepLastCompliance =>
                            m.get(id) match {
                              case Some(e) =>
-                               e.runInfo.kind match {
-                                 case RunAnalysisKind.ComputeCompliance => // keep existing compliance, change run info
+                               e.runInfo.kind match { // here we need to check for all expiring status from `def outDatedCompliance`
+                                 case RunAnalysisKind.ComputeCompliance | RunAnalysisKind.Pending =>
+                                   // For ComputeCompliance: it's the standard case of keeping existing compliance.
+                                   // Of the saved node is pending, it means that we are in a case where the node never saved
+                                   // anything else than pending since it was first processed, so the node never had a computed
+                                   // compliance (it was a new report, directly in pending). Let it blue.
+                                   // In both case: keep existing compliance, change run info to avoid loop.
                                    Some((id, e.modify(_.runInfo).setTo(report.runInfo)))
-                                 case _                                 => // in any other case, change nothing but check if there's an actual change
+
+                                 case _ => // in any other case, change nothing but check if there's an actual change
                                    if (e == report) None else Some((id, e))
                                }
                              case None    => // ok, just a new report
