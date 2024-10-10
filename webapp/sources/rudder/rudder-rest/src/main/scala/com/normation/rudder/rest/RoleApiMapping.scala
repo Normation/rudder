@@ -199,7 +199,7 @@ object AuthorizationApiMapping {
 
         case Rule.Read  =>
           RuleApi.ListRules.x :: RuleApi.RuleDetails.x :: RuleApi.GetRuleTree.x ::
-          RuleApi.GetRuleCategoryDetails.x :: RuleInternalApi.GetRuleNodesAndDirectives.x ::
+          RuleApi.GetRuleCategoryDetails.x :: RuleInternalApi.GetRuleNodesAndDirectives.x :: RuleInternalApi.GetGroupRelatedRules.x ::
           AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("enable_change_message") :: Nil) ::
           AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("enable_change_request") :: Nil) ::
           AuthzForApi.withValues(SettingsApi.GetSetting, AclPathSegment.Segment("enable_self_deployment") :: Nil) ::
