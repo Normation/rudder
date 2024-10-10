@@ -2603,6 +2603,13 @@ object RudderConfigInit {
       configService.node_accept_duplicated_hostname()
     )
 
+    lazy val defaultStateAndPolicyMode = new DefaultStateAndPolicyMode(
+      "accept_new_node:setup_default_settings",
+      nodeFactRepository,
+      configService.rudder_node_onaccept_default_policy_mode(),
+      configService.rudder_node_onaccept_default_state()
+    )
+
     // used in accept node to see & store inventories on acceptation
     lazy val inventoryHistoryLogRepository: InventoryHistoryLogRepository = {
       val fullInventoryFromLdapEntries: FullInventoryFromLdapEntries =
@@ -3016,7 +3023,7 @@ object RudderConfigInit {
 
       // the sequence of unit process to accept a new inventory
       val unitAcceptors = {
-        acceptHostnameAndIp ::
+        acceptHostnameAndIp :: defaultStateAndPolicyMode ::
         Nil
       }
 
