@@ -21,14 +21,14 @@ mod rpm;
 mod yum;
 mod zypper;
 
-/// Details of a package (installed or available) in a package manager context
+/// Packages indexed by (name, arch).
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PackageList {
     // This structure allows querying the presence of a package efficiently
     pub(crate) inner: HashMap<PackageId, PackageInfo>,
 }
 
-/// Details of a package (installed or available) in a package manager context
+/// Details of a package (installed or available) in a package manager context.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub(crate) struct PackageInfo {
     pub(crate) version: String,
@@ -145,13 +145,12 @@ impl PackageId {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PackageManager {
     #[serde(alias = "dnf")]
-    #[default]
     Yum,
-    #[cfg(feature = "apt")]
+    #[serde(alias = "apt_get")]
     Apt,
     Zypper,
     Rpm,
@@ -162,10 +161,8 @@ impl FromStr for PackageManager {
 
     fn from_str(s: &str) -> Result<Self> {
         Ok(match s {
-            "yum" => PackageManager::Yum,
-            "dnf" => PackageManager::Yum,
-            #[cfg(feature = "apt")]
-            "apt" => PackageManager::Apt,
+            "yum" | "dnf" => PackageManager::Yum,
+            "apt" | "apt_get" => PackageManager::Apt,
             "zypper" => PackageManager::Zypper,
             "rpm" => PackageManager::Rpm,
             _ => bail!("Unknown package manager: {}", s),
@@ -179,6 +176,8 @@ impl PackageManager {
             PackageManager::Yum => Box::new(YumPackageManager::new()),
             #[cfg(feature = "apt")]
             PackageManager::Apt => Box::new(AptPackageManager::new()?),
+            #[cfg(not(feature = "apt"))]
+            PackageManager::Apt => bail!("This module was not build with APT support"),
             PackageManager::Zypper => Box::new(ZypperPackageManager::new()),
             _ => bail!("This package manager does not provide patch management features"),
         })
@@ -191,13 +190,12 @@ impl PackageManager {
             if l.starts_with("ID=") {
                 let id = l.split('=').skip(1).next().unwrap();
                 return Ok(match id {
-                    #[cfg(feature = "apt")]
                     "debian" | "ubuntu" => Self::Apt,
                     "fedora" | "centos" | "rhel" | "rocky" | "ol" | "almalinux" | "amzn" => {
                         Self::Yum
                     }
                     "sles" | "sled" => Self::Zypper,
-                    _ => bail!("Unknown package manager: {}", l),
+                    _ => bail!("Unknown package manager for OS: {}", id),
                 });
             }
         }
