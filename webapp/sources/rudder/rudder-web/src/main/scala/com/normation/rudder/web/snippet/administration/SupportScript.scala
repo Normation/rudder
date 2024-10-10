@@ -37,17 +37,22 @@
 
 package com.normation.rudder.web.snippet.administration
 
+import bootstrap.liftweb.RudderConfig
+import com.normation.zio.UnsafeRun
+import java.util.Base64
 import net.liftweb.common.Loggable
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.IdMemoizeTransform
-import net.liftweb.http.S
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JsCmd
+import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
 import scala.xml.Text
 
 class DebugScript extends DispatchSnippet with Loggable {
+
+  private val debugInfoService = RudderConfig.debugScript
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "render" => launchDebugScript }
 
@@ -56,7 +61,36 @@ class DebugScript extends DispatchSnippet with Loggable {
     // JsCmd which will be sent back to the browser
     // as part of the response
     def process(): JsCmd = {
-      S.redirectTo("/secure/api/system/debug/info")
+      val scriptResult = debugInfoService.launch().either.runNow
+      val cmd          = scriptResult match {
+        case Left(_)      =>
+          """createErrorNotification("Error has occured while getting debug script result, please consult policy server logs");"""
+        case Right(value) =>
+          // create blob of binary data and download it, see https://stackoverflow.com/a/37340749
+          val base64 = Base64.getEncoder().encodeToString(value.result)
+          s"""
+          function base64ToArrayBuffer(base64) {
+            var binaryString = window.atob(base64);
+            var binaryLen = binaryString.length;
+            var bytes = new Uint8Array(binaryLen);
+            for (var i = 0; i < binaryLen; i++) {
+              var ascii = binaryString.charCodeAt(i);
+              bytes[i] = ascii;
+            }
+            return bytes;
+          }
+          function saveByteArray(downloadedFileName, byte) {
+            var blob = new Blob([byte], {type: "application/gzip"});
+            var link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            var fileName = downloadedFileName;
+            link.download = fileName;
+            link.click();
+          }
+          saveByteArray("${value.serverName}", base64ToArrayBuffer("${base64}"));
+          """
+      }
+      Run(cmd)
     }
 
     // process the list of networks
