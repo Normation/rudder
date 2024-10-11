@@ -72,6 +72,7 @@ import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.NodePropertyError
+import com.normation.rudder.domain.properties.NodePropertyError.*
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.NodePropertySpecificError
 import com.normation.rudder.domain.properties.ParentProperty
@@ -1469,6 +1470,40 @@ object JsonResponseObjects {
     def errorMessage: Option[String]
   }
   object PropertyStatus       {
+
+    /**
+   * When there has been some errors when computing the hierarchy,
+   * we can have multiple property statuses in global or specific error:
+   * find all of them
+   */
+    def fromFailedHierarchy(f: FailedNodePropertyHierarchy): Chunk[PropertyStatus] = {
+      f.error match {
+        case specificError: NodePropertySpecificError =>
+          // to find properties in error that are visible we need to get NodeProperty by pattern-matching
+          specificError match {
+            case PropertyInheritanceConflicts(conflicts) =>
+              Chunk.from(conflicts.collect {
+                case (p, _) if p.visibility == Displayed =>
+                  // there are individual errors by property that can be resolved and rendered individually
+                  specificError.propertiesErrors
+                    .get(p.name)
+                    .map {
+                      case (parentProperties, errorMessage) =>
+                        ErrorInheritedPropertyStatus.from(
+                          p.name,
+                          parentProperties,
+                          errorMessage
+                        )
+                    }
+              }.flatten)
+          }
+        case _:             NodePropertyError         =>
+          // we don't know the errored props, it may be all of them and there may be a global status error
+          Chunk(GlobalPropertyStatus.fromResolvedNodeProperty(f))
+      }
+
+    }
+
     implicit class IterablePropertyStatusOps(it: Iterable[PropertyStatus]) {
 
       /**
