@@ -42,6 +42,7 @@ pub fn splayed_start(
 mod tests {
     use super::*;
     use chrono::{Duration, TimeZone};
+    use uuid::Uuid;
 
     #[test]
     fn test_splayed_start() {
@@ -53,9 +54,11 @@ mod tests {
         assert_eq!(splay.timestamp(), 1656961861);
 
         for schedule in [5, 10, 15] {
-            for i in 0..100 {
+            for _i in 0..100 {
+                let id = Uuid::new_v4();
                 let start_s =
-                    splayed_start(start, end, Duration::minutes(schedule), &i.to_string()).unwrap();
+                    splayed_start(start, end, Duration::minutes(schedule), &id.to_string())
+                        .unwrap();
                 assert!(start_s >= start);
                 assert!(start_s < end);
             }

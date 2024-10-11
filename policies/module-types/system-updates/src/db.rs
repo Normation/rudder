@@ -334,7 +334,7 @@ mod tests {
         let event = Event {
             id: event_id.to_string(),
             campaign_name: campaign_name.to_string(),
-            status: UpdateStatus::PendingReport,
+            status: UpdateStatus::Running,
             scheduled_datetime: schedule,
             run_datetime: Some(start),
             report_datetime: None,
@@ -346,7 +346,7 @@ mod tests {
         let ref_event = Event {
             id: event_id.to_string(),
             campaign_name: campaign_name.to_string(),
-            status: UpdateStatus::PendingReport,
+            status: UpdateStatus::Running,
             scheduled_datetime: schedule,
             run_datetime: Some(start),
             report_datetime: None,

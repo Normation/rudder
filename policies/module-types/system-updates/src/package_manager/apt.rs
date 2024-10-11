@@ -19,7 +19,7 @@ use rust_apt::{
     PackageSort,
 };
 use std::{collections::HashMap, env, io::Read, path::Path, process::Command};
-use stdio_override::StdoutOverride;
+use stdio_override::{StderrOverride, StderrOverrideGuard, StdoutOverride, StdoutOverrideGuard};
 
 /// Reference guides:
 /// * https://www.debian.org/doc/manuals/debian-faq/uptodate.en.html
@@ -110,6 +110,40 @@ impl AptPackageManager {
     }
 }
 
+// Catch stdout/stderr from the library
+pub struct OutputCatcher {
+    out_file: MemFile,
+    out_guard: StdoutOverrideGuard,
+    err_file: MemFile,
+    err_guard: StderrOverrideGuard,
+}
+
+impl OutputCatcher {
+    pub fn new() -> Self {
+        let out_file = MemFile::create_default("stdout").unwrap();
+        let err_file = MemFile::create_default("stderr").unwrap();
+        let out_guard = StdoutOverride::override_raw(out_file.try_clone().unwrap()).unwrap();
+        let err_guard = StderrOverride::override_raw(err_file.try_clone().unwrap()).unwrap();
+
+        Self {
+            out_file,
+            out_guard,
+            err_file,
+            err_guard,
+        }
+    }
+
+    pub fn read(mut self) -> (String, String) {
+        drop(self.out_guard);
+        drop(self.err_guard);
+        let mut out = String::new();
+        self.out_file.read_to_string(&mut out).unwrap();
+        let mut err = String::new();
+        self.err_file.read_to_string(&mut err).unwrap();
+        (out, err)
+    }
+}
+
 impl LinuxPackageManager for AptPackageManager {
     fn update_cache(&mut self) -> ResultOutput<()> {
         let cache = self.cache();
@@ -118,14 +152,12 @@ impl LinuxPackageManager for AptPackageManager {
             let mut progress = AcquireProgress::apt();
 
             // Collect stdout through an in-memory fd.
-            let mut file = MemFile::create_default("foo").unwrap();
-            let guard = StdoutOverride::override_raw(file.try_clone().unwrap()).unwrap();
+            let catch = OutputCatcher::new();
             let mut r = Self::apt_errors_to_output(o.update(&mut progress));
-            drop(guard);
-            let mut out = String::new();
-            file.read_to_string(&mut out).unwrap();
+            let (out, err) = catch.read();
             // FIXME should be inserted before
             r.stdout(out);
+            r.stderr(err);
             r
         } else {
             cache.clear_ok()
@@ -188,8 +220,12 @@ impl LinuxPackageManager for AptPackageManager {
             // Do the changes
             let mut install_progress = InstallProgress::apt();
             let mut acquire_progress = AcquireProgress::apt();
-            let res_commit =
+            let catch = OutputCatcher::new();
+            let mut res_commit =
                 Self::apt_errors_to_output(c.commit(&mut acquire_progress, &mut install_progress));
+            let (out, err) = catch.read();
+            res_commit.stdout(out);
+            res_commit.stderr(err);
             res.step(res_commit)
         } else {
             cache.clear_ok()
@@ -210,7 +246,7 @@ impl LinuxPackageManager for AptPackageManager {
 
             for p in c.packages(&filter) {
                 p.versions().for_each(|v| {
-                    // FIXME: get actual default rules from unnatended upgrades
+                    // FIXME: get actual default rules from unattended-upgrades
                     if v.source_name().contains("security") {
                         v.set_candidate();
                         p.mark_install(false, false);
@@ -227,8 +263,12 @@ impl LinuxPackageManager for AptPackageManager {
             // Do the changes
             let mut acquire_progress = AcquireProgress::apt();
             let mut install_progress = InstallProgress::apt();
-            let res_commit =
+            let catch = OutputCatcher::new();
+            let mut res_commit =
                 Self::apt_errors_to_output(c.commit(&mut acquire_progress, &mut install_progress));
+            let (out, err) = catch.read();
+            res_commit.stdout(out);
+            res_commit.stderr(err);
             res_resolve.step(res_commit)
         } else {
             cache.clear_ok()
@@ -273,8 +313,12 @@ impl LinuxPackageManager for AptPackageManager {
             // Do the changes
             let mut acquire_progress = AcquireProgress::apt();
             let mut install_progress = InstallProgress::apt();
-            let res_commit =
+            let catch = OutputCatcher::new();
+            let mut res_commit =
                 Self::apt_errors_to_output(c.commit(&mut acquire_progress, &mut install_progress));
+            let (out, err) = catch.read();
+            res_commit.stdout(out);
+            res_commit.stderr(err);
             res_resolve.step(res_commit)
         } else {
             cache.clear_ok()
