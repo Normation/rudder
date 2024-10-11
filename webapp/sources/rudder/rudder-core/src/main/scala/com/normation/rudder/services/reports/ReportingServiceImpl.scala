@@ -44,6 +44,7 @@ import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.NodeStatusReport
+import com.normation.rudder.domain.reports.NodeStatusReport.*
 import com.normation.rudder.domain.reports.RuleStatusReport
 import com.normation.rudder.facts.nodes.QueryContext
 import zio.{System as _, *}
@@ -92,14 +93,6 @@ class ReportingServiceImpl2(nsrRepo: NodeStatusReportRepository) extends Reporti
     nsrRepo.getNodeStatusReports(nodeIds).map(ReportingService.filterReportsByDirectives(_, filterByDirectives))
   }
 
-  override def findSystemAndUserRuleCompliances(nodeIds: Set[NodeId])(implicit
-      qc: QueryContext
-  ): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = {
-    nsrRepo
-      .getNodeStatusReports(nodeIds)
-      .map(m => (m.map(x => (x._1, x._2.systemCompliance)), (m.map(x => (x._1, x._2.baseCompliance)))))
-  }
-
   override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit
       qc: QueryContext
   ): IOResult[Map[NodeId, NodeStatusReport]] = {
@@ -130,14 +123,14 @@ class ReportingServiceImpl2(nsrRepo: NodeStatusReportRepository) extends Reporti
 
   override def getSystemAndUserCompliance(optNodeIds: Option[Set[NodeId]])(implicit
       qc: QueryContext
-  ): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = {
+  ): IOResult[SystemUserComplianceRun] = {
     for {
       m <- optNodeIds match {
              case Some(nodeIds) => nsrRepo.getNodeStatusReports(nodeIds)
              case None          => nsrRepo.getAll()
            }
     } yield {
-      (m.map(x => (x._1, x._2.systemCompliance)), m.map(x => (x._1, x._2.baseCompliance)))
+      SystemUserComplianceRun.fromNodeStatusReports(m)
     }
   }
 

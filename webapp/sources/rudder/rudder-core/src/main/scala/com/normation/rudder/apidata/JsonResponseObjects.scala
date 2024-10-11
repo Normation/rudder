@@ -84,6 +84,7 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.domain.reports.ComplianceLevel
+import com.normation.rudder.domain.reports.RunAnalysisKind
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.CoreNodeFact
@@ -581,6 +582,7 @@ object JsonResponseObjects {
       os:                      String,
       state:                   NodeState,
       compliance:              Option[JRNodeCompliance],
+      runAnalysisKind:         Option[RunAnalysisKind],
       systemError:             Boolean,
       ipAddresses:             Chunk[IpAddress],
       acceptanceDate:          String,         // display date
@@ -599,6 +601,7 @@ object JsonResponseObjects {
         inheritedProperties:    Chunk[NodePropertyHierarchy],
         softs:                  Chunk[domain.Software],
         compliance:             Option[JRNodeCompliance],
+        runAnalysisKind:        Option[RunAnalysisKind],
         systemCompliance:       Option[JRNodeSystemCompliance],
         score:                  GlobalScore
     ): Transformer[CoreNodeFact, JRNodeDetailTable] = {
@@ -637,6 +640,7 @@ object JsonResponseObjects {
           nf => DateFormaterService.getDisplayDate(nf.lastInventoryDate.getOrElse(nf.factProcessedDate))
         )
         .withFieldConst(_.compliance, compliance)
+        .withFieldConst(_.runAnalysisKind, runAnalysisKind)
         .withFieldConst(
           _.systemError,
           systemCompliance
@@ -2091,6 +2095,7 @@ trait RudderJsonEncoders {
 
   implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = DeriveJsonEncoder.gen[JRNodeDetailLevel]
 
+  implicit val runAnalysisKindEncoder:  JsonEncoder[RunAnalysisKind]   = JsonEncoder[String].contramap(_.entryName)
   implicit val jrNodeComplianceEncoder: JsonEncoder[JRNodeCompliance]  = JsonEncoder[ComplianceLevel].contramap(_.compliance)
   implicit val policyModeSerializer:    JsonEncoder[PolicyMode]        = JsonEncoder[String].contramap(_.name)
   implicit val jrGlobalScoreEncoder:    JsonEncoder[JRGlobalScore]     = DeriveJsonEncoder.gen[JRGlobalScore]

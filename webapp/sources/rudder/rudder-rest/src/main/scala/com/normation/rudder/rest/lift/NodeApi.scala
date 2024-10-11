@@ -73,6 +73,7 @@ import com.normation.rudder.domain.properties.NodePropertySpecificError
 import com.normation.rudder.domain.properties.Visibility.Displayed
 import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.reports.RunAnalysisKind
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFact
@@ -1067,8 +1068,11 @@ class NodeApiService(
             implicit val inheritedProperties:    Chunk[NodePropertyHierarchy]   =
               Chunk.fromIterable(inheritedProp.get(n.id).getOrElse(Nil))
             implicit val softwares:              Chunk[Software]                = Chunk.fromIterable(softs.get(n.id).getOrElse(Nil))
-            implicit val nodeCompliance:         Option[JRNodeCompliance]       = compliance._2.get(n.id).map(JRNodeCompliance(_))
-            implicit val systemCompliance:       Option[JRNodeSystemCompliance] = compliance._1.get(n.id).map(JRNodeSystemCompliance(_))
+            implicit val nodeCompliance:         Option[JRNodeCompliance]       =
+              compliance.user.get(n.id).map { case (_, compliance) => JRNodeCompliance(compliance) }
+            implicit val runAnalysisKind:        Option[RunAnalysisKind]        = compliance.user.get(n.id).map { case (kind, _) => kind }
+            implicit val systemCompliance:       Option[JRNodeSystemCompliance] =
+              compliance.system.get(n.id).map(JRNodeSystemCompliance(_))
             implicit val score:                  GlobalScore                    = {
               scores
                 .get(n.id)

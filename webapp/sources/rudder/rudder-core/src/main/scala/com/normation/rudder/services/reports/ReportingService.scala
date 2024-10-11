@@ -45,6 +45,7 @@ import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.NodeStatusReport
+import com.normation.rudder.domain.reports.NodeStatusReport.*
 import com.normation.rudder.facts.nodes.QueryContext
 
 /**
@@ -66,18 +67,6 @@ trait ReportingService {
       nodeIds:            Set[NodeId],
       filterByDirectives: Set[DirectiveId]
   )(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]]
-
-  /**
-   * Retrieve two sets of rule/node compliances level given the nodes Id.
-   * Optionally restrict the set to some rules if filterByRules is non empty (else,
-   * find node status reports for all rules)
-   *
-   * The first set is System compliance.
-   * The second set is User compliance.
-   */
-  def findSystemAndUserRuleCompliances(
-      nodeIds: Set[NodeId]
-  )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])]
 
   /**
    * A specialised version of `findRuleNodeStatusReports` to find node status reports for a given rule.
@@ -111,7 +100,9 @@ trait ReportingService {
    */
   def getSystemAndUserCompliance(
       optNodeIds: Option[Set[NodeId]]
-  )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])]
+  )(implicit
+      qc:         QueryContext
+  ): IOResult[SystemUserComplianceRun]
 
   /**
   * Get the global compliance, restricted to user defined rules/directives.
