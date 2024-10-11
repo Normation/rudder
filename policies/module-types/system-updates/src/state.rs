@@ -14,7 +14,6 @@ pub enum UpdateStatus {
     Scheduled,
     Running,
     PendingPostActions,
-    PendingReport,
     Completed,
 }
 
@@ -25,7 +24,6 @@ impl Display for UpdateStatus {
             Self::Running => "running",
             Self::Completed => "completed",
             Self::PendingPostActions => "pending-post-actions",
-            Self::PendingReport => "pending-report",
         })
     }
 }
@@ -38,7 +36,6 @@ impl FromStr for UpdateStatus {
             "running" => Ok(Self::Running),
             "scheduled" => Ok(Self::Scheduled),
             "completed" => Ok(Self::Completed),
-            "pending-report" => Ok(Self::PendingReport),
             "pending-post-actions" => Ok(Self::PendingPostActions),
             _ => Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,

@@ -52,7 +52,7 @@ impl LinuxPackageManager for ZypperPackageManager {
 
     fn full_upgrade(&mut self) -> ResultOutput<()> {
         let mut c = Command::new("zypper");
-        c.arg("--non-interactive").arg("--name").arg("update");
+        c.arg("--non-interactive").arg("update");
         let res_update = ResultOutput::command(c);
         res_update.clear_ok()
     }
