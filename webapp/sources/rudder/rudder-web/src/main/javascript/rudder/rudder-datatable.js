@@ -1338,9 +1338,13 @@ function createNodeTable(gridId, refresh, scores) {
       , "type" : "numeric"
       , "createdCell" : function (nTd, sData, oData, iRow, iCol) {
           var link = callbackElement(oData, true)
+          link.addClass("d-flex align-items-center")
           var complianceBar = "<span class='text-muted'>N/A</span>"
           if (oData.compliance !== undefined) {
-            complianceBar = $('<div id="compliance-bar-'+oData.id+'"></div>').append(buildComplianceBar(oData.compliance))
+            complianceBar = $('<div id="compliance-bar-'+oData.id+'" style="flex:0 0 100%;"></div>').append(buildComplianceBar(oData.compliance))
+            if (oData.runAnalysisKind !== undefined && oData.runAnalysisKind.toString().toLowerCase() == "keeplastcompliance") {
+              link.append('<span style="font-size:0.6rem;margin-right: 2px;margin-left: -13px;">🕔</span>')
+            }
           }
           link.append(complianceBar)
           $(nTd).empty();
