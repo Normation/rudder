@@ -46,6 +46,7 @@ import enumeratum.Enum
 import enumeratum.EnumEntry
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
+import scala.collection.MapView
 import zio.Chunk
 
 /**
@@ -178,6 +179,24 @@ final case class NodeStatusReport(
 }
 
 object NodeStatusReport {
+
+  /**
+    * Transform a set of reports into compliance by node and policy type (system and user),
+    * and the runAnalysisKind
+    */
+  final case class SystemUserComplianceRun(
+      system: MapView[NodeId, ComplianceLevel],
+      user:   MapView[NodeId, (RunAnalysisKind, ComplianceLevel)]
+  )
+  object SystemUserComplianceRun {
+    def empty:                                                         SystemUserComplianceRun = SystemUserComplianceRun(MapView.empty, MapView.empty)
+    def fromNodeStatusReports(reports: Map[NodeId, NodeStatusReport]): SystemUserComplianceRun = {
+      SystemUserComplianceRun(
+        reports.view.mapValues(r => r.systemCompliance),
+        reports.view.mapValues(r => (r.runInfo.kind, r.baseCompliance))
+      )
+    }
+  }
 
   /*
    * This method filters an NodeStatusReport by Rules.
@@ -732,7 +751,6 @@ object JsonPostgresqlSerialization {
   object JRunAnalysis {
     implicit lazy val i: Iso[JRunAnalysis, RunAnalysis] = Iso.derive
 
-    implicit lazy val encoderRunAnalysisKind: JsonEncoder[RunAnalysisKind] = JsonEncoder.string.contramap(_.entryName)
     implicit lazy val decoderRunAnalysisKind: JsonDecoder[RunAnalysisKind] =
       JsonDecoder.string.mapOrFail(x => RunAnalysisKind.withNameEither(x).left.map(_.getMessage()))
 

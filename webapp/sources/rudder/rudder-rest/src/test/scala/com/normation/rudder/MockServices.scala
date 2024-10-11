@@ -87,6 +87,7 @@ import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.domain.reports.NodeStatusReport
+import com.normation.rudder.domain.reports.NodeStatusReport.*
 import com.normation.rudder.domain.reports.OverriddenPolicy
 import com.normation.rudder.domain.reports.ReportType
 import com.normation.rudder.domain.reports.RuleNodeStatusReport
@@ -353,17 +354,16 @@ class MockCompliance(mockDirectives: MockDirectives) {
     // used in node details API
     def getSystemAndUserCompliance(
         optNodeIds: Option[Set[NodeId]]
-    )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = {
-      ZIO.succeed((Map.empty, Map.empty))
+    )(implicit
+        qc:         QueryContext
+    ): IOResult[SystemUserComplianceRun] = {
+      ZIO.succeed(SystemUserComplianceRun.empty)
     }
 
     def findDirectiveNodeStatusReports(
         nodeIds:            Set[NodeId],
         filterByDirectives: Set[DirectiveId]
     )(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = ???
-    def findSystemAndUserRuleCompliances(
-        nodeIds: Set[NodeId]
-    )(implicit qc: QueryContext): IOResult[(Map[NodeId, ComplianceLevel], Map[NodeId, ComplianceLevel])] = ???
     def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] =
       ???
     def findNodeStatusReport(nodeId:            NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = ???
