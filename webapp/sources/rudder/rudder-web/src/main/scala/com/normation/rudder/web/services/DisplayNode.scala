@@ -520,7 +520,7 @@ object DisplayNode extends Loggable {
     <div class="header-buttons">
       {deleteBtn}
     </div>
-  </div> ++ Script(OnLoad(JsRaw(s"""new ClipboardJS('[data-clipboard-text]');""")))
+  </div>
   }
 
   // mimic the content of server_details/ShowNodeDetailsFromNode
@@ -1076,7 +1076,7 @@ object DisplayNode extends Loggable {
       <tr>
         <td>{name}</td>
         <td>
-          <span class="ion ion-clipboard copy-actions" data-clipboard-text={s"""$${node.inventory[${name}]}"""}></span>
+          <span class="ion ion-clipboard copy-actions" onclick={s"copy('$${node.inventory[${name}]}')"} ></span>
         </td>
         {
         if (value.strip().isEmpty) {
@@ -1086,7 +1086,7 @@ object DisplayNode extends Loggable {
             <pre class="json-inventory-vars">{value}</pre>
           </td>
           <td>
-            <span class="ion ion-clipboard copy-actions" data-clipboard-text={value}></span>
+            <span class="ion ion-clipboard copy-actions" onclick={s"copy('${value}')"}></span>
           </td>
         }
       }
