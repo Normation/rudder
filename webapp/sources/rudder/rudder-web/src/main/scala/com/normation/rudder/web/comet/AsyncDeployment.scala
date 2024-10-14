@@ -66,6 +66,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeComparator
 import scala.util.matching.Regex
 import scala.xml.*
 
@@ -114,9 +115,19 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private def displayTime(label: String, time: DateTime): NodeSeq = {
-    val t = time.toString("yyyy-MM-dd HH:mm:ssZ")
-    val d = DateFormaterService.getFormatedPeriod(time, DateTime.now)
-    <span>{s"${label} ${d} ago"}<div class="help-block"><em>↳ at {t}</em></div></span>
+    // display only the time when it's on the same day, and date if different one
+    val now       = DateTime.now()
+    val (t, help) = {
+      if (DateTimeComparator.getDateOnlyInstance().compare(time, now) == 0) {
+        (
+          time.toString("HH:mm:ss"),
+          s"on ${time.toString("yyyy-MM-dd")} (${DateFormaterService.getFormatedPeriod(time, now)} ago)"
+        )
+      } else {
+        (time.toString("yyyy-MM-dd HH:mm:ssZ"), s"${DateFormaterService.getFormatedPeriod(time, now)} ago")
+      }
+    }
+    <span>{s"${label} at ${t}"}<div class="help-block"><em>↳ {help} </em></div></span>
   }
   private def displayDate(label: String, time: DateTime): NodeSeq = {
     val t = time.toString("yyyy-MM-dd HH:mm:ssZ")
