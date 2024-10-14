@@ -918,7 +918,9 @@ class ComplianceAPIService(
                         case (_, status) =>
                           // TODO: separate reports that have 'overridden policies' here (skipped)
                           status.reports
-                            .flatMap(_._2.reports)
+                            .get(PolicyTypeName.rudderBase)
+                            .map(_.reports)
+                            .getOrElse(Nil)
                             .filter(r =>
                               (isGlobalCompliance || rules.keySet.contains(r.ruleId)) && currentGroupNodeIds.contains(r.nodeId)
                             )
@@ -1015,7 +1017,9 @@ class ComplianceAPIService(
         case (nodeId, status) if currentGroupNodeIds.contains(nodeId) =>
           // For non global compliance, we only want the compliance for the rules in the group
           val reports  = status.reports
-            .flatMap(_._2.reports)
+            .get(PolicyTypeName.rudderBase)
+            .map(_.reports)
+            .getOrElse(Nil)
             .filter(r => isGlobalCompliance || rules.keySet.contains(r.ruleId))
             .toSeq
             .sortBy(_.ruleId.serialize)
@@ -1125,7 +1129,7 @@ class ComplianceAPIService(
       _          <- TimingDebugLoggerPure.trace(s"getByNodeGroupCompliance - getGlobalComplianceMode in ${t5 - t4} ms")
 
       // this only user group, we must be consistent and never ask for system group anywhere else
-      rules <- rulesRepo.getAll(includeSytem = true)
+      rules <- rulesRepo.getAll()
       t6    <- currentTimeMillis
       _     <- TimingDebugLoggerPure.trace(s"getByNodeGroupCompliance - getAllRules in ${t6 - t5} ms")
 
