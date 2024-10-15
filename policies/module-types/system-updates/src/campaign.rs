@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+use crate::output::Status;
 use crate::{
     db::PackageDatabase,
     hooks::Hooks,
@@ -13,6 +14,7 @@ use crate::{
 use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
 use rudder_module_type::{rudder_debug, Outcome};
+use std::path::PathBuf;
 use std::{fs, path::Path};
 
 /// How long to keep events in the database
@@ -98,6 +100,18 @@ pub fn check_update(
             Ok(Outcome::Success(None))
         }
     }
+}
+
+/// Shortcut method to send an error report directly
+pub fn fail_campaign(reason: &str, report_file: Option<PathBuf>) -> Result<Outcome> {
+    let mut report = Report::new();
+    report.stderr(reason);
+    report.status = Status::Error;
+    if let Some(ref f) = report_file {
+        // Write the report into the destination tmp file
+        fs::write(f, serde_json::to_string(&report)?.as_bytes())?;
+    }
+    Ok(Outcome::Repaired("Send error".to_string()))
 }
 
 /// Actually start the upgrade process immediately
