@@ -1178,6 +1178,8 @@ object DisplayNode extends Loggable {
       ("Name", { (x: Bios) => escapeHTML(x.name) }) ::
       ("Editor", { (x: Bios) => ?(x.editor.map(_.name)) }) ::
       ("Version", { (x: Bios) => ?(x.version.map(_.value)) }) ::
+      ("Manufacturer", { (x: Bios) => ?(x.manufacturer.map(_.name)) }) ::
+      ("Serial Number", { (x: Bios) => ?(x.serialNumber) }) ::
       ("Release date", { (x: Bios) => ?(x.releaseDate.map(DateFormaterService.getDisplayDate(_))) }) ::
       Nil
     }

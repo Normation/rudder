@@ -179,26 +179,24 @@ class FusionInventoryParser(
        * a warn log
        */
       def addBiosInfosIntoInventory(
-          bios:               Option[Bios],
-          manufacturer:       Option[Manufacturer],
-          systemSerialNumber: Option[String]
+          bios: Option[Bios]
       ): Unit = {
         bios.foreach(x => inventory = inventory.modify(_.machine.bios).using(x +: _))
 
-        manufacturer.foreach { x =>
+        bios.foreach { x =>
           inventory.machine.manufacturer match {
             case None                       => // can update the manufacturer
-              inventory = inventory.modify(_.machine.manufacturer).setTo(Some(x))
+              inventory = inventory.modify(_.machine.manufacturer).setTo(x.manufacturer)
             case Some(existingManufacturer) => // cannot update it
               InventoryProcessingLogger.logEffect.warn(
                 s"Duplicate Machine Manufacturer definition in the inventory: s{existingManufacturer} is the current value, skipping the other value ${x.name}"
               )
           }
         }
-        systemSerialNumber.foreach { x =>
+        bios.foreach { x =>
           inventory.machine.systemSerialNumber match {
             case None                             => // can update the System Serial Number
-              inventory = inventory.modify(_.machine.systemSerialNumber).setTo(Some(x))
+              inventory = inventory.modify(_.machine.systemSerialNumber).setTo(x.serialNumber)
             case Some(existingSystemSerialNumber) => // cannot update it
               InventoryProcessingLogger.logEffect.warn(
                 s"Duplicate System Serial Number definition in the inventory: s{existingSystemSerialNumber} is the current value, skipping the other value ${x}"
@@ -223,8 +221,8 @@ class FusionInventoryParser(
                   })
                 case "BATTERIES"       => // TODO not sure about that
                 case "BIOS"            =>
-                  val (bios, manufacturer, systemSerialNumber) = processBios(elt)
-                  addBiosInfosIntoInventory(bios, manufacturer, systemSerialNumber)
+                  val bios = processBios(elt)
+                  addBiosInfosIntoInventory(bios)
                 case "CONTROLLERS"     =>
                   processController(elt).foreach(x => inventory = inventory.modify(_.machine.controllers).using(x +: _))
                 case "CPUS"            => processCpu(elt).foreach(x => inventory = inventory.modify(_.machine.processors).using(x +: _))
@@ -1010,7 +1008,7 @@ class FusionInventoryParser(
   /**
    * Process the bios, and return its, plus the system manufacturer and the system serial number
    */
-  def processBios(b: NodeSeq): (Option[Bios], Option[Manufacturer], Option[String]) = {
+  def processBios(b: NodeSeq): Option[Bios] = {
     // Fetching the manufacturer. It should be in SMANUFACTURER, except if it is
     // empty, or the value is "Not available". In these case, the correct entry is MMANUFACTURER
     val systemManufacturer = (optText(b \ "SMANUFACTURER") match {
@@ -1044,12 +1042,14 @@ class FusionInventoryParser(
             name = model,
             releaseDate = date,
             editor = optText(b \ "BMANUFACTURER").map(s => new SoftwareEditor(s)),
-            version = optText(b \ "BVERSION").map(v => new Version(v))
+            version = optText(b \ "BVERSION").map(v => new Version(v)),
+            manufacturer = systemManufacturer,
+            serialNumber = systemSerialNumber
           )
         )
     }
 
-    (bios, systemManufacturer, systemSerialNumber)
+    bios
   }
 
   def processController(c: NodeSeq): Option[Controller] = {

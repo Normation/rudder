@@ -228,21 +228,23 @@ class InventoryMapper(
     e.setOpt(elt.editor, A_EDITOR, (x: SoftwareEditor) => x.name)
     e.setOpt(elt.releaseDate, A_RELEASE_DATE, (x: DateTime) => GeneralizedTime(x).toString)
     e.setOpt(elt.version, A_SOFT_VERSION, (x: Version) => x.value)
-
+    e.setOpt(elt.manufacturer, A_MANUFACTURER, (x: Manufacturer) => x.name)
+    e.setOpt(elt.serialNumber, A_SERIAL_NUMBER, (x: String) => x)
     e
   }
 
   def biosFromEntry(e: LDAPEntry): InventoryMappingPure[Bios] = {
     for {
-      name       <- e.required(A_BIOS_NAME)
-      desc        = e(A_DESCRIPTION)
-      quantity    = e.getAsInt(A_QUANTITY).getOrElse(1)
-      version     = e(A_SOFT_VERSION).map(v => new Version(v))
-      releaseDate = e.getAsGTime(A_RELEASE_DATE) map { _.dateTime }
-      editor      = e(A_EDITOR) map { x => new SoftwareEditor(x) }
-
+      name        <- e.required(A_BIOS_NAME)
+      desc         = e(A_DESCRIPTION)
+      quantity     = e.getAsInt(A_QUANTITY).getOrElse(1)
+      version      = e(A_SOFT_VERSION).map(v => new Version(v))
+      releaseDate  = e.getAsGTime(A_RELEASE_DATE) map { _.dateTime }
+      editor       = e(A_EDITOR) map { x => new SoftwareEditor(x) }
+      manufacturer = e(A_MANUFACTURER).map(m => new Manufacturer(m))
+      serialNumber = e(A_SERIAL_NUMBER)
     } yield {
-      Bios(name, desc, version, editor, releaseDate, quantity)
+      Bios(name, desc, version, editor, releaseDate, manufacturer, serialNumber, quantity)
     }
   }
 
