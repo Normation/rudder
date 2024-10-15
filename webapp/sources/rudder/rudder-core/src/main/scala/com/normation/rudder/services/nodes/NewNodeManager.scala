@@ -44,6 +44,8 @@ import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.rudder.domain.logger.NodeLoggerPure
+import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.DitQueryData
 import com.normation.rudder.domain.queries.Equals
@@ -305,7 +307,6 @@ class ComposedNewNodeManager[A](
   ////////////////////////////////////////////////////////////////////////////////////
 
   def accept(id: NodeId)(implicit cc: ChangeContext): IOResult[CoreNodeFact] = {
-
     // validate pre acceptance for a Node, if an error occurs, stop everything on that node.
     def passPreAccept(nodeFact: CoreNodeFact) = {
       ZIO.foreachDiscard(unitAcceptors) { a =>
@@ -442,6 +443,26 @@ class AcceptHostnameAndIp(
                               _ <- queryForDuplicateHostname(List(cnf.fqdn))(cc.toQuery)
                             } yield ()
                           }
+    } yield ()
+  }
+}
+
+class DefaultStateAndPolicyMode(
+    override val name:         String,
+    nodeFactRepo:              NodeFactRepository,
+    defaultPolicyModeOnAccept: IOResult[Option[PolicyMode]],
+    defaultStateOnAccept:      IOResult[NodeState]
+) extends UnitCheckAcceptInventory {
+  override def preAccept(cnf: CoreNodeFact)(implicit cc: ChangeContext): IOResult[Unit] = {
+    for {
+      policyMode <- defaultPolicyModeOnAccept
+      nodeState  <- defaultStateOnAccept
+      newCnf      = cnf
+                      .modify(_.rudderSettings.state)
+                      .setTo(nodeState)
+                      .modify(_.rudderSettings.policyMode)
+                      .setTo(policyMode)
+      _          <- nodeFactRepo.save(newCnf)
     } yield ()
   }
 }
