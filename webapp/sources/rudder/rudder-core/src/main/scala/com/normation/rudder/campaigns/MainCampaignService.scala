@@ -56,10 +56,10 @@ trait CampaignHandler {
 }
 
 object MainCampaignService {
-  def start(mainCampaignService: MainCampaignService): ZIO[Any, Nothing, Unit] = {
+  def start(mainCampaignService: MainCampaignService): ZIO[Any, RudderError, Unit] = {
     for {
       campaignQueue <- Queue.unbounded[CampaignEventId]
-      _             <- mainCampaignService.start(campaignQueue).forkDaemon
+      _             <- mainCampaignService.start(campaignQueue)
     } yield ()
   }
 }
