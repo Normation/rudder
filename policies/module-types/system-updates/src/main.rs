@@ -11,12 +11,13 @@ mod scheduler;
 mod state;
 mod system;
 
+use crate::campaign::fail_campaign;
 use crate::{
     campaign::{check_update, FullSchedule},
     cli::Cli,
     package_manager::PackageManager,
 };
-use anyhow::{bail, Context};
+use anyhow::{anyhow, Context};
 use chrono::{DateTime, Duration, Utc};
 use package_manager::PackageSpec;
 use rudder_module_type::{
@@ -117,23 +118,13 @@ impl ModuleType0 for SystemUpdateModule {
         let p_parameters: PackageParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))
                 .context("Parsing module parameters")?;
-        let i_am_root = parameters.node_id == "root";
-        if i_am_root && p_parameters.campaign_type != CampaignType::SoftwareUpdate {
-            bail!("System campaigns are not allowed on the Rudder root server, aborting.");
-        }
-        if p_parameters.campaign_type == CampaignType::SoftwareUpdate
-            && p_parameters.package_list.is_empty()
-        {
-            bail!("Software update without a package list. This is inconsistent, aborting.");
-        }
+        assert!(!p_parameters.event_id.is_empty());
+        // Not doing more checks here as we want to send the errors as "system-update reports".
         Ok(())
     }
 
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
         assert!(self.validate(parameters).is_ok());
-        if mode == PolicyMode::Audit {
-            bail!("{} does not support audit mode", MODULE_NAME);
-        }
         let package_parameters: PackageParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))
                 .context("Parsing module parameters")?;
@@ -149,11 +140,37 @@ impl ModuleType0 for SystemUpdateModule {
             }
             Schedule::Immediate => FullSchedule::Immediate,
         };
-        check_update(
-            parameters.state_dir.as_path(),
-            full_schedule,
-            package_parameters,
-        )
+        let report_file = package_parameters.report_file.clone();
+        let r = {
+            let i_am_root = parameters.node_id == "root";
+            if mode == PolicyMode::Audit {
+                Err(anyhow!("{} does not support audit mode", MODULE_NAME))
+            } else if i_am_root && package_parameters.campaign_type != CampaignType::SoftwareUpdate
+            {
+                Err(anyhow!(
+                    "System campaigns are not allowed on the Rudder root server, aborting."
+                ))
+            } else if package_parameters.campaign_type == CampaignType::SoftwareUpdate
+                && package_parameters.package_list.is_empty()
+            {
+                Err(anyhow!(
+                    "Software update without a package list. This is inconsistent, aborting."
+                ))
+            } else {
+                check_update(
+                    parameters.state_dir.as_path(),
+                    full_schedule,
+                    package_parameters,
+                )
+            }
+        };
+
+        if let Err(e) = r {
+            // Send the report to server
+            fail_campaign(&format!("{:?}", e), report_file)
+        } else {
+            r
+        }
     }
 }
 
