@@ -798,14 +798,6 @@ div.tabInform {
   font-size: 14px;
 }
 
-.reportLine {
-  background: url("../../images/tableau/fdTaboHead.jpg") repeat-x scroll left top transparent;
-  color: #FFFFFF;
-  float: left;
-  margin-top: 4px;
-  padding: 5px;
-}
-
 .filter {
   float : right;
   margin-right : 14px;
