@@ -34,7 +34,7 @@ const MODULE_NAME: &str = env!("CARGO_PKG_NAME");
 pub const MODULE_DIR: &str = "/var/rudder/system-update";
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Copy)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "kebab-case")]
 pub enum RebootType {
     #[serde(alias = "enabled")]
     Always,
