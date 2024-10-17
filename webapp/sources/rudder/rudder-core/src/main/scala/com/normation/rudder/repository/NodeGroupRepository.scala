@@ -199,6 +199,17 @@ final case class FullNodeGroupCategory(
     }
   }
 
+  /**
+   * Given a nodeId, get all the strict groups targets where it belongs to.
+   */
+  def getGroupTarget(node: CoreNodeFact): Map[RuleTarget, FullGroupTarget] = {
+    allTargets.collect {
+      case (t, FullRuleTargetInfo(groupTarget: FullGroupTarget, _, _, _, _))
+          if groupTarget.nodeGroup.serverList.contains(node.id) =>
+        t -> groupTarget
+    }
+  }
+
 }
 
 trait RoNodeGroupRepository {

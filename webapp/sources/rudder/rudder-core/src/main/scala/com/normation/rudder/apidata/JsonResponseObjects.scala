@@ -50,13 +50,20 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.GenericProperty
+import com.normation.rudder.domain.properties.GenericProperty.*
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
+import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.domain.properties.NodePropertyError
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
+import com.normation.rudder.domain.properties.NodePropertySpecificError
 import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
+import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
@@ -70,6 +77,7 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.services.nodes.MergeNodeProperties
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.services.queries.StringQuery
@@ -618,7 +626,7 @@ object JsonResponseObjects {
       provider:        Option[PropertyProvider]
   )
 
-  object JRGlobalParameter {
+  object JRGlobalParameter         {
     import GenericProperty.*
     def empty(name: String): JRGlobalParameter = JRGlobalParameter(None, name, "".toConfigValue, "", None, None)
     def fromGlobalParameter(p: GlobalParameter, crId: Option[ChangeRequestId]): JRGlobalParameter = {
@@ -628,8 +636,42 @@ object JsonResponseObjects {
 
   final case class JRPropertyHierarchyStatus(
       hasChildTypeConflicts: Boolean,
-      fullHierarchy:         List[JRParentPropertyDetails]
+      fullHierarchy:         List[JRParentPropertyDetails],
+      errorMessage:          Option[String]
   )
+  object JRPropertyHierarchyStatus {
+    def fromInherited(
+        inheritedPropertyStatus: InheritedPropertyStatus
+    ): Option[JRPropertyHierarchyStatus] = {
+      val parentProperties = inheritedPropertyStatus.parentsInheritedProps
+      if (parentProperties.isEmpty) None
+      else {
+        Some(
+          JRPropertyHierarchyStatus(
+            inheritedPropertyStatus.hasChildTypeConflicts,
+            parentProperties.sorted.map(JRParentPropertyDetails.fromParentProperty),
+            inheritedPropertyStatus.errorMessage
+          )
+        )
+
+      }
+    }
+    def fromParentProperties(
+        hasChildTypeConflicts: Boolean,
+        parentProperties:      List[ParentProperty]
+    ): Option[JRPropertyHierarchyStatus] = {
+      if (parentProperties.isEmpty) None
+      else {
+        Some(
+          JRPropertyHierarchyStatus(
+            hasChildTypeConflicts,
+            parentProperties.sorted.map(JRParentPropertyDetails.fromParentProperty), // sort to keep hierarchical order
+            None
+          )
+        )
+      }
+    }
+  }
 
   @jsonDiscriminator("kind") sealed trait JRParentPropertyDetails {
     def valueType: String
@@ -683,14 +725,113 @@ object JsonResponseObjects {
       JRProperty(p.name, p.value, desc, p.inheritMode, p.provider, None, None, None)
     }
 
+    def fromNodeProp(p: NodeProperty): JRProperty = {
+      val desc = if (p.description.trim.isEmpty) None else Some(p.description)
+      JRProperty(p.name, p.value, desc, p.inheritMode, p.provider, None, None, None)
+    }
+    def fromInheritedPropertyStatus(
+        inheritedPropertyStatus: InheritedPropertyStatus,
+        renderInHtml:            RenderInheritedProperties,
+        escapeHtml:              Boolean = false
+    ): JRProperty = {
+      // we need to consider the main property in case of success
+      val propsHierarchy  = inheritedPropertyStatus match {
+        case s: SuccessInheritedPropertyStatus =>
+          s.mainHierarchy
+        case e: ErrorInheritedPropertyStatus   =>
+          e.parentsInheritedProps
+      }
+      val parents         = transformParentProperties(propsHierarchy, renderInHtml, escapeHtml)
+      val origval         = getHierarchyOriginalValue(propsHierarchy)
+      val hierarchyStatus =
+        JRPropertyHierarchyStatus.fromInherited(inheritedPropertyStatus)
+
+      val propertyId = inheritedPropertyStatus.propertyId.value
+      inheritedPropertyStatus match {
+        case s: SuccessInheritedPropertyStatus =>
+          JRProperty(
+            propertyId,
+            s.mainProp.prop.value,
+            s.nonEmptyDescription,
+            s.mainProp.prop.inheritMode,
+            s.mainProp.prop.provider,
+            parents,
+            hierarchyStatus,
+            origval
+          )
+        case e: ChildTypeConflictStatus        =>
+          JRProperty(
+            propertyId,
+            e.value,
+            e.nonEmptyDescription,
+            e.inheritMode,
+            e.provider,
+            parents,
+            hierarchyStatus,
+            origval
+          )
+        case e: ErrorInheritedPropertyStatus   =>
+          JRProperty(
+            propertyId,
+            origval.getOrElse("### error ###".toConfigValue), // comment should be safe for display only
+            e.nonEmptyDescription,
+            e.inheritMode,
+            e.provider,
+            parents,
+            hierarchyStatus,
+            origval
+          )
+      }
+    }
+    def fromNodePropertyHierarchy(
+        prop:         NodePropertyHierarchy,
+        renderInHtml: RenderInheritedProperties,
+        escapeHtml:   Boolean
+    ): JRProperty = {
+      fromNodePropertyHierarchy(
+        prop,
+        hasChildTypeConflicts = false,
+        List.empty,
+        renderInHtml,
+        escapeHtml = escapeHtml
+      )
+    }
+
     def fromNodePropertyHierarchy(
         prop:                  NodePropertyHierarchy,
         hasChildTypeConflicts: Boolean,
         fullHierarchy:         List[ParentProperty],
-        renderInHtml:          RenderInheritedProperties
+        renderInHtml:          RenderInheritedProperties,
+        escapeHtml:            Boolean
     ): JRProperty = {
-      val (parents, origval) = prop.hierarchy.reverse match {
-        case Nil  => (None, None)
+      val hierarchyStatus = JRPropertyHierarchyStatus.fromParentProperties(hasChildTypeConflicts, fullHierarchy)
+      val desc            = if (prop.prop.description.trim.isEmpty) None else Some(prop.prop.description)
+      JRProperty(
+        prop.prop.name,
+        prop.prop.value,
+        desc,
+        prop.prop.inheritMode,
+        prop.prop.provider,
+        transformParentProperties(prop.hierarchy, renderInHtml, escapeHtml),
+        hierarchyStatus,
+        getHierarchyOriginalValue(prop.hierarchy)
+      )
+    }
+
+    /**
+     * Transform proprety hierarchy into HTML or JSON
+     * Provided hierarchy should be sorted from original order of parent properties : 
+     * - nodes
+     * - groups
+     * - global params
+     */
+    private def transformParentProperties(
+        hierarchy:    List[ParentProperty],
+        renderInHtml: RenderInheritedProperties,
+        escapeHtml:   Boolean
+    ): Option[JRPropertyHierarchy] = {
+      hierarchy.reverse match {
+        case Nil  => None
         case list =>
           val parents = renderInHtml match {
             case RenderInheritedProperties.HTML =>
@@ -704,26 +845,15 @@ object JsonResponseObjects {
             case RenderInheritedProperties.JSON =>
               JRPropertyHierarchyJson(list.map(JRParentProperty.fromParentProperty(_)))
           }
-          (Some(parents), prop.hierarchy.headOption.map(_.value))
+          Some(parents)
       }
-      val hierarchyStatus    = Some(
-        JRPropertyHierarchyStatus(
-          hasChildTypeConflicts,
-          fullHierarchy.map(JRParentPropertyDetails.fromParentProperty(_))
-        )
-      )
-      val desc               = if (prop.prop.description.trim.isEmpty) None else Some(prop.prop.description)
-      JRProperty(
-        prop.prop.name,
-        prop.prop.value,
-        desc,
-        prop.prop.inheritMode,
-        prop.prop.provider,
-        parents,
-        hierarchyStatus,
-        origval
-      )
     }
+
+    /**
+     * The first element of the hierarchy in the original order is the original value
+     */
+    private def getHierarchyOriginalValue(hierarchy: List[ParentProperty]): Option[ConfigValue] =
+      hierarchy.headOption.map(_.value)
   }
 
   @jsonDiscriminator("kind") sealed trait JRParentProperty { def value: ConfigValue }
@@ -757,26 +887,366 @@ object JsonResponseObjects {
   }
 
   final case class JRGroupInheritedProperties(
-      groupId:    String,
-      properties: List[JRProperty]
+      groupId:      String,
+      properties:   Chunk[JRProperty],
+      errorMessage: Option[String]
   )
 
+  final case class JRPropertyId(value: String) extends AnyVal
+  object JRPropertyId {
+    implicit val ordering: Ordering[JRPropertyId] = Ordering[String].on(_.value)
+  }
+
+  /**
+   * Model that specifies what one or all properties has :
+   * an error message that needs to be there when 
+   * the global status of property is fine,
+   * and which is also optional in the status of a property
+   */
+  sealed trait PropertyStatus {
+    def errorMessage: Option[String]
+  }
+  object PropertyStatus       {
+
+    /**
+   * When there has been some errors when computing the hierarchy,
+   * we can have multiple property statuses in global or specific error:
+   * find all of them
+   */
+    def fromFailedHierarchy(f: FailedNodePropertyHierarchy): Chunk[PropertyStatus] = {
+      f.error match {
+        case specificError: NodePropertySpecificError =>
+          // there are individual errors by property that can be resolved and rendered individually
+          Chunk.from(specificError.propertiesErrors.values.map((ErrorInheritedPropertyStatus.from _).tupled))
+        case _:             NodePropertyError         =>
+          // we don't know the errored props, it may be all of them and there may be a global status error
+          Chunk(GlobalPropertyStatus.fromResolvedNodeProperty(f))
+      }
+
+    }
+
+    implicit class IterablePropertyStatusOps(it: Iterable[PropertyStatus]) {
+
+      /**
+       * Split global status from inherited one :
+       * global ok/error status vs status on specific properties.
+       * 
+       * The global one cannot be duplicated (for distinct error messages) 
+       * so it needs to be a set.
+       */
+      def separate: (Set[GlobalPropertyStatus], Iterable[InheritedPropertyStatus]) = {
+        val (global, inherited) = it.partitionMap {
+          case g: GlobalPropertyStatus    =>
+            Left(g)
+          case i: InheritedPropertyStatus =>
+            Right(i)
+        }
+        global.toSet -> inherited
+      }
+
+      /**
+       * Gather all error messages
+       * 
+       * Implementation uses a toSet because iterable 
+       * is usually already a set
+       */
+      def distictErrorMessages: Set[String] = {
+        it.flatMap(_.errorMessage.map(_.strip).filter(_.nonEmpty)).toSet
+      }
+
+    }
+
+  }
+
+  /**
+   * Global properties are OK or are in error :
+   * they can have global error messages in properties
+   * (this does not prevent inherited properties to exist 
+   * and also have errors)
+   */
+  sealed trait GlobalPropertyStatus extends PropertyStatus
+  object GlobalPropertyStatus {
+    final case object GlobalPropertyOkStatus extends GlobalPropertyStatus {
+      override def errorMessage: Option[String] = None
+    }
+    final case class GlobalPropertyErrorStatus private[GlobalPropertyStatus] (override val errorMessage: Some[String])
+        extends GlobalPropertyStatus
+
+    def fromResolvedNodeProperty(hierarchy: ResolvedNodePropertyHierarchy): GlobalPropertyStatus = hierarchy match {
+      case f: FailedNodePropertyHierarchy if f.noResolved => // no success + failure is a global failure
+        new GlobalPropertyErrorStatus(Some(f.getMessage))
+
+      case f: FailedNodePropertyHierarchy =>
+        f.error match {
+          case _: NodePropertySpecificError => // there is only an error specific to single properties
+            GlobalPropertyOkStatus
+          case _: NodePropertyError         => // there is an error that can apply to many properties
+            new GlobalPropertyErrorStatus(Some(f.getMessage))
+        }
+
+      case _: SuccessNodePropertyHierarchy =>
+        GlobalPropertyOkStatus
+    }
+  }
+
+  /**
+   * Status of individual properties : 
+   * there is always a property identifier (the property name),
+   * an set of properties inherited from parent (ordered by ancestry),
+   *
+   * There can be conflicts in children properties so this identifies 
+   * as a subtype.
+   */
+  sealed trait InheritedPropertyStatus extends PropertyStatus {
+    def propertyId:            JRPropertyId
+    def parentsInheritedProps: List[ParentProperty]
+    def description:           String
+    def inheritMode:           Option[InheritMode]
+    def provider:              Option[PropertyProvider]
+    def hasChildTypeConflicts: Boolean
+
+    def nonEmptyDescription: Option[String] = Some(description).filter(_.nonEmpty)
+  }
+
+  // This describes a property that has no problem
+  final case class SuccessInheritedPropertyStatus private[apidata] (
+      mainProp:                           NodePropertyHierarchy,
+      override val parentsInheritedProps: List[ParentProperty]
+  ) extends InheritedPropertyStatus {
+    override def propertyId: JRPropertyId = mainProp.prop.name.transformInto[JRPropertyId]
+
+    override def inheritMode: Option[InheritMode] = mainProp.prop.inheritMode
+
+    override def description:           String                   = mainProp.prop.description
+    override def provider:              Option[PropertyProvider] = mainProp.prop.provider
+    override def errorMessage:          Option[String]           = None
+    override def hasChildTypeConflicts: Boolean                  = false
+
+    /**
+     * The hierarchy of the main property, not the one as seen by the descendants (parentsInheritedProps)
+     */
+    def mainHierarchy: List[ParentProperty] = mainProp.hierarchy
+  }
+  object SuccessInheritedPropertyStatus {
+    def fromNodePropertyHierarchy(prop: NodePropertyHierarchy): SuccessInheritedPropertyStatus = {
+      SuccessInheritedPropertyStatus(prop, prop.hierarchy)
+    }
+  }
+
+  // This describes a property that is in error, subtypes can be seen as this generic error
+  sealed abstract class ErrorInheritedPropertyStatus(
+      override val propertyId:            JRPropertyId,
+      override val parentsInheritedProps: List[ParentProperty], // this is maybe "inheritance lineage"
+      override val description:           String,
+      override val inheritMode:           Option[InheritMode],
+      override val provider:              Option[PropertyProvider],
+      override val errorMessage:          Some[String],
+      override val hasChildTypeConflicts: Boolean = false
+  ) extends InheritedPropertyStatus {}
+  object ErrorInheritedPropertyStatus {
+    def from(
+        prop:                  NodeProperty,
+        parentsInheritedProps: List[ParentProperty],
+        errorMessage:          String
+    ): ErrorInheritedPropertyStatus = {
+      new ErrorInheritedPropertyStatus(
+        prop.name.transformInto[JRPropertyId],
+        parentsInheritedProps,
+        prop.description,
+        prop.inheritMode,
+        prop.provider,
+        Some(errorMessage)
+      ) {}
+    }
+  }
+
+  // This describes the specific error of having child type conflicts
+  // It is used to construct an error with known attributes : conflicts and message
+  final case class ChildTypeConflictStatus(
+      override val propertyId:            JRPropertyId,
+      value:                              ConfigValue,
+      override val description:           String,
+      override val inheritMode:           Option[InheritMode],
+      override val provider:              Option[PropertyProvider],
+      override val parentsInheritedProps: List[ParentProperty]
+  ) extends ErrorInheritedPropertyStatus(
+        propertyId,
+        parentsInheritedProps,
+        description,
+        inheritMode,
+        provider,
+        Some("Conflicting types in inherited node properties"),
+        hasChildTypeConflicts = true
+      ) {}
+
+  object InheritedPropertyStatus {
+
+    /**
+     * Validate a NodePropertyHierarchy to get property status
+     */
+    def from(parent: NodePropertyHierarchy): InheritedPropertyStatus = {
+      fromChildren(
+        parent,
+        Some(parent.hierarchy)
+      )
+    }
+
+    /**
+     * Validate by doing checks against children :
+     * are there conflicting types in the children hierarchy (or current one of parent) ?
+     */
+    def fromChildren(parent: NodePropertyHierarchy, children: Option[List[ParentProperty]]): InheritedPropertyStatus = {
+      children match {
+        case None                 =>
+          SuccessInheritedPropertyStatus.fromNodePropertyHierarchy(parent)
+        case Some(childHierarchy) =>
+          val hasConflicts = MergeNodeProperties
+            .checkValueTypes(List(NodePropertyHierarchy(parent.prop, childHierarchy)))
+            .isLeft
+
+          if (hasConflicts) {
+            ChildTypeConflictStatus(
+              parent.prop.name.transformInto[JRPropertyId],
+              parent.prop.value,
+              parent.prop.description,
+              parent.prop.inheritMode,
+              parent.prop.provider,
+              childHierarchy
+            )
+          } else {
+            // when using the parent hierarchy "this group" is displayed as name, instead of the real group name
+            // we should be changing the mergeDefault method to get and use the node names and group names information instead of hardcodec "this node"/"this group"
+            SuccessInheritedPropertyStatus(parent, childHierarchy)
+          }
+      }
+
+    }
+
+    implicit class IterableInheritedPropertyStatusOps(properties: Iterable[InheritedPropertyStatus]) {
+
+      /**
+        * Merge properties with the same id together, and transform properties into json response
+        */
+      def toJRProperty(implicit
+          renderInHtml: RenderInheritedProperties
+      ): Chunk[JRProperty] = {
+
+        Chunk
+          .from(
+            properties
+              .groupMapReduce(_.propertyId)(identity) {
+                case (a, b) =>
+                  // we should only reduce under the same propertyId.
+                  // the provider is supposed to be the same for a property at any level of the hierarchy
+                  // the inheritMode is also defined only at the top-most level and cannot be overridden
+                  // same for description
+                  implicit val propId:      JRPropertyId             = a.propertyId
+                  implicit val provider:    Option[PropertyProvider] = a.provider
+                  implicit val inheritMode: Option[InheritMode]      = a.inheritMode
+                  implicit val description: String                   = a.description
+                  combine(a, b)
+              }
+              .values
+          )
+          .sortBy(_.propertyId)
+          .map(p => JRProperty.fromInheritedPropertyStatus(p, renderInHtml))
+      }
+    }
+
+    // in principle we can only combine under a same single property lineage (same property id)
+    // and the same provider, and inherit mode, property has a description
+    // we don't want the property as implicit because the value may vary along the lineage
+    private def combine(a: InheritedPropertyStatus, b: InheritedPropertyStatus)(implicit
+        propertyId:  JRPropertyId,
+        provider:    Option[PropertyProvider],
+        description: String,
+        inheritMode: Option[InheritMode]
+    ): InheritedPropertyStatus = {
+      val inheritedProps = mergeHierarchies(a.parentsInheritedProps, b.parentsInheritedProps)
+      (a, b) match {
+        case (_: SuccessInheritedPropertyStatus, s: SuccessInheritedPropertyStatus) =>
+          SuccessInheritedPropertyStatus(s.mainProp, inheritedProps)
+        case (e: ErrorInheritedPropertyStatus, _: SuccessInheritedPropertyStatus)   =>
+          new ErrorInheritedPropertyStatus(
+            propertyId,
+            inheritedProps,
+            description,
+            inheritMode,
+            provider,
+            e.errorMessage,
+            e.hasChildTypeConflicts
+          ) {}
+        case (_: SuccessInheritedPropertyStatus, e: ErrorInheritedPropertyStatus)   =>
+          new ErrorInheritedPropertyStatus(
+            propertyId,
+            inheritedProps,
+            description,
+            inheritMode,
+            provider,
+            e.errorMessage,
+            e.hasChildTypeConflicts
+          ) {}
+        case (e1: ErrorInheritedPropertyStatus, e2: ErrorInheritedPropertyStatus)   =>
+          val errorMessage = { // error message may be the same (e.g. for child type conflicts), ignore duplicates
+            (e1.errorMessage, e2.errorMessage) match {
+              case (Some(err1), Some(err2)) if err1 == err2 => err1
+              case (Some(err1), Some(err2))                 => s"${err1}\n${err2}"
+            }
+          }
+          new ErrorInheritedPropertyStatus(
+            propertyId,
+            inheritedProps,
+            description,
+            inheritMode,
+            provider,
+            Some(errorMessage),
+            e1.hasChildTypeConflicts || e2.hasChildTypeConflicts
+          ) {}
+      }
+    }
+
+    // Ideally, this should be a set : some nodes may inherit the same hierarchy so we wan to avoid duplicates
+    private def mergeHierarchies(left: List[ParentProperty], right: List[ParentProperty]): List[ParentProperty] = {
+      (left ++ right).distinct
+    }
+  }
   object JRGroupInheritedProperties {
     def fromGroup(
-        groupId:    NodeGroupId,
-        properties: List[
-          (NodePropertyHierarchy, List[ParentProperty], Boolean)
-        ], // parent properties, child properties, has conflicts
-        renderInHtml: RenderInheritedProperties
+        groupId:          NodeGroupId,
+        propertyStatuses: Iterable[PropertyStatus],
+        renderInHtml:     RenderInheritedProperties
     ): JRGroupInheritedProperties = {
+      implicit val render: RenderInheritedProperties = renderInHtml
+      val (global, inherited) = propertyStatuses.separate
+      val properties          = inherited.toJRProperty
+
       JRGroupInheritedProperties(
         groupId.serialize,
-        properties
-          .sortBy(_._1.prop.name)
-          .map {
-            case (parentProperties, childProperties, hasConflicts) =>
-              JRProperty.fromNodePropertyHierarchy(parentProperties, hasConflicts, childProperties, renderInHtml)
-          }
+        properties,
+        Some(global.distictErrorMessages.mkString("\n")).filter(_.nonEmpty)
+      )
+    }
+  }
+
+  final case class JRNodeInheritedProperties(
+      nodeId:       NodeId,
+      properties:   Chunk[JRProperty],
+      errorMessage: Option[String]
+  )
+  object JRNodeInheritedProperties  {
+    def fromNode(
+        nodeId:           NodeId,
+        propertyStatuses: Iterable[PropertyStatus],
+        renderInHtml:     RenderInheritedProperties
+    ): JRNodeInheritedProperties = {
+      implicit val render: RenderInheritedProperties = renderInHtml
+      val (global, inherited) = propertyStatuses.separate
+      val properties          = inherited.toJRProperty
+
+      JRNodeInheritedProperties(
+        nodeId,
+        properties,
+        Some(global.distictErrorMessages.mkString("\n")).filter(_.nonEmpty)
       )
     }
   }
@@ -1099,6 +1569,9 @@ trait RudderJsonEncoders {
   implicit val groupInfoEncoder:              JsonEncoder[JRGroupCategoryInfo.JRGroupInfo] =
     DeriveJsonEncoder.gen[JRGroupCategoryInfo.JRGroupInfo]
   implicit lazy val groupCategoryInfoEncoder: JsonEncoder[JRGroupCategoryInfo]             = DeriveJsonEncoder.gen[JRGroupCategoryInfo]
+
+  implicit val nodeIdEncoder:                  JsonEncoder[NodeId]                    = JsonEncoder[String].contramap(_.value)
+  implicit val nodeInheritedPropertiesEncdoer: JsonEncoder[JRNodeInheritedProperties] = DeriveJsonEncoder.gen
 
   implicit val revisionInfoEncoder: JsonEncoder[JRRevisionInfo] = DeriveJsonEncoder.gen
 }
