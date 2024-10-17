@@ -776,11 +776,9 @@ class NodeApiInheritedProperties(
         val error   = properties match {
           case f: FailedNodePropertyHierarchy =>
             f.error match {
-              case propsErrors: NodePropertySpecificError => // these are individual errors by property that can be resolved and rendered individually
-                Chunk.from(propsErrors.propertiesErrors).map {
-                  case (k, (cp, errorMessage)) => // property is known to have an error message
-                    ErrorInheritedPropertyStatus.from(k, cp, errorMessage)
-                }
+              case propsErrors: NodePropertySpecificError =>
+                // these are individual errors by property that can be resolved and rendered individually
+                Chunk.from(propsErrors.propertiesErrors.values.map((ErrorInheritedPropertyStatus.from _).tupled))
               case _:           NodePropertyError         =>
                 // we don't know the errored props, it may be all of them and there may be a global status error
                 Chunk(GlobalPropertyStatus.fromResolvedNodeProperty(f))
