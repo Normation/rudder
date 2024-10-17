@@ -53,8 +53,8 @@ import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.nodes.*
-import com.normation.rudder.domain.properties.NodePropertyHierarchy
-import com.normation.rudder.domain.properties.ParentProperty
+import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
+import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
@@ -81,6 +81,7 @@ import net.liftweb.http.Req
 import net.liftweb.json.*
 import net.liftweb.json.JsonDSL.*
 import org.joda.time.DateTime
+import zio.Chunk
 import zio.ZIO
 import zio.syntax.*
 
@@ -691,14 +692,15 @@ class GroupApiInheritedProperties(
   def getNodePropertiesTree(groupId: NodeGroupId, renderInHtml: RenderInheritedProperties): IOResult[JArray] = {
 
     for {
-      allGroups  <- groupRepo.getFullGroupLibrary().map(_.allGroups)
-      params     <- paramRepo.getAllGlobalParameters()
-      properties <- MergeNodeProperties.forGroup(groupId, allGroups, params.map(p => (p.name, p)).toMap).toIO
+      allGroups <- groupRepo.getFullGroupLibrary().map(_.allGroups)
+      params    <- paramRepo.getAllGlobalParameters()
+      group     <- allGroups.get(groupId).notOptional(s"Group with ID '${groupId.serialize}' was not found.")
+      properties = MergeNodeProperties.forGroup(group, allGroups, params.map(p => (p.name, p)).toMap).resolved
     } yield {
       import com.normation.rudder.domain.properties.JsonPropertySerialisation.*
       val rendered = renderInHtml match {
-        case RenderInheritedProperties.HTML => properties.toApiJsonRenderParents
-        case RenderInheritedProperties.JSON => properties.toApiJson
+        case RenderInheritedProperties.HTML => properties.toList.toApiJsonRenderParents
+        case RenderInheritedProperties.JSON => properties.toList.toApiJson
       }
       JArray(
         (
@@ -1367,61 +1369,68 @@ class GroupApiService14(
     for {
       groupLibrary <- readGroup.getFullGroupLibrary()
       allGroups     = groupLibrary.allGroups
-      serverList    = allGroups.get(groupId).map(_.nodeGroup.serverList).getOrElse(Set.empty)
+      group        <- allGroups.get(groupId).notOptional(s"Group with ID '${groupId.serialize}' was not found.")
+      serverList    = group.nodeGroup.serverList
 
       nodes <- nodeFactRepo.getAll().map(_.filterKeys(serverList.contains(_)).values.toList)
 
-      params           <- paramRepo.getAllGlobalParameters().map(_.map(p => (p.name, p)).toMap)
-      parentProperties <- MergeNodeProperties.forGroup(groupId, allGroups, params).toIO
-      properties       <- ZIO.foreach(nodes) { nodeFact =>
-                            // for each property, find merged properties for nodes in the group and report type conflict
-                            MergeNodeProperties
-                              .forNode(
-                                nodeFact.toNodeInfo,
-                                groupLibrary.getTarget(nodeFact).map(_._2).toList,
-                                params
-                              )
-                              .map(childProperties => {
-                                parentProperties
-                                  .map(p => {
-                                    val matchingChildProperties = childProperties.collect {
-                                      case cp if cp.prop.name == p.prop.name => cp.hierarchy
-                                    }
-                                    val hasConflicts            = MergeNodeProperties
-                                      .checkValueTypes(matchingChildProperties.map(NodePropertyHierarchy(p.prop, _)))
-                                      .isLeft
-                                    (
-                                      p,
-                                      matchingChildProperties.flatten,
-                                      hasConflicts
-                                    )
-                                  })
-                              })
-                              .toIO
-                          }
+      params               <- paramRepo.getAllGlobalParameters().map(_.map(p => (p.name, p)).toMap)
+      parentProperties      = MergeNodeProperties.forGroup(group, allGroups, params)
+      checkedNodeProperties = {
+        // to check for potential type conflicts in the properties of node, we need to look at each node
+        nodes.map { nodeFact =>
+          // for each property, find merged properties for nodes in the group
+          val resolvedProperties = MergeNodeProperties
+            .forNode(
+              nodeFact,
+              groupLibrary.getGroupTarget(nodeFact).values,
+              params
+            )
+            .prependFailureMessage(
+              s"Inherited properties are in an error state when searching properties in relation with group ${allGroups
+                  .get(groupId)
+                  .map(_.nodeGroup.name)
+                  .getOrElse("current group")} (with ID '${groupId.serialize}') and all its nodes: "
+            )
+          // for each property of the group, search all properties in node properties
+          // and take them into account for property status
+          val childProperties    = resolvedProperties.resolved
+          val success            = parentProperties.resolved.map { p =>
+            // a single node prop should be matching the current one
+            // and we should validate the found the hierarchy of the child node property found
+            val matchingChildProperties = childProperties.collectFirst {
+              case cp if cp.prop.name == p.prop.name => cp.hierarchy
+            }
+            InheritedPropertyStatus.fromChildren(
+              p,
+              matchingChildProperties
+            )
+          }
+          val error              = resolvedProperties match {
+            case f: FailedNodePropertyHierarchy  => PropertyStatus.fromFailedHierarchy(f)
+            case s: SuccessNodePropertyHierarchy => Chunk.empty
+          }
 
+          success ++ error
+        }
+      }
+      groupPropertyStatuses = checkedNodeProperties match {
+                                case Nil       => // no Node is group : just use resolved group properties
+                                  parentProperties match {
+                                    case s: SuccessNodePropertyHierarchy =>
+                                      s.resolved.map(InheritedPropertyStatus.from(_))
+                                    case f: FailedNodePropertyHierarchy  =>
+                                      PropertyStatus.fromFailedHierarchy(f)
+                                  }
+                                case nodeProps =>
+                                  nodeProps.flatten // gather all properties on every node
+                              }
     } yield {
       JRGroupInheritedProperties.fromGroup(
         groupId,
-        properties.flatten
-          // merge node properties by property : the hierarchy adds up and conflict is combined with boolean OR
-          .groupMapReduce(_._1.prop.name) {
-            case (p, childProps, hasConflicts) =>
-              (p, childProps, hasConflicts)
-          } {
-            case ((p, a1, b1), (_, a2, b2)) => // property is the same under the same name
-              (p, mergeHierarchies(a1, a2), b1 || b2)
-          }
-          .values
-          .toList,
+        Chunk.from(groupPropertyStatuses),
         renderInHtml
       )
     }
-  }
-
-  // Ideally, this should be a set : some nodes may inherit the same hierarchy so we wan to avoid duplicates
-  // Also, we want to sort them by hierarchy
-  private[this] def mergeHierarchies(left: List[ParentProperty], right: List[ParentProperty]): List[ParentProperty] = {
-    (left ++ right).distinct.sorted
   }
 }

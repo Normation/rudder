@@ -1039,7 +1039,17 @@ trait PromiseGeneration_BuildNodeContext {
             nodeTargets        = allGroups.getTarget(info).map(_._2).toList
             timeMerge          = System.nanoTime
             mergedProps       <-
-              MergeNodeProperties.forNode(info.toNodeInfo, nodeTargets, nodeParam.map { case (k, v) => (k, v) }.toMap).toBox
+              MergeNodeProperties
+                .forNode(
+                  info,
+                  allGroups.getGroupTarget(info).values,
+                  nodeParam.map { case (k, v) => (k, v) }.toMap // TODO: is this the right global params ??
+                ) match {
+                case s: SuccessNodePropertyHierarchy =>
+                  Full(s.resolved)
+                case f: FailedNodePropertyHierarchy  =>
+                  Failure(s"Property resolution failed for node ${nodeId.value} with error : ${f.getMessage}")
+              }
             nodeContextBefore <- systemVarService.getSystemVariables(
                                    info,
                                    nodeFacts,

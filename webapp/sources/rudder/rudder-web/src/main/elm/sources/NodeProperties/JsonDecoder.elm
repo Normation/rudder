@@ -7,20 +7,31 @@ import NodeProperties.DataTypes exposing (..)
 
 
 -- GENERAL
-decodeGetProperties =
-  at [ "data" ] (index 0 decodeProperties)
+decodeGetInheritedProperties : Decoder InheritedProperties
+decodeGetInheritedProperties =
+  at [ "data" ] (index 0 decodeInheritedProperties)
 
-decodeGetGroupProperties =
-  at [ "data", "groups" ] (index 0 decodeProperties)
+decodeGetGroupInheritedProperties : Decoder InheritedProperties
+decodeGetGroupInheritedProperties =
+  at [ "data", "groups" ] (index 0 decodeInheritedProperties)
 
+decodeSaveProperties : Decoder (List Property)
 decodeSaveProperties =
   at [ "data" ] decodeProperties
 
+decodeSaveGroupProperties : Decoder (List Property)
 decodeSaveGroupProperties =
   at [ "data", "groups" ] (index 0 decodeProperties)
 
+decodeProperties : Decoder (List Property)
 decodeProperties =
   at [ "properties" ] (list decodeProperty)
+
+decodeInheritedProperties : Decoder InheritedProperties
+decodeInheritedProperties =
+  succeed InheritedProperties
+    |> required "properties" (list decodeProperty)
+    |> optional "errorMessage" (map Just string) Nothing
 
 decodeProperty : Decoder Property
 decodeProperty =
@@ -35,8 +46,9 @@ decodeProperty =
 decodeHierarchyStatus : Decoder HierarchyStatus
 decodeHierarchyStatus =
   succeed HierarchyStatus
-    |> required "hasChildTypeConflicts"      bool
-    |> required "fullHierarchy"     (list decodeParentProperty)
+    |> required "hasChildTypeConflicts" bool
+    |> required "fullHierarchy" (list decodeParentProperty)
+    |> optional "errorMessage" (map Just string) Nothing
 
 decodeParentProperty : Decoder ParentProperty
 decodeParentProperty =

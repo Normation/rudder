@@ -50,9 +50,11 @@ import com.normation.inventory.ldap.core.UUID_ENTRY
 import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.apidata.RenderInheritedProperties
 import com.normation.rudder.apidata.RestDataSerializer
+import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
@@ -64,10 +66,12 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
 import com.normation.rudder.domain.properties.CompareProperties
+import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.NodeProperty
+import com.normation.rudder.domain.properties.NodePropertyError
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
-import com.normation.rudder.domain.properties.ParentProperty
-import com.normation.rudder.domain.properties.ParentProperty.Global
+import com.normation.rudder.domain.properties.NodePropertySpecificError
+import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.facts.nodes.ChangeContext
@@ -106,6 +110,7 @@ import com.normation.rudder.rest.data.Rest
 import com.normation.rudder.rest.data.Rest.NodeDetails
 import com.normation.rudder.rest.data.Validation
 import com.normation.rudder.rest.data.Validation.NodeValidationError
+import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.score.GlobalScore
 import com.normation.rudder.score.NoDetailsScore
 import com.normation.rudder.score.Score
@@ -122,7 +127,6 @@ import com.normation.rudder.services.servers.RemoveNodeService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
-import com.typesafe.config.ConfigValue
 import java.io.ByteArrayInputStream
 import java.io.InputStream
 import java.io.IOException
@@ -291,12 +295,10 @@ class NodeApi(
     ): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
 
-      inheritedProperties.getNodePropertiesTree(NodeId(id), RenderInheritedProperties.JSON).either.runNow match {
-        case Right(properties) =>
-          toJsonResponse(None, properties)("nodeInheritedProperties", params.prettify)
-        case Left(err)         =>
-          toJsonError(None, err.fullMsg)("nodeInheritedProperties", params.prettify)
-      }
+      inheritedProperties
+        .getNodePropertiesTree(NodeId(id), RenderInheritedProperties.JSON)
+        .map(Chunk(_))
+        .toLiftResponseOne(params, schema, _ => None)
     }
   }
 
@@ -313,12 +315,10 @@ class NodeApi(
     ): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
 
-      inheritedProperties.getNodePropertiesTree(NodeId(id), RenderInheritedProperties.HTML).either.runNow match {
-        case Right(properties) =>
-          toJsonResponse(None, properties)("nodeDisplayInheritedProperties", params.prettify)
-        case Left(err)         =>
-          toJsonError(None, err.fullMsg)("nodeDisplayInheritedProperties", params.prettify)
-      }
+      inheritedProperties
+        .getNodePropertiesTree(NodeId(id), RenderInheritedProperties.HTML)
+        .map(Chunk(_))
+        .toLiftResponseOne(params, schema, _ => None)
     }
   }
 
@@ -758,67 +758,35 @@ class NodeApiInheritedProperties(
    */
   def getNodePropertiesTree(nodeId: NodeId, renderInHtml: RenderInheritedProperties)(implicit
       qc: QueryContext
-  ): IOResult[JValue] = {
+  ): IOResult[JRNodeInheritedProperties] = {
     for {
       nodeInfo         <- infoService.get(nodeId).notOptional(s"Node with ID '${nodeId.value}' was not found.'")
       groups           <- groupRepo.getFullGroupLibrary()
-      nodeTargets       = groups.getTarget(nodeInfo).map(_._2).toList
       params           <- paramRepo.getAllGlobalParameters()
-      properties       <- MergeNodeProperties.forNode(nodeInfo.toNodeInfo, nodeTargets, params.map(p => (p.name, p)).toMap).toIO
-      propertiesDetails = properties
-                            .groupBy(_.prop.name)
-                            .map(props => {
-                              val hasConflicts = MergeNodeProperties
-                                .checkValueTypes(props._2)
-                                .isLeft
-                              (
-                                props._1,
-                                props._2 -> hasConflicts
-                              )
-                            })
-    } yield {
-      import com.normation.rudder.domain.properties.JsonPropertySerialisation.*
-      def hierarchyStatus(propName: String) = propertiesDetails.get(propName).map {
-        case (hierarchy, hasConflicts) =>
-          ("hierarchyStatus"        ->
-          (("hasChildTypeConflicts" -> hasConflicts)
-          ~ ("fullHierarchy"        -> hierarchy
-            .flatMap(p => p.hierarchy.sorted.map(serializeParentPropertyDetail))))) ~ JObject()
-      }
-
-      val rendered = (renderInHtml match {
-        case RenderInheritedProperties.HTML => properties.toApiJsonRenderParents
-        case RenderInheritedProperties.JSON => properties.toApiJson
-      }).map(p => {
-        val status = hierarchyStatus((p \ "name") match {
-          case JString(s) => s
-          case _          => ""
-        })
-        status match {
-          case Some(s) => p.merge(s)
-          case None    => p
+      properties        =
+        MergeNodeProperties.forNode(nodeInfo, groups.getGroupTarget(nodeInfo).values, params.map(p => (p.name, p)).toMap)
+      propertiesDetails = {
+        val success = properties.resolved.map(InheritedPropertyStatus.from(_))
+        val error   = properties match {
+          case f: FailedNodePropertyHierarchy =>
+            f.error match {
+              case propsErrors: NodePropertySpecificError =>
+                // these are individual errors by property that can be resolved and rendered individually
+                Chunk.from(propsErrors.propertiesErrors.values.map((ErrorInheritedPropertyStatus.from _).tupled))
+              case _:           NodePropertyError         =>
+                // we don't know the errored props, it may be all of them and there may be a global status error
+                Chunk(GlobalPropertyStatus.fromResolvedNodeProperty(f))
+            }
+          case _ => Chunk.empty
         }
-      })
-      JArray(
-        (
-          ("nodeId" -> nodeId.value)
-          ~ ("properties" -> rendered)
-        ) :: Nil
+        success ++ error
+      }
+    } yield {
+      JRNodeInheritedProperties.fromNode(
+        nodeId,
+        propertiesDetails,
+        renderInHtml
       )
-    }
-  }
-
-  private[this] def serializeParentPropertyDetail(prop: ParentProperty) = {
-    def serializeValueType(value: ConfigValue) = {
-      value.valueType().name().toLowerCase().capitalize
-    }
-    prop match {
-      case Global(value)                         =>
-        (("kind" -> "global") ~ ("valueType" -> serializeValueType(value)))
-      case ParentProperty.Group(name, id, value) =>
-        (("kind" -> "group") ~ ("valueType" -> serializeValueType(value)) ~ ("name" -> name) ~ ("id" -> id.serialize))
-      case ParentProperty.Node(name, id, value)  =>
-        (("kind" -> "node") ~ ("valueType" -> serializeValueType(value)) ~ ("name" -> name) ~ ("id" -> id.value))
     }
   }
 }
@@ -1007,32 +975,36 @@ class NodeApiService(
   def getNodesPropertiesTree(
       nodeInfos:  MapView[NodeId, CoreNodeFact],
       properties: List[String]
-  ): IOResult[Map[NodeId, List[NodePropertyHierarchy]]] = {
+  ): IOResult[Map[NodeId, Chunk[NodePropertyHierarchy]]] = {
     for {
-      groups      <- groupRepo.getFullGroupLibrary()
-      nodesTargets = nodeInfos.values.map(i => (i, groups.getTarget(i).map(_._2).toList))
-      params      <- paramRepo.getAllGlobalParameters()
-      properties  <-
-        ZIO.foreach(nodesTargets.toList) {
-          case (nodeInfo, nodeTargets) =>
+      groups            <- groupRepo.getFullGroupLibrary()
+      nodesTargets       = nodeInfos.values.map(i => (i, groups.getTarget(i).map(_._2).toList))
+      params            <- paramRepo.getAllGlobalParameters()
+      resolvedProperties = {
+        nodeInfos.map {
+          case (_, nodeInfo) =>
             MergeNodeProperties
-              .forNode(nodeInfo.toNodeInfo, nodeTargets, params.map(p => (p.name, p)).toMap)
-              .toIO
-              .fold(
-                err =>
-                  (
-                    nodeInfo.id,
-                    nodeInfo.properties.toList.collect { case p if properties.contains(p.name) => NodePropertyHierarchy(p, Nil) }
-                  ),
-                props => {
-                  // here we can have the whole parent hierarchy like in node properties details with p.toApiJsonRenderParents but it needs
-                  // adaptation in datatable display
-                  (nodeInfo.id, props.collect { case p if properties.contains(p.prop.name) => p })
+              .forNode(nodeInfo, groups.getGroupTarget(nodeInfo).values, params.map(p => (p.name, p)).toMap) match {
+              case f: FailedNodePropertyHierarchy  =>
+                // when total failure, get own node properties
+                def resolvedHierarchy = f.success.filter(p => properties.contains(p.prop.name))
+                def nodeProperties    = nodeInfo.properties.collect {
+                  case p if properties.contains(p.name) => NodePropertyHierarchy(p, Nil)
                 }
-              )
+                (
+                  nodeInfo.id,
+                  if (f.noResolved) nodeProperties else resolvedHierarchy
+                )
+              case s: SuccessNodePropertyHierarchy => {
+                // here we can have the whole parent hierarchy like in node properties details with p.toApiJsonRenderParents but it needs
+                // adaptation in datatable display
+                (nodeInfo.id, s.resolved.filter(p => properties.contains(p.prop.name)))
+              }
+            }
         }
+      }
     } yield {
-      properties.toMap
+      resolvedProperties.toMap
     }
   }
 
@@ -1242,7 +1214,7 @@ class NodeApiService(
                        inheritedProp <- getNodesPropertiesTree(nodes, List(property))
                      } yield {
                        import com.normation.rudder.domain.properties.JsonPropertySerialisation.*
-                       inheritedProp.map { case (k, v) => (k, v.map(_.toApiJsonRenderParents)) }
+                       inheritedProp.map { case (k, v) => (k, v.toList.map(_.toApiJsonRenderParents)) }
                      }
                    } else {
                      val propMap = nodes.values.groupMapReduce(_.id)(n => n.properties.filter(_.name == property))(_ ++ _)
