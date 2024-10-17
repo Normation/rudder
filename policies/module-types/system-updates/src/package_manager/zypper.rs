@@ -69,7 +69,7 @@ impl LinuxPackageManager for ZypperPackageManager {
 
     fn upgrade(&mut self, packages: Vec<PackageSpec>) -> ResultOutput<()> {
         let mut c = Command::new("zypper");
-        c.arg("--non-interactive").arg("--name").arg("update");
+        c.arg("--non-interactive").arg("update");
         c.args(packages.into_iter().map(Self::package_spec_as_argument));
         let res_update = ResultOutput::command(c);
         res_update.clear_ok()
