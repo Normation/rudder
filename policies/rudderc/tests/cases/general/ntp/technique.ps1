@@ -58,7 +58,7 @@ htop
         } else {
             Rudder-Report-NA @reportParams
         }
-    } catch [Nustache.Core.NustacheDataContextMissException] {
+    } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped because it references an undefined variable "{0}"',
@@ -69,7 +69,6 @@ htop
         Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
-            [Rudder.MethodStatus]::Error,
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
                 (Format-Exception $_)[1]
@@ -115,7 +114,7 @@ vars.node.inventory.os.fullName
         } else {
             Rudder-Report-NA @reportParams
         }
-    } catch [Nustache.Core.NustacheDataContextMissException] {
+    } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
                 'The method call was skipped because it references an undefined variable "{0}"',
@@ -126,7 +125,6 @@ vars.node.inventory.os.fullName
         Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
-            [Rudder.MethodStatus]::Error,
             ([String]::Format(
                 'The method call was skipped as an unexpected error was thrown "{0}"',
                 (Format-Exception $_)[1]
