@@ -25,6 +25,13 @@ templates = glob.glob(source + '/openapi*.src.yml')
 for template in templates:
     with open(template, 'r') as content_file:
         main = yaml.load(content_file.read(), Loader=yaml.FullLoader)
+
+        ################################################################################
+        # Lint doc using redocly (on split files to allow correct file reports)
+        if subprocess.call(['npx', 'redocly', 'lint', template]):
+            print('Linter failed on %s' % (template))
+            exit(1)
+
     version = main['info']['version']
     intro_file = main['info']['description']
 
@@ -40,17 +47,11 @@ for template in templates:
     # Dump target in target .yml file
     src_openapi_file = template.replace('.src', '')
     with open(src_openapi_file, 'w') as file:
-        documents = yaml.dump(main, file)
+        yaml.dump(main, file)
 
     target = '%s/%s/%s' % (target_dir, api, version)
 
     print('Built %s' % (src_openapi_file))
-
-    ################################################################################
-    # Lint doc using redocly (on split files to allow correct file reports)
-    if subprocess.call(['npx', 'redocly', 'lint', src_openapi_file]):
-        print('Linter failed on %s' % (src_openapi_file))
-        exit(1)
 
     ################################################################################
     # Build final OpenAPI spec files using redocly

@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2024 Normation SAS
-post:
   summary: Update pending nodes status
   description: Accept or refuse one or many pending nodes
   operationId: changePendingNodesStatus
