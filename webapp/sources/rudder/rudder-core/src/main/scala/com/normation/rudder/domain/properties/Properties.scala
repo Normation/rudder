@@ -1046,7 +1046,7 @@ sealed trait NodePropertySpecificError extends NodePropertyError {
     * a hierarchy of inherited properties from parents that lead to the error,
     * and an error message
     */
-  def propertiesErrors: Map[String, (List[ParentProperty], String)]
+  def propertiesErrors: Map[String, (NodeProperty, List[ParentProperty], String)]
 }
 object NodePropertyError         {
   case class MissingParentGroup(groupId: NodeGroupId, groupName: String, parentGroupId: String) extends NodePropertyError {
@@ -1069,7 +1069,7 @@ object NodePropertyError         {
       conflicts: Map[NodeProperty, NonEmptyChunk[List[ParentProperty]]]
   ) extends NodePropertySpecificError {
     def message: String = propertiesErrors.values.map {
-      case (conflicting, error) =>
+      case (_, conflicting, error) =>
         s"In hierarchy with ${conflicting.map(_.displayName).mkString(", ")} :\n${error}"
     }.mkString("\n")
 
@@ -1085,12 +1085,12 @@ object NodePropertyError         {
     }
 
     // the map needs to be evaluated eagerly to get all property errors at once and atomic checks
-    override val propertiesErrors: Map[String, (List[ParentProperty], String)] = {
+    override val propertiesErrors: Map[String, (NodeProperty, List[ParentProperty], String)] = {
       conflicts.map {
         case (k, props) =>
           (
             k.name,
-            (props.toList.flatten, conflictMessage(k, props))
+            (k, props.toList.flatten, conflictMessage(k, props))
           )
       }
     }
