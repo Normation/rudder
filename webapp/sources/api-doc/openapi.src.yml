@@ -255,9 +255,10 @@ paths:
   "/nodes/status":
     $ref: paths/nodes/status.yml
   "/nodes/pending":
-    $ref: paths/nodes/pending-all.yml
-  "/nodes/pending":
-    $ref: paths/nodes/pending-update.yml
+    get:
+      $ref: paths/nodes/pending-all.yml
+    post:
+      $ref: paths/nodes/pending-update.yml
   "/nodes/{nodeId}":
     $ref: paths/nodes/id.yml
   "/nodes/pending/{nodeId}":
