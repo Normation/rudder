@@ -3,10 +3,12 @@
 #![allow(unused_imports)]
 
 use crate::{
-    campaign::{check_update, FullSchedule},
+    campaign::{FullCampaignType, FullSchedule, RunnerParameters},
     cli,
     db::{Event, PackageDatabase},
-    package_manager::PackageManager,
+    package_manager::{LinuxPackageManager, PackageManager},
+    runner::Runner,
+    system::{System, Systemd},
     CampaignType, PackageParameters, RebootType, Schedule, SystemUpdateModule, MODULE_DIR,
 };
 use anyhow::{bail, Result};
@@ -14,7 +16,8 @@ use chrono::{Duration, SecondsFormat};
 use cli_table::format::{HorizontalLine, Separator, VerticalLine};
 use gumdrop::Options;
 use rudder_module_type::{
-    inventory::system_node_id, parameters::Parameters, ModuleType0, PolicyMode,
+    inventory::system_node_id, os_release::OsRelease, parameters::Parameters, ModuleType0,
+    PolicyMode,
 };
 use std::{fs, path::PathBuf};
 use uuid::Uuid;
@@ -65,15 +68,15 @@ struct RunOpts {
     help: bool,
     #[options(help = "directory where the database is stored")]
     state_dir: Option<PathBuf>,
-    #[options(long = "dry-run", help = "do not apply changes")]
-    dry_run: bool,
     #[options(long = "security", help = "only apply security upgrades")]
     security: bool,
     #[options(help = "package manager to use (defaults to system detection)")]
     package_manager: Option<PackageManager>,
+    #[options(help = "reboot/restart behavior")]
+    reboot_type: RebootType,
+    #[options(help = "name of the campaign")]
+    name: Option<String>,
     /*
-    "campaign_name": "My campaign",
-    "reboot_type": "as_needed",
     "package_list": [],
     */
 }
@@ -115,29 +118,29 @@ impl Cli {
             }
             Some(Command::Run(opts)) => {
                 let state_dir = opts.state_dir.unwrap_or(PathBuf::from(MODULE_DIR));
-                let package_parameters = PackageParameters {
+                let os_release = OsRelease::new()?;
+                let pm: Box<dyn LinuxPackageManager> = opts
+                    .package_manager
+                    .unwrap_or_else(|| PackageManager::detect(&os_release).unwrap())
+                    .get()?;
+                let package_parameters = RunnerParameters {
                     campaign_type: if opts.security {
-                        CampaignType::SecurityUpdate
+                        FullCampaignType::SecurityUpdate
                     } else {
-                        CampaignType::SystemUpdate
+                        FullCampaignType::SystemUpdate
                     },
-                    package_manager: opts
-                        .package_manager
-                        .unwrap_or_else(|| PackageManager::detect().unwrap()),
                     event_id: Uuid::new_v4().to_string(),
-                    campaign_name: "CLI".to_string(),
-                    schedule: Schedule::Immediate,
-                    reboot_type: RebootType::Disabled,
-                    package_list: vec![],
+                    campaign_name: opts.name.unwrap_or("CLI".to_string()),
+                    schedule: FullSchedule::Immediate,
+                    reboot_type: opts.reboot_type,
                     report_file: None,
                     schedule_file: None,
                 };
-
-                check_update(
-                    state_dir.as_path(),
-                    FullSchedule::Immediate,
-                    package_parameters,
-                )?;
+                let db = PackageDatabase::new(Some(state_dir.as_path()))?;
+                let system: Box<dyn System> = Box::new(Systemd::new());
+                let pid = std::process::id();
+                let mut runner = Runner::new(db, pm, package_parameters, system, pid);
+                runner.run()?;
             }
             Some(Command::Clear(l)) => {
                 let dir = l.state_dir.unwrap_or(PathBuf::from(MODULE_DIR));

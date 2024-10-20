@@ -1,29 +1,46 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+mod filter;
+
 use crate::{
+    campaign::FullCampaignType,
     output::ResultOutput,
     package_manager::{
+        apt::filter::{Distribution, PackageFileFilter},
         LinuxPackageManager, PackageId, PackageInfo, PackageList, PackageManager, PackageSpec,
     },
 };
 use anyhow::{anyhow, Context, Result};
 use memfile::MemFile;
 use regex::Regex;
+#[cfg(not(debug_assertions))]
+use rudder_module_type::ensure_root_user;
+use rudder_module_type::os_release::OsRelease;
 use rust_apt::{
     cache::Upgrade,
     config::Config,
     error::AptErrors,
     new_cache,
     progress::{AcquireProgress, InstallProgress},
-    PackageSort,
+    Cache, PackageSort,
 };
-use std::{collections::HashMap, env, io::Read, path::Path, process::Command};
-use stdio_override::{StderrOverride, StderrOverrideGuard, StdoutOverride, StdoutOverrideGuard};
+use std::{
+    collections::HashMap,
+    env,
+    fs::File,
+    io::{Read, Seek},
+    path::Path,
+    process::Command,
+};
+use stdio_override::{StdoutOverride, StdoutOverrideGuard};
 
-/// Reference guides:
+/// References:
 /// * https://www.debian.org/doc/manuals/debian-faq/uptodate.en.html
 /// * https://www.debian.org/doc/manuals/debian-handbook/sect.apt-get.en.html#sect.apt-upgrade
+/// * https://help.ubuntu.com/community/AutomaticSecurityUpdates
+/// * https://www.debian.org/doc/manuals/securing-debian-manual/security-update.en.html
+/// * https://wiki.debian.org/UnattendedUpgrades
 ///
 /// Our reference model is unattended-upgrades, which is the only “official” way to handle automatic upgrades.
 /// We need to be compatible with:
@@ -40,12 +57,15 @@ const REBOOT_REQUIRED_FILE_PATH: &str = "/var/run/reboot-required";
 
 pub struct AptPackageManager {
     /// Use an `Option` as some methods will consume the cache.
-    cache: Option<rust_apt::Cache>,
+    cache: Option<Cache>,
+    distribution: Distribution,
 }
 
 impl AptPackageManager {
-    pub fn new() -> Result<Self> {
-        // TODO: do we need this with the lib?
+    pub fn new(os_release: &OsRelease) -> Result<Self> {
+        #[cfg(not(debug_assertions))]
+        ensure_root_user()?;
+
         env::set_var("DEBIAN_FRONTEND", "noninteractive");
         // TODO: do we really want to disable list changes?
         // It will be switched to non-interactive mode automatically.
@@ -59,12 +79,20 @@ impl AptPackageManager {
         let dpkg_options = vec!["--force-confold", "--force-confdef"];
         let conf = Config::new();
         conf.set_vector("Dpkg::Options", &dpkg_options);
+        // Ensure we log the commandline in apt logs
+        conf.set(
+            "Commandline::AsString",
+            &env::args().collect::<Vec<String>>().join(" "),
+        );
 
-        Ok(Self { cache: Some(cache) })
+        Ok(Self {
+            cache: Some(cache),
+            distribution: Distribution::new(os_release),
+        })
     }
 
     /// Take the existing cache, or create a new one if it is not available.
-    fn cache(&mut self) -> ResultOutput<rust_apt::Cache> {
+    fn cache(&mut self) -> ResultOutput<Cache> {
         if self.cache.is_some() {
             ResultOutput::new(Ok(self.cache.take().unwrap()))
         } else {
@@ -90,6 +118,10 @@ impl AptPackageManager {
             .collect())
     }
 
+    fn all_installed() -> PackageSort {
+        PackageSort::default().installed().include_virtual()
+    }
+
     /// Converts a list of APT errors to a `ResultOutput`.
     fn apt_errors_to_output<T>(res: Result<T, AptErrors>) -> ResultOutput<T> {
         let mut stderr = vec![];
@@ -103,44 +135,102 @@ impl AptPackageManager {
                         stderr.push(format!("Warning: {}", error.msg));
                     }
                 }
-                Err(anyhow!("Apt error"))
+                Err(anyhow!("APT error"))
             }
         };
         ResultOutput::new_output(r, vec![], stderr)
+    }
+
+    fn mark_security_upgrades(
+        &self,
+        cache: &mut Cache,
+        security_origins: &[PackageFileFilter],
+    ) -> std::result::Result<(), AptErrors> {
+        for p in cache.packages(&Self::all_installed()) {
+            if p.is_upgradable() {
+                for v in p.versions() {
+                    if PackageFileFilter::is_in_allowed_origin(&v, &security_origins) {
+                        if v > p.installed().unwrap() {
+                            v.set_candidate();
+                            p.mark_install(true, !p.is_auto_installed());
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn mark_package_upgrades(
+        &self,
+        packages: &[PackageSpec],
+        cache: &mut Cache,
+    ) -> std::result::Result<(), AptErrors> {
+        for p in packages {
+            let package_id = if let Some(ref a) = p.architecture {
+                format!("{}:{}", p.name, a)
+            } else {
+                p.name.clone()
+            };
+            // Get package from cache
+            if let Some(pkg) = cache.get(&package_id) {
+                if !pkg.is_installed() {
+                    // We only upgrade
+                    continue;
+                }
+                if let Some(ref spec_version) = p.version {
+                    let candidate = pkg
+                        .versions()
+                        .find(|v| v.version() == spec_version.as_str());
+                    if let Some(candidate) = candidate {
+                        // Don't allow downgrade
+                        if candidate > pkg.installed().unwrap() {
+                            candidate.set_candidate();
+                            pkg.mark_install(true, !pkg.is_auto_installed());
+                        }
+                    }
+                } else {
+                    if pkg.is_upgradable() {
+                        pkg.mark_install(true, !pkg.is_auto_installed());
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn mark_all_upgrades(&self, cache: &mut Cache) -> std::result::Result<(), AptErrors> {
+        // Upgrade type: `apt upgrade` (not `dist-upgrade`).
+        // Allows adding packages, but not removing.
+        let upgrade_type = Upgrade::Upgrade;
+        // Mark all packages for upgrade
+        cache.upgrade(upgrade_type)
     }
 }
 
 // Catch stdout/stderr from the library
 pub struct OutputCatcher {
-    out_file: MemFile,
+    out_file: File,
     out_guard: StdoutOverrideGuard,
-    err_file: MemFile,
-    err_guard: StderrOverrideGuard,
 }
 
 impl OutputCatcher {
     pub fn new() -> Self {
-        let out_file = MemFile::create_default("stdout").unwrap();
-        let err_file = MemFile::create_default("stderr").unwrap();
+        let out_file = MemFile::create_default("stdout").unwrap().into_file();
         let out_guard = StdoutOverride::override_raw(out_file.try_clone().unwrap()).unwrap();
-        let err_guard = StderrOverride::override_raw(err_file.try_clone().unwrap()).unwrap();
-
         Self {
             out_file,
             out_guard,
-            err_file,
-            err_guard,
         }
     }
 
-    pub fn read(mut self) -> (String, String) {
+    pub fn read(mut self) -> String {
         drop(self.out_guard);
-        drop(self.err_guard);
         let mut out = String::new();
+        self.out_file.rewind().unwrap();
         self.out_file.read_to_string(&mut out).unwrap();
-        let mut err = String::new();
-        self.err_file.read_to_string(&mut err).unwrap();
-        (out, err)
+        out
     }
 }
 
@@ -150,14 +240,10 @@ impl LinuxPackageManager for AptPackageManager {
 
         if let Ok(o) = cache.inner {
             let mut progress = AcquireProgress::apt();
-
-            // Collect stdout through an in-memory fd.
             let catch = OutputCatcher::new();
             let mut r = Self::apt_errors_to_output(o.update(&mut progress));
-            let (out, err) = catch.read();
-            // FIXME should be inserted before
+            let out = catch.read();
             r.stdout(out);
-            r.stderr(err);
             r
         } else {
             cache.clear_ok()
@@ -168,15 +254,14 @@ impl LinuxPackageManager for AptPackageManager {
         let cache = self.cache();
 
         let step = if let Ok(ref c) = cache.inner {
-            // FIXME: compare with dpkg output
-            let filter = PackageSort::default().installed().include_virtual();
+            let filter = Self::all_installed();
 
             let mut list = HashMap::new();
             for p in c.packages(&filter) {
                 let v = p.installed().expect("Only installed packages are listed");
                 let info = PackageInfo {
                     version: v.version().to_string(),
-                    from: "FIXME".to_string(),
+                    from: v.source_name().to_string(),
                     source: PackageManager::Apt,
                 };
                 let id = PackageId {
@@ -195,113 +280,27 @@ impl LinuxPackageManager for AptPackageManager {
         cache.step(step)
     }
 
-    fn full_upgrade(&mut self) -> ResultOutput<()> {
+    fn upgrade(&mut self, update_type: &FullCampaignType) -> ResultOutput<()> {
         let cache = self.cache();
+        if let Ok(mut c) = cache.inner {
+            //if c.get_changes(false).peekable().next().is_some() {
+            //    c.clear()
+            //}
 
-        if let Ok(c) = cache.inner {
-            // Upgrade type: `apt upgrade` (not `dist-upgrade`).
-            // Allows adding packages, but not removing.
-            // FIXME: release notes, we did a dist-upgrade before
-            let upgrade_type = Upgrade::Upgrade;
-
-            // Mark all packages for upgrade
-            let res_mark = Self::apt_errors_to_output(c.upgrade(upgrade_type));
-            if res_mark.inner.is_err() {
-                return res_mark;
-            }
-
-            // Resolve dependencies
-            let res_resolve = Self::apt_errors_to_output(c.resolve(true));
-            if res_resolve.inner.is_err() {
-                return res_resolve;
-            }
-            let res = res_mark.step(res_resolve);
-
-            // Do the changes
-            let mut install_progress = InstallProgress::apt();
-            let mut acquire_progress = AcquireProgress::apt();
-            let catch = OutputCatcher::new();
-            let mut res_commit =
-                Self::apt_errors_to_output(c.commit(&mut acquire_progress, &mut install_progress));
-            let (out, err) = catch.read();
-            res_commit.stdout(out);
-            res_commit.stderr(err);
-            res.step(res_commit)
-        } else {
-            cache.clear_ok()
-        }
-    }
-
-    fn security_upgrade(&mut self) -> ResultOutput<()> {
-        // This is tricky, there is nothing built-in in apt CLI. The only official way to do this is to use `unattended-upgrades`.
-        // We try to copy the logic from `unattended-upgrades` here.
-        //
-        // https://help.ubuntu.com/community/AutomaticSecurityUpdates
-        // https://www.debian.org/doc/manuals/securing-debian-manual/security-update.en.html
-        // https://wiki.debian.org/UnattendedUpgrades
-
-        let cache = self.cache();
-        if let Ok(c) = cache.inner {
-            let filter = PackageSort::default().installed().include_virtual();
-
-            for p in c.packages(&filter) {
-                p.versions().for_each(|v| {
-                    // FIXME: get actual default rules from unattended-upgrades
-                    if v.source_name().contains("security") {
-                        v.set_candidate();
-                        p.mark_install(false, false);
-                    }
-                });
-            }
-
-            // Resolve dependencies
-            let res_resolve = Self::apt_errors_to_output(c.resolve(true));
-            if res_resolve.inner.is_err() {
-                return res_resolve;
-            }
-
-            // Do the changes
-            let mut acquire_progress = AcquireProgress::apt();
-            let mut install_progress = InstallProgress::apt();
-            let catch = OutputCatcher::new();
-            let mut res_commit =
-                Self::apt_errors_to_output(c.commit(&mut acquire_progress, &mut install_progress));
-            let (out, err) = catch.read();
-            res_commit.stdout(out);
-            res_commit.stderr(err);
-            res_resolve.step(res_commit)
-        } else {
-            cache.clear_ok()
-        }
-    }
-
-    fn upgrade(&mut self, packages: Vec<PackageSpec>) -> ResultOutput<()> {
-        let cache = self.cache();
-
-        if let Ok(c) = cache.inner {
-            for p in packages {
-                let package_id = if let Some(a) = p.architecture {
-                    format!("{}:{}", p.name, a)
-                } else {
-                    p.name
-                };
-                // Get package from cache
-                // FIXME: handle absent package
-                let pkg = c.get(&package_id).unwrap();
-
-                if let Some(spec_version) = p.version {
-                    let candidate = pkg
-                        .versions()
-                        .find(|v| v.version() == spec_version.as_str());
-                    if let Some(candidate) = candidate {
-                        candidate.set_candidate();
-                        // FIXME check result, error if not found, but still do the others
-                        pkg.mark_install(false, false);
-                    }
-                } else {
-                    // FIXME check marking because it's not clear
-                    pkg.mark_install(false, false);
+            let mark_res = AptPackageManager::apt_errors_to_output(match update_type {
+                FullCampaignType::SystemUpdate => self.mark_all_upgrades(&mut c),
+                FullCampaignType::SecurityUpdate => {
+                    let security_origins = match self.distribution.security_origins() {
+                        Ok(origins) => origins,
+                        // Fail loudly if not supported
+                        Err(e) => return ResultOutput::new(Err(e)),
+                    };
+                    self.mark_security_upgrades(&mut c, &security_origins)
                 }
+                FullCampaignType::SoftwareUpdate(p) => self.mark_package_upgrades(p, &mut c),
+            });
+            if mark_res.inner.is_err() {
+                return mark_res;
             }
 
             // Resolve dependencies
@@ -316,9 +315,8 @@ impl LinuxPackageManager for AptPackageManager {
             let catch = OutputCatcher::new();
             let mut res_commit =
                 Self::apt_errors_to_output(c.commit(&mut acquire_progress, &mut install_progress));
-            let (out, err) = catch.read();
+            let out = catch.read();
             res_commit.stdout(out);
-            res_commit.stderr(err);
             res_resolve.step(res_commit)
         } else {
             cache.clear_ok()
@@ -361,7 +359,8 @@ mod tests {
 
     #[test]
     fn test_parse_services_to_restart() {
-        let apt = AptPackageManager::new().unwrap();
+        let os_release = OsRelease::from_string("");
+        let apt = AptPackageManager::new(&os_release).unwrap();
 
         let output1 = "NEEDRESTART-VER: 3.6
 NEEDRESTART-KCUR: 6.1.0-20-amd64
@@ -387,5 +386,15 @@ NEEDRESTART-SESS: amousset @ user manager service";
             apt.parse_services_to_restart(lines2.as_slice()).unwrap(),
             expected2
         );
+    }
+
+    #[test]
+    // Needs "-- --nocapture --ignored" to run in tests as cargo test also messes with stdout/stderr
+    #[ignore]
+    fn it_captures_stdout() {
+        let catch = OutputCatcher::new();
+        println!("plouf");
+        let out = catch.read();
+        assert_eq!(out, "plouf\n".to_string());
     }
 }

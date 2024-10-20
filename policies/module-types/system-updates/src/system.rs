@@ -4,23 +4,35 @@
 use std::process::Command;
 
 use crate::output::ResultOutput;
-// We have systemd everywhere.
 
-pub struct System {}
+pub trait System {
+    fn reboot(&self) -> ResultOutput<()>;
+    fn restart_services(&self, services: &[String]) -> ResultOutput<()>;
+}
 
-impl System {
+/// We have systemd everywhere.
+pub struct Systemd {}
+
+impl Default for Systemd {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Systemd {
     pub fn new() -> Self {
         Self {}
     }
+}
 
-    // Maybe add a delay before rebooting?
-    pub fn reboot(&self) -> ResultOutput<()> {
+impl System for Systemd {
+    fn reboot(&self) -> ResultOutput<()> {
         let mut c = Command::new("systemctl");
         c.arg("reboot");
         ResultOutput::command(c).clear_ok()
     }
 
-    pub fn restart_services(&self, services: &[String]) -> ResultOutput<()> {
+    fn restart_services(&self, services: &[String]) -> ResultOutput<()> {
         // Make sure the units are up-to-date
         let mut c = Command::new("systemctl");
         c.arg("daemon-reload");

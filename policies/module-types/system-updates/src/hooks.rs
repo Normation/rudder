@@ -91,7 +91,7 @@ impl Hooks {
             return res;
         }
 
-        let mut hooks: Vec<_> = fs::read_dir("/").unwrap().map(|r| r.unwrap()).collect();
+        let mut hooks: Vec<_> = fs::read_dir(path).unwrap().map(|r| r.unwrap()).collect();
         // Sort hooks by lexicographical order
         hooks.sort_by_key(|e| e.path());
 
@@ -103,15 +103,18 @@ impl Hooks {
                     res.stderr(format!("Running hook '{}'", p.display()));
                     rudder_info!("Running hook '{}'", p.display());
                     let hook_res = ResultOutput::command(Command::new(&p));
-                    if hook_res.inner.is_err() {
-                        res.stderr(format!("Hook '{}' failed, aborting upgrade", p.display()));
-                        rudder_error!("Hook '{}' failed, aborting upgrade", p.display());
+                    res.stdout_lines(hook_res.stdout);
+                    res.stderr_lines(hook_res.stderr);
+                    if let Err(e) = hook_res.inner {
+                        res.stderr(format!("Hook '{}' failed", p.display()));
+                        rudder_error!("Hook '{}' failed", p.display());
+                        res.inner = Err(e.context(format!("Hook '{}' failed", p.display())));
                         return res;
                     }
                 }
                 Err(e) => {
-                    res.stderr(format!("Skipping hook '{}' : {:?}", p.display(), e));
-                    rudder_info!("Skipping hook '{}' : {:?}", p.display(), e);
+                    res.stderr(format!("Skipping hook '{}': {:?}", p.display(), e));
+                    rudder_info!("Skipping hook '{}': {:?}", p.display(), e);
                     continue;
                 }
             };
@@ -121,35 +124,6 @@ impl Hooks {
     }
 }
 
-/*
-def run_hooks(directory):
-    if os.path.isdir(directory):
-        hooks = os.listdir(directory)
-    else:
-        hooks = []
-    stdout = []
-    stderr = []
-
-    hooks.sort()
-
-    for hook in hooks:
-        hook_file = directory + os.path.sep + hook
-
-        (runnable, reason) = is_hook_runnable(hook_file)
-        if not runnable:
-            stdout.append('# Skipping hook ' + hook + ': ' + reason)
-            continue
-
-        (code, o, e) = run(hook_file)
-
-        if code != 0:
-            # Fail early
-            stderr.append('# Hook ' + hook + ' failed, aborting upgrade')
-            return False, '\n'.join(stdout), '\n'.join(stderr)
-
-    return True, '\n'.join(stdout), '\n'.join(stderr)
- */
-
 #[cfg(test)]
 mod tests {
     use std::{fs::File, os::unix::fs::PermissionsExt};
@@ -157,6 +131,11 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
+
+    #[test]
+    fn geteuid_gets_an_id() {
+        assert!(geteuid() > 0);
+    }
 
     #[test]
     fn test_hook_is_runnable() {
@@ -172,6 +151,10 @@ mod tests {
         file.set_permissions(permissions.clone()).unwrap();
         assert!(hook_is_runnable(&file_path, euid).is_ok());
 
+        permissions.set_mode(0o700);
+        file.set_permissions(permissions.clone()).unwrap();
+        assert!(hook_is_runnable(&file_path, euid + 1).is_err());
+
         permissions.set_mode(0o777);
         file.set_permissions(permissions.clone()).unwrap();
         assert!(hook_is_runnable(&file_path, euid).is_err());
@@ -182,7 +165,22 @@ mod tests {
     }
 
     #[test]
-    fn test_run_hooks() {
+    fn test_run_hooks_on_nonexisting_directory() {
+        let dir = "/does/not/exist";
+        let result = Hooks::run_dir(Path::new(dir));
+        assert!(result.inner.is_ok());
+    }
+
+    #[test]
+    fn test_run_hooks_on_empty_directory() {
+        let dir = tempdir().unwrap();
+        let dir_path = dir.path();
+        let result = Hooks::run_dir(dir_path);
+        assert!(result.inner.is_ok());
+    }
+
+    #[test]
+    fn test_run_hooks_with_empty_script() {
         let dir = tempdir().unwrap();
         let dir_path = dir.path();
         let file_path = dir_path.join("tempfile");
@@ -190,5 +188,27 @@ mod tests {
 
         let result = Hooks::run_dir(dir_path);
         assert!(result.inner.is_ok());
+    }
+
+    #[test]
+    fn test_run_hooks_with_multiple_succeeding_scripts() {
+        let dir = Path::new("tests/hooks/success");
+        assert!(dir.exists());
+        let result = Hooks::run_dir(dir);
+        assert!(result.inner.is_ok());
+        assert!(result.stdout.contains(&"success1\n".to_string()));
+        assert!(result.stdout.contains(&"success2\n".to_string()));
+        assert!(result.stdout.contains(&"success3\n".to_string()));
+    }
+
+    #[test]
+    fn test_run_hooks_stops_on_failure() {
+        let dir = Path::new("tests/hooks/failure");
+        assert!(dir.exists());
+        let result = Hooks::run_dir(dir);
+        assert!(result.inner.is_err());
+        assert!(result.stdout.contains(&"success1\n".to_string()));
+        assert!(result.stderr.contains(&"failure2\n".to_string()));
+        assert!(!result.stdout.contains(&"success3\n".to_string()));
     }
 }
