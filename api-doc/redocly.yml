@@ -17,7 +17,7 @@ rules:
   no-invalid-media-type-examples:
     severity: 'error'
     allowAdditionalProperties: false
-  no-server-example.com: 'error'
+  no-server-example.com: 'warn' # we should migrate away from localhost as server url
   no-unused-components: 'error'
 
 theme:
