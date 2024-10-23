@@ -145,8 +145,8 @@ CREATE TABLE ReportsExecution (
 , date         timestamp with time zone NOT NULL
 , nodeConfigId text
 , insertionId  bigint
-, insertiondate timestamp default now()
-, compliancecomputationdate timestamp
+, insertiondate timestamp with time zone default now()
+, compliancecomputationdate timestamp with time zone
 , PRIMARY KEY(nodeId, date)
 );
 

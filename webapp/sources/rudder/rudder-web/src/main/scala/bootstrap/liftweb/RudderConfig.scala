@@ -50,6 +50,7 @@ import bootstrap.liftweb.checks.consistency.CheckRudderGlobalParameter
 import bootstrap.liftweb.checks.consistency.CloseOpenUserSessions
 import bootstrap.liftweb.checks.migration.CheckAddSpecialNodeGroupsDescription
 import bootstrap.liftweb.checks.migration.CheckRemoveRuddercSetting
+import bootstrap.liftweb.checks.migration.CheckTableReportsExecutionTz
 import bootstrap.liftweb.checks.migration.CheckTableScore
 import bootstrap.liftweb.checks.migration.CheckTableUsers
 import bootstrap.liftweb.checks.migration.MigrateChangeValidationEnforceSchema
@@ -3299,6 +3300,7 @@ object RudderConfigInit {
         inventoryHistoryJdbcRepository,
         KEEP_DELETED_NODE_FACT_DURATION
       ),
+      new CheckTableReportsExecutionTz(doobie),
       new CheckTechniqueLibraryReload(
         techniqueRepositoryImpl,
         uuidGen
