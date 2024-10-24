@@ -53,7 +53,6 @@ import com.normation.rudder.domain.eventlog.InventoryLogDetails
 import com.normation.rudder.domain.eventlog.RefuseNodeEventLog
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.ModifyNodeDiff
-import com.normation.rudder.facts.nodes.MinimalNodeFactInterface.toNode
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.nodes.history.impl.FactLogData
@@ -219,7 +218,7 @@ class EventLogsNodeFactChangeEventCallback(
         old:  MinimalNodeFactInterface,
         next: MinimalNodeFactInterface
     ): IOResult[Unit] = {
-      val diff = ModifyNodeDiff(toNode(old), toNode(next))
+      val diff = ModifyNodeDiff.fromFacts(old, next)
       eventLogRepository.saveModifyNode(cc.modId, cc.actor, diff, cc.message, cc.eventDate).unit
     }
 

@@ -440,15 +440,17 @@ trait EventLogRepository {
       reason:     Option[String],
       eventDate:  DateTime
   ): IOResult[EventLog] = {
-    saveEventLog(
-      modId,
-      eventLogFactory.getModifyNodeFromDiff(
-        principal = principal,
-        modifyDiff = modifyDiff,
-        reason = reason,
-        creationDate = eventDate
-      )
-    )
+    for {
+      e <- saveEventLog(
+             modId,
+             eventLogFactory.getModifyNodeFromDiff(
+               principal = principal,
+               modifyDiff = modifyDiff,
+               reason = reason,
+               creationDate = eventDate
+             )
+           )
+    } yield e
   }
 
   def savePromoteToRelay(
