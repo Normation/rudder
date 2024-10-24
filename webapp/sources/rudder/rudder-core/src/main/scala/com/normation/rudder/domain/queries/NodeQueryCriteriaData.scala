@@ -40,6 +40,7 @@ package com.normation.rudder.domain.queries
 import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.MachineType
+import com.normation.inventory.domain.MemorySize
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.PhysicalMachineType
 import com.normation.inventory.domain.VirtualMachineType
@@ -240,7 +241,7 @@ class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository) {
         Criterion(A_OS_KERNEL_VERSION, OrderedStringComparator, NodeCriterionMatcherString(_.os.kernelVersion.value.wrap)),
         Criterion(A_ARCH, StringComparator, NodeCriterionMatcherString(_.archDescription.toChunk)),
         Criterion(A_STATE, NodeStateComparator, NodeCriterionMatcherString(_.rudderSettings.state.name.wrap)),
-        Criterion(A_OS_RAM, MemoryComparator, NodeCriterionMatcherLong(_.ram.map(_.size).toChunk)),
+        Criterion(A_OS_RAM, MemoryComparator, NodeCriterionMatcherMemory(_.ram.toChunk)),
         Criterion(A_OS_SWAP, MemoryComparator, UnsupportedByNodeMinimalApi),
         Criterion(A_AGENTS_NAME, AgentComparator, AgentMatcher),
         Criterion(A_ACCOUNT, StringComparator, UnsupportedByNodeMinimalApi),
@@ -592,6 +593,22 @@ final case class NodeCriterionMatcherDouble(extractor: CoreNodeFact => Chunk[Dou
   catch { case ex: NumberFormatException => None }
   override def serialise(a: Double): String = a.toString
   val order:                            Ordering[Double] = Ordering.Double.TotalOrdering
+}
+
+/*
+ * This one is able to parse the user input value from a Memory string (ie with bytes units etc).
+ */
+final case class NodeCriterionMatcherMemory(extractor: CoreNodeFact => Chunk[MemorySize])
+    extends NodeCriterionOrderedValueMatcher[MemorySize] {
+  override def parseNum(value: String): Option[MemorySize] = {
+    MemorySize.opt(value)
+  }
+
+  // this one is used for the regex matcher. Since we store for ex RAM in Bytes but display it in MB,
+  // it will be deceptive, and likely nobody use it for real.
+  override def serialise(a: MemorySize): String = a.size.toString()
+
+  val order: Ordering[MemorySize] = Ordering.by(_.size)
 }
 
 final case class NodeCriterionMatcherDate(extractorNode: CoreNodeFact => Chunk[DateTime])
