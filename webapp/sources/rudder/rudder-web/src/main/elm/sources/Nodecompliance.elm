@@ -108,7 +108,7 @@ update msg model =
         case res of
           Ok compliance ->
             ( { newModel | nodeCompliance = Just compliance }
-              , Cmd.none
+              , initTooltips ""
             )
           Err err ->
             processApiError "Getting node compliance" err newModel
@@ -116,7 +116,6 @@ update msg model =
 processApiError : String -> Error -> Model -> ( Model, Cmd Msg )
 processApiError apiName err model =
   let
-    modelUi = model.ui
     message =
       case err of
         Http.BadUrl url ->
@@ -136,6 +135,3 @@ processApiError apiName err model =
 
   in
     (model, errorNotification ("Error when "++apiName ++", details: \n" ++ message ) )
-
-getUrl : Model -> String
-getUrl model = model.contextPath ++ "/secure/configurationManager/directiveManagement"
