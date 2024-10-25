@@ -87,6 +87,10 @@ ldap.port=389
 ldap.authdn=cn=manager,cn=rudder-configuration
 ldap.maxPoolSize=2
 
+# By default, Rudder use a synchronous mode for LDAP connection. Before 8.1.8, it used to be async.
+# You can revert to async by using 'false'
+ldap.useSynchronousMode = true
+
 #
 # Password used to connect to the OpenLDAP server.
 # On a standard Rudder installation, the password is managed in

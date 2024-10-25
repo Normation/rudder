@@ -467,6 +467,17 @@ object RudderParsedProperties {
         2
     }
   }
+  val LDAP_USE_SYNC_MODE:                Boolean        = {
+    try {
+      config.getBoolean("ldap.useSynchronousMode")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.info(
+          "Property 'ldap.useSynchronousMode' is missing or empty in rudder.configFile. Default to true."
+        )
+        true
+    }
+  }
   val LDAP_CACHE_NODE_INFO_MIN_INTERVAL: Duration       = {
     val x = {
       try {
@@ -2559,7 +2570,8 @@ object RudderConfigInit {
         port = LDAP_PORT,
         authDn = LDAP_AUTHDN,
         authPw = LDAP_AUTHPW,
-        poolSize = LDAP_MAX_POOL_SIZE
+        poolSize = LDAP_MAX_POOL_SIZE,
+        useSynchronousMode = LDAP_USE_SYNC_MODE
       )
     }
     lazy val roLDAPConnectionProvider = roLdap
@@ -2569,7 +2581,8 @@ object RudderConfigInit {
         port = LDAP_PORT,
         authDn = LDAP_AUTHDN,
         authPw = LDAP_AUTHPW,
-        poolSize = LDAP_MAX_POOL_SIZE
+        poolSize = LDAP_MAX_POOL_SIZE,
+        useSynchronousMode = LDAP_USE_SYNC_MODE
       )
     }
 

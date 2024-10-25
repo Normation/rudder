@@ -129,13 +129,14 @@ trait LDAPConnectionProvider[LDAP <: RoLDAPConnection] {
  *
  */
 trait UnboundidConnectionProvider {
+  def customizeOption:        LDAPConnectionOptions => LDAPConnectionOptions
   // for performance reason, this can't be wrapped in ZIO
   def newUnboundidConnection: UnboundidLDAPConnection
   def toConnectionString:     String
 }
 
 object RudderLDAPConnectionOptions {
-  def apply(useSchemaInfos: Boolean): LDAPConnectionOptions = {
+  def apply(useSchemaInfos: Boolean, useSynchMode: Boolean): LDAPConnectionOptions = {
     val options = new LDAPConnectionOptions
     options.setUseSchema(useSchemaInfos)
     // In Rudder, some entries can grow quite big, see: https://www.rudder-project.org/redmine/issues/13256
@@ -145,18 +146,20 @@ object RudderLDAPConnectionOptions {
     if (options.getMaxMessageSize() == 20971520) {
       options.setMaxMessageSize(Int.MaxValue)
     }
+    options.setUseSynchronousMode(useSynchMode)
     options
   }
 }
 
 trait AnonymousConnection extends UnboundidConnectionProvider {
 
-  def host:           String
-  def port:           Int
-  def useSchemaInfos: Boolean
+  def host:               String
+  def port:               Int
+  def useSchemaInfos:     Boolean
+  def useSynchronousMode: Boolean
 
   override def newUnboundidConnection: LDAPConnection = {
-    new UnboundidLDAPConnection(RudderLDAPConnectionOptions(useSchemaInfos), host, port)
+    new UnboundidLDAPConnection(RudderLDAPConnectionOptions(useSchemaInfos, useSynchronousMode), host, port)
   }
 
   override def toConnectionString: String = s"anonymous@ldap://${host}:${port}"
@@ -167,14 +170,16 @@ trait AnonymousConnection extends UnboundidConnectionProvider {
  * use a simple login/password authentication to the server.
  */
 trait SimpleAuthConnection extends UnboundidConnectionProvider {
-  def authDn:         String
-  def authPw:         String
-  def host:           String
-  def port:           Int
-  def useSchemaInfos: Boolean
+  def authDn:             String
+  def authPw:             String
+  def host:               String
+  def port:               Int
+  def useSchemaInfos:     Boolean
+  def useSynchronousMode: Boolean
 
   override def newUnboundidConnection: LDAPConnection = {
-    new UnboundidLDAPConnection(RudderLDAPConnectionOptions(useSchemaInfos), host, port, authDn, authPw)
+    val options = customizeOption(RudderLDAPConnectionOptions(useSchemaInfos, useSynchronousMode))
+    new UnboundidLDAPConnection(options, host, port, authDn, authPw)
   }
 
   override def toConnectionString: String = s"$authDn:*****@ldap://${host}:${port}"
@@ -232,6 +237,14 @@ trait PooledConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionP
   def ldifFileLogger: LDIFFileLogger
   def poolname:       String
 
+  // special option for pooled connection
+  override def customizeOption: LDAPConnectionOptions => LDAPConnectionOptions = (options: LDAPConnectionOptions) => {
+    options.setUsePooledSchema(true)
+    options.setPooledSchemaTimeoutMillis(0) // our schema never change without a Rudder restart
+    options.setAbandonOnTimeout(true)       // better abandoning on timeout to free the connection in the pool
+    options
+  }
+
   // for performance reason, operation on pool can't be wrapped into ZIO
   protected lazy val pool: LDAPConnectionPool = {
     try {
@@ -263,13 +276,15 @@ trait PooledConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionP
  * with no pool management.
  */
 class ROAnonymousConnectionProvider(
-    override val host:           String = "localhost",
-    override val port:           Int = 389,
-    override val ldifFileLogger: LDIFFileLogger = new DefaultLDIFFileLogger(),
-    override val useSchemaInfos: Boolean = false
+    override val host:               String = "localhost",
+    override val port:               Int = 389,
+    override val ldifFileLogger:     LDIFFileLogger = new DefaultLDIFFileLogger(),
+    override val useSchemaInfos:     Boolean = false,
+    override val useSynchronousMode: Boolean = true
 ) extends AnonymousConnection with OneConnectionProvider[RoLDAPConnection] {
-  override val semaphore:  Semaphore                     = ZioRuntime.unsafeRun(Semaphore.make(1))
-  override val connection: Ref[Option[RoLDAPConnection]] = ZioRuntime.unsafeRun(Ref.make(Option.empty[RoLDAPConnection]))
+  override val semaphore:       Semaphore                                      = ZioRuntime.unsafeRun(Semaphore.make(1))
+  override val connection:      Ref[Option[RoLDAPConnection]]                  = ZioRuntime.unsafeRun(Ref.make(Option.empty[RoLDAPConnection]))
+  override def customizeOption: LDAPConnectionOptions => LDAPConnectionOptions = identity
 
   def newConnection: IO[LDAPRudderError.BackendException, RoLDAPConnection] = {
     LDAPIOResult.attempt(new RoLDAPConnection(newUnboundidConnection, ldifFileLogger))
@@ -281,13 +296,15 @@ class ROAnonymousConnectionProvider(
  * with no pool management.
  */
 class RWAnonymousConnectionProvider(
-    override val host:           String = "localhost",
-    override val port:           Int = 389,
-    override val ldifFileLogger: LDIFFileLogger = new DefaultLDIFFileLogger(),
-    override val useSchemaInfos: Boolean = false
+    override val host:               String = "localhost",
+    override val port:               Int = 389,
+    override val ldifFileLogger:     LDIFFileLogger = new DefaultLDIFFileLogger(),
+    override val useSchemaInfos:     Boolean = false,
+    override val useSynchronousMode: Boolean = true
 ) extends AnonymousConnection with OneConnectionProvider[RwLDAPConnection] {
-  override def semaphore:  Semaphore                     = ZioRuntime.unsafeRun(Semaphore.make(1))
-  override val connection: Ref[Option[RwLDAPConnection]] = ZioRuntime.unsafeRun(Ref.make(Option.empty[RwLDAPConnection]))
+  override def semaphore:       Semaphore                                      = ZioRuntime.unsafeRun(Semaphore.make(1))
+  override val connection:      Ref[Option[RwLDAPConnection]]                  = ZioRuntime.unsafeRun(Ref.make(Option.empty[RwLDAPConnection]))
+  override def customizeOption: LDAPConnectionOptions => LDAPConnectionOptions = identity
 
   def newConnection: IO[LDAPRudderError.BackendException, RwLDAPConnection] = {
     LDAPIOResult.attempt(new RwLDAPConnection(newUnboundidConnection, ldifFileLogger))
@@ -299,11 +316,12 @@ class RWAnonymousConnectionProvider(
  * connection provider
  */
 class ROPooledAnonymousConnectionProvider(
-    override val host:           String = "localhost",
-    override val port:           Int = 389,
-    override val ldifFileLogger: LDIFFileLogger = new DefaultLDIFFileLogger(),
-    override val useSchemaInfos: Boolean = false,
-    override val poolSize:       Int = 2
+    override val host:               String = "localhost",
+    override val port:               Int = 389,
+    override val ldifFileLogger:     LDIFFileLogger = new DefaultLDIFFileLogger(),
+    override val useSchemaInfos:     Boolean = false,
+    override val poolSize:           Int = 2,
+    override val useSynchronousMode: Boolean = true
 ) extends AnonymousConnection with PooledConnectionProvider[RoLDAPConnection] {
   override def poolname: String                                                 = s"rudder-anonymous-ro"
   def newConnection:     IO[LDAPRudderError.BackendException, RoLDAPConnection] = {
@@ -316,11 +334,12 @@ class ROPooledAnonymousConnectionProvider(
  * connection provider
  */
 class RWPooledAnonymousConnectionProvider(
-    override val host:           String = "localhost",
-    override val port:           Int = 389,
-    override val ldifFileLogger: LDIFFileLogger = new DefaultLDIFFileLogger(),
-    override val useSchemaInfos: Boolean = false,
-    override val poolSize:       Int = 2
+    override val host:               String = "localhost",
+    override val port:               Int = 389,
+    override val ldifFileLogger:     LDIFFileLogger = new DefaultLDIFFileLogger(),
+    override val useSchemaInfos:     Boolean = false,
+    override val poolSize:           Int = 2,
+    override val useSynchronousMode: Boolean = true
 ) extends AnonymousConnection with PooledConnectionProvider[RwLDAPConnection] {
   override def poolname: String                                                 = s"rudder-anonymous-rw"
   def newConnection:     IO[LDAPRudderError.BackendException, RwLDAPConnection] = {
@@ -334,15 +353,17 @@ class RWPooledAnonymousConnectionProvider(
  * management.
  */
 class ROSimpleAuthConnectionProvider(
-    override val authDn:         String,
-    override val authPw:         String,
-    override val host:           String = "localhost",
-    override val port:           Int = 389,
-    override val ldifFileLogger: LDIFFileLogger = new DefaultLDIFFileLogger(),
-    override val useSchemaInfos: Boolean = false
+    override val authDn:             String,
+    override val authPw:             String,
+    override val host:               String = "localhost",
+    override val port:               Int = 389,
+    override val ldifFileLogger:     LDIFFileLogger = new DefaultLDIFFileLogger(),
+    override val useSchemaInfos:     Boolean = false,
+    override val useSynchronousMode: Boolean = true
 ) extends SimpleAuthConnection with OneConnectionProvider[RoLDAPConnection] {
-  override val semaphore:  Semaphore                     = ZioRuntime.unsafeRun(Semaphore.make(1))
-  override val connection: Ref[Option[RoLDAPConnection]] = ZioRuntime.unsafeRun(Ref.make(Option.empty[RoLDAPConnection]))
+  override val semaphore:       Semaphore                                      = ZioRuntime.unsafeRun(Semaphore.make(1))
+  override val connection:      Ref[Option[RoLDAPConnection]]                  = ZioRuntime.unsafeRun(Ref.make(Option.empty[RoLDAPConnection]))
+  override def customizeOption: LDAPConnectionOptions => LDAPConnectionOptions = identity
 
   def newConnection: IO[LDAPRudderError.BackendException, RoLDAPConnection] = {
     LDAPIOResult.attempt(new RoLDAPConnection(newUnboundidConnection, ldifFileLogger))
@@ -355,15 +376,17 @@ class ROSimpleAuthConnectionProvider(
  * management.
  */
 class RWSimpleAuthConnectionProvider(
-    override val authDn:         String,
-    override val authPw:         String,
-    override val host:           String = "localhost",
-    override val port:           Int = 389,
-    override val ldifFileLogger: LDIFFileLogger = new DefaultLDIFFileLogger(),
-    override val useSchemaInfos: Boolean = false
+    override val authDn:             String,
+    override val authPw:             String,
+    override val host:               String = "localhost",
+    override val port:               Int = 389,
+    override val ldifFileLogger:     LDIFFileLogger = new DefaultLDIFFileLogger(),
+    override val useSchemaInfos:     Boolean = false,
+    override val useSynchronousMode: Boolean = true
 ) extends SimpleAuthConnection with OneConnectionProvider[RwLDAPConnection] {
-  override val semaphore:  Semaphore                     = ZioRuntime.unsafeRun(Semaphore.make(1))
-  override val connection: Ref[Option[RwLDAPConnection]] = ZioRuntime.unsafeRun(Ref.make(Option.empty[RwLDAPConnection]))
+  override val semaphore:       Semaphore                                      = ZioRuntime.unsafeRun(Semaphore.make(1))
+  override val connection:      Ref[Option[RwLDAPConnection]]                  = ZioRuntime.unsafeRun(Ref.make(Option.empty[RwLDAPConnection]))
+  override def customizeOption: LDAPConnectionOptions => LDAPConnectionOptions = identity
 
   def newConnection: IO[LDAPRudderError.BackendException, RwLDAPConnection] = {
     LDAPIOResult.attempt(new RwLDAPConnection(newUnboundidConnection, ldifFileLogger))
@@ -375,13 +398,14 @@ class RWSimpleAuthConnectionProvider(
  * with a simple login/pass connection
  */
 class ROPooledSimpleAuthConnectionProvider(
-    override val authDn:         String,
-    override val authPw:         String,
-    override val host:           String = "localhost",
-    override val port:           Int = 389,
-    override val ldifFileLogger: LDIFFileLogger = new DefaultLDIFFileLogger(),
-    override val useSchemaInfos: Boolean = false,
-    override val poolSize:       Int = 2
+    override val authDn:             String,
+    override val authPw:             String,
+    override val host:               String = "localhost",
+    override val port:               Int = 389,
+    override val ldifFileLogger:     LDIFFileLogger = new DefaultLDIFFileLogger(),
+    override val useSchemaInfos:     Boolean = false,
+    override val poolSize:           Int = 2,
+    override val useSynchronousMode: Boolean = true
 ) extends SimpleAuthConnection with PooledConnectionProvider[RoLDAPConnection] {
   override def poolname: String                                                 = s"rudder-authenticated-ro"
   def newConnection:     IO[LDAPRudderError.BackendException, RoLDAPConnection] = {
@@ -394,13 +418,14 @@ class ROPooledSimpleAuthConnectionProvider(
  * with a simple login/pass connection
  */
 class RWPooledSimpleAuthConnectionProvider(
-    override val authDn:         String,
-    override val authPw:         String,
-    override val host:           String = "localhost",
-    override val port:           Int = 389,
-    override val ldifFileLogger: LDIFFileLogger = new DefaultLDIFFileLogger(),
-    override val useSchemaInfos: Boolean = false,
-    override val poolSize:       Int = 2
+    override val authDn:             String,
+    override val authPw:             String,
+    override val host:               String = "localhost",
+    override val port:               Int = 389,
+    override val ldifFileLogger:     LDIFFileLogger = new DefaultLDIFFileLogger(),
+    override val useSchemaInfos:     Boolean = false,
+    override val poolSize:           Int = 2,
+    override val useSynchronousMode: Boolean = true
 ) extends SimpleAuthConnection with PooledConnectionProvider[RwLDAPConnection] {
 
   override def poolname: String = s"rudder-authenticated-rw"
