@@ -65,7 +65,6 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
-import org.joda.time.DateTimeComparator
 import scala.util.matching.Regex
 import scala.xml.*
 
@@ -114,36 +113,70 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private def displayTime(label: String, time: DateTime): NodeSeq = {
-    // display only the time when it's on the same day, and date if different one
-    val now       = DateTime.now()
-    val (t, help) = {
-      if (DateTimeComparator.getDateOnlyInstance().compare(time, now) == 0) {
-        (
-          time.toString("HH:mm:ss"),
-          s"on ${time.toString("yyyy-MM-dd")} (${DateFormaterService.getFormatedPeriod(time, now)} ago)"
-        )
-      } else {
-        (time.toString("yyyy-MM-dd HH:mm:ssZ"), s"${DateFormaterService.getFormatedPeriod(time, now)} ago")
-      }
-    }
-    <span>{s"${label} at ${t}"}<div class="help-block"><em>↳ {help} </em></div></span>
+    // this is replaced by a dynamic JS timer, see updateDeploymentStart
+    val d = DateFormaterService.getFormatedPeriod(time, DateTime.now)
+    <span>{label} <span id="deployment-start-interval">{d}</span> ago{displayHelpBlock(time)}</span>
   }
   private def displayDate(label: String, time: DateTime): NodeSeq = {
     val t = time.toString("yyyy-MM-dd HH:mm:ssZ")
     <span class="dropdown-header">{label + t}</span>
   }
-  private def updateDuration = {
-    val content = deploymentStatus.current match {
-      case s: SuccessStatus => displayTime("Started", s.started)
-      case s: ErrorStatus   => displayTime("Started", s.started)
-      case _ => NodeSeq.Empty
+  private def updateDeploymentStart = {
+    val helpBlockDate = deploymentStatus.current match {
+      case s: SuccessStatus => Some(s.started)
+      case s: ErrorStatus   => Some(s.started)
+      case _ => None
     }
-    SetHtml("deployment-start", content)
+    helpBlockDate match {
+      case None       => Noop
+      case Some(date) => // instead change the help block part + modify current date
+        Replace("deployment-start-help-block", displayHelpBlock(date)) & Run(
+          // time update should be done at 1s interval after a new deployment, and clean all other running intervals
+          // in the global window variable
+          s"""
+          function updateTimeDiff(date) {
+            var now = new Date();
+            var diff = Math.floor((now - date) / 1000);
+            var hours = Math.floor(diff / 3600);
+            var minutes = Math.floor((diff % 3600) / 60);
+            var seconds = diff % 60;
+            var timeDiff = "";
+            if (hours > 0) {
+              timeDiff += hours + "h ";
+            }
+            if (minutes > 0) {
+              timeDiff += minutes + "m ";
+            }
+            timeDiff += seconds + "s ";
+            $$('#deployment-start-interval').text(timeDiff);
+          }
+          if (!("deploymentStatus" in window)) {
+            window.deploymentStatus = {};
+          }
+
+          var mainHandler = document.getElementById('statusDropdownLink');
+          var date = new Date('${date.toString("yyyy-MM-dd'T'HH:mm:ss.SSSZ")}');
+          var toDelete = Object.entries(window.deploymentStatus).filter(([d, i]) => date.getTime() !== new Date(d).getTime())
+          toDelete.forEach(([d, i]) => {
+            clearInterval(i);
+            delete window.deploymentStatus[d];
+          });
+          window.deploymentStatus[date] = setInterval(function () {
+            updateTimeDiff(date)
+          }, 1000)
+         """
+        )
+    }
+  }
+
+  private def displayHelpBlock(time: DateTime): NodeSeq = {
+    val t = time.toString("yyyy-MM-dd HH:mm:ssZ")
+    <div id="deployment-start-help-block" class="help-block"><em>↳ at {t}</em></div>
   }
 
   override def render: RenderOut = {
     // we need both the script each time we render the page, and also when the status content is available
-    partialUpdate(updateDuration & scriptStatusLayout)
+    partialUpdate(updateDeploymentStart & scriptStatusLayout)
     new RenderOut(layout, scriptStatusLayout)
   }
 
