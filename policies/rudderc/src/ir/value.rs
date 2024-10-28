@@ -26,7 +26,7 @@ use nom::{
     Finish, IResult,
 };
 use rudder_commons::Target;
-use serde_yaml::Value;
+use serde_yaml_ng::Value;
 use tracing::{debug, warn};
 
 use super::technique;
@@ -56,11 +56,11 @@ where
 /// Known vars, for now no distinction between OSes
 ///
 /// Allows checking for incorrect expressions.s
-pub fn known_vars() -> &'static serde_yaml::Value {
-    static KNOWN_VAR: OnceLock<serde_yaml::Value> = OnceLock::new();
+pub fn known_vars() -> &'static serde_yaml_ng::Value {
+    static KNOWN_VAR: OnceLock<serde_yaml_ng::Value> = OnceLock::new();
     KNOWN_VAR.get_or_init(|| {
         let str = include_str!("../../libs/vars.yml");
-        serde_yaml::from_str(str).unwrap()
+        serde_yaml_ng::from_str(str).unwrap()
     })
 }
 
