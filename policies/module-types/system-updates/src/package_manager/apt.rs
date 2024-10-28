@@ -2,7 +2,9 @@
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
 mod filter;
+mod progress;
 
+use crate::package_manager::apt::progress::AptAcquireProgress;
 use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
@@ -239,7 +241,7 @@ impl LinuxPackageManager for AptPackageManager {
         let cache = self.cache();
 
         if let Ok(o) = cache.inner {
-            let mut progress = AcquireProgress::apt();
+            let mut progress = AcquireProgress::new(AptAcquireProgress::new());
             let catch = OutputCatcher::new();
             let mut r = Self::apt_errors_to_output(o.update(&mut progress));
             let out = catch.read();
@@ -310,8 +312,8 @@ impl LinuxPackageManager for AptPackageManager {
             }
 
             // Do the changes
-            let mut acquire_progress = AcquireProgress::apt();
-            let mut install_progress = InstallProgress::apt();
+            let mut acquire_progress = AcquireProgress::new(AptAcquireProgress::new());
+            let mut install_progress = InstallProgress::default();
             let catch = OutputCatcher::new();
             let mut res_commit =
                 Self::apt_errors_to_output(c.commit(&mut acquire_progress, &mut install_progress));
