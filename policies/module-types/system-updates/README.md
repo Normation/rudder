@@ -174,4 +174,4 @@ cargo build --release --features=apt
 
 ### Security
 
-This module needs to run as root, and protects its databse with `600` permissions.
+This module needs to run as root, and protects its database with `600` permissions.
