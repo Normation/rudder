@@ -51,24 +51,20 @@ impl Runner {
         }
     }
 
-    fn update_one_step(
-        &mut self,
-        state: Option<UpdateStatus>,
-    ) -> Result<(Continuation, UpdateStatus)> {
+    fn update_one_step(&mut self, state: Option<UpdateStatus>) -> Result<Continuation> {
         let maybe_action = self.decide(state)?;
         match maybe_action {
-            None => Ok((Continuation::Stop(Outcome::Success(None)), state.unwrap())),
+            None => Ok(Continuation::Stop(Outcome::Success(None))),
             Some(action) => {
                 // TODO add method to handle dead process
                 let current_pid = self.db.lock(self.pid, &self.parameters.event_id)?;
                 if current_pid.is_some() {
                     // Could not acquire lock => no action
-                    return Ok((Continuation::Stop(Outcome::Success(None)), state.unwrap()));
+                    return Ok(Continuation::Stop(Outcome::Success(None)));
                 }
                 let cont = self.execute(action)?;
                 self.db.unlock(&self.parameters.event_id)?;
-                let new_state = self.db.get_status(&self.parameters.event_id)?;
-                Ok((cont, new_state.unwrap()))
+                Ok(cont)
             }
         }
     }
@@ -142,8 +138,8 @@ impl Runner {
             let status = self.db.get_status(&self.parameters.event_id)?;
             let res = self.update_one_step(status);
             match res {
-                Ok((Continuation::Continue, _)) => {}
-                Ok((Continuation::Stop(o), _)) => {
+                Ok(Continuation::Continue) => {}
+                Ok(Continuation::Stop(o)) => {
                     return Ok(o);
                 }
                 Err(e) => {
