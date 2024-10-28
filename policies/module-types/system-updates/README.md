@@ -171,3 +171,7 @@ The APT support is enabled with the `apt` feature:
 ```shell
 cargo build --release --features=apt
 ```
+
+### Security
+
+This module needs to run as root, and protects its database with `600` permissions.

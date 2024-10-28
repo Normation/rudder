@@ -122,11 +122,15 @@ impl PackageDatabase {
         rudder_debug!("Running pid migration");
         let r = self
             .conn
-            .execute("select pid from update_events limit 1", ());
-        if r.is_err() {
-            rudder_debug!("Adding the pid column");
-            self.conn
-                .execute("alter table update_events add pid integer", ())?;
+            .query_row("select pid from update_events limit 1", [], |_| Ok(()));
+        match r {
+            Ok(_) => (),
+            Err(rusqlite::Error::QueryReturnedNoRows) => (),
+            Err(_) => {
+                rudder_debug!("Adding the pid column");
+                self.conn
+                    .execute("alter table update_events add pid integer", ())?;
+            }
         }
         Ok(())
     }
@@ -371,6 +375,8 @@ mod tests {
             .unwrap();
 
         let mut db = PackageDatabase::open_existing(conn);
+        db.migration_add_pid().unwrap();
+        // can run twice
         db.migration_add_pid().unwrap();
 
         let conn = db.into_connection();
