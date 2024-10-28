@@ -15,13 +15,13 @@ use test_generator::test_resources;
 fn compile(filename: &str) {
     let path = Path::new(filename);
     let result: Result<MethodInfo> = read_to_string(path.with_extension("cf")).unwrap().parse();
-    let reference: MethodInfo = serde_yaml::from_str(&read_to_string(path).unwrap()).unwrap();
+    let reference: MethodInfo = serde_yaml_ng::from_str(&read_to_string(path).unwrap()).unwrap();
 
     if should_fail(path) {
         assert!(result.is_err());
     } else {
         let parsed = result.unwrap();
-        println!("{}", serde_yaml::to_string(&parsed).unwrap());
+        println!("{}", serde_yaml_ng::to_string(&parsed).unwrap());
         assert_eq!(reference, parsed)
     }
 }

@@ -312,6 +312,6 @@ You need to replace `${{{class_parameter}}}` with its actual canonified value.
             method: m.bundle_name.clone(),
             params,
         };
-        Ok(serde_yaml::to_string(&e)?)
+        Ok(serde_yaml_ng::to_string(&e)?)
     }
 }
