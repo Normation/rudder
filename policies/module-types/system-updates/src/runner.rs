@@ -15,7 +15,7 @@ use rudder_module_type::Outcome;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 enum Action {
-    Schedule(DateTime<Utc>),
+    Schedule(DateTime<Utc>, bool),
     Update,
     PostUpdate,
 }
@@ -75,9 +75,15 @@ impl Runner {
 
     fn execute(&mut self, action: Action) -> Result<Continuation> {
         match action {
-            Action::Schedule(datetime) => {
-                do_schedule(&self.parameters, &mut self.db, datetime)?;
-                Ok(Continuation::Continue)
+            Action::Schedule(datetime, is_started) => {
+                let outcome = do_schedule(&self.parameters, &mut self.db, datetime)?;
+                if is_started {
+                    // If already in the window, don't send the schedule but
+                    // continue instead.
+                    Ok(Continuation::Continue)
+                } else {
+                    Ok(Continuation::Stop(outcome))
+                }
             }
             Action::Update => {
                 let reboot_needed =
@@ -112,12 +118,13 @@ impl Runner {
                 scheduler::splayed_start(s.start, s.end, s.agent_frequency, s.node_id.as_str())?
             }
         };
+        let is_started = now >= schedule_datetime;
 
         match current_status {
-            None => Ok(Some(Action::Schedule(schedule_datetime))),
+            None => Ok(Some(Action::Schedule(schedule_datetime, is_started))),
             Some(s) => match s {
                 UpdateStatus::ScheduledUpdate => {
-                    if now >= schedule_datetime {
+                    if is_started {
                         Ok(Some(Action::Update))
                     } else {
                         Ok(None)
@@ -241,7 +248,7 @@ mod tests {
     pub fn initial_state_with_immediate_schedule_should_return_schedule() {
         let parameters = default_runner_parameters();
         match test_runner(false, parameters).decide(None).unwrap() {
-            Some(Action::Schedule(_)) => {}
+            Some(Action::Schedule(_, true)) => {}
             _ => panic!(),
         }
     }
@@ -253,7 +260,7 @@ mod tests {
             ..default_runner_parameters()
         };
         match test_runner(false, parameters).decide(None).unwrap() {
-            Some(Action::Schedule(_)) => {}
+            Some(Action::Schedule(_, false)) => {}
             _ => panic!(),
         }
     }
@@ -326,7 +333,7 @@ mod tests {
         };
         assert_eq!(
             test_runner(false, parameters).run().unwrap(),
-            Outcome::Success(None)
+            Outcome::Repaired("Schedule has been sent".to_string())
         );
     }
 
