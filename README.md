@@ -1,9 +1,9 @@
 <h1 align="center">
     <a href="https://www.rudder.io" target="blank_">
           <picture>
-              <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Normation/rudder/master/logo/rudder-logo-rect-white.svg">
-              <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Normation/rudder/master/logo/rudder-logo-rect-black.svg">
-              <img height="100" alt="Rudder logo" src="https://raw.githubusercontent.com/Normation/rudder/master/logo/rudder-logo-rect-black.svg">
+              <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Normation/rudder/master/logo/icons/svg/rudder-logo-rect-white.svg">
+              <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Normation/rudder/master/logo/icons/svg/rudder-logo-rect-black.svg">
+              <img height="100" alt="Rudder logo" src="https://raw.githubusercontent.com/Normation/rudder/master/logo/icons/svg/rudder-logo-rect-black.svg">
         </picture>
     </a>
     <br>
