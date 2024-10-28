@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use crate::{cfengine::CfengineRunner, parameters::Parameters};
 
 pub mod cfengine;
+pub mod os_release;
 pub mod parameters;
 
 /// Information about the module type to pass to the library
@@ -240,6 +241,19 @@ pub mod inventory {
             bail!("Could not find node id file {}", NODE_ID_PATH)
         })
     }
+}
+
+pub fn ensure_root_user() -> Result<()> {
+    use anyhow::bail;
+    use std::os::unix::fs::MetadataExt;
+
+    let uid = std::fs::metadata("/proc/self")
+        .map(|m| m.uid())
+        .unwrap_or(0);
+    if uid != 0 {
+        bail!("This program needs to run as root, aborting.");
+    }
+    Ok(())
 }
 
 #[cfg(feature = "backup")]

@@ -10,16 +10,16 @@
         "end": "2023-01-01T00:00:00Z"
       }
     },
-    "reboot_type": "as_needed",
+    "reboot_type": "as-needed",
     "package_list": [
-        {
-            "name": "apache2",
-            "version": "2.4.29-1ubuntu4.14"
-        },
-        {
-            "name": "nginx",
-            "version": "1.14.0-0ubuntu1.7"
-        }
+      {
+        "name": "apache2",
+        "version": "2.4.29-1ubuntu4.14"
+      },
+      {
+        "name": "nginx",
+        "version": "1.14.0-0ubuntu1.7"
+      }
     ],
     "report_file": "/tmp/report.json",
     "schedule_file": "/tmp/schedule.json"

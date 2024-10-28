@@ -3,10 +3,15 @@
 
 use std::process::Command;
 
+use anyhow::Result;
+
 use crate::{
+    campaign::FullCampaignType,
     output::ResultOutput,
     package_manager::{rpm::RpmPackageManager, LinuxPackageManager, PackageList, PackageSpec},
 };
+#[cfg(not(debug_assertions))]
+use rudder_module_type::ensure_root_user;
 
 /// We need to be compatible with:
 ///
@@ -19,28 +24,24 @@ pub struct YumPackageManager {
 }
 
 impl YumPackageManager {
-    pub fn new() -> Self {
+    pub fn new() -> Result<Self> {
+        #[cfg(not(debug_assertions))]
+        ensure_root_user()?;
         let rpm = RpmPackageManager::new();
-        Self { rpm }
+        Ok(Self { rpm })
     }
 
-    fn package_spec_as_argument(p: PackageSpec) -> String {
-        let mut res = p.name;
-        if let Some(v) = p.version {
+    fn package_spec_as_argument(p: &PackageSpec) -> String {
+        let mut res = p.name.clone();
+        if let Some(ref v) = p.version {
             res.push('-');
-            res.push_str(&v);
+            res.push_str(v);
         }
-        if let Some(a) = p.architecture {
+        if let Some(ref a) = p.architecture {
             res.push('.');
-            res.push_str(&a);
+            res.push_str(a);
         }
         res
-    }
-}
-
-impl LinuxPackageManager for YumPackageManager {
-    fn list_installed(&mut self) -> ResultOutput<PackageList> {
-        self.rpm.installed()
     }
 
     fn full_upgrade(&mut self) -> ResultOutput<()> {
@@ -58,12 +59,26 @@ impl LinuxPackageManager for YumPackageManager {
         ResultOutput::command(c).clear_ok()
     }
 
-    fn upgrade(&mut self, packages: Vec<PackageSpec>) -> ResultOutput<()> {
+    fn software_upgrade(&mut self, packages: &[PackageSpec]) -> ResultOutput<()> {
         let mut c = Command::new("yum");
         c.arg("--assumeyes")
             .arg("update")
-            .args(packages.into_iter().map(Self::package_spec_as_argument));
+            .args(packages.iter().map(Self::package_spec_as_argument));
         ResultOutput::command(c).clear_ok()
+    }
+}
+
+impl LinuxPackageManager for YumPackageManager {
+    fn list_installed(&mut self) -> ResultOutput<PackageList> {
+        self.rpm.installed()
+    }
+
+    fn upgrade(&mut self, update_type: &FullCampaignType) -> ResultOutput<()> {
+        match update_type {
+            FullCampaignType::SystemUpdate => self.full_upgrade(),
+            FullCampaignType::SecurityUpdate => self.security_upgrade(),
+            FullCampaignType::SoftwareUpdate(p) => self.software_upgrade(p),
+        }
     }
 
     fn reboot_pending(&self) -> ResultOutput<bool> {

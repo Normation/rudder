@@ -1,4 +1,8 @@
 //! Type for parsing the `/etc/os-release` file.
+//! Only provide data useful in the Rudder context to identify an operating system.
+//!
+//! We don't provide enums and stay as agnostic as possible. Each module works at the most generic
+//! level possible.
 //!
 //! For a broad list of sample `/etc/os-release` files, see
 //! https://github.com/chef/os_release.
@@ -16,26 +20,11 @@ use std::{
 // Adapted from https://github.com/pop-os/os-release/tree/master
 // By System76, under MIT license
 
-const OS_RELEASE_ETC: &str = "/etc/os-release";
-const OS_RELEASE_USR: &str = "/usr/lib/os-release";
-
-macro_rules! map_keys {
-    ($item:expr, { $($pat:expr => $field:expr),+ }) => {{
-        $(
-            if $item.starts_with($pat) {
-                $field = parse_line($item, $pat.len()).into();
-                continue;
-            }
-        )+
-    }};
-}
-
 fn is_enclosed_with(line: &str, pattern: char) -> bool {
     line.starts_with(pattern) && line.ends_with(pattern)
 }
 
-fn parse_line(line: &str, skip: usize) -> &str {
-    let line = line[skip..].trim();
+fn unquote(line: &str) -> &str {
     if is_enclosed_with(line, '"') || is_enclosed_with(line, '\'') {
         &line[1..line.len() - 1]
     } else {
@@ -44,12 +33,12 @@ fn parse_line(line: &str, skip: usize) -> &str {
 }
 
 /// Contents of the `/etc/os-release` file, as a data structure.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct OsRelease {
     /// A space-separated list of operating system identifiers in the same syntax as the ID= setting. It should list identifiers of operating systems that are closely related to the local operating system in regards to packaging and programming interfaces, for example listing one or more OS identifiers the local OS is a derivative from. An OS should generally only list other OS identifiers it itself is a derivative of, and not any OSes that are derived from it, though symmetric relationships are possible. Build scripts and similar should check this variable if they need to identify the local operating system and the value of ID= is not recognized. Operating systems should be listed in order of how closely the local operating system relates to the listed ones, starting with the closest. This field is optional.
     ///
     /// Examples: for an operating system with "ID=centos", an assignment of "ID_LIKE="rhel fedora"" would be appropriate. For an operating system with "ID=ubuntu", an assignment of "ID_LIKE=debian" is appropriate.
-    pub id_like: String,
+    pub id_like: Vec<String>,
     /// A lower-case string (no spaces or other characters outside of 0–9, a–z, ".", "_" and "-") identifying the operating system, excluding any version information and suitable for processing by scripts or usage in generated filenames. If not set, a default of "ID=linux" may be used. Note that even though this string may not include characters that require shell quoting, quoting may nevertheless be used.
     ///
     /// Examples: "ID=fedora", "ID=debian".
@@ -65,41 +54,35 @@ pub struct OsRelease {
     /// A lower-case string (no spaces or other characters outside of 0–9, a–z, ".", "_" and "-") identifying the operating system release code name, excluding any OS name information or release version, and suitable for processing by scripts or usage in generated filenames. This field is optional and may not be implemented on all systems.
     ///
     /// Examples: "VERSION_CODENAME=buster", "VERSION_CODENAME=xenial".
-    pub version_codename: String,
+    pub version_codename: Option<String>,
     /// A lower-case string (mostly numeric, no spaces or other characters outside of 0–9, a–z, ".", "_" and "-") identifying the operating system version, excluding any OS name information or release code name, and suitable for processing by scripts or usage in generated filenames. This field is optional.
     ///
     /// Examples: "VERSION_ID=17", "VERSION_ID=11.04".
-    pub version_id: String,
+    pub version_id: Option<String>,
     /// A string identifying the operating system version, excluding any OS name information, possibly including a release code name, and suitable for presentation to the user. This field is optional.
     ///
     /// Examples: "VERSION=17", "VERSION="17 (Beefy Miracle)"".
-    pub version: String,
-    /// A string identifying a specific variant or edition of the operating system suitable for presentation to the user. This field may be used to inform the user that the configuration of this system is subject to a specific divergent set of rules or default configuration settings. This field is optional and may not be implemented on all systems.
-    ///
-    /// Examples: "VARIANT="Server Edition"", "VARIANT="Smart Refrigerator Edition"".
-    ///
-    /// Note: this field is for display purposes only. The VARIANT_ID field should be used for making programmatic decisions.
-    pub variant: String,
-    /// A lower-case string (no spaces or other characters outside of 0–9, a–z, ".", "_" and "-"), identifying a specific variant or edition of the operating system. This may be interpreted by other packages in order to determine a divergent default configuration. This field is optional and may not be implemented on all systems.
-    ///
-    /// Examples: "VARIANT_ID=server", "VARIANT_ID=embedded".
-    pub variant_id: String,
-    /// A CPE name for the operating system, in URI binding syntax, following the Common Platform Enumeration Specification as proposed by the NIST. This field is optional.
-    ///
-    /// Example: "CPE_NAME="cpe:/o:fedoraproject:fedora:17""
-    pub cpe_name: String,
-    /// A string uniquely identifying the system image originally used as the installation base. In most cases, VERSION_ID or IMAGE_ID+IMAGE_VERSION are updated when the entire system image is replaced during an update. BUILD_ID may be used in distributions where the original installation image version is important: VERSION_ID would change during incremental system updates, but BUILD_ID would not. This field is optional.
-    ///
-    /// Examples: "BUILD_ID="2013-03-20.3"", "BUILD_ID=201303203".
-    pub build_id: String,
-    /// A lower-case string (no spaces or other characters outside of 0–9, a–z, ".", "_" and "-"), identifying a specific image of the operating system. This is supposed to be used for environments where OS images are prepared, built, shipped and updated as comprehensive, consistent OS images. This field is optional and may not be implemented on all systems, in particularly not on those that are not managed via images but put together and updated from individual packages and on the local system.
-    ///
-    /// Examples: "IMAGE_ID=vendorx-cashier-system", "IMAGE_ID=netbook-image".
-    pub image_id: String,
-    /// A lower-case string (mostly numeric, no spaces or other characters outside of 0–9, a–z, ".", "_" and "-") identifying the OS image version. This is supposed to be used together with IMAGE_ID described above, to discern different versions of the same image.
-    ///
-    /// Examples: "IMAGE_VERSION=33", "IMAGE_VERSION=47.1rc1".
-    pub image_version: String,
+    pub version: Option<String>,
+}
+
+impl Default for OsRelease {
+    #[cfg(target_os = "linux")]
+    fn default() -> Self {
+        Self {
+            id_like: vec![],
+            id: "linux".to_string(),
+            name: "Linux".to_string(),
+            pretty_name: "Linux".to_string(),
+            version_codename: None,
+            version_id: None,
+            version: None,
+        }
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    fn default() -> Self {
+        unimplemented!()
+    }
 }
 
 impl OsRelease {
@@ -116,18 +99,23 @@ impl OsRelease {
     /// > looking at `/etc/`. A relative symlink instead of an absolute symlink is necessary to avoid
     /// > breaking the link in a chroot or initrd environment.
     pub fn new() -> io::Result<OsRelease> {
-        let etc = Path::new(OS_RELEASE_ETC);
-        let path = if etc.exists() {
-            etc
-        } else {
-            Path::new(OS_RELEASE_USR)
+        let etc = Path::new("/etc/os-release");
+        let usr = Path::new("/usr/lib/os-release");
+        let file = match (etc.exists(), usr.exists()) {
+            (true, _) => Some(etc),
+            (false, true) => Some(usr),
+            _ => None,
         };
-        let file = BufReader::new(File::open(path)?);
-        Ok(OsRelease::from_iter(file.lines().map_while(Result::ok)))
+        if let Some(path) = file {
+            let file = BufReader::new(File::open(path)?);
+            Ok(OsRelease::from_iter(file.lines().map_while(Result::ok)))
+        } else {
+            Ok(OsRelease::default())
+        }
     }
 
-    pub fn id_like(&self) -> Vec<&str> {
-        self.id_like.split_whitespace().collect()
+    pub fn from_string(s: &str) -> OsRelease {
+        OsRelease::from_iter(s.lines().map(|s| s.to_string()))
     }
 }
 
@@ -139,22 +127,36 @@ impl FromIterator<String> for OsRelease {
         let mut os_release = Self::default();
 
         for line in lines {
-            let line = line.trim();
-            map_keys!(line, {
-                "NAME=" => os_release.name,
-                "VERSION=" => os_release.version,
-                "ID=" => os_release.id,
-                "ID_LIKE=" => os_release.id_like,
-                "PRETTY_NAME=" => os_release.pretty_name,
-                "VERSION_ID=" => os_release.version_id,
-                "VERSION_CODENAME=" => os_release.version_codename,
-                "VARIANT=" => os_release.variant,
-                "VARIANT_ID=" => os_release.variant_id,
-                "CPE_NAME=" => os_release.cpe_name,
-                "BUILD_ID=" => os_release.build_id,
-                "IMAGE_ID=" => os_release.image_id,
-                "IMAGE_VERSION=" => os_release.image_version
-            });
+            // > The format of os-release is a newline-separated list of environment-like shell-compatible
+            // > variable assignments. It is possible to source the configuration from Bourne shell scripts,
+            // > however, beyond mere variable assignments, no shell features are supported (this means variable
+            // > expansion is explicitly not supported), allowing applications to read the file without
+            // > implementing a shell compatible execution engine. Variable assignment values must be enclosed
+            // > in double or single quotes if they include spaces, semicolons or other special characters
+            // > outside of A–Z, a–z, 0–9. (Assignments that do not include these special characters may be
+            // > enclosed in quotes too, but this is optional.) Shell special characters
+            // > ("$", quotes, backslash, backtick) must be escaped with backslashes, following shell style.
+            // > All strings should be in UTF-8 encoding, and non-printable characters should not be used.
+            // > Concatenation of multiple individually quoted strings is not supported. Lines beginning
+            // > with "#" are treated as comments. Blank lines are permitted and ignored.
+            if let Some((k, v)) = line.split_once('=') {
+                let k = k.trim();
+                // TODO: unescape special shell chars
+                let v = unquote(v.trim());
+
+                match k {
+                    "NAME" => os_release.name = v.to_string(),
+                    "VERSION" => os_release.version = Some(v.to_string()),
+                    "ID" => os_release.id = v.to_string(),
+                    "PRETTY_NAME" => os_release.pretty_name = v.to_string(),
+                    "VERSION_ID" => os_release.version_id = Some(v.to_string()),
+                    "VERSION_CODENAME" => os_release.version_codename = Some(v.to_string()),
+                    "ID_LIKE" => {
+                        os_release.id_like = v.split_whitespace().map(String::from).collect()
+                    }
+                    _ => continue,
+                }
+            }
         }
         os_release
     }
@@ -197,46 +199,69 @@ EXTRA_KEY=thing
 ANOTHER_KEY="#;
 
     #[test]
-    fn os_release() {
-        let rocky = OsRelease::from_iter(ROCKY.lines().map(|x| x.into()));
+    fn it_parses_os_release_on_current_system() {
+        assert!(OsRelease::new().is_ok());
+    }
+
+    #[test]
+    fn it_parses_empty_os_release() {
+        let rocky = OsRelease::from_string("");
+        assert_eq!(
+            rocky,
+            OsRelease {
+                name: "Linux".into(),
+                version: None,
+                id: "linux".into(),
+                id_like: vec![],
+                pretty_name: "Linux".into(),
+                version_id: None,
+                version_codename: None,
+            }
+        );
+    }
+
+    #[test]
+    fn it_parses_rocky_os_release() {
+        let rocky = OsRelease::from_string(ROCKY);
         assert_eq!(
             rocky,
             OsRelease {
                 name: "Rocky Linux".into(),
-                version: "9.1 (Blue Onyx)".into(),
-                variant: "".to_string(),
-                variant_id: "".to_string(),
-                cpe_name: "cpe:/o:rocky:rocky:9::baseos".to_string(),
-                build_id: "".to_string(),
-                image_id: "".to_string(),
+                version: Some("9.1 (Blue Onyx)".into()),
                 id: "rocky".into(),
-                id_like: "rhel centos fedora".into(),
+                id_like: vec![
+                    "rhel".to_string(),
+                    "centos".to_string(),
+                    "fedora".to_string()
+                ],
                 pretty_name: "Rocky Linux 9.1 (Blue Onyx)".into(),
-                version_id: "9.1".into(),
-                version_codename: "".into(),
-                image_version: "".to_string(),
+                version_id: Some("9.1".into()),
+                version_codename: None,
             }
         );
-        assert_eq!(rocky.id_like(), vec!["rhel", "centos", "fedora"]);
+    }
 
-        let ubuntu = OsRelease::from_iter(POPOS.lines().map(|x| x.into()));
+    #[test]
+    fn it_parses_popos_os_release() {
+        let ubuntu = OsRelease::from_string(POPOS);
         assert_eq!(
             ubuntu,
             OsRelease {
                 name: "Pop!_OS".into(),
-                version: "18.04 LTS".into(),
-                variant: "".to_string(),
-                variant_id: "".to_string(),
-                cpe_name: "".to_string(),
-                build_id: "".to_string(),
-                image_id: "".to_string(),
+                version: Some("18.04 LTS".into()),
                 id: "ubuntu".into(),
-                id_like: "debian".into(),
+                id_like: vec!["debian".into()],
                 pretty_name: "Pop!_OS 18.04 LTS".into(),
-                version_id: "18.04".into(),
-                version_codename: "bionic".into(),
-                image_version: "".to_string(),
+                version_id: Some("18.04".into()),
+                version_codename: Some("bionic".into()),
             }
         );
+    }
+
+    #[test]
+    fn it_overrides_values() {
+        let overridden = "ID=ubuntu\nID=debian";
+        let debian = OsRelease::from_string(overridden);
+        assert_eq!(debian.id, "debian".to_string(),);
     }
 }

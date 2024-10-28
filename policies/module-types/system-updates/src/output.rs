@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
 use log::debug;
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ use crate::package_manager::PackageDiff;
 
 /// Outcome of each function
 ///
-/// We need to collect outputs for reporting, but  also to log in live for debugging purposes.
+/// We need to collect outputs for reporting, but also to log in live for debugging purposes.
 #[must_use]
 pub struct ResultOutput<T> {
     pub inner: Result<T>,
@@ -44,9 +44,23 @@ impl<T> ResultOutput<T> {
         self.stdout.push(s)
     }
 
+    /// Add log lines to stdout
+    pub fn stdout_lines(&mut self, s: Vec<String>) {
+        for l in s {
+            self.stdout(l)
+        }
+    }
+
     /// Add logs to stderr
     pub fn stderr(&mut self, s: String) {
         self.stderr.push(s)
+    }
+
+    /// Add log lines to stderr
+    pub fn stderr_lines(&mut self, s: Vec<String>) {
+        for l in s {
+            self.stderr(l)
+        }
     }
 
     /// Chain a `ResultOutput` to another
@@ -94,6 +108,12 @@ impl ResultOutput<Output> {
             let stderr_s = String::from_utf8_lossy(&o.stderr);
             res.stderr.push(stderr_s.to_string());
             debug!("stderr: {stderr_s}");
+            if !o.status.success() {
+                res.inner = Err(match o.status.code() {
+                    Some(code) => anyhow!("Command failed with code: {code}",),
+                    None => anyhow!("Command terminated by signal"),
+                });
+            }
         };
         res
     }
@@ -122,12 +142,18 @@ impl Display for Status {
 // Same as the Python implementation in 8.1.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub(crate) struct Report {
+pub struct Report {
     pub software_updated: Vec<PackageDiff>,
     pub status: Status,
     pub output: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub errors: Option<String>,
+}
+
+impl Default for Report {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Report {
@@ -209,7 +235,7 @@ impl Report {
 /// Same as the Python implementation in 8.1.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub(crate) struct ScheduleReport {
+pub struct ScheduleReport {
     pub status: Status,
     pub date: DateTime<Utc>,
 }

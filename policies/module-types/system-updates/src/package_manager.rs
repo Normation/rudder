@@ -5,14 +5,16 @@
 ///
 use anyhow::{bail, Result};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fs::read_to_string};
+use std::collections::HashMap;
 
 #[cfg(feature = "apt")]
 use crate::package_manager::apt::AptPackageManager;
 use crate::{
+    campaign::FullCampaignType,
     output::ResultOutput,
     package_manager::{yum::YumPackageManager, zypper::ZypperPackageManager},
 };
+use rudder_module_type::os_release::OsRelease;
 use std::str::FromStr;
 
 #[cfg(feature = "apt")]
@@ -30,7 +32,7 @@ pub struct PackageList {
 
 /// Details of a package (installed or available) in a package manager context.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub(crate) struct PackageInfo {
+pub struct PackageInfo {
     pub(crate) version: String,
     pub(crate) from: String,
     pub(crate) source: PackageManager,
@@ -42,7 +44,6 @@ impl PackageList {
     }
 
     pub fn diff(&self, new: Self) -> Vec<PackageDiff> {
-        // FIXME: check package managers?
         let mut changes = vec![];
 
         for (p, info) in &self.inner {
@@ -173,33 +174,28 @@ impl FromStr for PackageManager {
 impl PackageManager {
     pub fn get(self) -> Result<Box<dyn LinuxPackageManager>> {
         Ok(match self {
-            PackageManager::Yum => Box::new(YumPackageManager::new()),
+            PackageManager::Yum => Box::new(YumPackageManager::new()?),
             #[cfg(feature = "apt")]
-            PackageManager::Apt => Box::new(AptPackageManager::new()?),
+            PackageManager::Apt => {
+                let os_release = OsRelease::new()?;
+                Box::new(AptPackageManager::new(&os_release)?)
+            }
             #[cfg(not(feature = "apt"))]
             PackageManager::Apt => bail!("This module was not build with APT support"),
-            PackageManager::Zypper => Box::new(ZypperPackageManager::new()),
+            PackageManager::Zypper => Box::new(ZypperPackageManager::new()?),
             _ => bail!("This package manager does not provide patch management features"),
         })
     }
 
     /// Only used in CLI mode
-    pub fn detect() -> Result<Self> {
-        let os_release = read_to_string("/etc/os-release")?;
-        for l in os_release.lines() {
-            if l.starts_with("ID=") {
-                let id = l.split('=').skip(1).next().unwrap();
-                return Ok(match id {
-                    "debian" | "ubuntu" => Self::Apt,
-                    "fedora" | "centos" | "rhel" | "rocky" | "ol" | "almalinux" | "amzn" => {
-                        Self::Yum
-                    }
-                    "sles" | "sled" => Self::Zypper,
-                    _ => bail!("Unknown package manager for OS: {}", id),
-                });
-            }
-        }
-        bail!("No OS id found, could not detect package manager");
+    pub fn detect(os_release: &OsRelease) -> Result<Self> {
+        let id = os_release.id.as_str();
+        Ok(match id {
+            "debian" | "ubuntu" => Self::Apt,
+            "fedora" | "centos" | "rhel" | "rocky" | "ol" | "almalinux" | "amzn" => Self::Yum,
+            "sles" | "sled" => Self::Zypper,
+            _ => bail!("Unknown package manager for OS: '{}'", id),
+        })
     }
 }
 
@@ -215,14 +211,8 @@ pub trait LinuxPackageManager {
     /// It doesn't use a cache and queries the package manager directly.
     fn list_installed(&mut self) -> ResultOutput<PackageList>;
 
-    /// Apply all available upgrades
-    fn full_upgrade(&mut self) -> ResultOutput<()>;
-
-    /// Apply all security upgrades
-    fn security_upgrade(&mut self) -> ResultOutput<()>;
-
     /// Upgrade specific packages
-    fn upgrade(&mut self, packages: Vec<PackageSpec>) -> ResultOutput<()>;
+    fn upgrade(&mut self, update_type: &FullCampaignType) -> ResultOutput<()>;
 
     /// Is a reboot pending?
     fn reboot_pending(&self) -> ResultOutput<bool>;

@@ -1,31 +1,95 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::output::Status;
 use crate::{
     db::PackageDatabase,
     hooks::Hooks,
-    output::{Report, ScheduleReport},
+    output::{Report, ScheduleReport, Status},
     package_manager::{LinuxPackageManager, PackageSpec},
-    scheduler,
     system::System,
-    CampaignType, PackageParameters, RebootType,
+    CampaignType, PackageParameters, RebootType, Schedule,
 };
 use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
-use rudder_module_type::{rudder_debug, Outcome};
-use std::path::PathBuf;
-use std::{fs, path::Path};
+use rudder_module_type::Outcome;
+use std::{fs, path::PathBuf};
 
 /// How long to keep events in the database
-const RETENTION_DAYS: u32 = 60;
+pub(crate) const RETENTION_DAYS: u32 = 60;
+
+#[derive(Clone, Debug)]
+pub struct RunnerParameters {
+    pub campaign_type: FullCampaignType,
+    pub event_id: String,
+    pub campaign_name: String,
+    pub schedule: FullSchedule,
+    pub reboot_type: RebootType,
+    pub report_file: Option<PathBuf>,
+    pub schedule_file: Option<PathBuf>,
+}
+
+impl RunnerParameters {
+    pub fn new(
+        package_parameters: PackageParameters,
+        node_id: String,
+        agent_frequency: Duration,
+    ) -> Self {
+        Self {
+            campaign_type: FullCampaignType::new(
+                package_parameters.campaign_type,
+                package_parameters.package_list,
+            ),
+            event_id: package_parameters.event_id,
+            campaign_name: package_parameters.campaign_name,
+            schedule: FullSchedule::new(&package_parameters.schedule, node_id, agent_frequency),
+            reboot_type: package_parameters.reboot_type,
+            report_file: package_parameters.report_file,
+            schedule_file: package_parameters.schedule_file,
+        }
+    }
+
+    pub fn new_immediate(package_parameters: PackageParameters) -> Self {
+        Self {
+            campaign_type: FullCampaignType::new(
+                package_parameters.campaign_type,
+                package_parameters.package_list,
+            ),
+            event_id: package_parameters.event_id,
+            campaign_name: package_parameters.campaign_name,
+            schedule: FullSchedule::Immediate,
+            reboot_type: package_parameters.reboot_type,
+            report_file: package_parameters.report_file,
+            schedule_file: package_parameters.schedule_file,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum FullCampaignType {
+    /// Install all available upgrades
+    SystemUpdate,
+    /// Install all available security upgrades
+    SecurityUpdate,
+    /// Install the updates from the provided package list
+    SoftwareUpdate(Vec<PackageSpec>),
+}
+
+impl FullCampaignType {
+    pub fn new(c: CampaignType, p: Vec<PackageSpec>) -> Self {
+        match c {
+            CampaignType::SystemUpdate => FullCampaignType::SystemUpdate,
+            CampaignType::SecurityUpdate => FullCampaignType::SecurityUpdate,
+            CampaignType::SoftwareUpdate => FullCampaignType::SoftwareUpdate(p),
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FullScheduleParameters {
-    pub(crate) start: DateTime<Utc>,
-    pub(crate) end: DateTime<Utc>,
-    pub(crate) node_id: String,
-    pub(crate) agent_frequency: Duration,
+    pub start: DateTime<Utc>,
+    pub end: DateTime<Utc>,
+    pub node_id: String,
+    pub agent_frequency: Duration,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -34,76 +98,70 @@ pub enum FullSchedule {
     Immediate,
 }
 
-/// Called at each module run
-///
-/// The returned outcome is not linked to the success of the update, but to the success of the
-/// process. The update itself can fail, but the process can be successful.
-// FIXME: send all errors as reports
-pub fn check_update(
-    state_dir: &Path,
-    schedule: FullSchedule,
-    p: PackageParameters,
-) -> Result<Outcome> {
-    let mut db = PackageDatabase::new(Some(Path::new(state_dir)))?;
-    rudder_debug!("Cleaning events older than {} days", RETENTION_DAYS);
-    db.clean(Duration::days(RETENTION_DAYS as i64))?;
-    let pm = p.package_manager.get()?;
-
-    let schedule_datetime = match schedule {
-        FullSchedule::Immediate => Utc::now(),
-        FullSchedule::Scheduled(ref s) => {
-            scheduler::splayed_start(s.start, s.end, s.agent_frequency, s.node_id.as_str())?
-        }
-    };
-    let already_scheduled = db.schedule_event(&p.event_id, &p.campaign_name, schedule_datetime)?;
-
-    // Update should have started already
-    let now = Utc::now();
-    if schedule == FullSchedule::Immediate || now >= schedule_datetime {
-        let do_update = db.start_event(&p.event_id, now)?;
-        if do_update {
-            let report = update(pm, p.reboot_type, p.campaign_type, p.package_list)?;
-            db.store_report(&p.event_id, &report)?;
-        }
-
-        // Update takes time
-        let do_post_actions = db.post_event(&p.event_id)?;
-
-        if do_post_actions {
-            let init_report = db.get_report(&p.event_id)?;
-            let report = post_update(init_report)?;
-            db.store_report(&p.event_id, &report)?;
-
-            if let Some(ref f) = p.report_file {
-                // Write the report into the destination tmp file
-                fs::write(f, serde_json::to_string(&report)?.as_bytes())?;
-            }
-
-            let now_finished = Utc::now();
-            db.sent(&p.event_id, now_finished)?;
-
-            // The repaired status is the trigger to read and send the report.
-            Ok(Outcome::Repaired("Update has run".to_string()))
-        } else {
-            Ok(Outcome::Success(None))
-        }
-    } else {
-        // Not the time yet, send the schedule if pending.
-        if !already_scheduled {
-            let report = ScheduleReport::new(schedule_datetime);
-            if let Some(ref f) = p.schedule_file {
-                // Write the report into the destination tmp file
-                fs::write(f, serde_json::to_string(&report)?.as_bytes())?;
-            }
-            Ok(Outcome::Repaired("Send schedule".to_string()))
-        } else {
-            Ok(Outcome::Success(None))
+impl FullSchedule {
+    pub fn new(schedule: &Schedule, node_id: String, agent_frequency: Duration) -> Self {
+        match schedule {
+            Schedule::Scheduled(ref s) => FullSchedule::Scheduled(FullScheduleParameters {
+                start: s.start,
+                end: s.end,
+                node_id,
+                agent_frequency,
+            }),
+            Schedule::Immediate => FullSchedule::Immediate,
         }
     }
 }
 
+/// Called at each module run
+///
+/// The returned outcome is not linked to the success of the update, but to the success of the
+/// process. The update itself can fail, but the process can be successful.
+
+pub fn do_schedule(
+    p: &RunnerParameters,
+    db: &mut PackageDatabase,
+    schedule_datetime: DateTime<Utc>,
+) -> Result<Outcome> {
+    db.schedule_event(&p.event_id, &p.campaign_name, schedule_datetime)?;
+    let report = ScheduleReport::new(schedule_datetime);
+    if let Some(ref f) = p.schedule_file {
+        // Write the report into the destination tmp file
+        fs::write(f, serde_json::to_string(&report)?.as_bytes())?;
+    }
+    Ok(Outcome::Repaired("Schedule has been sent".to_string()))
+}
+
+pub fn do_update(
+    p: &RunnerParameters,
+    db: &mut PackageDatabase,
+    package_manager: &mut Box<dyn LinuxPackageManager>,
+    system: &Box<dyn System>,
+) -> Result<bool> {
+    db.start_event(&p.event_id, Utc::now())?;
+    let (report, reboot) = update(package_manager, p.reboot_type, &p.campaign_type, system)?;
+    db.schedule_post_event(&p.event_id, &report)?;
+    Ok(reboot)
+}
+
+pub fn do_post_update(p: &RunnerParameters, db: &mut PackageDatabase) -> Result<Outcome> {
+    db.post_event(&p.event_id)?;
+    let init_report = db.get_report(&p.event_id)?;
+    let report = post_update(init_report)?;
+
+    if let Some(ref f) = p.report_file {
+        // Write the report into the destination tmp file
+        fs::write(f, serde_json::to_string(&report)?.as_bytes())?;
+    }
+
+    let now_finished = Utc::now();
+    db.completed(&p.event_id, now_finished, &report)?;
+
+    // The repaired status is the trigger to read and send the report.
+    Ok(Outcome::Repaired("Update has run".to_string()))
+}
+
 /// Shortcut method to send an error report directly
-pub fn fail_campaign(reason: &str, report_file: Option<PathBuf>) -> Result<Outcome> {
+pub fn fail_campaign(reason: &str, report_file: Option<&PathBuf>) -> Result<Outcome> {
     let mut report = Report::new();
     report.stderr(reason);
     report.status = Status::Error;
@@ -116,11 +174,11 @@ pub fn fail_campaign(reason: &str, report_file: Option<PathBuf>) -> Result<Outco
 
 /// Actually start the upgrade process immediately
 fn update(
-    mut pm: Box<dyn LinuxPackageManager>,
+    pm: &mut Box<dyn LinuxPackageManager>,
     reboot_type: RebootType,
-    campaign_type: CampaignType,
-    packages: Vec<PackageSpec>,
-) -> Result<Report> {
+    campaign_type: &FullCampaignType,
+    system: &Box<dyn System>,
+) -> Result<(Report, bool)> {
     let mut report = Report::new();
 
     let pre_result = Hooks::PreUpgrade.run();
@@ -128,7 +186,7 @@ fn update(
     // Pre-run hooks are a blocker
     if report.is_err() {
         report.stderr("Pre-run hooks failed, aborting upgrade");
-        return Ok(report);
+        return Ok((report, false));
     }
 
     // We consider failure to probe system state a blocking error
@@ -140,7 +198,7 @@ fn update(
     report.step(before);
     if report.is_err() {
         report.stderr("Failed to list installed packages, aborting upgrade");
-        return Ok(report);
+        return Ok((report, false));
     }
     let before_list = before_list.unwrap();
 
@@ -150,11 +208,7 @@ fn update(
     let cache_result = pm.update_cache();
     report.step(cache_result);
 
-    let update_result = match campaign_type {
-        CampaignType::SystemUpdate => pm.full_upgrade(),
-        CampaignType::SoftwareUpdate => pm.upgrade(packages),
-        CampaignType::SecurityUpdate => pm.security_upgrade(),
-    };
+    let update_result = pm.upgrade(campaign_type);
     report.step(update_result);
 
     let after = pm.list_installed();
@@ -165,7 +219,7 @@ fn update(
     report.step(after);
     if report.is_err() {
         report.stderr("Failed to list installed packages, aborting upgrade");
-        return Ok(report);
+        return Ok((report, false));
     }
     let after_list = after_list.unwrap();
 
@@ -173,8 +227,6 @@ fn update(
     report.diff(before_list.diff(after_list));
 
     // Now take system actions
-    let system = System::new();
-
     let pre_reboot_result = Hooks::PreReboot.run();
     report.step(pre_reboot_result);
 
@@ -189,10 +241,8 @@ fn update(
     report.step(pending);
 
     if reboot_type == RebootType::Always || (reboot_type == RebootType::AsNeeded && is_pending) {
-        let reboot_result = system.reboot();
-        report.step(reboot_result);
         // Stop there
-        return Ok(report);
+        return Ok((report, true));
     }
 
     let services = pm.services_to_restart();
@@ -213,7 +263,7 @@ fn update(
         report.step(restart_result);
     }
 
-    Ok(report)
+    Ok((report, false))
 }
 
 /// Can run just after upgrade, or at next run in case of reboot.
@@ -221,4 +271,9 @@ fn post_update(mut report: Report) -> Result<Report> {
     let post_result = Hooks::PostUpgrade.run();
     report.step(post_result);
     Ok(report)
+}
+
+#[cfg(test)]
+mod tests {
+    // FIXME tests for do_* with mock pm
 }

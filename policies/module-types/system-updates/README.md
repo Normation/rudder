@@ -1,4 +1,59 @@
-# System update module
+# System updates module
+
+This modules implements the patch management feature on Linux systems.
+
+## Usage
+
+The module is automatically used by the system update campaigns when applied from an 8.2+ server to an 8.2+ node on a compatible
+operating system.
+It is called by the agent, and provides a native interaction with it.
+
+### Compatibility & fallback
+
+The minimal Rudder agent versions supporting the module is 8.2, and the minimal versions supported by the module are:
+
+* Ubuntu 18.04 LTS
+* Debian 10
+* RHEL 7
+* SLES 12
+
+When the OS is older or on agents older than Rudder 8.2, the fallback Python-based implementation, distributed
+with the technique, is used.
+
+### CLI
+
+The module provides a CLI to help debug and track the past events on a system.
+
+```shell
+$ /opt/rudder/bin/rudder-module-system-updates --help
+Usage: /vagrant/rudder/target/debug/rudder-module-system-updates [OPTIONS]
+
+Optional arguments:
+  -h, --help     print help message
+  -v, --verbose  be verbose
+
+Available commands:
+  list   list upgrade events
+  show   show details about a specific event
+  run    run an upgrade
+  clear  drop database content
+```
+
+### Trigger an immediate event
+
+Once an event is scheduled on a system using the technique, it is possible to trigger an immediate execution
+by defining a special condition in the agent. You need the event id (in the form of a UUID), and to use:
+
+```shell
+rudder agent run -D ${event_id}_force_now
+rudder agent run -D 70fbe730-3a88-4c27-bfbe-26f799c04b1a_force_now
+```
+
+This will modify the scheduling and run the event immediately.
+
+## Design
+
+### Interface with the agent
 
 As our first module implementation in production, we chose to target the patch management feature of Rudder. On Linux it currently runs using a Python script that was assembled for the technical preview phase, but now needs to be replaced by a more industrialized solution.
 
@@ -24,10 +79,51 @@ An additional complication is that we want to capture the logs for sending them 
 
 ```
 
+### System detection
 
+We need a generic system detection method for the modules in general. This is provided by an
+[os-release](https://www.freedesktop.org/software/systemd/man/latest/os-release.html) parser,
+as all supported Linux systems should have it.
+We made the choice to avoid any limitation in the component itself, and let the modules
+chose their OS enums depending on their needs.
+In the system-updates module, we need to identify the package manager to use,
+and for APT, to identify the distribution.
 
+### System actions
 
-## Design
+All the supported operating systems in the Linux patch management come with systemd, so we can
+rely on it for services management and system reboot, providing a unified interface.
+
+In practice, we use the `systemctl reboot` and `systemctl restart <SERVICES>` commands. A future
+deeper integration could rely on a library leveraging the C or DBus APIs.
+
+### Storage
+
+The event data is stored in a SQLite database stored in `/var/rudder/system-update/rudder-module-system-updates.sqlite`.
+You can access it with the SQLite CLI:
+
+```shell
+sqlite3 /var/rudder/system-update/rudder-module-system-updates.sqlite
+```
+
+### Runner
+
+This module is quite different for most others, as it is not stateless but requires storage as the actions
+can span acros several agent runs.
+
+```mermaid
+---
+title: System updates states
+---
+stateDiagram-v2
+    [*] --> ScheduledUpdate
+    ScheduledUpdate --> RunningUpdate: now() >= schedule
+    RunningUpdate --> PendingPostActions: Update
+    PendingPostActions --> RunningPostAction: Direct
+    PendingPostActions --> RunningPostAction: Reboot and next run
+    RunningPostAction --> Completed: Post-actions + report
+    Completed --> [*]: Cleanup
+```
 
 ### Logging/Output
 
@@ -35,18 +131,27 @@ We want to capture the logs for sending them to the server, but also to display 
 
 ### Package managers
 
-We need to support the most common package managers on Linux. There are two possible approaches, either using a generic package manager interface or using an interface specific to each package manager.
+We need to support the most common package managers on Linux. There are two possible approaches, either using a generic
+package manager interface or using an interface specific to each package manager.
 
 Even if the first approach is more flexible, we decided to use the second approach for the following reasons:
 
 * The package manager interface is quite simple and the code duplication is minimal.
 * We can use the package manager CLI interface for debugging and understanding what happens.
 
-#### Dnf/Yum
+#### DNF/YUM
 
-We use a single interface for both Dnf and Yum, as they are quite similar. We use the `yum` CLI interface, as it compatible with both package managers.
+We use a single interface for both `dnf` and `yum`, as they are quite similar. We use the `yum` CLI interface, as it compatible with both package managers,
+and `yum` is aliased to `dnf` on recent systems:
+
+```shell
+[root@centos9 ~]# ls -ahl /usr/bin/yum
+lrwxrwxrwx. 1 root root 5 Apr  1  2024 /usr/bin/yum -> dnf-3
+```
 
 #### Zypper
+
+We use the `zypper` command line.
 
 #### APT
 
@@ -61,15 +166,8 @@ The drawbacks:
 
 We are on par with other tools using the `python-apt` library, which provides a similar interface.
 
+The APT support is enabled with the `apt` feature:
 
-```
-Unattended upgrade result: Lock could not be acquired
-
-Unattended-upgrades log:
-Starting unattended upgrades script
-Lock could not be acquired (another package manager running?)Unattended upgrade result: Lock could not be acquired
-
-Unattended-upgrades log:
-Starting unattended upgrades script
-Lock could not be acquired (another package manager running?)
+```shell
+cargo build --release --features=apt
 ```

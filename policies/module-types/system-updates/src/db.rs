@@ -1,21 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use chrono::{DateTime, Duration, SecondsFormat, Utc};
-use rudder_module_type::rudder_debug;
-use rusqlite::{self, Connection, Row};
-use std::{
-    fmt::{Display, Formatter},
-    fs,
-    path::{Path, PathBuf},
-};
-
 /// Database using SQLite
 ///
 /// The module is responsible for maintaining the database: schema upgrade, cleanup, etc.
 ///
 use crate::MODULE_NAME;
 use crate::{output::Report, state::UpdateStatus};
+use chrono::{DateTime, Duration, SecondsFormat, Utc};
+use rudder_module_type::rudder_debug;
+use rusqlite::{self, Connection, Row};
+use std::fs::Permissions;
+use std::os::unix::prelude::PermissionsExt;
+use std::{
+    fmt::{Display, Formatter},
+    fs,
+    path::{Path, PathBuf},
+};
 
 const DB_EXTENSION: &str = "sqlite";
 
@@ -72,16 +73,18 @@ impl PackageDatabase {
     /// Open the database, creating it if necessary.
     /// When no path is provided, the database is created in memory.
     pub fn new(path: Option<&Path>) -> anyhow::Result<Self> {
-        let db_name = Self::db_name();
         let conn = if let Some(p) = path {
             fs::create_dir_all(p)?;
-            let full_path = p.join(db_name);
+            let full_path = p.join(Self::db_name());
             rudder_debug!(
                 "Opening database {} (sqlite {})",
                 full_path.display(),
                 rusqlite::version()
             );
-            Connection::open(full_path)
+            let conn = Connection::open(full_path.as_path());
+            // Set lowest permissions
+            fs::set_permissions(full_path.as_path(), Permissions::from_mode(0o600))?;
+            conn
         } else {
             rudder_debug!(
                 "Opening in-memory database (sqlite {})",
@@ -89,10 +92,43 @@ impl PackageDatabase {
             );
             Connection::open_in_memory()
         }?;
-        // Migrations are included in the file
+        let mut s = Self { conn };
+
+        // Initialize schema
+        s.init_schema()?;
+        // Run migrations that can't be expressed in the .sql file
+        s.migration_add_pid()?;
+
+        Ok(s)
+    }
+
+    #[cfg(test)]
+    fn open_existing(conn: Connection) -> Self {
+        Self { conn }
+    }
+
+    #[cfg(test)]
+    fn into_connection(self) -> Connection {
+        self.conn
+    }
+
+    fn init_schema(&mut self) -> Result<(), rusqlite::Error> {
         let schema = include_str!("packages.sql");
-        conn.execute(schema, ())?;
-        Ok(Self { conn })
+        self.conn.execute(schema, ())?;
+        Ok(())
+    }
+
+    fn migration_add_pid(&mut self) -> Result<(), rusqlite::Error> {
+        rudder_debug!("Running pid migration");
+        let r = self
+            .conn
+            .execute("select pid from update_events limit 1", ());
+        if r.is_err() {
+            rudder_debug!("Adding the pid column");
+            self.conn
+                .execute("alter table update_events add pid integer", ())?;
+        }
+        Ok(())
     }
 
     /// Purge entries, regardless of their status.
@@ -105,108 +141,136 @@ impl PackageDatabase {
         Ok(())
     }
 
+    /// Lock for the current process on a given campaign
+    ///
+    pub fn lock(&mut self, pid: u32, event_id: &str) -> Result<Option<u32>, rusqlite::Error> {
+        let tx = self.conn.transaction()?;
+        let r = tx.query_row(
+            "select pid from update_events where event_id = ?1",
+            [&event_id],
+            |row| {
+                let v: Option<u32> = row.get(0)?;
+                Ok(v)
+            },
+        );
+        let current_pid = match r {
+            Ok(pid) => pid,
+            Err(rusqlite::Error::QueryReturnedNoRows) => None,
+            Err(e) => return Err(e),
+        };
+        match current_pid {
+            None => {
+                rudder_debug!("Setting lock for event {} to process {}", event_id, pid);
+                tx.execute(
+                    "update update_events set pid = ?1 where event_id = ?2",
+                    (pid, &event_id),
+                )?;
+            }
+            Some(p) => rudder_debug!("Lock is already set by process {}", p),
+        }
+        tx.commit()?;
+        Ok(current_pid)
+    }
+
+    /// Unlock for the current process on a given campaign
+    ///
+    pub fn unlock(&mut self, event_id: &str) -> Result<(), rusqlite::Error> {
+        let null: Option<u32> = None;
+        rudder_debug!("Removing lock for event {}", event_id);
+
+        self.conn
+            .execute(
+                "update update_events set pid = ?1 where event_id = ?2",
+                (null, &event_id),
+            )
+            .map(|_| ())
+    }
+
+    pub fn get_status(&self, event_id: &str) -> Result<Option<UpdateStatus>, rusqlite::Error> {
+        let r = self.conn.query_row(
+            "select status from update_events where event_id = ?1",
+            [&event_id],
+            |row| {
+                let v: String = row.get(0)?;
+                let p: UpdateStatus = v.parse().unwrap();
+                Ok(p)
+            },
+        );
+        match r {
+            Ok(p) => Ok(Some(p)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
+
     /// Schedule an event
     ///
-    /// The insertion also acts as the locking mechanism
     pub fn schedule_event(
         &mut self,
         event_id: &str,
         campaign_name: &str,
         schedule_datetime: DateTime<Utc>,
-    ) -> Result<bool, rusqlite::Error> {
-        let tx = self.conn.transaction()?;
-
-        let r = tx.query_row(
-            "select id from update_events where event_id = ?1",
-            [&event_id],
-            |_| Ok(()),
-        );
-        let already_scheduled = match r {
-            Ok(_) => true,
-            Err(rusqlite::Error::QueryReturnedNoRows) => false,
-            Err(e) => return Err(e),
-        };
-        if !already_scheduled {
-            tx.execute(
+    ) -> Result<(), rusqlite::Error> {
+        self.conn.execute(
                 "insert into update_events (event_id, campaign_name, status, schedule_datetime) values (?1, ?2, ?3, ?4)",
-                (&event_id, &campaign_name, UpdateStatus::Scheduled.to_string(), schedule_datetime.to_rfc3339()),
-            )?;
-        }
-
-        tx.commit()?;
-        Ok(already_scheduled)
+                (&event_id, &campaign_name, UpdateStatus::ScheduledUpdate.to_string(), schedule_datetime.to_rfc3339()),
+            ).map(|_| ())
     }
 
     /// Start an event
     ///
     /// The update also acts as the locking mechanism
+    ///
+    /// We take the actual start time, which is >= scheduled.
     pub fn start_event(
         &mut self,
         event_id: &str,
         start_datetime: DateTime<Utc>,
-    ) -> Result<bool, rusqlite::Error> {
-        let tx = self.conn.transaction()?;
-
-        let r = tx.query_row(
-            "select id from update_events where event_id = ?1 and status = ?2",
-            (&event_id, UpdateStatus::Scheduled.to_string()),
-            |_| Ok(()),
-        );
-        let pending_update = match r {
-            Ok(_) => true,
-            Err(rusqlite::Error::QueryReturnedNoRows) => false,
-            Err(e) => return Err(e),
-        };
-        if pending_update {
-            tx.execute(
+    ) -> Result<(), rusqlite::Error> {
+        self.conn
+            .execute(
                 "update update_events set status = ?1, run_datetime = ?2 where event_id = ?3",
                 (
-                    UpdateStatus::Running.to_string(),
+                    UpdateStatus::RunningUpdate.to_string(),
                     start_datetime.to_rfc3339(),
                     &event_id,
                 ),
-            )?;
-        }
+            )
+            .map(|_| ())
+    }
 
-        tx.commit()?;
-        Ok(pending_update)
+    /// Schedule post-event action. Can happen after a reboot in a separate run.
+    ///
+    pub fn schedule_post_event(
+        &mut self,
+        event_id: &str,
+        report: &Report,
+    ) -> Result<(), rusqlite::Error> {
+        self.conn
+            .execute(
+                "update update_events set status = ?1, report = ?2 where event_id = ?3",
+                (
+                    UpdateStatus::PendingPostActions.to_string(),
+                    serde_json::to_string(report).unwrap(),
+                    &event_id,
+                ),
+            )
+            .map(|_| ())
     }
 
     /// Start post-event action. Can happen after a reboot in a separate run.
     ///
     /// The update also acts as the locking mechanism
-    pub fn post_event(&mut self, event_id: &str) -> Result<bool, rusqlite::Error> {
-        let tx = self.conn.transaction()?;
-
-        let r = tx.query_row(
-            "select event_id from update_events where event_id = ?1 and status = ?2",
-            (&event_id, UpdateStatus::Running.to_string()),
-            |_| Ok(()),
-        );
-        let pending_post_actions = match r {
-            Ok(_) => true,
-            Err(rusqlite::Error::QueryReturnedNoRows) => false,
-            Err(e) => return Err(e),
-        };
-        if pending_post_actions {
-            tx.execute(
+    pub fn post_event(&mut self, event_id: &str) -> Result<(), rusqlite::Error> {
+        self.conn
+            .execute(
                 "update update_events set status = ?1 where event_id = ?2",
-                (UpdateStatus::PendingPostActions.to_string(), &event_id),
-            )?;
-        }
-
-        tx.commit()?;
-        Ok(pending_post_actions)
+                (UpdateStatus::RunningPostActions.to_string(), &event_id),
+            )
+            .map(|_| ())
     }
 
-    pub fn store_report(&self, event_id: &str, report: &Report) -> Result<(), rusqlite::Error> {
-        self.conn.execute(
-            "update update_events set report = ?1 where event_id = ?2",
-            (serde_json::to_string(report).unwrap(), &event_id),
-        )?;
-        Ok(())
-    }
-
+    /// Assumes the report exists, fails otherwise
     pub fn get_report(&self, event_id: &str) -> Result<Report, rusqlite::Error> {
         self.conn.query_row(
             "select report from update_events where event_id = ?1",
@@ -220,16 +284,18 @@ impl PackageDatabase {
     }
 
     /// Mark the event as completed
-    pub fn sent(
+    pub fn completed(
         &self,
         event_id: &str,
         report_datetime: DateTime<Utc>,
+        report: &Report,
     ) -> Result<(), rusqlite::Error> {
         self.conn.execute(
-            "update update_events set status = ?1, report_datetime = ?2 where event_id = ?3",
+            "update update_events set status = ?1, report_datetime = ?2, report = ?3 where event_id = ?4",
             (
                 UpdateStatus::Completed.to_string(),
                 report_datetime.to_rfc3339(),
+                serde_json::to_string(report).unwrap(),
                 &event_id,
             ),
         )?;
@@ -280,18 +346,36 @@ impl PackageDatabase {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{Duration, Utc};
-    use std::ops::Add;
-
     use super::{Event, PackageDatabase};
     use crate::{output::Report, state::UpdateStatus};
+    use chrono::{Duration, Utc};
+    use pretty_assertions::assert_eq;
+    use rusqlite::Connection;
+    use std::ops::Add;
+    use std::os::unix::prelude::PermissionsExt;
 
     #[test]
     fn new_creates_new_database() {
         let t = tempfile::tempdir().unwrap();
         PackageDatabase::new(Some(t.path())).unwrap();
         let db_name = PackageDatabase::db_name();
-        assert!(t.path().join(db_name).exists());
+        let p = t.path().join(db_name);
+        assert!(p.exists());
+        assert_eq!(p.metadata().unwrap().permissions().mode(), 0o100600);
+    }
+
+    #[test]
+    fn migration_add_pid_column() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute("create table update_events (id integer primary key)", ())
+            .unwrap();
+
+        let mut db = PackageDatabase::open_existing(conn);
+        db.migration_add_pid().unwrap();
+
+        let conn = db.into_connection();
+        let r = conn.execute("select pid from update_events", ());
+        assert!(r.is_ok());
     }
 
     #[test]
@@ -303,14 +387,42 @@ mod tests {
     }
 
     #[test]
-    fn start_event_inserts_and_returns_false_for_new_events() {
+    fn locks_locks() {
         let mut db = PackageDatabase::new(None).unwrap();
         let event_id = "TEST";
         let campaign_id = "CAMPAIGN";
         let now = Utc::now();
-        // If the event was not present before, this should be false.
-        assert!(!db.schedule_event(event_id, campaign_id, now).unwrap());
-        assert!(db.schedule_event(event_id, campaign_id, now).unwrap());
+
+        db.schedule_event(event_id, campaign_id, now).unwrap();
+        assert_eq!(db.lock(0, event_id).unwrap(), None);
+        assert_eq!(db.lock(0, event_id).unwrap(), Some(0));
+    }
+
+    #[test]
+    fn unlock_unlocks() {
+        let mut db = PackageDatabase::new(None).unwrap();
+        let event_id = "TEST";
+        let campaign_id = "CAMPAIGN";
+        let now = Utc::now();
+
+        db.schedule_event(event_id, campaign_id, now).unwrap();
+        assert_eq!(db.lock(0, event_id).unwrap(), None);
+        db.unlock(event_id).unwrap();
+        assert_eq!(db.lock(0, event_id).unwrap(), None);
+    }
+
+    #[test]
+    fn start_event_inserts_and_sets_running_update() {
+        let mut db = PackageDatabase::new(None).unwrap();
+        let event_id = "TEST";
+        let campaign_id = "CAMPAIGN";
+        let now = Utc::now();
+        db.schedule_event(event_id, campaign_id, now).unwrap();
+        db.start_event(event_id, now).unwrap();
+        assert_eq!(
+            db.get_status(event_id).unwrap().unwrap(),
+            UpdateStatus::RunningUpdate
+        )
     }
 
     #[test]
@@ -324,7 +436,7 @@ mod tests {
         db.schedule_event(event_id, campaign_name, schedule)
             .unwrap();
         db.start_event(event_id, start).unwrap();
-        db.store_report(event_id, &report).unwrap();
+        db.schedule_post_event(event_id, &report).unwrap();
 
         // Now get the data back and see if it matches
         let got_report = db.get_report(event_id).unwrap();
@@ -334,7 +446,7 @@ mod tests {
         let event = Event {
             id: event_id.to_string(),
             campaign_name: campaign_name.to_string(),
-            status: UpdateStatus::Running,
+            status: UpdateStatus::PendingPostActions,
             scheduled_datetime: schedule,
             run_datetime: Some(start),
             report_datetime: None,
@@ -346,7 +458,7 @@ mod tests {
         let ref_event = Event {
             id: event_id.to_string(),
             campaign_name: campaign_name.to_string(),
-            status: UpdateStatus::Running,
+            status: UpdateStatus::PendingPostActions,
             scheduled_datetime: schedule,
             run_datetime: Some(start),
             report_datetime: None,
