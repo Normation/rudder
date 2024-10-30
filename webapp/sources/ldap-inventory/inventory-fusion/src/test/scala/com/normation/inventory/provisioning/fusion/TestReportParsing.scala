@@ -379,6 +379,25 @@ class TestInventoryParsing extends Specification with Loggable {
     }
   }
 
+  "Parsing BIOS" should {
+    "parse system manufacturer SMANUFACTURER" in {
+      val bios            = parseRun("fusion-inventories/alma.ocs").machine.bios
+      val sysManufacturer = bios.map(_.manufacturer).headOption
+      sysManufacturer match {
+        case Some(manufacturer) => manufacturer.map(_.name) === Some("innotek GmbH")
+        case None               => ko("Missing <SMANUFACTURER> from <BIOS> section in fusion-inventories/alma.ocs")
+      }
+    }
+    "parse system serial number SSN" in {
+      val bios   = parseRun("fusion-inventories/alma.ocs").machine.bios
+      val ssnOpt = bios.map(_.serialNumber).headOption
+      ssnOpt match {
+        case Some(ssn) => ssn === Some("be7c0c4f-5f27-6648-9adb-6cce2129061d")
+        case None      => ko("Missing <SSN> from <BIOS> section in fusion-inventories/alma.ocs")
+      }
+    }
+  }
+
   "if we ignore processes, we don't get any" >> {
     val ignoringParser = new FusionInventoryParser(new StringUuidGeneratorImpl, ignoreProcesses = true)
     val processes      =
