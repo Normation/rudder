@@ -26,7 +26,6 @@ use nom::{
     Finish, IResult,
 };
 use rudder_commons::Target;
-use serde_yaml::Value;
 use tracing::{debug, warn};
 
 use super::technique;
@@ -55,7 +54,7 @@ where
 
 /// Known vars, for now no distinction between OSes
 ///
-/// Allows checking for incorrect expressions.s
+/// Allows checking for incorrect expressions.
 pub fn known_vars() -> &'static serde_yaml::Value {
     static KNOWN_VAR: OnceLock<serde_yaml::Value> = OnceLock::new();
     KNOWN_VAR.get_or_init(|| {
@@ -260,35 +259,39 @@ impl Expression {
                         } else {
                             warn!("Unknown variable 'node.inventory[{k1}]'");
                         }
-                    } else {
+                    } else if s.len() >= 2 {
                         // Check the second level
-                        let second: &Value = inventory
+                        let key1_v = inventory
                             .iter()
                             .find(|i| {
                                 i.as_mapping()
                                     .map(|m| m.keys().next().unwrap().as_str().unwrap() == k1)
                                     .unwrap_or(false)
                             })
-                            .unwrap()
+                            .unwrap();
+
+                        let key1_seq = key1_v
                             .as_mapping()
                             .unwrap()
                             .iter()
                             .next()
                             .unwrap()
-                            .1;
+                            .1
+                            .as_sequence()
+                            .unwrap();
 
-                        if let Some(seq) = second.as_sequence() {
-                            let vals: Vec<&str> = seq.iter().map(|v| v.as_str().unwrap()).collect();
-                            // Allow specifying only the first level to access the object
-                            if let Some(Expression::Scalar(k2)) = s.get(1) {
-                                if !vals.contains(&k2.as_str()) {
-                                    if let Some(prop) = did_you_mean(k2, vals) {
-                                        warn!(
+                        let vals: Vec<&str> =
+                            key1_seq.iter().map(|v| v.as_str().unwrap()).collect();
+
+                        // Allow specifying only the first level to access the object
+                        if let Some(Expression::Scalar(k2)) = s.get(1) {
+                            if !vals.contains(&k2.as_str()) {
+                                if let Some(prop) = did_you_mean(k2, vals) {
+                                    warn!(
                                             "Unknown variable 'node.inventory[{k1}][{k2}]', did you mean '{prop}'?"
                                         );
-                                    } else {
-                                        warn!("Unknown variable 'node.inventory[{k1}][{k2}]'");
-                                    }
+                                } else {
+                                    warn!("Unknown variable 'node.inventory[{k1}][{k2}]'");
                                 }
                             }
                         }
@@ -744,28 +747,6 @@ mod tests {
     }
 
     #[test]
-    fn it_reads_generic_var() {
-        let (_, out) = generic_var("${plouf}").unwrap();
-        assert_eq!(
-            out,
-            Expression::GenericVar(vec![Expression::Scalar("plouf".to_string())])
-        );
-        let (_, out) = generic_var("${bundle.plouf}").unwrap();
-        assert_eq!(
-            out,
-            Expression::GenericVar(vec![Expression::Scalar("bundle.plouf".to_string())])
-        );
-        let (_, out) = generic_var("${bundle.plouf[key]}").unwrap();
-        assert_eq!(
-            out,
-            Expression::GenericVar(vec![
-                Expression::Scalar("bundle.plouf".to_string()),
-                Expression::Scalar("key".to_string())
-            ])
-        );
-    }
-
-    #[test]
     fn it_reads_vcf_const_var() {
         let (_, out) = ncf_const("${ncf_const.s}").unwrap();
         assert_eq!(
@@ -780,6 +761,24 @@ mod tests {
         assert_eq!(
             out,
             Expression::GlobalParameter(Box::new(Expression::Scalar("plouf".to_string())))
+        );
+    }
+
+    #[test]
+    fn it_reads_node_inventory_vars() {
+        let (_, out) = node_inventory("${node.inventory[hostname]}").unwrap();
+        assert_eq!(
+            out,
+            Expression::NodeInventory(vec![Expression::Scalar("hostname".to_string())])
+        );
+
+        let (_, out) = node_inventory("${node.inventory[machine][machineType]}").unwrap();
+        assert_eq!(
+            out,
+            Expression::NodeInventory(vec![
+                Expression::Scalar("machine".to_string()),
+                Expression::Scalar("machineType".to_string())
+            ])
         );
     }
 
@@ -1066,5 +1065,13 @@ vars.bundle.plouf
                 .unwrap(),
             Expression::GenericVar(vec![Expression::Scalar("param11".to_string()),])
         );
+    }
+
+    fn it_lints_node_inventory_vars() {
+        let e = Expression::from_str("${node.inventory[hostname]}").unwrap();
+        assert!(e.lint().is_ok());
+
+        let e = Expression::from_str("${node.inventory[machine][machineType]}").unwrap();
+        assert!(e.lint().is_ok());
     }
 }
