@@ -37,46 +37,59 @@
 
 package bootstrap.liftweb.checks.action
 
+import better.files.File
+import better.files.File.OpenOptions
+import better.files.File.apply
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.rudder.api.ApiAccount
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
+import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.PosixFilePermissions
+import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.util.ControlHelpers.tryo
 
 /**
- * Create at webapp startup an api token to use for intern use
+ * Create an API token file at webapp startup to use for internal use.
  */
-class CreateSystemToken(systemAccount: ApiAccount) extends BootstrapChecks {
+class CreateSystemToken(systemAccount: ApiAccount, runDir: Path) extends BootstrapChecks {
 
-  override val description = "Create system api token"
+  override val description = "Create system API token files"
+
+  def tokenHeader(): String = {
+    s"X-API-Token: ${systemAccount.token.value}"
+  }
+
+  private def restrictedPermissionsWrite(path: File, content: String) = {
+    for {
+      perms       <- PosixFilePermissions.fromString("rw-------")
+      openOptions <- Seq(StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)
+      // attr <-
+      file        <- path.writeText(content)
+    } yield {
+      file
+    }
+  }
 
   override def checks(): Unit = {
-    val tokenPath = "/var/rudder/run/api-token"
+    val tokenFile       = "api-token"
+    // Allows easier usage in scripts, and in particular prevents making the token value visible in
+    // process list by using the "--header @file" syntax in curl to read the file.
+    val headerTokenFile = "api-token-header"
 
     (for {
-      path <- tryo {
-                Paths.get(tokenPath)
-              } ?~! "An error occurred while getting system api token path"
-
-      file <- tryo {
-                Files.deleteIfExists(path)
-                Files.createFile(path)
-                Files.write(path, systemAccount.token.value.getBytes(StandardCharsets.UTF_8))
-              } ?~! "An error occurred while creating system api token file"
-
-      perms <- tryo {
-                 Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------"))
-               } ?~! "An error occurred while setting permissions on system api token file"
+      file <- restrictedPermissionsWrite(runDir / tokenFile, systemAccount.token.value)
+      file <- restrictedPermissionsWrite(runDir / headerTokenFile, tokenHeader())
     } yield {}) match {
       case Full(_) =>
-        BootstrapLogger.logEffect.info(s"System api token file created in ${tokenPath}")
+        BootstrapLogger.logEffect.info(s"System API token file created in ${tokenPath}")
       case eb: EmptyBox =>
-        val fail = eb ?~! s"An error occurred while creating system api token file in ${tokenPath}"
+        val fail = eb ?~! s"An error occurred while creating system API token file in ${tokenPath}"
         BootstrapLogger.logEffect.error(fail.messageChain)
     }
 

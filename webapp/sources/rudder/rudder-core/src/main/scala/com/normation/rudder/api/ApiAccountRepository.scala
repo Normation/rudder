@@ -104,9 +104,9 @@ final class RoLDAPApiAccountRepository(
 
   val systemAPIAccount: ApiAccount = {
     ApiAccount(
-      ApiAccountId("rudder-system-api-account"),
+      ApiAccountId("rudder-test-system-api-account"),
       ApiAccountKind.System,
-      ApiAccountName("Rudder system account"),
+      ApiAccountName("Rudder test system account"),
       ApiToken(ApiToken.generate_secret(tokenGen, "-system")),
       "For internal use",
       isEnabled = true,
