@@ -515,12 +515,14 @@ object NodeDetailLevel {
           JNothing
         } else {
           val bios = machine.bios.map { bio =>
-            ("name"        -> bio.name) ~
-            ("editor"      -> bio.editor.map(_.name)) ~
-            ("version"     -> bio.version.map(_.value)) ~
-            ("quantity"    -> bio.quantity) ~
-            ("description" -> bio.description) ~
-            ("releaseDate" -> bio.releaseDate.map(DateFormaterService.getDisplayDate))
+            ("name"         -> bio.name) ~
+            ("editor"       -> bio.editor.map(_.name)) ~
+            ("version"      -> bio.version.map(_.value)) ~
+            ("manufacturer" -> bio.manufacturer.map(_.name)) ~
+            ("serialNumber" -> bio.serialNumber) ~
+            ("quantity"     -> bio.quantity) ~
+            ("description"  -> bio.description) ~
+            ("releaseDate"  -> bio.releaseDate.map(DateFormaterService.getDisplayDate))
           }.toList
           JArray(bios)
         }
