@@ -155,7 +155,9 @@ class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository) {
         Criterion(A_QUANTITY, LongComparator, UnsupportedByNodeMinimalApi),
         Criterion(A_SOFT_VERSION, StringComparator, UnsupportedByNodeMinimalApi),
         Criterion(A_RELEASE_DATE, DateComparator, UnsupportedByNodeMinimalApi),
-        Criterion(A_EDITOR, StringComparator, UnsupportedByNodeMinimalApi)
+        Criterion(A_EDITOR, StringComparator, UnsupportedByNodeMinimalApi),
+        Criterion(A_MANUFACTURER, StringComparator, UnsupportedByNodeMinimalApi),
+        Criterion(A_SERIAL_NUMBER, StringComparator, UnsupportedByNodeMinimalApi)
       )
     ),
     ObjectCriterion(

@@ -47,12 +47,14 @@ sealed trait PhysicalElement {
 }
 
 final case class Bios(
-    name:        String,
-    description: Option[String] = None,
-    version:     Option[Version] = None,
-    editor:      Option[SoftwareEditor] = None,
-    releaseDate: Option[DateTime] = None,
-    quantity:    Int = 1
+    name:         String,
+    description:  Option[String] = None,
+    version:      Option[Version] = None,
+    editor:       Option[SoftwareEditor] = None,
+    releaseDate:  Option[DateTime] = None,
+    manufacturer: Option[Manufacturer] = None,
+    serialNumber: Option[String] = None,
+    quantity:     Int = 1
 ) extends PhysicalElement
 
 final case class Controller(

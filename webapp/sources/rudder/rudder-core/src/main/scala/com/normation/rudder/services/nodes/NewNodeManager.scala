@@ -44,6 +44,8 @@ import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.rudder.domain.logger.NodeLoggerPure
+import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.DitQueryData
 import com.normation.rudder.domain.queries.Equals
@@ -305,7 +307,6 @@ class ComposedNewNodeManager[A](
   ////////////////////////////////////////////////////////////////////////////////////
 
   def accept(id: NodeId)(implicit cc: ChangeContext): IOResult[CoreNodeFact] = {
-
     // validate pre acceptance for a Node, if an error occurs, stop everything on that node.
     def passPreAccept(nodeFact: CoreNodeFact) = {
       ZIO.foreachDiscard(unitAcceptors) { a =>
@@ -324,23 +325,28 @@ class ComposedNewNodeManager[A](
 
     for {
       // Get inventory og the node
-      cnf       <- nodeFactRepo
-                     .get(id)(cc.toQuery, SelectNodeStatus.Pending)
-                     .notOptional(s"Missing inventory for node with ID: '${id.value}'")
+      cnf         <- nodeFactRepo
+                       .get(id)(cc.toQuery, SelectNodeStatus.Pending)
+                       .notOptional(s"Missing inventory for node with ID: '${id.value}'")
       // Pre accept it
-      preAccept <- passPreAccept(cnf)
+      preAccept   <- passPreAccept(cnf)
       // Accept it
-      _         <- nodeFactRepo.changeStatus(id, AcceptedInventory)
+      _           <- nodeFactRepo.changeStatus(id, AcceptedInventory)
       // Update hooks for the node
-      _         <- hooksRunner
-                     .afterNodeAcceptedAsync(id)(cc.toQuery)
-                     .catchAll(err => {
-                       NodeLoggerPure.PendingNode.error(
-                         s"Error when executing post-acceptation hooks for node '${cnf.fqdn}' " +
-                         s"[${cnf.id.value}]: ${err.fullMsg}"
-                       )
-                     })
-    } yield cnf.modify(_.rudderSettings.status).setTo(AcceptedInventory)
+      _           <- hooksRunner
+                       .afterNodeAcceptedAsync(id)(cc.toQuery)
+                       .catchAll(err => {
+                         NodeLoggerPure.PendingNode.error(
+                           s"Error when executing post-acceptation hooks for node '${cnf.fqdn}' " +
+                           s"[${cnf.id.value}]: ${err.fullMsg}"
+                         )
+                       })
+      // Retrieve the cnf again to make sure that the data is up to date
+      // since pre acceptance logic can modify the node data (like the policy mode and state)
+      upToDateCnf <- nodeFactRepo
+                       .get(id)(cc.toQuery, SelectNodeStatus.Accepted)
+                       .notOptional(s"Missing inventory for node with ID: '${id.value}'")
+    } yield upToDateCnf
   }
 
   def acceptAll(ids: Seq[NodeId])(implicit cc: ChangeContext): IOResult[Seq[CoreNodeFact]] = {
@@ -442,6 +448,26 @@ class AcceptHostnameAndIp(
                               _ <- queryForDuplicateHostname(List(cnf.fqdn))(cc.toQuery)
                             } yield ()
                           }
+    } yield ()
+  }
+}
+
+class DefaultStateAndPolicyMode(
+    override val name:         String,
+    nodeFactRepo:              NodeFactRepository,
+    defaultPolicyModeOnAccept: IOResult[Option[PolicyMode]],
+    defaultStateOnAccept:      IOResult[NodeState]
+) extends UnitCheckAcceptInventory {
+  override def preAccept(cnf: CoreNodeFact)(implicit cc: ChangeContext): IOResult[Unit] = {
+    for {
+      policyMode <- defaultPolicyModeOnAccept
+      nodeState  <- defaultStateOnAccept
+      newCnf      = cnf
+                      .modify(_.rudderSettings.state)
+                      .setTo(nodeState)
+                      .modify(_.rudderSettings.policyMode)
+                      .setTo(policyMode)
+      _          <- nodeFactRepo.save(newCnf)
     } yield ()
   }
 }
