@@ -3347,7 +3347,11 @@ object RudderConfigInit {
         woDirectiveRepository,
         uuidGen
       ),
-      new CreateSystemToken(roLDAPApiAccountRepository.systemAPIAccount),
+      new CreateSystemToken(
+        roLDAPApiAccountRepository.systemAPIAccount.token,
+        root / "var" / "rudder" / "run",
+        RestAuthenticationFilter.API_TOKEN_HEADER
+      ),
       new LoadNodeComplianceCache(nodeFactInfoService, reportingServiceImpl),
       new CloseOpenUserSessions(userRepository)
     )

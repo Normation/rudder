@@ -327,8 +327,14 @@ class AppConfigAuth extends ApplicationContextAware {
 
   ///////////// FOR REST API /////////////
 
-  @Bean def restAuthenticationFilter =
-    new RestAuthenticationFilter(RudderConfig.roApiAccountRepository, rudderUserDetailsService, SYSTEM_API_ACL)
+  @Bean def restAuthenticationFilter = {
+    new RestAuthenticationFilter(
+      RudderConfig.roApiAccountRepository,
+      rudderUserDetailsService,
+      SYSTEM_API_ACL,
+      RestAuthenticationFilter.API_TOKEN_HEADER
+    )
+  }
 
   @Bean def restAuthenticationEntryPoint: AuthenticationEntryPoint = new AuthenticationEntryPoint() {
     override def commence(request: HttpServletRequest, response: HttpServletResponse, ex: AuthenticationException): Unit = {
@@ -689,7 +695,7 @@ class RestAuthenticationFilter(
     apiTokenRepository: RoApiAccountRepository,
     userDetailsService: RudderInMemoryUserDetailsService,
     systemApiAcl:       ApiAuthorization,
-    apiTokenHeaderName: String = "X-API-Token"
+    apiTokenHeaderName: String
 ) extends Filter with Loggable {
   def destroy(): Unit = {}
   def init(config: FilterConfig): Unit = {}
@@ -873,6 +879,10 @@ class RestAuthenticationFilter(
     }
 
   }
+}
+
+object RestAuthenticationFilter {
+  val API_TOKEN_HEADER: String = "X-API-Token"
 }
 
 /*
