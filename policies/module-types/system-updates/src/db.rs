@@ -10,11 +10,11 @@ use crate::{output::Report, state::UpdateStatus};
 use chrono::{DateTime, Duration, SecondsFormat, Utc};
 use rudder_module_type::rudder_debug;
 use rusqlite::{self, Connection, Row};
-use std::fs::Permissions;
-use std::os::unix::prelude::PermissionsExt;
 use std::{
     fmt::{Display, Formatter},
     fs,
+    fs::Permissions,
+    os::unix::prelude::PermissionsExt,
     path::{Path, PathBuf},
 };
 
@@ -355,8 +355,7 @@ mod tests {
     use chrono::{Duration, Utc};
     use pretty_assertions::assert_eq;
     use rusqlite::Connection;
-    use std::ops::Add;
-    use std::os::unix::prelude::PermissionsExt;
+    use std::{ops::Add, os::unix::prelude::PermissionsExt};
 
     #[test]
     fn new_creates_new_database() {
@@ -415,6 +414,24 @@ mod tests {
         assert_eq!(db.lock(0, event_id).unwrap(), None);
         db.unlock(event_id).unwrap();
         assert_eq!(db.lock(0, event_id).unwrap(), None);
+    }
+
+    #[test]
+    fn it_gets_status_regardless_of_event_id_case() {
+        let mut db = PackageDatabase::new(None).unwrap();
+        let event_id = "TEST";
+        let campaign_id = "CAMPAIGN";
+        let now = Utc::now();
+        assert_eq!(db.get_status(event_id).unwrap(), None);
+        db.schedule_event(event_id, campaign_id, now).unwrap();
+        assert_eq!(
+            db.get_status(event_id).unwrap().unwrap(),
+            UpdateStatus::ScheduledUpdate
+        );
+        assert_eq!(
+            db.get_status(&event_id.to_lowercase()).unwrap().unwrap(),
+            UpdateStatus::ScheduledUpdate
+        );
     }
 
     #[test]
