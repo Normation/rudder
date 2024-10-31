@@ -99,7 +99,7 @@ class WoLDAPNodeRepository(
         _             <- result match {
                            case LDIFNoopChangeRecord(_) => ZIO.unit
                            case _                       =>
-                             val diff = ModifyNodeDiff(oldNode, node)
+                             val diff = ModifyNodeDiff.compat(oldNode, node, None, None)
                              actionLogger.saveModifyNode(modId, actor, diff, reason, DateTime.now())
                          }
       } yield {

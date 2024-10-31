@@ -171,7 +171,7 @@ trait EventLogDetailsService {
   // Global properties
   def getModifyGlobalPropertyDetails(xml: NodeSeq): Box[(RudderWebProperty, RudderWebProperty)]
 
-  // Node modifiction
+  // Node modification
   def getModifyNodeDetails(xml: NodeSeq): Box[ModifyNodeDiff]
 
   def getPromotedNodeToRelayDetails(xml: NodeSeq): Box[(NodeId, String)]
@@ -1096,6 +1096,7 @@ class EventLogDetailsServiceImpl(
                         (node \ "keyStatus").headOption,
                         x => KeyStatus.apply(x.text).map(Full(_)).getOrElse(Failure(s"Unrecognized agent key status '${x.text}'"))
                       )
+      nodeState    <- getFromTo[NodeState]((node \ "nodeState").headOption, x => NodeState.parse(x.text).toBox)
     } yield {
       ModifyNodeDiff(
         id,
@@ -1104,7 +1105,8 @@ class EventLogDetailsServiceImpl(
         properties,
         policyMode,
         agentKey,
-        keyStatus
+        keyStatus,
+        nodeState
       )
     }
   }

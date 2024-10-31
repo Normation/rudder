@@ -424,10 +424,21 @@ class CoreNodeFactRepository(
    * - do we want to fork and timeout each callbacks ? likely so
    * - do we want to parallel exec them ? likely so, the user can build his own callback sequencer callback if he wants
    */
-  private[nodes] def runCallbacks(e: NodeFactChangeEventCC): IOResult[Unit] = {
+  private[nodes] def runCallbacks(e: NodeFactChangeEventCC): UIO[Unit] = {
     for {
       cs <- callbacks.get
-      _  <- ZIO.foreachParDiscard(cs)(_.run(e)).timeout(cbTimeout).forkDaemon
+      _  <- ZIO
+              .foreachParDiscard(cs) { cb =>
+                cb.run(e)
+                  .timeout(cbTimeout)
+                  .catchAll(ex => {
+                    NodeLoggerPure
+                      .error(
+                        s"Error when executing callback '${cb.name}' on node change event ${e.event.debugString}': ${ex.fullMsg}"
+                      )
+                  })
+              }
+              .forkDaemon
     } yield ()
   }
 
