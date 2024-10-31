@@ -83,7 +83,8 @@ class NodeEventLogFormatV6Test extends Specification {
     modProperties = None,
     modPolicyMode = None,
     modKeyValue = None,
-    modKeyStatus = None
+    modKeyStatus = None,
+    modNodeState = None
   )
 
   val event_32_NodePropertiesModified: Elem = <entry><node changeType="modify" fileFormat="6">
@@ -121,7 +122,8 @@ class NodeEventLogFormatV6Test extends Specification {
     ),
     modPolicyMode = None,
     modKeyValue = None,
-    modKeyStatus = None
+    modKeyStatus = None,
+    modNodeState = None
   )
 
   val event_32_NodeAgentRunPeriodModified: Elem = <entry><node changeType="modify" fileFormat="6">
@@ -144,7 +146,8 @@ class NodeEventLogFormatV6Test extends Specification {
     modProperties = None,
     modPolicyMode = None,
     modKeyValue = None,
-    modKeyStatus = None
+    modKeyStatus = None,
+    modNodeState = None
   )
 
   "Current EventTypeFactory" should {
