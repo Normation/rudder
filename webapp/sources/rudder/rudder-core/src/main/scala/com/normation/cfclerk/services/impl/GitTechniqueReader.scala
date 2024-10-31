@@ -255,12 +255,21 @@ class GitTechniqueReader(
             case (techniquePath, _) =>
               path.path.startsWith(techniquePath.path)
           }.map {
-            case (n, techniqueId) =>
-              // a change in the "resources" sub-directory is always an update
-              val change = if (path.path.contains("/resources/")) {
-                ChangeType.MODIFY
-              } else {
-                changeType
+            case (_, techniqueId) =>
+              // metadata path is techniqueName/techniqueVersion/metadata.xml
+              val metadataPath = s"${techniqueId.serialize}/metadata.xml"
+              // The only important file to watch to determine a change on a techniques is to check the change type on metadata.xml file
+              val change       = changeType match {
+                // metadata.xml was deleted, it's a technique deletion
+                case ChangeType.DELETE if path.path.endsWith(metadataPath) => ChangeType.DELETE
+                // metadata.xml was added, it's a technique addition
+                case ChangeType.ADD if path.path.endsWith(metadataPath)    => ChangeType.ADD
+                // Any deletion other than metadata.xml is a modification
+                case ChangeType.DELETE                                     => ChangeType.MODIFY
+                // Any addition other than metadata.xml is a modification
+                case ChangeType.ADD                                        => ChangeType.MODIFY
+                // other changes ...
+                case _                                                     => changeType
               }
               (techniqueId, change)
           }
@@ -276,17 +285,16 @@ class GitTechniqueReader(
               .groupBy(_._1.version)
               .map {
                 case (version, pairs) =>
-                  val modTypes = pairs.map(_._2).toSet
-
-                  // merge logic
-                  // delete + add (+mod) => have to check if still present
-                  // delete (+ mod) => delete
-                  // add (+ mod) => add
-                  // other: mod
+                  val modTypes = pairs.map(_._2)
+                  // Changes types were translated to represent real changes on the technique,
+                  // especially we want to track changes on metadata.xml
+                  // DELETE only exists if metadata.xml was deleted and technique cannot exist anymore without it
                   if (modTypes.contains(ChangeType.DELETE)) {
+                    // But was added nevertheless, check technique existence in backend
+                    // as of 2024, I'm not sure this check has a meaning in fact, and don't know if it can happen, keep it for now has it was working for a decade ...
                     if (modTypes.contains(ChangeType.ADD)) {
                       if (currentTechniquesInfo.techniquesCategory.isDefinedAt(TechniqueId(name, version))) {
-                        // it was present before mod, so can't have been added first, so
+                        // it was present before any deletion, so can't have been added first, so
                         // it was deleted then added (certainly a move), so it is actually mod
                         (version, VersionUpdated)
                       } else {
@@ -295,17 +303,19 @@ class GitTechniqueReader(
                         (version, VersionDeleted)
                       }
                     } else {
+                      // A deletion of metadata.xml always make it the version as deleted
                       (version, VersionDeleted)
                     }
+                    // A metadata.xml was added, we already treated case where ADD and DELETE were done at the same time
                   } else if (modTypes.contains(ChangeType.ADD)) {
-                    // add
+                    // A new version of the technique was added
                     (version, VersionAdded)
                   } else {
-                    // mod
+                    // There was no addition/deletion of metadata.xml, other files may have been added/deleted but they are not important
+                    // It's an update
                     (version, VersionUpdated)
                   }
               }
-              .toMap
 
             // now, build the technique mod.
             // distinguish the case where all mod are deletion AND they represent the whole set of known version
