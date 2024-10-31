@@ -1067,6 +1067,7 @@ vars.bundle.plouf
         );
     }
 
+    #[test]
     fn it_lints_node_inventory_vars() {
         let e = Expression::from_str("${node.inventory[hostname]}").unwrap();
         assert!(e.lint().is_ok());
