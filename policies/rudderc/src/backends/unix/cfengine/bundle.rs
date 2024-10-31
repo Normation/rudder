@@ -5,16 +5,8 @@ use std::{collections::HashMap, fmt};
 
 use crate::backends::unix::cfengine::promise::{Promise, PromiseType, LONGEST_ATTRIBUTE_LEN};
 
-const NORMAL_ORDERING: [PromiseType; 2] = [PromiseType::Vars, PromiseType::Methods];
-
-/// ID that must be unique for each technique instance. Combined with a simple index,
-/// it allows enforcing all methods are called, even with identical parameters.
-/// This has no semantic meaning and can almost be considered syntactic sugar.
-pub const UNIQUE_ID: &str = "${report_data.directive_id}";
-/// Indexes over three chars
-const INDEX_LEN: usize = 3;
-/// Length of directive id + _ + index
-pub const UNIQUE_ID_LEN: usize = UNIQUE_ID.len() + 1 + INDEX_LEN;
+const NORMAL_ORDERING: [PromiseType; 3] =
+    [PromiseType::Vars, PromiseType::Vars, PromiseType::Methods];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BundleType {
@@ -49,13 +41,27 @@ pub struct Bundle {
 }
 
 impl Bundle {
+    fn unique_id(index: usize) -> String {
+        format!("global_index_${{report_data.index}}_{}", index)
+    }
+
     pub fn agent<T: Into<String>>(name: T) -> Self {
-        Self {
+        let r = Self {
             name: name.into(),
             bundle_type: BundleType::Agent,
             parameters: Vec::new(),
             promises: HashMap::new(),
-        }
+        };
+
+        // Global index increment, once per bundle call
+        let increment = Promise::int(
+            "report_data.index",
+            "int(eval(\"${report_data.index}+1\", \"math\", \"infix\"))",
+        );
+        let pass1 = Promise::class_expression("pass1", "any");
+        let increment_once = vec![increment, pass1];
+
+        r.promise_group(increment_once)
     }
 
     pub fn parameters(self, parameters: Vec<String>) -> Self {
@@ -107,14 +113,14 @@ impl fmt::Display for Bundle {
                 let mut max_promiser = group.iter().map(|p| p.promiser.len()).max().unwrap_or(0);
                 // Take special method promiser into account
                 if *promise_type == PromiseType::Methods {
-                    max_promiser = std::cmp::max(max_promiser, UNIQUE_ID_LEN);
+                    max_promiser = std::cmp::max(max_promiser, UNIQUE_ID.len());
                 }
 
                 for promise in group {
                     writeln!(
                         f,
                         "{}",
-                        promise.format(index, max_promiser + LONGEST_ATTRIBUTE_LEN + 3)
+                        promise.format(max_promiser + LONGEST_ATTRIBUTE_LEN + 3)
                     )?;
                 }
                 writeln!(f)?;
@@ -140,12 +146,12 @@ mod tests {
         assert_eq!(
             Bundle::agent("test")
                 .parameters(vec!["file".to_string(), "lines".to_string()])
-                .promise_group(vec![Promise::usebundle("test", None, None, vec![])])
+                .promise_group(vec![Promise::usebundle("test", None, vec![])])
                 .to_string(),
             r#"bundle agent test(file, lines) {
 
   methods:
-    "${report_data.directive_id}_0"   usebundle => test();
+    "global_index_${report_data.index}_0"   usebundle => test();
 
 }"#
         );
