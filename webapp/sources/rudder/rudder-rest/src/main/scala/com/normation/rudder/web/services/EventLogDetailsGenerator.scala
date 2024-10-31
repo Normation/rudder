@@ -995,23 +995,23 @@ class EventLogDetailsGenerator(
               }
             }
 
-          // Node modifiction
+          // Node modification
           case mod: ModifyNode           =>
             "*" #> {
               logDetailsService.getModifyNodeDetails(mod.details) match {
                 case Full(modDiff) =>
-                  logger.info(modDiff.modAgentRun)
                   <div class="evloglmargin">
 
                     {generatedByChangeRequest}<h5>Node '
                     {modDiff.id.value}
                     ' modified:</h5>
+
                     <ul class="evlogviewpad">
                       <li>
                         <b>Node ID: </b>{modDiff.id.value}
                       </li>
                     </ul>{
-                    mapComplexDiff(modDiff.modAgentRun) { (optAr: Option[AgentRunInterval]) =>
+                    mapComplexDiff(modDiff.modAgentRun, <b>Agent Run</b>) { (optAr: Option[AgentRunInterval]) =>
                       optAr match {
                         case None     =>
                           <span>No value</span>
@@ -1019,7 +1019,7 @@ class EventLogDetailsGenerator(
                       }
                     }
                   }{
-                    mapComplexDiff(modDiff.modHeartbeat) { (optHb: Option[HeartbeatConfiguration]) =>
+                    mapComplexDiff(modDiff.modHeartbeat, <b>Heartbeat</b>) { (optHb: Option[HeartbeatConfiguration]) =>
                       optHb match {
                         case None     =>
                           <span>No value</span>
@@ -1027,7 +1027,7 @@ class EventLogDetailsGenerator(
                       }
                     }
                   }{nodePropertiesDiff(modDiff.modProperties)}{
-                    mapComplexDiff(modDiff.modPolicyMode) { (optMode: Option[PolicyMode]) =>
+                    mapComplexDiff(modDiff.modPolicyMode, <b>Policy Mode</b>) { (optMode: Option[PolicyMode]) =>
                       optMode match {
                         case None       =>
                           <span>Use global policy mode</span>
@@ -1037,7 +1037,11 @@ class EventLogDetailsGenerator(
                           </span>
                       }
                     }
-                  }{reasonHtml}{xmlParameters(event.id)}
+                  }{mapComplexDiff(modDiff.modNodeState, <b>Node state</b>)(x => Text(x.name))}{
+                    mapComplexDiff(modDiff.modKeyStatus, <b>Key status</b>)(x => Text(x.value))
+                  }{mapComplexDiff(modDiff.modKeyValue, <b>Key value</b>)(x => Text(x.key))}{reasonHtml}{
+                    xmlParameters(event.id)
+                  }
                   </div>
                 case e: EmptyBox =>
                   logger.warn(e)
@@ -1342,19 +1346,17 @@ class EventLogDetailsGenerator(
     "#directiveID" #> id.serialize
   }
 
-  private def mapComplexDiff[T](opt: Option[SimpleDiff[T]])(display: T => NodeSeq) = {
+  private def mapComplexDiff[T](opt: Option[SimpleDiff[T]], title: NodeSeq)(display: T => NodeSeq) = {
     opt match {
       case None       => NodeSeq.Empty
       case Some(diff) =>
-        (
-          ".diffOldValue *" #> display(diff.oldValue) &
-          ".diffNewValue *" #> display(diff.newValue)
-        ).apply(
+        <div class="diffElem">
+          {title}
           <ul class="evlogviewpad">
-            <li><b>Old value:&nbsp;</b><span class="diffOldValue">old value</span></li>
-            <li><b>New value:&nbsp;</b><span class="diffNewValue">new value</span></li>
+            <li><b>Old value:&nbsp;</b><span class="diffOldValue">{display(diff.oldValue)}</span></li>
+            <li><b>New value:&nbsp;</b><span class="diffNewValue">{display(diff.newValue)}</span></li>
           </ul>
-        )
+        </div>
     }
   }
 
