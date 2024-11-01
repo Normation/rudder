@@ -419,13 +419,8 @@ limitations under the License.
     <!-- Libraries version that MUST be used in all children project -->
 
     <current-year>2024</current-year>
-<<<<<<< HEAD
     <rudder-major-version>8.3</rudder-major-version>
     <rudder-version>8.3.0~alpha1-SNAPSHOT</rudder-version>
-=======
-    <rudder-major-version>8.2</rudder-major-version>
-    <rudder-version>8.2.1-SNAPSHOT</rudder-version>
->>>>>>> branches/rudder/8.2
 
     <servlet-version>5.0.0</servlet-version>
     <scala-version>2.13.12</scala-version>
