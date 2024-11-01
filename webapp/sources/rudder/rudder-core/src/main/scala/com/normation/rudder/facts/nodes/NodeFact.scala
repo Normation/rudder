@@ -958,14 +958,8 @@ trait MinimalNodeFactInterface {
       case (AgentType.CfeCommunity, key: PublicKey) =>
         formatDigest(NodeKeyHash.getCfengineMD5Digest(key).toBox, "MD5", key)
 
-      case (AgentType.CfeEnterprise, key: PublicKey) =>
-        formatDigest(NodeKeyHash.getCfengineSHA256Digest(key).toBox, "SHA", key)
-
       case (AgentType.CfeCommunity, cert: Certificate) =>
         formatDigest(NodeKeyHash.getCfengineMD5CertDigest(cert).toBox, "MD5", cert)
-
-      case (AgentType.CfeEnterprise, cert: Certificate) =>
-        formatDigest(NodeKeyHash.getCfengineSHA256CertDigest(cert).toBox, "SHA", cert)
 
       case (AgentType.Dsc, _) =>
         PolicyGenerationLogger.info(

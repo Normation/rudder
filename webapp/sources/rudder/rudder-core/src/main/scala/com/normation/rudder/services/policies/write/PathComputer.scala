@@ -40,7 +40,6 @@ package com.normation.rudder.services.policies.write
 import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.AgentType.CfeCommunity
-import com.normation.inventory.domain.AgentType.CfeEnterprise
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import net.liftweb.common.Loggable
@@ -74,8 +73,6 @@ class PathComputerImpl(
     backupFolder: Option[String], // "/var/rudder/backup/"
 
     communityAgentRootPath: String, // "/var/rudder/cfengine-community/inputs"
-
-    enterpriseAgentRootPath: String, // "/var/cfengine/inputs"
 
     chainDepthLimit: Int = 20 // max number of relay, to detect cycles
 ) extends PathComputer with Loggable {
@@ -123,9 +120,8 @@ class PathComputerImpl(
    */
   def getRootPath(agentType: AgentType): String = {
     agentType match {
-      case CfeEnterprise => enterpriseAgentRootPath
-      case CfeCommunity  => communityAgentRootPath
-      case x             => throw new IllegalArgumentException("Unrecognized agent type: %s".format(x))
+      case CfeCommunity => communityAgentRootPath
+      case x            => throw new IllegalArgumentException("Unrecognized agent type: %s".format(x))
     }
   }
 

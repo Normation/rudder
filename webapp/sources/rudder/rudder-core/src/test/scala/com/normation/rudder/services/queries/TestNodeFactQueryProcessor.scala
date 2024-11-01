@@ -1064,17 +1064,7 @@ class TestNodeFactQueryProcessor {
         { "objectType":"node"   , "attribute":"agentName"  , "comparator":"eq", "value":"community" }
       ] }
       """).openOrThrowException("For tests"),
-      root :: sr(2) :: sr(4) :: sr(5) :: sr(7) :: sr(8) :: Nil
-    )
-
-    val nova = TestQuery(
-      "nova",
-      parser("""
-      {  "select":"nodeAndPolicyServer", "composition":"or", "where":[
-        { "objectType":"node" , "attribute":"agentName"  , "comparator":"eq", "value":"nova" }
-      ] }
-      """).openOrThrowException("For tests"),
-      sr(1) :: sr(3) :: Nil
+      root :: sr(1) :: sr(2) :: sr(3) :: sr(4) :: sr(5) :: sr(7) :: sr(8) :: Nil
     )
 
     val dsc = TestQuery(
@@ -1097,7 +1087,7 @@ class TestNodeFactQueryProcessor {
       sr(6) :: Nil
     )
 
-    testQueries(allCfengine :: community :: nova :: dsc :: notCfengine :: Nil, doInternalQueryTest = true)
+    testQueries(allCfengine :: community :: dsc :: notCfengine :: Nil, doInternalQueryTest = true)
   }
 
   /**

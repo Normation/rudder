@@ -1,7 +1,7 @@
 <TECHNIQUE name="technique with blocks">
   <DESCRIPTION></DESCRIPTION>
   <USEMETHODREPORTING>true</USEMETHODREPORTING>
-  <AGENT type="cfengine-community,cfengine-nova">
+  <AGENT type="cfengine-community">
     <BUNDLES>
       <NAME>technique_with_blocks</NAME>
     </BUNDLES>

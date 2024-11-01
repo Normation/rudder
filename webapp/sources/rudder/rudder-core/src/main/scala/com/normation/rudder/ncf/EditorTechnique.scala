@@ -244,14 +244,14 @@ object ParameterType {
     }
     def translate(value: String, paramType: ParameterType, agentType: AgentType): PureResult[String] = {
       (paramType, agentType) match {
-        case (Raw, _)                                                                         => Right(value)
-        case (StringParameter | HereString, AgentType.CfeCommunity | AgentType.CfeEnterprise) =>
+        case (Raw, _)                                               => Right(value)
+        case (StringParameter | HereString, AgentType.CfeCommunity) =>
           Right(s""""${value.replaceAll("""\\""", """\\\\""").replaceAll(""""""", """\\"""")}"""")
-        case (HereString, AgentType.Dsc)                                                      =>
+        case (HereString, AgentType.Dsc)                            =>
           translateDscHereString(value)
-        case (StringParameter, AgentType.Dsc)                                                 =>
+        case (StringParameter, AgentType.Dsc)                       =>
           Right(s""""${value.replaceAll("\"", "`\"")}"""")
-        case (_, _)                                                                           => Left(Unexpected("Cannot translate"))
+        case (_, _)                                                 => Left(Unexpected("Cannot translate"))
       }
     }
 

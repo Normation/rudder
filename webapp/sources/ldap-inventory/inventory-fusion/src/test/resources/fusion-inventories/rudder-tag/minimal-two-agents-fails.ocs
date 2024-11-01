@@ -17,7 +17,7 @@
         <POLICY_SERVER_UUID>root_1</POLICY_SERVER_UUID>
       </AGENT>
       <AGENT>
-        <AGENT_NAME>nova</AGENT_NAME>
+        <AGENT_NAME>cfengine-community</AGENT_NAME>
         <CFENGINE_KEY>-----BEGIN RSA PUBLIC KEY-----foo-----END RSA PUBLIC KEY-----</CFENGINE_KEY>
         <OWNER>root</OWNER>
         <POLICY_SERVER_HOSTNAME>192.168.110.47</POLICY_SERVER_HOSTNAME>

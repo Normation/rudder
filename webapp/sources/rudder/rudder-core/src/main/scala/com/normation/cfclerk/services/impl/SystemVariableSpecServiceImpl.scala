@@ -100,12 +100,6 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
     SystemVariableSpec("INPUTLIST", "Input list", multivalued = false),
     SystemVariableSpec("BUNDLELIST", "Bundle list", multivalued = false),
     SystemVariableSpec(
-      "NOVA",
-      "The Cfengine Nova agent",
-      multivalued = false,
-      constraint = Constraint(mayBeEmpty = true)
-    ),
-    SystemVariableSpec(
       "COMMUNITY",
       "The Cfengine Community agent",
       multivalued = false,

@@ -667,9 +667,9 @@ case object VmTypeComparator extends LDAPCriterionType {
 
 /*
  * Agent comparator is kind of scpecial, because it needs to accomodate to the following cases:
- * - historically, agent names were only "Nova" and "Community" (understood "cfengine", of course)
- * - then, we changed in 4.2 to normalized "cfengine-community" and "cfengine-nova" (plus "dsc")
- *   (but old agent are still "Nova" and "Community"
+ * - historically, agent names were only "Community" (understood "cfengine", of course)
+ * - then, we changed in 4.2 to normalized "cfengine-community" (plus "dsc")
+ *   (but old agent are still "Community"
  * - and we want a subcase "anything cfengine based" (because it is important for generation, for
  *   group "haspolicyserver-*" and rule "inventory-all")
  *
@@ -679,7 +679,7 @@ case object AgentComparator extends LDAPCriterionType {
 
   val ANY_CFENGINE          = "cfengine"
   val (cfeTypes, cfeAgents) =
-    ((ANY_CFENGINE, "Any CFEngine based agent"), (ANY_CFENGINE, AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil))
+    ((ANY_CFENGINE, "Any CFEngine based agent"), (ANY_CFENGINE, AgentType.CfeCommunity :: Nil))
   private val allAgents     = AgentType.values.toList
 
   val agentTypes: List[(String, String)]       = (cfeTypes :: allAgents.map(a => (a.oldShortName, (a.displayName)))).sortBy(_._2)

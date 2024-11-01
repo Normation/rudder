@@ -141,9 +141,6 @@ class PrepareTemplateVariablesImpl(
 
     val systemVariables = agentNodeConfig.config.nodeContext ++ List(
       systemVariableSpecService
-        .get("NOVA")
-        .toVariable(if (agentNodeConfig.agentType == AgentType.CfeEnterprise) Seq("true") else Seq()),
-      systemVariableSpecService
         .get("COMMUNITY")
         .toVariable(if (agentNodeConfig.agentType == AgentType.CfeCommunity) Seq("true") else Seq()),
       systemVariableSpecService.get("AGENT_TYPE").toVariable(Seq(agentNodeConfig.agentType.toString)),

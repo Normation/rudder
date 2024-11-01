@@ -143,14 +143,8 @@ final case class NodeInfo(
       case Some((AgentType.CfeCommunity, key: PublicKey)) =>
         formatDigest(NodeKeyHash.getCfengineMD5Digest(key).toBox, "MD5", key)
 
-      case Some((AgentType.CfeEnterprise, key: PublicKey)) =>
-        formatDigest(NodeKeyHash.getCfengineSHA256Digest(key).toBox, "SHA", key)
-
       case Some((AgentType.CfeCommunity, cert: Certificate)) =>
         formatDigest(NodeKeyHash.getCfengineMD5CertDigest(cert).toBox, "MD5", cert)
-
-      case Some((AgentType.CfeEnterprise, cert: Certificate)) =>
-        formatDigest(NodeKeyHash.getCfengineSHA256CertDigest(cert).toBox, "SHA", cert)
 
       case Some((AgentType.Dsc, _)) =>
         PolicyGenerationLogger.info(

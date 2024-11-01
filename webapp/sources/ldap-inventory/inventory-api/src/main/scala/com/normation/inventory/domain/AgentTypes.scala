@@ -48,8 +48,8 @@ import zio.syntax.*
 sealed trait AgentType extends EnumEntry {
   /*
    * this is the default agent identifier, the main name, used in:
-   * - in hooks: RUDDER_AGENT_TYPE: dsc (cfengine-community, cfengine-nova)
-   * - in technique metadata: <AGENT type="dsc">...</AGENT> (cfengine-community, cfengine-nova)
+   * - in hooks: RUDDER_AGENT_TYPE: dsc (cfengine-community)
+   * - in technique metadata: <AGENT type="dsc">...</AGENT> (cfengine-community)
    * - in serialisation
    */
   def id: String
@@ -59,7 +59,7 @@ sealed trait AgentType extends EnumEntry {
 
   /*
    * This is the old, short name, which used to be used in LDAP "agentName"
-   * attribute and in (very old) fusion inventories (i.e: community, nova).
+   * attribute and in (very old) fusion inventories (i.e: community, ...).
    */
   def oldShortName: String
 
@@ -69,14 +69,14 @@ sealed trait AgentType extends EnumEntry {
   def displayName: String
 
   /*
-   * - for policy generation: /var/rudder/share/xxxx/rules/dsc (/rules/cfengine-community, /rules/cfengine-nova)
+   * - for policy generation: /var/rudder/share/xxxx/rules/dsc (/rules/cfengine-community, ...)
    */
   def toRulesPath: String
 
   /*
    * This is the list of <AGENTNAME> to look for in inventory and in LDAP
    * to choose the agent type.
-   * - in inventory file: <AGENTNAME>dsc</AGENTNAME> ("Community" => "cfengine-community", "Nova" => "cfengine-nova")
+   * - in inventory file: <AGENTNAME>dsc</AGENTNAME> ("Community" => "cfengine-community", ...)
    * - in LDAP agentName attribute
    * This is a set, because we want to accept renaming along the way.
    * Everything must be lower case in it.
@@ -86,7 +86,7 @@ sealed trait AgentType extends EnumEntry {
 
   /*
    *  the name to look for in the inventory to know the agent version (when not reported in <AGENT><VERSION>)
-   *  - for inventory software name (i.e package name in software): rudder-agent-dsc ("rudder-agent", "cfengine nova")
+   *  - for inventory software name (i.e package name in software): rudder-agent-dsc ("rudder-agent", ...)
    */
   def inventorySoftwareName: String
   // and a transformation function from reported software version name to agent version name, internal use only
@@ -97,17 +97,6 @@ sealed trait AgentType extends EnumEntry {
 }
 
 object AgentType extends Enum[AgentType] {
-
-  case object CfeEnterprise extends AgentType {
-    override def id           = "cfengine-nova"
-    override def oldShortName = "nova"
-    override def displayName  = "CFEngine Enterprise"
-    override def toRulesPath  = "/cfengine-nova"
-    override def inventoryAgentNames: Set[String] = Set("cfengine-nova", "nova")
-    override val inventorySoftwareName = "cfengine nova"
-    override def toAgentVersionName(softwareVersionName: String): String = s"cfe-${softwareVersionName}"
-    override val defaultPolicyExtension = ".cf"
-  }
 
   case object CfeCommunity extends AgentType {
     override def id           = "cfengine-community"

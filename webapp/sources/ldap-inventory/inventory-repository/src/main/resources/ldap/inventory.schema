@@ -303,7 +303,7 @@ attributetype ( InventoryAttributes:300.12
 
 attributetype ( InventoryAttributes:300.13
   NAME 'agentName'
-  DESC 'List of name of the agent (Nova, Community, ...)'
+  DESC 'List of name of the agent (Community, DSC,...)'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )

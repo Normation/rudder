@@ -534,17 +534,16 @@ class NodeApi(
         optNode <- nodeApiService.nodeFactRepository.get(NodeId(id))
       } yield {
         optNode match {
-          case Some(node)
-              if (node.rudderAgent.agentType == AgentType.CfeCommunity || node.rudderAgent.agentType == AgentType.CfeEnterprise) =>
+          case Some(node) if (node.rudderAgent.agentType == AgentType.CfeCommunity) =>
             OutputStreamResponse(nodeApiService.runNode(node.id, classes))
-          case Some(node) =>
+          case Some(node)                                                           =>
             RudderJsonResponse
               .internalError(
                 None,
                 RudderJsonResponse.ResponseSchema.fromSchema(schema),
                 s"Node with id '${id}' has an agent type (${node.rudderAgent.agentType.displayName}) which doesn't support remote run"
               )
-          case None       =>
+          case None                                                                 =>
             RudderJsonResponse
               .internalError(
                 None,
@@ -1464,7 +1463,7 @@ class NodeApiService(
         } yield {
           // remote run only works for CFEngine based agent
           val commandResult = {
-            if (node.rudderAgent.agentType == AgentType.CfeEnterprise || node.rudderAgent.agentType == AgentType.CfeCommunity) {
+            if (node.rudderAgent.agentType == AgentType.CfeCommunity) {
               val request = remoteRunRequest(node.id, classes, keepOutput = false, asynchronous = true)
               try {
                 val result = request.asString

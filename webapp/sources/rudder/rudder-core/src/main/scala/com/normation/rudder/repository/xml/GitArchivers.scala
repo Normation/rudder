@@ -362,7 +362,7 @@ class TechniqueArchiverImpl(
     val filesToAdd = (TechniqueFiles.common ++
       (if (
          technique.agentConfigs
-           .collectFirst(a => a.agentType == AgentType.CfeCommunity || a.agentType == AgentType.CfeEnterprise)
+           .collectFirst(a => a.agentType == AgentType.CfeCommunity)
            .nonEmpty
        ) {
          TechniqueFiles.Generated.cfengineAll

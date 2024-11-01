@@ -414,10 +414,7 @@ class ReportDisplayer(
                        * other kind of agent (windows in particular).
                        */
                       def triggerAgent(node: CoreNodeFact): NodeSeq = if (tableId == "reportsGrid") {
-                        if (
-                          node.rudderAgent.agentType == AgentType.CfeCommunity ||
-                          node.rudderAgent.agentType == AgentType.CfeEnterprise
-                        ) {
+                        if (node.rudderAgent.agentType == AgentType.CfeCommunity) {
                           <div id="triggerAgent">
             <button id="triggerBtn" class="btn btn-primary btn-trigger"  onclick={
                             s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, addOverriden, defaultRunInterval).toJsCmd});"

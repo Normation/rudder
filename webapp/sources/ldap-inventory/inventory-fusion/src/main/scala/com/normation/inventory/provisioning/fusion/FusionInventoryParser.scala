@@ -414,16 +414,10 @@ class FusionInventoryParser(
      */
     val agentList = ZIO.foreach((xml \\ "AGENT").toList) { agentXML =>
       val agent = for {
-        agentName    <- optText(agentXML \ "AGENT_NAME").notOptional(
-                          "could not parse agent name (tag AGENT_NAME) from Rudder specific inventory"
-                        )
-        rawAgentType <- ZIO.fromEither(AgentType.fromValue(agentName))
-        agentType    <- if (rawAgentType == AgentType.CfeEnterprise) {
-                          Inconsistency(
-                            "CFEngine Enterprise/Nova agents are not supported anymore"
-                          ).fail
-                        } else { rawAgentType.succeed }
-
+        agentName      <- optText(agentXML \ "AGENT_NAME").notOptional(
+                            "could not parse agent name (tag AGENT_NAME) from Rudder specific inventory"
+                          )
+        agentType      <- ZIO.fromEither(AgentType.fromValue(agentName))
         rootUser       <-
           optText(agentXML \\ "OWNER").notOptional("could not parse rudder user (tag OWNER) from rudder specific inventory")
         policyServerId <- optText(agentXML \\ "POLICY_SERVER_UUID").notOptional(

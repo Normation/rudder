@@ -666,7 +666,7 @@ object AgentMatcher extends NodeCriterionMatcher {
     // any cfengine, which is just cfengine-community since we don't do anything else
     def eq(value: String, tpe: AgentType): Boolean = {
       value match {
-        case AgentComparator.ANY_CFENGINE => tpe == AgentType.CfeCommunity || tpe == AgentType.CfeEnterprise
+        case AgentComparator.ANY_CFENGINE => tpe == AgentType.CfeCommunity
         case x                            => tpe.id == x || tpe.oldShortName == x
       }
     }

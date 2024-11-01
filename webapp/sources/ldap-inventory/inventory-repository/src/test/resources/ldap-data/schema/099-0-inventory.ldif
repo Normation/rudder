@@ -248,7 +248,7 @@ attributeTypes: ( 1.3.6.1.4.1.35061.1.1.300.12
   ORDERING generalizedTimeOrderingMatch )
 attributeTypes: ( 1.3.6.1.4.1.35061.1.1.300.13
   NAME 'agentName'
-  DESC 'List of name of the agent (Nova, Community, ...)'
+  DESC 'List of name of the agent (Dsc, Community, ...)'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )

@@ -138,9 +138,7 @@ class TestSystemData {
       SHARE.getParent + "/",
       SHARE.getName,
       Some(abstractRoot.getAbsolutePath + "/backup"),
-      rootGeneratedPromisesDir.getAbsolutePath, // community will go under our share
-
-      "/" // we don't want to use entreprise agent root path
+      rootGeneratedPromisesDir.getAbsolutePath
     )
 
     val promiseWriter = new PolicyWriterServiceImpl(
