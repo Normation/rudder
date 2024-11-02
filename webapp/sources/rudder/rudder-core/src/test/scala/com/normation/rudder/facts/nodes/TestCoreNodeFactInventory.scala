@@ -46,6 +46,7 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.ReadOnlySoftwareDAOImpl
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.MachineInfo
+import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
@@ -598,6 +599,27 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       } yield ()).either.runNow
 
       res must beLeft
+    }
+
+    "the count of active nodes change if we disable one" >> {
+      factStorage.clearCallStack
+      val (n1, n2) = (for {
+        n1   <- factRepo.getNumberOfManagedNodes()
+        node <- factRepo
+                  .get(node7id)(QueryContext.testQC, SelectNodeStatus.Accepted)
+                  .notOptional("node7 must be here")
+
+        updated = node
+                    .modify(_.rudderSettings.state)
+                    .setTo(NodeState.Ignored)
+
+        _  <- factRepo.save(updated)(testChangeContext)
+        n2 <- factRepo.getNumberOfManagedNodes()
+
+      } yield (n1, n2)).runNow
+
+      val numberOfNodes = 9
+      n1 === numberOfNodes and n2 === (numberOfNodes - 1)
     }
   }
 }

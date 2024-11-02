@@ -92,17 +92,18 @@ case object Node {
   }
 }
 
-sealed abstract class NodeState(override val entryName: String) extends EnumEntry {
+// isEnabled is a generic marker to decide if that state should be ignored during generation etc.
+sealed abstract class NodeState(override val entryName: String, val isEnabled: Boolean) extends EnumEntry {
   def name: String = entryName
 }
 
 object NodeState extends Enum[NodeState] {
 
-  case object Initializing  extends NodeState("initializing")
-  case object Enabled       extends NodeState("enabled")
-  case object EmptyPolicies extends NodeState("empty-policies")
-  case object Ignored       extends NodeState("ignored")
-  case object PreparingEOL  extends NodeState("preparing-eol")
+  case object Initializing  extends NodeState("initializing", true)
+  case object Enabled       extends NodeState("enabled", true)
+  case object EmptyPolicies extends NodeState("empty-policies", true)
+  case object Ignored       extends NodeState("ignored", false)
+  case object PreparingEOL  extends NodeState("preparing-eol", false)
 
   def values: IndexedSeq[NodeState] = findValues
 
