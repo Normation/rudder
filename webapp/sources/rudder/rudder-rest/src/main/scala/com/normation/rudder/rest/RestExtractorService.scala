@@ -48,7 +48,6 @@ import com.normation.errors.*
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.InventoryError
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.SecurityToken
 import com.normation.rudder.api.AclPath
 import com.normation.rudder.api.ApiAccountId
@@ -96,7 +95,6 @@ import net.liftweb.http.Req
 import net.liftweb.json.*
 import net.liftweb.json.JObject
 import net.liftweb.json.JsonDSL.*
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.cert.X509CertificateHolder
 import org.bouncycastle.openssl.PEMParser
 import zio.{Tag as _, *}
@@ -636,7 +634,6 @@ final case class RestExtractorService(
     }.mapError(ex => InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a public key", ex))
       .flatMap { obj =>
         obj match {
-          case _: SubjectPublicKeyInfo  => PublicKey(key).succeed
           case _: X509CertificateHolder => Certificate(key).succeed
           case _ =>
             InventoryError

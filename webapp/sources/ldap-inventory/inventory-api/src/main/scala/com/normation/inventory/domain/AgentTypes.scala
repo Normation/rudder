@@ -170,9 +170,8 @@ object AgentInfoSerialisation {
   }
 
   def parseSecurityToken(
-      agentType:    AgentType,
-      tokenJson:    JValue,
-      tokenDefault: Option[String]
+      agentType: AgentType,
+      tokenJson: JValue
   ): Either[InventoryError.SecurityToken, SecurityToken] = {
     import net.liftweb.json.compactRender
 
@@ -191,22 +190,12 @@ object AgentInfoSerialisation {
           case Some(token) => Right(Certificate(token))
           case None        => Left(InventoryError.SecurityToken(error(Certificate.kind)))
         }
-      case JString(PublicKey.kind)   =>
-        Left(
-          InventoryError.SecurityToken(
-            "since Rudder 7.0, public key are not supported anymore for agent authentication: please use a certificate"
-          )
-        )
       case invalidJson               =>
-        tokenDefault match {
-          case Some(default) => Right(PublicKey(default))
-          case None          =>
-            val error = invalidJson match {
-              case JNothing => "no value define for security token"
-              case x        => compactRender(invalidJson)
-            }
-            Left(InventoryError.SecurityToken(s"Invalid value for security token: ${error}, and no public key were stored"))
+        val error = invalidJson match {
+          case JNothing => "no value define for security token"
+          case x        => compactRender(invalidJson)
         }
+        Left(InventoryError.SecurityToken(s"Invalid value for security token: ${error}, and no public key were stored"))
     }
   }
 
@@ -215,7 +204,7 @@ object AgentInfoSerialisation {
    * but version isn't, and even if we don't parse it correctly, we
    * successfully return an agent (without version).
    */
-  def parseJson(s: String, optToken: Option[String]): IOResult[AgentInfo] = {
+  def parseJson(s: String): IOResult[AgentInfo] = {
     for {
       json         <- ZIO.attempt(parse(s)) mapError { ex =>
                         InventoryError.Deserialisation(s"Can not parse agent info: ${ex.getMessage}", ex)
@@ -235,8 +224,8 @@ object AgentInfoSerialisation {
                         case _                => None
                       }
       token        <- (json \ "securityToken" match {
-                        case JObject(json) => parseSecurityToken(agentType, json, optToken)
-                        case _             => parseSecurityToken(agentType, JNothing, optToken)
+                        case JObject(json) => parseSecurityToken(agentType, json)
+                        case _             => parseSecurityToken(agentType, JNothing)
                       }).toIO
       capabilities <- IOResult.attempt(json \ "capabilities" match {
                         case JArray(capa) =>

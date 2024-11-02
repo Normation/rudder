@@ -668,7 +668,7 @@ object NodeFact {
   }
 
   def defaultRudderAgent(localAdmin: String): RudderAgent = {
-    RudderAgent(AgentType.CfeCommunity, localAdmin, AgentVersion("unknown"), PublicKey("not initialized"), Chunk.empty)
+    RudderAgent(AgentType.CfeCommunity, localAdmin, AgentVersion("unknown"), Certificate("not initialized"), Chunk.empty)
   }
 
   def newFromFullInventory(inventory: FullInventory, software: Option[Iterable[Software]]): NodeFact = {
@@ -944,7 +944,6 @@ trait MinimalNodeFactInterface {
         case Full(hash) => s"${algo}=${hash}"
         case eb: EmptyBox =>
           val msgForToken = tokenType match {
-            case _: PublicKey   => "of CFEngine public key for"
             case _: Certificate => "for certificate of"
           }
           val e           = eb ?~! s"Error when trying to get the CFEngine-${algo} digest ${msgForToken} node '${fqdn}' (${id.value})"
@@ -954,9 +953,6 @@ trait MinimalNodeFactInterface {
     }
 
     (rudderAgent.agentType, rudderAgent.securityToken) match {
-
-      case (AgentType.CfeCommunity, key: PublicKey) =>
-        formatDigest(NodeKeyHash.getCfengineMD5Digest(key).toBox, "MD5", key)
 
       case (AgentType.CfeCommunity, cert: Certificate) =>
         formatDigest(NodeKeyHash.getCfengineMD5CertDigest(cert).toBox, "MD5", cert)
@@ -979,17 +975,7 @@ trait MinimalNodeFactInterface {
    */
   lazy val keyHashBase64Sha256: String = {
     rudderAgent.securityToken match {
-      case publicKey: PublicKey   =>
-        NodeKeyHash.getB64Sha256Digest(publicKey).either.runNow match {
-          case Right(hash) =>
-            hash
-          case Left(e)     =>
-            PolicyGenerationLogger.error(
-              s"Error when trying to get the sha-256 digest of CFEngine public key for node '${fqdn}' (${id.value}): ${e.fullMsg}"
-            )
-            ""
-        }
-      case cert:      Certificate =>
+      case cert: Certificate =>
         NodeKeyHash.getB64Sha256Digest(cert).either.runNow match {
           case Right(hash) => hash
           case Left(e)     =>

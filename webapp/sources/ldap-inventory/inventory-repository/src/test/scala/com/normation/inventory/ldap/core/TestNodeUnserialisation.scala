@@ -76,90 +76,7 @@ class TestNodeUnserialisation extends Specification {
     new InventoryMapper(inventoryDitService, pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
   }
 
-  val linux41Ldif: String = {
-    """dn: nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
-      |objectClass: top
-      |objectClass: node
-      |objectClass: unixNode
-      |objectClass: linuxNode
-      |nodeId: root
-      |localAdministratorAccountName: root
-      |nodeHostname: server.rudder.local
-      |policyServerId: root
-      |osFullName: Debian GNU/Linux 9.4 (stretch)
-      |keyStatus: certified
-      |ram: 1572864000
-      |swap: 1072693248
-      |osArchitectureType: x86_64
-      |lastLoggedUser: vagrant
-      |lastLoggedUserTime: 20000714125900.000Z
-      |publicKey: publickey
-      |timezoneName: UTC
-      |timezoneOffset: +0000
-      |osKernelVersion: 4.9.0-6-amd64
-      |osName: Debian
-      |osVersion: 9.4
-      |inventoryDate: 20180713130033.000Z
-      |receiveDate: 20180713130534.772Z
-      |agentName: {"agentType":"Community","version":"4.1.14"}""".stripMargin
-  }
-
-  val linux42Ldif: String = {
-    """dn: nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
-      |objectClass: top
-      |objectClass: node
-      |objectClass: unixNode
-      |objectClass: linuxNode
-      |nodeId: root
-      |localAdministratorAccountName: root
-      |nodeHostname: server.rudder.local
-      |policyServerId: root
-      |osFullName: Ubuntu 16.04 LTS
-      |keyStatus: certified
-      |ram: 1568669696
-      |swap: 804257792
-      |osArchitectureType: x86_64
-      |lastLoggedUser: vagrant
-      |timezoneName: EDT
-      |timezoneOffset: -0400
-      |osKernelVersion: 4.4.0-21-generic
-      |osName: Ubuntu
-      |osVersion: 16.04
-      |lastLoggedUserTime: 20000710133300.000Z
-      |inventoryDate: 20180716134036.000Z
-      |receiveDate: 20180716134537.505Z
-      |agentName: {"agentType":"cfengine-community","version":"4.2.8","securityToken":{"value":"publickey","type":"publicKey"}}""".stripMargin
-  }
-
-  val linux43Ldif: String = {
-    """dn: nodeId=root,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
-      |objectClass: top
-      |objectClass: node
-      |objectClass: unixNode
-      |objectClass: linuxNode
-      |nodeId: root
-      |localAdministratorAccountName: root
-      |policyServerId: root
-      |osFullName: SUSE Linux Enterprise Server 11 (x86_64)
-      |osServicePack: 3
-      |ram: 1572864000
-      |swap: 781189120
-      |lastLoggedUser: root
-      |osKernelVersion: 3.0.76-0.11-default
-      |osName: Suse
-      |osVersion: 11
-      |keyStatus: certified
-      |nodeHostname: orchestrateur-3.labo.normation.com
-      |osArchitectureType: x86_64
-      |timezoneOffset: +0200
-      |timezoneName: Europe/Paris
-      |agentName: {"agentType":"cfengine-community","version":"4.3.2","securityToken":{"value":"publickey","type":"publicKey"}}
-      |inventoryDate: 20180717000031.000Z
-      |receiveDate: 20180717000527.050Z
-      |lastLoggedUserTime: 20000714084300.000Z""".stripMargin
-  }
-
-  val dsc42Ldif: String = {
+  val dsc61Ldif: String = {
     s"""dn: nodeId=aff80e6d-68fb-43dd-9a33-a5204b7e3153,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
        |nodeId: aff80e6d-68fb-43dd-9a33-a5204b7e3153
        |objectClass: node
@@ -181,7 +98,7 @@ class TestNodeUnserialisation extends Specification {
        |lastLoggedUser: vagrant
        |inventoryDate: 20180716104920.000Z
        |receiveDate: 20180716135035.945Z
-       |agentName: {"agentType":"dsc","version":"4.2-1.9","securityToken": {"value":"certificate","type":"certificate"}}
+       |agentName: {"agentType":"dsc","version":"6.1-1.9","securityToken": {"value":"certificate","type":"certificate"}}
        |timezoneName: Pacific Standard Time
        |timezoneOffset: -0700""".stripMargin
   }
@@ -255,9 +172,9 @@ class TestNodeUnserialisation extends Specification {
       )
     }
 
-    "correctly unserialize DSC node from 4_2" in {
-      node(dsc42Ldif).agents(0) must beEqualTo(
-        AgentInfo(AgentType.Dsc, Some(AgentVersion("4.2-1.9")), Certificate("certificate"), Set())
+    "correctly unserialize DSC node from 6_1" in {
+      node(dsc61Ldif).agents(0) must beEqualTo(
+        AgentInfo(AgentType.Dsc, Some(AgentVersion("6.1-1.9")), Certificate("certificate"), Set())
       )
     }
 

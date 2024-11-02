@@ -44,7 +44,6 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.zio.*
 import enumeratum.*
-import java.io.StringReader
 import java.security.KeyFactory
 import java.security.MessageDigest
 import java.security.interfaces.RSAPublicKey
@@ -53,7 +52,6 @@ import net.liftweb.common.*
 import org.apache.commons.codec.binary.Base64
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
-import org.bouncycastle.openssl.PEMParser
 import org.bouncycastle.util.encoders.Hex
 import org.joda.time.DateTime
 import zio.*
@@ -129,7 +127,6 @@ final case class NodeInfo(
         case Full(hash) => s"${algo}=${hash}"
         case eb: EmptyBox =>
           val msgForToken = tokenType match {
-            case _: PublicKey   => "of CFEngine public key for"
             case _: Certificate => "for certificate of"
           }
           val e           = eb ?~! s"Error when trying to get the CFEngine-${algo} digest ${msgForToken} node '${hostname}' (${id.value})"
@@ -139,9 +136,6 @@ final case class NodeInfo(
     }
 
     agentsName.headOption.map(a => (a.agentType, a.securityToken)) match {
-
-      case Some((AgentType.CfeCommunity, key: PublicKey)) =>
-        formatDigest(NodeKeyHash.getCfengineMD5Digest(key).toBox, "MD5", key)
 
       case Some((AgentType.CfeCommunity, cert: Certificate)) =>
         formatDigest(NodeKeyHash.getCfengineMD5CertDigest(cert).toBox, "MD5", cert)
@@ -168,17 +162,7 @@ final case class NodeInfo(
    */
   lazy val keyHashBase64Sha256: String = {
     agentsName.headOption.map(_.securityToken) match {
-      case Some(publicKey: PublicKey) =>
-        NodeKeyHash.getB64Sha256Digest(publicKey).either.runNow match {
-          case Right(hash) =>
-            hash
-          case Left(e)     =>
-            PolicyGenerationLogger.error(
-              s"Error when trying to get the sha-256 digest of CFEngine public key for node '${hostname}' (${id.value}): ${e.fullMsg}"
-            )
-            ""
-        }
-      case Some(cert: Certificate)    =>
+      case Some(cert: Certificate) =>
         NodeKeyHash.getB64Sha256Digest(cert).either.runNow match {
           case Right(hash) => hash
           case Left(e)     =>
@@ -187,7 +171,7 @@ final case class NodeInfo(
             )
             ""
         }
-      case None                       =>
+      case None                    =>
         PolicyGenerationLogger.info(s"Node '${hostname}' (${id.value}) doesn't have a registered public key")
         ""
 
@@ -250,13 +234,6 @@ object NodeKeyHash {
    *
    * Caution: to use the complete key, with header and footer, you need to use key.key
    */
-  def getCfengineMD5Digest(key: PublicKey): IOResult[String] = {
-    getCfengineDigestFromCfeKey(key, "MD5")
-  }
-
-  def getCfengineSHA256Digest(key: PublicKey): IOResult[String] = {
-    getCfengineDigestFromCfeKey(key, "SHA-256")
-  }
 
   /*
    * A version of the digest that works on a certificate
@@ -277,32 +254,6 @@ object NodeKeyHash {
     for {
       c      <- cert.cert
       digest <- getCfengineDigest(c.getSubjectPublicKeyInfo, "SHA-256")
-    } yield {
-      digest
-    }
-  }
-
-  protected def getPubkeyInfo(key: PublicKey): IOResult[SubjectPublicKeyInfo] = {
-    for {
-      // the parser able to read PEM files
-      // Parser may be null if the key is invalid
-      parser     <- IOResult.attemptZIO(Option(new PEMParser(new StringReader(key.key))) match {
-                      case None    => Inconsistency(s"Error when trying to create the PEM parser for agent key").fail
-                      case Some(x) => x.succeed
-                    })
-      // read the PEM b64 pubkey string
-      pubkeyInfo <- IOResult.attempt(parser.readObject.asInstanceOf[SubjectPublicKeyInfo])
-      // when bouncy castle doesn't successfuly load key, pubkeyinfo is null
-      _          <- if (pubkeyInfo == null) Inconsistency(s"Error when reading key (it is likely malformed)").fail else ZIO.unit
-    } yield {
-      pubkeyInfo
-    }
-  }
-
-  protected def getCfengineDigestFromCfeKey(key: PublicKey, algo: String): IOResult[String] = {
-    for {
-      pubkeyInfo <- getPubkeyInfo(key)
-      digest     <- getCfengineDigest(pubkeyInfo, algo)
     } yield {
       digest
     }
@@ -370,23 +321,6 @@ object NodeKeyHash {
   }
 
   /**
-   * Get the sha256 digest of the public key.
-   *
-   * This is a direct digest of the encoded key in binary
-   * format, i.e neither modulus nor exponent is extracted
-   * contrary to CFEngine dedicated format.
-   */
-  def getSha256Digest(key: PublicKey): IOResult[Array[Byte]] = {
-    for {
-      pubkeyInfo <- getPubkeyInfo(key)
-      encoded    <- IOResult.attempt(pubkeyInfo.getEncoded())
-      digest     <- sha256Digest(encoded)
-    } yield {
-      digest
-    }
-  }
-
-  /**
    * Get the sha256 digest of the public key of the certificate.
    *
    * This is a direct digest of the encoded key in binary
@@ -397,7 +331,7 @@ object NodeKeyHash {
     for {
       res            <- SecurityToken.parseCertificate(cert)
       (pubkeyInfo, _) = res
-      // when bouncy castle doesn't successfuly load key, pubkeyinfo is null
+      // when bouncy castle doesn't successfully load key, pubkeyinfo is null
       _              <- if (pubkeyInfo == null) Inconsistency(s"Error when reading key (it is likely malformed)").fail else ZIO.unit
       pubkey         <- IOResult.attempt(pubkeyInfo.getEncoded)
       digest         <- sha256Digest(pubkey)
@@ -409,24 +343,14 @@ object NodeKeyHash {
   /**
    * Get Hex encoded string of the sha256 digest of the public key
    */
-  def getHexSha256Digest(key: PublicKey):    IOResult[String] = {
-    getSha256Digest(key).map(Hex.toHexString)
-  }
   def getHexSha256Digest(cert: Certificate): IOResult[String] = {
     getSha256Digest(cert).map(Hex.toHexString)
   }
 
   /**
-   * Get Base64 encoding compatible with openssl of the sha256 of the public key
-   */
-  def getB64Sha256Digest(key: PublicKey): IOResult[String] = {
-    getSha256Digest(key).map(Base64.encodeBase64String)
-  }
-
-  /**
    * Base64 encoding of the SHA-256 hash of the DER format of the public key.
-   * This is the (deprecated) format used in apach headers, and that can generated
-   * with the, as alway simple, openssl command chain:
+   * This is the (deprecated) format used in apache headers, and that can generated
+   * with the, as always simple, openssl command chain:
    * openssl x509 -in my-certificate.pem -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64
    */
   def getB64Sha256Digest(cert: Certificate): IOResult[String] = {

@@ -42,11 +42,9 @@ import com.normation.errors.*
 import com.normation.inventory.domain.InventoryError.CryptoEx
 import com.normation.inventory.services.provisioning.ParsedSecurityToken
 import java.io.StringReader
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.cert.X509CertificateHolder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.openssl.PEMParser
-import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
 import zio.*
 import zio.syntax.*
 
@@ -73,18 +71,16 @@ sealed trait SecurityToken {
 object SecurityToken {
   def kind(token: SecurityToken): String = {
     token match {
-      case _: PublicKey   => PublicKey.kind
       case _: Certificate => Certificate.kind
     }
   }
 
   def token(kind: String, value: String): Either[String, SecurityToken] = {
     kind match {
-      case PublicKey.kind   => Right(PublicKey(value))
       case Certificate.kind => Right(Certificate(value))
       case _                =>
         Left(
-          s"Value '${kind}' is not recognized as a valid security token, expecting '${PublicKey.kind}' or '${Certificate.kind}'"
+          s"Value '${kind}' is not recognized as a valid security token, expecting '${Certificate.kind}'"
         )
     }
   }
@@ -142,7 +138,6 @@ object SecurityToken {
       .map(ex => InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a public key", ex.cause): InventoryError)
       .flatMap { obj =>
         obj match {
-          case _: SubjectPublicKeyInfo  => Right(PublicKey(key))
           case _: X509CertificateHolder => Right(Certificate(key))
           case _ =>
             Left(
@@ -156,39 +151,8 @@ object SecurityToken {
   }
 }
 
-object PublicKey   {
-  val kind = "publicKey"
-}
 object Certificate {
   val kind = "certificate"
-}
-
-/**
- * A simple class to denote a software cryptographic public key
- */
-final case class PublicKey(value: String) extends SecurityToken {
-
-  // Value of the key may be stored (with old fusion inventory version) as one line and without rsa header and footer, we should add them if missing and format the key
-  val key:       String                            = {
-    if (value.startsWith("-----BEGIN RSA PUBLIC KEY-----")) {
-      value
-    } else {
-      s"""-----BEGIN RSA PUBLIC KEY-----
-         |${value.grouped(80).mkString("\n")}
-         |-----END RSA PUBLIC KEY-----""".stripMargin
-    }
-  }
-  def publicKey: IOResult[java.security.PublicKey] = {
-    ZIO.attempt {
-      (new PEMParser(new StringReader(key))).readObject()
-    }.mapError(ex => InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a public key", ex)).flatMap { obj =>
-      obj match {
-        case a: SubjectPublicKeyInfo =>
-          (new JcaPEMKeyConverter().getPublicKey(a)).succeed
-        case _ => InventoryError.Crypto(s"Key '${key}' cannot be parsed as a public key").fail
-      }
-    }
-  }
 }
 
 final case class Certificate(value: String) extends SecurityToken {

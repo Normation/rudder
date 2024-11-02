@@ -711,12 +711,10 @@ object DisplayNode extends Loggable {
 
     val agent     = nodeFact.rudderAgent
     val tokenKind = agent.securityToken match {
-      case _: PublicKey   => "Public key"
       case _: Certificate => "Certificate"
     }
     <div class="security-info" id={"security-" + nodeFact.id.value}>{
       agent.securityToken match {
-        case _: PublicKey   => NodeSeq.Empty
         case c: Certificate =>
           c.cert.either.runNow match {
             case Left(e)     => <span title={e.fullMsg}>Error while reading certificate information</span>

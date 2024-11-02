@@ -38,7 +38,7 @@ package com.normation.inventory.services.provisioning
 
 import com.normation.errors.*
 import com.normation.errors.IOResult
-import com.normation.inventory.domain.{PublicKey as AgentKey, *}
+import com.normation.inventory.domain.*
 import java.io.InputStream
 import java.security.PublicKey
 import java.security.Signature
@@ -155,7 +155,6 @@ trait GetKey {
 
   def parseSecurityToken(token: SecurityToken): IOResult[ParsedSecurityToken] = {
     token match {
-      case x: AgentKey    => x.publicKey.map(pk => ParsedSecurityToken(pk, None))
       case x: Certificate =>
         SecurityToken.parseCertificate(x).map { case (p, s) => ParsedSecurityToken(p, Some(s)) }
     }

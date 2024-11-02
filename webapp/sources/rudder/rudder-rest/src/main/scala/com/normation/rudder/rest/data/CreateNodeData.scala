@@ -264,7 +264,7 @@ object Validation {
 
     val checkedAgent: Validation[AgentInfo] = nodeDetails.agentKey match {
       case Some(a) => checkAgent(os.os, a)
-      case None    => AgentInfo(AgentType.CfeCommunity, None, PublicKey("placeholder-value - not a real key"), Set.empty).validNel
+      case None    => AgentInfo(AgentType.CfeCommunity, None, Certificate("placeholder-value - not a real key"), Set.empty).validNel
     }
 
     (checkId(nodeDetails.id.toLowerCase), checkStatus(nodeDetails.status)).mapN(Tuple2(_, _)) andThen {
@@ -419,8 +419,8 @@ object Validation {
   def checkAgent(osType: OsType, agent: AgentKey): Validation[AgentInfo] = {
     def checkSecurityToken(agent: AgentType, token: String): Validation[SecurityToken] = {
       import net.liftweb.json.JsonDSL.*
-      val tpe = if (token.contains("BEGIN CERTIFICATE")) Certificate.kind else PublicKey.kind
-      AgentInfoSerialisation.parseSecurityToken(agent, ("type" -> tpe) ~ ("value" -> token), None) match {
+      val tpe = Certificate.kind
+      AgentInfoSerialisation.parseSecurityToken(agent, ("type" -> tpe) ~ ("value" -> token)) match {
         case Left(err) => NodeValidationError.SecurityVal(err.fullMsg).invalidNel
         case Right(x)  => x.validNel
       }

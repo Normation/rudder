@@ -39,15 +39,7 @@ package com.normation.rudder.services.policies
 
 import ch.qos.logback.classic.Logger
 import com.normation.GitVersion
-import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
-import com.normation.cfclerk.domain.SectionSpec
-import com.normation.cfclerk.domain.Technique
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.cfclerk.domain.TechniqueVersionHelper
-import com.normation.cfclerk.domain.TrackerVariableSpec
-import com.normation.cfclerk.domain.Variable
+import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.impl.GitTechniqueReader
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.services.impl.TechniqueRepositoryImpl
@@ -57,58 +49,13 @@ import com.normation.cfclerk.xmlparsers.VariableSpecParser
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.AcceptedInventory
-import com.normation.inventory.domain.AgentType.CfeCommunity
-import com.normation.inventory.domain.AgentType.Dsc
-import com.normation.inventory.domain.AgentVersion
-import com.normation.inventory.domain.Certificate
-import com.normation.inventory.domain.Debian
-import com.normation.inventory.domain.EnvironmentVariable
-import com.normation.inventory.domain.Linux
-import com.normation.inventory.domain.MachineInventory
-import com.normation.inventory.domain.MachineUuid
-import com.normation.inventory.domain.MemorySize
-import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.NodeInventory
-import com.normation.inventory.domain.NodeSummary
-import com.normation.inventory.domain.NodeTimezone
-import com.normation.inventory.domain.PendingInventory
-import com.normation.inventory.domain.PublicKey
-import com.normation.inventory.domain.UndefinedKey
-import com.normation.inventory.domain.Version
-import com.normation.inventory.domain.VirtualMachineType
+import com.normation.inventory.domain.*
+import com.normation.inventory.domain.AgentType.*
 import com.normation.inventory.domain.VmType.*
-import com.normation.inventory.domain.Windows
-import com.normation.inventory.domain.Windows2012
 import com.normation.rudder.domain.Constants
-import com.normation.rudder.domain.nodes.MachineInfo
-import com.normation.rudder.domain.nodes.Node
-import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.nodes.NodeGroupUid
-import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.nodes.NodeKind
-import com.normation.rudder.domain.nodes.NodeState
-import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
-import com.normation.rudder.domain.policies.ActiveTechniqueId
-import com.normation.rudder.domain.policies.AllTarget
-import com.normation.rudder.domain.policies.AllTargetExceptPolicyServers
-import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.DirectiveUid
-import com.normation.rudder.domain.policies.FullGroupTarget
-import com.normation.rudder.domain.policies.FullOtherTarget
-import com.normation.rudder.domain.policies.FullRuleTargetInfo
-import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.GroupTarget
-import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.domain.policies.PolicyMode.Enforce
-import com.normation.rudder.domain.policies.PolicyModeOverrides
-import com.normation.rudder.domain.policies.PolicyServerTarget
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.domain.nodes.*
+import com.normation.rudder.domain.policies.*
+import com.normation.rudder.domain.policies.PolicyMode.*
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.IpAddress
@@ -135,14 +82,7 @@ import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.FileSystemNotFoundException
-import java.nio.file.FileSystems
-import java.nio.file.FileVisitResult
-import java.nio.file.Path
-import java.nio.file.Paths
-import java.nio.file.SimpleFileVisitor
-import java.nio.file.StandardCopyOption
+import java.nio.file.*
 import java.nio.file.attribute.BasicFileAttributes
 import net.liftweb.common.Full
 import org.apache.commons.io.FileUtils
@@ -223,54 +163,74 @@ object NodeConfigData {
   val machine2Pending:  MachineInventory =
     MachineInventory(MachineUuid("machine2"), PendingInventory, VirtualMachineType(VMWare), Some("machine2"))
 
-  // a valid, not used pub key
-  // cfengine key hash is: 081cf3aac62624ebbc83be7e23cb104d
-  val PUBKEY =
-    """-----BEGIN RSA PUBLIC KEY-----
-MIIBCAKCAQEAlntroa72gD50MehPoyp6mRS5fzZpsZEHu42vq9KKxbqSsjfUmxnT
-Rsi8CDvBt7DApIc7W1g0eJ6AsOfV7CEh3ooiyL/fC9SGATyDg5TjYPJZn3MPUktg
-YBzTd1MMyZL6zcLmIpQBH6XHkH7Do/RxFRtaSyicLxiO3H3wapH20TnkUvEpV5Qh
-zUkNM8vHZuu3m1FgLrK5NCN7BtoGWgeyVJvBMbWww5hS15IkCRuBkAOK/+h8xe2f
-hMQjrt9gW2qJpxZyFoPuMsWFIaX4wrN7Y8ZiN37U2q1G11tv2oQlJTQeiYaUnTX4
-z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
------END RSA PUBLIC KEY-----"""
+  // certificate with subject "root"
+  val ROOT_CERT = """-----BEGIN CERTIFICATE-----
+                    |MIIFSzCCAzOgAwIBAgIUQyKUmUkU8F/ua6sp8CV9d1UMT60wDQYJKoZIhvcNAQEL
+                    |BQAwFjEUMBIGCgmSJomT8ixkAQEMBHJvb3QwHhcNMjQxMTAyMTYyMDI1WhcNMzQx
+                    |MDMxMTYyMDI1WjAWMRQwEgYKCZImiZPyLGQBAQwEcm9vdDCCAiIwDQYJKoZIhvcN
+                    |AQEBBQADggIPADCCAgoCggIBANe05osdzZ4McYtyAe320mexC+chYPEcQ0j6Jt4g
+                    |YnHK0PUch/2Rrjn0NBhcP+VeQK1mLCorSknNuGQdnzMBpLvXrB5o79EULJWtqvEZ
+                    |TVCTxYfab+JTtK7NakkqPd8qeZHu3pJtDCpyonbKL8uRems/e0Xt0u9I/euT9Gwr
+                    |7A/cH7VJc2XheotK/cIW9xKSlTwqakeGxywdjJ7Sf7Yt55hBRLRQowL2uqrl45hq
+                    |389TvMJt91o+iPLRaln8xHa45COI0c2NeJ+JB+0dRpLDXCYJj+4GjV8T5tGn6hw0
+                    |35p7P1g0QWzcGS5Grw7f0punLBAld0+5XqHjjIAvTinB9q5KlVCXCq5k0V224BRL
+                    |VyfEhIIhHwZhtL4pNyZbITNdQb6ICWdDXtrl0AcyuaKboOE7wVcIYj5dDA/HHjTE
+                    |JjI1i5GnYT3s6L0KiPmuf2aAedcM6ZVAGFw8VKtQ+D5eZgljMK5u+Exw+S01D5Hs
+                    |rMPtrzJQzyDRLyxOHdnTpQ2G957eJtH988HQ2a/e1Bw9+PiSIi0MPP6XUbtsaHh8
+                    |VOTPDqJDKzjOXrB8A6tSHVcX3PZGCcYztuta4HxCsqt+Dw2zWw0gV3VcEh3Cm7vM
+                    |YUqHSKGVqP7Hrx7bma6xud9lh3nSBlPvKp6SgPGSZmg3Repz+2REk+cX9MM+Q+SS
+                    |8fFvAgMBAAGjgZAwgY0wDAYDVR0TBAUwAwEB/zAdBgNVHQ4EFgQUBALyYy06Lx6I
+                    |WmPx6LtWgdti9BswUQYDVR0jBEowSIAUBALyYy06Lx6IWmPx6LtWgdti9BuhGqQY
+                    |MBYxFDASBgoJkiaJk/IsZAEBDARyb290ghRDIpSZSRTwX+5rqynwJX13VQxPrTAL
+                    |BgNVHQ8EBAMCArwwDQYJKoZIhvcNAQELBQADggIBAGPSzHyD3R0CpbGLZT8v4kgq
+                    |VmOnh9QAwX4HyjyGRJknYGZF29Ko6I1HEt8QZ6D8GVPFlmRFBB77VKD95ytXX/ec
+                    |jKPV3RWPTGrOCbfP95Z0EBKS/wA0gUOVcKRVQls7G6MQs/XagPtD5YgI7fzUBjeC
+                    |mJprmw+RbS46IVAZL6JF3mSIdTo9TskFyhCGwbZ40jZLASDKRl352GCFi1u2SDTV
+                    |gWr+Td52hkYYzS33OxrKwXskoXlZzlRcI9/Ra+8Ue+2TVMeY8eGqYrS0dgCcOsRB
+                    |GtWAhBhkSYHXO+rOG1RCpkJGM5Yzn1MKaI49EJmd3L/9Pm7QBl3ebgPJTwksYCGS
+                    |xMTSzbctettF1Ua3+y5ba2p7pvUH62nX+s4w2L22wis1twMdJaL9oSi9wh2+XKut
+                    |aHx1uSPohedHA5xe8dP6OLF/2IjIrqQL+g6+R1sa+EFeyAUddk117FubvpKFy4UH
+                    |Xa62iiprZMRrS+IY8IW/bzpVPz+m3boHaLthV4DdJfz17V6WFZdyNoUJIwYrtePe
+                    |eMZ/1amw7aItLh0djfMhqmJsuP83ZZi+I10i3l01BboRRS9bQpeSS+EUrh1fkl40
+                    |ymRUWzJv4vvtQXYuPrgpOtGRP2Ns4BQ7o4QavZk39F5pSxRTmpqAss0sOXN+ipOU
+                    |mvKlpCQ0VrI+Q3/ET3TV
+                    |-----END CERTIFICATE-----""".stripMargin
 
   // a valid, not used certificate
   // cfengine has is: eec3a3c2cf41b2736b7a0a9dece02142
   // sha256 in hexa: 41d8180612444dc6c280ac9189b8c95594029ba9a0697cd72b1af388b4b94844
-  val CERT =
-    """-----BEGIN CERTIFICATE-----
-MIIFgTCCA2mgAwIBAgIUXpY2lv7l+hkx4mVP324d9O1qJh0wDQYJKoZIhvcNAQEL
-BQAwUDEYMBYGA1UEAwwPV0lOLUdOR0RIUFZIVlROMTQwMgYKCZImiZPyLGQBAQwk
-YjczZWE0NTEtYzQyYS00MjBkLWE1NDAtNDdiNDQ1ZTU4MzEzMB4XDTE5MDcxMjE2
-MTYxMloXDTI3MDkyODE2MTYxMlowUDEYMBYGA1UEAwwPV0lOLUdOR0RIUFZIVlRO
-MTQwMgYKCZImiZPyLGQBAQwkYjczZWE0NTEtYzQyYS00MjBkLWE1NDAtNDdiNDQ1
-ZTU4MzEzMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEApW5up//FLSHr
-J14iIX7aSTGiVvJ5XTXHXxmx3O1MyFIrNoWoonmR7Wkii+FIcxk8LVajjMaBVP32
-ZbfEr1BqljV/XULTO4ivQoqJCfoq/2O5O2Apyh1XJmp8q82CZRz/ZzxKmFAeYgYE
-KPbzr/SeLkNvo9zaYZLMGT1Zle8pu7gBWF8DPFg1r77Y1zfSSRTRMSXQk0BVN5uR
-2Ru8A53ZI7yDOB73pNXbtV++XdBzbwzBDG24NY80o+bbGSCRgizeDqNBeVjzOzyf
-wRp6KFuLrwfksnUcWcwMBz3af6d5uh5hrDII63t30u3eVdmGYUb9oi5JjCOtcJta
-r3EhwoeEoeioAxpJebe0Q0OEbEICh4Z/oxGYaG/rn9UZ3Hhw9sdngihiTx/sQ8yg
-CGURXr/tQSw1knrmU7Fe1TytfcEhaGhnfjRXhUHXP75ycp4mdp3uRsHSKT7VN95H
-lCVxZGUMkE9w8CZQTH2RmL6E5r0VqilktViWmuf31h2DPzg9rvBj+rQpBvgQzUiv
-1TzuFzsuLKBp3KMpxHrnIxEMS2ERj1Kr7mAxW3xZVt3dYrw8SdbfozJ4x/d8ciKu
-ovN0BBrPIn0wS6v7hT2mMtneEG/xbXZFjL8XqVwIooRCDOhw4UfWb71CdpBNZ8ln
-tje4Ri0/C7l5ZJGYJNOpZFBlpDXmMTkCAwEAAaNTMFEwHQYDVR0OBBYEFHJaeKBJ
-FcPOMwPGxt8uNESLRJ2YMB8GA1UdIwQYMBaAFHJaeKBJFcPOMwPGxt8uNESLRJ2Y
-MA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggIBAAjUW4YmUjYz6K50
-uuN/WT+vRtPAKjTcKPi397O0sa1EZDq7gJt2gbYBMyqDFyoivKeec2umXzm7n0o5
-yDJ1jwgl0ORxqtCmjzPuwbY9EL8dBycACsr8KorXct2vseC+uxNWnsLbUVs3iTbI
-AG5dtXpytZJXioVvR/Hi6DnJ8hP6wQLKJYw3E91jjIdfUBWT1GRzjTHo6VBxlvQd
-KFS8JeHMaUJjWiXeI8ZYPjLCDL2Fxs6hlgySBaZSbGySraFwt9l4RDVnUxexMloc
-ZECALfJg4fISgZodHXRxVBKEUv71ebSqYfJt8f8LeyfLVK/MY9rmpdV8DGQieaaV
-YdhslUYx6vTnk/0Q/LbeHXI2cm2qBP1oyPusydTWWc6TowCLhHqTJ+eAB2X/RjT/
-MTe/B3GGKgn1lgB37qF2hVDWtrDvNzE4OGQCNBR/iJDHz5+8MV+4FDT0/7ruTP0B
-iMDtuT7Jrk9O/UhAZyG4uyUm+kpcPIevGy2ZVQUgk/zIqLH+R4QrRebXRLrNsKuP
-o07htJltXDGDSekSDgK3OnZwLOyTUrz1zMmGqGbqRCwOQAWcZBWLrIjUjM0k9vPy
-qYUqf4FphVwX4JqDhm8JSS/et/0431MjMfQC/qauAhPBITgRjlDVEVvGB40aiNLk
-ootapja6lKOaIpqp0kmmYN7gFIhp
------END CERTIFICATE-----"""
+  val CERT = """-----BEGIN CERTIFICATE-----
+               |MIIFgTCCA2mgAwIBAgIUXpY2lv7l+hkx4mVP324d9O1qJh0wDQYJKoZIhvcNAQEL
+               |BQAwUDEYMBYGA1UEAwwPV0lOLUdOR0RIUFZIVlROMTQwMgYKCZImiZPyLGQBAQwk
+               |YjczZWE0NTEtYzQyYS00MjBkLWE1NDAtNDdiNDQ1ZTU4MzEzMB4XDTE5MDcxMjE2
+               |MTYxMloXDTI3MDkyODE2MTYxMlowUDEYMBYGA1UEAwwPV0lOLUdOR0RIUFZIVlRO
+               |MTQwMgYKCZImiZPyLGQBAQwkYjczZWE0NTEtYzQyYS00MjBkLWE1NDAtNDdiNDQ1
+               |ZTU4MzEzMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEApW5up//FLSHr
+               |J14iIX7aSTGiVvJ5XTXHXxmx3O1MyFIrNoWoonmR7Wkii+FIcxk8LVajjMaBVP32
+               |ZbfEr1BqljV/XULTO4ivQoqJCfoq/2O5O2Apyh1XJmp8q82CZRz/ZzxKmFAeYgYE
+               |KPbzr/SeLkNvo9zaYZLMGT1Zle8pu7gBWF8DPFg1r77Y1zfSSRTRMSXQk0BVN5uR
+               |2Ru8A53ZI7yDOB73pNXbtV++XdBzbwzBDG24NY80o+bbGSCRgizeDqNBeVjzOzyf
+               |wRp6KFuLrwfksnUcWcwMBz3af6d5uh5hrDII63t30u3eVdmGYUb9oi5JjCOtcJta
+               |r3EhwoeEoeioAxpJebe0Q0OEbEICh4Z/oxGYaG/rn9UZ3Hhw9sdngihiTx/sQ8yg
+               |CGURXr/tQSw1knrmU7Fe1TytfcEhaGhnfjRXhUHXP75ycp4mdp3uRsHSKT7VN95H
+               |lCVxZGUMkE9w8CZQTH2RmL6E5r0VqilktViWmuf31h2DPzg9rvBj+rQpBvgQzUiv
+               |1TzuFzsuLKBp3KMpxHrnIxEMS2ERj1Kr7mAxW3xZVt3dYrw8SdbfozJ4x/d8ciKu
+               |ovN0BBrPIn0wS6v7hT2mMtneEG/xbXZFjL8XqVwIooRCDOhw4UfWb71CdpBNZ8ln
+               |tje4Ri0/C7l5ZJGYJNOpZFBlpDXmMTkCAwEAAaNTMFEwHQYDVR0OBBYEFHJaeKBJ
+               |FcPOMwPGxt8uNESLRJ2YMB8GA1UdIwQYMBaAFHJaeKBJFcPOMwPGxt8uNESLRJ2Y
+               |MA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggIBAAjUW4YmUjYz6K50
+               |uuN/WT+vRtPAKjTcKPi397O0sa1EZDq7gJt2gbYBMyqDFyoivKeec2umXzm7n0o5
+               |yDJ1jwgl0ORxqtCmjzPuwbY9EL8dBycACsr8KorXct2vseC+uxNWnsLbUVs3iTbI
+               |AG5dtXpytZJXioVvR/Hi6DnJ8hP6wQLKJYw3E91jjIdfUBWT1GRzjTHo6VBxlvQd
+               |KFS8JeHMaUJjWiXeI8ZYPjLCDL2Fxs6hlgySBaZSbGySraFwt9l4RDVnUxexMloc
+               |ZECALfJg4fISgZodHXRxVBKEUv71ebSqYfJt8f8LeyfLVK/MY9rmpdV8DGQieaaV
+               |YdhslUYx6vTnk/0Q/LbeHXI2cm2qBP1oyPusydTWWc6TowCLhHqTJ+eAB2X/RjT/
+               |MTe/B3GGKgn1lgB37qF2hVDWtrDvNzE4OGQCNBR/iJDHz5+8MV+4FDT0/7ruTP0B
+               |iMDtuT7Jrk9O/UhAZyG4uyUm+kpcPIevGy2ZVQUgk/zIqLH+R4QrRebXRLrNsKuP
+               |o07htJltXDGDSekSDgK3OnZwLOyTUrz1zMmGqGbqRCwOQAWcZBWLrIjUjM0k9vPy
+               |qYUqf4FphVwX4JqDhm8JSS/et/0431MjMfQC/qauAhPBITgRjlDVEVvGB40aiNLk
+               |ootapja6lKOaIpqp0kmmYN7gFIhp
+               |-----END CERTIFICATE-----""".stripMargin
 
   val emptyNodeReportingConfiguration: ReportingConfiguration = ReportingConfiguration(None, None, None)
 
@@ -329,7 +289,7 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
       rootId,
       None
     ),
-    RudderAgent(CfeCommunity, admin1, AgentVersion("6.0.0"), PublicKey(PUBKEY), Chunk.empty),
+    RudderAgent(CfeCommunity, admin1, AgentVersion("6.0.0"), Certificate(CERT), Chunk.empty),
     Chunk.empty,
     DateTime.now,
     DateTime.now,
@@ -506,7 +466,7 @@ ootapja6lKOaIpqp0kmmYN7gFIhp
         rootId,
         None
       ),
-      RudderAgent(CfeCommunity, admin1, AgentVersion("6.0.0"), PublicKey("rsa public key"), Chunk.empty),
+      RudderAgent(CfeCommunity, admin1, AgentVersion("6.0.0"), Certificate("node certificate"), Chunk.empty),
       Chunk.empty,
       DateTime.now,
       DateTime.now,

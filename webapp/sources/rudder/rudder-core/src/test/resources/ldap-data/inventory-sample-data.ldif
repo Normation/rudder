@@ -309,7 +309,6 @@ policyServerId:root-policy-server
 ipHostNumber: 192.168.56.101
 ipHostNumber: 127.0.0.1
 environmentVariable: {"name":"SHELL","value":"/bin/sh"}
-publicKey: "test"
 customProperty:{"name":"datacenter", "value":"Paris"}
 customProperty:{"name":"from_inv", "value":{ "key1":"custom prop value", "key2":"some more json"}}
 process: {"pid":1,"commandName":"init [2]","cpuUsage":0.0,"memory":0.2000000
@@ -339,7 +338,6 @@ nodeHostname: node2.normation.com
 inventoryDate: 20150515123456.948Z
 ipHostNumber: 192.168.56.102
 ipHostNumber: 127.0.0.1
-publicKey: "test"
 environmentVariable: {"name":"PWD","value":"/var/rudder"}
 environmentVariable: {"name":"SUDO_GID","value":"1000"}
 
@@ -360,7 +358,6 @@ nodeHostname: node3.normation.com
 inventoryDate: 20160515123456.948Z
 ipHostNumber: 192.168.56.103
 ipHostNumber: 127.0.0.1
-publicKey: "test"
 environmentVariable: {"name":"PATH","value":"/usr/local/sbin:/usr/local/bin:
  /usr/sbin:/usr/bin:/sbin:/bin:/var/rudder/cfengine-community/bin"}
 
@@ -399,7 +396,6 @@ agentName: {"agentType":"dsc","version":"8.0.0","securityToken":{"value":"-----B
 policyServerId:root-policy-server
 nodeHostname: node5.normation.com
 inventoryDate: 20180515123456.948Z
-publicKey: "test"
 
 dn: nodeId=node6,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 objectClass: top
@@ -417,7 +413,6 @@ agentName: {"agentType":"cfengine-community","version":"8.0.0","securityToken":{
 policyServerId:root-policy-server
 nodeHostname: node6.normation.com
 inventoryDate: 20190515123456.948Z
-publicKey: "test"
 
 dn: nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
 objectClass: top
@@ -437,7 +432,6 @@ agentName: {"agentType":"cfengine-community","version":"8.0.0","securityToken":{
 policyServerId:root-policy-server
 nodeHostname: node7.normation.com
 inventoryDate: 20200515123456.948Z
-publicKey: "test"
 
 ###################################################################################################
 # Logicial Elements #

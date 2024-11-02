@@ -1720,15 +1720,38 @@ object MockNodes {
 
   // a valid, not used pub key
   // cfengine key hash is: 081cf3aac62624ebbc83be7e23cb104d
-  val PUBKEY =
-    """-----BEGIN RSA PUBLIC KEY-----
-MIIBCAKCAQEAlntroa72gD50MehPoyp6mRS5fzZpsZEHu42vq9KKxbqSsjfUmxnT
-Rsi8CDvBt7DApIc7W1g0eJ6AsOfV7CEh3ooiyL/fC9SGATyDg5TjYPJZn3MPUktg
-YBzTd1MMyZL6zcLmIpQBH6XHkH7Do/RxFRtaSyicLxiO3H3wapH20TnkUvEpV5Qh
-zUkNM8vHZuu3m1FgLrK5NCN7BtoGWgeyVJvBMbWww5hS15IkCRuBkAOK/+h8xe2f
-hMQjrt9gW2qJpxZyFoPuMsWFIaX4wrN7Y8ZiN37U2q1G11tv2oQlJTQeiYaUnTX4
-z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
------END RSA PUBLIC KEY-----"""
+  val CERTIFICATE_NODE1 =
+    """-----BEGIN CERTIFICATE-----
+MIIFTjCCAzagAwIBAgIUO0kEJ2Fwb4MWT2yBVqR+UX4osMcwDQYJKoZIhvcNAQEL
+BQAwFzEVMBMGCgmSJomT8ixkAQEMBW5vZGUxMB4XDTI0MTEwMjE2MTIxOVoXDTM0
+MTAzMTE2MTIxOVowFzEVMBMGCgmSJomT8ixkAQEMBW5vZGUxMIICIjANBgkqhkiG
+9w0BAQEFAAOCAg8AMIICCgKCAgEAptzhnQCPvgOwjn6LCfVhTMAs10hwYj5YxqOX
+i8MPiFT4Rlrn6xyB24O7E+O2EL/IUYSk5Lbp2OGSJWvNe1d+KbESpmGoM1UnAa8j
+VsW+HY/uJ23THKAhe9ykOxWObSp/sSwFhw6C0p7SriI72uW/fJ40XCh2m2FuJuQP
+YHjNOR5P/cOLhKs/cEkt3icMxyfipor+kcqC/GsCPtwwXFwnS5yWlmRxVSzkI1fZ
+6B403aHMe5PSqD0kxWX8roR/9sIVRvLVbxQtiuyM2xUeSuIlg3bho9wN4/shhqKv
+q3zqJQy86YZVC9jRmX21BeQukTWiu3uqppxVcyTM5Wzf3jrE7A+2Iea6ZvMFA0fq
+D39CgXhkuCGdGaBQtVzuYBASyECUEmMgQMb99rnlONVVVdFQHS26+c1fR1rn+Iyq
+kGOmrTRSaf1F8OLnvAY9UhXi/oJNDh57y+Y+X11XY2mBgmt/zRFN05HxD0UpsvlS
+p850QzmoO7qusRY5CnrX40HHhhB9wr5lhKTVEAgoEhrYvC/wDWLBElECNQzC99ye
+FUR2T1sc1qsmDVki5eivm086viHt231plJIXKtAdTLc2EXYxtNiVowXKbhujtwOR
+gIcG9YXEwc7woXnpxOJHYlFfB9TKMKzc8FfKVZnOibp0Ceenpxj0nUItlLJMoEaM
+G4upElcCAwEAAaOBkTCBjjAMBgNVHRMEBTADAQH/MB0GA1UdDgQWBBT9f5l3IkLI
+dwooamw/OugzXWT8RjBSBgNVHSMESzBJgBT9f5l3IkLIdwooamw/OugzXWT8RqEb
+pBkwFzEVMBMGCgmSJomT8ixkAQEMBW5vZGUxghQ7SQQnYXBvgxZPbIFWpH5Rfiiw
+xzALBgNVHQ8EBAMCArwwDQYJKoZIhvcNAQELBQADggIBAF0LWEG8O3W18U0r+6v1
+pSS1UqcP0HI3M27+Pq2Gk+/s9DRlgeyPmSYTGMdbP1eL5lR5BubUrZlKmXCneda+
+Vl4akoNaYXHFKpRIKm4y2ezX6XRugblurc+tL3V17UAhYjSglL/5yRXiLrJKACOP
+0NNjjrqn2JM2PfD29Ge6K+yir92V8aOByElZVYNH4f9Avc+zzg4yBDTONutZ2TBx
+cPZ3s2Z7bsbOYhJey+j99Oc/puyUNyvh5R/hLV5QP+FA/N8JR8N2IeaIwF8/Kyhu
+MTSajF4pLY1N8YbQA0jd6zwz6NvRu5HBJ+u53JX4kyMc8mMAG0PZz6pUmAwlqq7V
+EqsjDVYHB19WKh9gaJkKNkft7IsB1b7exklGRPUuR/Sb4a5rgl47a3EM38KCVfFX
+BBNUhCn0Lt3lKs4RUXxLSh36ptEPre9qkWtdTnjR+T6KLxVonLdNQSOeqRplb4la
+Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
+7GObkgYD5hHVDrH5tp9gh0a0r0GT3bT4119BgE8zgwqMGbOHkg5ENT+nyL0b0niZ
+0ITz1f3/arh35zGKGr1mueUrJuSLeRG1v62+Mire+5PIliT+tQM7Bk8TptlSIl37
+3jccIfXR+UOVrHdSl0QmGOxb
+-----END CERTIFICATE-----"""
 
   val emptyNodeReportingConfiguration: ReportingConfiguration = ReportingConfiguration(None, None, None)
 
@@ -1766,7 +1789,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     List("127.0.0.1", "192.168.0.100"),
     DateTime.parse("2021-01-30T01:20+01:00"),
     UndefinedKey,
-    Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), PublicKey(PUBKEY), Set())),
+    Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), Certificate(CERTIFICATE_NODE1), Set())),
     rootId,
     rootAdmin,
     None,
@@ -1846,7 +1869,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     List("192.168.0.10"),
     DateTime.parse("2021-01-30T01:20+01:00"),
     UndefinedKey,
-    Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), PublicKey(PUBKEY), Set())),
+    Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), Certificate(CERTIFICATE_NODE1), Set())),
     rootId,
     admin1,
     None,
@@ -2075,7 +2098,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
         Nil,
         DateTime.now,
         UndefinedKey,
-        Seq(AgentInfo(CfeCommunity, None, PublicKey("rsa public key"), Set())),
+        Seq(AgentInfo(CfeCommunity, None, Certificate("node certificate"), Set())),
         NodeId("root"),
         "",
         None,

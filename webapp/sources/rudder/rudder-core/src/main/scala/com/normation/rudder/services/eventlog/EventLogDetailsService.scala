@@ -46,7 +46,6 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.SecurityToken
 import com.normation.rudder.api.*
 import com.normation.rudder.batch.CurrentDeploymentStatus
@@ -1089,7 +1088,8 @@ class EventLogDetailsServiceImpl(
       agentKey     <- getFromTo[SecurityToken](
                         (node \ "agentKey").headOption,
                         { x =>
-                          val s = x.text; if (s.contains("BEGIN CERTIFICATE")) Full(Certificate(s)) else Full(PublicKey(s))
+                          val s = x.text;
+                          if (s.contains("BEGIN CERTIFICATE")) Full(Certificate(s)) else Failure(s"Unrecognized security token")
                         }
                       )
       keyStatus    <- getFromTo[KeyStatus](

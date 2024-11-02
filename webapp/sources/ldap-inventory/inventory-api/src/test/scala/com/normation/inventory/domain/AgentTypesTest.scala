@@ -84,7 +84,7 @@ class AgentTypesTest extends Specification {
   "Parsing agent type" should {
 
     "works for 6_1 format" in {
-      val res = ZioRuntime.runNow(AgentInfoSerialisation.parseJson(json61, None))
+      val res = ZioRuntime.runNow(AgentInfoSerialisation.parseJson(json61))
       res must beEqualTo(
         AgentInfo(
           AgentType.CfeCommunity,

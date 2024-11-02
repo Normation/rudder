@@ -57,7 +57,6 @@ object LDAPConstants {
   val A_HOSTNAME           = "nodeHostname"
   val A_ROOT_USER          = "localAdministratorAccountName"
   val A_DEF                = "definition"
-  val A_PKEYS              = "publicKey"
   val A_AGENTS_NAME        = "agentName"
   val A_DESCRIPTION        = "description"
   val A_REV_ID             = "revision"
@@ -398,7 +397,6 @@ object LDAPConstants {
     may = Set(
       A_NAME,
       A_DESCRIPTION,
-      A_PKEYS,
       A_AGENTS_NAME,
       A_CONTAINER_DN,
       A_SOFTWARE_DN,

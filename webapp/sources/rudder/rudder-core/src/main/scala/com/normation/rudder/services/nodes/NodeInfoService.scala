@@ -81,7 +81,6 @@ object NodeInfoService {
       A_HOSTNAME,
       A_LIST_OF_IP,
       A_INVENTORY_DATE,
-      A_PKEYS,
       A_OS_NAME,
       A_OS_FULL_NAME,
       A_OS_VERSION,

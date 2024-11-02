@@ -1065,31 +1065,30 @@ class InventoryMapper(
       hostname       <- entry.required(A_HOSTNAME).toIO
       rootUser       <- entry.required(A_ROOT_USER).toIO
       policyServerId <- entry.required(A_POLICY_SERVER_UUID).toIO
-      publicKeys      = entry.valuesFor(A_PKEYS).map(Some(_))
-      agentNames     <- {
-        val agents        = entry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
-        val agentWithKeys = agents.zipAll(publicKeys, None, None).filter(_._1.isDefined)
-        ZIO
-          .foreach(agentWithKeys) {
-            case (opt, key) =>
-              ((opt, key) match {
-                case (Some(agent), key) =>
-                  AgentInfoSerialisation
-                    .parseJson(agent, key)
-                    .chainError(s"Error when parsing agent security token '${agent}'")
-                case (None, _)          =>
-                  InventoryMappingRudderError.MissingMandatory("Error when parsing agent security token: agent is undefined").fail
-              }).foldZIO(
-                err =>
-                  InventoryDataLogger.error(
-                    s"Error when parsing agent information for node '${id.value}': that agent will be " +
-                    s"ignored for the node, which will likely cause problem like the node being ignored: ${err.fullMsg}"
-                  ) *> None.succeed,
-                ok => Some(ok).succeed
-              )
-          }
-          .map(_.flatten)
-      }
+      agentNames     <- ZIO
+                          .foreach(entry.valuesFor(A_AGENTS_NAME).toList) {
+                            case agent =>
+                              AgentInfoSerialisation
+                                .parseJson(agent)
+                                .chainError(s"Error when parsing agent security token '${agent}'")
+                          }
+                          .foldZIO(
+                            err =>
+                              InventoryDataLogger.error(
+                                s"Error when parsing agent information for node '${id.value}': that agent will be " +
+                                s"ignored for the node, which will likely cause problem like the node being ignored: ${err.fullMsg}"
+                              ) *> Nil.succeed,
+                            _.distinct match {
+                              case Nil      => Nil.succeed
+                              case a :: Nil => List(a).succeed
+                              // we must have exactly one agent
+                              case several  =>
+                                InventoryDataLogger.error(
+                                  s"Error: inventory for node '${id.value}' has several (${several.size}) different agents defined, which is not supported. Ignoring all agents."
+                                ) *> Nil.succeed
+                            }
+                          )
+
       // now, look for the OS type
       osDetails      <- mapOsDetailsFromEntry(entry).toIO
       // optional information
@@ -1101,7 +1100,6 @@ class InventoryMapper(
 
       lastLoggedUser     = entry(A_LAST_LOGGED_USER)
       lastLoggedUserTime = entry.getAsGTime(A_LAST_LOGGED_USER_TIME).map(_.dateTime)
-      publicKeys         = entry.valuesFor(A_PKEYS).map(k => PublicKey(k))
       ev                 = entry.valuesFor(A_EV).toSeq.map(Serialization.read[EnvironmentVariable](_))
       process            = entry.valuesFor(A_PROCESS).toSeq.map(Serialization.read[Process](_))
       softwareIds        = entry.valuesFor(A_SOFTWARE_DN).toSeq.flatMap(x => dit.SOFTWARE.SOFT.idFromDN(new DN(x)).toOption)
