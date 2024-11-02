@@ -43,11 +43,11 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.zio.*
 import net.liftweb.common.Loggable
 import net.liftweb.http.S
@@ -67,7 +67,7 @@ class LinkUtil(
     roRuleRepository:      RoRuleRepository,
     roGroupRepository:     RoNodeGroupRepository,
     roDirectiveRepository: RoDirectiveRepository,
-    nodeInfoService:       NodeInfoService
+    nodeFactRepo:          NodeFactRepository
 ) extends Loggable {
   def baseGroupLink(id: NodeGroupId): String =
     s"""/secure/nodeManager/groups#{"groupId":"${id.serialize}"}"""
@@ -167,16 +167,16 @@ class LinkUtil(
     }
   }
 
-  def createNodeLink(id: NodeId):              Elem = {
-    nodeInfoService.getNodeInfo(id).either.runNow match {
+  def createNodeLink(id: NodeId)(implicit qc: QueryContext): Elem = {
+    nodeFactRepo.get(id).either.runNow match {
       case Right(Some(node)) =>
-        <span>Node <a href={baseNodeLink(id)}>{node.hostname}</a> (Rudder ID: {id.value})</span>
+        <span>Node <a href={baseNodeLink(id)}>{node.fqdn}</a> (Rudder ID: {id.value})</span>
       case _                 =>
         <span>Node {id.value}</span>
     }
   }
   // Naive implementation that redirect simply to all Global Parameter page
-  def createGlobalParameterLink(name: String): Elem = {
+  def createGlobalParameterLink(name: String):               Elem = {
     <span> <a href={baseGlobalParameterLink(name)}>{name}</a></span>
   }
 }

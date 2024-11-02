@@ -42,7 +42,6 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.FullInventory
-import com.normation.inventory.domain.Inventory
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.KeyStatus
@@ -54,9 +53,6 @@ import com.normation.inventory.domain.SecurityToken
 import com.normation.inventory.domain.Software
 import com.normation.inventory.services.core.FullInventoryRepository
 import com.normation.inventory.services.core.ReadOnlySoftwareNameDAO
-import com.normation.inventory.services.provisioning.PipelinedInventorySaver
-import com.normation.inventory.services.provisioning.PostCommit
-import com.normation.inventory.services.provisioning.PreCommit
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeKind
@@ -66,22 +62,6 @@ import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
 import zio.*
 import zio.syntax.*
-
-/*
- * This service is only used in InventoryProcessor. It is not so much a proxy than an actual implementation,
- * but it is a major port/change from 8.0 and feels right here.
- */
-class NodeFactInventorySaver(
-    backend:               NodeFactRepository,
-    val preCommitPipeline: Seq[PreCommit],
-    val basePostPipeline:  Seq[PostCommit[Unit]]
-) extends PipelinedInventorySaver[Unit] {
-
-  override def commitChange(inventory: Inventory): IOResult[Unit] = {
-    implicit val cc = ChangeContext.newForRudder()
-    backend.updateInventory(FullInventory(inventory.node, Some(inventory.machine)), Some(inventory.applications)).unit
-  }
-}
 
 /*
  * Proxy for node fact to full inventory / node inventory / machine inventory / node info and their repositories.

@@ -49,6 +49,7 @@ import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.reports.ComplianceLevelSerialisation
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.services.workflows.DGModAction
@@ -121,8 +122,8 @@ class NodeGroupForm(
   private val nodeGroupForm         = new LocalSnippet[NodeGroupForm]
   private val searchNodeComponent   = new LocalSnippet[SearchNodeComponent]
 
-  private var query:   Option[Query]      = nodeGroup.toOption.flatMap(_.query)
-  private var srvList: Box[Seq[NodeInfo]] = getNodeList(nodeGroup)
+  private var query:   Option[Query]          = nodeGroup.toOption.flatMap(_.query)
+  private var srvList: Box[Seq[CoreNodeFact]] = getNodeList(nodeGroup)
 
   private def setSearchNodeComponent: Unit = {
     searchNodeComponent.set(
@@ -140,7 +141,7 @@ class NodeGroupForm(
     )
   }
 
-  private def getNodeList(target: Either[NonGroupRuleTarget, NodeGroup]): Box[Seq[NodeInfo]] = {
+  private def getNodeList(target: Either[NonGroupRuleTarget, NodeGroup]): Box[Seq[CoreNodeFact]] = {
 
     for {
       nodes <- nodeFactRepo.getAll()(CurrentUser.queryContext).toBox
@@ -151,7 +152,7 @@ class NodeGroupForm(
                    RuleTarget.getNodeIds(Set(target), allNodes, Map())
                }
     } yield {
-      nodes.filterKeys(id => setIds.contains(id)).map(_._2.toNodeInfo).toSeq
+      nodes.filterKeys(id => setIds.contains(id)).map(_._2).toSeq
     }
   }
 
@@ -628,7 +629,7 @@ class NodeGroupForm(
 
           isDynamic = groupStatic.get match { case "dynamic" => true; case _ => false },
           query = query,
-          serverList = srvList.getOrElse(Set.empty[NodeInfo]).map(_.id).toSet
+          serverList = srvList.getOrElse(Set.empty[CoreNodeFact]).map(_.id).toSet
         )
 
         /*

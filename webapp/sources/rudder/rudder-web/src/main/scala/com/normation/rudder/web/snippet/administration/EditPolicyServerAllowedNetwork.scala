@@ -66,7 +66,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
   private val eventLogService      = RudderConfig.eventLogRepository
   private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private val uuidGen              = RudderConfig.stringUuidGenerator
-  private val nodeInfoService      = RudderConfig.nodeInfoService
+  private val nodeFactRepo         = RudderConfig.nodeFactRepository
   private var addNetworkField      = ""
   /*
    * We are forced to use that class to deals with multiple request
@@ -82,7 +82,10 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
     }
   }
 
-  private val policyServers = nodeInfoService.getAllSystemNodeIds().toBox
+  private val policyServers = nodeFactRepo
+    .getAll()(CurrentUser.queryContext)
+    .map(_.collect { case (id, f) if (f.rudderSettings.kind.isPolicyServer) => id }.toSeq)
+    .toBox
 
   // we need to store that out of the form, so that the changes are persisted at redraw
   private val allowedNetworksMap = scala.collection.mutable.Map[NodeId, Buffer[VH]]()
@@ -121,9 +124,9 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
   def renderForm(policyServerId: NodeId): IdMemoizeTransform = SHtml.idMemoize { outerXml =>
     val allowedNetworksFormId = "allowedNetworksForm" + policyServerId.value
 
-    val policyServerName = nodeInfoService.getNodeInfo(policyServerId).either.runNow match {
+    val policyServerName = nodeFactRepo.get(policyServerId)(CurrentUser.queryContext).either.runNow match {
       case Right(Some(nodeInfo)) =>
-        <span>{nodeInfo.hostname}</span>
+        <span>{nodeInfo.fqdn}</span>
       case Left(err)             =>
         val e = s"Could not get details for Policy Server ID ${policyServerId.value}: ${err.fullMsg}"
         logger.error(e)

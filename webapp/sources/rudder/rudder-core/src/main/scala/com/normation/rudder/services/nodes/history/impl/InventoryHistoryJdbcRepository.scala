@@ -186,10 +186,10 @@ class InventoryHistoryJdbcRepository(
     transactIOResult(s"error when deleting acceptation information for node '${id.value}'")(xa => q.update.run.transact(xa)).unit
   }
 
-  // delete all facts which have a delete event older then given data
+  // delete all facts which have a delete event older than given data
   def deleteFactIfDeleteEventBefore(date: DateTime): IOResult[Vector[NodeId]] = {
     val q = sql"""delete from nodefacts
-           where to_timestamp(deleteEvent->>'date', 'YYYY-MM-DDTHH:MI:SS.MS') < ${date}
+           where to_timestamp(deleteEvent->>'date', 'YYYY-MM-DDTHH:MI:SS"Z"') < ${date}
            returning nodeid"""
 
     transactIOResult(
@@ -204,7 +204,7 @@ class InventoryHistoryJdbcRepository(
   // would have been good for logs
   def deleteFactCreatedBefore(date: DateTime): IOResult[Vector[NodeId]] = {
     val q = sql"""delete from nodefacts
-         where to_timestamp(acceptRefuseEvent->>'date', 'YYYY-MM-DDTHH:MI:SS.MS') < ${date}
+         where to_timestamp(acceptRefuseEvent->>'date', 'YYYY-MM-DDTHH:MI:SS"Z"') < ${date}
          returning nodeid"""
 
     transactIOResult(

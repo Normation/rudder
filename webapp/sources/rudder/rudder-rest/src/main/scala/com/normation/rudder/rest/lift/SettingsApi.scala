@@ -49,8 +49,12 @@ import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.batch.PolicyGenerationTrigger
 import com.normation.rudder.domain.appconfig.FeatureSwitch
+import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.reports.*
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
@@ -59,7 +63,6 @@ import com.normation.rudder.rest.OneParam
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.SettingsApi as API
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.SendMetrics
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.PolicyServerManagementService
@@ -88,7 +91,7 @@ class SettingsApi(
     val asyncDeploymentAgent:          AsyncDeploymentActor,
     val uuidGen:                       StringUuidGenerator,
     val policyServerManagementService: PolicyServerManagementService,
-    val nodeInfoService:               NodeInfoService
+    val nodeFactRepo:                  NodeFactRepository
 ) extends LiftApiModuleProvider[API] {
 
   val allSettings_v10: List[RestSetting[?]] = {
@@ -178,7 +181,7 @@ class SettingsApi(
         JField(setting.key, result)
       }
       val data     = if (version.value >= 11) {
-        val networks = GetAllAllowedNetworks.getAllowedNetworks().either.runNow match {
+        val networks = GetAllAllowedNetworks.getAllowedNetworks()(authzToken.qc).either.runNow match {
           case Right(nets) =>
             nets
           case Left(err)   =>
@@ -831,9 +834,11 @@ class SettingsApi(
 
   object GetAllAllowedNetworks extends LiftApiModule0 {
 
-    def getAllowedNetworks(): ZIO[Any, RudderError, JArray] = {
+    def getAllowedNetworks()(implicit qc: QueryContext): ZIO[Any, RudderError, JArray] = {
       for {
-        servers         <- nodeInfoService.getAllSystemNodeIds()
+        servers         <- nodeFactRepo
+                             .getAll()(qc, SelectNodeStatus.Accepted)
+                             .map(_.collect { case (_, n) if (n.rudderSettings.kind != NodeKind.Node) => n.id }.toSeq)
         allowedNetworks <- policyServerManagementService.getAllAllowedNetworks()
       } yield {
         val toKeep = servers.map(id => (id.value, allowedNetworks.getOrElse(id, Nil).map(_.inet))).sortWith {
@@ -854,7 +859,7 @@ class SettingsApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action = "getAllAllowedNetworks"
       RestUtils.response(restExtractorService, getRootNameForVersion(version), None)(
-        getAllowedNetworks().toBox,
+        getAllowedNetworks()(authzToken.qc).toBox,
         req,
         s"Could not get allowed networks"
       )
@@ -875,15 +880,15 @@ class SettingsApi(
 
       implicit val action = "getAllowedNetworks"
       val result          = for {
-        nodeInfo <- nodeInfoService.getNodeInfo(NodeId(id))
+        nodeInfo <- nodeFactRepo.get(NodeId(id))(authzToken.qc)
         isServer <- nodeInfo match {
-                      case Some(info) if info.isPolicyServer =>
+                      case Some(info) if info.rudderSettings.isPolicyServer =>
                         ZIO.unit
-                      case Some(_)                           =>
+                      case Some(_)                                          =>
                         Inconsistency(
                           s"Can get allowed networks of node with '${id}' because it is node a policy server (root or relay)"
                         ).fail
-                      case None                              =>
+                      case None                                             =>
                         Inconsistency(s"Could not find node information for id '${id}', this node does not exist").fail
                     }
         networks <- getAllowedNetworksForServer(NodeId(id))
@@ -933,15 +938,15 @@ class SettingsApi(
       val modificationId = new ModificationId(uuidGen.newUuid)
       val nodeId         = NodeId(id)
       val result         = for {
-        nodeInfo <- nodeInfoService.getNodeInfo(nodeId).toBox
+        nodeInfo <- nodeFactRepo.get(nodeId)(authzToken.qc).toBox
         isServer <- nodeInfo match {
-                      case Some(info) if info.isPolicyServer =>
+                      case Some(info) if info.rudderSettings.isPolicyServer =>
                         Full(())
-                      case Some(_)                           =>
+                      case Some(_)                                          =>
                         Failure(
                           s"Can set allowed networks of node with '${id}' because it is node a policy server (root or relay)"
                         )
-                      case None                              =>
+                      case None                                             =>
                         Failure(s"Could not find node information for id '${id}', this node does not exist")
                     }
         networks <- if (req.json_?) {
@@ -1019,15 +1024,15 @@ class SettingsApi(
       implicit val formats = DefaultFormats
 
       val result = for {
-        nodeInfo <- nodeInfoService.getNodeInfo(nodeId).toBox
+        nodeInfo <- nodeFactRepo.get(nodeId)(authzToken.qc).toBox
         isServer <- nodeInfo match {
-                      case Some(info) if info.isPolicyServer =>
+                      case Some(info) if info.rudderSettings.isPolicyServer =>
                         Full(())
-                      case Some(_)                           =>
+                      case Some(_)                                          =>
                         Failure(
                           s"Can set allowed networks of node with '${id}' because it is node a policy server (root or relay)"
                         )
-                      case None                              =>
+                      case None                                             =>
                         Failure(s"Could not find node information for id '${id}', this node does not exist")
                     }
         json      = if (req.json_?) {

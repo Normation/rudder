@@ -978,7 +978,7 @@ class RestTestSetUp {
       asyncDeploymentAgent,
       uuidGen,
       settingsService.policyServerManagementService,
-      mockNodes.nodeInfoService
+      mockNodes.nodeFactRepo
     ),
     archiveAPIModule.api,
     campaignApiModule.api,
@@ -1021,7 +1021,7 @@ class RestTestSetUp {
         mockRules.ruleRepo,
         mockNodeGroups.groupsRepo,
         mockDirectives.directiveRepo,
-        mockNodes.nodeInfoService
+        mockNodes.nodeFactRepo
       )
     )
   )
