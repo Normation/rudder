@@ -288,6 +288,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       ).map(n => (n.id, n)).toMap.view.succeed
     }
 
+    override def getNumberOfManagedNodes(): IOResult[RuntimeFlags] = 8.succeed
     def registerChangeCallbackAction(callback: NodeFactChangeEventCallback): IOResult[Unit] = ???
     def getStatus(id:                          NodeId)(implicit qc:   QueryContext): IOResult[InventoryStatus] = ???
     def get(nodeId:                            NodeId)(implicit qc:   QueryContext, status:    SelectNodeStatus): IOResult[Option[CoreNodeFact]]  = ???
