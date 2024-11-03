@@ -43,6 +43,7 @@ import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.rudder.tenants.TenantService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -369,6 +370,16 @@ object CoreNodeFactRepository {
     new CoreNodeFactRepository(storage, softByName, tenants, p, a, cbs, savePreChecks, lock)
   }
 
+  // a version for tests
+  def makeNoop(
+      accepted:      Map[NodeId, CoreNodeFact],
+      pending:       Map[NodeId, CoreNodeFact] = Map(),
+      callbacks:     Chunk[NodeFactChangeEventCallback] = Chunk.empty,
+      savePreChecks: Chunk[NodeFact => IOResult[Unit]] = Chunk.empty
+  ): UIO[CoreNodeFactRepository] = for {
+    t <- DefaultTenantService.make(Nil)
+    r <- make(NoopFactStorage, NoopGetNodesBySoftwareName, t, pending, accepted, callbacks, savePreChecks)
+  } yield r
 }
 
 // we have some specialized services / materialized view for complex queries. Implementation can manage cache and

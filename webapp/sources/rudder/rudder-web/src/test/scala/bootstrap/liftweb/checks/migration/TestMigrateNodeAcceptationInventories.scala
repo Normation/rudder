@@ -52,8 +52,6 @@ import com.normation.rudder.db.DBCommon
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.facts.nodes.NodeFact
-import com.normation.rudder.facts.nodes.NoopFactStorage
-import com.normation.rudder.facts.nodes.NoopGetNodesBySoftwareName
 import com.normation.rudder.services.nodes.history.HistoryLogRepository
 import com.normation.rudder.services.nodes.history.impl.FactLog
 import com.normation.rudder.services.nodes.history.impl.FactLogData
@@ -63,7 +61,6 @@ import com.normation.rudder.services.nodes.history.impl.InventoryHistoryJdbcRepo
 import com.normation.rudder.services.nodes.history.impl.InventoryHistoryLogRepository
 import com.normation.rudder.services.nodes.history.impl.NodeDeleteEvent
 import com.normation.rudder.services.policies.NodeConfigData
-import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -259,10 +256,7 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
     NodeConfigData.fact1.modify(_.id.value).setTo("59512a56-53e9-41e1-b36f-ca22d3cdfcbc")
   ).map(x => (x.id, x)).toMap
 
-  val repo = (for {
-    ts <- DefaultTenantService.make(Nil)
-    r  <- CoreNodeFactRepository.make(NoopFactStorage, NoopGetNodesBySoftwareName, ts, Map(), nodes, Chunk.empty, Chunk.empty)
-  } yield r).runNow
+  val repo = CoreNodeFactRepository.makeNoop(nodes).runNow
 
   lazy val migration = new MigrateNodeAcceptationInventories(repo, null, fileLog, testFactLog, 365.days)
 

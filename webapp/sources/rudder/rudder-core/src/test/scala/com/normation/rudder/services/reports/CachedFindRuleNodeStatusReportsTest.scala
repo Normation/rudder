@@ -49,14 +49,11 @@ import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.facts.nodes.NodeFact
-import com.normation.rudder.facts.nodes.NoopFactStorage
-import com.normation.rudder.facts.nodes.NoopGetNodesBySoftwareName
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpiredCompliance
-import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
@@ -144,9 +141,8 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     val testSavePrechecks = Chunk.empty[NodeFact => IOResult[Unit]]
 
     (for {
-      t <- DefaultTenantService.make(Nil)
       r <- CoreNodeFactRepository
-             .make(NoopFactStorage, NoopGetNodesBySoftwareName, t, Map(), accepted, Chunk.empty, testSavePrechecks)
+             .makeNoop(accepted, savePreChecks = testSavePrechecks)
       x <- Ref.make(Map[NodeId, NodeStatusReport]())
       s  = new InMemoryNodeStatusReportStorage(x)
     } yield (r, new NodeStatusReportRepositoryImpl(s, x))).runNow
