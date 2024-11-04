@@ -414,15 +414,13 @@ object zio {
     }
 
     /*
-     * Internal runtime. You should not access it within rudder.
+     * Internal runtime exposed as layer. You should not access it within rudder.
      * If you need to use it for "unsafeRun", you should always pin the
      * IO into an async thread pool to avoid deadlock in case of
      * a hierarchy of calls.
      */
-    val internal = Runtime.default
-//    def platform: RuntimeConfig = internal.runtimeConfig
-    def layers:      ZLayer[Any, Nothing, Any] = ZLayer.fromZIOEnvironment(internal.environment.succeed)
-    def environment: ZEnvironment[Any]         = internal.environment
+    def layers: ZLayer[Any, Nothing, Any] = Runtime.enableAutoBlockingExecutor
+    def internal(implicit unsafe: Unsafe): Runtime[Any] = Runtime.unsafe.fromLayer(layers)
 
     def runNow[A](io: IOResult[A]): A = {
       unsafeRun[RudderError, A](io)
@@ -442,7 +440,11 @@ object zio {
     def unsafeRun[E, A](zio: => ZIO[Any, E, A]): A = {
       // unsafeRun will display a formatted fiber trace in case there is an error, which likely what we wants:
       // here, error were not prevented before run, so it's a defect that should be corrected.
-      Unsafe.unsafe(implicit unsafe => internal.unsafe.run(zio).getOrThrowFiberFailure())
+      Unsafe.unsafe(implicit unsafe => {
+        internal.unsafe
+          .run(zio)
+          .getOrThrowFiberFailure()
+      })
     }
 
   }

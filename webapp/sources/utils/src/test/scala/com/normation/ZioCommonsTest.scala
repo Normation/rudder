@@ -322,7 +322,7 @@ object TestJavaLockWithZio {
  * This test show that without a fork, execution is purely mono-fiber and sequential.
  */
 object TestZioSemantic {
-  val rt = ZioRuntime.internal
+  def rt(implicit unsafe: Unsafe) = ZioRuntime.internal
   trait LOG {
     def apply(s: String): UIO[Unit]
   }

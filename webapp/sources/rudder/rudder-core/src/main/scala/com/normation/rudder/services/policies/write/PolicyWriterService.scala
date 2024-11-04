@@ -255,7 +255,6 @@ class PolicyWriterServiceImpl(
 ) extends PolicyWriterService {
   import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.*
 
-  val clock        = ZioRuntime.environment
   val timingLogger = PolicyGenerationLoggerPure.timing
 
   val hookGlobalWarnTimeout: Duration = 60.seconds // max time before warning for executing all hooks
