@@ -56,7 +56,6 @@ import com.normation.rudder.ncf.CompilationStatusErrors
 import com.normation.rudder.ncf.EditorTechniqueError
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderUserDetail
-import com.normation.rudder.web.snippet.WithNonce
 import com.normation.utils.DateFormaterService
 import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
@@ -139,7 +138,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       case s: ErrorStatus   => displayTime("Started", s.started)
       case _ => NodeSeq.Empty
     }
-    SetHtml("deployment-start", content)
+    SetHtml("deployment-start", content) & scriptStatusLayout
   }
 
   override def render: RenderOut = {
@@ -337,14 +336,14 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private def showGroups(hasLastBottomBorder: Boolean): NodeSeq = {
-    def tooltipContent(error: String):       String  = {
+    def tooltipContent(error: String):       String = {
       s"<h4 class='tags-tooltip-title'>Properties error</h4><div class='tooltip-inner-content'><pre class=\"code\">${StringEscapeUtils
           .escapeHtml4(error)}</pre></div>"
     }
-    def groupBtnId(group: NodeGroupId):      String  = {
+    def groupBtnId(group: NodeGroupId):      String = {
       StringEscapeUtils.escapeHtml4(s"status-group-${group.serialize}")
     }
-    def groupLinkScript(group: NodeGroupId): NodeSeq = {
+    def groupLinkScript(group: NodeGroupId): JsCmd  = {
       val link  = linkUtil.groupLink(group)
       val btnId = groupBtnId(group)
       scriptLinkButton(btnId, link)
@@ -360,6 +359,8 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     groupsErrors.toList match {
       case Nil    => NodeSeq.Empty
       case errors =>
+        val buttonSetup: JsCmd = errors.map { case (g, _) => groupLinkScript(g.id) }.foldLeft(Noop)(_ & _)
+        partialUpdate(buttonSetup)
         <li class={"card border-start-0 border-end-0 border-top-0" + (if (hasLastBottomBorder) "" else " rounded-0")}>
           <div class="card-body status-card">
             <button class="card-title btn status-card-title" data-bs-toggle="collapse" data-bs-target="#group-configuration-collapse" aria-expanded="true" aria-controls="group-configuration-collapse">
@@ -376,16 +377,13 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                   <button id={groupBtnId(g.id)} class="btn btn-link text-start">
                     {StringEscapeUtils.escapeHtml4(g.name)} <i class="fa fa-external-link"/>
                   </button>
-                  {groupLinkScript(g.id)}
                   <span>
                     <i class="fa fa-question-circle info" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-original-title={
                   tooltipContent(err)
                 }></i>
                   </span>
                 </li>
-            }.toList ++ WithNonce.scriptWithNonce(
-              Script(OnLoad(JsRaw("""initBsTooltips();""")))
-            )
+            }
           )
         }
               </ul>
@@ -403,7 +401,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       s"status-node-${StringEscapeUtils.escapeHtml4(node.value)}"
     }
     // The "a" tag has special display in the content, we need a button that opens link in new tab
-    def nodeLinkScript(node: NodeId):  NodeSeq                               = {
+    def nodeLinkScript(node: NodeId):  JsCmd                                 = {
       val link  = linkUtil.nodeLink(node)
       val btnId = nodeBtnId(node)
       scriptLinkButton(btnId, link)
@@ -416,6 +414,11 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     nodesErrors.toList match {
       case Nil    => NodeSeq.Empty
       case errors =>
+        // prevent the same error to repeat many times for nodes
+        // 3 seems to be a reasonable size for a sample of nodes in error
+        val maxNumber = 3
+        val buttonSetup: JsCmd = errors.take(maxNumber).map { case (n, _) => nodeLinkScript(n.id) }.foldLeft(Noop)(_ & _)
+        partialUpdate(buttonSetup)
         <li class={"card border-start-0 border-end-0 border-top-0" + (if (hasLastBottomBorder) "" else " rounded-0")}>
           <div class="card-body status-card">
             <button class="card-title btn status-card-title" data-bs-toggle="collapse" data-bs-target="#node-configuration-collapse" aria-expanded="true" aria-controls="node-configuration-collapse">
@@ -425,23 +428,22 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             <div id="node-configuration-collapse" class="collapse show">
               <ul class="list-group">
             {
-          // prevent the same error to repeat many times for nodes
-          // 3 seems to be a reasonable size for a sample of nodes in error
-          if (errors.size > 3)
-            <em class="help-block d-flex align-items-baseline justify-content-center mb-2"><i class="fa fa-info-circle text-secondary pe-2"></i>only displaying the first 3 nodes in errors</em>
-          else NodeSeq.Empty
+          if (errors.size > maxNumber) {
+            <em class="help-block d-flex align-items-baseline justify-content-center mb-2"><i class="fa fa-info-circle text-secondary pe-2"></i>only displaying the first {
+              maxNumber
+            } nodes in errors</em>
+          } else NodeSeq.Empty
         }
             {
           NodeSeq.fromSeq(
             errors
-              .take(3)
+              .take(maxNumber)
               .map {
                 case (n, err) =>
                   <li class="list-group-item d-flex justify-content-between align-items-center">
                   <button id={nodeBtnId(n.id)} class="btn btn-link text-start">
                     {StringEscapeUtils.escapeHtml4(n.fqdn)} <i class="fa fa-external-link"/>
                   </button>
-                  {nodeLinkScript(n.id)}
                   <span>
                     <i class="fa fa-question-circle info" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-original-title={
                     tooltipContent(err)
@@ -449,9 +451,6 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                   </span>
                 </li>
               }
-              .toList ++ WithNonce.scriptWithNonce(
-              Script(OnLoad(JsRaw("""initBsTooltips();""")))
-            )
           )
         }
               </ul>
@@ -461,15 +460,15 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     }
   }
   private def showCompilation:                          NodeSeq = {
-    def tooltipContent(error: EditorTechniqueError):      String  = {
+    def tooltipContent(error: EditorTechniqueError):      String = {
       s"<h4 class='tags-tooltip-title'>Technique compilation output in ${StringEscapeUtils.escapeHtml4(error.id.value)}/${StringEscapeUtils
           .escapeHtml4(error.version.value)}</h4><div class='tooltip-inner-content'><pre class=\"code\">${error.errorMessage}</pre></div>"
     }
-    def techniqueBtnId(error: EditorTechniqueError):      String  = {
+    def techniqueBtnId(error: EditorTechniqueError):      String = {
       s"status-compilation-${StringEscapeUtils.escapeHtml4(error.id.value)}-${StringEscapeUtils.escapeHtml4(error.version.value)}"
     }
     // The "a" tag has special display in the content, we need a button that opens link in new tab
-    def techniqueLinkScript(error: EditorTechniqueError): NodeSeq = {
+    def techniqueLinkScript(error: EditorTechniqueError): JsCmd  = {
       val link  = linkUtil.techniqueLink(error.id.value)
       val btnId = techniqueBtnId(error)
       scriptLinkButton(btnId, link)
@@ -478,6 +477,8 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       case CompilationStatusAllSuccess                =>
         NodeSeq.Empty
       case CompilationStatusErrors(techniquesInError) =>
+        val buttonSetup: JsCmd = techniquesInError.map(techniqueLinkScript).foldLeft(Noop)(_ & _)
+        partialUpdate(buttonSetup)
         <li class="card border-start-0 border-end-0 border-top-0">
           <div class="card-body status-card">
             <button class="card-title btn status-card-title" data-bs-toggle="collapse" data-bs-target="#technique-compilation-collapse" aria-expanded="true" aria-controls="technique-compilation-collapse">
@@ -494,7 +495,6 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                   <button id={techniqueBtnId(t)} class="btn btn-link text-start">
                     {StringEscapeUtils.escapeHtml4(t.name)} <i class="fa fa-external-link"/>
                   </button>
-                  {techniqueLinkScript(t)}
                   <span>
                     <i class="fa fa-question-circle info" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-html="true" data-bs-original-title={
                   tooltipContent(t)
@@ -502,9 +502,6 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
                   </span>
                 </li>
               })
-              .toList ++ WithNonce.scriptWithNonce(
-              Script(OnLoad(JsRaw("""initBsTooltips();""")))
-            )
           )
         }
               </ul>
@@ -535,7 +532,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
           {nodes}
           {compilation}
         </ul>
-      </li> ++ errorPopup ++ generatePoliciesPopup ++ scriptStatusLayout)
+      </li> ++ errorPopup ++ generatePoliciesPopup)
 
     } else NodeSeq.Empty
   }
@@ -595,32 +592,27 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private def scriptStatusLayout = {
-    // logic to keep the status dropdown displayed
-    WithNonce.scriptWithNonce(
-      Script(
-        OnLoad(JsRaw(s"""
-            $$('.status-dropdown').on('hide.bs.dropdown', function () {
-              return false
-            }).on('click', function () {
-              var dropdown = $$(this);
-              var id = dropdown.attr("id");
-              $$('.dropdown-menu[aria-labelledby="'+ id + '"]').toggle()
-            });
-            """))
+    OnLoad(
+      JsRaw(
+        s"""
+          initBsTooltips();
+          var statusDropdown = $$('.dropdown-menu[aria-labelledby="statusDropdownLink"]');
+          $$('.status-dropdown').on('hide.bs.dropdown', function () {
+            return false
+          }).off('click').on('click', function () {
+            statusDropdown.toggle();
+          });
+          """
       )
     )
   }
 
-  private def scriptLinkButton(btnId: String, link: String): Node = {
-    WithNonce.scriptWithNonce(
-      Script(
-        OnLoad(JsRaw(s"""
+  private def scriptLinkButton(btnId: String, link: String) = {
+    OnLoad(JsRaw(s"""
             document.getElementById("${StringEscapeUtils.escapeEcmaScript(btnId)}").onclick = function () {
               window.open("${StringEscapeUtils.escapeEcmaScript(link)}", "_blank");
             };
             """))
-      )
-    )
   }
 }
 
