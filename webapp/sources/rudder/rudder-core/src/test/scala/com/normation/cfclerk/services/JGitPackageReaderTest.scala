@@ -250,7 +250,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
       git.commit.setMessage("Modify PT: cat1/p1_1/2.0").call
 
       val n = TechniqueName("p1_1")
-      reader.getModifiedTechniques === Map(n -> TechniqueUpdated(n, Map(TechniqueVersionHelper("2.0") -> VersionAdded)))
+      reader.getModifiedTechniques === Map(n -> TechniqueUpdated(n, Map(TechniqueVersionHelper("2.0") -> VersionUpdated)))
     }
 
     "and after a read, no more modification" in {
@@ -260,6 +260,107 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
 
   }
 
+  "if we create technique cat1/p1_1/3.0, it" should {
+    "have not create technique if metadata.xml does not exist" in {
+      reader.readTechniques // be sure there is no current modification
+      val newPath = reader.canonizedRelativePath.map(_ + "/").getOrElse("") + "cat1/p1_1/3.0/newFile.st"
+      val newFile = new File(gitRoot.getAbsoluteFile.getPath + "/" + newPath)
+      FileUtils.writeStringToFile(newFile, "Some content for the new file", StandardCharsets.UTF_8)
+      val git     = new Git(repo.db)
+      git.add.addFilepattern(newPath).call
+      git.commit.setMessage("Not a technique yet: cat1/p1_1/3.0").call
+      reader.getModifiedTechniques === Map()
+    }
+
+    "have created a technique" in {
+      reader.readTechniques // be sure there is no current modification
+      val newPath = reader.canonizedRelativePath.map(_ + "/").getOrElse("") + "cat1/p1_1/3.0/metadata.xml"
+      val newFile = new File(gitRoot.getAbsoluteFile.getPath + "/" + newPath)
+      FileUtils.writeStringToFile(
+        newFile,
+        """<TECHNIQUE name="Package 1_1">
+          |    <DESCRIPTION>A package</DESCRIPTION>
+          |    <DISPLAY>true</DISPLAY>
+          |    <TMLS></TMLS>
+          |</TECHNIQUE>   """.stripMargin,
+        StandardCharsets.UTF_8
+      )
+      val git     = new Git(repo.db)
+      git.add.addFilepattern(newPath).call
+      git.commit.setMessage("Create Technique: cat1/p1_1/3.0").call
+
+      val n = TechniqueName("p1_1")
+      reader.getModifiedTechniques === Map(n -> TechniqueUpdated(n, Map(TechniqueVersionHelper("3.0") -> VersionAdded)))
+    }
+
+    "have update the technique on new file" in {
+      reader.readTechniques // be sure there is no current modification
+      val newPath = reader.canonizedRelativePath.map(_ + "/").getOrElse("") + "cat1/p1_1/3.0/newFile-2.st"
+      val newFile = new File(gitRoot.getAbsoluteFile.getPath + "/" + newPath)
+      FileUtils.writeStringToFile(newFile, "Some content for the new file", StandardCharsets.UTF_8)
+      val git     = new Git(repo.db)
+      git.add.addFilepattern(newPath).call
+      git.commit.setMessage("update technique: cat1/p1_1/3.0").call
+
+      val n = TechniqueName("p1_1")
+      reader.getModifiedTechniques === Map(n -> TechniqueUpdated(n, Map(TechniqueVersionHelper("3.0") -> VersionUpdated)))
+    }
+
+    "have updated the technique on metadata change" in {
+      reader.readTechniques // be sure there is no current modification
+      val newPath = reader.canonizedRelativePath.map(_ + "/").getOrElse("") + "cat1/p1_1/3.0/metadata.xml"
+      val newFile = new File(gitRoot.getAbsoluteFile.getPath + "/" + newPath)
+      FileUtils.writeStringToFile(
+        newFile,
+        """<TECHNIQUE name="Package 1_1">
+          |    <DESCRIPTION>A new description</DESCRIPTION>
+          |    <DISPLAY>true</DISPLAY>
+          |    <TMLS></TMLS>
+          |</TECHNIQUE>   """.stripMargin,
+        StandardCharsets.UTF_8
+      )
+      val git     = new Git(repo.db)
+      git.add.addFilepattern(newPath).call
+      git.commit.setMessage("update technique: cat1/p1_1/3.0").call
+
+      val n = TechniqueName("p1_1")
+      reader.getModifiedTechniques === Map(n -> TechniqueUpdated(n, Map(TechniqueVersionHelper("3.0") -> VersionUpdated)))
+    }
+
+    "have updated the technique when a metadata.xml file that is not the real metadata.xml of the technique" in {
+      reader.readTechniques // be sure there is no current modification
+      val newPath = reader.canonizedRelativePath.map(_ + "/").getOrElse("") + "cat1/p1_1/3.0/resources/metadata.xml"
+      val newFile = new File(gitRoot.getAbsoluteFile.getPath + "/" + newPath)
+      FileUtils.writeStringToFile(
+        newFile,
+        """<TECHNIQUE name="Package 1_1">
+          |    <DESCRIPTION>A new description</DESCRIPTION>
+          |    <DISPLAY>true</DISPLAY>
+          |    <TMLS></TMLS>
+          |</TECHNIQUE>   """.stripMargin,
+        StandardCharsets.UTF_8
+      )
+      val git     = new Git(repo.db)
+      git.add.addFilepattern(newPath).call
+      git.commit.setMessage("update technique: cat1/p1_1/3.0").call
+
+      val n = TechniqueName("p1_1")
+      reader.getModifiedTechniques === Map(n -> TechniqueUpdated(n, Map(TechniqueVersionHelper("3.0") -> VersionUpdated)))
+    }
+
+    "have deleted the technique" in {
+      reader.readTechniques // be sure there is no current modification
+      val newPath = reader.canonizedRelativePath.map(_ + "/").getOrElse("") + "cat1/p1_1/3.0/metadata.xml"
+      val newFile = new File(gitRoot.getAbsoluteFile.getPath + "/" + newPath)
+      FileUtils.delete(newFile)
+      val git     = new Git(repo.db)
+      git.rm().addFilepattern(newPath).call
+      git.commit.setMessage("Delete PT: cat1/p1_1/3.0").call
+
+      val n = TechniqueName("p1_1")
+      reader.getModifiedTechniques === Map(n -> TechniqueUpdated(n, Map(TechniqueVersionHelper("3.0") -> VersionDeleted)))
+    }
+  }
   "if we modify technique cat1/p1_1/1.0 external file, it" should {
     "have update technique" in {
 
@@ -292,7 +393,7 @@ class JGitPackageReader_SameRootTest extends JGitPackageReaderSpec {
  * A test case where git repos is on a parent directory
  * of technique lib root.
  * In that configuration, we also add false categories in an other sub-directory of the
- * git to check that the PT reader does not look outside of its root.
+ * git to check that the technique reader does not look outside of its root.
  */
 @RunWith(classOf[JUnitRunner])
 class JGitPackageReader_ChildRootTest extends JGitPackageReaderSpec {
@@ -310,7 +411,7 @@ class JGitPackageReader_ChildRootTest extends JGitPackageReaderSpec {
     // commit in git these files
     val git      = new Git(repo.db)
     git.add.addFilepattern(destName).call
-    git.commit.setMessage("Commit something looking like a technique but outside PT root directory").call
+    git.commit.setMessage("Commit something looking like a technique but outside technique root directory").call
     ()
   }
 }
