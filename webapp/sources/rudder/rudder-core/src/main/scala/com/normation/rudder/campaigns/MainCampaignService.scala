@@ -40,10 +40,12 @@ package com.normation.rudder.campaigns
 import cats.implicits.*
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
+import com.normation.errors.PureResult
 import com.normation.errors.RudderError
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.annotation.nowarn
 import zio.Duration
 import zio.Queue
@@ -332,7 +334,7 @@ class MainCampaignService(
                               if (maxEventDate.isAfter(date)) maxEventDate else date
 
                           }
-          dates        <- MainCampaignScheduler.nextCampaignDate(campaign.info.schedule, lastEventDate)
+          dates        <- MainCampaignScheduler.nextCampaignDate(campaign.info.schedule, lastEventDate).toIO
           newEvent     <- dates match {
                             case Some((start, end)) =>
                               val ev = CampaignEvent(
@@ -402,7 +404,17 @@ class MainCampaignService(
 
 object MainCampaignScheduler {
 
-  def nextDateFromDayTime(date: DateTime, start: DayTime): DateTime = {
+  implicit class DateTimeTzOps(date: DateTime) {
+    def adjustScheduleTimeZone(optTimeZone: Option[ScheduleTimeZone])(implicit defaultTz: DateTimeZone): DateTime = {
+      optTimeZone.flatMap(_.toDateTimeZone) match {
+        // no schedule time zone (or invalid one) means the default one should be used
+        case None             => date.withZone(defaultTz)
+        case Some(scheduleTz) => date.withZone(scheduleTz)
+      }
+    }
+  }
+
+  private def nextDateFromDayTime(date: DateTime, start: DayTime): DateTime = {
     (if (
        date.getDayOfWeek > start.day.value
        || (date.getDayOfWeek == start.day.value && date.getHourOfDay > start.realHour)
@@ -419,34 +431,43 @@ object MainCampaignScheduler {
       .withMillisOfSecond(0)
   }
 
-  def nextCampaignDate(schedule: CampaignSchedule, date: DateTime): IOResult[Option[(DateTime, DateTime)]] = {
+  def nextCampaignDate(
+      schedule: CampaignSchedule,
+      date:     DateTime
+  ): PureResult[Option[(DateTime, DateTime)]] = {
+    // Schedule needs to be adjusted to current server timezone, not to the one from the base schedule date
+    implicit val currentTz: DateTimeZone = DateTimeZone.getDefault()
     schedule match {
       case OneShot(start, end) =>
         if (start.isBefore(end)) {
           if (end.isAfter(date)) {
-            Some((start, end)).succeed
+            Some((start, end)).asRight
           } else {
-            None.succeed
+            None.asRight
           }
         } else {
 
           Inconsistency(s"Cannot schedule a one shot event if end (${DateFormaterService
-              .getDisplayDate(end)}) date is before start date (${DateFormaterService.getDisplayDate(start)})").fail
+              .getDisplayDate(end)}) date is before start date (${DateFormaterService.getDisplayDate(start)})").asLeft
         }
 
-      case Daily(start, end) =>
-        val startDate = (if (
-                           date.getHourOfDay() > start.realHour || (date.getHourOfDay() == start.realHour && date
-                             .getMinuteOfHour() > start.realMinute)
-                         ) {
-                           date.plusDays(1)
-                         } else {
-                           date
-                         })
-          .withHourOfDay(start.realHour)
-          .withMinuteOfHour(start.realMinute)
-          .withSecondOfMinute(0)
-          .withMillisOfSecond(0)
+      case Daily(start, end, tz) =>
+        val scheduleInitialDate = date.adjustScheduleTimeZone(tz)
+        val startDate           = {
+          (if (
+             scheduleInitialDate
+               .getHourOfDay() > start.realHour || (scheduleInitialDate.getHourOfDay() == start.realHour && scheduleInitialDate
+               .getMinuteOfHour() > start.realMinute)
+           ) {
+             scheduleInitialDate.plusDays(1)
+           } else {
+             scheduleInitialDate
+           })
+            .withHourOfDay(start.realHour)
+            .withMinuteOfHour(start.realMinute)
+            .withSecondOfMinute(0)
+            .withMillisOfSecond(0)
+        }
 
         val endDate = {
           (if (end.realHour < start.realHour || (end.realHour == start.realHour && end.realMinute < start.realMinute)) {
@@ -456,15 +477,17 @@ object MainCampaignScheduler {
            }).withHourOfDay(end.realHour).withMinuteOfHour(end.realMinute).withSecondOfMinute(0).withMillisOfSecond(0)
         }
 
-        Some((startDate, endDate)).succeed
+        Some((startDate, endDate)).asRight
 
-      case WeeklySchedule(start, end) =>
-        val startDate = nextDateFromDayTime(date, start)
-        val endDate   = nextDateFromDayTime(startDate, end)
+      case WeeklySchedule(start, end, tz) =>
+        val scheduleInitialDate = date.adjustScheduleTimeZone(tz)
+        val startDate           = nextDateFromDayTime(scheduleInitialDate, start)
+        val endDate             = nextDateFromDayTime(startDate, end)
 
-        Some((startDate, endDate)).succeed
+        Some((startDate, endDate)).asRight
 
-      case MonthlySchedule(position, start, end) =>
+      case MonthlySchedule(position, start, end, tz) =>
+        val scheduleInitialDate  = date.adjustScheduleTimeZone(tz)
         val realHour             = start.realHour
         val realMinutes          = start.realMinute
         val day                  = start.day
@@ -505,16 +528,16 @@ object MainCampaignScheduler {
               t.minusWeeks(1)
             }
         }).withHourOfDay(realHour).withMinuteOfHour(realMinutes).withSecondOfMinute(0).withMillisOfSecond(0)
-        val currentMonthStart    = base(date)
+        val currentMonthStart    = base(scheduleInitialDate)
         val startDate            = {
-          if (date.isAfter(currentMonthStart)) {
-            base(date.plusMonths(1))
+          if (scheduleInitialDate.isAfter(currentMonthStart)) {
+            base(scheduleInitialDate.plusMonths(1))
           } else {
             currentMonthStart
           }
         }
         val endDate              = nextDateFromDayTime(startDate, end)
-        Some((startDate, endDate)).succeed
+        Some((startDate, endDate)).asRight
     }
   }
 }

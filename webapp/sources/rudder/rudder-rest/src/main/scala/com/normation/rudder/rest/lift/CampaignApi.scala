@@ -3,7 +3,7 @@ package com.normation.rudder.rest.lift
 import com.normation.errors.Unexpected
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.ZioJsonExtractor
-import com.normation.rudder.campaigns.CampaignEvent
+import com.normation.rudder.campaigns.*
 import com.normation.rudder.campaigns.CampaignEventId
 import com.normation.rudder.campaigns.CampaignEventRepository
 import com.normation.rudder.campaigns.CampaignId
@@ -13,6 +13,7 @@ import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.campaigns.CampaignSerializer.*
 import com.normation.rudder.campaigns.CampaignStatusValue
 import com.normation.rudder.campaigns.MainCampaignService
+import com.normation.rudder.campaigns.ScheduleTimeZone
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
@@ -213,7 +214,9 @@ class CampaignApi(
             case eb: EmptyBox => Unexpected((eb ?~! "error when accessing request body").messageChain).fail
             case Full(bytes) => campaignSerializer.parse(new String(bytes, charset))
           }
-        withId      = if (campaign.info.id.value.isEmpty) campaign.copyWithId(CampaignId(stringUuidGenerator.newUuid)) else campaign
+        // campaign needs to be configured with a timezone (with the current one as fallback)
+        c           = if (campaign.info.schedule.tz.isDefined) campaign else campaign.setScheduleTimeZone(ScheduleTimeZone.now())
+        withId      = if (campaign.info.id.value.isEmpty) c.copyWithId(CampaignId(stringUuidGenerator.newUuid)) else c
         saved      <- mainCampaignService.saveCampaign(withId)
         serialized <- campaignSerializer.getJson(saved)
       } yield {

@@ -76,6 +76,7 @@ import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.campaigns.Monday
 import com.normation.rudder.campaigns.Running
 import com.normation.rudder.campaigns.Scheduled
+import com.normation.rudder.campaigns.ScheduleTimeZone
 import com.normation.rudder.campaigns.WeeklySchedule
 import com.normation.rudder.configuration.ConfigurationRepositoryImpl
 import com.normation.rudder.configuration.DirectiveRevisionRepository
@@ -3031,7 +3032,8 @@ final case class DumbCampaign(info: CampaignInfo, details: DumbCampaignDetails) 
   val campaignType: CampaignType = DumbCampaignType
   val version = 1
   def copyWithId(newId: CampaignId): Campaign = this.copy(info = info.copy(id = newId))
-
+  def setScheduleTimeZone(newScheduleTimeZone: ScheduleTimeZone): Campaign =
+    this.modify(_.info.schedule).using(_.atTimeZone(newScheduleTimeZone))
 }
 
 class MockCampaign() {
@@ -3045,7 +3047,7 @@ class MockCampaign() {
       "first campaign",
       "a test campaign present when rudder boot",
       Enabled,
-      WeeklySchedule(DayTime(Monday, 3, 42), DayTime(Monday, 4, 42))
+      WeeklySchedule(DayTime(Monday, 3, 42), DayTime(Monday, 4, 42), None)
     ),
     DumbCampaignDetails("campaign #0")
   )
