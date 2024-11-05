@@ -50,15 +50,14 @@ badgePolicyMode globalPolicyMode policyMode =
         _ -> "Unknown policy mode"
 
   in
-    span [class ("treeGroupName tooltipable bs-tooltip rudder-label label-sm label-" ++ mode), attribute "data-toggle" "tooltip", attribute "data-placement" "bottom", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Policy mode" msg)][]
-
+    span [class ("treeGroupName rudder-label label-sm label-" ++ mode), attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "bottom", title (buildTooltipContent "Policy mode" msg)][]
 badgeSkipped : SkippedDetails -> Html Msg
 badgeSkipped { overridingRuleId, overridingRuleName } =
     let
         msg =
             "This directive is skipped because it is overridden by the rule <b>" ++ overridingRuleName ++ "</b> (with id " ++ overridingRuleId ++ ")."
     in
-    span [ class "treeGroupName tooltipable bs-tooltip rudder-label label-sm label-overriden", attribute "data-toggle" "tooltip", attribute "data-placement" "bottom", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Skipped directive" msg) ] []
+    span [ class "treeGroupName rudder-label label-sm label-overriden", attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "bottom", title (buildTooltipContent "Skipped directive" msg) ] []
 
 
 subItemOrder : ItemFun item subItem data ->  Model -> String -> (item -> item -> Order)

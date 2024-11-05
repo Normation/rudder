@@ -243,12 +243,10 @@ informationTab model details =
                           text ""
                         else
                           span
-                          [ class "bs-tooltip fa fa-question-circle icon-info"
-                          , attribute "data-toggle" "tooltip"
-                          , attribute "data-placement" "top"
-                          , attribute "data-container" "body"
-                          , attribute "data-html" "true"
-                          , attribute "data-original-title" (buildTooltipContent "Description" cr.description)
+                          [ class "fa fa-question-circle icon-info"
+                          , attribute "data-bs-toggle" "tooltip"
+                          , attribute "data-bs-placement" "top"
+                          , title (buildTooltipContent "System updates" (buildTooltipContent "Description" cr.description))
                           ][]
                     in
                       li[]
