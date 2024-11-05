@@ -57,6 +57,7 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.JsonAST.JString
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import scala.collection.*
 
@@ -133,6 +134,16 @@ class LogDisplayer(
       }
     }
 
+    // Display 2 hours of logs before now
+    val hoursBeforeNow = 2
+
+    // Since JS need to have the same time zone as the technical logs data,
+    // the date picker need an initial date in the correct timezone
+    val (jsDateWithTimeZone, currentTimezone) = {
+      val now = DateTime.now.withZone(DateTimeZone.getDefault)
+      (now.toString("yyyy-MM-dd'T'HH:mm:ss.SSSZ"), now.getZone.getID)
+    }
+
     (if (runDate.isEmpty) {
        // set static content
        SetHtml("logsDetails", content)
@@ -147,7 +158,13 @@ class LogDisplayer(
           ${refresh.toJsCmd}
         }
       });
-      initDatePickers("#filterLogs", ${AnonFunc("param", SHtml.ajaxCall(JsVar("param"), getEventsInterval)._2).toJsCmd});
+      initDatePickers(
+        "#filterLogs",
+        ${AnonFunc("param", SHtml.ajaxCall(JsVar("param"), getEventsInterval)._2).toJsCmd},
+        changeTimezone(new Date('${jsDateWithTimeZone}'), '${currentTimezone}'),
+        '${currentTimezone}',
+        ${hoursBeforeNow}
+      );
       """
       } else ""}
     createTechnicalLogsTable("${tableId}",[], "${S.contextPath}",function() {${refresh.toJsCmd}}, ${runDate.isEmpty});
