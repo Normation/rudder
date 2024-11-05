@@ -592,8 +592,8 @@ class Boot extends Loggable {
         // OtherModes = not(DevMode) = Prod, enforce and log
         enforceInOtherModes = true,
         logInOtherModes = true,
-        // Dev mode, don't enforce but log
-        enforceInDevMode = false,
+        // Dev mode : enforce and log
+        enforceInDevMode = true,
         logInDevMode = true
       )
     }
