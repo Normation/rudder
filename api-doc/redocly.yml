@@ -14,10 +14,12 @@ rules:
   tag-description: 'error'
   operation-2xx-response: 'error'
   operation-operationId: 'error'
+  no-server-example.com:
+    # Some of our APIs are *actually* served on localhost
+    severity: off
   no-invalid-media-type-examples:
     severity: 'error'
     allowAdditionalProperties: false
-  no-server-example.com: 'warn' # we should migrate away from localhost as server url
   no-unused-components: 'error'
 
 theme:

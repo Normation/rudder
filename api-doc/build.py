@@ -106,7 +106,7 @@ for template in templates:
         [
             'grep',
             '-Eo',
-            'https://cdn.redoc.ly/redoc/.+/bundles/redoc.standalone.js',
+            'https://cdn.redocly.com/redoc/.+/bundles/redoc.standalone.js',
             html_file,
         ],
         text=True,
