@@ -51,6 +51,7 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.*
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import scala.xml.*
 
@@ -130,12 +131,25 @@ class EventListDisplayer(repos: EventLogRepository) extends Loggable {
     // Display 2 days of logs before now
     val hoursBeforeNow = 48
 
+    // Since JS need to have the same time zone as the event log data,
+    // the date picker need an initial date in the correct timezone
+    val (jsDateWithTimeZone, currentTimezone) = {
+      val now = DateTime.now.withZone(DateTimeZone.getDefault)
+      (now.toString("yyyy-MM-dd'T'HH:mm:ss.SSSZ"), now.getZone.getID)
+    }
+
     Script(OnLoad(JsRaw(s"""
      var refreshEventLogs = ${refresh.toJsCmd};
-     initDatePickers("#filterLogs", ${AnonFunc(
+     initDatePickers(
+       "#filterLogs",
+       ${AnonFunc(
         "param",
         SHtml.ajaxCall(JsVar("param"), getEventsInterval)._2
-      ).toJsCmd}, new Date(), ${hoursBeforeNow});
+      ).toJsCmd},
+       changeTimezone(new Date('${jsDateWithTimeZone}'), '${currentTimezone}'),
+       '${currentTimezone}',
+       ${hoursBeforeNow}
+     );
      createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs)
      refreshEventLogs();
     """))) // JsRaw ok, escaped

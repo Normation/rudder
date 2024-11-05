@@ -674,19 +674,59 @@ function showHideRunLogs(scrollTarget, tabId, init, refresh) {
 }
 
 /**
+ * If you specify a IANA timezone, it will initialize them with the current date in that timezone,
+ * and clicking in the "Now" button takes that timezone into account.
+ * You should initialize the endDate with the date with that timezone though.
+ * If timezone is not specified, browser timezone is used.
+ *
  * Initialize a date picker fields with default 2 hours from now date range.
  * You can specify a value that is greater than 24 for hours.
  */
-function initDatePickers(id, action, endDate = new Date(), hours = 2) {
+function initDatePickers(id, action, endDate = new Date(), timezone = null, hours = 2) {
+  function setDatetimepicker(pickElement) {
+      function handleNowWithTimezone() {
+        $('.ui-datepicker-current').off('click').on('click', function() {
+          var now = new Date();
+          var convertedDate = timezone ? changeTimezone(now, timezone) : now;
+          $(pickElement).datetimepicker("setDate", convertedDate);
+        });
+     }
+     var settings = {
+       dateFormat:'yy-mm-dd',
+       timeFormat: 'HH:mm:ss',
+       timeInput: true,
+       beforeShow: function() {
+         // ensure the "Now" button click is handled when the datetimepicker is ready needs a delay
+         setTimeout(handleNowWithTimezone, 100); // this value in millis seems fine before the user clicks the button
+       },
+       onSelect: function (selected) {
+         $(this).val(selected);
+         // we also need to set the "Now" button handler every time a selection is done
+         // , or else jquery will override our custom handler
+         handleNowWithTimezone(selected)
+       },
+     }
+     return $(pickElement).datetimepicker(settings);
+  }
+
   var startDate = new Date(endDate)
   startDate.setHours(endDate.getHours() - hours);
-  $(id + ' .pickStartInput, ' + id + ' .pickEndInput').datetimepicker({dateFormat:'yy-mm-dd', timeFormat: 'HH:mm:ss', timeInput: true});
+  setDatetimepicker(id + ' .pickStartInput');
+  setDatetimepicker(id + ' .pickEndInput');
   $(".pickStartInput").datetimepicker("setDate", startDate);
   $(".pickEndInput").datetimepicker("setDate", endDate);
   $(id+"Button").click(function () {
     var param = '{"start":"'+$(id +" .pickStartInput").val()+'", "end":"'+$(id +" .pickEndInput").val()+'"}'
     action(param)
   });
+}
+
+function changeTimezone(date, ianatz) {
+  var invdate = new Date(date.toLocaleString('en-US', {
+    timeZone: ianatz
+  }));
+  var diff = date.getTime() - invdate.getTime();
+  return new Date(date.getTime() - diff);
 }
 
 function updateNodeIdAndReload(nodeId) {
