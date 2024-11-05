@@ -117,6 +117,18 @@ trait UserRepository {
       isCaseSensitive: Boolean = true
   ): IOResult[Set[String]]
 
+  /**
+   * Add a single user with the given authenticator. It is equivalent to setting existing users to
+   * the current list of users with the new user appended.
+   * @return true if the user could be added, false if not
+   */
+  def addUser(
+      origin:          String,
+      user:            String,
+      trace:           EventTrace,
+      isCaseSensitive: Boolean = true
+  ): IOResult[Boolean]
+
   /*
    * Disable users based on filter.
    *
@@ -289,7 +301,8 @@ object UserRepository {
         } else (k, v)
     }
 
-    // deleted users are currently managed, with status not deleted, not in the list anymore
+    // deleted users are the currently managed ones with status not deleted yet,
+    // and not in the list anymore if they are from a different origin
     val deleted = managed.collect {
       case (k, v) if (v.status != UserStatus.Deleted && !activeUsers.contains(k)) =>
         (
@@ -389,6 +402,15 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
           (nonUpdated, current ++ onlyDifferentCaseUpdated)
       }
     }
+  }
+
+  override def addUser(origin: String, user: String, trace: EventTrace, isCaseSensitive: Boolean): IOResult[Boolean] = {
+    userBase.get
+      .flatMap(m => {
+        val current = m.collect { case (k, u) if u.managedBy == origin => k }.toList
+        setExistingUsers(origin, current :+ user, trace, isCaseSensitive)
+      })
+      .map(!_.contains(user))
   }
 
   override def getAll(): IOResult[List[UserInfo]] = {
@@ -722,6 +744,29 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
       trace:           EventTrace,
       isCaseSensitive: Boolean
   ): IOResult[Set[String]] = {
+    transactIOResult("Error when updating the list of users") { xa =>
+      setUsers(origin, users, trace, isCaseSensitive).transact(xa)
+    }
+  }
+
+  override def addUser(origin: String, user: String, trace: EventTrace, isCaseSensitive: Boolean): IOResult[Boolean] = {
+    transactIOResult(s"Error when adding user '${user}' from '${origin}'") { xa =>
+      (for {
+        current  <- fr"select id from users where managedby = ${origin}".query[String].to[List]
+        added     = current :+ user
+        notAdded <- setUsers(origin, added, trace, isCaseSensitive)
+      } yield {
+        !notAdded.contains(user)
+      }).transact(xa)
+    }
+  }
+
+  private def setUsers(
+      origin:          String,
+      users:           List[String],
+      trace:           EventTrace,
+      isCaseSensitive: Boolean
+  ): ConnectionIO[Set[String]] = {
     def toMap(us: Iterable[UserInfo]) = us.map(u => (u.id, u)).toMap
 
     // get managed (all from that origin) and zombies (in the given list of existing, but deleted)
@@ -785,22 +830,22 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
       }
     }
 
-    transactIOResult("Error when updating the list of users") { xa =>
-      (for {
-        maybeUpdate       <- updatable.query[UserInfo].to[Vector]
-        (zombies, managed) = maybeUpdate.partition(_.status == UserStatus.Deleted)
-        updated            = UserRepository.computeUpdatedUserList(users, origin, trace, toMap(zombies), toMap(managed))
-        dbUpdated         <- update(updated.values.toVector)
-        // compute users that may have not been inserted nor updated because of the case-sensitivity clause in the query
-        diff               = updated.keySet.diff(dbUpdated.toSet).intersect(maybeUpdate.map(_.id).toSet)
-      } yield diff).transact(xa).tapSome {
-        case nonUpdated if nonUpdated.nonEmpty =>
-          logger.warn(
-            s"Some users have conflicting id with existing ones, due to case-sensitivity parameter set to ${isCaseSensitive}. " +
-            s"These users could not be handled : ${nonUpdated.mkString(", ")}. " +
-            s"Please change the parameter value or consider removing duplicate users."
-          )
-      }
+    (for {
+      maybeUpdate       <- updatable.query[UserInfo].to[Vector]
+      (zombies, managed) = maybeUpdate.partition(_.status == UserStatus.Deleted)
+      updated            = UserRepository.computeUpdatedUserList(users, origin, trace, toMap(zombies), toMap(managed))
+      dbUpdated         <- update(updated.values.toVector)
+      // compute users that may have not been inserted nor updated because of the case-sensitivity clause in the query
+      diff               = updated.keySet.diff(dbUpdated.toSet).intersect(maybeUpdate.map(_.id).toSet)
+    } yield diff).map {
+      case nonUpdated if nonUpdated.nonEmpty =>
+        logger.logEffect.warn(
+          s"Some users have conflicting id with existing ones, due to case-sensitivity parameter set to ${isCaseSensitive}. " +
+          s"These users could not be handled : ${nonUpdated.mkString(", ")}. " +
+          s"Please change the parameter value or consider removing duplicate users."
+        )
+        nonUpdated
+      case o                                 => o
     }
   }
 
