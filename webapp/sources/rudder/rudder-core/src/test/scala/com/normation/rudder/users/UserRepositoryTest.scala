@@ -268,154 +268,6 @@ trait UserRepositoryTest extends Specification with Loggable {
       })
     }
 
-    // BOB REMOVED
-    val userFileBobRemoved  = users.filterNot(_ == "bob")
-    val dateBobRemoved      = DateTime.parse("2023-09-02T02:02:02Z")
-    val traceBobRemoved     = EventTrace(actor, dateBobRemoved)
-    val userInfosBobRemoved = {
-      /*
-       * When bob is removed (ie not in the list of user from the files):
-       * - Bob is in the list, but with a status deleted and a new history line
-       * - other users are not changed
-       */
-      userInfosInit.map {
-        case u if (u.id == "bob") =>
-          u.modify(_.status)
-            .setTo(UserStatus.Deleted)
-            .modify(_.statusHistory)
-            .using(StatusHistory(UserStatus.Deleted, traceBobRemoved) :: _)
-
-        case u => u
-      }
-    }
-
-    // BOB is added again to the active users and is 'active'
-    val dateBobReactivated      = DateTime.parse("2023-09-02T02:03:03Z")
-    val traceBobReactivated     = EventTrace(actor, dateBobReactivated)
-    val userInfosBobReactivated = {
-      /*
-       * When bob is added back (ie in the list of user from the files):
-       * - Bob is in the list, but with a status "active"
-       * - history lines only contains the creation one
-       * - other users are not changed
-       */
-      userInfosBobRemoved.map {
-        case u if (u.id == "bob") =>
-          u.modify(_.status)
-            .setTo(UserStatus.Active)
-            .modify(_.statusHistory)
-            .using(StatusHistory(UserStatus.Active, traceBobReactivated) :: _)
-
-        case u => u
-      }
-    }
-
-    // BOB is kept removed after setting the users again without BOB
-    val dateBobRemovedIdempotent      = DateTime.parse("2023-09-02T02:03:04Z")
-    val traceBobRemovedIdempotent     = EventTrace(actor, dateBobRemovedIdempotent)
-    val userInfosBobRemovedIdempotent = {
-      /*
-       * When bob is removed again (ie not in the list of user from the files):
-       * - Bob is in the list, but with a status deleted and a new history line
-       * - other users are not changed
-       */
-      userInfosBobReactivated.map {
-        case u if (u.id == "bob") =>
-          u.modify(_.status)
-            .setTo(UserStatus.Deleted)
-            .modify(_.statusHistory)
-            .using(StatusHistory(UserStatus.Deleted, traceBobRemovedIdempotent) :: _)
-
-        case u => u
-      }
-    }
-
-    // BOB added back from OIDC
-    val dateBobOidc      = DateTime.parse("2023-09-03T03:03:03Z")
-    val traceBobOidc     = EventTrace(actor, dateBobOidc)
-    val dateReload       = DateTime.parse("2023-09-04T04:04:04Z")
-    val traceReload      = EventTrace(actor, dateReload)
-    val userInfosBobOidc = {
-      /*
-       * When bob is back from OIDC (ie not in the list of user from the files):
-       * - Bob is in the list. In the futur, we may want to resurrect people with "disabled" state, but not until it's manageable from Rudder
-       * - and a new history line exists (keeping the old ones - it's the same bob)
-       * - other users are not changed
-       */
-      userInfosBobRemovedIdempotent.map {
-        case u if (u.id == "bob") =>
-          u.modify(_.status)
-            .setTo(UserStatus.Active)
-            .modify(_.statusHistory)
-            .using(StatusHistory(UserStatus.Disabled, traceBobOidc) :: _)
-            .modify(_.managedBy)
-            .setTo(AUTH_PLUGIN_NAME_REMOTE)
-
-        case u => u
-      }
-    }
-
-    // William is added from OIDC
-    val dateWilliamOidc      = DateTime.parse("2023-09-05T05:05:05Z")
-    val traceWilliamOidc     = EventTrace(actor, dateWilliamOidc)
-    val userInfosWilliamOidc = {
-      // Alice is added along with Bob
-      userInfosBobOidc :+ UserInfo(
-        "william",
-        dateWilliamOidc,
-        UserStatus.Active,
-        AUTH_PLUGIN_NAME_REMOTE,
-        None,
-        None,
-        None,
-        StatusHistory(UserStatus.Active, traceWilliamOidc) :: Nil,
-        Json.Obj()
-      )
-    }
-
-    // All OIDC users deleted
-    val dateOidcDeleted      = DateTime.parse("2023-09-06T06:06:06Z")
-    val traceOidcDeleted     = EventTrace(actor, dateOidcDeleted)
-    val userInfosOidcDeleted = {
-      userInfosWilliamOidc.map {
-        case u if u.id == "bob" || u.id == "william" =>
-          u.modify(_.status)
-            .setTo(UserStatus.Deleted)
-            .modify(_.statusHistory)
-            .using(StatusHistory(UserStatus.Deleted, traceOidcDeleted) :: _)
-
-        case u => u
-      }
-    }
-
-    // BOB deleted, then purged and added back in OIDC
-    val dateBobPurged      = DateTime.parse("2023-09-07T07:07:07Z")
-    val traceBobPurged     = EventTrace(actor, dateBobPurged)
-    val userInfosBobPurged = {
-      /*
-       * When bob is purged and added back from OIDC (ie not in the list of user from the files):
-       * - Bob is in the list, but with a status "active"
-       * - history lines only contains the creation one
-       * - other users are not changed
-       */
-      userInfosOidcDeleted.map {
-        case u if (u.id == "bob") =>
-          UserInfo(
-            u.id,
-            dateBobPurged,
-            UserStatus.Active,
-            AUTH_PLUGIN_NAME_REMOTE,
-            None,
-            None,
-            None,
-            StatusHistory(UserStatus.Active, traceBobPurged) :: Nil,
-            Json.Obj()
-          )
-
-        case u => u
-      }
-    }
-
     "Creating users in an empty repo should create them all activated" >> {
 
       // not sure if we should have an empty json for otherInfo
@@ -468,14 +320,76 @@ trait UserRepositoryTest extends Specification with Loggable {
       )
     }
 
+    // BOB REMOVED
+    val userFileBobRemoved  = users.filterNot(_ == "bob")
+    val dateBobRemoved      = DateTime.parse("2023-09-02T02:02:02Z")
+    val traceBobRemoved     = EventTrace(actor, dateBobRemoved)
+    val userInfosBobRemoved = {
+      /*
+       * When bob is removed (ie not in the list of user from the files):
+       * - Bob is in the list, but with a status deleted and a new history line
+       * - other users are not changed
+       */
+      userInfosInit.map {
+        case u if (u.id == "bob") =>
+          u.modify(_.status)
+            .setTo(UserStatus.Deleted)
+            .modify(_.statusHistory)
+            .using(StatusHistory(UserStatus.Deleted, traceBobRemoved) :: _)
+
+        case u => u
+      }
+    }
+
     "If an user is removed from list, it is marked as 'deleted' (but node erased)" >> {
       repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, userFileBobRemoved, traceBobRemoved).runNow
       repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosBobRemoved)
     }
 
+    // BOB is added again to the active users and is 'active'
+    val dateBobReactivated      = DateTime.parse("2023-09-02T02:03:03Z")
+    val traceBobReactivated     = EventTrace(actor, dateBobReactivated)
+    val userInfosBobReactivated = {
+      /*
+       * When bob is added back (ie in the list of user from the files):
+       * - Bob is in the list, but with a status "active"
+       * - history lines only contains the creation one
+       * - other users are not changed
+       */
+      userInfosBobRemoved.map {
+        case u if (u.id == "bob") =>
+          u.modify(_.status)
+            .setTo(UserStatus.Active)
+            .modify(_.statusHistory)
+            .using(StatusHistory(UserStatus.Active, traceBobReactivated) :: _)
+
+        case u => u
+      }
+    }
+
     "Reactivating 'deleted' users by setting existing users" >> {
       repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, users, traceBobReactivated).runNow
       repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosBobReactivated)
+    }
+
+    // BOB is kept removed after setting the users again without BOB
+    val dateBobRemovedIdempotent      = DateTime.parse("2023-09-02T02:03:04Z")
+    val traceBobRemovedIdempotent     = EventTrace(actor, dateBobRemovedIdempotent)
+    val userInfosBobRemovedIdempotent = {
+      /*
+       * When bob is removed again (ie not in the list of user from the files):
+       * - Bob is in the list, but with a status deleted and a new history line
+       * - other users are not changed
+       */
+      userInfosBobReactivated.map {
+        case u if (u.id == "bob") =>
+          u.modify(_.status)
+            .setTo(UserStatus.Deleted)
+            .modify(_.statusHistory)
+            .using(StatusHistory(UserStatus.Deleted, traceBobRemovedIdempotent) :: _)
+
+        case u => u
+      }
     }
 
     "If an user is reloaded from the same origin, it should be kept as is" >> {
@@ -485,10 +399,52 @@ trait UserRepositoryTest extends Specification with Loggable {
       repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosBobRemovedIdempotent)
     }
 
+    // BOB added back from OIDC
+    val dateBobOidc      = DateTime.parse("2023-09-03T03:03:03Z")
+    val traceBobOidc     = EventTrace(actor, dateBobOidc)
+    val dateReload       = DateTime.parse("2023-09-04T04:04:04Z")
+    val traceReload      = EventTrace(actor, dateReload)
+    val userInfosBobOidc = {
+      /*
+       * When bob is back from OIDC (ie not in the list of user from the files):
+       * - Bob is in the list. In the futur, we may want to resurrect people with "disabled" state, but not until it's manageable from Rudder
+       * - and a new history line exists (keeping the old ones - it's the same bob)
+       * - other users are not changed
+       */
+      userInfosBobRemovedIdempotent.map {
+        case u if (u.id == "bob") =>
+          u.modify(_.status)
+            .setTo(UserStatus.Active)
+            .modify(_.statusHistory)
+            .using(StatusHistory(UserStatus.Disabled, traceBobOidc) :: _)
+            .modify(_.managedBy)
+            .setTo(AUTH_PLUGIN_NAME_REMOTE)
+
+        case u => u
+      }
+    }
+
     "If an user is created by an other module and file reloaded, it's Active and remains so" >> {
       repo.setExistingUsers(AUTH_PLUGIN_NAME_REMOTE, List("bob"), traceBobOidc).runNow
       repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, userFileBobRemoved, traceReload).runNow
       repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosBobOidc)
+    }
+
+    // William is added from OIDC
+    val dateWilliamOidc      = DateTime.parse("2023-09-05T05:05:05Z")
+    val traceWilliamOidc     = EventTrace(actor, dateWilliamOidc)
+    val userInfosWilliamOidc = {
+      userInfosBobOidc :+ UserInfo(
+        "william",
+        dateWilliamOidc,
+        UserStatus.Active,
+        AUTH_PLUGIN_NAME_REMOTE,
+        None,
+        None,
+        None,
+        StatusHistory(UserStatus.Active, traceWilliamOidc) :: Nil,
+        Json.Obj()
+      )
     }
 
     "If an user is also added in the other module" >> {
@@ -496,14 +452,102 @@ trait UserRepositoryTest extends Specification with Loggable {
       repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosWilliamOidc)
     }
 
+    // Bob is disabled
+    val dateBobDisabled      = DateTime.parse("2023-09-06T06:06:06Z")
+    val traceBobDisabled     = EventTrace(actor, dateBobDisabled)
+    val userInfosBobDisabled = {
+      userInfosWilliamOidc.map {
+        case u if (u.id == "bob") =>
+          u.modify(_.status)
+            .setTo(UserStatus.Disabled)
+            .modify(_.statusHistory)
+            .using(StatusHistory(UserStatus.Disabled, traceBobDisabled) :: _)
+
+        case u => u
+      }
+    }
+
+    "some user is disabled" >> {
+      val disabled = repo.disable(List("bob"), None, List.empty, traceBobDisabled).runNow
+      (disabled must containTheSameElementsAs(List("bob"))) and (
+        repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosBobDisabled)
+      )
+    }
+
+    // Xavier is added from OIDC
+    val dateXavierOidc      = DateTime.parse("2023-09-07T07:07:07Z")
+    val traceXavierOidc     = EventTrace(actor, dateXavierOidc)
+    val userInfosXavierOidc = {
+      userInfosBobDisabled :+ UserInfo(
+        "xavier",
+        dateXavierOidc,
+        UserStatus.Active,
+        AUTH_PLUGIN_NAME_REMOTE,
+        None,
+        None,
+        None,
+        StatusHistory(UserStatus.Active, traceXavierOidc) :: Nil,
+        Json.Obj()
+      )
+    }
+
+    "Some user is added in remote with some other remote users disabled/deleted" >> {
+      // Bob: disabled, William: deleted, adding a user should not change the state of existing ones
+      val isAdded = repo.addUser(AUTH_PLUGIN_NAME_REMOTE, "xavier", traceXavierOidc).runNow
+      isAdded must beTrue and (repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosXavierOidc))
+    }
+
+    // All OIDC users deleted
+    val dateOidcDeleted      = DateTime.parse("2023-09-09T08:08:08Z")
+    val traceOidcDeleted     = EventTrace(actor, dateOidcDeleted)
+    val userInfosOidcDeleted = {
+      userInfosXavierOidc.map {
+        case u if Set("bob", "william", "xavier").contains(u.id) =>
+          u.modify(_.status)
+            .setTo(UserStatus.Deleted)
+            .modify(_.statusHistory)
+            .using(StatusHistory(UserStatus.Deleted, traceOidcDeleted) :: _)
+
+        case u => u
+      }
+    }
+
     "If users are set to an empty list" >> {
       repo.setExistingUsers(AUTH_PLUGIN_NAME_REMOTE, List.empty, traceOidcDeleted).runNow
       repo.getAll().runNow.toUTC must containTheSameElementsAs(userInfosOidcDeleted)
     }
 
+    // BOB deleted, then purged and added back in OIDC
+    val dateBobPurged      = DateTime.parse("2023-09-08T08:08:08Z")
+    val traceBobPurged     = EventTrace(actor, dateBobPurged)
+    val userInfosBobPurged = {
+      /*
+       * When bob is purged and added back from OIDC (ie not in the list of user from the files):
+       * - Bob is in the list, but with a status "active"
+       * - history lines only contains the creation one
+       * - other users are not changed
+       */
+      userInfosOidcDeleted.map {
+        case u if (u.id == "bob") =>
+          UserInfo(
+            u.id,
+            dateBobPurged,
+            UserStatus.Active,
+            AUTH_PLUGIN_NAME_REMOTE,
+            None,
+            None,
+            None,
+            StatusHistory(UserStatus.Active, traceBobPurged) :: Nil,
+            Json.Obj()
+          )
+
+        case u => u
+      }
+    }
+
     "If an user is purged, then everything about it is lost and it is created fresh" >> {
       // we only purge deleted users
-      (repo.delete(List("bob"), None, Nil, Some(UserStatus.Active), traceBobOidc) *>
+      (repo.delete(List("bob"), None, Nil, Some(UserStatus.Disabled), traceBobOidc) *>
       repo.purge(List("bob"), None, Nil, traceBobOidc)).runNow
       repo.getAll().runNow must beLike(_.map(_.id) must not(contain("bob")))
 
@@ -548,7 +592,7 @@ trait UserRepositoryTest extends Specification with Loggable {
       repo
         .purge(Nil, Some(dateInit.plusYears(1)), Nil, EventTrace(actor, DateTime.now()))
         .tap(users => errors.effectUioUnit(logger.debug(s"Users were purged: ${users}")))
-        .runNow must containTheSameElementsAs(List("alice", "charlie", "mallory", "bob", "william"))
+        .runNow must containTheSameElementsAs(List("alice", "charlie", "mallory", "bob", "william", "xavier"))
 
       repo.getAll().runNow must beEmpty
     }
