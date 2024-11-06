@@ -42,14 +42,17 @@ import com.normation.box.*
 import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.archives.ArchiveType
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.repository.*
+import com.normation.rudder.rest.lift.SystemApiService11
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.snippet.WithNonce
 import com.normation.utils.DateFormaterService
+import java.util.Base64
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -67,6 +70,7 @@ class Archives extends DispatchSnippet with Loggable {
   private val itemArchiver       = RudderConfig.itemArchiveManager
   private val personIdentService = RudderConfig.personIdentService
   private val uuidGen            = RudderConfig.stringUuidGenerator
+  private val systemApiService: SystemApiService11 = RudderConfig.systemApiService
 
   private val noElements = NotArchivedElements(Seq(), Seq(), Seq())
 
@@ -118,7 +122,7 @@ class Archives extends DispatchSnippet with Loggable {
       restoreSuccessDebugMessage = "Importing groups, parameters, directive library and rules on user request",
       downloadButtonId = "downloadAllButton",
       downloadButtonName = DL_NAME,
-      downloadRestAction = "full"
+      downloadRestAction = ArchiveType.All
     )
   }
 
@@ -140,7 +144,7 @@ class Archives extends DispatchSnippet with Loggable {
       restoreSuccessDebugMessage = "Importing rules on user request",
       downloadButtonId = "downloadRulesButton",
       downloadButtonName = DL_NAME,
-      downloadRestAction = "rules"
+      downloadRestAction = ArchiveType.Rules
     )
   }
 
@@ -163,7 +167,7 @@ class Archives extends DispatchSnippet with Loggable {
       restoreSuccessDebugMessage = "Importing directive library on user request",
       downloadButtonId = "downloadDirectiveLibraryButton",
       downloadButtonName = DL_NAME,
-      downloadRestAction = "directives"
+      downloadRestAction = ArchiveType.Directives
     )
   }
 
@@ -186,7 +190,7 @@ class Archives extends DispatchSnippet with Loggable {
       restoreSuccessDebugMessage = "Importing groups on user request",
       downloadButtonId = "downloadGroupLibraryButton",
       downloadButtonName = DL_NAME,
-      downloadRestAction = "groups"
+      downloadRestAction = ArchiveType.Groups
     )
   }
 
@@ -209,7 +213,7 @@ class Archives extends DispatchSnippet with Loggable {
       restoreSuccessDebugMessage = "Importing global properties on user request",
       downloadButtonId = "downloadParametersButton",
       downloadButtonName = DL_NAME,
-      downloadRestAction = "parameters"
+      downloadRestAction = ArchiveType.Parameters
     )
   }
 
@@ -255,7 +259,7 @@ class Archives extends DispatchSnippet with Loggable {
 
       downloadButtonName: String, // what is displayed to download the zip of an archive
 
-      downloadRestAction: String // the specific action for the REST api, i.e the %s in: /api/system/archives/%s/zip
+      downloadRestAction: ArchiveType // the specific action for the REST api, i.e the %s in: /api/system/archives/%s/zip
   ): IdMemoizeTransform = SHtml.idMemoize { outerXml =>
     var selectedCommitId = Option.empty[GitCommitId]
 
@@ -337,7 +341,12 @@ class Archives extends DispatchSnippet with Loggable {
       selectedCommitId match {
         case None         => error(Empty, "A valid archive must be chosen")
         case Some(commit) =>
-          S.redirectTo(s"/secure/api/system/archives/${downloadRestAction}/zip/${commit.value}")
+          systemApiService.getZip(commit.value, downloadRestAction) match {
+            case Left(err)                => error(Empty, err)
+            case Right((bytes, filename)) =>
+              val base64 = Base64.getEncoder().encodeToString(bytes)
+              Run(s"""saveByteArray("${filename}", "application/zip", base64ToArrayBuffer("${base64}"));""")
+          }
       }
 
     }

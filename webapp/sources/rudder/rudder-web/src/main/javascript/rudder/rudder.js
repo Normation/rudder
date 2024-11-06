@@ -896,3 +896,23 @@ function initBsTabs(){
 function copy(value) {
   navigator.clipboard.writeText(value).then(function(){ createInfoNotification("Copied to clipboard!") }, function() {createErrorNotification("Could not copy to clipboard")})
 }
+
+// to create blob of binary data and download it, see https://stackoverflow.com/a/37340749
+function base64ToArrayBuffer(base64) {
+  var binaryString = window.atob(base64);
+  var binaryLen = binaryString.length;
+  var bytes = new Uint8Array(binaryLen);
+  for (var i = 0; i < binaryLen; i++) {
+    var ascii = binaryString.charCodeAt(i);
+    bytes[i] = ascii;
+  }
+  return bytes;
+}
+function saveByteArray(downloadedFileName, contentType, byte) {
+  var blob = new Blob([byte], {type: contentType});
+  var link = document.createElement('a');
+  link.href = window.URL.createObjectURL(blob);
+  var fileName = downloadedFileName;
+  link.download = fileName;
+  link.click();
+}

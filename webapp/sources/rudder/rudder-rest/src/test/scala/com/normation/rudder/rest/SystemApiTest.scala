@@ -37,7 +37,9 @@
 
 package com.normation.rudder.rest
 
+import com.normation.rudder.domain.archives.ArchiveType
 import com.normation.rudder.rest.RestUtils.toJsonResponse
+import com.normation.rudder.rest.lift.SystemApi
 import com.normation.rudder.rest.v1.RestStatus
 import java.io.File
 import java.nio.file.Files
@@ -49,6 +51,7 @@ import net.liftweb.http.Req
 import net.liftweb.json.JsonAST.*
 import net.liftweb.json.JsonDSL.*
 import org.apache.commons.io.FileUtils
+import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -487,11 +490,12 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
    *  3. Unzip the archive
    *  4. Compare the appropriate data
    */
+  val commit = restTestSetUp.mockGitRepo.gitRepo.db.resolve("master")
+  val commitId: String = commit.getName
 
-  val refCommit: String = restTestSetUp.mockGitRepo.gitRepo.db.findRef("master").toString
-
-  // I found no other way to get the commitId from a JGit ref object than parse its String representation
-  val commitId: String = refCommit.slice(refCommit.indexOf('=') + 1, refCommit.indexOf(']'))
+  val commitDate: DateTime = new DateTime(
+    restTestSetUp.mockGitRepo.gitRepo.db.parseCommit(commit.toObjectId()).getCommitterIdent().getWhen()
+  )
 
   // Init directory needed to temporary store archive data that zip API returns.
   // It will be cleared at the end of the test in "afterAll"
@@ -512,19 +516,35 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
     }
   }
 
-  private def contentArchiveDiff(req: Req, matcher: List[File], action: String) = {
+  private def contentArchiveDiff(req: Req, matcher: List[File], archiveType: ArchiveType) = {
     import com.normation.rudder.git.ZipUtils
 
     restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() match {
 
       case Full(resp: InMemoryResponse)                    =>
-        FileUtils.writeByteArrayToFile(new File("/tmp/response-content/response-archive.zip"), resp.data)
-        val zip = new ZipFile("/tmp/response-content/response-archive.zip")
+        val filenameRegex = """attachment;\s*filename="(.*)"""".r
+        val filename      = resp.headers.collectFirst {
+          case (h, filenameRegex(filename)) if h.equalsIgnoreCase("Content-Disposition") => filename
+        }
+        val tmpFile       = new File(s"/tmp/response-content/${filename.getOrElse("_bad_file")}")
+        FileUtils.writeByteArrayToFile(tmpFile, resp.data)
+        val zip           = new ZipFile(tmpFile)
         ZipUtils.unzip(zip, testDir)
         def filterGeneratedFile(f: File): Boolean = matcher.contains(f)
-        testDir must org.specs2.matcher.ContentMatchers
+        (resp.headers must beLike {
+          case l: ::[(String, String)] =>
+            l must containTheSameElementsAs(
+              List(
+                "Content-Type"        -> "application/zip",
+                "Content-Disposition" -> s"""attachment;filename="${SystemApi.getArchiveName(archiveType, commitDate)}""""
+              )
+            )
+        }) and
+        (filename must beSome(
+          beEqualTo(SystemApi.getArchiveName(archiveType, commitDate))
+        )) and (testDir must org.specs2.matcher.ContentMatchers
           .haveSameFilesAs(restTestSetUp.mockGitRepo.configurationRepositoryRoot.toJava)
-          .withFilter(filterGeneratedFile _)
+          .withFilter(filterGeneratedFile _))
       case Full(JsonResponsePrettify(json, _, _, code, _)) =>
         import net.liftweb.http.js.JsExp.*
         (code must beEqualTo(500)) and
@@ -552,7 +572,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
       }
 
       restTest.testGET(s"/api/latest/system/archives/directives/zip/$commitId") { req =>
-        contentArchiveDiff(req, matcher, "getDirectivesZipArchive")
+        contentArchiveDiff(req, matcher, ArchiveType.Directives)
       }
     }
   }
@@ -563,7 +583,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
       val matcher = List(new File(configRootPath + "/groups"))
 
       restTest.testGET(s"/api/latest/system/archives/groups/zip/$commitId") { req =>
-        contentArchiveDiff(req, matcher, "getGroupsZipArchive")
+        contentArchiveDiff(req, matcher, ArchiveType.Groups)
       }
     }
   }
@@ -574,7 +594,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
       val matcher = List(new File(configRootPath + "/rules"), new File(configRootPath + "/ruleCategories"))
 
       restTest.testGET(s"/api/latest/system/archives/rules/zip/$commitId") { req =>
-        contentArchiveDiff(req, matcher, "getRulesZipArchive")
+        contentArchiveDiff(req, matcher, ArchiveType.Rules)
       }
     }
   }
@@ -595,7 +615,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
       }
 
       restTest.testGET(s"/api/latest/system/archives/full/zip/$commitId") { req =>
-        contentArchiveDiff(req, matcher, "getAllZipArchive")
+        contentArchiveDiff(req, matcher, ArchiveType.All)
       }
     }
   }

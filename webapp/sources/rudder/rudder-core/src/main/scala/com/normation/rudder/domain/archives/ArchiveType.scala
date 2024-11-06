@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2018 Normation SAS
+ * Copyright 2011 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,51 +35,35 @@
  *************************************************************************************
  */
 
-package com.normation.rudder.web.snippet.administration
+package com.normation.rudder.domain.archives
 
-import bootstrap.liftweb.RudderConfig
-import com.normation.zio.UnsafeRun
-import java.util.Base64
-import net.liftweb.common.Loggable
-import net.liftweb.http.DispatchSnippet
-import net.liftweb.http.IdMemoizeTransform
-import net.liftweb.http.SHtml
-import net.liftweb.http.js.JsCmd
-import net.liftweb.http.js.JsCmds.*
-import net.liftweb.util.Helpers.*
-import scala.xml.NodeSeq
-import scala.xml.Text
+import enumeratum.Enum
+import enumeratum.EnumEntry.*
 
-class DebugScript extends DispatchSnippet with Loggable {
+sealed trait ArchiveType extends Lowercase {
 
-  private val debugInfoService = RudderConfig.debugScript
+  /**
+    * A set of directories of filesystem objects that are included in an archive for that type
+    */
+  def directories: List[String]
+}
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "render" => launchDebugScript }
-
-  def launchDebugScript: IdMemoizeTransform = SHtml.idMemoize { outerXml =>
-    // our process method returns a
-    // JsCmd which will be sent back to the browser
-    // as part of the response
-    def process(): JsCmd = {
-      val scriptResult = debugInfoService.launch().either.runNow
-      val cmd          = scriptResult match {
-        case Left(_)      =>
-          """createErrorNotification("Error has occured while getting debug script result, please consult policy server logs");"""
-        case Right(value) =>
-          val base64 = Base64.getEncoder().encodeToString(value.result)
-          s"""saveByteArray("${value.serverName}", "application/gzip", base64ToArrayBuffer("${base64}"));"""
-      }
-      Run(cmd)
-    }
-
-    // process the list of networks
-    "#launchDebugScriptButton" #> {
-      SHtml.ajaxButton(
-        (<span class="fa fa-download"></span>: NodeSeq) ++ Text(" Download debug information"),
-        process _,
-        ("class", "btn btn-primary")
-      )
-    }
+object ArchiveType extends Enum[ArchiveType] {
+  case object All        extends ArchiveType {
+    override def directories: List[String] = findValues.filterNot(_ == All).toList.flatMap(_.directories)
+  }
+  case object Rules      extends ArchiveType {
+    override def directories: List[String] = "rules" :: "ruleCategories" :: Nil
+  }
+  case object Directives extends ArchiveType {
+    override def directories: List[String] = "directives" :: "techniques" :: "parameters" :: "ncf" :: Nil
+  }
+  case object Groups     extends ArchiveType {
+    override def directories: List[String] = "groups" :: Nil
+  }
+  case object Parameters extends ArchiveType {
+    override def directories: List[String] = "parameters" :: Nil
   }
 
+  override def values: IndexedSeq[ArchiveType] = findValues
 }

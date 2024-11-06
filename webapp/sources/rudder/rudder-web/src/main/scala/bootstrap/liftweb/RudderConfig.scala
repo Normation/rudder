@@ -1091,6 +1091,7 @@ object RudderConfig extends Loggable {
   val dynGroupService:                     DynGroupService                            = rci.dynGroupService
   val eventListDisplayer:                  EventListDisplayer                         = rci.eventListDisplayer
   val eventLogApi:                         EventLogAPI                                = rci.eventLogApi
+  val systemApiService:                    SystemApiService11                         = rci.systemApiService
   val eventLogDeploymentService:           EventLogDeploymentService                  = rci.eventLogDeploymentService
   val eventLogDetailsService:              EventLogDetailsService                     = rci.eventLogDetailsService
   val eventLogRepository:                  EventLogRepository                         = rci.eventLogRepository
@@ -1286,6 +1287,7 @@ case class RudderServiceApi(
     restCompletion:                      RestCompletion,
     sharedFileApi:                       SharedFilesAPI,
     eventLogApi:                         EventLogAPI,
+    systemApiService:                    SystemApiService11,
     stringUuidGenerator:                 StringUuidGenerator,
     inventoryWatcher:                    InventoryFileWatcher,
     configService:                       ReadConfigService with UpdateConfigService,
@@ -3625,6 +3627,7 @@ object RudderConfigInit {
       restCompletion,
       sharedFileApi,
       eventLogApi,
+      systemApiService11,
       uuidGen,
       inventoryWatcher,
       configService,

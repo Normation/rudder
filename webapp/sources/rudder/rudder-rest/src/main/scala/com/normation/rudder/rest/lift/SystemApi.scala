@@ -48,6 +48,7 @@ import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.ManualStartDeployment
 import com.normation.rudder.batch.UpdateDynamicGroups
+import com.normation.rudder.domain.archives.ArchiveType
 import com.normation.rudder.domain.logger.ApiLogger
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
@@ -672,6 +673,7 @@ class SystemApiService11(
     repo:                 GitRepositoryProvider
 )(implicit userService: UserService)
     extends Loggable {
+  import SystemApi.*
 
   // The private methods are the internal behavior of the API.
   // They are helper functions called by the public method (implemented lower) to avoid code repetition.
@@ -712,7 +714,7 @@ class SystemApiService11(
         // splitting on last an getting back last part, falling back to full Id
         val id = tag.path.value.split("/").lastOption.getOrElse(tag.path.value)
 
-        val datetime = format.print(date)
+        val datetime = archiveDateFormat.print(date)
         // json
         ("id" -> id) ~ ("date" -> datetime) ~ ("committer" -> tag.commiter.getName) ~ ("gitCommit" -> tag.commit.value)
     }
@@ -827,22 +829,13 @@ class SystemApiService11(
     )
   }
 
-  private val format = new DateTimeFormatterBuilder()
-    .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
-    .appendLiteral('T')
-    .append(DateTimeFormat.forPattern("hhmmss"))
-    .toFormatter
-
-  private val directiveFiles = List("directives", "techniques", "parameters", "ncf")
-  private val ruleFiles      = List("rules", "ruleCategories")
-  private val parameterFiles = List("parameters")
-  private val allFiles       = "groups" :: ruleFiles ::: directiveFiles ::: parameterFiles
-
-  private def getZip(
+  /**
+    * Return the file content and a filename of the ZIP file that is created
+    */
+  def getZip(
       commitId:    String,
-      paths:       List[String],
-      archiveType: String
-  ): Either[String, (Array[Byte], List[(String, String)])] = {
+      archiveType: ArchiveType
+  ): Either[String, (Array[Byte], String)] = {
     (ZIO
       .acquireReleaseWith(IOResult.attempt(new RevWalk(repo.db)))(rw => effectUioUnit(rw.dispose)) { rw =>
         for {
@@ -851,24 +844,33 @@ class SystemApiService11(
                          rw.parseCommit(id)
                        }
           treeId    <- IOResult.attempt(revCommit.getTree.getId)
-          bytes     <- GitFindUtils.getZip(repo.db, treeId, paths)
+          bytes     <- GitFindUtils.getZip(repo.db, treeId, archiveType.directories)
+          date       = new DateTime(revCommit.getCommitTime.toLong * 1000)
         } yield {
-          (bytes, format.print(new DateTime(revCommit.getCommitTime.toLong * 1000)))
+          (bytes, date)
         }
       })
       .either
-      .runNow match {
-      case Left(err)            =>
-        Left(s"Error when trying to get archive as a Zip: ${err.fullMsg}")
-      case Right((bytes, date)) =>
-        Right(
-          (
-            bytes,
-            "Content-Type"        -> "application/zip" ::
-            "Content-Disposition" -> """attachment;filename="rudder-conf-%s-%s.zip"""".format(archiveType, date) ::
-            Nil
-          )
-        )
+      .map {
+        case Left(err)            => Left(s"Error when trying to get archive as a Zip: ${err.fullMsg}")
+        case Right((bytes, date)) => Right(bytes -> getArchiveName(archiveType, date))
+      }
+      .runNow
+  }
+
+  private def getZipResponse(
+      commitId:    String,
+      archiveType: ArchiveType
+  )(implicit prettify: Boolean, action: String): LiftResponse = {
+    getZip(commitId, archiveType) match {
+      case Right((bytes, filename)) =>
+        val headers = {
+          "Content-Type"        -> "application/zip" ::
+          "Content-Disposition" -> s"""attachment;filename="${filename}"""" ::
+          Nil
+        }
+        InMemoryResponse(bytes, headers, Nil, 200)
+      case Left(err)                => toJsonError(None, err)
     }
   }
 
@@ -895,50 +897,35 @@ class SystemApiService11(
     implicit val action   = "getGroupsZipArchive"
     implicit val prettify = params.prettify
 
-    getZip(commitId, List("groups"), "groups") match {
-      case Left(error)  => toJsonError(None, error)
-      case Right(field) => InMemoryResponse(field._1, field._2, Nil, 200)
-    }
+    getZipResponse(commitId, ArchiveType.Groups)
   }
 
   def getDirectivesZipArchive(params: DefaultParams, commitId: String): LiftResponse = {
     implicit val action   = "getDirectivesZipArchive"
     implicit val prettify = params.prettify
 
-    getZip(commitId, directiveFiles, "directives") match {
-      case Left(error)  => toJsonError(None, error)
-      case Right(field) => InMemoryResponse(field._1, field._2, Nil, 200)
-    }
+    getZipResponse(commitId, ArchiveType.Directives)
   }
 
   def getRulesZipArchive(params: DefaultParams, commitId: String): LiftResponse = {
     implicit val action   = "getRulesZipArchive"
     implicit val prettify = params.prettify
 
-    getZip(commitId, ruleFiles, "rules") match {
-      case Left(error)  => toJsonError(None, error)
-      case Right(field) => InMemoryResponse(field._1, field._2, Nil, 200)
-    }
+    getZipResponse(commitId, ArchiveType.Rules)
   }
 
   def getParametersZipArchive(params: DefaultParams, commitId: String): LiftResponse = {
     implicit val action   = "getParametersZipArchive"
     implicit val prettify = params.prettify
 
-    getZip(commitId, parameterFiles, "Parameters") match {
-      case Left(error)  => toJsonError(None, error)
-      case Right(field) => InMemoryResponse(field._1, field._2, Nil, 200)
-    }
+    getZipResponse(commitId, ArchiveType.Parameters)
   }
 
   def getAllZipArchive(params: DefaultParams, commitId: String): LiftResponse = {
     implicit val action   = "getFullZipArchive"
     implicit val prettify = params.prettify
 
-    getZip(commitId, allFiles, "all") match {
-      case Left(error)  => toJsonError(None, error)
-      case Right(field) => InMemoryResponse(field._1, field._2, Nil, 200)
-    }
+    getZipResponse(commitId, ArchiveType.All)
   }
 
   // Archive RESTORE based on a date given as the last part of the URL
@@ -1422,4 +1409,20 @@ class SystemApiService11(
     asyncDeploymentAgent.launchDeployment(dest)
     toJsonResponse(None, "policies" -> "Started")
   }
+}
+
+private[rest] object SystemApi {
+
+  /**
+    * Public format to display archive tagged at date
+    */
+  val archiveDateFormat = new DateTimeFormatterBuilder()
+    .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
+    .appendLiteral('T')
+    .append(DateTimeFormat.forPattern("hhmmss"))
+    .toFormatter
+
+  def getArchiveName(archiveType: ArchiveType, date: DateTime): String =
+    s"rudder-conf-${archiveType.entryName}-${archiveDateFormat.print(date)}.zip"
+
 }
