@@ -85,6 +85,7 @@ class CreateCategoryOrGroupPopup(
   )
 
   private val woNodeGroupRepository      = RudderConfig.woNodeGroupRepository
+  private val propertiesService          = RudderConfig.propertiesService
   private val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
   private val uuidGen                    = RudderConfig.stringUuidGenerator
   private val userPropertyService        = RudderConfig.userPropertyService
@@ -290,6 +291,7 @@ class CreateCategoryOrGroupPopup(
             CurrentUser.actor,
             piReasons.map(_.get)
           )
+          .tap(_ => propertiesService.updateAll())
           .toBox match {
           case Full(x)          =>
             closePopup() &

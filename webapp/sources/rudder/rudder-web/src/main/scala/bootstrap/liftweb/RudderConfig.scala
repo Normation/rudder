@@ -1124,6 +1124,8 @@ object RudderConfig extends Loggable {
   val policyGenerationBootGuard:           zio.Promise[Nothing, Unit]                 = rci.policyGenerationBootGuard
   val policyServerManagementService:       PolicyServerManagementService              = rci.policyServerManagementService
   val propertyEngineService:               PropertyEngineService                      = rci.propertyEngineService
+  val propertiesRepository:                PropertiesRepository                       = rci.propertiesRepository
+  val propertiesService:                   NodePropertiesService                      = rci.propertiesService
   val purgeDeletedInventories:             PurgeDeletedInventories                    = rci.purgeDeletedInventories
   val purgeUnreferencedSoftwares:          PurgeUnreferencedSoftwares                 = rci.purgeUnreferencedSoftwares
   val readOnlySoftwareDAO:                 ReadOnlySoftwareDAO                        = rci.readOnlySoftwareDAO
@@ -1348,7 +1350,8 @@ case class RudderServiceApi(
     tenantService:                       TenantService,
     computeNodeStatusReportService:      ComputeNodeStatusReportService & HasNodeStatusReportUpdateHook,
     scoreRepository:                     ScoreRepository,
-    propertiesRepository:                PropertiesRepository
+    propertiesRepository:                PropertiesRepository,
+    propertiesService:                   NodePropertiesService
 )
 
 /*
@@ -1685,6 +1688,7 @@ object RudderConfigInit {
         roNodeGroupRepository,
         woNodeGroupRepository,
         propertiesRepository,
+        propertiesService,
         uuidGen,
         asyncDeploymentAgent,
         workflowLevelService,
@@ -3688,7 +3692,8 @@ object RudderConfigInit {
       tenantService,
       computeNodeStatusReportService,
       scoreRepository,
-      propertiesRepository
+      propertiesRepository,
+      propertiesService
     )
 
     // need to be done here to avoid cyclic dependencies

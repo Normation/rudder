@@ -1093,6 +1093,7 @@ class GroupApiService14(
     readGroup:            RoNodeGroupRepository,
     writeGroup:           WoNodeGroupRepository,
     propertiesRepo:       PropertiesRepository,
+    propertiesService:    NodePropertiesService,
     uuidGen:              StringUuidGenerator,
     asyncDeploymentAgent: AsyncDeploymentActor,
     workflowLevelService: WorkflowLevelService,
@@ -1147,6 +1148,8 @@ class GroupApiService14(
         rootCat  <- readGroup.getRootCategoryPure()
         cat       = change.category.getOrElse(rootCat.id)
         saveDiff <- writeGroup.create(change.newGroup, cat, modId, actor, params.reason)
+        // after group creation, its properties should be computed and resolved
+        _        <- propertiesService.updateAll()
       } yield {
         if (saveDiff.needDeployment) {
           // Trigger a deployment only if it is needed
