@@ -1,6 +1,8 @@
 [Unit]
 Description=Update Rudder package index and licenses
 After=network-online.target
+# Don't run it on relays, only on root servers
+ConditionPathExists=/opt/rudder/share/webapps/rudder.xml
 
 [Service]
 Type=oneshot
