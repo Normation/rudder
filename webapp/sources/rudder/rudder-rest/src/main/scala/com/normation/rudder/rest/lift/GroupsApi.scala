@@ -1371,49 +1371,57 @@ class GroupApiService14(
 
       nodes <- nodeFactRepo.getAll().map(_.filterKeys(serverList.contains(_)).values.toList)
 
-      params           <- paramRepo.getAllGlobalParameters().map(_.map(p => (p.name, p)).toMap)
-      parentProperties <- MergeNodeProperties.forGroup(groupId, allGroups, params).toIO
-      properties       <- ZIO.foreach(nodes) { nodeFact =>
-                            // for each property, find merged properties for nodes in the group and report type conflict
-                            MergeNodeProperties
-                              .forNode(
-                                nodeFact.toNodeInfo,
-                                groupLibrary.getTarget(nodeFact).map(_._2).toList,
-                                params
-                              )
-                              .map(childProperties => {
-                                parentProperties
-                                  .map(p => {
-                                    val matchingChildProperties = childProperties.collect {
-                                      case cp if cp.prop.name == p.prop.name => cp.hierarchy
-                                    }
-                                    val hasConflicts            = MergeNodeProperties
-                                      .checkValueTypes(matchingChildProperties.map(NodePropertyHierarchy(p.prop, _)))
-                                      .isLeft
-                                    (
-                                      p,
-                                      matchingChildProperties.flatten,
-                                      hasConflicts
-                                    )
-                                  })
-                              })
-                              .toIO
-                          }
-
+      params                <- paramRepo.getAllGlobalParameters().map(_.map(p => (p.name, p)).toMap)
+      parentProperties      <- MergeNodeProperties.forGroup(groupId, allGroups, params).toIO
+      checkedNodeProperties <-
+        ZIO.when(nodes.nonEmpty) {
+          ZIO.foreach(nodes) { nodeFact =>
+            // for each property, find merged properties for nodes in the group and report type conflict
+            MergeNodeProperties
+              .forNode(
+                nodeFact.toNodeInfo,
+                groupLibrary.getTarget(nodeFact).map(_._2).toList,
+                params
+              )
+              .map(childProperties => {
+                parentProperties
+                  .map(p => {
+                    val matchingChildProperties = childProperties.collect {
+                      case cp if cp.prop.name == p.prop.name => cp.hierarchy
+                    }
+                    val hasConflicts            = MergeNodeProperties
+                      .checkValueTypes(matchingChildProperties.map(NodePropertyHierarchy(p.prop, _)))
+                      .isLeft
+                    (
+                      p,
+                      matchingChildProperties.flatten,
+                      hasConflicts
+                    )
+                  })
+              })
+              .toIO
+          }
+        }
+      properties             = checkedNodeProperties match {
+                                 case None            => // no Node is group : just use resolved group properties
+                                   parentProperties.map(prop => (prop, prop.hierarchy, false))
+                                 case Some(nodeProps) => // gather all properties on every node
+                                   nodeProps.flatten
+                                     .groupMapReduce(_._1.prop.name) {
+                                       case (p, childProps, hasConflicts) =>
+                                         (p, childProps, hasConflicts)
+                                     } {
+                                       // merge node properties by property : the hierarchy adds up and conflict is combined with boolean OR
+                                       case ((p, a1, b1), (_, a2, b2)) =>
+                                         (p, mergeHierarchies(a1, a2), b1 || b2)
+                                     }
+                                     .values
+                                     .toList
+                               }
     } yield {
       JRGroupInheritedProperties.fromGroup(
         groupId,
-        properties.flatten
-          // merge node properties by property : the hierarchy adds up and conflict is combined with boolean OR
-          .groupMapReduce(_._1.prop.name) {
-            case (p, childProps, hasConflicts) =>
-              (p, childProps, hasConflicts)
-          } {
-            case ((p, a1, b1), (_, a2, b2)) => // property is the same under the same name
-              (p, mergeHierarchies(a1, a2), b1 || b2)
-          }
-          .values
-          .toList,
+        properties,
         renderInHtml
       )
     }
