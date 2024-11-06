@@ -24,7 +24,7 @@ be secured just like a password would be.
 
 ### API accounts
 
-The accounts are managed in the Web interface. There are two possible types of accounts:
+The accounts are managed in the Web interface. There are three types of accounts:
 
 * **Global API accounts**: they are not linked to a Rudder user, and are managed by Rudder administrators in the _Administration -> API accounts_ page. You should define an expiration date whenever possible.
 
@@ -34,6 +34,16 @@ The accounts are managed in the Web interface. There are two possible types of a
 There can be only one token by user. This feature is provided by the `api-authorizatons` plugin.
 
 ![User API token](assets/api-user.png "User API token")
+
+* **System token**: it is a special token, not visible in the interface. Its value is postfixed with `-system`
+and is regenerated at each application restart. It is designed to allow running local calls to the API
+without having to configure an account. The token is written
+into `/var/rudder/run/api-token` and only readable by the `root` user. When using the token with `curl`, you should use the
+alternative form to prevent leaking the token in the process list:
+
+```
+curl --header @/var/rudder/run/api-token-header
+```
 
 When an action produces a change of configuration on the server, the API account that made it will
 be recorded in the event log, like for a Web interaction.
