@@ -94,19 +94,27 @@ class DynGroupUpdaterServiceImpl(
 ) extends DynGroupUpdaterService {
 
   override def computeDynGroup(group: NodeGroup)(implicit qc: QueryContext): Box[NodeGroup] = {
-    for {
-      _               <- if (group.isDynamic) Full("OK") else Failure("Can not update a not dynamic group")
-      timePreCompute   = System.currentTimeMillis
-      query           <- Box(group.query) ?~! s"No query defined for group '${group.name}' (${group.id.serialize})"
-      newMembers      <- queryProcessor.processOnlyId(
-                           query
-                         ) ?~! s"Error when processing request for updating dynamic group '${group.name}' (${group.id.serialize})"
-      timeGroupCompute = (System.currentTimeMillis - timePreCompute)
-      _                = DynamicGroupLoggerPure.Timing.logEffect.trace(
-                           s"Dynamic group ${group.id.serialize} with name ${group.name} computed in ${timeGroupCompute} ms"
-                         )
-    } yield {
-      group.copy(serverList = newMembers.toSet)
+    // we only compute the node list for dynamic groups with a query. For other groups (static, newly created groups, etc)
+    // we don't do anything
+    if (!group.isDynamic) Full(group)
+    else {
+      group.query match {
+        case None        => Full(group)
+        case Some(query) =>
+          val timePreCompute = System.currentTimeMillis
+          for {
+            newMembers      <-
+              queryProcessor.processOnlyId(
+                query
+              ) ?~! s"Error when processing request for updating dynamic group '${group.name}' (${group.id.serialize})"
+            timeGroupCompute = (System.currentTimeMillis - timePreCompute)
+            _                = DynamicGroupLoggerPure.Timing.logEffect.trace(
+                                 s"Dynamic group ${group.id.serialize} with name ${group.name} computed in ${timeGroupCompute} ms"
+                               )
+          } yield {
+            group.copy(serverList = newMembers.toSet)
+          }
+      }
     }
   }
 
