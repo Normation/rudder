@@ -29,7 +29,7 @@ fn test_unix(filename: &str) {
     let src = technique_dir.join("technique.yml");
     let target = technique_dir.join("target");
 
-    fs::remove_dir_all(&target).unwrap();
+    let _ = fs::remove_dir_all(&target);
     action::build(
         &[PathBuf::from(TEST_METHODS)],
         &src,
@@ -62,7 +62,9 @@ fn test_windows(filename: &str) {
     let technique_dir = Path::new(filename).parent().unwrap();
     let cwd = env::current_dir().unwrap();
     let src = technique_dir.join("technique.yml");
+    let target = technique_dir.join("target");
 
+    let _ = fs::remove_dir_all(&target);
     action::build(
         &[PathBuf::from(TEST_METHODS)],
         &src,
