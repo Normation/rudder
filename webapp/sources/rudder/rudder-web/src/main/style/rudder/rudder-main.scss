@@ -128,6 +128,7 @@ pre.json-beautify, .content-wrapper pre.json-beautify{
   white-space: pre-wrap;
   word-break: break-all;
   word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 pre.json-beautify.toggle, .content-wrapper pre.json-beautify.toggle{
   height:auto;
