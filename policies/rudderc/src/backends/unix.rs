@@ -9,6 +9,7 @@ use tracing::trace;
 
 use super::Backend;
 use crate::{
+    backends,
     backends::unix::{
         cfengine::{bundle::Bundle, promise::Promise},
         ncf::{dry_run_mode, method_call::method_call, technique::Technique},
@@ -117,7 +118,7 @@ impl Backend for Unix {
             .parameters(technique.params.iter().map(|p| p.name.clone()).collect());
         // separate bundles for each method call
         let mut call_bundles = vec![];
-        if !Unix::list_resources(resources)?.is_empty() {
+        if !backends::list_resources(resources)?.is_empty() {
             main_bundle.add_promise_group(vec![Promise::string(
                 "resources_dir",
                 "${this.promise_dirname}/resources",

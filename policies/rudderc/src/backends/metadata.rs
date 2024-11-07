@@ -12,11 +12,13 @@ use std::path::Path;
 
 use anyhow::{Error, Result};
 use quick_xml::se::Serializer;
-use rudder_commons::{Target, ALL_TARGETS};
+use rudder_commons::{Target};
 use serde::Serialize;
 
+use crate::backends::MetadataBackend;
 use crate::{
-    backends::{Backend, Windows},
+    backends,
+    backends::{Windows},
     ir,
     ir::technique::{Id, ItemKind, LeafReportingMode, Parameter, ParameterType},
     RESOURCES_DIR,
@@ -24,14 +26,15 @@ use crate::{
 
 pub struct Metadata;
 
-impl Backend for Metadata {
+impl MetadataBackend for Metadata {
     fn generate(
         &self,
         technique: ir::Technique,
         resources: &Path,
         _standalone: bool,
+        targets: &[Target],
     ) -> Result<String> {
-        let technique: Technique = (technique, resources).try_into()?;
+        let technique: Technique = (technique, resources, targets).try_into()?;
         Self::xml(technique)
     }
 }
@@ -155,14 +158,14 @@ impl From<Parameter> for SelectOne {
     }
 }
 
-impl TryFrom<(ir::Technique, &Path)> for Technique {
+impl TryFrom<(ir::Technique, &Path, &[Target])> for Technique {
     type Error = Error;
 
-    fn try_from(data: (ir::Technique, &Path)) -> Result<Self> {
-        let (src, resources) = data;
-        let files = Metadata::list_resources(resources)?;
+    fn try_from(data: (ir::Technique, &Path, &[Target])) -> Result<Self> {
+        let (src, resources, targets) = data;
+        let files = backends::list_resources(resources)?;
 
-        let agent = ALL_TARGETS
+        let agent = targets
             .iter()
             .map(|t| {
                 Agent::from(

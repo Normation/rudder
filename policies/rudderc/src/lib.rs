@@ -475,7 +475,7 @@ pub mod action {
                 metadata_file.display()
             )
         })?;
-        file.write_all(metadata(policy, input)?.as_bytes())?;
+        file.write_all(metadata(policy, input, targets)?.as_bytes())?;
         ok_output("Wrote", metadata_file.display());
 
         // Resources folder
