@@ -378,7 +378,7 @@ object RudderParsedProperties {
     } catch {
       case ex: ConfigException =>
         ApplicationLogger.info(
-          "Property 'ldap.maxPoolSize' is missing or empty in rudder.configFile. Default to 2 connections."
+          "Property 'ldap.maxPoolSize' is absent or empty in rudder.configFile. Default to 2 connections."
         )
         2
     }
@@ -390,7 +390,7 @@ object RudderParsedProperties {
       } catch {
         case ex: ConfigException =>
           ApplicationLogger.debug(
-            "Property 'ldap.nodeinfo.cache.min.interval' is missing or empty in rudder.configFile. Default to 100 ms."
+            "Property 'ldap.nodeinfo.cache.min.interval' is absent or empty in rudder.configFile. Default to 100 ms."
           )
           100
       }
@@ -427,7 +427,7 @@ object RudderParsedProperties {
         } catch {
           case ex: ConfigException =>
             ApplicationLogger.info(
-              "Property 'rudder.policy.distribution.port.cfengine' is missing or empty in Rudder configuration file. Default to 5309"
+              "Property 'rudder.policy.distribution.port.cfengine' is absent or empty in Rudder configuration file. Default to 5309"
             )
             5309
         }
@@ -439,7 +439,7 @@ object RudderParsedProperties {
     } catch {
       case ex: ConfigException =>
         ApplicationLogger.info(
-          "Property 'rudder.policy.distribution.port.https' is missing or empty in Rudder configuration file. Default to 443"
+          "Property 'rudder.policy.distribution.port.https' is absent or empty in Rudder configuration file. Default to 443"
         )
         443
     }
@@ -467,7 +467,7 @@ object RudderParsedProperties {
       } catch {
         case ex: ConfigException =>
           ApplicationLogger.debug(
-            "Property 'rudder.jdbc.batch.max.size' is missing or empty in rudder.configFile. Default to 500."
+            "Property 'rudder.jdbc.batch.max.size' is absent or empty in rudder.configFile. Default to 500."
           )
           500
       }
@@ -486,7 +486,7 @@ object RudderParsedProperties {
       // missing key, perhaps due to migration, use default
       case ex: Exception => {
         val default = "0 42 3 * * ?"
-        logger.info(s"`rudder.git.gc` property is missing, using default schedule: ${default}")
+        logger.info(s"`rudder.git.gc` property is absent, using default schedule: ${default}")
         default
       }
     }
@@ -504,7 +504,7 @@ object RudderParsedProperties {
       // missing key, perhaps due to migration, use default
       case ex: Exception => {
         val default = "0 32 3 * * ?"
-        logger.info(s"`rudder.inventories.cleanup.old.files.cron` property is missing, using default schedule: ${default}")
+        logger.info(s"`rudder.inventories.cleanup.old.files.cron` property is absent, using default schedule: ${default}")
         default
       }
     }
@@ -601,7 +601,7 @@ object RudderParsedProperties {
     } catch {
       case ex: ConfigException =>
         ApplicationLogger.info(
-          "Property 'rudder.batch.purge.inventories.delete.TTL' is missing or empty in rudder.configFile. Default to 7 days."
+          "Property 'rudder.batch.purge.inventories.delete.TTL' is absent or empty in rudder.configFile. Default to 7 days."
         )
         7
     }
@@ -613,7 +613,7 @@ object RudderParsedProperties {
     } catch {
       case ex: ConfigException =>
         ApplicationLogger.debug(
-          "Property 'rudder.bcrypt.cost' is missing or empty in rudder.configFile. Default cost to 12."
+          "Property 'rudder.bcrypt.cost' is absent or empty in rudder.configFile. Default cost to 12."
         )
         12
     }
@@ -625,7 +625,7 @@ object RudderParsedProperties {
     } catch {
       case ex: ConfigException =>
         ApplicationLogger.info(
-          "Property 'rudder.batch.purge.inventories.delete.interval' is missing or empty in rudder.configFile. Default to 24 hours."
+          "Property 'rudder.batch.purge.inventories.delete.interval' is absent or empty in rudder.configFile. Default to 24 hours."
         )
         24
     }
@@ -637,7 +637,7 @@ object RudderParsedProperties {
     } catch {
       case ex: ConfigException =>
         ApplicationLogger.info(
-          "Property 'rudder.batch.delete.software.interval' is missing or empty in rudder.configFile. Default to 24 hours."
+          "Property 'rudder.batch.delete.software.interval' is absent or empty in rudder.configFile. Default to 24 hours."
         )
         24
     }
@@ -649,7 +649,7 @@ object RudderParsedProperties {
     } catch {
       case ex: Exception =>
         ApplicationLogger.info(
-          "Property 'rudder.batch.check.node.cache.interval' is missing or empty in rudder.configFile. Default to '15 s'."
+          "Property 'rudder.batch.check.node.cache.interval' is absent or empty in rudder.configFile. Default to '15 s'."
         )
         Duration(15, TimeUnit.SECONDS)
     }
@@ -660,7 +660,7 @@ object RudderParsedProperties {
     } catch {
       case ex: Exception =>
         ApplicationLogger.info(
-          "Property 'rudder.config.repo.new.file.group.owner' is missing or empty in rudder.configFile. Default to 'rudder'."
+          "Property 'rudder.config.repo.new.file.group.owner' is absent or empty in rudder.configFile. Default to 'rudder'."
         )
         "rudder"
     }
@@ -671,7 +671,7 @@ object RudderParsedProperties {
     } catch {
       case ex: Exception =>
         ApplicationLogger.info(
-          "Property 'rudder.generated.policies.group.owner' is missing or empty in rudder.configFile. Default to 'rudder-policy-reader'."
+          "Property 'rudder.generated.policies.group.owner' is absent or empty in rudder.configFile. Default to 'rudder-policy-reader'."
         )
         "rudder-policy-reader"
     }
@@ -872,7 +872,7 @@ object RudderParsedProperties {
     } catch {
       case ex: ConfigException       =>
         ApplicationLogger.info(
-          "Property 'metrics.healthcheck.scheduler.period' is missing or empty in rudder.configFile. Default to 6 hours."
+          "Property 'metrics.healthcheck.scheduler.period' is absent or empty in rudder.configFile. Default to 6 hours."
         )
         6.hours
       case ex: NumberFormatException =>
@@ -981,7 +981,7 @@ object RudderParsedProperties {
       // missing key, perhaps due to migration, use default
       case ex: Exception => {
         val default = "0 17 1 * * ?"
-        logger.info(s"`rudder.users.cleanup.cron` property is missing, using default schedule: ${default}")
+        logger.info(s"`rudder.users.cleanup.cron` property is absent, using default schedule: ${default}")
         default
       }
     }
