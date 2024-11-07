@@ -7,11 +7,11 @@
 //! start parallel jobs.
 
 use std::{
-    env,
+    env, fs,
     path::{Path, PathBuf},
 };
 
-use rudder_commons::ALL_TARGETS;
+use rudder_commons::Target;
 use rudderc::{action, DEFAULT_AGENT_PATH};
 use test_generator::test_resources;
 
@@ -27,16 +27,21 @@ fn test_unix(filename: &str) {
     let technique_dir = Path::new(filename).parent().unwrap();
     let cwd = env::current_dir().unwrap();
     let src = technique_dir.join("technique.yml");
+    let target = technique_dir.join("target");
 
+    fs::remove_dir_all(&target).unwrap();
     action::build(
         &[PathBuf::from(TEST_METHODS)],
         &src,
         &technique_dir.join("target"),
         true,
         false,
-        ALL_TARGETS,
+        &[Target::Unix],
     )
     .unwrap();
+    // Ensure target selection works
+    assert!(target.join("technique.cf").exists());
+    assert!(!target.join("technique.ps1").exists());
     action::test(
         &src,
         &technique_dir.join("target"),
@@ -64,7 +69,7 @@ fn test_windows(filename: &str) {
         &technique_dir.join("target"),
         true,
         false,
-        ALL_TARGETS,
+        &[Target::Windows],
     )
     .unwrap();
     let res = action::test(
