@@ -871,6 +871,7 @@ class RestTestSetUp {
     mockNodeGroups.groupsRepo,
     mockNodeGroups.groupsRepo,
     mockNodes.propRepo,
+    mockNodeGroups.propService,
     uuidGen,
     asyncDeploymentAgent,
     workflowLevelService,
