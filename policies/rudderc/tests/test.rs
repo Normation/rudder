@@ -64,7 +64,7 @@ fn test_windows(filename: &str) {
     let src = technique_dir.join("technique.yml");
     let target = technique_dir.join("target");
 
-    let _ = fs::remove_dir_all(&target);
+    let _ = fs::remove_dir_all(target);
     action::build(
         &[PathBuf::from(TEST_METHODS)],
         &src,
