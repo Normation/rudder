@@ -119,9 +119,11 @@ class PurgeOldInventoryData(
 
     val deleteDeleted = (for {
       ids <- inventoryHistory.deleteFactIfDeleteEventBefore(now.minus(deleteLogDeleted.toMillis))
-      _   <- InventoryProcessingLogger.info(
-               s"Deleted historical pending inventory information of nodes: '${ids.map(_.value).mkString("', '")}'"
-             )
+      _   <- InventoryProcessingLogger
+               .info(
+                 s"Deleted historical pending inventory information of nodes: '${ids.map(_.value).mkString("', '")}'"
+               )
+               .unless(ids.isEmpty)
     } yield ()).catchAll { err =>
       InventoryProcessingLogger.error(
         s"Error when deleting historical pending inventory information for deleted nodes: ${err.fullMsg}"
