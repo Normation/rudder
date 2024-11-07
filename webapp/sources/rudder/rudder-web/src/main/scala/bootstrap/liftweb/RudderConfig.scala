@@ -3242,6 +3242,7 @@ object RudderConfigInit {
         inventoryHistoryJdbcRepository,
         KEEP_DELETED_NODE_FACT_DURATION
       ),
+      new CheckTableReportsExecutionTz(doobie),
       new CheckTechniqueLibraryReload(
         techniqueRepositoryImpl,
         uuidGen

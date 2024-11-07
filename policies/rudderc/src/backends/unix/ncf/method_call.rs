@@ -42,7 +42,12 @@ pub fn method_call(
 
     let info = m.info.unwrap();
     let id = m.id.as_ref();
+    // Uniqueness for re-execution.
+    // method_id is not enough due to iterators.
+    // It also needs to be evaluated at run time to get the maximal variability.
+    // WARN: this may be non-evaluated if the resulting string is too long.
     let unique = &format!("{}_${{report_data.directive_id}}", m.id.as_ref());
+    let very_unique = &format!("{}_${{report_data.directive_id}}_${{c_key}}", m.id.as_ref());
     let c_id = canonify(id);
 
     let condition = condition.and(&m.condition);
@@ -74,20 +79,20 @@ pub fn method_call(
     let enable_report = Promise::usebundle(
         "enable_reporting",
         Some(&report_component),
-        Some(unique),
+        Some(very_unique),
         vec![],
     );
     let disable_report = Promise::usebundle(
         "disable_reporting",
         Some(&report_component),
-        Some(unique),
+        Some(very_unique),
         vec![],
     );
 
     let reporting_context = Promise::usebundle(
         "_method_reporting_context_v4",
         Some(&report_component),
-        Some(unique),
+        Some(very_unique),
         vec![expanded("c_name"), expanded("c_key"), expanded("report_id")],
     );
 
@@ -95,7 +100,7 @@ pub fn method_call(
     let method = Promise::usebundle(
         &info.bundle_name,
         Some(&report_component),
-        Some(unique),
+        Some(very_unique),
         parameters_names
             .iter()
             .map(|p| expanded(p.as_str()))
@@ -106,8 +111,10 @@ pub fn method_call(
         info.bundle_name
     );
 
-    let push_policy_mode = dry_run_mode::push_policy_mode(m.policy_mode_override, unique.clone());
-    let pop_policy_mode = dry_run_mode::pop_policy_mode(m.policy_mode_override, unique.clone());
+    let push_policy_mode =
+        dry_run_mode::push_policy_mode(m.policy_mode_override, very_unique.clone());
+    let pop_policy_mode =
+        dry_run_mode::pop_policy_mode(m.policy_mode_override, very_unique.clone());
     let incall_condition = "${method_call_condition}".to_string();
 
     let mut promises = match (&condition, is_supported) {
@@ -116,8 +123,8 @@ pub fn method_call(
                     push_policy_mode,
                     Some(method.if_condition(incall_condition.clone())),
                     pop_policy_mode,
-                    Some(Promise::usebundle("_classes_noop", Some(&report_component), Some(unique), vec![na_condition.clone()]).unless_condition(incall_condition.clone())),
-                    Some(Promise::usebundle("log_rudder", Some(&report_component),  Some(unique), vec![
+                    Some(Promise::usebundle("_classes_noop", Some(&report_component), Some(very_unique), vec![na_condition.clone()]).unless_condition(incall_condition.clone())),
+                    Some(Promise::usebundle("log_rudder", Some(&report_component),  Some(very_unique), vec![
                         quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, condition)),
                         quoted(&report_parameter),
                         na_condition.clone(),
@@ -127,8 +134,8 @@ pub fn method_call(
             ].into_iter().flatten().collect(),
             (Condition::NotDefined, true) => vec![
                 reporting_context,
-                Promise::usebundle("_classes_noop", Some(&report_component), Some(unique), vec![na_condition.clone()]),
-                Promise::usebundle("log_rudder", Some(&report_component),  Some(unique), vec![
+                Promise::usebundle("_classes_noop", Some(&report_component), Some(very_unique), vec![na_condition.clone()]),
+                Promise::usebundle("log_rudder", Some(&report_component),  Some(very_unique), vec![
                     quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, condition)),
                     quoted(&report_parameter),
                     na_condition.clone(),
@@ -146,14 +153,14 @@ pub fn method_call(
                 reporting_context,
                 Promise::usebundle(
                     "log_na_rudder",
-                    Some(&report_component), Some(unique),
+                    Some(&report_component), Some(very_unique),
                     vec![
                         quoted(&format!(
                             "'{}' method is not available on classic Rudder agent, skip",
                             report_parameter,
                         )),
                         quoted(&report_parameter),
-                        quoted(unique),
+                        quoted(very_unique),
                         "@{args}".to_string(),
                     ],
                 )
