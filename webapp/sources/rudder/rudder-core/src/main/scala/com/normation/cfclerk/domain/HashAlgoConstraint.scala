@@ -161,9 +161,7 @@ object HashAlgoConstraint extends Enum[HashAlgoConstraint] {
     case object Linux extends DerivedPasswordType {
       final val name = "Unix"
 
-      def hash(h: HashAlgoConstraint): HashAlgoConstraint = h match {
-        case x => x
-      }
+      def hash(h: HashAlgoConstraint): HashAlgoConstraint = h
     }
   }
 
