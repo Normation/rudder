@@ -157,7 +157,7 @@ class SearchNodeComponent(
 
   def buildQuery(isGroupsPage: Boolean)(implicit qc: QueryContext): NodeSeq = {
 
-    if (None == query) query = Some(Query(NodeReturnType, And, ResultTransformation.Identity, List(defaultLine)))
+    if (None == query) query = Some(Query(NodeReturnType, And, ResultTransformation.Identity, List()))
     val lines       = ArrayBuffer[CriterionLine]()
     var composition = query.get.composition
     var rType       = query.get.returnType // for now, don't move
@@ -247,7 +247,7 @@ class SearchNodeComponent(
         else
           NodeSeq.Empty
       } &
-      ".addLine *" #> SHtml.ajaxSubmit("+", () => addLine(index), ("class", "btn btn-success btn-sm fw-bold")) &
+      ".addLine *" #> addLineButton(index) &
       ".objectType *" #> objectTypeSelect(cl.objectType, lines, index) &
       ".attributeName *" #> attributeNameSelect(cl.objectType, cl.attribute, lines, index) &
       ".comparator *" #> comparatorSelect(cl.objectType, cl.attribute, cl.comparator, lines, index) &
@@ -258,9 +258,15 @@ class SearchNodeComponent(
             <tr><td class="error" colspan="6">{m}</td></tr>
           case _       => NodeSeq.Empty
         }
-      }).apply(queryline) ++ Script(OnLoad(initJs))
+      }).apply(queryline) ++ Script(OnLoad(initJs)) ++ (if (lines.nonEmpty) {
+                                                          Script(
+                                                            OnLoad(JsRaw("""$("#SubmitSearch").removeClass("d-none")"""))
+                                                          )
+                                                        } else NodeSeq.Empty)
 
     }
+
+    def addLineButton(index: Int): Elem = SHtml.ajaxSubmit("+", () => addLine(index), ("class", "btn btn-success btn-sm fw-bold"))
 
     /**
      * Display the query part
@@ -319,9 +325,13 @@ class SearchNodeComponent(
         "Search",
         () => processForm(isGroupsPage),
         ("id"    -> "SubmitSearch"),
-        ("class" -> "btn btn-primary ")
+        ("class" -> s"btn btn-primary ${if (criteria.isEmpty) "d-none" else ""}")
       ) &
-      "#query_lines *" #> criteria.zipWithIndex.flatMap { case (cl, i) => displayQueryLine(cl, i, criteria.size > 1) }).apply(
+      "#query_lines *" #> (if (criteria.isEmpty) <div><span>Add a first criterion to define your group: </span>{
+                             addLineButton(-1)
+                           }</div>
+                           else
+                             criteria.zipWithIndex.flatMap { case (cl, i) => displayQueryLine(cl, i, criteria.size > 1) })).apply(
         html
         /*}:NodeSeq} ++ { if(criteria.size > 0) {
           //add a <script> tag to init all specific Js form renderer, like Jquery datepicker for date
