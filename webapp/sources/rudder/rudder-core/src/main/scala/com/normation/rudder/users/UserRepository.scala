@@ -407,7 +407,7 @@ class InMemoryUserRepository(userBase: Ref[Map[String, UserInfo]], sessionBase: 
   override def addUser(origin: String, user: String, trace: EventTrace, isCaseSensitive: Boolean): IOResult[Boolean] = {
     userBase.get
       .flatMap(m => {
-        val current = m.collect { case (k, u) if u.managedBy == origin => k }.toList
+        val current = m.collect { case (k, u) if u.managedBy == origin && u.status != UserStatus.Deleted => k }.toList
         setExistingUsers(origin, current :+ user, trace, isCaseSensitive)
       })
       .map(!_.contains(user))
@@ -752,7 +752,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
   override def addUser(origin: String, user: String, trace: EventTrace, isCaseSensitive: Boolean): IOResult[Boolean] = {
     transactIOResult(s"Error when adding user '${user}' from '${origin}'") { xa =>
       (for {
-        current  <- fr"select id from users where managedby = ${origin}".query[String].to[List]
+        current  <- fr"select id from users where managedby = ${origin} and status <> 'deleted'".query[String].to[List]
         added     = current :+ user
         notAdded <- setUsers(origin, added, trace, isCaseSensitive)
       } yield {
