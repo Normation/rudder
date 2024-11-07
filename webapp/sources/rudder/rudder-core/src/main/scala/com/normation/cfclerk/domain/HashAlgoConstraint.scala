@@ -156,6 +156,17 @@ object HashAlgoConstraint extends Enum[HashAlgoConstraint] {
     def hash(h: HashAlgoConstraint): HashAlgoConstraint
   }
 
+  object DerivedPasswordType {
+
+    case object Linux extends DerivedPasswordType {
+      final val name = "Unix"
+
+      def hash(h: HashAlgoConstraint): HashAlgoConstraint = h match {
+        case x => x
+      }
+    }
+  }
+
   /////
   ///// Generic methods on algos
   /////
@@ -182,17 +193,6 @@ object HashAlgoConstraint extends Enum[HashAlgoConstraint] {
       case SHA512            => 84
     }
     algos.sortBy(order)
-  }
-
-  object DerivedPasswordType {
-
-    case object Linux extends DerivedPasswordType {
-      final val name = "Unix"
-
-      def hash(h: HashAlgoConstraint): HashAlgoConstraint = h match {
-        case x => x
-      }
-    }
   }
 
   private def algoNames(algos: Seq[HashAlgoConstraint]): String = {
