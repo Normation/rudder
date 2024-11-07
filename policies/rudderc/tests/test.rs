@@ -11,6 +11,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use rudder_commons::ALL_TARGETS;
 use rudderc::{action, DEFAULT_AGENT_PATH};
 use test_generator::test_resources;
 
@@ -33,6 +34,7 @@ fn test_unix(filename: &str) {
         &technique_dir.join("target"),
         true,
         false,
+        ALL_TARGETS,
     )
     .unwrap();
     action::test(
@@ -62,6 +64,7 @@ fn test_windows(filename: &str) {
         &technique_dir.join("target"),
         true,
         false,
+        ALL_TARGETS,
     )
     .unwrap();
     let res = action::test(
