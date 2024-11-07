@@ -138,12 +138,13 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       case s: ErrorStatus   => displayTime("Started", s.started)
       case _ => NodeSeq.Empty
     }
-    SetHtml("deployment-start", content) & scriptStatusLayout
+    SetHtml("deployment-start", content)
   }
 
   override def render: RenderOut = {
-    partialUpdate(updateDuration)
-    new RenderOut(layout)
+    // we need both the script each time we render the page, and also when the status content is available
+    partialUpdate(updateDuration & scriptStatusLayout)
+    new RenderOut(layout, scriptStatusLayout)
   }
 
   val deployementErrorMessage: Regex = """(.*)!errormessage!(.*)""".r
@@ -597,10 +598,13 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         s"""
           initBsTooltips();
           var statusDropdown = $$('.dropdown-menu[aria-labelledby="statusDropdownLink"]');
-          $$('.status-dropdown').on('hide.bs.dropdown', function () {
-            return false
-          }).off('click').on('click', function () {
-            statusDropdown.toggle();
+          statusDropdown.on('click', function (e) {
+            e.stopPropagation(); // prevent closing the dropdown since it has collapsable content
+          });
+
+          $$('.status-dropdown').on('click', function (e) {
+            e.preventDefault();
+            $$(this).dropdown('toggle');
           });
           """
       )
