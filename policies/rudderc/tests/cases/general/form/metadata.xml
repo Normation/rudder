@@ -93,7 +93,7 @@
         <DESCRIPTION>server_g</DESCRIPTION>
         <CONSTRAINT>
           <TYPE>password</TYPE>
-          <PASSWORDHASH>pre-hashed,linux-shadow-sha256,linux-shadow-sha512,aix-ssha256,aix-ssha512</PASSWORDHASH>
+          <PASSWORDHASH>pre-hashed,linux-shadow-sha256,linux-shadow-sha512</PASSWORDHASH>
         </CONSTRAINT>
       </INPUT>
       <INPUT>

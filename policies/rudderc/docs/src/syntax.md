@@ -78,9 +78,6 @@ Each parameter contains the following fields:
     * `md5-crypt`: md5-crypt hash.
     * `sha256-crypt`: sha256-crypt hash.
     * `sha512-crypt`: sha512-crypt hash.
-    * `md5-crypt-aix`: md5-crypt hash for AIX.
-    * `sha256-crypt-aix`: sha256-crypt hash for AIX.
-    * `sha512-crypt-aix`: sha512-crypt hash for AIX.
 
 Example:
 

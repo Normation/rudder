@@ -3352,7 +3352,6 @@ object RudderConfigInit {
                   input.constraint.mayBeEmpty,
                   () => configService.rudder_featureSwitch_directiveScriptEngine().toBox
                 )
-              case AixDerivedPasswordVType    => new DerivedPasswordField(id, HashAlgoConstraint.DerivedPasswordType.AIX)
               case LinuxDerivedPasswordVType  => new DerivedPasswordField(id, HashAlgoConstraint.DerivedPasswordType.Linux)
               case _                          => default(id)
             }

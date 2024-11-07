@@ -45,7 +45,6 @@ import com.normation.cfclerk.domain.ReportingLogic.FocusReport
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors.*
-import com.normation.inventory.domain.AixOS
 import com.normation.inventory.domain.MemorySize
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.batch.UpdateDynamicGroups
@@ -1386,8 +1385,7 @@ object BuildNodeConfiguration extends Loggable {
                                                                                  case (k, v) =>
                                                                                    // js lib is specific to the node os, bind here to not leak eval between vars
                                                                                    val jsLib = context.nodeInfo.os.os match {
-                                                                                     case AixOS => JsRudderLibBinding.Aix
-                                                                                     case _     => JsRudderLibBinding.Crypt
+                                                                                     case _ => JsRudderLibBinding.Crypt
                                                                                    }
 
                                                                                    for {

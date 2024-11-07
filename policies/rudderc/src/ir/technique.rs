@@ -237,8 +237,6 @@ impl PasswordType {
             // https://fedoraproject.org/wiki/Changes/yescrypt_as_default_hashing_method_for_shadow
             PasswordType::Sha256Crypt,
             PasswordType::Sha512Crypt,
-            PasswordType::Sha256CryptAix,
-            PasswordType::Sha512CryptAix,
         ]
     }
 }
@@ -255,10 +253,6 @@ pub enum PasswordType {
     Md5Crypt,
     Sha256Crypt,
     Sha512Crypt,
-    // AIX uses specific variants of those crypt hashes
-    Md5CryptAix,
-    Sha256CryptAix,
-    Sha512CryptAix,
     UnixCryptDes,
 }
 
@@ -277,9 +271,6 @@ impl Display for PasswordType {
                 PasswordType::Md5Crypt => "linux-shadow-md5",
                 PasswordType::Sha256Crypt => "linux-shadow-sha256",
                 PasswordType::Sha512Crypt => "linux-shadow-sha512",
-                PasswordType::Md5CryptAix => "aix-smd5",
-                PasswordType::Sha256CryptAix => "aix-ssha256",
-                PasswordType::Sha512CryptAix => "aix-ssha512",
                 PasswordType::UnixCryptDes => "unix-crypt-des",
             }
         )

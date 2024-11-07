@@ -61,7 +61,7 @@ class VariableTest extends Specification {
     }
   }
 
-  val nbVariables = 28
+  val nbVariables = 27
 
   val refName         = "name"
   val refDescription  = "description"
@@ -161,7 +161,6 @@ class VariableTest extends Specification {
         rawVar
       )
       variables must haveKeys((1 to 6).map("password" + _)*)
-      variables must haveKeys(Seq("", "_AIX").map(s => "password_master" + s)*)
 
     }
   }
@@ -488,14 +487,6 @@ class VariableTest extends Specification {
         case MasterPasswordVType(a) => a ==== (algos)
         case _                      => ko("Variable is not a password input")
       }
-    }
-
-    "uses others inputs" in {
-      v.spec.constraint.usedFields === Set("password_master_AIX")
-    }
-
-    "we have a derived password variable" in {
-      variables("password_master_AIX").spec.constraint.typeName === AixDerivedPasswordVType
     }
   }
 
