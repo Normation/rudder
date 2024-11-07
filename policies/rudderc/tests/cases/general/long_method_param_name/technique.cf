@@ -16,7 +16,7 @@ bundle agent Windows_long_param_names {
 bundle agent call_Windows_long_param_names_d86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_key, report_id, args, class_prefix, report_message, condition) {
 
   methods:
-    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
-    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => report_if_condition("${report_message}", "${condition}");
+    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
+    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => report_if_condition("${report_message}", "${condition}");
 
 }
