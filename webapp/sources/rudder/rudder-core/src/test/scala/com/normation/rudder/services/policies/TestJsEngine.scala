@@ -253,32 +253,12 @@ class TestJsEngine extends Specification {
     val sha256Variable = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.sha256('secret')"))
     val sha512Variable = variableSpec.toVariable(Seq(s"${JsEngine.DEFAULT_EVAL}rudder.password.sha512('secret', '01234567')"))
 
-    val md5VariableAIX = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.aixMd5('secret')"))
-
     "get the correct hashed value for Linux sha256" in {
       contextEnabled(engine => engine.eval(sha256Variable, JsRudderLibBinding.Crypt)) must beVariableValue(_.startsWith("$5$"))
     }
 
-    "get the correct hashed value for Aix sha256" in {
-      contextEnabled(engine => engine.eval(sha256Variable, JsRudderLibBinding.Aix)) must beVariableValue(x =>
-        (x.startsWith("{ssha256}") | x.startsWith("{ssha1}"))
-      ) // PBKDF2WithHmacSHA256 may not be available
-    }
-
     "get the correct hashed value for Linux sha512" in {
       contextEnabled(engine => engine.eval(sha512Variable, JsRudderLibBinding.Crypt)) must beVariableValue(_.startsWith("$6$"))
-    }
-
-    "get the correct hashed value for Aix sha512" in {
-      contextEnabled(engine => engine.eval(sha512Variable, JsRudderLibBinding.Aix)) must beVariableValue(x =>
-        (x.startsWith("{ssha512}") | x.startsWith("{ssha1}"))
-      ) // PBKDF2WithHmacSHA512 may not be available
-    }
-
-    "get the correct hashed value for Aix md5" in {
-      contextEnabled(engine => engine.eval(md5VariableAIX, JsRudderLibBinding.Aix)) must beVariableValue(
-        _.startsWith("{smd5}")
-      )
     }
   }
 
@@ -287,37 +267,18 @@ class TestJsEngine extends Specification {
     val sha256Variable = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.auto('sha256', 'secret')"))
     val sha512Variable =
       variableSpec.toVariable(Seq(s"${JsEngine.DEFAULT_EVAL}rudder.password.auto('SHA-512', 'secret', '01234567')"))
-    val md5VariableAIX = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.aix('MD5', 'secret')"))
     val invalidAlgo    = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.auto('foo', 'secret')"))
 
     "get the correct hashed value for Linux sha256" in {
       contextEnabled(engine => engine.eval(sha256Variable, JsRudderLibBinding.Crypt)) must beVariableValue(_.startsWith("$5$"))
     }
 
-    "get the correct hashed value for Aix sha256" in {
-      contextEnabled(engine => engine.eval(sha256Variable, JsRudderLibBinding.Aix)) must beVariableValue(x =>
-        (x.startsWith("{ssha256}") | x.startsWith("{ssha1}"))
-      ) // PBKDF2WithHmacSHA256 may not be available
-    }
-
     "get the correct hashed value for Linux sha512" in {
       contextEnabled(engine => engine.eval(sha512Variable, JsRudderLibBinding.Crypt)) must beVariableValue(_.startsWith("$6$"))
     }
 
-    "get the correct hashed value for Aix sha512" in {
-      contextEnabled(engine => engine.eval(sha512Variable, JsRudderLibBinding.Aix)) must beVariableValue(x =>
-        (x.startsWith("{ssha512}") | x.startsWith("{ssha1}"))
-      ) // PBKDF2WithHmacSHA512 may not be available
-    }
-
-    "get the correct hashed value for Aix md5" in {
-      contextEnabled(engine => engine.eval(md5VariableAIX, JsRudderLibBinding.Aix)) must beVariableValue(
-        _.startsWith("{smd5}")
-      )
-    }
-
     "fail when we ask for a wrong password" in {
-      contextEnabled(engine => engine.eval(invalidAlgo, JsRudderLibBinding.Aix)) must beFailure("(?s)Invalid script.*".r)
+      contextEnabled(engine => engine.eval(invalidAlgo, JsRudderLibBinding.Crypt)) must beFailure("(?s)Invalid script.*".r)
     }
   }
 }

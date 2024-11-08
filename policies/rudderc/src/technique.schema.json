@@ -124,10 +124,7 @@
                   "sha512",
                   "md5-crypt",
                   "sha256-crypt",
-                  "sha512-crypt",
-                  "md5-crypt-aix",
-                  "sha256-crypt-aix",
-                  "sha512-crypt-aix"
+                  "sha512-crypt"
                 ]
               }
             },

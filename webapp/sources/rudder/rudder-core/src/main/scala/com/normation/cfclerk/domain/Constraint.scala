@@ -108,7 +108,7 @@ object VTypeConstraint {
     Nil ::: regexTypes ::: sizeTypes
   }
   def validTypes(r: Option[RegexConstraint], algos: Seq[HashAlgoConstraint]): List[VTypeConstraint] = {
-    PermVType :: PasswordVType(algos) :: AixDerivedPasswordVType :: LinuxDerivedPasswordVType :: MasterPasswordVType(algos) ::
+    PermVType :: PasswordVType(algos) :: LinuxDerivedPasswordVType :: MasterPasswordVType(algos) ::
     UploadedFileVType :: DestinationPathVType :: SharedFileVType ::
     BooleanVType :: RawVType :: Nil ::: stringTypes(r)
   }
@@ -255,9 +255,6 @@ sealed trait DerivedPasswordVType extends AbstactPassword {
   override lazy val name: String = s"derivedPassword:${tpe.name}"
 }
 
-case object AixDerivedPasswordVType   extends DerivedPasswordVType {
-  override val tpe: DerivedPasswordType.AIX.type = HashAlgoConstraint.DerivedPasswordType.AIX
-}
 case object LinuxDerivedPasswordVType extends DerivedPasswordVType {
   override val tpe: DerivedPasswordType.Linux.type = HashAlgoConstraint.DerivedPasswordType.Linux
 }
