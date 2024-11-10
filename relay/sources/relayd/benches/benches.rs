@@ -98,7 +98,7 @@ fn bench_uncompress_runlog(c: &mut Criterion) {
 pub fn db() -> PgPool {
     let db_config = DatabaseConfig {
         url: "postgres://rudderreports@127.0.0.1/rudder".to_string(),
-        password: SecretString::new("PASSWORD".to_string()),
+        password: "PASSWORD".into(),
         max_pool_size: 10,
     };
     pg_pool(&db_config).unwrap()
