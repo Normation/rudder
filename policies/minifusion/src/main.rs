@@ -163,7 +163,7 @@ impl Inventory {
             })
             .collect();
 
-        sys.refresh_processes(ProcessesToUpdate::All);
+        sys.refresh_processes(ProcessesToUpdate::All, true);
 
         let processes = sys
             .processes()

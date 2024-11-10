@@ -18,7 +18,7 @@ clap = { version = "4.5.11", features = ["derive"] }
 clap_complete = "4.5.10"
 chrono = { version = "0.4.31", default-features = false, features = ["clock", "std", "serde"] }
 lzma-rs = "0.3.0"
-quick-xml = "0.36.0"
+quick-xml = "0.37.0"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "native-tls"] }
 regex = "1.10.2"
 serde = { version = "1.0.189", features = ["derive"] }
@@ -30,7 +30,7 @@ tempfile = "3.8.0"
 # Compile dev and release with trace logs enabled
 tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-which = "6.0.1"
+which = "7"
 flate2 = "1.0.28"
 cli-table = "0.4.7"
 spinners = "4.1.1"
@@ -42,7 +42,7 @@ clap = { version = "4.5.11", features = ["derive"] }
 clap_complete = "4.5.10"
 
 [dev-dependencies]
-rstest = "0.22.0"
+rstest = "0.23.0"
 assert-json-diff = "2.0.2"
 dir-diff = "0.3.2"
 pretty_assertions = "1.4.0"
