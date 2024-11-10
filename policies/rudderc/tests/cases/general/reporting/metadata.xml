@@ -26,33 +26,25 @@
   <SECTIONS>
     <SECTION name="No block without condition" id="a86ce2e5-d5b6-45cc-87e8-c11cca71d908" component="true" multivalued="true">
       <REPORTKEYS>
-        <VALUE id="a86ce2e5-d5b6-45cc-87e8-c11cca71d908">
-          htop
-        </VALUE>
+        <VALUE id="a86ce2e5-d5b6-45cc-87e8-c11cca71d908">htop</VALUE>
       </REPORTKEYS>
     </SECTION>
     <SECTION name="No block with condition" id="b86ce2e5-d5b6-45cc-87e8-c11cca71d907" component="true" multivalued="true">
       <REPORTKEYS>
-        <VALUE id="b86ce2e5-d5b6-45cc-87e8-c11cca71d907">
-          htop
-        </VALUE>
+        <VALUE id="b86ce2e5-d5b6-45cc-87e8-c11cca71d907">htop</VALUE>
       </REPORTKEYS>
     </SECTION>
     <SECTION id="c9e259a1-51c5-40b3-98ef-0eeaf52dca99" name="A simpl block" reporting="worst-case-weighted-one" component="true" multivalued="true">
       <SECTION name="NTP service" id="df06e919-02b7-41a7-a03f-4239592f3c12" component="true" multivalued="true">
         <REPORTKEYS>
-          <VALUE id="df06e919-02b7-41a7-a03f-4239592f3c12">
-            ntp
-          </VALUE>
+          <VALUE id="df06e919-02b7-41a7-a03f-4239592f3c12">ntp</VALUE>
         </REPORTKEYS>
       </SECTION>
     </SECTION>
     <SECTION id="c9e259a1-51c5-40b3-98ef-0eeaf52dca98" name="A simple block" reporting="worst-case-weighted-one" component="true" multivalued="true">
       <SECTION name="NTP service" id="df06e919-02b7-41a7-a03f-4239592f3c45" component="true" multivalued="true">
         <REPORTKEYS>
-          <VALUE id="df06e919-02b7-41a7-a03f-4239592f3c45">
-            ntp
-          </VALUE>
+          <VALUE id="df06e919-02b7-41a7-a03f-4239592f3c45">ntp</VALUE>
         </REPORTKEYS>
       </SECTION>
     </SECTION>
@@ -60,36 +52,28 @@
       <SECTION id="b9e259a1-51c5-40b3-98ef-0eeaf52dca96" name="A simple block inside" reporting="worst-case-weighted-one" component="true" multivalued="true">
         <SECTION name="NTP service" id="cf06e919-02b7-41a7-a03f-4239592f3c14" component="true" multivalued="true">
           <REPORTKEYS>
-            <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c14">
-              ntp
-            </VALUE>
+            <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c14">ntp</VALUE>
           </REPORTKEYS>
         </SECTION>
       </SECTION>
       <SECTION id="b9e259a1-51c5-40b3-98ef-0eeaf52dca97" name="Another block inside" reporting="worst-case-weighted-sum" component="true" multivalued="true">
         <SECTION name="NTP service" id="cf06e919-02b7-41a7-a03f-4239592f3c13" component="true" multivalued="true">
           <REPORTKEYS>
-            <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c13">
-              ntp
-            </VALUE>
+            <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c13">ntp</VALUE>
           </REPORTKEYS>
         </SECTION>
       </SECTION>
       <SECTION id="074d64ca-10ec-4c50-b0e1-4c85903f8b4c" name="Another block inside" reporting="focus:cf06e919-02b7-41a7-a03f-4239592f3c21" component="true" multivalued="true">
         <SECTION name="Enabled reporting" id="cf06e919-02b7-41a7-a03f-4239592f3c21" component="true" multivalued="true">
           <REPORTKEYS>
-            <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c21">
-              ntp
-            </VALUE>
+            <VALUE id="cf06e919-02b7-41a7-a03f-4239592f3c21">ntp</VALUE>
           </REPORTKEYS>
         </SECTION>
       </SECTION>
       <SECTION id="344d64ca-10ec-4c50-b0e1-4c85903f8b4c" name="Yet another block inside" reporting="focus-worst" component="true" multivalued="true">
         <SECTION name="Enabled reporting" id="df06e919-02b7-41a7-a03f-4239592f3c21" component="true" multivalued="true">
           <REPORTKEYS>
-            <VALUE id="df06e919-02b7-41a7-a03f-4239592f3c21">
-              ntp
-            </VALUE>
+            <VALUE id="df06e919-02b7-41a7-a03f-4239592f3c21">ntp</VALUE>
           </REPORTKEYS>
         </SECTION>
       </SECTION>

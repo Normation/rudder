@@ -26,75 +26,55 @@
   <SECTIONS>
     <SECTION name="In audit mode" id="46b8025a-0b06-485c-9127-50e4258ee7e6" component="true" multivalued="true">
       <REPORTKEYS>
-        <VALUE id="46b8025a-0b06-485c-9127-50e4258ee7e6">
-          /tmp/1
-        </VALUE>
+        <VALUE id="46b8025a-0b06-485c-9127-50e4258ee7e6">/tmp/1</VALUE>
       </REPORTKEYS>
     </SECTION>
     <SECTION name="In omit mode" id="1eedce7b-3441-4251-bdd6-706fda3ec7a8" component="true" multivalued="true">
       <REPORTKEYS>
-        <VALUE id="1eedce7b-3441-4251-bdd6-706fda3ec7a8">
-          /tmp/1
-        </VALUE>
+        <VALUE id="1eedce7b-3441-4251-bdd6-706fda3ec7a8">/tmp/1</VALUE>
       </REPORTKEYS>
     </SECTION>
     <SECTION name="In enforce mode" id="dbd5ba50-8dfc-11ee-a57e-84a938c470d4" component="true" multivalued="true">
       <REPORTKEYS>
-        <VALUE id="dbd5ba50-8dfc-11ee-a57e-84a938c470d4">
-          /tmp/1
-        </VALUE>
+        <VALUE id="dbd5ba50-8dfc-11ee-a57e-84a938c470d4">/tmp/1</VALUE>
       </REPORTKEYS>
     </SECTION>
     <SECTION name="In default mode" id="1d809592-808e-4177-8351-8b7b7769af69" component="true" multivalued="true">
       <REPORTKEYS>
-        <VALUE id="1d809592-808e-4177-8351-8b7b7769af69">
-          /tmp/1
-        </VALUE>
+        <VALUE id="1d809592-808e-4177-8351-8b7b7769af69">/tmp/1</VALUE>
       </REPORTKEYS>
     </SECTION>
     <SECTION id="57f54359-2b2e-49f9-ab61-a77705615302" name="A block in audit mode" reporting="weighted" component="true" multivalued="true">
       <SECTION name="Resolve to audit" id="ea274579-40fc-4545-b384-8d5576a7c69b" component="true" multivalued="true">
         <REPORTKEYS>
-          <VALUE id="ea274579-40fc-4545-b384-8d5576a7c69b">
-            /tmp/1
-          </VALUE>
+          <VALUE id="ea274579-40fc-4545-b384-8d5576a7c69b">/tmp/1</VALUE>
         </REPORTKEYS>
       </SECTION>
       <SECTION name="Resolve to enforce" id="85659b7e-968c-458c-b566-c90108c50833" component="true" multivalued="true">
         <REPORTKEYS>
-          <VALUE id="85659b7e-968c-458c-b566-c90108c50833">
-            /tmp/1
-          </VALUE>
+          <VALUE id="85659b7e-968c-458c-b566-c90108c50833">/tmp/1</VALUE>
         </REPORTKEYS>
       </SECTION>
       <SECTION name="Resolve to audit" id="d8def455-cd43-441f-8dba-1ebae3a29389" component="true" multivalued="true">
         <REPORTKEYS>
-          <VALUE id="d8def455-cd43-441f-8dba-1ebae3a29389">
-            /tmp/1
-          </VALUE>
+          <VALUE id="d8def455-cd43-441f-8dba-1ebae3a29389">/tmp/1</VALUE>
         </REPORTKEYS>
       </SECTION>
     </SECTION>
     <SECTION id="1ff82fc2-38fc-4324-92ab-3de5fafcdc14" name="A block in enforce mode" reporting="weighted" component="true" multivalued="true">
       <SECTION name="Resolve to audit" id="f9417d97-3a18-4db6-85c3-72e28618bff1" component="true" multivalued="true">
         <REPORTKEYS>
-          <VALUE id="f9417d97-3a18-4db6-85c3-72e28618bff1">
-            /tmp/1
-          </VALUE>
+          <VALUE id="f9417d97-3a18-4db6-85c3-72e28618bff1">/tmp/1</VALUE>
         </REPORTKEYS>
       </SECTION>
       <SECTION name="Resolve to enforce" id="c4b4faa1-85e5-4922-b713-c198bf99226e" component="true" multivalued="true">
         <REPORTKEYS>
-          <VALUE id="c4b4faa1-85e5-4922-b713-c198bf99226e">
-            /tmp/1
-          </VALUE>
+          <VALUE id="c4b4faa1-85e5-4922-b713-c198bf99226e">/tmp/1</VALUE>
         </REPORTKEYS>
       </SECTION>
       <SECTION name="Resolve to enforce" id="cce62a59-bd17-4858-ba06-6ae41f39b15a" component="true" multivalued="true">
         <REPORTKEYS>
-          <VALUE id="cce62a59-bd17-4858-ba06-6ae41f39b15a">
-            /tmp/1
-          </VALUE>
+          <VALUE id="cce62a59-bd17-4858-ba06-6ae41f39b15a">/tmp/1</VALUE>
         </REPORTKEYS>
       </SECTION>
     </SECTION>
@@ -102,17 +82,13 @@
       <SECTION id="9fca6ca8-ccaa-4688-a5fc-e2a0d9d60165" name="A nested block in audit" reporting="weighted" component="true" multivalued="true">
         <SECTION name="Resolve to audit" id="0a4299dd-0902-48b2-85ee-13dfe6fc3af6" component="true" multivalued="true">
           <REPORTKEYS>
-            <VALUE id="0a4299dd-0902-48b2-85ee-13dfe6fc3af6">
-              /tmp/1
-            </VALUE>
+            <VALUE id="0a4299dd-0902-48b2-85ee-13dfe6fc3af6">/tmp/1</VALUE>
           </REPORTKEYS>
         </SECTION>
       </SECTION>
       <SECTION name="Resolve to enforce" id="3b8352df-1329-4956-a019-bb9c072bc830" component="true" multivalued="true">
         <REPORTKEYS>
-          <VALUE id="3b8352df-1329-4956-a019-bb9c072bc830">
-            /tmp/1
-          </VALUE>
+          <VALUE id="3b8352df-1329-4956-a019-bb9c072bc830">/tmp/1</VALUE>
         </REPORTKEYS>
       </SECTION>
     </SECTION>

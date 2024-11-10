@@ -21,7 +21,6 @@ use rudder_relayd::{
         *,
     },
 };
-use secrecy::SecretString;
 
 fn bench_nodeslist(c: &mut Criterion) {
     c.bench_function("parse nodes list", move |b| {
