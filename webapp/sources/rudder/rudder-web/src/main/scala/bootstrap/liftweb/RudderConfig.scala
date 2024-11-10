@@ -1396,19 +1396,20 @@ object RudderConfig extends Loggable {
       // they must be out of Lift boot() because that method
       // is encapsulated in a try/catch ( see net.liftweb.http.provider.HTTPProvider.bootLift )
       rci.allBootstrapChecks.checks()
-
-      rci.scoreService.init().runNow
-
-      rci.scoreServiceManager.registerHandler(new SystemUpdateScoreHandler(rci.nodeFactRepository)).runNow
-
     }
   }
 
   def postPluginInitActions: Unit = {
     // todo: scheduler interval should be a property
-    ZioRuntime.unsafeRun(jsonReportsAnalyzer.start(5.seconds).forkDaemon.provideLayer(ZioRuntime.layers))
-    ZioRuntime.unsafeRun(MainCampaignService.start(mainCampaignService))
-    ZioRuntime.unsafeRun(rci.scoreService.clean())
+    ZioRuntime.unsafeRun(
+      ZIO.collectAllParDiscard(
+        List(
+          jsonReportsAnalyzer.start(5.seconds).forkDaemon.provideLayer(ZioRuntime.layers),
+          MainCampaignService.start(mainCampaignService),
+          rci.scoreService.clean()
+        )
+      )
+    )
   }
 
 }
@@ -1572,6 +1573,10 @@ object RudderConfigInit {
       )
 
   def init(): RudderServiceApi = {
+
+    // a buffer to store (init) effects that need to be run before end of init, and we want to
+    // have only one "runNow" for them
+    val deferredEffects: scala.collection.mutable.Buffer[IOResult[?]] = scala.collection.mutable.Buffer()
 
     // test connection is up and try to make an human understandable error message.
     ApplicationLogger.debug(s"Test if LDAP connection is active")
@@ -2086,6 +2091,18 @@ object RudderConfigInit {
       val repo = CoreNodeFactRepository.make(ldapNodeFactStorage, getNodeBySoftwareName, tenantService, callbacks).runNow
       repo
     }
+
+    // need to be done here to avoid cyclic dependencies
+    deferredEffects.append(
+      nodeFactRepository.registerChangeCallbackAction(
+        new GenerationOnChange(updateDynamicGroups, asyncDeploymentAgent, uuidGen)
+      )
+    )
+    deferredEffects.append(
+      nodeFactRepository.registerChangeCallbackAction(
+        new CacheInvalidateNodeFactEventCallback(cachedNodeConfigurationService, reportingServiceImpl, Nil)
+      )
+    )
 
     lazy val inventorySaver = new NodeFactInventorySaver(
       nodeFactRepository,
@@ -3177,6 +3194,9 @@ object RudderConfigInit {
     lazy val scoreService          = new ScoreServiceImpl(globalScoreRepository, scoreRepository)
     lazy val scoreServiceManager: ScoreServiceManager = new ScoreServiceManager(scoreService)
 
+    deferredEffects.append(scoreService.init())
+    deferredEffects.append(scoreServiceManager.registerHandler(new SystemUpdateScoreHandler(nodeFactRepository)))
+
     /////// reporting ///////
 
     lazy val nodeConfigurationHashRepo: NodeConfigurationHashRepository = {
@@ -3866,13 +3886,9 @@ object RudderConfigInit {
       tenantService
     )
 
-    // need to be done here to avoid cyclic dependencies
-    (nodeFactRepository.registerChangeCallbackAction(
-      new GenerationOnChange(updateDynamicGroups, asyncDeploymentAgent, uuidGen)
-    ) *>
-    nodeFactRepository.registerChangeCallbackAction(
-      new CacheInvalidateNodeFactEventCallback(cachedNodeConfigurationService, reportingServiceImpl, Nil)
-    )).runNow
+    // start init effects
+    ZIO.collectAllParDiscard(deferredEffects).runNow
+
     // This needs to be done at the end, to be sure that all is initialized
     deploymentService.setDynamicsGroupsService(dyngroupUpdaterBatch)
     // we need to reference batches not part of the API to start them since
