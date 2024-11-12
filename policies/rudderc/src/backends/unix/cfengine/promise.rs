@@ -190,7 +190,7 @@ impl Promise {
     /// Shortcut to add a condition expression
     pub fn if_condition<T: AsRef<str>>(mut self, condition: T) -> Self {
         self.attributes
-            .insert(AttributeType::If, format!("{}", quoted(condition.as_ref())));
+            .insert(AttributeType::If, quoted(condition.as_ref()).to_string());
         self
     }
 
@@ -198,7 +198,7 @@ impl Promise {
     pub fn unless_condition<T: AsRef<str>>(mut self, condition: T) -> Self {
         self.attributes.insert(
             AttributeType::Unless,
-            format!("{}", quoted(condition.as_ref())),
+            quoted(condition.as_ref()).to_string(),
         );
         self
     }
