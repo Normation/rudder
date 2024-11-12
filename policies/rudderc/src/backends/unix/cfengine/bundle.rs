@@ -5,8 +5,11 @@ use std::{collections::HashMap, fmt};
 
 use crate::backends::unix::cfengine::promise::{Promise, PromiseType, LONGEST_ATTRIBUTE_LEN};
 
-const NORMAL_ORDERING: [PromiseType; 3] =
-    [PromiseType::Vars, PromiseType::Vars, PromiseType::Methods];
+const NORMAL_ORDERING: [PromiseType; 3] = [
+    PromiseType::Vars,
+    PromiseType::Classes,
+    PromiseType::Methods,
+];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BundleType {
@@ -41,12 +44,8 @@ pub struct Bundle {
 }
 
 impl Bundle {
-    fn unique_id(index: usize) -> String {
-        format!("global_index_${{report_data.index}}_{}", index)
-    }
-
     pub fn agent<T: Into<String>>(name: T) -> Self {
-        let r = Self {
+        let mut r = Self {
             name: name.into(),
             bundle_type: BundleType::Agent,
             parameters: Vec::new(),
@@ -54,14 +53,17 @@ impl Bundle {
         };
 
         // Global index increment, once per bundle call
+        let guard_class = "rudder_increment_guard";
         let increment = Promise::int(
             "report_data.index",
             "int(eval(\"${report_data.index}+1\", \"math\", \"infix\"))",
-        );
-        let pass1 = Promise::class_expression("pass1", "any");
-        let increment_once = vec![increment, pass1];
-
-        r.promise_group(increment_once)
+        )
+        .unless_condition(guard_class);
+        // equivalent to pass1 but don't mess with business logic
+        let guard = Promise::class_expression(guard_class, "any");
+        r.add_promise_group(vec![increment]);
+        r.add_promise_group(vec![guard]);
+        r
     }
 
     pub fn parameters(self, parameters: Vec<String>) -> Self {
@@ -113,14 +115,14 @@ impl fmt::Display for Bundle {
                 let mut max_promiser = group.iter().map(|p| p.promiser.len()).max().unwrap_or(0);
                 // Take special method promiser into account
                 if *promise_type == PromiseType::Methods {
-                    max_promiser = std::cmp::max(max_promiser, UNIQUE_ID.len());
+                    max_promiser = std::cmp::max(max_promiser, Promise::unique_id(index).len());
                 }
 
                 for promise in group {
                     writeln!(
                         f,
                         "{}",
-                        promise.format(max_promiser + LONGEST_ATTRIBUTE_LEN + 3)
+                        promise.format(index, max_promiser + LONGEST_ATTRIBUTE_LEN + 3)
                     )?;
                 }
                 writeln!(f)?;
@@ -141,7 +143,16 @@ mod tests {
     fn format_bundle() {
         assert_eq!(
             Bundle::agent("test").to_string(),
-            "bundle agent test {\n\n}"
+            r#"bundle agent test {
+
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
+}"#
         );
         assert_eq!(
             Bundle::agent("test")
@@ -150,8 +161,15 @@ mod tests {
                 .to_string(),
             r#"bundle agent test(file, lines) {
 
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
   methods:
-    "global_index_${report_data.index}_0"   usebundle => test();
+    "index_${report_data.index}_0" usebundle => test();
 
 }"#
         );
