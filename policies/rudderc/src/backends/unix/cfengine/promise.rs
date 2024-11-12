@@ -217,8 +217,7 @@ impl Promise {
     }
 
     pub fn unique_id(index: usize) -> String {
-        dbg!(index);
-        format!("index_${{report_data.index}}_{}", index)
+        format!("index_${{local_index}}_{}", index)
     }
 
     /// Index is used to make methods promises unique
@@ -301,17 +300,17 @@ mod tests {
             Promise::string("test", "plop")
                 .if_condition("debian")
                 .format(0,  LONGEST_ATTRIBUTE_LEN + 3 + len),
-            "    \"test\"                         string => \"plop\",\n                                          if => \"debian\";"
+            "    \"test\"                   string => \"plop\",\n                                    if => \"debian\";"
         );
         assert_eq!(
             Promise::string("test", "plop")
                 .if_condition("debian.${my.var}")
                 .format( 0,LONGEST_ATTRIBUTE_LEN + 3 + len),
-            "    \"test\"                         string => \"plop\",\n                                          if => \"debian.${my.var}\";"
+            "    \"test\"                   string => \"plop\",\n                                    if => \"debian.${my.var}\";"
         );
         assert_eq!(
             Promise::int("test", "24").format(0, LONGEST_ATTRIBUTE_LEN + 3 + len),
-            "    \"test\"                         int => 24;"
+            "    \"test\"                   int => 24;"
         );
     }
 }

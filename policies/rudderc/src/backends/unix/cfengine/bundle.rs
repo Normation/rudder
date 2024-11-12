@@ -59,9 +59,12 @@ impl Bundle {
             "int(eval(\"${report_data.index}+1\", \"math\", \"infix\"))",
         )
         .unless_condition(guard_class);
+        // take a snapshot of the index for local use, as it will be incremented by methods
+        let local =
+            Promise::int("local_index", "${report_data.index}").unless_condition(guard_class);
         // equivalent to pass1 but don't mess with business logic
         let guard = Promise::class_expression(guard_class, "any");
-        r.add_promise_group(vec![increment]);
+        r.add_promise_group(vec![increment, local]);
         r.add_promise_group(vec![guard]);
         r
     }
@@ -154,6 +157,8 @@ mod tests {
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
                            unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
 
   classes:
     "rudder_increment_guard" expression => "any";
@@ -170,12 +175,14 @@ mod tests {
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
                            unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
 
   classes:
     "rudder_increment_guard" expression => "any";
 
   methods:
-    "index_${report_data.index}_0" usebundle => test();
+    "index_${local_index}_0" usebundle => test();
 
 }"#
         );
