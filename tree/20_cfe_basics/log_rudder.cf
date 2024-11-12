@@ -140,7 +140,7 @@ bundle agent log_rudder(message, class_parameter, old_class_prefix, class_prefix
 bundle agent log_rudder_v4(parameter_value, message, details)
 {
   vars:
-      "component_key"   string => "${report_data.component_key}";
+      "component_key" string => "${report_data.component_key}";
     rudder_report_force_component_none::
       "component_key" string => "None";
 
@@ -149,8 +149,9 @@ bundle agent log_rudder_v4(parameter_value, message, details)
       "component_key" string => "${parameter_value}", if_match_regex => "";
 
   methods:
-      "${report_data.method_id}" usebundle => _classes_copy("${report_data.method_id}", "${report_data.report_id}");
-      "${report_data.method_id}" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${report_data.report_id}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message} ${details}");
+      "${report_data.method_id}" usebundle => _classes_copy("${report_data.method_id}", "${report_data.report_id}"),
+                                        if => "${report_data.should_report}";
+      "${report_data.method_id}" usebundle => _rudder_common_reports_generic("${report_data.technique_name}", "${report_data.method_id}", "${report_data.identifier}", "${report_data.component_name}", "${component_key}", "${message} ${details}");
 }
 
 # @name Log for Non Applicable call to generic method
