@@ -36,16 +36,12 @@
     </SECTION>
     <SECTION name="Check if a file exists" id="9e763779-9f33-44bc-ad73-1c5d5732301c" component="true" multivalued="true">
       <REPORTKEYS>
-        <VALUE id="9e763779-9f33-44bc-ad73-1c5d5732301c">
-          /tmp/${file}
-        </VALUE>
+        <VALUE id="9e763779-9f33-44bc-ad73-1c5d5732301c">/tmp/${file}</VALUE>
       </REPORTKEYS>
     </SECTION>
     <SECTION name="Execute only if..." id="e8362340-dc50-4231-9b7f-748b51e9fa07" component="true" multivalued="true">
       <REPORTKEYS>
-        <VALUE id="e8362340-dc50-4231-9b7f-748b51e9fa07">
-          echo &quot;May be executed or not&quot;
-        </VALUE>
+        <VALUE id="e8362340-dc50-4231-9b7f-748b51e9fa07">echo &quot;May be executed or not&quot;</VALUE>
       </REPORTKEYS>
     </SECTION>
   </SECTIONS>

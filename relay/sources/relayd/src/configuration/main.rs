@@ -588,7 +588,7 @@ impl Default for DatabaseConfig {
     fn default() -> Self {
         Self {
             url: Self::default_url(),
-            password: SecretString::new("".to_string()),
+            password: "".into(),
             max_pool_size: Self::default_max_pool_size(),
         }
     }
@@ -647,7 +647,7 @@ impl UpstreamConfig {
     }
 
     fn default_default_password() -> SecretString {
-        SecretString::new("rudder".into())
+        "rudder".into()
     }
 
     fn default_server_certificate_file() -> PathBuf {
@@ -661,8 +661,8 @@ impl Default for UpstreamConfig {
             url: Default::default(),
             host: Default::default(),
             user: Self::default_user(),
-            password: SecretString::new("".to_string()),
-            default_password: SecretString::new("".to_string()),
+            password: "".into(),
+            default_password: "".into(),
             verify_certificates: Self::default_verify_certificates(),
             server_certificate_file: Self::default_server_certificate_file(),
         }
@@ -753,14 +753,14 @@ mod tests {
                     url: None,
                     host: "".to_string(),
                     user: "rudder".to_string(),
-                    password: SecretString::new("".to_string()),
-                    default_password: SecretString::new("".to_string()),
+                    password: "".into(),
+                    default_password: "".into(),
                     verify_certificates: true,
                     server_certificate_file: PathBuf::from("/var/rudder/lib/ssl/policy_server.pem"),
                 },
                 database: DatabaseConfig {
                     url: "postgres://rudder@127.0.0.1/rudder".to_string(),
-                    password: SecretString::new("".to_string()),
+                    password: "".into(),
                     max_pool_size: 10,
                 },
             },
@@ -852,8 +852,8 @@ mod tests {
                     url: None,
                     host: "rudder.example.com".to_string(),
                     user: "rudder".to_string(),
-                    password: SecretString::new("password".to_string()),
-                    default_password: SecretString::new("rudder".to_string()),
+                    password: "password".into(),
+                    default_password: "rudder".into(),
                     verify_certificates: true,
                     server_certificate_file: PathBuf::from(
                         "tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert",
@@ -861,7 +861,7 @@ mod tests {
                 },
                 database: DatabaseConfig {
                     url: "postgres://rudderreports@postgres/rudder".to_string(),
-                    password: SecretString::new("PASSWORD".to_string()),
+                    password: "PASSWORD".into(),
                     max_pool_size: 5,
                 },
             },

@@ -18,7 +18,7 @@ version:
 # https://matklad.github.io/2021/09/04/fast-rust-builds.html#ci-workflow
 build: CARGO_INCREMENTAL=0
 build: version
-	cargo install --locked cargo-auditable@0.6.1
+	cargo install --locked cargo-auditable@0.6.4
 	cargo auditable build --features=${CARGO_FEATURES} --release --locked --jobs 2
 
 dev-doc:
