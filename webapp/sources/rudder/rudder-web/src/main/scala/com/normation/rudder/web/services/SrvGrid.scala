@@ -46,11 +46,10 @@ import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides.*
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
-import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.score.ScoreService
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.Utils.isEmpty
 import com.normation.zio.*
@@ -88,8 +87,6 @@ object SrvGrid {
 class SrvGrid(
     roAgentRunsRepository: RoReportsExecutionRepository,
     configService:         ReadConfigService,
-    roRuleRepository:      RoRuleRepository,
-    nodeInfoService:       NodeInfoService,
     scoreService:          ScoreService
 ) extends Loggable {
 
@@ -165,7 +162,7 @@ class SrvGrid(
   }
 
   def refreshData(
-      refreshNodes: () => Option[Seq[NodeInfo]],
+      refreshNodes: () => Option[Seq[CoreNodeFact]],
       callback:     Option[(String, Boolean) => JsCmd],
       tableId:      String
   ): AnonFunc = {

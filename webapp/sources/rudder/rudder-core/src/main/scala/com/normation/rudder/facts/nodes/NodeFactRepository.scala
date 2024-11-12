@@ -38,13 +38,14 @@
 package com.normation.rudder.facts.nodes
 
 import com.normation.errors.*
-import com.normation.errors.IOResult
 import com.normation.inventory.domain.*
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.rudder.tenants.TenantService
+import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import scala.collection.MapView
 import zio.*
@@ -121,6 +122,12 @@ trait NodeFactRepository {
       case RemovedInventory  => ZStream.fromZIO(Inconsistency("Node is missing").fail)
     }
   }
+
+  /*
+   * Get the number of active managed nodes.
+   * This should be made fast, because it's typically used in license check.
+   */
+  def getNumberOfManagedNodes(): IOResult[Int]
 
   /*
    * Get node on given status
@@ -363,6 +370,16 @@ object CoreNodeFactRepository {
     new CoreNodeFactRepository(storage, softByName, tenants, p, a, cbs, savePreChecks, lock)
   }
 
+  // a version for tests
+  def makeNoop(
+      accepted:      Map[NodeId, CoreNodeFact],
+      pending:       Map[NodeId, CoreNodeFact] = Map(),
+      callbacks:     Chunk[NodeFactChangeEventCallback] = Chunk.empty,
+      savePreChecks: Chunk[NodeFact => IOResult[Unit]] = Chunk.empty
+  ): UIO[CoreNodeFactRepository] = for {
+    t <- DefaultTenantService.make(Nil)
+    r <- make(NoopFactStorage, NoopGetNodesBySoftwareName, t, pending, accepted, callbacks, savePreChecks)
+  } yield r
 }
 
 // we have some specialized services / materialized view for complex queries. Implementation can manage cache and
@@ -405,6 +422,19 @@ class CoreNodeFactRepository(
     cbTimeout:      zio.Duration = 5.seconds
 ) extends NodeFactRepository {
   import NodeFactChangeEvent.*
+
+  // number of accepted, enambled node
+  private def coundEnabled(nodes: Map[NodeId, CoreNodeFact]) = nodes.count(_._2.rudderSettings.state.isEnabled)
+  private val enabledNodes:         Ref[Int]  = (for {
+    n <- acceptedNodes.get
+    r <- Ref.make(coundEnabled(n))
+  } yield r).runNow
+  private def updateEnabledCount(): UIO[Unit] = {
+    for {
+      n <- acceptedNodes.get
+      r <- enabledNodes.set(coundEnabled(n))
+    } yield r
+  }
 
   // debug log
 //  (for {
@@ -487,6 +517,8 @@ class CoreNodeFactRepository(
       } yield diff
     }
   }
+
+  override def getNumberOfManagedNodes(): IOResult[Int] = enabledNodes.get
 
   override def get(
       nodeId: NodeId
@@ -679,6 +711,8 @@ class CoreNodeFactRepository(
                         _ <- runCallbacks(es)
                       } yield es
                     }
+        // update number of active nodes
+        _        <- updateEnabledCount()
       } yield es
     )
   }

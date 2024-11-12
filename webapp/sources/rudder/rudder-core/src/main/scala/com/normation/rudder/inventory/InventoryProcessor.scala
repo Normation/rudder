@@ -43,6 +43,7 @@ import com.normation.errors.*
 import com.normation.errors.Chained
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.CertifiedKey
+import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.Inventory
 import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.inventory.domain.NodeId
@@ -50,7 +51,12 @@ import com.normation.inventory.domain.SecurityToken
 import com.normation.inventory.services.provisioning.InventoryDigestServiceV1
 import com.normation.inventory.services.provisioning.InventoryParser
 import com.normation.inventory.services.provisioning.InventorySaver
+import com.normation.inventory.services.provisioning.PipelinedInventorySaver
+import com.normation.inventory.services.provisioning.PostCommit
+import com.normation.inventory.services.provisioning.PreCommit
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
@@ -149,6 +155,18 @@ object StatusLog {
       case InventoryProcessStatus.SaveError(inventoryName, nodeId, err) =>
         s"Inventory '${inventoryName}' for Node '${nodeId.value}' failed to be saved in Rudder. Cause was: ${err.fullMsg}"
     }
+  }
+}
+
+class NodeFactInventorySaver(
+    backend:               NodeFactRepository,
+    val preCommitPipeline: Seq[PreCommit],
+    val basePostPipeline:  Seq[PostCommit[Unit]]
+) extends PipelinedInventorySaver[Unit] {
+
+  override def commitChange(inventory: Inventory): IOResult[Unit] = {
+    implicit val cc = ChangeContext.newForRudder()
+    backend.updateInventory(FullInventory(inventory.node, Some(inventory.machine)), Some(inventory.applications)).unit
   }
 }
 

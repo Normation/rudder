@@ -37,109 +37,8 @@
 
 package com.normation.rudder.services.nodes
 
-import com.normation.errors.IOResult
-import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.LDAPConstants.*
-import com.normation.ldap.sdk.*
 import com.normation.rudder.domain.RudderLDAPConstants.*
-import com.normation.rudder.domain.nodes.Node
-import com.normation.rudder.domain.nodes.NodeInfo
-import org.joda.time.DateTime
-
-/*
- * General logic for the cache implementation of NodeInfo.
- * The general idea is to limit at maximum:
- * - the number of request to LDAP server (because I/O, slow)
- * - the quantity of data on the wires.
- *
- * The general tactic is to have a local cache (a map of nodeid -> nodeinfo),
- * and before any access, we are checking if an update is necessary with
- * a very quick oracle.
- * The oracle only look for at least one entry modified since the last oracle
- * check, and if one is found, says the cache is dirty.
- *
- * We use an OpenLDAP specific query syntax to be able to perform one query
- * on 3 branches (nodes, inventory node, inventory machine) in one go. As
- * this is OpenLDAP specific, we had to to something a little different
- * for tests, and so we don't exactly test what we are doing for real.
- *
- *
- * Way to enhance current code:
- * - make the oracle be called only every X seconds (because we can tolerate such a
- *   a latency in datas, and frequently, call to nodeinfoservice are done in batch
- *   to fill several kind of informations (it should not, but the code is like that)
- */
-
-/**
- * A case class used to represent the minimal
- * information needed to get a NodeInfo
- */
-final case class LDAPNodeInfo(
-    nodeEntry:          LDAPEntry,
-    nodeInventoryEntry: LDAPEntry,
-    machineEntry:       Option[LDAPEntry]
-)
-
-trait NodeInfoService {
-
-  /**
-   * Return a NodeInfo from a NodeId. First check the ou=Node, then fetch the other data
-   */
-  def getNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]]
-
-  def getNodeInfosSeq(nodeIds: Seq[NodeId]): IOResult[Seq[NodeInfo]]
-
-  /**
-   * Return the number of managed (ie non policy server, no rudder role nodes.
-   * Implementation of that method must as efficient as possible.
-   */
-  def getNumberOfManagedNodes: IOResult[Int]
-
-  /**
-   * Get all node infos.
-   * That method try to return the maximum
-   * of information, and will not totally fail if some information are
-   * missing (but the corresponding nodeInfos won't be present)
-   * So it is possible that getAllIds.size > getAll.size
-   */
-  def getAll(): IOResult[Map[NodeId, NodeInfo]]
-
-  /**
-   * Get all nodes id
-   */
-
-  def getAllNodesIds(): IOResult[Set[NodeId]]
-
-  /**
-   * Get all nodes.
-   * That method try to return the maximum
-   * of information, and will not totally fail if some information are
-   * missing (but the corresponding nodeInfos won't be present)
-   * So it is possible that getAllIds.size > getAll.size
-   */
-  def getAllNodes(): IOResult[Map[NodeId, Node]]
-
-  /**
-   * Get all nodes
-   * This returns a Seq for performance reasons - it is much faster
-   * to return a Seq than a Set, and for subsequent use it is also
-   * faster
-   */
-  def getAllNodeInfos(): IOResult[Seq[NodeInfo]]
-
-  /**
-   * Get all systen node ids, for example
-   * policy server node ids.
-   * @return
-   */
-  def getAllSystemNodeIds(): IOResult[Seq[NodeId]]
-
-  /**
-   * Getting something like a nodeinfo for pending / deleted nodes
-   */
-  def getPendingNodeInfos(): IOResult[Map[NodeId, NodeInfo]]
-  def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]]
-}
 
 object NodeInfoService {
 
@@ -209,15 +108,3 @@ object NodeInfoService {
   val A_MOD_TIMESTAMP = "modifyTimestamp"
 
 }
-
-/*
- * For test, we need a way to split the cache part from its retrieval.
- */
-
-// our cache is modelized with a Map of entries, their last modification timestamp, and the corresponding entryCSN
-final case class LocalNodeInfoCache(
-    nodeInfos:       Map[NodeId, (LDAPNodeInfo, NodeInfo)],
-    lastModTime:     DateTime,
-    lastModEntryCSN: Seq[String],
-    managedNodes:    Int
-)

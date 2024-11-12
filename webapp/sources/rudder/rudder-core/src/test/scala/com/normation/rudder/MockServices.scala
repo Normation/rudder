@@ -2332,10 +2332,6 @@ class MockNodes() {
     override def processOnlyId(query: Query)(implicit qc: QueryContext): Box[Seq[NodeId]] = process(query).map(_.toSeq)
   }
 
-  val nodeInfoService         = new NodeInfoServiceProxy(nodeFactRepo)
-  val fullInventoryRepository = new MockNodeFactFullInventoryRepositoryProxy(nodeFactRepo)
-  val woNodeRepository        = new WoFactNodeRepositoryProxy(nodeFactRepo)
-
   object newNodeManager extends NewNodeManager {
     implicit val qc: QueryContext = QueryContext.todoQC
 

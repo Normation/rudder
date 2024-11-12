@@ -44,13 +44,13 @@ import com.normation.inventory.domain.LinuxType
 import com.normation.inventory.domain.OsType
 import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.CriterionComposition
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Or
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
@@ -82,7 +82,7 @@ class SearchNodeComponent(
     htmlId: String, // unused ...
 
     _query:           Option[Query],
-    _srvList:         Box[Seq[NodeInfo]],
+    _srvList:         Box[Seq[CoreNodeFact]],
     onUpdateCallback: () => JsCmd = { () => Noop }, // on grid refresh
 
     onClickCallback: Option[(String, Boolean) => JsCmd] = None, // this callback is used when we click on an element in the grid
@@ -103,7 +103,7 @@ class SearchNodeComponent(
 
   private val queryProcessor = RudderConfig.acceptedNodeQueryProcessor
 
-  private val nodeInfoService = RudderConfig.nodeInfoService
+  private val nodeFactRepo = RudderConfig.nodeFactRepository
 
   // The portlet for the server detail
   private def searchNodes: NodeSeq = ChooseTemplate(
@@ -136,7 +136,7 @@ class SearchNodeComponent(
    * Page/component which includes SearchNodeComponent can use it.
    * @return
    */
-  def getSrvList(): Box[Seq[NodeInfo]] = srvList
+  def getSrvList(): Box[Seq[CoreNodeFact]] = srvList
 
   /**
    * External exposition of the current state of query.
@@ -209,7 +209,11 @@ class SearchNodeComponent(
         // ********* EXECUTE QUERY ***********
         srvList = (for {
           nodeIds   <- queryProcessor.process(newQuery)
-          nodeInfos <- nodeInfoService.getNodeInfosSeq(nodeIds).toBox
+          nodeInfos <-
+            nodeFactRepo
+              .getAll()(CurrentUser.queryContext)
+              .map(_.collect { case (id, f) if nodeIds.contains(id) => f }.toSeq)
+              .toBox
         } yield {
           nodeInfos
         })

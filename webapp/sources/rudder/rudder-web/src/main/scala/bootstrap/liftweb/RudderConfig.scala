@@ -1117,7 +1117,6 @@ object RudderConfig extends Loggable {
   val nodeDit:                             NodeDit                                    = rci.nodeDit
   val nodeFactRepository:                  NodeFactRepository                         = rci.nodeFactRepository
   val nodeGrid:                            NodeGrid                                   = rci.nodeGrid
-  val nodeInfoService:                     NodeInfoService                            = rci.nodeInfoService
   val pendingNodeCheckGroup:               CheckPendingNodeInDynGroups                = rci.pendingNodeCheckGroup
   val pendingNodesDit:                     InventoryDit                               = rci.pendingNodesDit
   val personIdentService:                  PersonIdentService                         = rci.personIdentService
@@ -1173,7 +1172,6 @@ object RudderConfig extends Loggable {
   val woApiAccountRepository:              WoApiAccountRepository                     = rci.woApiAccountRepository
   val woDirectiveRepository:               WoDirectiveRepository                      = rci.woDirectiveRepository
   val woNodeGroupRepository:               WoNodeGroupRepository                      = rci.woNodeGroupRepository
-  val woNodeRepository:                    WoNodeRepository                           = rci.woNodeRepository
   val woRuleCategoryRepository:            WoRuleCategoryRepository                   = rci.woRuleCategoryRepository
   val woRuleRepository:                    WoRuleRepository                           = rci.woRuleRepository
   val workflowEventLogService:             WorkflowEventLogService                    = rci.workflowEventLogService
@@ -1226,7 +1224,6 @@ case class RudderServiceApi(
     rudderDit:                           RudderDit,
     roRuleRepository:                    RoRuleRepository,
     woRuleRepository:                    WoRuleRepository,
-    woNodeRepository:                    WoNodeRepository,
     roNodeGroupRepository:               RoNodeGroupRepository,
     woNodeGroupRepository:               WoNodeGroupRepository,
     techniqueRepository:                 TechniqueRepository,
@@ -1262,7 +1259,6 @@ case class RudderServiceApi(
     checkTechniqueLibrary:               CheckTechniqueLibrary,
     automaticReportLogger:               AutomaticReportLogger,
     removeNodeService:                   RemoveNodeService,
-    nodeInfoService:                     NodeInfoService,
     reportDisplayer:                     ReportDisplayer,
     dependencyAndDeletionService:        DependencyAndDeletionService,
     itemArchiveManager:                  ItemArchiveManager,
@@ -1548,7 +1544,7 @@ object RudderConfigInit {
 
     lazy val yamlTechniqueSerializer = new YamlTechniqueSerializer(resourceFileService)
 
-    lazy val linkUtil           = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeFactInfoService)
+    lazy val linkUtil           = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeFactRepository)
     // REST API
     lazy val restApiAccounts    = new RestApiAccounts(
       roApiAccountRepository,
@@ -2110,7 +2106,7 @@ object RudderConfigInit {
           asyncDeploymentAgent,
           stringUuidGenerator,
           policyServerManagementService,
-          nodeFactInfoService
+          nodeFactRepository
         ),
         new TechniqueApi(
           restExtractorService,
@@ -2564,13 +2560,9 @@ object RudderConfigInit {
     lazy val eventListDisplayerImpl   = new EventListDisplayer(logRepository)
     lazy val eventLogDetailsGenerator = new EventLogDetailsGenerator(
       eventLogDetailsServiceImpl,
-      logRepository,
       roLdapNodeGroupRepository,
-      roLdapDirectiveRepository,
-      nodeFactInfoService,
       roLDAPRuleCategoryRepository,
       modificationService,
-      personIdentServiceImpl,
       linkUtil,
       diffDisplayer
     )
@@ -2718,8 +2710,6 @@ object RudderConfigInit {
       RUDDER_AUTOARCHIVEITEMS
     )
     lazy val woRuleRepository = woLdapRuleRepository
-
-    lazy val woFactNodeRepository: WoNodeRepository = new WoFactNodeRepositoryProxy(nodeFactRepository)
 
     lazy val roLdapNodeGroupRepository = new RoLDAPNodeGroupRepository(
       rudderDitImpl,
@@ -3106,7 +3096,6 @@ object RudderConfigInit {
     )
     lazy val eventLogDeploymentServiceImpl = new EventLogDeploymentService(logRepository, eventLogDetailsServiceImpl)
 
-    lazy val nodeFactInfoService = new NodeInfoServiceProxy(nodeFactRepository)
     lazy val dependencyAndDeletionService: DependencyAndDeletionService = new DependencyAndDeletionServiceImpl(
       new FindDependenciesImpl(roLdap, rudderDitImpl, ldapEntityMapper),
       roLdapDirectiveRepository,
@@ -3240,7 +3229,7 @@ object RudderConfigInit {
       new MigrateChangeValidationEnforceSchema(doobie),
       new DeleteArchiveTables(doobie),
       new MigrateNodeAcceptationInventories(
-        nodeFactInfoService,
+        nodeFactRepository,
         doobie,
         inventoryHistoryLogRepository,
         inventoryHistoryJdbcRepository,
@@ -3268,13 +3257,6 @@ object RudderConfigInit {
 
       new CheckRudderGlobalParameter(roLDAPParameterRepository, woLDAPParameterRepository, uuidGen),
       new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, uuidGen),
-      new MigrateNodeAcceptationInventories(
-        nodeFactInfoService,
-        doobie,
-        inventoryHistoryLogRepository,
-        inventoryHistoryJdbcRepository,
-        KEEP_DELETED_NODE_FACT_DURATION
-      ),
       new CheckNcfTechniqueUpdate(
         ncfTechniqueWriter,
         roLDAPApiAccountRepository.systemAPIAccount,
@@ -3567,7 +3549,6 @@ object RudderConfigInit {
       rudderDit,
       roLdapRuleRepository,
       woRuleRepository,
-      woFactNodeRepository,
       roLdapNodeGroupRepository,
       woLdapNodeGroupRepository,
       techniqueRepositoryImpl,
@@ -3603,7 +3584,6 @@ object RudderConfigInit {
       techniqueLibraryUpdater,
       autoReportLogger,
       removeNodeServiceImpl,
-      nodeFactInfoService,
       reportDisplayerImpl,
       dependencyAndDeletionService,
       itemArchiveManagerImpl,
@@ -3616,7 +3596,7 @@ object RudderConfigInit {
       ditQueryDataImpl,
       reportsRepository,
       eventLogDeploymentServiceImpl,
-      new SrvGrid(roAgentRunsRepository, configService, roLdapRuleRepository, nodeFactInfoService, scoreService),
+      new SrvGrid(roAgentRunsRepository, configService, scoreService),
       findExpectedRepo,
       roLDAPApiAccountRepository,
       woLDAPApiAccountRepository,

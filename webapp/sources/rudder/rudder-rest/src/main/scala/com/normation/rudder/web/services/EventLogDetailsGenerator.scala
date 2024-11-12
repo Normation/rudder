@@ -63,8 +63,6 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.eventlog.EventLogDetailsService
 import com.normation.rudder.services.eventlog.RollbackInfo
 import com.normation.rudder.services.modification.ModificationService
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.web.model.LinkUtil
 import com.normation.utils.DateFormaterService
 import com.normation.zio.UnsafeRun
@@ -87,13 +85,9 @@ import scala.xml.*
 
 class EventLogDetailsGenerator(
     logDetailsService:   EventLogDetailsService,
-    repos:               EventLogRepository,
     nodeGroupRepository: RoNodeGroupRepository,
-    directiveRepository: RoDirectiveRepository,
-    nodeInfoService:     NodeInfoService,
     ruleCatRepository:   RoRuleCategoryRepository,
     modificationService: ModificationService,
-    personIdentService:  PersonIdentService,
     linkUtil:            LinkUtil,
     diffDisplayer:       DiffDisplayer
 ) extends Loggable {
@@ -1242,7 +1236,7 @@ class EventLogDetailsGenerator(
     </div>
   }
 
-  private def nodeGroupDetails(nodes: Set[NodeId]): NodeSeq = {
+  private def nodeGroupDetails(nodes: Set[NodeId])(implicit qc: QueryContext): NodeSeq = {
     val res = nodes.toSeq match {
       case Seq() => NodeSeq.Empty
       case t     =>

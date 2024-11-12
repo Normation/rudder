@@ -43,9 +43,9 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.NonGroupRuleTarget
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.SearchNodeComponent
@@ -97,7 +97,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
   val searchNodeComponent = new LocalSnippet[SearchNodeComponent] // init will be done in parseHash
 
-  var srvList: Box[Seq[NodeInfo]] = Empty
+  var srvList: Box[Seq[CoreNodeFact]] = Empty
 
   var dispatch: DispatchIt = {
     case "showQuery"   =>
@@ -125,7 +125,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
     </head>
   }
 
-  private def setCreationPopup(query: Option[Query], serverList: Box[Seq[NodeInfo]]): Unit = {
+  private def setCreationPopup(query: Option[Query], serverList: Box[Seq[CoreNodeFact]]): Unit = {
     creationPopup.set(
       Full(
         new CreateCategoryOrGroupPopup(
@@ -138,7 +138,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
               properties = Nil,
               query = query,
               isDynamic = true,
-              serverList = serverList.openOr(Seq[NodeInfo]()).map(_.id).toSet,
+              serverList = serverList.openOr(Seq[CoreNodeFact]()).map(_.id).toSet,
               _isEnabled = true,
               isSystem = false
             )

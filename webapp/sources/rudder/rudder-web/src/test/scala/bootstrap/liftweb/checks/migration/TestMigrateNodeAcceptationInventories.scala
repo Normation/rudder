@@ -50,10 +50,8 @@ import com.normation.inventory.ldap.core.InventoryDitServiceImpl
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.db.Doobie
-import com.normation.rudder.domain.nodes.Node
-import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.facts.nodes.NodeFact
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.history.HistoryLogRepository
 import com.normation.rudder.services.nodes.history.impl.FactLog
 import com.normation.rudder.services.nodes.history.impl.FactLogData
@@ -65,6 +63,7 @@ import com.normation.rudder.services.nodes.history.impl.NodeDeleteEvent
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
+import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
@@ -250,32 +249,16 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
   // 59512a56-53e9-41e1-b36f-ca22d3cdfcbc => ok, 2 files, both ok in age
   // fb0096f3-a928-454d-9776-e8079d48cdd8 => deleted, age ok
   // fb0096f4-a928-454d-9776-e8079d48cdd8 => deleted, too old
-  object nodeInfoService extends NodeInfoService {
-    import com.softwaremill.quicklens.*
-    val n = NodeConfigData.node1
-    def success(nodeId: NodeId): ZIO[Any, Nothing, Some[NodeInfo]] = Some(n.modify(_.node.id).setTo(nodeId)).succeed
+  val nodes = List(
+    NodeConfigData.fact1.modify(_.id.value).setTo("0bd58a1f-3faa-4783-a7a2-52d84021663a"),
+    NodeConfigData.fact1.modify(_.id.value).setTo("1bd58a1f-3faa-4783-a7a2-52d84021663a"),
+    NodeConfigData.fact1.modify(_.id.value).setTo("4d3a43bc-8508-46a2-92d7-cfe7320309a5"),
+    NodeConfigData.fact1.modify(_.id.value).setTo("59512a56-53e9-41e1-b36f-ca22d3cdfcbc")
+  ).map(x => (x.id, x)).toMap
 
-    override def getAll():                    IOResult[Map[NodeId, NodeInfo]] = ???
-    override def getNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]]      = nodeId.value match {
-      case "0afa1d13-d125-4c91-9d71-24c47dc867e9" => None.succeed
-      case "0bd58a1f-3faa-4783-a7a2-52d84021663a" => success(nodeId)
-      case "1bd58a1f-3faa-4783-a7a2-52d84021663a" => success(nodeId)
-      case "4d3a43bc-8508-46a2-92d7-cfe7320309a5" => success(nodeId)
-      case "59512a56-53e9-41e1-b36f-ca22d3cdfcbc" => success(nodeId)
-      case "fb0096f3-a928-454d-9776-e8079d48cdd8" => None.succeed
-      case "fb0096f4-a928-454d-9776-e8079d48cdd8" => None.succeed
-    }
-    override def getNodeInfosSeq(nodesId: Seq[NodeId]): IOResult[Seq[NodeInfo]] = ???
-    override def getNumberOfManagedNodes:     IOResult[Int]                   = ???
-    override def getAllNodesIds():            IOResult[Set[NodeId]]           = ???
-    override def getAllNodes():               IOResult[Map[NodeId, Node]]     = ???
-    override def getAllSystemNodeIds():       IOResult[Seq[NodeId]]           = ???
-    override def getPendingNodeInfos():       IOResult[Map[NodeId, NodeInfo]] = ???
-    override def getPendingNodeInfo(nodeId: NodeId): IOResult[Option[NodeInfo]] = ???
-    override def getAllNodeInfos(): IOResult[Seq[NodeInfo]] = ???
-  }
+  val repo = CoreNodeFactRepository.makeNoop(nodes).runNow
 
-  lazy val migration = new MigrateNodeAcceptationInventories(nodeInfoService, null, fileLog, testFactLog, 365.days)
+  lazy val migration = new MigrateNodeAcceptationInventories(repo, null, fileLog, testFactLog, 365.days)
 
   val referenceNow: DateTime =
     dateFormat.parseDateTime("2023-06-01T04:15:35.000+02:00")

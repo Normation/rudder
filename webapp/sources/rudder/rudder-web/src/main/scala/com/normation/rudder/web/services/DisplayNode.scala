@@ -741,7 +741,7 @@ object DisplayNode extends Loggable {
       if (CurrentUser.checkRights(AuthorizationType.Node.Write) && nodeFact.rudderSettings.keyStatus == CertifiedKey) {
         SHtml.ajaxButton(
           "Reset status to be able to accept a different key",
-          () => resetKeyStatus(nodeFact, agent.securityToken)
+          () => resetKeyStatus(nodeFact)
         ) % ("class", "btn btn-default btn-sm")
       } else NodeSeq.Empty
     }
@@ -755,39 +755,42 @@ object DisplayNode extends Loggable {
   /*
    * Reset key status for given node and redisplay it's security <div>
    */
-  private def resetKeyStatus(nodeFact: NodeFact, st: SecurityToken)(implicit qc: QueryContext): JsCmd = {
+  private def resetKeyStatus(nodeFact: NodeFact)(implicit qc: QueryContext): JsCmd = {
+    implicit val cc: ChangeContext = ChangeContext(
+      ModificationId(RudderConfig.stringUuidGenerator.newUuid),
+      CurrentUser.actor,
+      DateTime.now(),
+      Some("Trusted key status reset to accept new key (first use)"),
+      None,
+      CurrentUser.nodePerms
+    )
 
-    RudderConfig.woNodeRepository
-      .updateNodeKeyInfo(
-        nodeFact.id,
-        None,
-        Some(UndefinedKey),
-        ModificationId(RudderConfig.stringUuidGenerator.newUuid),
-        CurrentUser.actor,
-        Some("Trusted key status reset to accept new key (first use)")
-      )
-      .map { _ =>
-        val js: JsCmd = {
-          SetHtml(
-            s"security-${nodeFact.id.value}",
-            displaySecurityInfo(nodeFact.modify(_.rudderSettings.keyStatus).setTo(UndefinedKey))
-          ) &
-          JsRaw(s"""createSuccessNotification("Key status for node '${StringEscapeUtils.escapeEcmaScript(
-              nodeFact.id.value
-            )}' correctly changed.")""") // JsRaw ok, escaped
-        }
-        js
+    (for {
+      node   <- RudderConfig.nodeFactRepository
+                  .get(nodeFact.id)(cc.toQuery)
+                  .notOptional(s"Cannot update node with id ${nodeFact.id.value}: there is no node with that id")
+      newNode = node.modify(_.rudderSettings.keyStatus).setTo(UndefinedKey)
+      _      <- RudderConfig.nodeFactRepository.save(newNode)
+    } yield {
+      val js: JsCmd = {
+        SetHtml(
+          s"security-${nodeFact.id.value}",
+          displaySecurityInfo(nodeFact.modify(_.rudderSettings.keyStatus).setTo(UndefinedKey))
+        ) &
+        JsRaw(s"""createSuccessNotification("Key status for node '${StringEscapeUtils.escapeEcmaScript(
+            nodeFact.id.value
+          )}' correctly changed.")""") // JsRaw ok, escaped
       }
-      .catchAll { err =>
-        val js: JsCmd = JsRaw(
-          s"""createErrorNotification("${s"An error happened when trying to change key status of node '${StringEscapeUtils
-                .escapeEcmaScript(nodeFact.fqdn)}' [${StringEscapeUtils.escapeEcmaScript(nodeFact.id.value)}]. " +
-            "Please contact your server admin to resolve the problem. " +
-            s"Error was: '${err.fullMsg}'"}")"""
-        ) // JsRaw ok, escaped
-        js.succeed
-      }
-      .runNow
+      js
+    }).catchAll { err =>
+      val js: JsCmd = JsRaw(
+        s"""createErrorNotification("${s"An error happened when trying to change key status of node '${StringEscapeUtils
+              .escapeEcmaScript(nodeFact.fqdn)}' [${StringEscapeUtils.escapeEcmaScript(nodeFact.id.value)}]. " +
+          "Please contact your server admin to resolve the problem. " +
+          s"Error was: '${err.fullMsg}'"}")"""
+      ) // JsRaw ok, escaped
+      js.succeed
+    }.runNow
 
   }
 
