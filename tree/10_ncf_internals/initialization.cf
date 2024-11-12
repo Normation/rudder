@@ -25,6 +25,8 @@ bundle agent initialization
   vars:
       # Reporting context for Rudder
       "report_data.should_report" string => "true";
+      # Global counter
+      "report_data.index"            int => "0";
 
   files:
       "${sys.workdir}/modules"
