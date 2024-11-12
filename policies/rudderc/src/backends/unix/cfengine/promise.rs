@@ -217,6 +217,7 @@ impl Promise {
     }
 
     pub fn unique_id(index: usize) -> String {
+        dbg!(index);
         format!("index_${{report_data.index}}_{}", index)
     }
 

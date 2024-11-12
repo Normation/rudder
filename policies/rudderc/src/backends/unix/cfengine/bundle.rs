@@ -104,13 +104,15 @@ impl fmt::Display for Bundle {
             },
         )?;
 
+        let mut index = 0;
+
         for (promise_type, promises) in NORMAL_ORDERING
             .iter()
             .filter_map(|t| self.promises.get(t).map(|p| (t, p)))
         {
             writeln!(f, "  {}:", promise_type)?;
 
-            for (index, group) in promises.iter().enumerate() {
+            for group in promises {
                 // Align promise groups
                 let mut max_promiser = group.iter().map(|p| p.promiser.len()).max().unwrap_or(0);
                 // Take special method promiser into account
@@ -124,6 +126,10 @@ impl fmt::Display for Bundle {
                         "{}",
                         promise.format(index, max_promiser + LONGEST_ATTRIBUTE_LEN + 3)
                     )?;
+                    // Avoid useless increment for readability
+                    if *promise_type == PromiseType::Methods {
+                        index += 1;
+                    }
                 }
                 writeln!(f)?;
             }

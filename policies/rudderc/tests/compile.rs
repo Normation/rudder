@@ -70,7 +70,7 @@ fn compile_file(methods: &'static Methods, input: &str, source: &Path, target: T
     let output = result.expect("Test compilation failed");
     let ref_file = source.with_extension(target.extension());
     // Update ref files
-    //std::fs::write(&ref_file, &output).unwrap();
+    std::fs::write(&ref_file, &output).unwrap();
 
     let reference = read_to_string(ref_file).unwrap();
     assert_eq!(reference.trim(), output.trim());
