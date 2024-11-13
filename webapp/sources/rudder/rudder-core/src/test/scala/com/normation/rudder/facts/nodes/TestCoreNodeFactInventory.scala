@@ -46,6 +46,7 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.ReadOnlySoftwareDAOImpl
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.MachineInfo
+import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
@@ -598,6 +599,23 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       } yield ()).either.runNow
 
       res must beLeft
+    }
+
+    "Update of policy mode to default mode after it was set to audit/enforce should be default (#25866)" >> {
+      val res = (for {
+        node        <- factRepo.get(node7id).notOptional("node7 must be here")
+        _           <- factRepo.save(NodeFact.fromMinimal(node.modify(_.rudderSettings.policyMode).setTo(Some(PolicyMode.Audit))))(
+                         testChangeContext,
+                         SelectFacts.none
+                       )
+        _           <- factRepo.save(NodeFact.fromMinimal(node.modify(_.rudderSettings.policyMode).setTo(None)))(
+                         testChangeContext,
+                         SelectFacts.none
+                       )
+        updatedNode <- factRepo.get(node7id).notOptional("node7 must be here")
+      } yield updatedNode.rudderSettings.policyMode).either.runNow
+
+      res must beRight(beNone)
     }
   }
 }
