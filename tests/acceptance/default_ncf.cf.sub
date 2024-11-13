@@ -242,7 +242,7 @@ bundle agent apply_gm_v4(name, args, status, result_class, mode)
     pass2::
       "expected_classes" usebundle => define_expected_classes("${class_prefix}", "${status}", "class_prefix_${result_class}"),
               comment => "${c_uuid}";
-      "expected_classes" usebundle => define_expected_classes("${c_uuid}_${d_uuid}", "${status}", "method_id_${result_class}"),
+      "expected_classes" usebundle => define_expected_classes("${c_uuid}_0", "${status}", "method_id_${result_class}"),
               comment => "${c_uuid}";
 
 
