@@ -101,7 +101,22 @@ mod tests {
                 .version("1.0")
                 .bundle(Bundle::agent("test"))
                 .to_string(),
-            "# @name test\n# @version 1.0\n\nbundle agent test {\n\n}\n"
+            r#"# @name test
+# @version 1.0
+
+bundle agent test {
+
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
+}
+"#
         );
     }
 }

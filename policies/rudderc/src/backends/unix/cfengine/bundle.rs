@@ -5,16 +5,11 @@ use std::{collections::HashMap, fmt};
 
 use crate::backends::unix::cfengine::promise::{Promise, PromiseType, LONGEST_ATTRIBUTE_LEN};
 
-const NORMAL_ORDERING: [PromiseType; 2] = [PromiseType::Vars, PromiseType::Methods];
-
-/// ID that must be unique for each technique instance. Combined with a simple index,
-/// it allows enforcing all methods are called, even with identical parameters.
-/// This has no semantic meaning and can almost be considered syntactic sugar.
-pub const UNIQUE_ID: &str = "${report_data.directive_id}";
-/// Indexes over three chars
-const INDEX_LEN: usize = 3;
-/// Length of directive id + _ + index
-pub const UNIQUE_ID_LEN: usize = UNIQUE_ID.len() + 1 + INDEX_LEN;
+const NORMAL_ORDERING: [PromiseType; 3] = [
+    PromiseType::Vars,
+    PromiseType::Classes,
+    PromiseType::Methods,
+];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BundleType {
@@ -50,12 +45,28 @@ pub struct Bundle {
 
 impl Bundle {
     pub fn agent<T: Into<String>>(name: T) -> Self {
-        Self {
+        let mut r = Self {
             name: name.into(),
             bundle_type: BundleType::Agent,
             parameters: Vec::new(),
             promises: HashMap::new(),
-        }
+        };
+
+        // Global index increment, once per bundle call
+        let guard_class = "rudder_increment_guard";
+        let increment = Promise::int(
+            "report_data.index",
+            "int(eval(\"${report_data.index}+1\", \"math\", \"infix\"))",
+        )
+        .unless_condition(guard_class);
+        // take a snapshot of the index for local use, as it will be incremented by methods
+        let local =
+            Promise::int("local_index", "${report_data.index}").unless_condition(guard_class);
+        // equivalent to pass1 but don't mess with business logic
+        let guard = Promise::class_expression(guard_class, "any");
+        r.add_promise_group(vec![increment, local]);
+        r.add_promise_group(vec![guard]);
+        r
     }
 
     pub fn parameters(self, parameters: Vec<String>) -> Self {
@@ -96,18 +107,20 @@ impl fmt::Display for Bundle {
             },
         )?;
 
+        let mut index = 0;
+
         for (promise_type, promises) in NORMAL_ORDERING
             .iter()
             .filter_map(|t| self.promises.get(t).map(|p| (t, p)))
         {
             writeln!(f, "  {}:", promise_type)?;
 
-            for (index, group) in promises.iter().enumerate() {
+            for group in promises {
                 // Align promise groups
                 let mut max_promiser = group.iter().map(|p| p.promiser.len()).max().unwrap_or(0);
                 // Take special method promiser into account
                 if *promise_type == PromiseType::Methods {
-                    max_promiser = std::cmp::max(max_promiser, UNIQUE_ID_LEN);
+                    max_promiser = std::cmp::max(max_promiser, Promise::unique_id(index).len());
                 }
 
                 for promise in group {
@@ -116,6 +129,10 @@ impl fmt::Display for Bundle {
                         "{}",
                         promise.format(index, max_promiser + LONGEST_ATTRIBUTE_LEN + 3)
                     )?;
+                    // Avoid useless increment for readability
+                    if *promise_type == PromiseType::Methods {
+                        index += 1;
+                    }
                 }
                 writeln!(f)?;
             }
@@ -135,17 +152,37 @@ mod tests {
     fn format_bundle() {
         assert_eq!(
             Bundle::agent("test").to_string(),
-            "bundle agent test {\n\n}"
+            r#"bundle agent test {
+
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
+}"#
         );
         assert_eq!(
             Bundle::agent("test")
                 .parameters(vec!["file".to_string(), "lines".to_string()])
-                .promise_group(vec![Promise::usebundle("test", None, None, vec![])])
+                .promise_group(vec![Promise::usebundle("test", None, vec![])])
                 .to_string(),
             r#"bundle agent test(file, lines) {
 
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
   methods:
-    "${report_data.directive_id}_0"   usebundle => test();
+    "index_${local_index}_0" usebundle => test();
 
 }"#
         );

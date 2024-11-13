@@ -45,17 +45,15 @@ impl Unix {
         // Static content including parts of the system techniques required to run most techniques,
         // i.e. lib loading and global vars (`g.X`).
         let static_prelude = include_str!("unix/prelude.cf");
-        let init = Promise::usebundle("rudder_test_init", None, None, vec![]);
+        let init = Promise::usebundle("rudder_test_init", None, vec![]);
         let policy_mode = Promise::usebundle(
             "set_dry_run_mode",
-            None,
             None,
             vec!["${rudder_test_init.dry_run}".to_string()],
         );
         //   "CIS audit/CIS 9.1 configure cron"  usebundle => set_dry_run_mode("true");
         let technique_call = Promise::usebundle(
             technique_id.to_string(),
-            None,
             None,
             params
                 .iter()
@@ -82,10 +80,7 @@ impl Backend for Unix {
             match r {
                 ItemKind::Block(r) => {
                     let mut calls: Vec<(Promise, Option<Bundle>)> = vec![];
-                    if let Some(x) = dry_run_mode::push_policy_mode(
-                        r.policy_mode_override,
-                        format!("push_policy_mode_for_block_{}", r.id),
-                    ) {
+                    if let Some(x) = dry_run_mode::push_policy_mode(r.policy_mode_override) {
                         calls.push((x, None))
                     }
                     for inner in r.items {
@@ -95,10 +90,7 @@ impl Backend for Unix {
                             technique_id,
                         )?);
                     }
-                    if let Some(x) = dry_run_mode::pop_policy_mode(
-                        r.policy_mode_override,
-                        format!("pop_policy_mode_for_block_{}", r.id),
-                    ) {
+                    if let Some(x) = dry_run_mode::pop_policy_mode(r.policy_mode_override) {
                         calls.push((x, None))
                     }
                     Ok(calls)

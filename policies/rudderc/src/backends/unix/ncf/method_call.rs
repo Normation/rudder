@@ -42,12 +42,6 @@ pub fn method_call(
 
     let info = m.info.unwrap();
     let id = m.id.as_ref();
-    // Uniqueness for re-execution.
-    // method_id is not enough due to iterators.
-    // It also needs to be evaluated at run time to get the maximal variability.
-    // WARN: this may be non-evaluated if the resulting string is too long.
-    let unique = &format!("{}_${{report_data.directive_id}}", m.id.as_ref());
-    let very_unique = &format!("{}_${{report_data.directive_id}}_${{c_key}}", m.id.as_ref());
     let c_id = canonify(id);
 
     let condition = condition.and(&m.condition);
@@ -76,23 +70,12 @@ pub fn method_call(
         })
     }
 
-    let enable_report = Promise::usebundle(
-        "enable_reporting",
-        Some(&report_component),
-        Some(very_unique),
-        vec![],
-    );
-    let disable_report = Promise::usebundle(
-        "disable_reporting",
-        Some(&report_component),
-        Some(very_unique),
-        vec![],
-    );
+    let enable_report = Promise::usebundle("enable_reporting", Some(&report_component), vec![]);
+    let disable_report = Promise::usebundle("disable_reporting", Some(&report_component), vec![]);
 
     let reporting_context = Promise::usebundle(
         "_method_reporting_context_v4",
         Some(&report_component),
-        Some(very_unique),
         vec![expanded("c_name"), expanded("c_key"), expanded("report_id")],
     );
 
@@ -100,7 +83,6 @@ pub fn method_call(
     let method = Promise::usebundle(
         &info.bundle_name,
         Some(&report_component),
-        Some(very_unique),
         parameters_names
             .iter()
             .map(|p| expanded(p.as_str()))
@@ -111,61 +93,59 @@ pub fn method_call(
         info.bundle_name
     );
 
-    let push_policy_mode =
-        dry_run_mode::push_policy_mode(m.policy_mode_override, very_unique.clone());
-    let pop_policy_mode =
-        dry_run_mode::pop_policy_mode(m.policy_mode_override, very_unique.clone());
+    let push_policy_mode = dry_run_mode::push_policy_mode(m.policy_mode_override);
+    let pop_policy_mode = dry_run_mode::pop_policy_mode(m.policy_mode_override);
     let incall_condition = "${method_call_condition}".to_string();
 
     let mut promises = match (&condition, is_supported) {
-            (Condition::Expression(_), true) => vec![
-                    Some(reporting_context),
-                    push_policy_mode,
-                    Some(method.if_condition(incall_condition.clone())),
-                    pop_policy_mode,
-                    Some(Promise::usebundle("_classes_noop", Some(&report_component), Some(very_unique), vec![na_condition.clone()]).unless_condition(incall_condition.clone())),
-                    Some(Promise::usebundle("log_rudder", Some(&report_component),  Some(very_unique), vec![
-                        quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, condition)),
-                        quoted(&report_parameter),
-                        na_condition.clone(),
-                        na_condition,
-                        "@{args}".to_string()
-                    ]).unless_condition(incall_condition))
-            ].into_iter().flatten().collect(),
-            (Condition::NotDefined, true) => vec![
-                reporting_context,
-                Promise::usebundle("_classes_noop", Some(&report_component), Some(very_unique), vec![na_condition.clone()]),
-                Promise::usebundle("log_rudder", Some(&report_component),  Some(very_unique), vec![
-                    quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, condition)),
+        (Condition::Expression(_), true) => vec![
+            Some(reporting_context),
+            push_policy_mode,
+            Some(method.if_condition(incall_condition.clone())),
+            pop_policy_mode,
+            Some(Promise::usebundle("_classes_noop", Some(&report_component), vec![na_condition.clone()]).unless_condition(incall_condition.clone())),
+            Some(Promise::usebundle("log_rudder", Some(&report_component), vec![
+                quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, condition)),
+                quoted(&report_parameter),
+                na_condition.clone(),
+                na_condition,
+                "@{args}".to_string()
+            ]).unless_condition(incall_condition))
+        ].into_iter().flatten().collect(),
+        (Condition::NotDefined, true) => vec![
+            reporting_context,
+            Promise::usebundle("_classes_noop", Some(&report_component), vec![na_condition.clone()]),
+            Promise::usebundle("log_rudder", Some(&report_component),  vec![
+                quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, condition)),
+                quoted(&report_parameter),
+                na_condition.clone(),
+                na_condition,
+                "@{args}".to_string()
+            ])
+        ],
+        (Condition::Defined, true) => vec![
+            Some(reporting_context),
+            push_policy_mode,
+            Some(method),
+            pop_policy_mode,
+        ].into_iter().flatten().collect(),
+        (_, false) => vec![
+            reporting_context,
+            Promise::usebundle(
+                "log_na_rudder",
+                Some(&report_component),
+                vec![
+                    quoted(&format!(
+                        "'{}' method is not available on classic Rudder agent, skip",
+                        report_parameter,
+                    )),
                     quoted(&report_parameter),
-                    na_condition.clone(),
-                    na_condition,
-                    "@{args}".to_string()
-                ])
-            ],
-            (Condition::Defined, true) => vec![
-                Some(reporting_context),
-                push_policy_mode,
-                Some(method),
-                pop_policy_mode,
-            ].into_iter().flatten().collect(),
-            (_, false) => vec![
-                reporting_context,
-                Promise::usebundle(
-                    "log_na_rudder",
-                    Some(&report_component), Some(very_unique),
-                    vec![
-                        quoted(&format!(
-                            "'{}' method is not available on classic Rudder agent, skip",
-                            report_parameter,
-                        )),
-                        quoted(&report_parameter),
-                        quoted(very_unique),
-                        "@{args}".to_string(),
-                    ],
-                )
-            ],
-        };
+                    "@{args}".to_string(),
+                ],
+            )
+        ],
+    };
+
     let bundle_content = match m.reporting.mode {
         LeafReportingMode::Disabled => {
             let mut res = vec![disable_report];
@@ -198,7 +178,7 @@ pub fn method_call(
     }
 
     call_parameters.append(&mut parameters);
-    let bundle_call = Promise::usebundle(bundle_name.clone(), None, Some(unique), call_parameters);
+    let bundle_call = Promise::usebundle(bundle_name.clone(), None, call_parameters);
 
     // Get everything together
     let mut specific_parameters = parameters_names;
