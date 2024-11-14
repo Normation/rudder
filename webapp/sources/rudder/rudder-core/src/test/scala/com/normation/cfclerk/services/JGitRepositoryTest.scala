@@ -51,7 +51,7 @@ import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.db.DB
 import com.normation.rudder.git.GitCommitId
-import com.normation.rudder.git.GitConfigItemRepository
+import com.normation.rudder.git.GitItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.ncf.EditorTechnique
@@ -100,7 +100,7 @@ object TempDir {
   }
 }
 
-object JGitRepositoryTest2 extends ZIOSpecDefault {
+object JGitRepositoryTest extends ZIOSpecDefault {
 
   def prettyPrinter: RudderPrettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
 
@@ -187,7 +187,6 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
     TechniqueArchiverImpl
   ] = ZLayer {
     for {
-      modRepo               <- ZIO.service[GitModificationRepository]
       techniqueParse        <- ZIO.service[TechniqueParser]
       techniqueCompiler     <- ZIO.service[TechniqueCompiler]
       gitRepositoryProvider <- ZIO.service[GitRepositoryProvider]
@@ -196,7 +195,6 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
       techniqueArchive       = new TechniqueArchiverImpl(
                                  gitRepo = gitRepositoryProvider,
                                  xmlPrettyPrinter = prettyPrinter,
-                                 gitModificationRepository = modRepo,
                                  personIdentservice = personIdentservice,
                                  techniqueParser = techniqueParse,
                                  techniqueCompiler = techniqueCompiler,
@@ -205,45 +203,39 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
     } yield techniqueArchive
   }
 
-  val gitConfigItemRepositoryLayer
-      : ZLayer[GitModificationRepository & GitRepositoryProvider, Nothing, GitConfigItemRepository] = {
+  val gitItemRepositoryLayer: ZLayer[GitModificationRepository & GitRepositoryProvider, Nothing, GitItemRepository] = {
     ZLayer {
       for {
         repository <- ZIO.service[GitRepositoryProvider]
-        modRepo    <- ZIO.service[GitModificationRepository]
-      } yield new GitConfigItemRepository {
-        override val gitRepo:                   GitRepositoryProvider     = repository
-        override def relativePath:              String                    = ""
-        override def gitModificationRepository: GitModificationRepository = modRepo
-      }
+      } yield new GitItemRepository(gitRepo = repository, relativePath = "")
     }
   }
 
   val spec: Spec[Any, RudderError] = suite("The test lib")(
-    suite("GitConfigItemRepository")(
+    suite("GitItemRepository")(
       // to assess the usefulness of semaphore, you can remove `gitRepo.semaphore.withPermit`
       // in `commitAddFile` to check that you get the JGitInternalException.
       // More advanced tests may be needed to handle more complex cases of concurrent access,
       // see: https://issues.rudder.io/issues/19910
       test("should not throw JGitInternalError on concurrent write") {
 
-        def addFileToRepositoryAndCommit(i: Int)(gitRoot: TempDir, archive: GitConfigItemRepository) = for {
+        def addFileToRepositoryAndCommit(i: Int)(gitRoot: TempDir, archive: GitItemRepository) = for {
           name <- zio.Random.nextString(8).map(s => i.toString + "_" + s)
           file  = gitRoot.path / name
           _    <- IOResult.attempt(file.write("something in " + name))
           actor = new PersonIdent("test", "test@test.com")
-          _    <- archive.commitAddFileWithModId(ModificationId(name), actor, name, "add " + name)
+          _    <- archive.commitAddFile(actor, name, "add " + name)
         } yield name
 
         for {
           gitRoot               <- ZIO.service[TempDir]
           gitRepositoryProvider <- ZIO.service[GitRepositoryProvider]
-          archive               <- ZIO.service[GitConfigItemRepository]
+          archive               <- ZIO.service[GitItemRepository]
           files                 <- ZIO.foreachPar(1 to 50)(i => addFileToRepositoryAndCommit(i)(gitRoot, archive)).withParallelism(16)
           created               <- readElementsAt(gitRepositoryProvider.db, "refs/heads/master")
         } yield assert(created)(hasSameElements(files))
 
-      }.provide(TempDir.layer, StubGitModificationRepository.layer, gitRepositoryProviderLayer, gitConfigItemRepositoryLayer)
+      }.provide(TempDir.layer, StubGitModificationRepository.layer, gitRepositoryProviderLayer, gitItemRepositoryLayer)
     ),
     suite("TechniqueArchiver.saveTechniqueCategory")(
       test("should create a new file and commit if the category does not exist") {

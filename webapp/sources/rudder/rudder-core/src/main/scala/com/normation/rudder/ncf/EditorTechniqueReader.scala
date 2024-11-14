@@ -38,20 +38,25 @@ trait EditorTechniqueReader {
 }
 
 class EditorTechniqueReaderImpl(
-    uuidGen:                                StringUuidGenerator,
-    personIdentService:                     PersonIdentService,
-    override val gitRepo:                   GitRepositoryProvider,
-    override val xmlPrettyPrinter:          RudderPrettyPrinter,
-    override val gitModificationRepository: GitModificationRepository,
-    override val encoding:                  String,
-    override val groupOwner:                String,
-    yamlTechniqueSerializer:                YamlTechniqueSerializer,
-    parameterTypeService:                   ParameterTypeService,
-    ruddercCmd:                             String,
-    methodsSystemLib:                       String,
-    methodsLocalLib:                        String
-) extends EditorTechniqueReader with GitConfigItemRepository with XmlArchiverUtils {
-  override val relativePath: String = "ncf"
+    uuidGen:                       StringUuidGenerator,
+    personIdentService:            PersonIdentService,
+    gitRepo:                       GitRepositoryProvider,
+    override val xmlPrettyPrinter: RudderPrettyPrinter,
+    gitModificationRepository:     GitModificationRepository,
+    override val encoding:         String,
+    override val groupOwner:       String,
+    yamlTechniqueSerializer:       YamlTechniqueSerializer,
+    parameterTypeService:          ParameterTypeService,
+    ruddercCmd:                    String,
+    methodsSystemLib:              String,
+    methodsLocalLib:               String
+) extends EditorTechniqueReader with XmlArchiverUtils {
+
+  private val relativePath: String = "ncf"
+
+  private val gitConfigItemRepository: GitConfigItemRepository =
+    new GitConfigItemRepository(gitRepo, relativePath, gitModificationRepository)
+
   val configuration_repository = gitRepo.rootDirectory
   val ncfRootDir:  File = configuration_repository / relativePath
   val methodsFile: File = ncfRootDir / "generic_methods.json"
@@ -165,7 +170,12 @@ class EditorTechniqueReaderImpl(
       // commit file
       modId      = ModificationId(uuidGen.newUuid)
       ident     <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
-      _         <- commitAddFileWithModId(modId, ident, toGitPath(methodsFile.toJava), "Saving updated generic methods definition")
+      _         <- gitConfigItemRepository.commitAddFileWithModId(
+                     modId = modId,
+                     commiter = ident,
+                     gitPath = gitConfigItemRepository.toGitPath(methodsFile.toJava),
+                     commitMessage = "Saving updated generic methods definition"
+                   )
     } yield {
       res
     }

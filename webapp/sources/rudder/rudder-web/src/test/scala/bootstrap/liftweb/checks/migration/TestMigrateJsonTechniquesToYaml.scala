@@ -43,30 +43,10 @@ import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.Version
 import com.normation.rudder.MockGitConfigRepo
 import com.normation.rudder.MockTechniques
-import com.normation.rudder.db.DB
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.hooks.CmdResult
-import com.normation.rudder.ncf.BundleName
-import com.normation.rudder.ncf.CompilationResult
-import com.normation.rudder.ncf.DeleteEditorTechnique
-import com.normation.rudder.ncf.EditorTechniqueCompilationResult
-import com.normation.rudder.ncf.EditorTechniqueReader
-import com.normation.rudder.ncf.EditorTechniqueReaderImpl
-import com.normation.rudder.ncf.GenericMethod
-import com.normation.rudder.ncf.GitResourceFileService
-import com.normation.rudder.ncf.ReadEditorTechniqueCompilationResult
-import com.normation.rudder.ncf.ResourceFile
-import com.normation.rudder.ncf.ResourceFileState
-import com.normation.rudder.ncf.RuddercOptions
-import com.normation.rudder.ncf.RuddercResult
-import com.normation.rudder.ncf.RuddercService
-import com.normation.rudder.ncf.RuddercTechniqueCompiler
-import com.normation.rudder.ncf.TechniqueCompilationErrorsActorSync
-import com.normation.rudder.ncf.TechniqueCompilationStatusService
-import com.normation.rudder.ncf.TechniqueWriterImpl
+import com.normation.rudder.ncf.*
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
-import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.repository.xml.TechniqueArchiverImpl
 import com.normation.rudder.repository.xml.TechniqueFiles
@@ -151,11 +131,6 @@ class TestMigrateJsonTechniquesToYaml extends Specification with ContentMatchers
   val techniqueArchiver = new TechniqueArchiverImpl(
     gitMock.gitRepo,
     xmlPrettyPrinter,
-    new GitModificationRepository {
-      override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
-      override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] =
-        DB.GitCommitJoin(commit, modId).succeed
-    },
     new TrivialPersonIdentService(),
     techMock.techniqueParser,
     techniqueCompiler,

@@ -126,11 +126,17 @@ class GitRuleCategoryArchiverImpl(
     override val encoding:                  String,
     categoryFileName:                       String,
     override val groupOwner:                String
-) extends GitRuleCategoryArchiver with NamedZioLogger with GitConfigItemRepository with XmlArchiverUtils
+) extends GitRuleCategoryArchiver with NamedZioLogger with XmlArchiverUtils
     with GitArchiverFullCommitUtils with BuildCategoryPathName[RuleCategoryId] {
 
-  override def loggerName: String = this.getClass.getName
   override val relativePath = ruleCategoryRootDir
+
+  private val gitConfigItemRepository: GitConfigItemRepository =
+    new GitConfigItemRepository(gitRepo, relativePath, gitModificationRepository)
+
+  override def getItemDirectory: File = gitConfigItemRepository.getItemDirectory
+
+  override def loggerName: String = this.getClass.getName
   override val tagPrefix    = "archives/configurations-rules/"
 
   def getCategoryName(categoryId: RuleCategoryId): String = categoryId.value
@@ -146,7 +152,7 @@ class GitRuleCategoryArchiverImpl(
     // Build Rule category file, needs to reverse parents , start from end)
     for {
       ruleCategoryFile <- categoryFile(category.id, parents.reverse)
-      gitPath           = toGitPath(ruleCategoryFile)
+      gitPath           = gitConfigItemRepository.toGitPath(ruleCategoryFile)
       archive          <- writeXml(
                             ruleCategoryFile,
                             ruleCategorySerialisation.serialise(category),
@@ -155,7 +161,7 @@ class GitRuleCategoryArchiverImpl(
       commit           <- gitCommit match {
                             case Some((modId, commiter, reason)) =>
                               val commitMsg = s"Archive rule Category with ID '${category.id.value}' ${GET(reason)}"
-                              commitAddFileWithModId(modId, commiter, gitPath, commitMsg)
+                              gitConfigItemRepository.commitAddFileWithModId(modId, commiter, gitPath, commitMsg)
                             case None                            =>
                               ZIO.unit
                           }
@@ -179,7 +185,7 @@ class GitRuleCategoryArchiverImpl(
     // Build Rule category file, needs to reverse parents , start from end)
     for {
       ruleCategoryFile <- categoryFile(categoryId, parents.reverse)
-      gitPath           = toGitPath(ruleCategoryFile)
+      gitPath           = gitConfigItemRepository.toGitPath(ruleCategoryFile)
       _                <- ZIO.whenZIO(IOResult.attempt(ruleCategoryFile.exists)) {
                             for {
                               _ <- IOResult.attempt(FileUtils.forceDelete(ruleCategoryFile))
@@ -187,7 +193,7 @@ class GitRuleCategoryArchiverImpl(
                               _ <- doCommit match {
                                      case Some((modId, commiter, reason)) =>
                                        val commitMsg = s"Delete archive of rule with ID '${categoryId.value} ${GET(reason)}"
-                                       commitRmFileWithModId(modId, commiter, gitPath, commitMsg)
+                                       gitConfigItemRepository.commitRmFileWithModId(modId, commiter, gitPath, commitMsg)
                                      case None                            =>
                                        ZIO.unit
                                    }
@@ -232,14 +238,14 @@ class GitRuleCategoryArchiverImpl(
         commit          <- gitCommit match {
                              case Some((modId, commiter, reason)) =>
                                val commitMsg = s"Move archive of rule category with ID '${category.id.value}'${GET(reason)}"
-                               val oldPath   = toGitPath(oldCategoryDir)
-                               val newPath   = toGitPath(newCategoryDir)
-                               commitMvDirectoryWithModId(modId, commiter, oldPath, newPath, commitMsg)
+                               val oldPath   = gitConfigItemRepository.toGitPath(oldCategoryDir)
+                               val newPath   = gitConfigItemRepository.toGitPath(newCategoryDir)
+                               gitConfigItemRepository.commitMvDirectoryWithModId(modId, commiter, oldPath, newPath, commitMsg)
                              case None                            =>
                                ZIO.unit
                            }
       } yield {
-        GitPath(toGitPath(archive))
+        GitPath(gitConfigItemRepository.toGitPath(archive))
       }
     }
   }

@@ -355,12 +355,15 @@ object GitNodeFactStorageImpl {
  *   a special operation)
  */
 class GitNodeFactStorageImpl(
-    override val gitRepo: GitRepositoryProvider,
-    groupOwner:           Option[String],
-    actuallyCommit:       Boolean
-) extends NodeFactStorage with GitItemRepository with SerializeFacts[(NodeId, InventoryStatus), NodeFact] {
+    gitRepo:        GitRepositoryProvider,
+    groupOwner:     Option[String],
+    actuallyCommit: Boolean
+) extends NodeFactStorage with SerializeFacts[(NodeId, InventoryStatus), NodeFact] {
 
-  override val relativePath = "nodes"
+  private val relativePath = "nodes"
+
+  private val gitItemRepository: GitItemRepository = new GitItemRepository(gitRepo, relativePath)
+
   override val entity:     String = "node"
   override val fileFormat: String = "10"
   val committer = new PersonIdent("rudder-fact", "email not set")
@@ -489,9 +492,9 @@ class GitNodeFactStorageImpl(
                    case Some(go) => IOResult.attempt(file.setGroup(go))
                  }
         _     <- ZIO.when(actuallyCommit) {
-                   commitAddFile(
+                   gitItemRepository.commitAddFile(
                      committer,
-                     toGitPath(file.toJava),
+                     gitItemRepository.toGitPath(file.toJava),
                      s"Save inventory facts for ${merged.rudderSettings.status.name} node '${merged.fqdn}' (${merged.id.value})"
                    )
                  }
@@ -519,7 +522,11 @@ class GitNodeFactStorageImpl(
     }
     def delete(file: File) = {
       (if (actuallyCommit) {
-         commitRmFile(committer, toGitPath(file.toJava), s"Updating facts for node '${nodeId.value}': deleted")
+         gitItemRepository.commitRmFile(
+           committer,
+           gitItemRepository.toGitPath(file.toJava),
+           s"Updating facts for node '${nodeId.value}': deleted"
+         )
        } else {
          IOResult.attempt(file.delete())
        }).flatMap(_ => fileToNode(file)(attrs).map(Some(_)).catchAll(_ => None.succeed)).map {
@@ -553,10 +560,10 @@ class GitNodeFactStorageImpl(
         // we need to overwrite
         IOResult.attempt(fromFile.moveTo(toFile)(File.CopyOptions(overwrite = true))) *>
         ZIO.when(actuallyCommit) {
-          commitMvDirectory(
+          gitItemRepository.commitMvDirectory(
             committer,
-            toGitPath(fromFile.toJava),
-            toGitPath(toFile.toJava),
+            gitItemRepository.toGitPath(fromFile.toJava),
+            gitItemRepository.toGitPath(toFile.toJava),
             s"Updating facts for node '${nodeId.value}' to status: ${to.name}"
           )
         } *> fileToNode(toFile)(SelectFacts.none).map(Some(_)).catchAll(_ => None.succeed).map {

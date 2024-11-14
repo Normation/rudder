@@ -56,17 +56,17 @@ import zio.*
 /**
  * Utility trait that factor out file commits.
  */
-trait GitItemRepository {
+class GitItemRepository(
+    // the underlying git repository where items are saved
+    gitRepo:      GitRepositoryProvider,
+    // relative path from git root directory where items for that implementation
+    // are saved. For example, rules are saved in `/var/rudder/config-repo/rules`,
+    // where `/var/rudder/config-repos` is the root directory provided by gitRepos,
+    // the relativePath is `rules`
+    relativePath: String
+) {
 
-  // the underlying git repository where items are saved
-  def gitRepo:      GitRepositoryProvider
-  // relative path from git root directory where items for that implementation
-  // are saved. For example, rules are saved in `/var/rudder/config-repo/rules`,
-  // where `/var/rudder/config-repos` is the root directory provided by gitRepos,
-  // the relativePath is `rules`
-  def relativePath: String
-
-  lazy val getItemDirectory: File = {
+  final lazy val getItemDirectory: File = {
 
     /**
      * Create directory given in argument if does not exist, checking
@@ -109,13 +109,13 @@ trait GitItemRepository {
 
   // better.files.File.pathAsString is normalized without an ending slash, an Git path are relative to "/"
   // *without* the leading slash.
-  def toGitPath(fsPath: File): String = fsPath.getPath.replace(gitRepo.rootDirectory.pathAsString + "/", "")
+  final def toGitPath(fsPath: File): String = fsPath.getPath.replace(gitRepo.rootDirectory.pathAsString + "/", "")
 
   /**
    * Files in gitPath are added.
    * commitMessage is used for the message of the commit.
    */
-  def commitAddFile(commiter: PersonIdent, gitPath: String, commitMessage: String): IOResult[GitCommitId] = {
+  final def commitAddFile(commiter: PersonIdent, gitPath: String, commitMessage: String): IOResult[GitCommitId] = {
     gitRepo.semaphore.withPermit(
       for {
         _      <- GitArchiveLoggerPure.debug(s"Add file '${gitPath}' from configuration repository")
@@ -140,7 +140,7 @@ trait GitItemRepository {
    * Files in gitPath are removed.
    * commitMessage is used for the message of the commit.
    */
-  def commitRmFile(commiter: PersonIdent, gitPath: String, commitMessage: String): IOResult[GitCommitId] = {
+  final def commitRmFile(commiter: PersonIdent, gitPath: String, commitMessage: String): IOResult[GitCommitId] = {
     gitRepo.semaphore.withPermit(
       for {
         _      <- GitArchiveLoggerPure.debug(s"remove file '${gitPath}' from configuration repository")
@@ -167,7 +167,7 @@ trait GitItemRepository {
    * 'gitRepo.git added' (with and without the 'update' mode).
    * commitMessage is used for the message of the commit.
    */
-  def commitMvDirectory(
+  final def commitMvDirectory(
       commiter:      PersonIdent,
       oldGitPath:    String,
       newGitPath:    String,
@@ -202,15 +202,17 @@ trait GitItemRepository {
  * An extension of simple GitItemRepositoty that in addition knows how to link commitId and modId together.
  * Used for all configuration objects, but not for facts.
  */
-trait GitConfigItemRepository extends GitItemRepository {
-
-  def gitModificationRepository: GitModificationRepository
+class GitConfigItemRepository(
+    gitRepo:                   GitRepositoryProvider,
+    relativePath:              String,
+    gitModificationRepository: GitModificationRepository
+) extends GitItemRepository(gitRepo, relativePath) {
 
   /**
    * Files in gitPath are added.
    * commitMessage is used for the message of the commit.
    */
-  def commitAddFileWithModId(
+  final def commitAddFileWithModId(
       modId:         ModificationId,
       commiter:      PersonIdent,
       gitPath:       String,
@@ -228,7 +230,7 @@ trait GitConfigItemRepository extends GitItemRepository {
    * Files in gitPath are removed.
    * commitMessage is used for the message of the commit.
    */
-  def commitRmFileWithModId(
+  final def commitRmFileWithModId(
       modId:         ModificationId,
       commiter:      PersonIdent,
       gitPath:       String,
@@ -249,7 +251,7 @@ trait GitConfigItemRepository extends GitItemRepository {
    * 'gitRepo.git added' (with and without the 'update' mode).
    * commitMessage is used for the message of the commit.
    */
-  def commitMvDirectoryWithModId(
+  final def commitMvDirectoryWithModId(
       modId:         ModificationId,
       commiter:      PersonIdent,
       oldGitPath:    String,
