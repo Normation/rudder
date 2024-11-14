@@ -44,7 +44,6 @@ import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
 import com.normation.errors
-import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.RudderError
 import com.normation.errors.effectUioUnit
@@ -68,9 +67,7 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.treewalk.TreeWalk
-import scala.util.Random
 import zio.Chunk
-import zio.IO
 import zio.System
 import zio.ULayer
 import zio.ZIO
@@ -208,50 +205,46 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
     } yield techniqueArchive
   }
 
-  val spec: Spec[Any, RudderError] = suite("The test lib")(
-    // to assess the usefulness of semaphore, you can remove `gitRepo.semaphore.withPermit`
-    // in `commitAddFile` to check that you get the JGitInternalException.
-    // More advanced tests may be needed to handle more complex cases of concurrent access,
-    // see: https://issues.rudder.io/issues/19910
-    test("not throw JGitInternalError on concurrent write") {
-
-      def getName(length: Int): IO[errors.RudderError, String] = {
-        if (length < 1) Inconsistency("Length must be positive").fail
-        else {
-          IOResult.attempt("")(Random.alphanumeric.take(length).toList.mkString(""))
-        }
-      }
-
-      def add(i: Int)(gitRoot: TempDir, archive: GitConfigItemRepository) = for {
-        name <- getName(8).map(s => i.toString + "_" + s)
-        file  = gitRoot.path / name
-        _    <- IOResult.attempt(file.write("something in " + name))
-        actor = new PersonIdent("test", "test@test.com")
-        _    <- archive.commitAddFileWithModId(ModificationId(name), actor, name, "add " + name)
-      } yield name
-
-      def makeArchive(
-          repository: GitRepositoryProvider,
-          modRepo:    GitModificationRepository
-      ): GitConfigItemRepository = new GitConfigItemRepository {
+  val gitConfigItemRepositoryLayer
+      : ZLayer[GitModificationRepository & GitRepositoryProvider, Nothing, GitConfigItemRepository] = {
+    ZLayer {
+      for {
+        repository <- ZIO.service[GitRepositoryProvider]
+        modRepo    <- ZIO.service[GitModificationRepository]
+      } yield new GitConfigItemRepository {
         override val gitRepo:                   GitRepositoryProvider     = repository
         override def relativePath:              String                    = ""
         override def gitModificationRepository: GitModificationRepository = modRepo
       }
+    }
+  }
 
-      for {
-        gitRoot               <- ZIO.service[TempDir]
-        modRepo               <- ZIO.service[GitModificationRepository]
-        gitRepositoryProvider <- ZIO.service[GitRepositoryProvider]
+  val spec: Spec[Any, RudderError] = suite("The test lib")(
+    suite("GitConfigItemRepository")(
+      // to assess the usefulness of semaphore, you can remove `gitRepo.semaphore.withPermit`
+      // in `commitAddFile` to check that you get the JGitInternalException.
+      // More advanced tests may be needed to handle more complex cases of concurrent access,
+      // see: https://issues.rudder.io/issues/19910
+      test("should not throw JGitInternalError on concurrent write") {
 
-        archive  = makeArchive(gitRepositoryProvider, modRepo)
-        files   <- ZIO.foreachPar(1 to 50)(i => add(i)(gitRoot, archive)).withParallelism(16)
-        created <- readElementsAt(gitRepositoryProvider.db, "refs/heads/master")
-      } yield assert(created)(hasSameElements(files))
+        def addFileToRepositoryAndCommit(i: Int)(gitRoot: TempDir, archive: GitConfigItemRepository) = for {
+          name <- zio.Random.nextString(8).map(s => i.toString + "_" + s)
+          file  = gitRoot.path / name
+          _    <- IOResult.attempt(file.write("something in " + name))
+          actor = new PersonIdent("test", "test@test.com")
+          _    <- archive.commitAddFileWithModId(ModificationId(name), actor, name, "add " + name)
+        } yield name
 
-    }.provide(TempDir.layer, StubGitModificationRepository.layer, gitRepositoryProviderLayer),
-    suite("save a category")(
-      test("create a new file and commit if the category does not exist") {
+        for {
+          gitRoot               <- ZIO.service[TempDir]
+          gitRepositoryProvider <- ZIO.service[GitRepositoryProvider]
+          archive               <- ZIO.service[GitConfigItemRepository]
+          files                 <- ZIO.foreachPar(1 to 50)(i => addFileToRepositoryAndCommit(i)(gitRoot, archive)).withParallelism(16)
+          created               <- readElementsAt(gitRepositoryProvider.db, "refs/heads/master")
+        } yield assert(created)(hasSameElements(files))
+
+      }.provide(TempDir.layer, StubGitModificationRepository.layer, gitRepositoryProviderLayer, gitConfigItemRepositoryLayer),
+      suite("save a category")(test("create a new file and commit if the category does not exist") {
         for {
           gitRepositoryProvider <- ZIO.service[GitRepositoryProvider]
           techniqueArchive      <- ZIO.service[TechniqueArchiver]
@@ -278,7 +271,7 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
           ) &&
           assert(lastCommitMsg)(equalTo("test: commit add category systemSettings/myNewCategory"))
         }
-      },
+      }),
       test("does nothing when the category already exists") {
         for {
           gitRepositoryProvider <- ZIO.service[GitRepositoryProvider]
@@ -291,8 +284,8 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
                                        EventActor("test"),
                                        s"test: commit add category ${catPath.mkString("/")}"
                                      )
-          _            <- techniqueArchive.saveTechniqueCategory(catPath, category, modId, EventActor("test"), s"test: commit again")
-          lastCommitMsg = gitRepositoryProvider.git.log().setMaxCount(1).call().iterator().next().getFullMessage
+          _                     <- techniqueArchive.saveTechniqueCategory(catPath, category, modId, EventActor("test"), s"test: commit again")
+          lastCommitMsg          = gitRepositoryProvider.git.log().setMaxCount(1).call().iterator().next().getFullMessage
         } yield assert(lastCommitMsg)(equalTo("test: commit add category systemSettings/myNewCategory"))
       }
     ).provide(
