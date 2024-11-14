@@ -3071,6 +3071,7 @@ dependencies = [
  "reqwest 0.12.9",
  "rstest",
  "rudder_cli",
+ "secrecy 0.10.3",
  "serde",
  "serde_ini",
  "serde_json",
@@ -3110,7 +3111,7 @@ dependencies = [
  "proptest",
  "regex",
  "reqwest 0.11.27",
- "secrecy",
+ "secrecy 0.8.0",
  "serde",
  "serde_json",
  "sha2",
@@ -3365,6 +3366,16 @@ name = "scratch"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3cf7c11c38cb994f3d40e8a8cde3bbd1f72a435e4c49e85d6553d8312306152"
+
+[[package]]
+name = "secrecy"
+version = "0.10.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e891af845473308773346dc847b2c23ee78fe442e0472ac50e22a18a93d3ae5a"
+dependencies = [
+ "serde",
+ "zeroize",
+]
 
 [[package]]
 name = "secrecy"
