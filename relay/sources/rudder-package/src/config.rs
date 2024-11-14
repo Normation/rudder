@@ -1,36 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use std::{fmt, fs::read_to_string, path::Path};
+use std::{fs::read_to_string, path::Path};
 
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
+use secrecy::SecretString;
+use serde::Deserialize;
 use tracing::info;
 
 const PUBLIC_REPO_URL: &str = "https://repository.rudder.io/plugins";
 const PRIVATE_REPO_URL: &str = "https://download.rudder.io/plugins";
-
-#[derive(Serialize, Clone, Deserialize, PartialEq, Eq)]
-pub struct SecretString {
-    #[serde(flatten)]
-    value: String,
-}
-
-impl fmt::Debug for SecretString {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("[REDACTED String]")
-    }
-}
-
-impl SecretString {
-    pub fn new(value: String) -> Self {
-        Self { value }
-    }
-
-    pub fn expose_secret(&self) -> &String {
-        &self.value
-    }
-}
 
 /// Wrapper as the default config has a "Rudder" section
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -58,13 +37,19 @@ struct RudderSection {
     proxy_password: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Clone, Debug)]
 pub struct Credentials {
     pub username: String,
     pub password: SecretString,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+impl PartialEq for Credentials {
+    fn eq(&self, other: &Self) -> bool {
+        self.username == other.username
+    }
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
 pub struct Configuration {
     pub url: String,
     pub credentials: Option<Credentials>,
@@ -91,7 +76,7 @@ impl Configuration {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Debug, PartialEq)]
 pub struct ProxyConfiguration {
     pub url: String,
     pub credentials: Option<Credentials>,
@@ -103,14 +88,14 @@ impl From<RawConfiguration> for Configuration {
         let credentials = match (r.username.is_empty(), r.password.is_empty()) {
             (false, false) => Some(Credentials {
                 username: r.username,
-                password: SecretString::new(r.password),
+                password: r.password.into(),
             }),
             _ => None,
         };
         let proxy_credentials = match (r.proxy_user.is_empty(), r.proxy_password.is_empty()) {
             (false, false) => Some(Credentials {
                 username: r.proxy_user,
-                password: SecretString::new(r.proxy_password),
+                password: r.proxy_password.into(),
             }),
             _ => None,
         };
@@ -145,7 +130,7 @@ mod tests {
 
     use pretty_assertions::assert_eq;
 
-    use crate::config::{Configuration, Credentials, ProxyConfiguration, SecretString};
+    use crate::config::{Configuration, Credentials, ProxyConfiguration};
 
     #[test]
     fn it_parses_default_config_file() {
@@ -153,7 +138,7 @@ mod tests {
             url: "https://download.rudder.io/plugins".to_string(),
             credentials: Some(Credentials {
                 username: "user".to_string(),
-                password: SecretString::new("password".to_string()),
+                password: "password".into(),
             }),
             proxy: None,
         };
@@ -176,13 +161,13 @@ mod tests {
             url: "https://download2.rudder.io/plugins".to_string(),
             credentials: Some(Credentials {
                 username: "user".to_string(),
-                password: SecretString::new("password".to_string()),
+                password: "password".into(),
             }),
             proxy: Some(ProxyConfiguration {
                 url: "http://22.29.35.56".to_string(),
                 credentials: Some(Credentials {
                     username: "mario".to_string(),
-                    password: SecretString::new("daisy".to_string()),
+                    password: "password".into(),
                 }),
             }),
         };
