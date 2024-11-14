@@ -49,8 +49,6 @@ import com.normation.errors.RudderError
 import com.normation.errors.effectUioUnit
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.db.DB
-import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
@@ -58,7 +56,6 @@ import com.normation.rudder.ncf.EditorTechnique
 import com.normation.rudder.ncf.TechniqueCompilationOutput
 import com.normation.rudder.ncf.TechniqueCompiler
 import com.normation.rudder.ncf.TechniqueCompilerApp
-import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.repository.xml.TechniqueArchiverImpl
@@ -69,7 +66,6 @@ import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.treewalk.TreeWalk
 import zio.Chunk
 import zio.System
-import zio.ULayer
 import zio.ZIO
 import zio.ZLayer
 import zio.syntax.ToZio
@@ -104,37 +100,24 @@ object JGitRepositoryTest extends ZIOSpecDefault {
 
   def prettyPrinter: RudderPrettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
 
-  object StubGitModificationRepository {
-    val layer: ULayer[GitModificationRepository] = ZLayer.succeed {
-      new GitModificationRepository {
-        override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
-
-        override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] =
-          DB.GitCommitJoin(commit, modId).succeed
-      }
-    }
-  }
-
-  val techniqueParserLayer: ULayer[TechniqueParser] = ZLayer.succeed {
+  private val techniqueParserLayer = ZLayer.succeed {
     val varParser = new VariableSpecParser
     new TechniqueParser(varParser, new SectionSpecParser(varParser), new SystemVariableSpecServiceImpl())
   }
 
-  object StubbedTechniqueCompiler {
-    val layer: ULayer[TechniqueCompiler] = ZLayer.succeed {
-      new TechniqueCompiler {
-        override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
-          TechniqueCompilationOutput(TechniqueCompilerApp.Rudderc, 0, Chunk.empty, "", "", "").succeed
-        }
-
-        override def getCompilationOutputFile(technique: EditorTechnique): File = File("compilation-config.yml")
-
-        override def getCompilationConfigFile(technique: EditorTechnique): File = File("compilation-output.yml")
+  private val stubbedTechniqueCompilerLayer = ZLayer.succeed {
+    new TechniqueCompiler {
+      override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
+        TechniqueCompilationOutput(TechniqueCompilerApp.Rudderc, 0, Chunk.empty, "", "", "").succeed
       }
+
+      override def getCompilationOutputFile(technique: EditorTechnique): File = File("compilation-config.yml")
+
+      override def getCompilationConfigFile(technique: EditorTechnique): File = File("compilation-output.yml")
     }
   }
 
-  val gitRepositoryProviderLayer: ZLayer[TempDir, RudderError, GitRepositoryProviderImpl] = ZLayer {
+  private val gitRepositoryProviderLayer = ZLayer {
     for {
       gitRoot <- ZIO.service[TempDir]
       result  <- GitRepositoryProviderImpl.make(gitRoot.path.pathAsString)
@@ -175,35 +158,31 @@ object JGitRepositoryTest extends ZIOSpecDefault {
   // for test, we use as a group owner whatever git root directory has
   def currentUserName(repo: GitRepositoryProvider): GroupOwner = GroupOwner(repo.rootDirectory.groupName)
 
-  val currentUserNameLayer: ZLayer[GitRepositoryProvider, Nothing, GroupOwner] = ZLayer {
+  private val currentUserNameLayer = ZLayer {
     for {
       repo <- ZIO.service[GitRepositoryProvider]
     } yield currentUserName(repo)
   }
 
-  val techniqueArchiverLayer: ZLayer[
-    GroupOwner & TrivialPersonIdentService & GitRepositoryProvider & TechniqueCompiler & TechniqueParser & GitModificationRepository,
-    Nothing,
-    TechniqueArchiverImpl
-  ] = ZLayer {
+  private val techniqueArchiverLayer = ZLayer {
     for {
       techniqueParse        <- ZIO.service[TechniqueParser]
       techniqueCompiler     <- ZIO.service[TechniqueCompiler]
       gitRepositoryProvider <- ZIO.service[GitRepositoryProvider]
       personIdentservice    <- ZIO.service[TrivialPersonIdentService]
       groupOwner            <- ZIO.service[GroupOwner]
-      techniqueArchive       = new TechniqueArchiverImpl(
-                                 gitRepo = gitRepositoryProvider,
-                                 xmlPrettyPrinter = prettyPrinter,
-                                 personIdentservice = personIdentservice,
-                                 techniqueParser = techniqueParse,
-                                 techniqueCompiler = techniqueCompiler,
-                                 groupOwner = groupOwner.value
-                               )
-    } yield techniqueArchive
+    } yield new TechniqueArchiverImpl(
+      gitRepo = gitRepositoryProvider,
+      xmlPrettyPrinter = prettyPrinter,
+      personIdentservice = personIdentservice,
+      techniqueParser = techniqueParse,
+      techniqueCompiler = techniqueCompiler,
+      groupOwner = groupOwner.value
+    )
+
   }
 
-  val gitItemRepositoryLayer: ZLayer[GitModificationRepository & GitRepositoryProvider, Nothing, GitItemRepository] = {
+  private val gitItemRepositoryLayer = {
     ZLayer {
       for {
         repository <- ZIO.service[GitRepositoryProvider]
@@ -235,7 +214,7 @@ object JGitRepositoryTest extends ZIOSpecDefault {
           created               <- readElementsAt(gitRepositoryProvider.db, "refs/heads/master")
         } yield assert(created)(hasSameElements(files))
 
-      }.provide(TempDir.layer, StubGitModificationRepository.layer, gitRepositoryProviderLayer, gitItemRepositoryLayer)
+      }.provide(TempDir.layer, gitRepositoryProviderLayer, gitItemRepositoryLayer)
     ),
     suite("TechniqueArchiver.saveTechniqueCategory")(
       test("should create a new file and commit if the category does not exist") {
@@ -284,9 +263,8 @@ object JGitRepositoryTest extends ZIOSpecDefault {
       }
     ).provide(
       TempDir.layer,
-      StubGitModificationRepository.layer,
       techniqueParserLayer,
-      StubbedTechniqueCompiler.layer,
+      stubbedTechniqueCompilerLayer,
       gitRepositoryProviderLayer,
       ZLayer.succeed(new TrivialPersonIdentService()),
       currentUserNameLayer,
