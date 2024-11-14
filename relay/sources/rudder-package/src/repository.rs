@@ -12,6 +12,7 @@ use reqwest::{
     blocking::{Client, Response},
     Proxy, StatusCode, Url,
 };
+use secrecy::ExposeSecret;
 use tar::Archive;
 use tempfile::tempdir;
 use tracing::{debug, info};
