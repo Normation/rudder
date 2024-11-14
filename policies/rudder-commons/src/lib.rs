@@ -5,10 +5,10 @@ pub mod logs;
 pub mod methods;
 pub mod report;
 
-use std::{ffi::OsStr, fmt, path::Path, str::FromStr};
-
 use anyhow::{anyhow, bail, Error, Result};
 use serde::{Deserialize, Deserializer, Serialize};
+use std::fmt::Display;
+use std::{ffi::OsStr, fmt, path::Path, str::FromStr};
 
 pub const ALL_TARGETS: &[Target] = &[Target::Unix, Target::Windows];
 
@@ -61,7 +61,7 @@ impl TryFrom<&Path> for Target {
 }
 
 // standard target name
-impl fmt::Display for Target {
+impl Display for Target {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -120,6 +120,36 @@ impl FromStr for Escaping {
     }
 }
 
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, Hash, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum ParameterFormat {
+    Json,
+    Yaml,
+}
+
+impl Display for ParameterFormat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                ParameterFormat::Json => "JSON",
+                ParameterFormat::Yaml => "YAML",
+            }
+        )
+    }
+}
+
+impl ParameterFormat {
+    pub fn validate(&self, s: &str) -> Result<()> {
+        match self {
+            ParameterFormat::Json => serde_json::from_str::<serde_json::Value>(s).map(|_| ())?,
+            ParameterFormat::Yaml => serde_yaml::from_str::<serde_yaml::Value>(s).map(|_| ())?,
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, Hash, PartialEq, Eq)]
 pub struct MethodConstraints {
     #[serde(rename = "allow_empty_string")]
@@ -135,6 +165,7 @@ pub struct MethodConstraints {
     pub not_regex: Option<RegexConstraint>,
     pub max_length: usize,
     pub min_length: usize,
+    pub valid_format: Option<ParameterFormat>,
 }
 
 impl MethodConstraints {
@@ -175,6 +206,7 @@ impl MethodConstraints {
             }
             MethodConstraint::MaxLength(v) => self.max_length = v,
             MethodConstraint::MinLength(v) => self.min_length = v,
+            MethodConstraint::ValidFormat(f) => self.valid_format = Some(f),
         }
         Ok(())
     }
@@ -223,6 +255,16 @@ impl MethodConstraints {
                 )
             }
         }
+        if let Some(f) = &self.valid_format {
+            if let Err(e) = f.validate(value) {
+                bail!(
+                    "value '{}' does match the expected format '{}': {:?}",
+                    value,
+                    f,
+                    e
+                )
+            }
+        }
         Ok(())
     }
 }
@@ -239,6 +281,7 @@ pub enum MethodConstraint {
     NotRegex(String),
     MaxLength(usize),
     MinLength(usize),
+    ValidFormat(ParameterFormat),
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash)]
@@ -269,6 +312,7 @@ impl Default for MethodConstraints {
             not_regex: None,
             max_length: DEFAULT_MAX_PARAM_LENGTH,
             min_length: 0,
+            valid_format: None,
         }
     }
 }
@@ -318,7 +362,7 @@ impl PolicyMode {
     }
 }
 
-impl fmt::Display for PolicyMode {
+impl Display for PolicyMode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -414,5 +458,37 @@ mod tests {
         assert!(constraints.is_valid("ab").is_ok());
         assert!(constraints.is_valid("a").is_err());
         assert!(constraints.is_valid("aa").is_err());
+    }
+
+    #[test]
+    fn it_validates_format() {
+        let constraints = MethodConstraints {
+            valid_format: Some(ParameterFormat::Json),
+            ..Default::default()
+        };
+        assert!(constraints.is_valid(r#"{"a": 42}"#).is_ok());
+        assert!(constraints.is_valid(r#"{"a": "42"}"#).is_ok());
+        assert!(constraints.is_valid(r#"{"a": "42""#).is_err());
+        assert!(constraints.is_valid(r#"{"a": 42"#).is_err());
+        assert!(constraints.is_valid(r#"{"a": 42,}"#).is_err());
+        assert!(constraints.is_valid(r#"{"a": 42, "b": 42}"#).is_ok());
+        assert!(constraints.is_valid(r#"{"a": 42, "b": 42,}"#).is_err());
+        assert!(constraints
+            .is_valid(r#"{"a": 42, "b": 42, "c": 42}"#)
+            .is_ok());
+        assert!(constraints
+            .is_valid(r#"{"a": 42, "b": 42, "c": 42,}"#)
+            .is_err());
+
+        let constraints = MethodConstraints {
+            valid_format: Some(ParameterFormat::Yaml),
+            ..Default::default()
+        };
+        assert!(constraints.is_valid("a: 42").is_ok());
+        assert!(constraints.is_valid("a: :: 34").is_err());
+        assert!(constraints.is_valid("a: '42'").is_ok());
+        assert!(constraints.is_valid("a: '42'").is_ok());
+        assert!(constraints.is_valid("a: 42\nb: 42").is_ok());
+        assert!(constraints.is_valid("a: 42\nb: 42\nc: 42").is_ok());
     }
 }
