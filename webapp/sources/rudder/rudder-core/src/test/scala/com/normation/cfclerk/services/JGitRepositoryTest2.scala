@@ -78,56 +78,56 @@ import zio.syntax.ToZio
 import zio.test.*
 import zio.test.Assertion.*
 
+case class TempDir(path: File)
+
+object TempDir {
+
+  /**
+   * Add a switch to be able to see tmp files (not clean temps) with
+   * -Dtests.clean.tmp=false
+   */
+  val layer: ZLayer[Any, Nothing, TempDir] = ZLayer.scoped {
+    for {
+      keepFiles <- System.property("tests.clean.tmp").map(_.contains("false")).orDie
+      tempDir   <- ZIO
+                     .attemptBlockingIO(File.newTemporaryDirectory(prefix = "test-jgit-"))
+                     .withFinalizer { dir =>
+                       (ZIO.logInfo(s"Deleting directory ${dir.path}") *>
+                       ZIO.attemptBlocking(dir.delete(swallowIOExceptions = true)))
+                         .unless(keepFiles)
+                         .orDie
+                     }
+                     .orDie
+    } yield TempDir(tempDir)
+  }
+}
+
 object JGitRepositoryTest2 extends ZIOSpecDefault {
 
-  val prettyPrinter: RudderPrettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
+  def prettyPrinter: RudderPrettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
 
-  val modRepo: GitModificationRepository = new GitModificationRepository {
-    override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
-    override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] =
-      DB.GitCommitJoin(commit, modId).succeed
+  object StubGitModificationRepository {
+    def make: GitModificationRepository = new GitModificationRepository {
+      override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
+      override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] =
+        DB.GitCommitJoin(commit, modId).succeed
+    }
   }
 
-  val actor = new PersonIdent("test", "test@test.com")
-
-  val personIdent: TrivialPersonIdentService = new TrivialPersonIdentService()
-
-  val techniqueParser: TechniqueParser = {
+  def makeTechniqueParser: TechniqueParser = {
     val varParser = new VariableSpecParser
     new TechniqueParser(varParser, new SectionSpecParser(varParser), new SystemVariableSpecServiceImpl())
   }
 
-  val techniqueCompiler = new TechniqueCompiler {
-    override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
-      TechniqueCompilationOutput(TechniqueCompilerApp.Rudderc, 0, Chunk.empty, "", "", "").succeed
-    }
+  object StubbedTechniqueCompiler {
+    def make: TechniqueCompiler = new TechniqueCompiler {
+      override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
+        TechniqueCompilationOutput(TechniqueCompilerApp.Rudderc, 0, Chunk.empty, "", "", "").succeed
+      }
 
-    override def getCompilationOutputFile(technique: EditorTechnique): File = File("compilation-config.yml")
+      override def getCompilationOutputFile(technique: EditorTechnique): File = File("compilation-config.yml")
 
-    override def getCompilationConfigFile(technique: EditorTechnique): File = File("compilation-output.yml")
-  }
-
-  case class TempDir(path: File)
-
-  object TempDir {
-
-    /**
-     * Add a switch to be able to see tmp files (not clean temps) with
-     * -Dtests.clean.tmp=false
-     */
-    val layer: ZLayer[Any, Nothing, TempDir] = ZLayer.scoped {
-      for {
-        keepFiles <- System.property("tests.clean.tmp").map(_.contains("false")).orDie
-        tempDir   <- ZIO
-                       .attemptBlockingIO(File.newTemporaryDirectory(prefix = "test-jgit-"))
-                       .withFinalizer { dir =>
-                         (ZIO.logInfo(s"Deleting directory ${dir.path}") *>
-                         ZIO.attemptBlocking(dir.delete(swallowIOExceptions = true)))
-                           .unless(keepFiles)
-                           .orDie
-                       }
-                       .orDie
-      } yield TempDir(tempDir)
+      override def getCompilationConfigFile(technique: EditorTechnique): File = File("compilation-output.yml")
     }
   }
 
@@ -158,7 +158,7 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
   val category = TechniqueCategoryMetadata("My new category", "A new category", isSystem = false)
   val catPath  = List("systemSettings", "myNewCategory")
 
-  val modId = new ModificationId("add-technique-cat")
+  val modId = ModificationId("add-technique-cat")
 
   def makeRepo(gitRoot: TempDir) = GitRepositoryProviderImpl.make(gitRoot.path.pathAsString)
 
@@ -179,14 +179,18 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
         }
       }
 
-      def add(i: Int)(gitRoot: TempDir, archive: GitConfigItemRepository with XmlArchiverUtils) = (for {
+      def add(i: Int)(gitRoot: TempDir, archive: GitConfigItemRepository with XmlArchiverUtils) = for {
         name <- getName(8).map(s => i.toString + "_" + s)
         file  = gitRoot.path / name
-        f    <- IOResult.attempt(file.write("something in " + name))
+        _    <- IOResult.attempt(file.write("something in " + name))
+        actor = new PersonIdent("test", "test@test.com")
         _    <- archive.commitAddFileWithModId(ModificationId(name), actor, name, "add " + name)
-      } yield (name))
+      } yield name
 
-      def makeArchive(repository: GitRepositoryProviderImpl): GitConfigItemRepository with XmlArchiverUtils = {
+      def makeArchive(
+          repository: GitRepositoryProviderImpl,
+          modRepo:    GitModificationRepository
+      ): GitConfigItemRepository with XmlArchiverUtils = {
         new GitConfigItemRepository with XmlArchiverUtils {
           override val gitRepo:      GitRepositoryProvider = repository
           override def relativePath: String                = ""
@@ -200,7 +204,8 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
       for {
         gitRoot <- ZIO.service[TempDir]
         repo    <- makeRepo(gitRoot)
-        archive  = makeArchive(repo)
+        modRepo  = StubGitModificationRepository.make
+        archive  = makeArchive(repo, modRepo)
         files   <- ZIO.foreachPar(1 to 50)(i => add(i)(gitRoot, archive)).withParallelism(16)
         created <- readElementsAt(repo.db, "refs/heads/master")
       } yield assert(created)(hasSameElements(files))
@@ -215,10 +220,10 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
           techniqueArchive = new TechniqueArchiverImpl(
                                gitRepo = repo,
                                xmlPrettyPrinter = prettyPrinter,
-                               gitModificationRepository = modRepo,
-                               personIdentservice = personIdent,
-                               techniqueParser = techniqueParser,
-                               techniqueCompiler = techniqueCompiler,
+                               gitModificationRepository = StubGitModificationRepository.make,
+                               personIdentservice = new TrivialPersonIdentService(),
+                               techniqueParser = makeTechniqueParser,
+                               techniqueCompiler = StubbedTechniqueCompiler.make,
                                groupOwner = currentUserName(repo)
                              )
           _               <- techniqueArchive
@@ -253,10 +258,10 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
           techniqueArchive = new TechniqueArchiverImpl(
                                gitRepo = repo,
                                xmlPrettyPrinter = prettyPrinter,
-                               gitModificationRepository = modRepo,
-                               personIdentservice = personIdent,
-                               techniqueParser = techniqueParser,
-                               techniqueCompiler = techniqueCompiler,
+                               gitModificationRepository = StubGitModificationRepository.make,
+                               personIdentservice = new TrivialPersonIdentService(),
+                               techniqueParser = makeTechniqueParser,
+                               techniqueCompiler = StubbedTechniqueCompiler.make,
                                groupOwner = currentUserName(repo)
                              )
 
