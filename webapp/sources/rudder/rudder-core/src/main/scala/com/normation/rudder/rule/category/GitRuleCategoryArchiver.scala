@@ -126,8 +126,8 @@ class GitRuleCategoryArchiverImpl(
     override val encoding:                  String,
     categoryFileName:                       String,
     override val groupOwner:                String
-) extends GitRuleCategoryArchiver with NamedZioLogger with XmlArchiverUtils
-    with GitArchiverFullCommitUtils with BuildCategoryPathName[RuleCategoryId] {
+) extends GitRuleCategoryArchiver with NamedZioLogger with XmlArchiverUtils with GitArchiverFullCommitUtils
+    with BuildCategoryPathName[RuleCategoryId] {
 
   override val relativePath = ruleCategoryRootDir
 
@@ -137,7 +137,7 @@ class GitRuleCategoryArchiverImpl(
   override def getItemDirectory: File = gitConfigItemRepository.getItemDirectory
 
   override def loggerName: String = this.getClass.getName
-  override val tagPrefix    = "archives/configurations-rules/"
+  override val tagPrefix = "archives/configurations-rules/"
 
   def getCategoryName(categoryId: RuleCategoryId): String = categoryId.value
 

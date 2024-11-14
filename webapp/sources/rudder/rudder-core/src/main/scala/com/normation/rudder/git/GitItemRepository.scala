@@ -198,9 +198,7 @@ class GitItemRepository(
 
 }
 
-object GitItemRepository {
-
-}
+object GitItemRepository {}
 
 /*
  * An extension of simple GitItemRepositoty that in addition knows how to link commitId and modId together.

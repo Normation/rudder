@@ -800,7 +800,8 @@ class GitActiveTechniqueArchiverImpl(
                          modId = modId,
                          commiter = commiter,
                          gitPath = gitPath,
-                         commitMessage = s"Archive of technique library template for technique name '${activeTechnique.techniqueName.value}'${GET(reason)}"
+                         commitMessage =
+                           s"Archive of technique library template for technique name '${activeTechnique.techniqueName.value}'${GET(reason)}"
                        )
                      case None                            => ZIO.unit
                    }
@@ -830,7 +831,8 @@ class GitActiveTechniqueArchiverImpl(
                                     modId = modId,
                                     commiter = commiter,
                                     gitPath = gitPath,
-                                    commitMessage = s"Delete archive of technique library template for technique name '${ptName.value}'${GET(reason)}"
+                                    commitMessage =
+                                      s"Delete archive of technique library template for technique name '${ptName.value}'${GET(reason)}"
                                   )
                                 case None                            => ZIO.unit
                               }
@@ -1239,7 +1241,8 @@ class GitNodeGroupArchiverImpl(
                                modId = modId,
                                commiter = commiter,
                                gitPath = gitPath,
-                               commitMessage = s"Delete archive of node group with ID '${ngId.withDefaultRev.serialize}'${GET(reason)}"
+                               commitMessage =
+                                 s"Delete archive of node group with ID '${ngId.withDefaultRev.serialize}'${GET(reason)}"
                              )
                            case None                            => ZIO.unit
                          }
@@ -1281,7 +1284,8 @@ class GitNodeGroupArchiverImpl(
                               commiter = commiter,
                               oldGitPath = gitConfigItemRepository.toGitPath(oldNgXmlFile),
                               newGitPath = gitConfigItemRepository.toGitPath(newNgXmlFile),
-                              commitMessage = "Move archive of node group with ID '%s'%s".format(ng.id.withDefaultRev.serialize, GET(reason))
+                              commitMessage =
+                                "Move archive of node group with ID '%s'%s".format(ng.id.withDefaultRev.serialize, GET(reason))
                             )
                           case None                            => ZIO.unit
                         }
