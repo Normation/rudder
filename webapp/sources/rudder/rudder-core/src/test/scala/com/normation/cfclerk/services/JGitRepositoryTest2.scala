@@ -243,8 +243,10 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
           created               <- readElementsAt(gitRepositoryProvider.db, "refs/heads/master")
         } yield assert(created)(hasSameElements(files))
 
-      }.provide(TempDir.layer, StubGitModificationRepository.layer, gitRepositoryProviderLayer, gitConfigItemRepositoryLayer),
-      suite("save a category")(test("create a new file and commit if the category does not exist") {
+      }.provide(TempDir.layer, StubGitModificationRepository.layer, gitRepositoryProviderLayer, gitConfigItemRepositoryLayer)
+    ),
+    suite("TechniqueArchiver.saveTechniqueCategory")(
+      test("should create a new file and commit if the category does not exist") {
         for {
           gitRepositoryProvider <- ZIO.service[GitRepositoryProvider]
           techniqueArchive      <- ZIO.service[TechniqueArchiver]
@@ -271,8 +273,8 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
           ) &&
           assert(lastCommitMsg)(equalTo("test: commit add category systemSettings/myNewCategory"))
         }
-      }),
-      test("does nothing when the category already exists") {
+      },
+      test("should do nothing when the category already exists") {
         for {
           gitRepositoryProvider <- ZIO.service[GitRepositoryProvider]
           techniqueArchive      <- ZIO.service[TechniqueArchiver]
