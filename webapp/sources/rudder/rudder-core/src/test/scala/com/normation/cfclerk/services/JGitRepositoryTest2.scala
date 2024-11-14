@@ -257,7 +257,6 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
     suite("save a category")(
       test("create a new file and commit if the category does not exist") {
         for {
-          _                     <- ZIO.debug("test 1 started")
           gitRepositoryProvider <- ZIO.service[GitRepositoryProvider]
           techniqueArchive      <- ZIO.service[TechniqueArchiver]
           _                     <- techniqueArchive
@@ -286,7 +285,6 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
       },
       test("does nothing when the category already exists") {
         for {
-          _                     <- ZIO.debug("test 2 started")
           gitRepositoryProvider <- ZIO.service[GitRepositoryProvider]
           techniqueArchive      <- ZIO.service[TechniqueArchiver]
           _                     <- techniqueArchive
@@ -297,12 +295,11 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
                                        EventActor("test"),
                                        s"test: commit add category ${catPath.mkString("/")}"
                                      )
-
           _            <- techniqueArchive.saveTechniqueCategory(catPath, category, modId, EventActor("test"), s"test: commit again")
           lastCommitMsg = gitRepositoryProvider.git.log().setMaxCount(1).call().iterator().next().getFullMessage
         } yield assert(lastCommitMsg)(equalTo("test: commit add category systemSettings/myNewCategory"))
       }
-    ).provideShared(
+    ).provide(
       TempDir.layer,
       StubGitModificationRepository.layer,
       techniqueParserLayer,
@@ -311,7 +308,7 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
       ZLayer.succeed(new TrivialPersonIdentService()),
       currentUserNameLayer,
       techniqueArchiverLayer
-    ) @@ TestAspect.sequential
+    )
   )
 
 }
