@@ -72,6 +72,7 @@ import scala.util.Random
 import zio.Chunk
 import zio.IO
 import zio.System
+import zio.ULayer
 import zio.ZIO
 import zio.ZLayer
 import zio.syntax.ToZio
@@ -107,28 +108,40 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
   def prettyPrinter: RudderPrettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
 
   object StubGitModificationRepository {
-    def make: GitModificationRepository = new GitModificationRepository {
-      override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
-      override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] =
-        DB.GitCommitJoin(commit, modId).succeed
+    val layer: ULayer[GitModificationRepository] = ZLayer.succeed {
+      new GitModificationRepository {
+        override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
+
+        override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] =
+          DB.GitCommitJoin(commit, modId).succeed
+      }
     }
   }
 
-  def makeTechniqueParser: TechniqueParser = {
+  val techniqueParserLayer: ULayer[TechniqueParser] = ZLayer.succeed {
     val varParser = new VariableSpecParser
     new TechniqueParser(varParser, new SectionSpecParser(varParser), new SystemVariableSpecServiceImpl())
   }
 
   object StubbedTechniqueCompiler {
-    def make: TechniqueCompiler = new TechniqueCompiler {
-      override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
-        TechniqueCompilationOutput(TechniqueCompilerApp.Rudderc, 0, Chunk.empty, "", "", "").succeed
+    val layer: ULayer[TechniqueCompiler] = ZLayer.succeed {
+      new TechniqueCompiler {
+        override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
+          TechniqueCompilationOutput(TechniqueCompilerApp.Rudderc, 0, Chunk.empty, "", "", "").succeed
+        }
+
+        override def getCompilationOutputFile(technique: EditorTechnique): File = File("compilation-config.yml")
+
+        override def getCompilationConfigFile(technique: EditorTechnique): File = File("compilation-output.yml")
       }
-
-      override def getCompilationOutputFile(technique: EditorTechnique): File = File("compilation-config.yml")
-
-      override def getCompilationConfigFile(technique: EditorTechnique): File = File("compilation-output.yml")
     }
+  }
+
+  val gitRepositoryProviderLayer: ZLayer[TempDir, RudderError, GitRepositoryProviderImpl] = ZLayer {
+    for {
+      gitRoot <- ZIO.service[TempDir]
+      result  <- GitRepositoryProviderImpl.make(gitRoot.path.pathAsString)
+    } yield result
   }
 
   // listing files at a commit is complicated
@@ -160,10 +173,16 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
 
   val modId = ModificationId("add-technique-cat")
 
-  def makeRepo(gitRoot: TempDir) = GitRepositoryProviderImpl.make(gitRoot.path.pathAsString)
+  case class GroupOwner(value: String)
 
   // for test, we use as a group owner whatever git root directory has
-  def currentUserName(repo: GitRepositoryProviderImpl): String = repo.rootDirectory.groupName
+  def currentUserName(repo: GitRepositoryProviderImpl): GroupOwner = GroupOwner(repo.rootDirectory.groupName)
+
+  val currentUserNameLayer: ZLayer[GitRepositoryProviderImpl, Nothing, GroupOwner] = ZLayer {
+    for {
+      repo <- ZIO.service[GitRepositoryProviderImpl]
+    } yield currentUserName(repo)
+  }
 
   val spec: Spec[Any, RudderError] = suite("The test lib")(
     // to assess the usefulness of semaphore, you can remove `gitRepo.semaphore.withPermit`
@@ -197,46 +216,51 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
           override def xmlPrettyPrinter = prettyPrinter
           override def encoding:                  String                    = "UTF-8"
           override def gitModificationRepository: GitModificationRepository = modRepo
-          override def groupOwner:                String                    = currentUserName(repository)
+          override def groupOwner:                String                    = currentUserName(repository).value
         }
       }
 
       for {
-        gitRoot <- ZIO.service[TempDir]
-        repo    <- makeRepo(gitRoot)
-        modRepo  = StubGitModificationRepository.make
-        archive  = makeArchive(repo, modRepo)
+        gitRoot               <- ZIO.service[TempDir]
+        modRepo               <- ZIO.service[GitModificationRepository]
+        gitRepositoryProvider <- ZIO.service[GitRepositoryProviderImpl]
+
+        archive  = makeArchive(gitRepositoryProvider, modRepo)
         files   <- ZIO.foreachPar(1 to 50)(i => add(i)(gitRoot, archive)).withParallelism(16)
-        created <- readElementsAt(repo.db, "refs/heads/master")
+        created <- readElementsAt(gitRepositoryProvider.db, "refs/heads/master")
       } yield assert(created)(hasSameElements(files))
 
-    }.provide(TempDir.layer),
+    }.provide(TempDir.layer, StubGitModificationRepository.layer, gitRepositoryProviderLayer),
     suite("save a category")(
       test("create a new file and commit if the category does not exist") {
         for {
-          _               <- ZIO.debug("test 1 started")
-          gitRoot         <- ZIO.service[TempDir]
-          repo            <- makeRepo(gitRoot)
-          techniqueArchive = new TechniqueArchiverImpl(
-                               gitRepo = repo,
-                               xmlPrettyPrinter = prettyPrinter,
-                               gitModificationRepository = StubGitModificationRepository.make,
-                               personIdentservice = new TrivialPersonIdentService(),
-                               techniqueParser = makeTechniqueParser,
-                               techniqueCompiler = StubbedTechniqueCompiler.make,
-                               groupOwner = currentUserName(repo)
-                             )
-          _               <- techniqueArchive
-                               .saveTechniqueCategory(
-                                 catPath,
-                                 category,
-                                 modId,
-                                 EventActor("test"),
-                                 s"test: commit add category ${catPath.mkString("/")}"
-                               )
-          catFile          = repo.rootDirectory / "techniques" / "systemSettings" / "myNewCategory" / "category.xml"
-          xml              = catFile.contentAsString
-          lastCommitMsg    = repo.git.log().setMaxCount(1).call().iterator().next().getFullMessage
+          _                     <- ZIO.debug("test 1 started")
+          modRepo               <- ZIO.service[GitModificationRepository]
+          techniqueParse        <- ZIO.service[TechniqueParser]
+          techniqueCompiler     <- ZIO.service[TechniqueCompiler]
+          gitRepositoryProvider <- ZIO.service[GitRepositoryProviderImpl]
+          personIdentservice    <- ZIO.service[TrivialPersonIdentService]
+          groupOwner            <- ZIO.service[GroupOwner]
+          techniqueArchive       = new TechniqueArchiverImpl(
+                                     gitRepo = gitRepositoryProvider,
+                                     xmlPrettyPrinter = prettyPrinter,
+                                     gitModificationRepository = modRepo,
+                                     personIdentservice = personIdentservice,
+                                     techniqueParser = techniqueParse,
+                                     techniqueCompiler = techniqueCompiler,
+                                     groupOwner = groupOwner.value
+                                   )
+          _                     <- techniqueArchive
+                                     .saveTechniqueCategory(
+                                       catPath,
+                                       category,
+                                       modId,
+                                       EventActor("test"),
+                                       s"test: commit add category ${catPath.mkString("/")}"
+                                     )
+          catFile                = gitRepositoryProvider.rootDirectory / "techniques" / "systemSettings" / "myNewCategory" / "category.xml"
+          xml                    = catFile.contentAsString
+          lastCommitMsg          = gitRepositoryProvider.git.log().setMaxCount(1).call().iterator().next().getFullMessage
         } yield {
           // note: no <system>false</system> ; it's only written when true
           assert(xml)(
@@ -252,33 +276,44 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
       },
       test("does nothing when the category already exists") {
         for {
-          _               <- ZIO.debug("test 2 started")
-          gitRoot         <- ZIO.service[TempDir]
-          repo            <- makeRepo(gitRoot)
-          techniqueArchive = new TechniqueArchiverImpl(
-                               gitRepo = repo,
-                               xmlPrettyPrinter = prettyPrinter,
-                               gitModificationRepository = StubGitModificationRepository.make,
-                               personIdentservice = new TrivialPersonIdentService(),
-                               techniqueParser = makeTechniqueParser,
-                               techniqueCompiler = StubbedTechniqueCompiler.make,
-                               groupOwner = currentUserName(repo)
-                             )
-
-          _ <- techniqueArchive
-                 .saveTechniqueCategory(
-                   catPath,
-                   category,
-                   modId,
-                   EventActor("test"),
-                   s"test: commit add category ${catPath.mkString("/")}"
-                 )
+          _                     <- ZIO.debug("test 2 started")
+          modRepo               <- ZIO.service[GitModificationRepository]
+          techniqueParse        <- ZIO.service[TechniqueParser]
+          techniqueCompiler     <- ZIO.service[TechniqueCompiler]
+          gitRepositoryProvider <- ZIO.service[GitRepositoryProviderImpl]
+          personIdentservice    <- ZIO.service[TrivialPersonIdentService]
+          groupOwner            <- ZIO.service[GroupOwner]
+          techniqueArchive       = new TechniqueArchiverImpl(
+                                     gitRepo = gitRepositoryProvider,
+                                     xmlPrettyPrinter = prettyPrinter,
+                                     gitModificationRepository = modRepo,
+                                     personIdentservice = personIdentservice,
+                                     techniqueParser = techniqueParse,
+                                     techniqueCompiler = techniqueCompiler,
+                                     groupOwner = groupOwner.value
+                                   )
+          _                     <- techniqueArchive
+                                     .saveTechniqueCategory(
+                                       catPath,
+                                       category,
+                                       modId,
+                                       EventActor("test"),
+                                       s"test: commit add category ${catPath.mkString("/")}"
+                                     )
 
           _            <- techniqueArchive.saveTechniqueCategory(catPath, category, modId, EventActor("test"), s"test: commit again")
-          lastCommitMsg = repo.git.log().setMaxCount(1).call().iterator().next().getFullMessage
+          lastCommitMsg = gitRepositoryProvider.git.log().setMaxCount(1).call().iterator().next().getFullMessage
         } yield assert(lastCommitMsg)(equalTo("test: commit add category systemSettings/myNewCategory"))
       }
-    ).provideShared(TempDir.layer) @@ TestAspect.sequential
+    ).provideShared(
+      TempDir.layer,
+      StubGitModificationRepository.layer,
+      techniqueParserLayer,
+      StubbedTechniqueCompiler.layer,
+      gitRepositoryProviderLayer,
+      ZLayer.succeed(new TrivialPersonIdentService()),
+      currentUserNameLayer
+    ) @@ TestAspect.sequential
   )
 
 }
