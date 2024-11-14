@@ -184,6 +184,30 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
     } yield currentUserName(repo)
   }
 
+  val techniqueArchiverLayer: ZLayer[
+    GroupOwner & TrivialPersonIdentService & GitRepositoryProviderImpl & TechniqueCompiler & TechniqueParser & GitModificationRepository,
+    Nothing,
+    TechniqueArchiverImpl
+  ] = ZLayer {
+    for {
+      modRepo               <- ZIO.service[GitModificationRepository]
+      techniqueParse        <- ZIO.service[TechniqueParser]
+      techniqueCompiler     <- ZIO.service[TechniqueCompiler]
+      gitRepositoryProvider <- ZIO.service[GitRepositoryProviderImpl]
+      personIdentservice    <- ZIO.service[TrivialPersonIdentService]
+      groupOwner            <- ZIO.service[GroupOwner]
+      techniqueArchive       = new TechniqueArchiverImpl(
+                                 gitRepo = gitRepositoryProvider,
+                                 xmlPrettyPrinter = prettyPrinter,
+                                 gitModificationRepository = modRepo,
+                                 personIdentservice = personIdentservice,
+                                 techniqueParser = techniqueParse,
+                                 techniqueCompiler = techniqueCompiler,
+                                 groupOwner = groupOwner.value
+                               )
+    } yield techniqueArchive
+  }
+
   val spec: Spec[Any, RudderError] = suite("The test lib")(
     // to assess the usefulness of semaphore, you can remove `gitRepo.semaphore.withPermit`
     // in `commitAddFile` to check that you get the JGitInternalException.
@@ -235,21 +259,8 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
       test("create a new file and commit if the category does not exist") {
         for {
           _                     <- ZIO.debug("test 1 started")
-          modRepo               <- ZIO.service[GitModificationRepository]
-          techniqueParse        <- ZIO.service[TechniqueParser]
-          techniqueCompiler     <- ZIO.service[TechniqueCompiler]
           gitRepositoryProvider <- ZIO.service[GitRepositoryProviderImpl]
-          personIdentservice    <- ZIO.service[TrivialPersonIdentService]
-          groupOwner            <- ZIO.service[GroupOwner]
-          techniqueArchive       = new TechniqueArchiverImpl(
-                                     gitRepo = gitRepositoryProvider,
-                                     xmlPrettyPrinter = prettyPrinter,
-                                     gitModificationRepository = modRepo,
-                                     personIdentservice = personIdentservice,
-                                     techniqueParser = techniqueParse,
-                                     techniqueCompiler = techniqueCompiler,
-                                     groupOwner = groupOwner.value
-                                   )
+          techniqueArchive      <- ZIO.service[TechniqueArchiverImpl]
           _                     <- techniqueArchive
                                      .saveTechniqueCategory(
                                        catPath,
@@ -277,21 +288,8 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
       test("does nothing when the category already exists") {
         for {
           _                     <- ZIO.debug("test 2 started")
-          modRepo               <- ZIO.service[GitModificationRepository]
-          techniqueParse        <- ZIO.service[TechniqueParser]
-          techniqueCompiler     <- ZIO.service[TechniqueCompiler]
           gitRepositoryProvider <- ZIO.service[GitRepositoryProviderImpl]
-          personIdentservice    <- ZIO.service[TrivialPersonIdentService]
-          groupOwner            <- ZIO.service[GroupOwner]
-          techniqueArchive       = new TechniqueArchiverImpl(
-                                     gitRepo = gitRepositoryProvider,
-                                     xmlPrettyPrinter = prettyPrinter,
-                                     gitModificationRepository = modRepo,
-                                     personIdentservice = personIdentservice,
-                                     techniqueParser = techniqueParse,
-                                     techniqueCompiler = techniqueCompiler,
-                                     groupOwner = groupOwner.value
-                                   )
+          techniqueArchive      <- ZIO.service[TechniqueArchiverImpl]
           _                     <- techniqueArchive
                                      .saveTechniqueCategory(
                                        catPath,
@@ -312,7 +310,8 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
       StubbedTechniqueCompiler.layer,
       gitRepositoryProviderLayer,
       ZLayer.succeed(new TrivialPersonIdentService()),
-      currentUserNameLayer
+      currentUserNameLayer,
+      techniqueArchiverLayer
     ) @@ TestAspect.sequential
   )
 
