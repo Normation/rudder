@@ -38,14 +38,15 @@
 package com.normation.plugins
 
 import better.files.File
-import com.normation.errors
 import com.normation.errors.IOResult
+import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.utils.DateFormaterService
 import java.time.ZonedDateTime
 import java.util.Properties
 import org.joda.time.DateTime
 import zio.*
 import zio.json.*
+import zio.syntax.*
 
 case class PluginSettings(
     url:           Option[String],
@@ -54,7 +55,21 @@ case class PluginSettings(
     proxyUrl:      Option[String],
     proxyUser:     Option[String],
     proxyPassword: Option[String]
-)
+) {
+  def isDefined: Boolean = {
+    // Also, the special case : username="username" is empty
+    val hasDefaultUser = username.contains("username")
+    !isEmpty && !hasDefaultUser
+  }
+
+  // Strings are in fact non-empty strings
+  private def isEmpty = url.isEmpty &&
+    username.isEmpty &&
+    password.isEmpty &&
+    proxyUrl.isEmpty &&
+    proxyUser.isEmpty &&
+    proxyPassword.isEmpty
+}
 
 /*
  * Information about registered plugins that can be used
@@ -160,13 +175,44 @@ object PluginLicenseInfo {
 }
 
 trait PluginSettingsService {
+  def checkIsSetup():       IOResult[Boolean]
   def readPluginSettings(): IOResult[PluginSettings]
   def writePluginSettings(settings: PluginSettings): IOResult[Unit]
 }
 
-class FilePluginSettingsService(pluginConfFile: File) extends PluginSettingsService {
+class FilePluginSettingsService(pluginConfFile: File, readSetupDone: IOResult[Boolean], writeSetupDone: Boolean => IOResult[Unit])
+    extends PluginSettingsService {
 
-  def readPluginSettings(): ZIO[Any, errors.RudderError, PluginSettings] = {
+  /**
+    * Watch the rudder_setup_done setting to see if the plugin settings has been setup.
+    * It has the side effect of updating the `rudder_setup_done` setting.
+    * 
+    * @return the boolean with the semantics of : 
+    *  rudder_setup_done && !(is_setting_default || is_setting_empty)
+    * and false when the plugin settings are not set, and setup is not done
+    */
+  def checkIsSetup(): IOResult[Boolean] = {
+    readSetupDone
+      .flatMap(isSetupDone => {
+        if (isSetupDone) {
+          true.succeed
+        } else {
+          // we may need to update setup_done if settings are defined
+          readPluginSettings().map(_.isDefined).flatMap {
+            case true  =>
+              ApplicationLoggerPure.info(
+                s"Read plugin settings properties file ${pluginConfFile.pathAsString} with a defined configuration, rudder_setup_done setting is marked as `true`. Go to Rudder Setup page to change the account credentials."
+              ) *> writeSetupDone(true).as(true)
+            case false =>
+              // the plugin settings are not set, setup is not done
+              false.succeed
+          }
+        }
+      })
+      .tapError(err => ApplicationLoggerPure.error(s"Could not get setting `rudder_setup_done` : ${err.fullMsg}"))
+  }
+
+  def readPluginSettings(): IOResult[PluginSettings] = {
 
     val p = new Properties()
     for {

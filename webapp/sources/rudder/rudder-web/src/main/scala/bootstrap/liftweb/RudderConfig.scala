@@ -83,6 +83,7 @@ import com.normation.inventory.services.provisioning.InventoryDigestServiceV1
 import com.normation.inventory.services.provisioning.InventoryParser
 import com.normation.ldap.sdk.*
 import com.normation.plugins.FilePluginSettingsService
+import com.normation.plugins.PluginSettingsService
 import com.normation.plugins.ReadPluginPackageInfo
 import com.normation.plugins.SnippetExtensionRegister
 import com.normation.plugins.SnippetExtensionRegisterImpl
@@ -1214,6 +1215,7 @@ object RudderConfig extends Loggable {
   val pendingNodeCheckGroup:               CheckPendingNodeInDynGroups                = rci.pendingNodeCheckGroup
   val pendingNodesDit:                     InventoryDit                               = rci.pendingNodesDit
   val personIdentService:                  PersonIdentService                         = rci.personIdentService
+  val pluginSettingsService:               PluginSettingsService                      = rci.pluginSettingsService
   val policyGenerationBootGuard:           zio.Promise[Nothing, Unit]                 = rci.policyGenerationBootGuard
   val policyServerManagementService:       PolicyServerManagementService              = rci.policyServerManagementService
   val propertyEngineService:               PropertyEngineService                      = rci.propertyEngineService
@@ -1387,6 +1389,7 @@ case class RudderServiceApi(
     policyGenerationBootGuard:           zio.Promise[Nothing, Unit],
     healthcheckNotificationService:      HealthcheckNotificationService,
     jsonPluginDefinition:                ReadPluginPackageInfo,
+    pluginSettingsService:               PluginSettingsService,
     rudderApi:                           LiftHandler,
     authorizationApiMapping:             ExtensibleAuthorizationApiMapping,
     roleApiMapping:                      RoleApiMapping,
@@ -1477,7 +1480,9 @@ object RudderConfigInit {
     )
 
     lazy val pluginSettingsService = new FilePluginSettingsService(
-      root / "opt" / "rudder" / "etc" / "rudder-pkg" / "rudder-pkg.conf"
+      root / "opt" / "rudder" / "etc" / "rudder-pkg" / "rudder-pkg.conf",
+      configService.rudder_setup_done().chainError("Could not get 'setup done' property"),
+      (done: Boolean) => configService.set_rudder_setup_done(value = done).chainError("Could not get 'setup done' property")
     )
 
     /////////////////////////////////////////////////
@@ -3690,6 +3695,7 @@ object RudderConfigInit {
       policyGenerationBootGuard,
       healthcheckNotificationService,
       jsonPluginDefinition,
+      pluginSettingsService,
       rudderApi,
       authorizationApiMapping,
       roleApiMapping,
