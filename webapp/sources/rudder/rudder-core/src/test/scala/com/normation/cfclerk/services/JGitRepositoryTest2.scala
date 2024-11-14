@@ -60,13 +60,14 @@ import com.normation.rudder.ncf.TechniqueCompilationOutput
 import com.normation.rudder.ncf.TechniqueCompiler
 import com.normation.rudder.ncf.TechniqueCompilerApp
 import com.normation.rudder.repository.GitModificationRepository
-import com.normation.rudder.repository.xml.{RudderPrettyPrinter, TechniqueArchiver, TechniqueArchiverImpl, XmlArchiverUtils}
+import com.normation.rudder.repository.xml.RudderPrettyPrinter
+import com.normation.rudder.repository.xml.TechniqueArchiver
+import com.normation.rudder.repository.xml.TechniqueArchiverImpl
 import com.normation.rudder.services.user.TrivialPersonIdentService
 import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.treewalk.TreeWalk
-
 import scala.util.Random
 import zio.Chunk
 import zio.IO
@@ -221,7 +222,7 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
         }
       }
 
-      def add(i: Int)(gitRoot: TempDir, archive: GitConfigItemRepository with XmlArchiverUtils) = for {
+      def add(i: Int)(gitRoot: TempDir, archive: GitConfigItemRepository) = for {
         name <- getName(8).map(s => i.toString + "_" + s)
         file  = gitRoot.path / name
         _    <- IOResult.attempt(file.write("something in " + name))
@@ -232,15 +233,10 @@ object JGitRepositoryTest2 extends ZIOSpecDefault {
       def makeArchive(
           repository: GitRepositoryProvider,
           modRepo:    GitModificationRepository
-      ): GitConfigItemRepository with XmlArchiverUtils = {
-        new GitConfigItemRepository with XmlArchiverUtils {
-          override val gitRepo:      GitRepositoryProvider = repository
-          override def relativePath: String                = ""
-          override def xmlPrettyPrinter = prettyPrinter
-          override def encoding:                  String                    = "UTF-8"
-          override def gitModificationRepository: GitModificationRepository = modRepo
-          override def groupOwner:                String                    = currentUserName(repository).value
-        }
+      ): GitConfigItemRepository = new GitConfigItemRepository {
+        override val gitRepo:                   GitRepositoryProvider     = repository
+        override def relativePath:              String                    = ""
+        override def gitModificationRepository: GitModificationRepository = modRepo
       }
 
       for {
