@@ -95,9 +95,17 @@ impl<T> ResultOutput<T> {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Copy)]
+pub enum CommandBehavior {
+    /// Consider a code != 0 as an error
+    FailOnErrorCode,
+    /// Consider a command that could run as a success, regardless of the return code
+    OkOnErrorCode,
+}
+
 impl ResultOutput<Output> {
     /// Run a command and return output
-    pub fn command(mut c: Command) -> Self {
+    pub fn command(mut c: Command, behavior: CommandBehavior) -> Self {
         let output = c.output();
         let mut res = ResultOutput::new(output.map_err(|e| e.into()));
 
@@ -108,7 +116,7 @@ impl ResultOutput<Output> {
             let stderr_s = String::from_utf8_lossy(&o.stderr);
             res.stderr.push(stderr_s.to_string());
             debug!("stderr: {stderr_s}");
-            if !o.status.success() {
+            if behavior == CommandBehavior::FailOnErrorCode && !o.status.success() {
                 res.inner = Err(match o.status.code() {
                     Some(code) => anyhow!("Command failed with code: {code}",),
                     None => anyhow!("Command terminated by signal"),
