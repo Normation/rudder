@@ -5,6 +5,7 @@ use std::process::Command;
 
 use anyhow::Result;
 
+use crate::output::CommandBehavior;
 use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
@@ -47,7 +48,7 @@ impl ZypperPackageManager {
     fn full_upgrade(&mut self) -> ResultOutput<()> {
         let mut c = Command::new("zypper");
         c.arg("--non-interactive").arg("update");
-        let res_update = ResultOutput::command(c);
+        let res_update = ResultOutput::command(c, CommandBehavior::FailOnErrorCode);
         res_update.clear_ok()
     }
 
@@ -57,7 +58,7 @@ impl ZypperPackageManager {
             .arg("--category")
             .arg("security")
             .arg("patch");
-        let res_update = ResultOutput::command(c);
+        let res_update = ResultOutput::command(c, CommandBehavior::FailOnErrorCode);
         res_update.clear_ok()
     }
 
@@ -65,7 +66,7 @@ impl ZypperPackageManager {
         let mut c = Command::new("zypper");
         c.arg("--non-interactive").arg("update");
         c.args(packages.iter().map(Self::package_spec_as_argument));
-        let res_update = ResultOutput::command(c);
+        let res_update = ResultOutput::command(c, CommandBehavior::FailOnErrorCode);
         res_update.clear_ok()
     }
 }
@@ -74,7 +75,7 @@ impl LinuxPackageManager for ZypperPackageManager {
     fn update_cache(&mut self) -> ResultOutput<()> {
         let mut c = Command::new("zypper");
         c.arg("--non-interactive").arg("refresh");
-        let res_update = ResultOutput::command(c);
+        let res_update = ResultOutput::command(c, CommandBehavior::FailOnErrorCode);
         res_update.clear_ok()
     }
 
@@ -93,7 +94,7 @@ impl LinuxPackageManager for ZypperPackageManager {
     fn reboot_pending(&self) -> ResultOutput<bool> {
         let mut c = Command::new("zypper");
         c.arg("ps").arg("-s");
-        let res = ResultOutput::command(c);
+        let res = ResultOutput::command(c, CommandBehavior::FailOnErrorCode);
 
         let (r, o, e) = (res.inner, res.stdout, res.stderr);
         let res = match r {
@@ -106,7 +107,7 @@ impl LinuxPackageManager for ZypperPackageManager {
     fn services_to_restart(&self) -> ResultOutput<Vec<String>> {
         let mut c = Command::new("zypper");
         c.arg("ps").arg("-sss");
-        let res = ResultOutput::command(c);
+        let res = ResultOutput::command(c, CommandBehavior::FailOnErrorCode);
         let (r, o, e) = (res.inner, res.stdout, res.stderr);
         let res = match r {
             Ok(_) => {

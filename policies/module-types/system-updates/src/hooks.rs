@@ -8,7 +8,7 @@ use std::{
     process::Command,
 };
 
-use crate::output::ResultOutput;
+use crate::output::{CommandBehavior, ResultOutput};
 use anyhow::{bail, Result};
 use rudder_module_type::{rudder_debug, rudder_error, rudder_info};
 
@@ -102,7 +102,8 @@ impl Hooks {
                     res.stdout(format!("Running hook '{}'", p.display()));
                     res.stderr(format!("Running hook '{}'", p.display()));
                     rudder_info!("Running hook '{}'", p.display());
-                    let hook_res = ResultOutput::command(Command::new(&p));
+                    let hook_res =
+                        ResultOutput::command(Command::new(&p), CommandBehavior::FailOnErrorCode);
                     res.stdout_lines(hook_res.stdout);
                     res.stderr_lines(hook_res.stderr);
                     if let Err(e) = hook_res.inner {
