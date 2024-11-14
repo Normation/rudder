@@ -183,14 +183,16 @@ final case class Certificate(value: String) extends SecurityToken {
     for {
       reader <- ZIO.attempt {
                   new PEMParser(new StringReader(key))
-                } mapError { e => InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a valid certificate", e) }
+                } mapError { e => InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a valid certificate (PEM)", e) }
       obj    <- ZIO.attempt(reader.readObject()).mapError { e =>
-                  InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a valid certificate", e)
+                  InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a valid certificate (read)", e)
                 }
       res    <- obj match {
                   case a: X509CertificateHolder =>
                     a.succeed
-                  case _ => InventoryError.Crypto(s"Key '${key}' cannot be parsed as a valid certificate").fail
+                  case null =>
+                    InventoryError.Crypto(s"Key '${key}' cannot be parsed as a valid certificate (not a valid PEM object)").fail
+                  case _    => InventoryError.Crypto(s"Key '${key}' cannot be parsed as a valid certificate (unexpected type )").fail
                 }
     } yield {
       res
