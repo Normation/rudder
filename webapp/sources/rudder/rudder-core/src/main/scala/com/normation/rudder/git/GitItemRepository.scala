@@ -198,6 +198,10 @@ class GitItemRepository(
 
 }
 
+object GitItemRepository {
+
+}
+
 /*
  * An extension of simple GitItemRepositoty that in addition knows how to link commitId and modId together.
  * Used for all configuration objects, but not for facts.
@@ -206,7 +210,12 @@ class GitConfigItemRepository(
     gitRepo:                   GitRepositoryProvider,
     relativePath:              String,
     gitModificationRepository: GitModificationRepository
-) extends GitItemRepository(gitRepo, relativePath) {
+) {
+
+  private val gitItemRepository: GitItemRepository = new GitItemRepository(gitRepo, relativePath)
+
+  final def toGitPath(fsPath: File): String = gitItemRepository.toGitPath(fsPath)
+  final def getItemDirectory: File = gitItemRepository.getItemDirectory
 
   /**
    * Files in gitPath are added.
@@ -219,7 +228,7 @@ class GitConfigItemRepository(
       commitMessage: String
   ): IOResult[GitCommitId] = {
     for {
-      commit <- commitAddFile(commiter, gitPath, commitMessage)
+      commit <- gitItemRepository.commitAddFile(commiter, gitPath, commitMessage)
       mod    <- gitModificationRepository.addCommit(commit, modId)
     } yield {
       commit
@@ -237,7 +246,7 @@ class GitConfigItemRepository(
       commitMessage: String
   ): IOResult[GitCommitId] = {
     for {
-      commit <- commitRmFile(commiter, gitPath, commitMessage)
+      commit <- gitItemRepository.commitRmFile(commiter, gitPath, commitMessage)
       mod    <- gitModificationRepository.addCommit(commit, modId)
     } yield {
       commit
@@ -259,7 +268,7 @@ class GitConfigItemRepository(
       commitMessage: String
   ): IOResult[GitCommitId] = {
     for {
-      commit <- commitMvDirectory(commiter, oldGitPath, newGitPath, commitMessage)
+      commit <- gitItemRepository.commitMvDirectory(commiter, oldGitPath, newGitPath, commitMessage)
       mod    <- gitModificationRepository.addCommit(commit, modId)
     } yield {
       commit
