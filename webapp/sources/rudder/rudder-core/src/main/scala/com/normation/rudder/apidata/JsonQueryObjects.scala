@@ -459,12 +459,10 @@ trait RudderJsonDecoders {
   implicit val nodeIdsSoftwareProperties: JsonDecoder[JQNodeIdsSoftwareProperties] =
     DeriveJsonDecoder.gen[JQNodeIdsSoftwareProperties]
 
-  implicit val securityTokenDecoder: JsonDecoder[SecurityToken] =
-    JsonDecoder[String].mapOrFail(SecurityToken.parseValidate(_).left.map(_.fullMsg))
-  implicit val keyStatusDecoder:     JsonDecoder[KeyStatus]     =
+  implicit val keyStatusDecoder:  JsonDecoder[KeyStatus]    =
     JsonDecoder[String].mapOrFail(KeyStatus.apply(_).left.map(_.fullMsg))
-  implicit val agentKeyDecoder:      JsonDecoder[JQAgentKey]    = DeriveJsonDecoder.gen[JQAgentKey]
-  implicit val updateNodeDecoder:    JsonDecoder[JQUpdateNode]  = DeriveJsonDecoder.gen[JQUpdateNode]
+  implicit val agentKeyDecoder:   JsonDecoder[JQAgentKey]   = DeriveJsonDecoder.gen[JQAgentKey]
+  implicit val updateNodeDecoder: JsonDecoder[JQUpdateNode] = DeriveJsonDecoder.gen[JQUpdateNode]
 
   // JRRuleTarget
   object JRRuleTargetDecoder {

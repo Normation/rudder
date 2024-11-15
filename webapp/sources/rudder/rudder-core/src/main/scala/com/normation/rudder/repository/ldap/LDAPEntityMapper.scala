@@ -306,7 +306,7 @@ class LDAPEntityMapper(
     for {
       agentsName <- {
         val agents = inventoryEntry.valuesFor(A_AGENTS_NAME).toList
-        ZIO.foreach(agents) { case agent => AgentInfoSerialisation.parseJson(agent) }
+        ZIO.foreach(agents) { case agent => agent.fromJson[AgentInfo].toIO }
       }
       keyStatus  <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Right(UndefinedKey)).toIO
     } yield {

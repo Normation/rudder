@@ -46,6 +46,7 @@ import org.bouncycastle.cert.X509CertificateHolder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
 import org.bouncycastle.openssl.PEMParser
 import zio.*
+import zio.json.*
 import zio.syntax.*
 
 /**
@@ -64,15 +65,24 @@ final case class Manufacturer(name: String) extends AnyVal
  */
 final case class SoftwareEditor(val name: String) extends AnyVal
 
-sealed trait SecurityToken {
-  def key: String
+// this class is used to decode JSON "securityToken" before key validation and typing
+// (the alias is because at some point, it was named "token" in NodeFact)
+final case class JsonDecSecurityToken(@jsonAliases("token") value: String)
+final case class JsonEncSecurityToken(@jsonField("type") @jsonAliases("kind") kind: String, value: String)
+
+sealed abstract class SecurityToken(val kind: String) {
+  def key:   String
+  def value: String
 }
 
 object SecurityToken {
+  implicit val securityTokenEncoder: JsonEncoder[SecurityToken] =
+    DeriveJsonEncoder.gen[JsonEncSecurityToken].contramap(t => JsonEncSecurityToken(t.kind, t.value))
+  implicit val securityTokenDecoder: JsonDecoder[SecurityToken] =
+    DeriveJsonDecoder.gen[JsonDecSecurityToken].map(t => Certificate(t.value))
+
   def kind(token: SecurityToken): String = {
-    token match {
-      case _: Certificate => Certificate.kind
-    }
+    token.kind
   }
 
   def token(kind: String, value: String): Either[String, SecurityToken] = {
@@ -135,15 +145,22 @@ object SecurityToken {
           .readObject()
       )
       .left
-      .map(ex => InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a public key", ex.cause): InventoryError)
+      .map(ex => InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a PEM certificate", ex.cause): InventoryError)
       .flatMap { obj =>
         obj match {
           case _: X509CertificateHolder => Right(Certificate(key))
-          case _ =>
+          case null =>
             Left(
               InventoryError
                 .Crypto(
-                  s"Provided agent key is in an unknown format. Please use a certificate or public key in PEM format"
+                  s"Provided agent key cannot be parsed a certificate. Please use a certificate in PEM format"
+                )
+            )
+          case _    =>
+            Left(
+              InventoryError
+                .Crypto(
+                  s"Provided agent key is in an unknown format. Please use a certificate in PEM format"
                 )
             )
         }
@@ -155,7 +172,7 @@ object Certificate {
   val kind = "certificate"
 }
 
-final case class Certificate(value: String) extends SecurityToken {
+final case class Certificate(value: String) extends SecurityToken(Certificate.kind) {
 
   // Value of the key may be stored (with old fusion inventory version) as one line and without rsa header and footer, we should add them if missing and format the key
   val key:  String                                    = {

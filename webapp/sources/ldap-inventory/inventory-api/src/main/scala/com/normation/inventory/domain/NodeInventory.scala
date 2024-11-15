@@ -548,6 +548,10 @@ object KeyStatus {
 
 final case class AgentCapability(value: String) extends AnyVal
 
+object AgentCapability {
+  implicit val codecAgentCapability: JsonCodec[AgentCapability] = JsonCodec.string.transform(AgentCapability.apply, _.value)
+}
+
 final case class NodeInventory(
     main:                 NodeSummary,
     name:                 Option[String] = None,

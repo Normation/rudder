@@ -1526,8 +1526,6 @@ final case class JsonAgentRunInterval(
     splayMinute: Int
 )
 
-final case class JSecurityToken(kind: String, token: String)
-
 final case class JNodeProperty(
     name:                             String,
     value:                            ConfigValue,
@@ -1931,17 +1929,9 @@ object NodeFactSerialisation {
     implicit val codecSecurityTag:    JsonCodec[SecurityTag]    = DeriveJsonCodec.gen
     implicit val codecNodeState:      JsonCodec[NodeState]      = JsonCodec.string.transformOrFail[NodeState](NodeState.parse, _.name)
     implicit val codecRudderSettings: JsonCodec[RudderSettings] = DeriveJsonCodec.gen
-    implicit val codecAgentType:      JsonCodec[AgentType]      =
-      JsonCodec.string.transformOrFail[AgentType](s => AgentType.fromValue(s).left.map(_.fullMsg), _.id)
     implicit val codecAgentVersion:   JsonCodec[AgentVersion]   = JsonCodec.string.transform[AgentVersion](AgentVersion(_), _.value)
     implicit val codecVersion:        JsonCodec[Version]        =
       JsonCodec.string.transformOrFail[Version](ParseVersion.parse, _.toVersionString)
-    implicit val codecJSecurityToken: JsonCodec[JSecurityToken] = DeriveJsonCodec.gen
-
-    implicit val codecSecturityToken: JsonCodec[SecurityToken] = JsonCodec(
-      JsonEncoder[JSecurityToken].contramap[SecurityToken](st => JSecurityToken(SecurityToken.kind(st), st.key)),
-      JsonDecoder[JSecurityToken].mapOrFail[SecurityToken](jst => SecurityToken.token(jst.kind, jst.token))
-    )
 
     implicit val codecAgentCapability: JsonCodec[AgentCapability] =
       JsonCodec.string.transform[AgentCapability](AgentCapability(_), _.value)
@@ -2004,16 +1994,6 @@ object NodeFactSerialisation {
           .orElse(decoder)
       )
     }
-//=======
-//    implicit val codecMachineUuid:    JsonCodec[MachineUuid]    = JsonCodec.string.transform[MachineUuid](MachineUuid(_), _.value)
-
-//    implicit val codecManufacturer:   JsonCodec[Manufacturer]   = JsonCodec.string.transform[Manufacturer](Manufacturer(_), _.name)
-//    implicit val codecMachine:        JsonCodec[MachineInfo]    = DeriveJsonCodec.gen
-//    implicit val codecMemorySize:     JsonCodec[MemorySize]     = JsonCodec.long.transform[MemorySize](MemorySize(_), _.size)
-//    implicit val codecSVersion:       JsonCodec[SVersion]       = JsonCodec.string.transform[SVersion](new SVersion(_), _.value)
-//    implicit val codecSoftwareEditor: JsonCodec[SoftwareEditor] =
-//      JsonCodec.string.transform[SoftwareEditor](SoftwareEditor(_), _.name)
-//>>>>>>> branches/rudder/8.1
   }
 
   import SimpleCodec.*

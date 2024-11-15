@@ -43,8 +43,8 @@ import org.slf4j.Logger
 /**
  * This is our based error for Rudder. Any method that can
  * error should return that RudderError type to allow
- * seemless interaction between modules.
- * None the less, all module should have its own domain error
+ * seamless interaction between modules.
+ * Nonetheless, all module should have its own domain error
  * for meaningful semantic intra-module.
  */
 object errors {

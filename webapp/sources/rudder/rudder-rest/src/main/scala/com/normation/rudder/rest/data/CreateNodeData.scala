@@ -418,9 +418,8 @@ object Validation {
 
   def checkAgent(osType: OsType, agent: AgentKey): Validation[AgentInfo] = {
     def checkSecurityToken(agent: AgentType, token: String): Validation[SecurityToken] = {
-      import net.liftweb.json.JsonDSL.*
-      val tpe = Certificate.kind
-      AgentInfoSerialisation.parseSecurityToken(agent, ("type" -> tpe) ~ ("value" -> token)) match {
+      // in 8.0, everything is certificate whatever the agent
+      SecurityToken.parseValidate(token) match {
         case Left(err) => NodeValidationError.SecurityVal(err.fullMsg).invalidNel
         case Right(x)  => x.validNel
       }

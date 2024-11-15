@@ -44,18 +44,8 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors.*
 import com.normation.inventory.domain
-import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.AgentVersion
-import com.normation.inventory.domain.FullInventory
-import com.normation.inventory.domain.InventoryStatus
-import com.normation.inventory.domain.MemorySize
-import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.SecurityToken
-import com.normation.inventory.domain.SoftwareUpdate
-import com.normation.inventory.domain.Version
-import com.normation.inventory.domain.VmType
-import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyHtml
-import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.JRPropertyHierarchyJson
+import com.normation.inventory.domain.*
+import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.*
 import com.normation.rudder.domain.nodes
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
@@ -64,25 +54,10 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
-import com.normation.rudder.domain.properties.GenericProperty
+import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.properties.GenericProperty.*
-import com.normation.rudder.domain.properties.GlobalParameter
-import com.normation.rudder.domain.properties.GroupProperty
-import com.normation.rudder.domain.properties.InheritMode
-import com.normation.rudder.domain.properties.NodeProperty
-import com.normation.rudder.domain.properties.NodePropertyError
-import com.normation.rudder.domain.properties.NodePropertyHierarchy
-import com.normation.rudder.domain.properties.NodePropertySpecificError
-import com.normation.rudder.domain.properties.ParentProperty
-import com.normation.rudder.domain.properties.PropertyProvider
-import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
-import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.domain.properties.Visibility.Displayed
-import com.normation.rudder.domain.queries.CriterionLine
-import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.domain.queries.QueryReturnType
-import com.normation.rudder.domain.queries.ResultTransformation
+import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.RunAnalysisKind
 import com.normation.rudder.domain.servers.Srv
@@ -104,9 +79,7 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.score.GlobalScore
 import com.normation.rudder.score.ScoreValue
-import com.normation.rudder.services.queries.CmdbQueryParser
-import com.normation.rudder.services.queries.StringCriterionLine
-import com.normation.rudder.services.queries.StringQuery
+import com.normation.rudder.services.queries.*
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens.*
@@ -493,9 +466,10 @@ object JsonResponseObjects {
 
     /**
      * The structure does not directly match the domain object, nodeKind is a contextual value of the node added to each AgentInfo
+     * and we just have the display name in place of the AgentType
      */
     final case class Management(
-        name:         AgentType,
+        name:         String,
         version:      Option[AgentVersion],
         capabilities: Chunk[String],
         nodeKind:     NodeKind
@@ -505,7 +479,7 @@ object JsonResponseObjects {
         val agents = info.agentsName.map { agent =>
           val capabilities = agent.capabilities.map(_.value).toList.sorted
           Management(
-            agent.agentType,
+            agent.agentType.displayName,
             agent.version,
             Chunk.fromIterable(capabilities),
             info.nodeKind
@@ -523,16 +497,17 @@ object JsonResponseObjects {
 
     /**
      * The structure does not directly match the domain object, it aggregates some fields
+     * and the cfengineKeys is only the string for PEM format, not the JSON serialisation used in LDAP
      */
     final case class ManagementDetails(
-        cfengineKeys:     Chunk[SecurityToken],
+        cfengineKeys:     Chunk[String],
         cfengineUser:     String,
         scheduleOverride: Option[ScheduleOverride]
     )
     object ManagementDetails {
       implicit val transformer: Transformer[NodeFact, ManagementDetails] = Transformer
         .define[NodeFact, ManagementDetails]
-        .withFieldComputed(_.cfengineKeys, n => Chunk(n.rudderAgent.securityToken))
+        .withFieldComputed(_.cfengineKeys, n => Chunk(n.rudderAgent.securityToken.key))
         .withFieldComputed(_.cfengineUser, _.rudderAgent.user)
         .withFieldComputed(
           _.scheduleOverride,
@@ -1380,7 +1355,7 @@ object JsonResponseObjects {
 
     /**
      * Transform proprety hierarchy into HTML or JSON
-     * Provided hierarchy should be sorted from original order of parent properties : 
+     * Provided hierarchy should be sorted from original order of parent properties :
      * - nodes
      * - groups
      * - global params
@@ -1461,7 +1436,7 @@ object JsonResponseObjects {
 
   /**
    * Model that specifies what one or all properties has :
-   * an error message that needs to be there when 
+   * an error message that needs to be there when
    * the global status of property is fine,
    * and which is also optional in the status of a property
    */
@@ -1495,8 +1470,8 @@ object JsonResponseObjects {
       /**
        * Split global status from inherited one :
        * global ok/error status vs status on specific properties.
-       * 
-       * The global one cannot be duplicated (for distinct error messages) 
+       *
+       * The global one cannot be duplicated (for distinct error messages)
        * so it needs to be a set.
        */
       def separate: (Set[GlobalPropertyStatus], Iterable[InheritedPropertyStatus]) = {
@@ -1511,8 +1486,8 @@ object JsonResponseObjects {
 
       /**
        * Gather all error messages
-       * 
-       * Implementation uses a toSet because iterable 
+       *
+       * Implementation uses a toSet because iterable
        * is usually already a set
        */
       def distictErrorMessages: Set[String] = {
@@ -1526,7 +1501,7 @@ object JsonResponseObjects {
   /**
    * Global properties are OK or are in error :
    * they can have global error messages in properties
-   * (this does not prevent inherited properties to exist 
+   * (this does not prevent inherited properties to exist
    * and also have errors)
    */
   sealed trait GlobalPropertyStatus extends PropertyStatus
@@ -1555,11 +1530,11 @@ object JsonResponseObjects {
   }
 
   /**
-   * Status of individual properties : 
+   * Status of individual properties :
    * there is always a property identifier (the property name),
    * an set of properties inherited from parent (ordered by ancestry),
    *
-   * There can be conflicts in children properties so this identifies 
+   * There can be conflicts in children properties so this identifies
    * as a subtype.
    */
   sealed trait InheritedPropertyStatus extends PropertyStatus {
@@ -2170,10 +2145,7 @@ trait RudderJsonEncoders {
 
   implicit val vmTypeEncoder: JsonEncoder[VmType] = JsonEncoder[String].contramap(_.name)
 
-  implicit val agentTypeEncoder:         JsonEncoder[AgentType]           = JsonEncoder[String].contramap(_.displayName)
-  implicit val agentVersionEncoder:      JsonEncoder[AgentVersion]        = JsonEncoder[String].contramap(_.value)
   implicit val nodeKindEncoder:          JsonEncoder[NodeKind]            = JsonEncoder[String].contramap(_.name)
-  implicit val securityTokenEncoder:     JsonEncoder[SecurityToken]       = JsonEncoder[String].contramap(_.key)
   implicit val managementEncoder:        JsonEncoder[Management]          = DeriveJsonEncoder.gen[Management]
   implicit val scheduleOverrideEncoder:  JsonEncoder[ScheduleOverride]    = DeriveJsonEncoder.gen[ScheduleOverride]
   implicit val managementDetailsEncoder: JsonEncoder[ManagementDetails]   = DeriveJsonEncoder.gen[ManagementDetails]

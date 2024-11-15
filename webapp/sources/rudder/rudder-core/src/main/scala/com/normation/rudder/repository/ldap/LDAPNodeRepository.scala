@@ -59,6 +59,7 @@ import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.reports.InvalidateCache
 import org.joda.time.DateTime
 import zio.*
+import zio.json.*
 import zio.syntax.*
 
 class WoLDAPNodeRepository(
@@ -154,9 +155,8 @@ class WoLDAPNodeRepository(
         dn             = acceptedDit.NODES.NODE.dn(nodeId.value)
         result        <- if (agentsInfo == newInfo) LDIFNoopChangeRecord(dn).succeed
                          else {
-                           import com.normation.inventory.domain.AgentInfoSerialisation.*
                            val e = LDAPEntry(dn)
-                           e.addValues(A_AGENTS_NAME, newInfo._1.map(_.toJsonString)*)
+                           e.addValues(A_AGENTS_NAME, newInfo._1.map(_.toJson)*)
                            e.addValues(A_KEY_STATUS, newInfo._2.value)
 
                            con.save(e).chainError(s"Error when saving node entry in repository: ${e}")

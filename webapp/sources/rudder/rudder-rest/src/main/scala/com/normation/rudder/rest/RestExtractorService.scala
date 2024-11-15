@@ -45,10 +45,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.*
-import com.normation.inventory.domain.Certificate
-import com.normation.inventory.domain.InventoryError
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.SecurityToken
 import com.normation.rudder.api.AclPath
 import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.api.ApiAccountName
@@ -88,17 +85,12 @@ import com.normation.utils.Control
 import com.normation.utils.Control.*
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
-import java.io.StringReader
 import net.liftweb.common.*
 import net.liftweb.common.Box.option2Box
 import net.liftweb.http.Req
 import net.liftweb.json.*
 import net.liftweb.json.JObject
 import net.liftweb.json.JsonDSL.*
-import org.bouncycastle.cert.X509CertificateHolder
-import org.bouncycastle.openssl.PEMParser
-import zio.{Tag as _, *}
-import zio.syntax.*
 
 final case class RestExtractorService(
     readRule:             RoRuleRepository,
@@ -624,24 +616,6 @@ final case class RestExtractorService(
         }
       }).toBox
     }
-  }
-
-  // for the key, we don't have type / agent here. We are just looking if the string is a valid PEM
-  // and choose between certificate / public key
-  def parseAgentKey(key: String): Box[SecurityToken] = {
-    ZIO.attempt {
-      (new PEMParser(new StringReader(key))).readObject()
-    }.mapError(ex => InventoryError.CryptoEx(s"Key '${key}' cannot be parsed as a public key", ex))
-      .flatMap { obj =>
-        obj match {
-          case _: X509CertificateHolder => Certificate(key).succeed
-          case _ =>
-            InventoryError
-              .Crypto(s"Provided agent key is in an unknown format. Please use a certificate or public key in PEM format")
-              .fail
-        }
-      }
-      .toBox
   }
 
   /*

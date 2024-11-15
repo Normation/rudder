@@ -67,8 +67,6 @@ import scala.xml.XML
 import zio.*
 import zio.interop.catz.*
 import zio.json.*
-import zio.json.JsonDecoder
-import zio.json.JsonEncoder
 import zio.json.ast.Json
 
 /**
@@ -330,12 +328,10 @@ trait JsonInstances {
   import doobie.util.*
   import zio.json.DecoderOps
   import zio.json.EncoderOps
-  import zio.json.ast.Json.Null
 
   // for debugging. 250 is the default documented val in
   // https://tpolecat.github.io/doobie/docs/12-Custom-Mappings.html#defining-get-and-put-for-exotic-types
-  implicit val showPGobject:     Show[PGobject] = Show.show(_.getValue.take(250))
-  implicit private val showJson: Show[Json]     = Show.show(_.toString().take(250))
+  implicit val showPGobject: Show[PGobject] = Show.show(_.getValue.take(250))
 
   implicit val jsonPut: Put[Json] = {
     Put.Advanced
@@ -359,10 +355,28 @@ trait JsonInstances {
       .temap(a => a.getValue.fromJson)
   }
 
-  def pgEncoderPut[A: JsonEncoder]: Put[A] =
-    Put[Json].contramap(_.toJsonAST.getOrElse(Null))
+  // for structured Json encoder/decoder, we don't want to rely on intermediate JSON:
+  // - it means one more step that is useless since we have the structured result
+  // - it ignores special mapping from @jsonField etc, and so it is inconsistent with other JSON serializations
+  def pgEncoderPut[A](implicit e: JsonEncoder[A]): Put[A] = {
+    Put.Advanced
+      .other[PGobject](
+        NonEmptyList.of("jsonb")
+      )
+      .tcontramap[A] { a =>
+        val o = new PGobject
+        o.setType("jsonb")
+        o.setValue(a.toJson)
+        o
+      }
+  }
 
-  def pgDecoderGet[A: JsonDecoder]: Get[A] =
-    Get[Json].temap(_.as)
+  def pgDecoderGet[A: JsonDecoder]: Get[A] = {
+    Get.Advanced
+      .other[PGobject](
+        NonEmptyList.of("jsonb")
+      )
+      .temap[A](a => a.getValue.fromJson)
+  }
 
 }

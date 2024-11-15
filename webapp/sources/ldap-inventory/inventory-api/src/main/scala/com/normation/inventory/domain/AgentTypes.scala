@@ -37,10 +37,8 @@
 
 package com.normation.inventory.domain
 
-import com.normation.errors.*
 import enumeratum.*
-import zio.*
-import zio.syntax.*
+import zio.json.*
 
 /**
  * The enumeration holding the values for the agent
@@ -97,6 +95,8 @@ sealed trait AgentType extends EnumEntry {
 }
 
 object AgentType extends Enum[AgentType] {
+  implicit val codecAgentType: JsonCodec[AgentType] =
+    JsonCodec.string.transformOrFail[AgentType](s => AgentType.fromValue(s).left.map(_.fullMsg), _.id)
 
   case object CfeCommunity extends AgentType {
     override def id           = "cfengine-community"
@@ -141,6 +141,10 @@ object AgentType extends Enum[AgentType] {
  */
 final case class AgentVersion(value: String) extends AnyVal
 
+object AgentVersion {
+  implicit val agentVersionCodec: JsonCodec[AgentVersion] = JsonCodec[String].transform(AgentVersion.apply, _.value)
+}
+
 final case class AgentInfo(
     agentType:     AgentType,
     // for now, the version must be an option, because we don't add it in the inventory
@@ -148,97 +152,12 @@ final case class AgentInfo(
     version:       Option[AgentVersion],
     securityToken: SecurityToken,
     // agent capabilities are lower case string used as tags giving information about what agent can do
-    capabilities:  Set[AgentCapability]
+    capabilities:  Set[AgentCapability] = Set() // default value is needed for JSON decoding when "capabilities" is missing
 )
 
-object AgentInfoSerialisation {
-  import net.liftweb.json.*
-  import net.liftweb.json.JsonDSL.*
-
-  implicit class ToJson(val agent: AgentInfo) extends AnyVal {
-
-    def toJsonString: String = {
-      compactRender(
-        ("agentType"       -> agent.agentType.id)
-        ~ ("version"       -> agent.version.map(_.value))
-        ~ ("securityToken" ->
-        ("value"           -> agent.securityToken.key)
-        ~ ("type"          -> SecurityToken.kind(agent.securityToken)))
-        ~ ("capabilities"  -> JArray(agent.capabilities.map(_.value).toList.sorted.map(JString(_))))
-      )
-    }
-  }
-
-  def parseSecurityToken(
-      agentType: AgentType,
-      tokenJson: JValue
-  ): Either[InventoryError.SecurityToken, SecurityToken] = {
-    import net.liftweb.json.compactRender
-
-    def extractValue(tokenJson: JValue): Option[String] = {
-      tokenJson \ "value" match {
-        case JString(s) => Some(s)
-        case _          => None
-      }
-    }
-    def error(kind: String) =
-      s"""Bad value defined for security token. Expected format is: "securityToken: {"type":"${kind}","value":"...."} """
-
-    tokenJson \ "type" match {
-      case JString(Certificate.kind) =>
-        extractValue(tokenJson) match {
-          case Some(token) => Right(Certificate(token))
-          case None        => Left(InventoryError.SecurityToken(error(Certificate.kind)))
-        }
-      case invalidJson               =>
-        val error = invalidJson match {
-          case JNothing => "no value define for security token"
-          case x        => compactRender(invalidJson)
-        }
-        Left(InventoryError.SecurityToken(s"Invalid value for security token: ${error}, and no public key were stored"))
-    }
-  }
-
-  /*
-   * Retrieve the agent information from JSON. "agentType" is mandatory,
-   * but version isn't, and even if we don't parse it correctly, we
-   * successfully return an agent (without version).
-   */
-  def parseJson(s: String): IOResult[AgentInfo] = {
-    for {
-      json         <- ZIO.attempt(parse(s)) mapError { ex =>
-                        InventoryError.Deserialisation(s"Can not parse agent info: ${ex.getMessage}", ex)
-                      }
-      agentType    <- (json \ "agentType") match {
-                        case JString(tpe) => AgentType.fromValue(tpe).toIO
-                        case JNothing     => InventoryError.SecurityToken("No value defined for security token").fail
-                        case invalidJson  =>
-                          InventoryError
-                            .AgentType(
-                              s"Error when trying to parse string as JSON Agent Info (missing required field 'agentType'): ${compactRender(invalidJson)}"
-                            )
-                            .fail
-                      }
-      agentVersion  = json \ "version" match {
-                        case JString(version) => Some(AgentVersion(version))
-                        case _                => None
-                      }
-      token        <- (json \ "securityToken" match {
-                        case JObject(json) => parseSecurityToken(agentType, json)
-                        case _             => parseSecurityToken(agentType, JNothing)
-                      }).toIO
-      capabilities <- IOResult.attempt(json \ "capabilities" match {
-                        case JArray(capa) =>
-                          capa.flatMap(c => {
-                            c match {
-                              case JString(s) => Some(AgentCapability(s))
-                              case _          => None
-                            }
-                          })
-                        case _            => Nil
-                      })
-    } yield {
-      AgentInfo(agentType, agentVersion, token, capabilities.toSet)
-    }
-  }
+object AgentInfo {
+  // make capabilities sorted when written
+  implicit val encoderSetAgentCapability: JsonEncoder[Set[AgentCapability]] =
+    JsonEncoder.list[AgentCapability].contramap(_.toList.sortBy(_.value))
+  implicit val codecAgentInfo:            JsonCodec[AgentInfo]              = DeriveJsonCodec.gen
 }
