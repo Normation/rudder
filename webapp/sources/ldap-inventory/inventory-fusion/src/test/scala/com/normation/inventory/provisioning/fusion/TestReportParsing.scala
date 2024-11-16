@@ -44,12 +44,13 @@ import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.ZioRuntime
 import java.io.File
 import net.liftweb.common.*
-import net.liftweb.json.JsonAST.*
 import org.junit.runner.*
 import org.specs2.mutable.*
 import org.specs2.runner.*
 import scala.annotation.nowarn
 import zio.*
+import zio.json.*
+import zio.json.ast.*
 
 /**
  * A simple test class to check that the demo data file is up to date
@@ -173,19 +174,17 @@ class TestInventoryParsing extends Specification with Loggable {
 
   "Custom properties" should {
     "correctly be parsed" in {
-      import net.liftweb.json.parse
-
       val expected = List(
-        CustomProperty("hook1_k1", JInt(42)),
-        CustomProperty("hook1_k2", JBool(value = true)),
-        CustomProperty("hook1_k3", JString("a string")),
+        CustomProperty("hook1_k1", Json.Num(42)),
+        CustomProperty("hook1_k2", Json.Bool(value = true)),
+        CustomProperty("hook1_k3", Json.Str("a string")),
         CustomProperty(
           "hook2",
-          parse("""
+          """
             { "some": "more"
             , "json": [1, 2, 3]
             , "deep": { "and": "deeper"}
-            }""")
+            }""".fromJson[Json].getOrElse(throw new IllegalArgumentException("error in test"))
         )
       )
 
@@ -198,8 +197,8 @@ class TestInventoryParsing extends Specification with Loggable {
 
     // after parsing, we also have custom property for original hostname
     val expected = List(
-      CustomProperty("rudder_override_hostname", JString("node1-overridden.rudder.local.override")),
-      CustomProperty("rudder_original_hostname", JString("node1.rudder.local"))
+      CustomProperty("rudder_override_hostname", Json.Str("node1-overridden.rudder.local.override")),
+      CustomProperty("rudder_original_hostname", Json.Str("node1.rudder.local"))
     )
 
     val inventory = parseRun("fusion-inventories/7.1/node1-4d3a43bc-8508-46a2-92d7-cfe7320309a5.ocs")
@@ -326,17 +325,17 @@ class TestInventoryParsing extends Specification with Loggable {
         inventory.node.customProperties === List(
           CustomProperty(
             "cpu_vulnerabilities",
-            JObject(
-              List(
-                JField(
+            Json.Obj(
+              Chunk(
+                (
                   "spectre_v2",
-                  JObject(List(JField("status", JString("vulnerable")), JField("details", JString("Retpoline without IBPB"))))
+                  Json.Obj(Chunk(("status", Json.Str("vulnerable")), ("details", Json.Str("Retpoline without IBPB"))))
                 ),
-                JField(
+                (
                   "spectre_v1",
-                  JObject(List(JField("status", JString("mitigated")), JField("details", JString("Load fences"))))
+                  Json.Obj(Chunk(("status", Json.Str("mitigated")), ("details", Json.Str("Load fences"))))
                 ),
-                JField("meltdown", JObject(List(JField("status", JString("mitigated")), JField("details", JString("PTI")))))
+                ("meltdown", Json.Obj(Chunk(("status", Json.Str("mitigated")), ("details", Json.Str("PTI")))))
               )
             )
           )

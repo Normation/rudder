@@ -48,12 +48,13 @@ import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*
 import java.net.InetAddress
 import java.util.Locale
-import net.liftweb.json.JsonAST.JString
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
 import scala.xml.*
 import zio.*
+import zio.json.*
+import zio.json.ast.*
 import zio.syntax.*
 
 class FusionInventoryParser(
@@ -283,19 +284,17 @@ class FusionInventoryParser(
 
   // the whole content of the CUSTOM_PROPERTIES attribute should be valid JSON Array
   def processCustomProperties(xml: NodeSeq): List[CustomProperty] = {
-    import net.liftweb.json.*
-
-    parseOpt(xml.text) match {
-      case None       => Nil
-      case Some(json) =>
+    xml.text.fromJson[Json] match {
+      case Left(err)   => Nil
+      case Right(json) =>
         json match { // only Json Array is OK
-          case JArray(values) =>
+          case Json.Arr(values) =>
             // each values must be an object, with each key a property name (and values... it depends :)
             values.flatMap {
-              case JObject(fields) => fields.map(f => CustomProperty(f.name, f.value))
-              case _               => Nil
-            }
-          case x              => Nil
+              case Json.Obj(fields) => fields.map(f => CustomProperty(f._1, f._2))
+              case _                => Nil
+            }.toList
+          case x                => Nil
         }
     }
   }
@@ -328,10 +327,10 @@ class FusionInventoryParser(
     val origHostname = sortedAlternatives.collectFirst { case Some(fqdn) if validHostname(fqdn) => fqdn }
 
     customProperties.collectFirst {
-      case CustomProperty(CUSTOM_PROPERTY_OVERRIDE_HOSTNAME, JString(x)) if validHostname(x) => x
+      case CustomProperty(CUSTOM_PROPERTY_OVERRIDE_HOSTNAME, Json.Str(x)) if validHostname(x) => x
     } match {
       case Some(x) =>
-        val orig = CustomProperty(CUSTOM_PROPERTY_ORIGINAL_HOSTNAME, JString(origHostname.getOrElse("none")))
+        val orig = CustomProperty(CUSTOM_PROPERTY_ORIGINAL_HOSTNAME, Json.Str(origHostname.getOrElse("none")))
         (x, orig :: customProperties).succeed
       case None    =>
         origHostname match {

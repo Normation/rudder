@@ -12,7 +12,9 @@
  *
  * In accordance with the terms of section 7 (7. Additional Terms.) of
  * the GNU General Public License version 3, the copyright holders add
- * the following Additional permissions:
+ * the following Additional permissions:DecoderOps
+import zio.json.EncoderOps
+import zio.json.ast.Json
  * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
  * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
  * Public License version 3, when you create a Related Module, this
@@ -57,6 +59,8 @@ import net.liftweb.json.JsonDSL.*
 import org.apache.commons.text.StringEscapeUtils
 import zio.Chunk
 import zio.NonEmptyChunk
+import zio.json.*
+import zio.json.ast.*
 
 /*
  * A property provider is the thing responsible for that property.
@@ -616,6 +620,35 @@ object GenericProperty {
     }
   }
 
+  def toJsonZio(value: ConfigValue): Json = {
+    import zio.json.ast.Json.*
+    value.valueType() match {
+      case ConfigValueType.NULL    => Null
+      case ConfigValueType.BOOLEAN => Bool(value.unwrapped().asInstanceOf[Boolean])
+      case ConfigValueType.NUMBER  =>
+        value.unwrapped() match {
+          case f: java.lang.Float   => Num(f)
+          case d: java.lang.Double  => Num(d)
+          case i: java.lang.Integer => Num(i)
+          case l: java.lang.Long    => Num(l)
+          case error =>
+            throw new IllegalArgumentException(
+              s"Error with config value '${value}': it says it is a NUMBER but it is: ${value.unwrapped()}. Please report the bug."
+            )
+        }
+      case ConfigValueType.STRING  => Str(value.unwrapped().asInstanceOf[String])
+      // the only safe and compatible way for array/object seems to be to render and then parse
+      case _                       =>
+        value.render(ConfigRenderOptions.concise()).fromJson[Json] match {
+          case Left(err)   =>
+            throw new IllegalArgumentException(
+              s"Error with config value '${value}': it can't be parsed as a JSON object"
+            )
+          case Right(json) => json
+        }
+    }
+  }
+
   /**
    * Parse a name, provider, description and value as a config object. It can fail if `value` doesn't fulfill our requirements:
    * either starts by a `{` and is well formatted hocon property string, or is a string.
@@ -681,6 +714,7 @@ object GenericProperty {
     def valueAsDebugString: String = GenericProperty.serializeToHocon(p.value)
     // get value as a JValue
     def jsonValue:          JValue = toJsonValue(p.value)
+    def jsonZio:            Json   = toJsonZio(p.value)
   }
 
   /*
@@ -711,7 +745,7 @@ object GenericProperty {
    * Implicit class to render properties to JSON
    */
   implicit class PropertyToJson(val x: GenericProperty[?]) extends AnyVal {
-    def toJson: JObject = (
+    def toJsonObj: JObject = (
       ("name"            -> x.name)
         ~ ("value"       -> parse(x.value.render(ConfigRenderOptions.concise())))
         ~ ("provider"    -> x.provider.map(_.value))
@@ -725,7 +759,7 @@ object GenericProperty {
     implicit def formats: DefaultFormats.type = DefaultFormats
 
     def toApiJson: JArray = {
-      JArray(props.map(_.toJson).toList)
+      JArray(props.map(_.toJsonObj).toList)
     }
 
     def toDataJson: JObject = {
@@ -775,7 +809,7 @@ object NodeProperty {
   }
 
   def fromInventory(prop: CustomProperty): NodeProperty =
-    apply(prop.name, GenericProperty.fromJsonValue(prop.value), None, Some(NodeProperty.customPropertyProvider))
+    apply(prop.name, GenericProperty.fromZioJson(prop.value), None, Some(NodeProperty.customPropertyProvider))
 }
 
 final case class GroupProperty(config: Config) extends GenericProperty[GroupProperty] {
@@ -972,7 +1006,7 @@ object JsonPropertySerialisation {
           )
       }
 
-      prop.prop.toJson ~ ("hierarchy" -> parents) ~ ("origval" -> origval)
+      prop.prop.toJsonObj ~ ("hierarchy" -> parents) ~ ("origval" -> origval)
 
     }
 
@@ -1028,7 +1062,7 @@ object JsonPropertySerialisation {
 }
 
 /**
-  * Error ADT that consists of specific errors on a property, or a 
+  * Error ADT that consists of specific errors on a property, or a
   */
 sealed trait NodePropertyError {
   def message: String
@@ -1042,7 +1076,7 @@ sealed trait NodePropertyError {
 sealed trait NodePropertySpecificError extends NodePropertyError {
 
   /**
-    * Properties whose name is the key of the map, are associated with 
+    * Properties whose name is the key of the map, are associated with
     * a hierarchy of inherited properties from parents that lead to the error,
     * and an error message
     */
@@ -1128,9 +1162,9 @@ object NodePropertyError         {
   /**
     * Instance of semigroup that result from the hierarchy of node property errors :
     * non specific errors are more important that specific ones.
-    * The instance is used when using combinators from the Ior datatype 
+    * The instance is used when using combinators from the Ior datatype
     * to accumulate conflicts or choose between errors.
-    * 
+    *
     * From the ADT structure and the implementation of this instance,
     * we assume that specific errors are discarded.
     * To keep all errors, consider using a collection of errors and remove this instance.
@@ -1154,15 +1188,15 @@ object NodePropertySpecificError {
 
 /**
   * The status of resolution of the hierarchy of node properties :
-  * the node properties hierarchy can sometimes be evaluated 
+  * the node properties hierarchy can sometimes be evaluated
   * in a broken global context (e.g. groups structure is non resoluble)
   * , or there can be failures to resolve some specific properties only.
 
   * There is also a success case when all properties are successfully resolved,
   * but the API assumes that there are resolved properties (even an empty set).
-  * 
-  * The API is very similar to a Ior one and in fact that datatype is used 
-  * for the combinators it provides, and this type is just the domain 
+  *
+  * The API is very similar to a Ior one and in fact that datatype is used
+  * for the combinators it provides, and this type is just the domain
   * definition that prevents the Ior datatype to be visible at many places.
   */
 sealed abstract class ResolvedNodePropertyHierarchy(val resolved: Chunk[NodePropertyHierarchy]) {
@@ -1172,10 +1206,10 @@ sealed abstract class ResolvedNodePropertyHierarchy(val resolved: Chunk[NodeProp
 }
 
 /**
-  * The failure that has some additional context message for when 
+  * The failure that has some additional context message for when
   * there is a global context for the node property error.
-  * 
-  * It wraps the error to also serve as a translation agains the 
+  *
+  * It wraps the error to also serve as a translation agains the
   * case of having both success and error,
   * and is somehow associated with the Ior datatype
   */
@@ -1207,7 +1241,7 @@ object FailedNodePropertyHierarchy {
 }
 
 /**
-  * Just a list of resolved properties (we know it's a non empty one 
+  * Just a list of resolved properties (we know it's a non empty one
   * and model it like that for the constraint of instantiation)
   */
 case class SuccessNodePropertyHierarchy(override val resolved: Chunk[NodePropertyHierarchy])

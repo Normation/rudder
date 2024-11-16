@@ -39,9 +39,9 @@ package com.normation.inventory.domain
 
 import enumeratum.*
 import java.net.InetAddress
-import net.liftweb.json.JsonAST.JValue
 import org.joda.time.DateTime
 import zio.json.*
+import zio.json.ast.*
 
 sealed trait NodeElement {
   def description: Option[String]
@@ -470,8 +470,12 @@ final case class NodeTimezone(
 
 final case class CustomProperty(
     name:  String,
-    value: JValue
+    value: Json
 )
+
+object CustomProperty {
+  implicit val codecCustomProperty: JsonCodec[CustomProperty] = DeriveJsonCodec.gen
+}
 
 sealed abstract class SoftwareUpdateKind(override val entryName: String) extends EnumEntry {
   def name: String = entryName

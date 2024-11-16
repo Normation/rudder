@@ -45,6 +45,8 @@ import com.unboundid.ldap.sdk.Entry
 import org.junit.runner.*
 import org.specs2.mutable.*
 import org.specs2.runner.*
+import zio.*
+import zio.json.ast.*
 
 /**
  * Test node unserialisation frome entries, in particular
@@ -157,7 +159,10 @@ class TestNodeUnserialisation extends Specification {
       |inventoryDate: 20180717000031.000Z
       |receiveDate: 20180717000527.050Z
       |lastLoggedUserTime: 20000714084300.000Z
-      |softwareUpdate: {"name":"rudder-agent","version":"7.0.0-realease","from":"yum","arch":"x86_64","kind":"none","description":"Local privilege escalation in pkexec","severity":"low","date":"2022-01-26T00:00:00Z","ids":["RHSA-2020-4566","CVE-2021-4034"]}""".stripMargin
+      |softwareUpdate: {"name":"rudder-agent","version":"7.0.0-realease","from":"yum","arch":"x86_64","kind":"none","description":"Local privilege escalation in pkexec","severity":"low","date":"2022-01-26T00:00:00Z","ids":["RHSA-2020-4566","CVE-2021-4034"]}
+      |customProperty: {"name":"simpleString","value":"a simple string"}
+      |customProperty: {"name":"someJson","value":{"foo":"bar","i":42,"b":true,"arr":[1,2]}}
+      |""".stripMargin
   }
 
   def node(ldif: String): NodeInventory = {
@@ -227,6 +232,26 @@ class TestNodeUnserialisation extends Specification {
           Some(List("RHSA-2020-4566", "CVE-2021-4034"))
         )
       ))
+    }
+
+    "correctly unserialize custom properties from 7_0" in {
+      import Json.*
+      node(linux70Ldif).customProperties must containTheSameElementsAs(
+        List(
+          CustomProperty("simpleString", Str("a simple string")),
+          CustomProperty(
+            "someJson",
+            Obj(
+              Chunk(
+                ("foo" -> Str("bar")),
+                ("i"   -> Num(42)),
+                ("b"   -> Bool(true)),
+                ("arr" -> Arr(Num(1), Num(2)))
+              )
+            )
+          )
+        )
+      )
     }
   }
 }

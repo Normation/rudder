@@ -1089,7 +1089,7 @@ trait PromiseGeneration_BuildNodeContext {
             propsCompiled     <- ZIO
                                    .foreach(mergedProps) { p =>
                                      for {
-                                       x     <- parseJValue(p.prop.toJson, contextEngine)
+                                       x     <- parseJValue(p.prop.toJsonObj, contextEngine)
                                        // we need to fetch only the value, and nothing else, for the property
                                        value  = GenericProperty.fromJsonValue(x.\("value"))
                                        result = NodeProperty(p.prop.config.getString("name"), value, None, None)

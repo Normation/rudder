@@ -90,50 +90,6 @@ object InventoryMappingResult {
 
 }
 
-////////////////// Node Custom Properties /////////////////////////
-object CustomPropertiesSerialization {
-
-  import net.liftweb.json.*
-
-  /*
-   * CustomProperty serialization must follow NodeProperties one:
-   * {"name":"propkey","value": JVALUE}
-   * with JVALUE either a simple type (string, int, etc) or a valid JSON
-   */
-  implicit class Serialise(val cs: CustomProperty) extends AnyVal {
-    def toJson: String = {
-      Serialization.write(cs)(DefaultFormats)
-    }
-  }
-
-  implicit class Unserialize(val json: String) extends AnyVal {
-    def toCustomProperty: Either[Throwable, CustomProperty] = {
-      implicit val formats: Formats = DefaultFormats
-      try {
-        Right(Serialization.read[CustomProperty](json))
-      } catch {
-        case ex: Exception => Left(ex)
-      }
-    }
-  }
-}
-
-class DateTimeSerializer extends Serializer[DateTime] {
-  private val IntervalClass = classOf[DateTime]
-
-  def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), DateTime] = {
-    case (TypeInfo(IntervalClass, _), json) =>
-      json match {
-        case JObject(JField("datetime", JString(date)) :: Nil) => DateTime.parse(date)
-        case x                                                 => throw new MappingException("Can't convert " + x + " to DateTime")
-      }
-  }
-
-  def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case date: DateTime => JObject(JField("datetime", JString(date.toString())) :: Nil)
-  }
-}
-
 object InventoryMapper {
   def getSoftwareUpdate(entry: LDAPEntry): IOResult[Chunk[SoftwareUpdate]] = {
     ZIO
@@ -160,7 +116,7 @@ class InventoryMapper(
     removedDit:  InventoryDit
 ) {
 
-  implicit val formats: Formats = DefaultFormats + new DateTimeSerializer
+  implicit val formats: Formats = DefaultFormats
 
   ////////////////////////////////////////////////////////////
   ///////////////////////// Software /////////////////////////
@@ -742,30 +698,6 @@ class InventoryMapper(
     }
   }
 
-  ////////////////// Node Custom Properties /////////////////////////
-  object CustomPropertiesSerialization {
-
-    import net.liftweb.json.*
-
-    /*
-     * CustomProperty serialization must follow NodeProperties one:
-     * {"name":"propkey","value": JVALUE}
-     * with JVALUE either a simple type (string, int, etc) or a valid JSON
-     */
-    implicit class Serialise(cs: CustomProperty) {
-      def toJson: String = {
-        Serialization.write(cs)(DefaultFormats)
-      }
-    }
-
-    implicit class Unserialize(json: String) {
-      def toCustomProperty: IOResult[CustomProperty] = {
-        implicit val formats: Formats = DefaultFormats
-        IOResult.attempt(Serialization.read[CustomProperty](json))
-      }
-    }
-  }
-
   ////////////////// Node/ NodeInventory /////////////////////////
 
   private def createNodeModelFromServer(server: NodeInventory): LDAPEntry = {
@@ -894,10 +826,7 @@ class InventoryMapper(
       root.resetValuesTo(A_TIMEZONE_NAME, timezone.name)
       root.resetValuesTo(A_TIMEZONE_OFFSET, timezone.offset)
     }
-    server.customProperties.foreach { cp =>
-      import CustomPropertiesSerialization.Serialise
-      root.addValues(A_CUSTOM_PROPERTY, cp.toJson)
-    }
+    server.customProperties.foreach(cp => root.addValues(A_CUSTOM_PROPERTY, cp.toJson))
     server.softwareUpdates.foreach { s =>
       import zio.json.*
       import JsonSerializers.implicits.*
@@ -1121,28 +1050,28 @@ class InventoryMapper(
                              case (Some(tzName), Some(offset)) => Some(NodeTimezone(tzName, offset))
                              case _                            => None
                            }
-      customProperties  <- {
-        import CustomPropertiesSerialization.Unserialize
-        ZIO.foreach(entry.valuesFor(A_CUSTOM_PROPERTY))(a => {
-          a.toCustomProperty.foldZIO(
-            err =>
-              InventoryProcessingLogger.warn(
-                Chained(s"Error when deserializing node inventory custom property (ignoring that property)", err).fullMsg
-              ) *> None.succeed,
-            p => Some(p).succeed
-          )
-        })
-      }
-      softwareUpdates   <- InventoryMapper.getSoftwareUpdate(entry)
-      main               = NodeSummary(
-                             id,
-                             inventoryStatus,
-                             rootUser,
-                             hostname,
-                             osDetails,
-                             NodeId(policyServerId),
-                             keyStatus
-                           )
+      customProperties  <- ZIO.foreach(entry.valuesFor(A_CUSTOM_PROPERTY)) { a =>
+                             a.fromJson[CustomProperty] match {
+                               case Left(err) =>
+                                 InventoryProcessingLogger.warn(
+                                   Unexpected(
+                                     s"Error when deserializing node inventory custom property (ignoring that property): ${a}; error: ${err}"
+                                   ).fullMsg
+                                 ) *> None.succeed
+                               case Right(p)  => Some(p).succeed
+                             }
+                           }
+
+      softwareUpdates <- InventoryMapper.getSoftwareUpdate(entry)
+      main             = NodeSummary(
+                           id,
+                           inventoryStatus,
+                           rootUser,
+                           hostname,
+                           osDetails,
+                           NodeId(policyServerId),
+                           keyStatus
+                         )
     } yield {
       NodeInventory(
         main,

@@ -393,7 +393,7 @@ final case class RestDataSerializerImpl(
   def serializeGroupChange(change: NodeGroupChange, apiVersion: ApiVersion): Box[JValue] = {
 
     def serializeNodeGroupDiff(diff: ModifyNodeGroupDiff, initialState: NodeGroup): JValue = {
-      implicit def convert[T](value: GroupProperty): JValue = value.toJson
+      implicit def convert[T](value: GroupProperty): JValue = value.toJsonObj
       def convertNodeList(nl:        Set[NodeId]):   JValue = nl.map(_.value).toList
       def convertQuery(q:            Option[Query]): JValue = q.map(_.toString)
 

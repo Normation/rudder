@@ -1454,7 +1454,7 @@ final case class NodeFact(
   def isSystem:         Boolean               = isPolicyServer
   def serverIps:        List[String]          = ipAddresses.map(_.inet).toList
   def customProperties: Chunk[CustomProperty] = properties.collect {
-    case p if (p.provider == Some(NodeProperty.customPropertyProvider)) => CustomProperty(p.name, p.jsonValue)
+    case p if (p.provider == Some(NodeProperty.customPropertyProvider)) => CustomProperty(p.name, p.jsonZio)
   }
 
   def debugString(attrs: SelectFacts): String = {
@@ -2021,12 +2021,11 @@ object NodeFactSerialisation {
     }
   }
 
-  implicit val decoderJValue:       JsonDecoder[JValue]       = JsonDecoder[Option[Json]].map {
+  implicit val decoderJValue: JsonDecoder[JValue] = JsonDecoder[Option[Json]].map {
     case None    => JNothing
     case Some(v) => recJsonToJValue(v)
   }
-  implicit val encoderJValue:       JsonEncoder[JValue]       = JsonEncoder[Option[Json]].contramap(recJValueToJson(_))
-  implicit val codecCustomProperty: JsonCodec[CustomProperty] = DeriveJsonCodec.gen
+  implicit val encoderJValue: JsonEncoder[JValue] = JsonEncoder[Option[Json]].contramap(recJValueToJson(_))
 
   implicit val codecInputDevice:    JsonCodec[InputDevice]    = DeriveJsonCodec.gen
   implicit val codecLocalGroup:     JsonCodec[LocalGroup]     = DeriveJsonCodec.gen
