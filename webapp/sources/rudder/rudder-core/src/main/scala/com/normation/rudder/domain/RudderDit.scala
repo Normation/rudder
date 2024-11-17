@@ -57,7 +57,6 @@ import com.normation.rudder.repository.NodeGroupLibraryArchiveId
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.unboundid.ldap.sdk.*
 import net.liftweb.common.*
-import net.liftweb.json.*
 import zio.json.*
 
 class CATEGORY(
@@ -232,7 +231,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
         uuid:                 String,
         parentDN:             DN,
         techniqueName:        TechniqueName,
-        acceptationDateTimes: JObject,
+        acceptationDateTimes: String,
         isEnabled:            Boolean,
         policyTypes:          PolicyTypes
     ): LDAPEntry = {
@@ -241,7 +240,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
       mod.resetValuesTo(A_TECHNIQUE_UUID, techniqueName.value)
       mod.resetValuesTo(A_IS_ENABLED, isEnabled.toLDAPString)
       mod.resetValuesTo(A_POLICY_TYPES, policyTypes.toJson)
-      mod.resetValuesTo(A_ACCEPTATION_DATETIME, compactRender(acceptationDateTimes))
+      mod.resetValuesTo(A_ACCEPTATION_DATETIME, acceptationDateTimes)
       mod
     }
 

@@ -39,6 +39,8 @@ package com.normation.rudder.web.components
 
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.web.ChooseTemplate
+import io.scalaland.chimney.*
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
@@ -47,6 +49,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
+import zio.json.*
 
 /**
  * Component to display and configure the Agent Schedule
@@ -127,13 +130,19 @@ class AgentScheduleEditForm(
     }
   }
 
+  implicit class ToElmInitAgentRunInterval(x: AgentRunInterval) {
+    def jsonWithSplay: String = {
+      x.transformInto[ElmInitAgentRunInterval].toJson
+    }
+  }
+
   def cfagentScheduleConfiguration: NodeSeq = {
 
     val transform = (for {
-      schedule  <- getConfigureCallback().map(_.json)
+      schedule  <- getConfigureCallback().map(_.jsonWithSplay)
       globalRun <- getGlobalConfiguration() match {
                      case None    => Full("null")
-                     case Some(g) => g.map(_.json)
+                     case Some(g) => g.map(_.jsonWithSplay)
                    }
     } yield {
       val callback = AnonFunc("schedule", SHtml.ajaxCall(JsVar("schedule"), submit))
@@ -162,5 +171,26 @@ class AgentScheduleEditForm(
         ("#cfagentSchedule *+" #> Script(OnLoad(JsRaw(initScheduleParam)) & Noop))
     }
     transform(agentScheduleTemplate);
+  }
+}
+
+// this one is only needed for the elm init in cfagentScheduleConfiguration above
+@jsonExplicitNull
+final case class ElmInitAgentRunInterval(
+    overrides:   Option[Boolean], // true, false, null because used in Elm flag with Elm automatic translation to Maybe
+    interval:    Int,
+    startHour:   Int,
+    startMinute: Int,
+    splayHour:   Int,
+    splayMinute: Int
+)
+object ElmInitAgentRunInterval {
+  implicit val encoderJsonAgentRunInterval: JsonEncoder[ElmInitAgentRunInterval]                   = DeriveJsonEncoder.gen
+  implicit val transformAgentRunInterval:   Transformer[AgentRunInterval, ElmInitAgentRunInterval] = {
+    Transformer
+      .define[AgentRunInterval, ElmInitAgentRunInterval]
+      .withFieldComputed(_.splayHour, _.splaytime / 60)
+      .withFieldComputed(_.splayMinute, _.splaytime % 60)
+      .buildTransformer
   }
 }

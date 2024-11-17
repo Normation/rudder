@@ -1505,7 +1505,7 @@ final case class NodeFact(
 }
 
 final case class JsonOsDetails(
-    @jsonField("type") osType: String, // this is "kernalName"
+    @jsonField("type") osType: String, // this is "kernelName"
     name:                      String,
     version:                   String,
     fullName:                  String,
@@ -1863,27 +1863,6 @@ object NodeFactSerialisation {
       }
     }
 
-    implicit val codecJsonAgentRunInterval:   JsonCodec[JsonAgentRunInterval]   = DeriveJsonCodec.gen
-    implicit val codecAgentRunInterval:       JsonCodec[AgentRunInterval]       = JsonCodec(
-      JsonEncoder[JsonAgentRunInterval].contramap[AgentRunInterval] { ari =>
-        JsonAgentRunInterval(
-          ari.overrides.map(_.toString()).getOrElse("default"),
-          ari.interval,
-          ari.startMinute,
-          ari.startHour,
-          ari.splaytime / 60,
-          ari.splaytime % 60
-        )
-      },
-      JsonDecoder[JsonAgentRunInterval].map[AgentRunInterval] { jari =>
-        val o = jari.overrides match {
-          case "true"  => Some(true)
-          case "false" => Some(false)
-          case _       => None
-        }
-        AgentRunInterval(o, jari.interval, jari.startMinute, jari.startHour, jari.splayHour * 60 + jari.splayMinute)
-      }
-    )
     implicit val codecAgentReportingProtocol: JsonCodec[AgentReportingProtocol] = {
       JsonCodec.string.transformOrFail[AgentReportingProtocol](
         s => AgentReportingProtocol.parse(s).left.map(_.fullMsg),

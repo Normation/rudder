@@ -472,7 +472,7 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
       ActiveTechnique(
         id = ActiveTechniqueId(id),
         techniqueName = TechniqueName(ptName),
-        acceptationDatetimes = acceptationMap,
+        acceptationDatetimes = AcceptationDateTime(acceptationMap),
         directives = Nil,
         _isEnabled = isEnabled,
         policyTypes = policyTypes

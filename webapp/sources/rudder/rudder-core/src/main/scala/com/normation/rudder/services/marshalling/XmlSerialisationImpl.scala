@@ -187,7 +187,7 @@ class ActiveTechniqueSerialisationImpl(xmlVersion: String) extends ActiveTechniq
         <isEnabled>{activeTechnique.isEnabled}</isEnabled>
         <policyTypes>{activeTechnique.policyTypes.toJson}</policyTypes>
         <versions>{
-        activeTechnique.acceptationDatetimes.map {
+        activeTechnique.acceptationDatetimes.versions.map {
           case (version, date) =>
             // we never serialize revision in xml
             <version name={version.version.toVersionString}>{date.toString(ISODateTimeFormat.dateTime)}</version>

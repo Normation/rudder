@@ -101,7 +101,7 @@ class GlobalParamMigration61Test extends Specification {
       val criterionObjects: Map[String, ObjectCriterion] = Map()
     }
 
-    new LDAPEntityMapper(rudderDit, nodeDit, acceptedNodesDitImpl, cmdbQueryParser, inventoryMapper)
+    new LDAPEntityMapper(rudderDit, nodeDit, cmdbQueryParser, inventoryMapper)
   }
 
   val baseParam: GlobalParameter = GlobalParameter.parse("test", GitVersion.DEFAULT_REV, "", None, "", None).forceGet

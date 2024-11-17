@@ -42,6 +42,7 @@ import com.normation.cfclerk.domain.*
 import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.policies.AcceptationDateTime
 import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
@@ -158,7 +159,7 @@ class TechniqueRepositoryTest extends Specification with Loggable with AfterAll 
         reason:        Option[String]
     ): IOResult[ActiveTechnique] = {
       updatedTechniques = techniqueName.value :: updatedTechniques
-      ActiveTechnique(ActiveTechniqueId("empty"), techniqueName, Map()).succeed
+      ActiveTechnique(ActiveTechniqueId("empty"), techniqueName, AcceptationDateTime.empty).succeed
     }
     // ALL the following methods are useless for our test
     override def getFullDirectiveLibrary(): IOResult[FullActiveTechniqueCategory] = {

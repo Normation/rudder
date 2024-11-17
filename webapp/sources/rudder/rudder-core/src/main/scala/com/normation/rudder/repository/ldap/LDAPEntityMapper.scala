@@ -45,7 +45,6 @@ import com.normation.NamedZioLogger
 import com.normation.cfclerk.domain.*
 import com.normation.errors.*
 import com.normation.inventory.domain.*
-import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.inventory.ldap.core.InventoryMappingResult.*
 import com.normation.inventory.ldap.core.InventoryMappingRudderError
@@ -81,11 +80,7 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.*
 import com.unboundid.ldap.sdk.DN
-import net.liftweb.json.*
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonDSL.*
 import org.joda.time.DateTime
-import scala.util.control.NonFatal
 import zio.*
 import zio.json.*
 import zio.syntax.*
@@ -107,7 +102,6 @@ object NodeStateEncoder {
 class LDAPEntityMapper(
     rudderDit:       RudderDit,
     nodeDit:         NodeDit,
-    inventoryDit:    InventoryDit,
     cmdbQueryParser: CmdbQueryParser,
     inventoryMapper: InventoryMapper
 ) extends NamedZioLogger {
@@ -132,7 +126,7 @@ class LDAPEntityMapper(
 
     node.nodeReportingConfiguration.agentRunInterval match {
       case Some(interval) =>
-        entry.resetValuesTo(A_SERIALIZED_AGENT_RUN_INTERVAL, compactRender(serializeAgentRunInterval(interval)))
+        entry.resetValuesTo(A_SERIALIZED_AGENT_RUN_INTERVAL, interval.toJson)
       case _              =>
     }
 
@@ -150,12 +144,7 @@ class LDAPEntityMapper(
 
     node.nodeReportingConfiguration.heartbeatConfiguration match {
       case Some(heatbeatConfiguration) =>
-        val json = {
-          import net.liftweb.json.JsonDSL.*
-          ("overrides"       -> heatbeatConfiguration.overrides) ~
-          ("heartbeatPeriod" -> heatbeatConfiguration.heartbeatPeriod)
-        }
-        entry.resetValuesTo(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION, compactRender(json))
+        entry.resetValuesTo(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION, heatbeatConfiguration.toJson)
       case _                           => // Save nothing if missing
     }
     entry.addValues(A_POLICY_MODE, node.policyMode.map(_.name).getOrElse(PolicyMode.defaultValue))
@@ -165,36 +154,14 @@ class LDAPEntityMapper(
     entry
   }
 
-  def serializeAgentRunInterval(agentInterval: AgentRunInterval): JObject = {
-    ("overrides"   -> agentInterval.overrides) ~
-    ("interval"    -> agentInterval.interval) ~
-    ("startMinute" -> agentInterval.startMinute) ~
-    ("startHour"   -> agentInterval.startHour) ~
-    ("splaytime"   -> agentInterval.splaytime)
-  }
-
-  def unserializeAgentRunInterval(value: String): AgentRunInterval = {
-    import net.liftweb.json.JsonParser.*
-    implicit val formats: Formats = DefaultFormats
-
-    parse(value).extract[AgentRunInterval]
-  }
-
-  def unserializeNodeHeartbeatConfiguration(value: String): HeartbeatConfiguration = {
-    import net.liftweb.json.JsonParser.*
-    implicit val formats: Formats = DefaultFormats
-
-    parse(value).extract[HeartbeatConfiguration]
-  }
-
   def entryToNode(e: LDAPEntry): PureResult[Node] = {
     if (e.isA(OC_RUDDER_NODE) || e.isA(OC_POLICY_SERVER_NODE)) {
       // OK, translate
       for {
         id                     <- nodeDit.NODES.NODE.idFromDn(e.dn).toRight(Inconsistency(s"Bad DN found for a Node: ${e.dn}"))
         date                   <- e.requiredAs[GeneralizedTime](_.getAsGTime, A_OBJECT_CREATION_DATE)
-        agentRunInterval        = e(A_SERIALIZED_AGENT_RUN_INTERVAL).map(unserializeAgentRunInterval(_))
-        heartbeatConf           = e(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION).map(unserializeNodeHeartbeatConfiguration(_))
+        agentRunInterval        = e(A_SERIALIZED_AGENT_RUN_INTERVAL).flatMap(_.fromJson[AgentRunInterval].toOption)
+        heartbeatConf           = e(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION).flatMap(_.fromJson[HeartbeatConfiguration].toOption)
         agentReportingProtocol <- e(A_AGENT_REPORTING_PROTOCOL) match {
                                     case None        => Right(None)
                                     case Some(value) => AgentReportingProtocol.parse(value).map(Some(_))
@@ -546,38 +513,6 @@ class LDAPEntityMapper(
 
   //////////////////////////////    ActiveTechnique    //////////////////////////////
 
-  // two utilities to serialize / deserialize Map[TechniqueVersion,DateTime]
-  def unserializeAcceptations(value: String): PureResult[Map[TechniqueVersion, DateTime]] = {
-    import net.liftweb.json.JsonAST.JField
-    import net.liftweb.json.JsonAST.JString
-    import net.liftweb.json.JsonParser.*
-
-    parse(value) match {
-      case JObject(fields) =>
-        fields.collect { case JField(version, JString(date)) => (version, date) }.traverse {
-          case (v, d) =>
-            TechniqueVersion
-              .parse(v)
-              .leftMap(Unexpected.apply)
-              .flatMap(version => {
-                try {
-                  Right((version, GeneralizedTime(d).dateTime))
-                } catch {
-                  case NonFatal(ex) => Left(SystemError(s"Error when trying to parse '${d}' as a datetime", ex))
-                }
-              })
-        }.map(_.toMap)
-      case _               => Right(Map())
-    }
-  }
-
-  def serializeAcceptations(dates: Map[TechniqueVersion, DateTime]): JObject = {
-    dates.foldLeft(JObject(List())) {
-      case (js, (version, date)) =>
-        js ~ (version.serialize -> GeneralizedTime(date).toString)
-    }
-  }
-
   /**
    * Build a ActiveTechnique from and LDAPEntry.
    * children directives are left empty
@@ -597,10 +532,9 @@ class LDAPEntityMapper(
                                 }
         acceptationDatetimes <- e(A_ACCEPTATION_DATETIME) match {
                                   case Some(v) =>
-                                    unserializeAcceptations(v).leftMap(e =>
-                                      InventoryMappingRudderError.UnexpectedObject(e.fullMsg)
-                                    )
-                                  case None    => Right(Map.empty[TechniqueVersion, DateTime])
+                                    v.fromJson[AcceptationDateTime]
+                                      .leftMap(e => InventoryMappingRudderError.UnexpectedObject(e))
+                                  case None    => Right(AcceptationDateTime.empty)
                                 }
       } yield {
         ActiveTechnique(ActiveTechniqueId(id), refTechniqueUuid, acceptationDatetimes, Nil, isEnabled, policyTypes)
@@ -619,7 +553,7 @@ class LDAPEntityMapper(
       activeTechnique.id.value,
       parentDN,
       activeTechnique.techniqueName,
-      serializeAcceptations(activeTechnique.acceptationDatetimes),
+      activeTechnique.acceptationDatetimes.toJson,
       activeTechnique.isEnabled,
       activeTechnique.policyTypes
     )

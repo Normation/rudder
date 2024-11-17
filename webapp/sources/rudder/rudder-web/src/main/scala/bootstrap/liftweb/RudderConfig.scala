@@ -2281,7 +2281,7 @@ object RudderConfigInit {
     lazy val uuidGen                   = stringUuidGenerator
     lazy val systemVariableSpecService = new SystemVariableSpecServiceImpl()
     lazy val ldapEntityMapper: LDAPEntityMapper =
-      new LDAPEntityMapper(rudderDitImpl, nodeDitImpl, acceptedNodesDitImpl, queryParser, inventoryMapper)
+      new LDAPEntityMapper(rudderDitImpl, nodeDitImpl, queryParser, inventoryMapper)
 
     ///// items serializer - service that transforms items to XML /////
     lazy val ruleSerialisation:                    RuleSerialisation                    = new RuleSerialisationImpl(
