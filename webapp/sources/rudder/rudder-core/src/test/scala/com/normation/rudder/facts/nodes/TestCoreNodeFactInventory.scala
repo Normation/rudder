@@ -531,7 +531,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         .getAttributeValue("environmentVariable") must beEqualTo("""{"name":"envVAR","value":"envVALUE"}""")) and
       (mockLdapFactStorage.testServer
         .getEntry("nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
-        .getAttributeValue("process") must beEqualTo("""{"pid":4242,"commandName":"process 4242 command line"}""")) and
+        .getAttributeValue("process") must beEqualTo("""{"pid":4242,"name":"process 4242 command line"}""")) and
       (mockLdapFactStorage.testServer.entryExists(
         "networkInterface=eth0,nodeId=node7,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration"
       ) must beTrue) and

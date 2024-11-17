@@ -100,6 +100,10 @@ final case class Process(
     description:                                                Option[String] = None
 ) extends NodeElement
 
+object Process {
+  implicit val codecProcess: JsonCodec[Process] = DeriveJsonCodec.gen
+}
+
 final case class VirtualMachine(
     @jsonField("type") @jsonAliases("vmtype") vmtype: Option[String] = None,
     subsystem:                                        Option[String] = None,
@@ -114,10 +118,16 @@ final case class VirtualMachine(
 ) extends NodeElement
 
 final case class EnvironmentVariable(
-    name:        String,
-    value:       Option[String] = None,
-    description: Option[String] = None
-) extends NodeElement
+    name:  String,
+    value: Option[String] = None
+) extends NodeElement {
+  // description is never present in Environment Variable, and we don't store it if it was
+  val description: Option[String] = None
+}
+
+object EnvironmentVariable {
+  implicit val codecEnvironmentVariable: JsonCodec[EnvironmentVariable] = DeriveJsonCodec.gen
+}
 
 object InetAddressUtils {
 
