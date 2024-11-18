@@ -3214,6 +3214,8 @@ object RudderConfigInit {
     lazy val mainCampaignService = new MainCampaignService(campaignEventRepo, campaignRepo, uuidGen, 1, 1)
     lazy val jsonReportsAnalyzer = JSONReportsAnalyser(reportsRepository, propertyRepository)
 
+    lazy val instanceUuidPath = root / "opt" / "rudder" / "etc" / "instance-id"
+
     /*
      * *************************************************
      * Bootstrap check actions
@@ -3221,6 +3223,7 @@ object RudderConfigInit {
      */
 
     lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
+      new CreateInstanceUuid(instanceUuidPath, stringUuidGenerator),
       new CheckConnections(dataSourceProvider, rwLdap),
       new CheckTableScore(doobie),
       new CheckTableUsers(doobie),
