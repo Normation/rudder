@@ -158,10 +158,7 @@ class LDAPEntityMapper(
         entry.resetValuesTo(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION, compactRender(json))
       case _                           => // Save nothing if missing
     }
-
-    for {
-      mode <- node.policyMode
-    } entry.addValues(A_POLICY_MODE, mode.name)
+    entry.addValues(A_POLICY_MODE, node.policyMode.map(_.name).getOrElse(PolicyMode.defaultValue))
 
     node.securityTag.foreach(t => entry.resetValuesTo(A_SECURITY_TAG, t.toJson))
 
@@ -204,7 +201,7 @@ class LDAPEntityMapper(
                                   }
         policyMode             <- e(A_POLICY_MODE) match {
                                     case None        => Right(None)
-                                    case Some(value) => PolicyMode.parse(value).map(Some(_))
+                                    case Some(value) => PolicyMode.parseDefault(value)
                                   }
         properties             <- e.valuesFor(A_NODE_PROPERTY).toList.traverse(NodeProperty.unserializeLdapNodeProperty)
         securityTags            = e(A_SECURITY_TAG).flatMap(_.fromJson[SecurityTag].toOption)
