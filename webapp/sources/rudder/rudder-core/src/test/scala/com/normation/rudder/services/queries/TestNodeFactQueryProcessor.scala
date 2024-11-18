@@ -31,7 +31,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
- *
+ *import com.normation.rudder.domain.queries.
  *************************************************************************************
  */
 
@@ -45,6 +45,7 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.queries.*
+import com.normation.rudder.domain.queries.CriterionComposition.*
 import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.zio.*

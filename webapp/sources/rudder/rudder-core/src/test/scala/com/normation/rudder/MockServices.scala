@@ -2312,9 +2312,9 @@ class MockNodes() {
         byLine <- lines.traverse(filterForLine(_, nodes))
       } yield {
         combine match {
-          case And =>
+          case CriterionComposition.And =>
             (nodes :: byLine).reduce((a, b) => a.intersect(b))
-          case Or  =>
+          case CriterionComposition.Or  =>
             (Nil :: byLine).reduce((a, b) => a ++ b)
         }
       }

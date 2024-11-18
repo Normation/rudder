@@ -46,8 +46,8 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.ReadOnlySoftwareDAOImpl
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.MachineInfo
-import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.nodes.NodeState
+import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService

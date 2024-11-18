@@ -407,7 +407,7 @@ class RudderDit(val BASE_DN: DN) extends AbstractDit {
       query match {
         case None    => // No query to add. Maybe we'd like to enforce that it is not activated
         case Some(q) =>
-          mod.resetValuesTo(A_QUERY_NODE_GROUP, q.toJSONString)
+          mod.resetValuesTo(A_QUERY_NODE_GROUP, q.toJson)
       }
       mod
     }

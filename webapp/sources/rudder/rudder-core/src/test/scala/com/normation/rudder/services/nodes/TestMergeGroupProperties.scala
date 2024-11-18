@@ -57,6 +57,8 @@ import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.domain.queries.*
+import com.normation.rudder.domain.queries.CriterionComposition.*
+import com.normation.rudder.domain.queries.QueryReturnType.*
 import com.normation.rudder.domain.queries.ResultTransformation.*
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.properties.GroupProp

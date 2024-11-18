@@ -162,7 +162,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
           "xml" -> "hack:<img src=\"https://hackme.net/h.jpg\"/>"
         )
       ),
-      Some(Query(NodeReturnType, And, Identity, List())),
+      Some(Query(QueryReturnType.NodeReturnType, CriterionComposition.And, Identity, List())),
       isDynamic = true,
       serverList = Set(),
       _isEnabled = true

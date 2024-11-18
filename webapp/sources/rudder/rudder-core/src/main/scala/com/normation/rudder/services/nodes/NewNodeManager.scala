@@ -46,12 +46,12 @@ import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.queries.CriterionComposition.Or
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.DitQueryData
 import com.normation.rudder.domain.queries.Equals
-import com.normation.rudder.domain.queries.NodeReturnType
-import com.normation.rudder.domain.queries.Or
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.queries.QueryReturnType.NodeReturnType
 import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact

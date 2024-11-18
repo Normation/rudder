@@ -214,7 +214,7 @@ class NodeFactQueryProcessor(
    * - LdapQuery (we want to have all lines of that kind grouped in a new query)
    */
   def analyzeQuery(query: Query)(implicit qc: QueryContext): IOResult[NodeFactMatcher] = {
-    val group = if (query.composition == And) GroupAnd else GroupOr
+    val group = if (query.composition == CriterionComposition.And) GroupAnd else GroupOr
 
     // we need a better pattern matching (extensible would be better) in place of `isInstanceOf`
     // we prefer coreNodeFact matcher on top of LDAP, since the former is quick in cache, the latter needs IO
@@ -251,8 +251,10 @@ class NodeFactQueryProcessor(
       // inverse now if needed, because we don't want to return root if not asked *even* when inverse is present
       val inv = if (query.transform == ResultTransformation.Invert) group.inverse(lineResult) else lineResult
       // finally, filter out root if need
-      val res =
-        if (query.returnType == NodeAndRootServerReturnType) inv else GroupAnd.compose(NodeFactMatcher.nodeAndRelayMatcher, inv)
+      val res = {
+        if (query.returnType == QueryReturnType.NodeAndRootServerReturnType) inv
+        else GroupAnd.compose(NodeFactMatcher.nodeAndRelayMatcher, inv)
+      }
       res
     }
   }

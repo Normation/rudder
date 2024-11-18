@@ -62,6 +62,7 @@ import net.liftweb.http.js.JsCmds.*
 import scala.xml.Elem
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
+import zio.json.*
 
 /**
  *
@@ -246,7 +247,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
   private def updateQueryHash(button: Boolean, query: Option[Query]): JsCmd = {
     query match {
       case Some(q) =>
-        JsRaw(s"updateHashString('query', ${q.toJSONString})") // JsRaw ok, escaped
+        JsRaw(s"updateHashString('query', ${q.toJson})") // JsRaw ok, escaped
       case None    => Noop
     }
   }

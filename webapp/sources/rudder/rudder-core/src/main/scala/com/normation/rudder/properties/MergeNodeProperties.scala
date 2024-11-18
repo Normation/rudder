@@ -148,7 +148,7 @@ object GroupProp {
           GroupProp(
             group.properties,
             group.id,
-            And,
+            CriterionComposition.And,
             ResultTransformation.Identity,
             group.isDynamic,
             Nil, // terminal leaf
@@ -165,9 +165,10 @@ object GroupProp {
             q.criteria.flatMap {
               // we are only interested in subgroup criterion with AND, and we want to
               // keep order for overriding priority.
-              case CriterionLine(_, a, _, value) if (q.composition == And && a.cType.isInstanceOf[SubGroupComparator]) =>
+              case CriterionLine(_, a, _, value)
+                  if (q.composition == CriterionComposition.And && a.cType.isInstanceOf[SubGroupComparator]) =>
                 Some(value)
-              case _                                                                                                   => None
+              case _ => None
             },
             group.name
           )
@@ -308,9 +309,9 @@ object MergeNodeProperties {
    *   In that case, properties are merged according to the merge function.
    *
    * We know that we have all groups/subgroups in which the node is here.
-   * 
-   * The IOR chaining is necessary to recover partially from successful values 
-   * and still accumulate errors. It will be the responsibility of caller 
+   *
+   * The IOR chaining is necessary to recover partially from successful values
+   * and still accumulate errors. It will be the responsibility of caller
    * to discard or not the success part.
    */
   def checkPropertyMerge(

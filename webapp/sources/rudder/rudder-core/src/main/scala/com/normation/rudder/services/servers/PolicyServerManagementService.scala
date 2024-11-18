@@ -69,14 +69,14 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.queries.AgentComparator
-import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.Criterion
+import com.normation.rudder.domain.queries.CriterionComposition.And
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Equals
-import com.normation.rudder.domain.queries.NodeAndRootServerReturnType
 import com.normation.rudder.domain.queries.NodeCriterionMatcherString
 import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.queries.QueryReturnType.NodeAndRootServerReturnType
 import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.domain.queries.StringComparator
 import com.normation.rudder.repository.EventLogRepository
