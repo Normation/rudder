@@ -1490,7 +1490,8 @@ case class RudderServiceApi(
     scoreRepository:                     ScoreRepository,
     propertiesRepository:                PropertiesRepository,
     propertiesService:                   NodePropertiesService,
-    techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService
+    techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService,
+    instanceIdService:                   InstanceIdService
 )
 
 /*
@@ -3317,6 +3318,10 @@ object RudderConfigInit {
     lazy val mainCampaignService = new MainCampaignService(campaignEventRepo, campaignRepo, uuidGen, 1, 1)
     lazy val jsonReportsAnalyzer = JSONReportsAnalyser(reportsRepository, propertyRepository)
 
+    lazy val instanceUuidPath    = root / "opt" / "rudder" / "etc" / "instance-id"
+    lazy val instanceIdGenerator = new InstanceIdGeneratorImpl()
+    lazy val instanceIdService   = InstanceIdService.make(instanceUuidPath, instanceIdGenerator).runNow
+
     /*
      * *************************************************
      * Bootstrap check actions
@@ -3324,6 +3329,7 @@ object RudderConfigInit {
      */
 
     lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
+      new CreateInstanceUuid(instanceUuidPath, instanceIdService),
       new CheckConnections(dataSourceProvider, rwLdap),
       new CheckTableScore(doobie),
       new CheckTableUsers(doobie),
@@ -3777,7 +3783,8 @@ object RudderConfigInit {
       scoreRepository,
       propertiesRepository,
       propertiesService,
-      techniqueCompilationCache
+      techniqueCompilationCache,
+      instanceIdService
     )
 
     // start init effects
