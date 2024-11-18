@@ -72,7 +72,6 @@ import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.NodePropertyError
-import com.normation.rudder.domain.properties.NodePropertyError.*
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.NodePropertySpecificError
 import com.normation.rudder.domain.properties.ParentProperty
@@ -1313,7 +1312,7 @@ object JsonResponseObjects {
           JRProperty(
             propertyId,
             s.mainProp.prop.value,
-            Some(s.mainProp.prop.description).filter(_.strip.nonEmpty),
+            s.nonEmptyDescription,
             s.mainProp.prop.inheritMode,
             s.mainProp.prop.provider,
             parents,
@@ -1324,9 +1323,9 @@ object JsonResponseObjects {
           JRProperty(
             propertyId,
             e.value,
-            None,
-            None,
-            None,
+            e.nonEmptyDescription,
+            e.inheritMode,
+            e.provider,
             parents,
             hierarchyStatus,
             origval
@@ -1335,9 +1334,9 @@ object JsonResponseObjects {
           JRProperty(
             propertyId,
             origval.getOrElse("### error ###".toConfigValue), // comment should be safe for display only
-            None,
-            None,
-            None,
+            e.nonEmptyDescription,
+            e.inheritMode,
+            e.provider,
             parents,
             hierarchyStatus,
             origval
@@ -1351,10 +1350,10 @@ object JsonResponseObjects {
     ): JRProperty = {
       fromNodePropertyHierarchy(
         prop,
-        false,
+        hasChildTypeConflicts = false,
         List.empty,
         renderInHtml,
-        escapeHtml
+        escapeHtml = escapeHtml
       )
     }
 
@@ -1479,24 +1478,11 @@ object JsonResponseObjects {
     def fromFailedHierarchy(f: FailedNodePropertyHierarchy): Chunk[PropertyStatus] = {
       f.error match {
         case specificError: NodePropertySpecificError =>
-          // to find properties in error that are visible we need to get NodeProperty by pattern-matching
-          specificError match {
-            case PropertyInheritanceConflicts(conflicts) =>
-              Chunk.from(conflicts.collect {
-                case (p, _) if p.visibility == Displayed =>
-                  // there are individual errors by property that can be resolved and rendered individually
-                  specificError.propertiesErrors
-                    .get(p.name)
-                    .map {
-                      case (parentProperties, errorMessage) =>
-                        ErrorInheritedPropertyStatus.from(
-                          p.name,
-                          parentProperties,
-                          errorMessage
-                        )
-                    }
-              }.flatten)
-          }
+          Chunk.from(specificError.propertiesErrors.collect {
+            case (_, (p, cp, message)) if p.visibility == Displayed =>
+              // there are individual errors by property that can be resolved and rendered individually
+              ErrorInheritedPropertyStatus.from(p, cp, message)
+          })
         case _:             NodePropertyError         =>
           // we don't know the errored props, it may be all of them and there may be a global status error
           Chunk(GlobalPropertyStatus.fromResolvedNodeProperty(f))
@@ -1579,7 +1565,12 @@ object JsonResponseObjects {
   sealed trait InheritedPropertyStatus extends PropertyStatus {
     def propertyId:            JRPropertyId
     def parentsInheritedProps: List[ParentProperty]
+    def description:           String
+    def inheritMode:           Option[InheritMode]
+    def provider:              Option[PropertyProvider]
     def hasChildTypeConflicts: Boolean
+
+    def nonEmptyDescription: Option[String] = Some(description).filter(_.nonEmpty)
   }
 
   // This describes a property that has no problem
@@ -1587,9 +1578,14 @@ object JsonResponseObjects {
       mainProp:                           NodePropertyHierarchy,
       override val parentsInheritedProps: List[ParentProperty]
   ) extends InheritedPropertyStatus {
-    override def propertyId:            JRPropertyId   = mainProp.prop.name.transformInto[JRPropertyId]
-    override def errorMessage:          Option[String] = None
-    override def hasChildTypeConflicts: Boolean        = false
+    override def propertyId: JRPropertyId = mainProp.prop.name.transformInto[JRPropertyId]
+
+    override def inheritMode: Option[InheritMode] = mainProp.prop.inheritMode
+
+    override def description:           String                   = mainProp.prop.description
+    override def provider:              Option[PropertyProvider] = mainProp.prop.provider
+    override def errorMessage:          Option[String]           = None
+    override def hasChildTypeConflicts: Boolean                  = false
 
     /**
      * The hierarchy of the main property, not the one as seen by the descendants (parentsInheritedProps)
@@ -1606,31 +1602,44 @@ object JsonResponseObjects {
   sealed abstract class ErrorInheritedPropertyStatus(
       override val propertyId:            JRPropertyId,
       override val parentsInheritedProps: List[ParentProperty], // this is maybe "inheritance lineage"
+      override val description:           String,
+      override val inheritMode:           Option[InheritMode],
+      override val provider:              Option[PropertyProvider],
       override val errorMessage:          Some[String],
       override val hasChildTypeConflicts: Boolean = false
   ) extends InheritedPropertyStatus {}
   object ErrorInheritedPropertyStatus {
     def from(
-        propName:              String,
+        prop:                  NodeProperty,
         parentsInheritedProps: List[ParentProperty],
         errorMessage:          String
     ): ErrorInheritedPropertyStatus = {
-      new ErrorInheritedPropertyStatus(propName.transformInto[JRPropertyId], parentsInheritedProps, Some(errorMessage)) {}
-    }
-
-    def fromFailedHierarchy(propName: String, f: FailedNodePropertyHierarchy): ErrorInheritedPropertyStatus = {
-      new ErrorInheritedPropertyStatus(propName.transformInto[JRPropertyId], List.empty, Some(f.getMessage)) {}
+      new ErrorInheritedPropertyStatus(
+        prop.name.transformInto[JRPropertyId],
+        parentsInheritedProps,
+        prop.description,
+        prop.inheritMode,
+        prop.provider,
+        Some(errorMessage)
+      ) {}
     }
   }
 
   // This describes the specific error of having child type conflicts
+  // It is used to construct an error with known attributes : conflicts and message
   final case class ChildTypeConflictStatus(
       override val propertyId:            JRPropertyId,
       value:                              ConfigValue,
+      override val description:           String,
+      override val inheritMode:           Option[InheritMode],
+      override val provider:              Option[PropertyProvider],
       override val parentsInheritedProps: List[ParentProperty]
   ) extends ErrorInheritedPropertyStatus(
         propertyId,
         parentsInheritedProps,
+        description,
+        inheritMode,
+        provider,
         Some("Conflicting types in inherited node properties"),
         hasChildTypeConflicts = true
       ) {}
@@ -1661,7 +1670,14 @@ object JsonResponseObjects {
             .isLeft
 
           if (hasConflicts) {
-            ChildTypeConflictStatus(parent.prop.name.transformInto[JRPropertyId], parent.prop.value, childHierarchy)
+            ChildTypeConflictStatus(
+              parent.prop.name.transformInto[JRPropertyId],
+              parent.prop.value,
+              parent.prop.description,
+              parent.prop.inheritMode,
+              parent.prop.provider,
+              childHierarchy
+            )
           } else {
             // when using the parent hierarchy "this group" is displayed as name, instead of the real group name
             // we should be changing the mergeDefault method to get and use the node names and group names information instead of hardcodec "this node"/"this group"
@@ -1685,7 +1701,14 @@ object JsonResponseObjects {
             properties
               .groupMapReduce(_.propertyId)(identity) {
                 case (a, b) =>
-                  implicit val propId: JRPropertyId = a.propertyId // == b.propertyId
+                  // we should only reduce under the same propertyId.
+                  // the provider is supposed to be the same for a property at any level of the hierarchy
+                  // the inheritMode is also defined only at the top-most level and cannot be overridden
+                  // same for description
+                  implicit val propId:      JRPropertyId             = a.propertyId
+                  implicit val provider:    Option[PropertyProvider] = a.provider
+                  implicit val inheritMode: Option[InheritMode]      = a.inheritMode
+                  implicit val description: String                   = a.description
                   combine(a, b)
               }
               .values
@@ -1696,22 +1719,52 @@ object JsonResponseObjects {
     }
 
     // in principle we can only combine under a same single property lineage (same property id)
+    // and the same provider, and inherit mode, property has a description
+    // we don't want the property as implicit because the value may vary along the lineage
     private def combine(a: InheritedPropertyStatus, b: InheritedPropertyStatus)(implicit
-        propertyId: JRPropertyId
+        propertyId:  JRPropertyId,
+        provider:    Option[PropertyProvider],
+        description: String,
+        inheritMode: Option[InheritMode]
     ): InheritedPropertyStatus = {
       val inheritedProps = mergeHierarchies(a.parentsInheritedProps, b.parentsInheritedProps)
       (a, b) match {
         case (_: SuccessInheritedPropertyStatus, s: SuccessInheritedPropertyStatus) =>
           SuccessInheritedPropertyStatus(s.mainProp, inheritedProps)
         case (e: ErrorInheritedPropertyStatus, _: SuccessInheritedPropertyStatus)   =>
-          new ErrorInheritedPropertyStatus(propertyId, inheritedProps, e.errorMessage, e.hasChildTypeConflicts) {}
-        case (_: SuccessInheritedPropertyStatus, e: ErrorInheritedPropertyStatus)   =>
-          new ErrorInheritedPropertyStatus(propertyId, inheritedProps, e.errorMessage, e.hasChildTypeConflicts) {}
-        case (e1: ErrorInheritedPropertyStatus, e2: ErrorInheritedPropertyStatus)   =>
           new ErrorInheritedPropertyStatus(
             propertyId,
             inheritedProps,
-            Some(e1.errorMessage.get ++ "\n" ++ e2.errorMessage.get),
+            description,
+            inheritMode,
+            provider,
+            e.errorMessage,
+            e.hasChildTypeConflicts
+          ) {}
+        case (_: SuccessInheritedPropertyStatus, e: ErrorInheritedPropertyStatus)   =>
+          new ErrorInheritedPropertyStatus(
+            propertyId,
+            inheritedProps,
+            description,
+            inheritMode,
+            provider,
+            e.errorMessage,
+            e.hasChildTypeConflicts
+          ) {}
+        case (e1: ErrorInheritedPropertyStatus, e2: ErrorInheritedPropertyStatus)   =>
+          val errorMessage = { // error message may be the same (e.g. for child type conflicts), ignore duplicates
+            (e1.errorMessage, e2.errorMessage) match {
+              case (Some(err1), Some(err2)) if err1 == err2 => err1
+              case (Some(err1), Some(err2))                 => s"${err1}\n${err2}"
+            }
+          }
+          new ErrorInheritedPropertyStatus(
+            propertyId,
+            inheritedProps,
+            description,
+            inheritMode,
+            provider,
+            Some(errorMessage),
             e1.hasChildTypeConflicts || e2.hasChildTypeConflicts
           ) {}
       }

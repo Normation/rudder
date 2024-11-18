@@ -94,6 +94,7 @@ class TestInheritedProperties extends ZIOSpecDefault {
     g <- restTestSetUp.mockNodeGroups.groupsRepo.getNodeGroupOpt(g0Id)(QueryContext.testQC).notOptional("test")
     up = g._1.modify(_.properties).using(_.appended(gProp))
     _ <- restTestSetUp.mockNodeGroups.groupsRepo.update(up, ModificationId("test"), eventlog.RudderEventActor, None)
+    _ <- restTestSetUp.mockNodeGroups.propService.updateAll() // the properties also need to be recomputed after group is updated
   } yield ()).runNow
 
   // we are testing error cases, so we don't want to output error log for them
@@ -118,6 +119,6 @@ class TestInheritedProperties extends ZIOSpecDefault {
                else ZIO.unit
              )
       } yield s
-    }) @@ TestAspect.ignore
+    }) // @@ TestAspect.ignore
   }
 }
