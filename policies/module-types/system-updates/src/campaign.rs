@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+#![allow(clippy::borrowed_box)]
+
 use crate::{
     db::PackageDatabase,
     hooks::Hooks,
