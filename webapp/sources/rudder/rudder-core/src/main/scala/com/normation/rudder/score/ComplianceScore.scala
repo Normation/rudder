@@ -41,12 +41,8 @@ import com.normation.errors.PureResult
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.ComplianceSerializable
-import com.normation.rudder.score.ScoreValue.A
-import com.normation.rudder.score.ScoreValue.B
-import com.normation.rudder.score.ScoreValue.C
-import com.normation.rudder.score.ScoreValue.D
-import com.normation.rudder.score.ScoreValue.E
-import com.normation.rudder.score.ScoreValue.F
+import com.normation.rudder.score.ComplianceScore.scoreId
+import com.normation.rudder.score.ScoreValue.*
 import zio.*
 import zio.json.*
 import zio.syntax.*
@@ -61,24 +57,31 @@ object ComplianceScoreEventHandler extends ScoreEventHandler {
 
     event match {
       case ComplianceScoreEvent(n, percent) =>
+        val p = ComplianceSerializable.fromPercent(percent)
         (for {
-          p <- ComplianceSerializable.fromPercent(percent).toJsonAST
+          json <- p.toJsonAST
         } yield {
-          import ComplianceScore.scoreId
-          val score = if (percent.compliance >= 95) {
-            Score(scoreId, A, "Compliance is over 95%", p)
-          } else if (percent.compliance >= 80) {
-            Score(scoreId, B, "Compliance is between 80% and 95%", p)
-          } else if (percent.compliance >= 50) {
-            Score(scoreId, C, "Compliance is between 50% and 80%", p)
-          } else if (percent.compliance >= 20) {
-            Score(scoreId, D, "Compliance is between 20% and 50%", p)
-          } else if (percent.compliance >= 5) {
-            Score(scoreId, E, "Compliance is between 5% and 20%", p)
-          } else {
-            Score(scoreId, F, "Compliance is lower than 5%", p)
+          val score = {
+            if (p == ComplianceSerializable(None, None, None, None, None, None, None, None, None, None, None, None, None, None)) {
+              Score(scoreId, NoScore, "No rules applied on this node", json)
+            } else {
+              import ComplianceScore.scoreId
+              if (percent.compliance >= 95) {
+                Score(scoreId, A, "Compliance is over 95%", json)
+              } else if (percent.compliance >= 80) {
+                Score(scoreId, B, "Compliance is between 80% and 95%", json)
+              } else if (percent.compliance >= 50) {
+                Score(scoreId, C, "Compliance is between 50% and 80%", json)
+              } else if (percent.compliance >= 20) {
+                Score(scoreId, D, "Compliance is between 20% and 50%", json)
+              } else if (percent.compliance >= 5) {
+                Score(scoreId, E, "Compliance is between 5% and 20%", json)
+              } else {
+                Score(scoreId, F, "Compliance is lower than 5%", json)
+              }
+            }
           }
-          ((n, score :: Nil) :: Nil)
+          (n, score :: Nil) :: Nil
         }) match {
           case Left(err) => Left(Inconsistency(err))
           case Right(r)  => Right(r)

@@ -148,9 +148,7 @@ function homePage (
     var complianceGauge = document.getElementById('complianceGauge');
     complianceGauge.getContext('2d').clearRect(0, 0, complianceGauge.width, complianceGauge.height);
     $("#gauge-value").text("") // let blank
-    var nodeCompliance = document.getElementById('nodeCompliance');
     $(target).attr("title","You only have system rules. They are ignored in Global compliance.")
-    $(nodeCompliance).replaceWith('<div class="placeholder-doughnut-chart" title="You only have system rules. They are ignored in Nodes overall compliance."></div>');
     //Display empty gauge
     gauge.set(0)
   } else {
@@ -183,10 +181,9 @@ function homePage (
     }());
     $("#gauge-value").text(globalGauge+"%");
 
-    var complianceHColors = nodeCompliance.colors.map(x => complianceHoverColors[x]);
-    doughnutChart('nodeCompliance', nodeCompliance, nodeCompliance.colors, complianceHColors);
   }
 
+  doughnutChart('nodeCompliance', nodeCompliance, nodeCompliance.colors, nodeCompliance.colors.map(x => complianceHoverColors[x]));
 
   scoreDetails.forEach(function(score) {
     $("#scoreBreakdown .node-charts").append(
