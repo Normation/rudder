@@ -868,7 +868,7 @@ object SearchNodeComponent {
           // init a jquery datepicker
           override def initForm(formId: String):    JsCmd = OnLoad(JsRaw("""var init = $.datepicker.regional['en'];
        init['showOn'] = 'focus';
-       init['dateFormat'] = 'dd/mm/yy';
+       init['dateFormat'] = 'yy-mm-dd';
        $('#%s').datepicker(init);
        """.format(formId)))
           override def destroyForm(formId: String): JsCmd = OnLoad(
