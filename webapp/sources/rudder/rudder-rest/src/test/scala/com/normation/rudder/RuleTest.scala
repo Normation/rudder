@@ -40,20 +40,18 @@ package com.normation.rudder
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
-import com.normation.rudder.rest.RestTest
-import com.normation.rudder.rest.RestTestSetUp
+import com.normation.rudder.rest.RestTestSetUp2
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import net.liftweb.common.Loggable
-import org.junit.runner.RunWith
-import org.specs2.mutable.Specification
-import org.specs2.runner.JUnitRunner
+import zio.Scope
+import zio.ZIO
+import zio.ZLayer
+import zio.test.*
+import zio.test.Assertion.*
+import zio.test.ZIOSpecDefault
 
-@RunWith(classOf[JUnitRunner])
-class RuleTest extends Specification with Loggable {
-
-  val restTestSetUp = RestTestSetUp.newEnv
-  val restTest      = new RestTest(restTestSetUp.liftRules)
+object RuleTest extends ZIOSpecDefault with Loggable {
 
   val cat1:   RuleCategory       = RuleCategory(RuleCategoryId("cat1"), "", "", List.empty)
   val cat4:   RuleCategory       = RuleCategory(
@@ -94,8 +92,8 @@ class RuleTest extends Specification with Loggable {
     isSystem = true
   )
 
-  "Testing rule utility tools" should {
-    "List all categories and subcategories" in {
+  val spec: Spec[TestEnvironment & Scope, Throwable] = (suite("Testing rule utility tools")(
+    test("List all categories and subcategories") {
       val listCatIds = Set(
         RuleCategoryId("rootRuleCategory"),
         RuleCategoryId("cat1"),
@@ -105,24 +103,30 @@ class RuleTest extends Specification with Loggable {
         RuleCategoryId("subcat4"),
         RuleCategoryId("subsubcat4")
       )
-      restTestSetUp.ruleApiService14.listCategoriesId(root) shouldEqual (listCatIds)
-    }
-
-    "List all categories and subcategories without root" in {
+      for {
+        restTestSetUp <- ZIO.service[RestTestSetUp2]
+        actual         = restTestSetUp.ruleApiService14.listCategoriesId(root)
+      } yield assert(actual)(equalTo(listCatIds))
+    },
+    test("List all categories and subcategories without root") {
       val listCatIds = Set(
         RuleCategoryId("cat4"),
         RuleCategoryId("subcat4"),
         RuleCategoryId("subsubcat4")
       )
-      restTestSetUp.ruleApiService14.listCategoriesId(cat4) shouldEqual (listCatIds)
-    }
-
-    "List only root category" in {
+      for {
+        restTestSetUp <- ZIO.service[RestTestSetUp2]
+        actual         = restTestSetUp.ruleApiService14.listCategoriesId(cat4)
+      } yield assert(actual)(equalTo(listCatIds))
+    },
+    test("List only root category") {
       val listCatIds = Set(RuleCategoryId("rootRuleCategory"))
-      restTestSetUp.ruleApiService14.listCategoriesId(root.copy(childs = List.empty)) shouldEqual (listCatIds)
-    }
-
-    "Find missing categories" in {
+      for {
+        restTestSetUp <- ZIO.service[RestTestSetUp2]
+        actual         = restTestSetUp.ruleApiService14.listCategoriesId(root.copy(childs = List.empty))
+      } yield assert(actual)(equalTo(listCatIds))
+    },
+    test("Find missing categories") {
       val rules = List(
         Rule(RuleId(RuleUid("rule1")), "", RuleCategoryId("missing-cat1")),
         Rule(RuleId(RuleUid("rule2")), "", RuleCategoryId("missing-cat2")),
@@ -144,10 +148,12 @@ class RuleTest extends Specification with Loggable {
         childs = List(),
         isSystem = false
       )
-      restTestSetUp.ruleApiService14.getMissingCategories(root, rules) shouldEqual (Set(cat1, cat2))
-    }
-
-    "Find no missing categories" in {
+      for {
+        restTestSetUp <- ZIO.service[RestTestSetUp2]
+        actual         = restTestSetUp.ruleApiService14.getMissingCategories(root, rules)
+      } yield assert(actual)(equalTo(Set(cat1, cat2)))
+    },
+    test("Find no missing categories") {
       val rules = List(
         Rule(RuleId(RuleUid("rule1")), "", RuleCategoryId("rootRuleCategory")),
         Rule(RuleId(RuleUid("rule2")), "", RuleCategoryId("cat1")),
@@ -157,7 +163,11 @@ class RuleTest extends Specification with Loggable {
         Rule(RuleId(RuleUid("rule6")), "", RuleCategoryId("subcat4")),
         Rule(RuleId(RuleUid("rule7")), "", RuleCategoryId("subsubcat4"))
       )
-      restTestSetUp.ruleApiService14.getMissingCategories(root, rules) shouldEqual (Set.empty)
+      for {
+        restTestSetUp <- ZIO.service[RestTestSetUp2]
+        actual         = restTestSetUp.ruleApiService14.getMissingCategories(root, rules)
+      } yield assert(actual)(isEmpty)
     }
-  }
+  ).provideSome[Scope](ZLayer.succeed(logger), RestTestSetUp2.layer)) @@ TestAspect.sequential
+
 }

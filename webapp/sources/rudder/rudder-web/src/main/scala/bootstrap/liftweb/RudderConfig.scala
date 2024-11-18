@@ -1299,7 +1299,7 @@ object RudderConfig extends Loggable {
   def postPluginInitActions: Unit = {
     // todo: scheduler interval should be a property
     ZioRuntime.unsafeRun(jsonReportsAnalyzer.start(5.seconds).forkDaemon.provideLayer(ZioRuntime.layers))
-    ZioRuntime.unsafeRun(MainCampaignService.start(mainCampaignService))
+    ZioRuntime.unsafeRun(MainCampaignService.start(mainCampaignService).forkDaemon)
     ZioRuntime.unsafeRun(rci.scoreService.clean())
   }
 
