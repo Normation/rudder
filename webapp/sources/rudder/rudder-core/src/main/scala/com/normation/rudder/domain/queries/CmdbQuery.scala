@@ -37,6 +37,7 @@
 
 package com.normation.rudder.domain.queries
 
+import cats.data.NonEmptyList
 import cats.implicits.*
 import com.jayway.jsonpath.JsonPath
 import com.normation.errors.*
@@ -51,7 +52,6 @@ import com.normation.rudder.services.queries.*
 import com.unboundid.ldap.sdk.*
 import enumeratum.Enum
 import enumeratum.EnumEntry
-import java.util.Locale
 import java.util.regex.PatternSyntaxException
 import net.liftweb.json.*
 import net.liftweb.json.JsonDSL.*
@@ -512,27 +512,25 @@ case object OrderedStringComparator extends TStringComparator {
 }
 
 case object DateComparator extends LDAPCriterionType {
-  override val comparators: Seq[CriterionComparator] = OrderedComparators.comparators.filterNot(c => c == Regex || c == NotRegex)
-  val fmt = "dd/MM/yyyy"
-  val frenchFmt:                          DateTimeFormatter = DateTimeFormat.forPattern(fmt).withLocale(Locale.FRANCE)
-  def error(value: String, e: Exception): Inconsistency     = Inconsistency(
-    s"Invalid date: '${value}', expected format is: '${fmt}'. Error was: ${e.getMessage}"
+  override val comparators: Seq[CriterionComparator]        = OrderedComparators.comparators.filterNot(c => c == Regex || c == NotRegex)
+  val compatFmts:           NonEmptyList[DateTimeFormatter] =
+    NonEmptyList.of("dd/MM/yyyy", "yyyy/MM/dd").map(DateTimeFormat.forPattern) // format for which we need to keep compatibility
+  val fmt:                                DateTimeFormatter               = DateTimeFormat.forPattern("yyyy-MM-dd")
+  val allFmts:                            NonEmptyList[DateTimeFormatter] = (fmt :: compatFmts)
+  def error(value: String, e: Exception): Inconsistency                   = Inconsistency(
+    s"Invalid date: '${value}', expected format is: 'yyyy-MM-dd'. Error was: ${e.getMessage}"
   )
 
-  override protected def validateSubCase(v: String, comparator: CriterionComparator): PureResult[String] = try {
-    Right(frenchFmt.parseDateTime(v).toString)
-  } catch {
-    case e: Exception =>
-      Left(error(v, e))
-  }
+  override protected def validateSubCase(v: String, comparator: CriterionComparator): PureResult[String] =
+    parseDate(v).map(_.toString)
+
   override def toLDAP(value: String): Either[RudderError, String] = parseDate(value).map(GeneralizedTime(_).toString)
 
-  private def parseDate(value: String): PureResult[DateTime] = try {
-    val date = frenchFmt.parseDateTime(value)
-    Right(date)
-  } catch {
-    case e: Exception =>
-      Left(error(value, e))
+  private def parseDate(value: String): PureResult[DateTime] = {
+    allFmts
+      .map(f => Either.catchOnly[Exception](f.parseDateTime(value)))
+      .reduceLeft(_ orElse _)
+      .leftMap(error(value, _))
   }
 
   /*
@@ -543,7 +541,7 @@ case object DateComparator extends LDAPCriterionType {
 
     // don't parse the date and throw exception when not needed
     lazy val date = parseDate(value).getOrElse(
-      throw new IllegalArgumentException("The date format was not recognized: '%s', expected '%s'".format(value, fmt))
+      throw new IllegalArgumentException(s"The date format was not recognized: '${value}', expected 'yyyy-MM-dd'")
     )
     def date0000  = GeneralizedTime(date.withTimeAtStartOfDay).toString
     def date2359  = GeneralizedTime(date.withTime(23, 59, 59, 999)).toString

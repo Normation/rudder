@@ -50,6 +50,18 @@ class CmdbQueryTest extends Specification {
         case Right(_)  => success
       }
     }
+    "accept valid yyyy/MM/dd date" in {
+      DateComparator.validate("2012/07/23", "eq") match {
+        case Left(err) => failure(s"Invalid parsing: ${err.fullMsg}")
+        case Right(_)  => success
+      }
+    }
+    "accept valid yyyy-MM-dd date" in {
+      DateComparator.validate("2012-07-23", "eq") match {
+        case Left(err) => failure(s"Invalid parsing: ${err.fullMsg}")
+        case Right(_)  => success
+      }
+    }
 
     "refuse an invalid French date" in {
       DateComparator.validate("07/23/2012", "eq") match {
