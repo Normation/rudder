@@ -41,7 +41,9 @@ import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.NamedZioLogger
 import enumeratum.*
+import java.time.ZoneId
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.json.jsonDiscriminator
 import zio.json.jsonField
 import zio.json.jsonHint
@@ -55,7 +57,8 @@ trait Campaign {
   def info:         CampaignInfo
   def details:      CampaignDetails
   def campaignType: CampaignType
-  def copyWithId(newId: CampaignId): Campaign
+  def copyWithId(newId:                        CampaignId):       Campaign
+  def setScheduleTimeZone(newScheduleTimeZone: ScheduleTimeZone): Campaign
   def version: Int
 }
 
@@ -140,7 +143,11 @@ case class Archived(reason: String, date: DateTime) extends CampaignStatus {
 }
 
 @jsonDiscriminator("type")
-sealed trait CampaignSchedule
+sealed trait CampaignSchedule {
+  def tz: Option[ScheduleTimeZone]
+
+  def atTimeZone(timeZone: ScheduleTimeZone): CampaignSchedule
+}
 
 sealed trait MonthlySchedulePosition
 // they need to be encapsulated in MonthlySchedulePosition object
@@ -190,23 +197,57 @@ case class DayTime(
   val realMinute: Int = minute % 60
 }
 
+case class ScheduleTimeZone(
+    id: String
+) extends AnyVal {
+  def toDateTimeZone: Option[DateTimeZone] = {
+    try { Option(DateTimeZone.forID(id)) }
+    catch { case _: Throwable => None }
+  }
+}
+object ScheduleTimeZone                 {
+  def parse(s: String): Either[String, ScheduleTimeZone] = {
+    if (ZoneId.getAvailableZoneIds.contains(s)) {
+      Right(ScheduleTimeZone(s))
+    } else {
+      Left(s"Error parsing schedule time zone, unknown IANA ID : '${s}'")
+    }
+  }
+  def now():            ScheduleTimeZone                 = ScheduleTimeZone(DateTimeZone.getDefault().getID())
+}
+
 @jsonHint("monthly")
 case class MonthlySchedule(
     @jsonField("position")
     monthlySchedulePosition: MonthlySchedulePosition,
     start:                   DayTime,
-    end:                     DayTime
-) extends CampaignSchedule
+    end:                     DayTime,
+    tz:                      Option[ScheduleTimeZone]
+) extends CampaignSchedule {
+  override def atTimeZone(timeZone: ScheduleTimeZone): CampaignSchedule = copy(tz = Some(timeZone))
+}
 @jsonHint("weekly")
 case class WeeklySchedule(
     start: DayTime,
-    end:   DayTime
-) extends CampaignSchedule
+    end:   DayTime,
+    tz:    Option[ScheduleTimeZone]
+) extends CampaignSchedule {
+  override def atTimeZone(timeZone: ScheduleTimeZone): CampaignSchedule = copy(tz = Some(timeZone))
+}
 @jsonHint("one-shot")
-case class OneShot(start: DateTime, end: DateTime) extends CampaignSchedule
+case class OneShot(start: DateTime, end: DateTime) extends CampaignSchedule {
+  override def tz:                                     None.type        = None
+  // just change the start and end time to the timezone
+  override def atTimeZone(timeZone: ScheduleTimeZone): CampaignSchedule = timeZone.toDateTimeZone match {
+    case None        => this
+    case Some(value) => copy(start = start.withZone(value), end = end.withZone(value))
+  }
+}
 
 @jsonHint("daily")
-case class Daily(start: Time, end: Time) extends CampaignSchedule
+case class Daily(start: Time, end: Time, tz: Option[ScheduleTimeZone]) extends CampaignSchedule {
+  override def atTimeZone(timeZone: ScheduleTimeZone): CampaignSchedule = copy(tz = Some(timeZone))
+}
 
 trait CampaignDetails
 
