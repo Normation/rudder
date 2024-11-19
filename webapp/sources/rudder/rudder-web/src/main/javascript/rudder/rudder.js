@@ -623,7 +623,7 @@ function callRemoteRun(nodeId, refreshCompliance) {
     url: contextPath + "/secure/api/nodes/" + nodeId + "/applyPolicy" ,
     contentType: "application/json; charset=utf-8",
     success: function (response, status, jqXHR) {
-        $("#visibilityOutput").addClass("btn-default").html("Show output").append('&nbsp;<i class="fa fa-check fa-lg fa-check-custom"></i>');
+        $("#visibilityOutput").addClass("btn-default").html("Show output").append('&nbsp;<i class="fa fa-check fa-check-custom"></i>');
         $("#report").html('<pre>' + escapeHTML(response) + '</pre>');
         $("#report").addClass("border-success");
         $("#visibilityOutput").show();
@@ -649,7 +649,7 @@ function callRemoteRun(nodeId, refreshCompliance) {
         $iconButton.addClass("fa fa-play");
         $( "#triggerBtn" ).prop('disabled', null).blur();
         $textAction.html("Trigger agent");
-        $("#visibilityOutput").addClass("btn-default").html("Show error").append('&nbsp;<i class="fa fa-times fa-lg fa-times-custom"></i>');
+        $("#visibilityOutput").addClass("btn-default").html("Show error").append('&nbsp;<i class="fa fa-times fa-times-custom"></i>');
         $("#report").remove("pre").html('<div class="alert alert-danger error-trigger" role="alert">' + '<b>' +jqXHR.status + ' - ' + errorThrown +'</b>' +'<br>' + jqXHR.responseText  + '</div>');
         $("#report").addClass("border-fail");
         $("#visibilityOutput").show();

@@ -262,7 +262,7 @@ class NodeGroupCategoryForm(
     override def labelClassName        = ""
     override def subContainerClassName = ""
     override def validations: List[String => List[FieldError]] = Nil
-    override def errorClassName = "field_errors paddscala"
+    override def errorClassName = "text-danger mt-1"
   }
 
   /**
@@ -310,7 +310,7 @@ class NodeGroupCategoryForm(
 
   private def onSuccess: JsCmd = {
 
-    notifications ::= <span class="greenscala">Category was correctly updated</span>
+    notifications ::= <span class="text-success">Category was correctly updated</span>
     updateFormClientSide
   }
 
@@ -369,7 +369,7 @@ class NodeGroupCategoryForm(
     } else {
       val html = {
         <div id="notifications" class="notify">
-          <ul class="field_errors">{notifications.map(n => <li>{n}</li>)}</ul>
+          <ul class="text-danger">{notifications.map(n => <li>{n}</li>)}</ul>
         </div>
       }
       html

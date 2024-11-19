@@ -106,8 +106,8 @@ class GiveReasonPopup(
   private val crReasons = {
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
-      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
-      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+      case Mandatory => Some(buildReasonField(true, "px-1"))
+      case Optionnal => Some(buildReasonField(false, "px-1"))
     }
   }
 

@@ -179,7 +179,7 @@ displayModal model =
                               ]
                           , div [ class "form-group" ]
                               [ label [ for "newAccount-description" ] [ text "Description" ]
-                              , textarea [ id "newAccount-description", class "form-control vresize float-inherit", value account.description, onInput (\s -> UpdateAccountForm { account | description = s }) ] []
+                              , textarea [ id "newAccount-description", class "form-control vresize float-none", value account.description, onInput (\s -> UpdateAccountForm { account | description = s }) ] []
                               ]
                           , div [ class "form-group" ]
                               [ label [ for "newAccount-expiration", class "mb-1" ]

@@ -228,7 +228,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
               (
                 ".deleteNetwork" #> SHtml.ajaxButton(<span class="fa fa-minus"></span>, () => delete(i)) &
                 "#errorNetworkField" #> <div><span class={
-                  "lift:Msg?errorClass=bs-text-danger;id=errornetwork_" + i
+                  "lift:Msg?errorClass=text-danger;id=errornetwork_" + i
                 }>[error]</span></div> &
                 ".networkField [name]" #> id andThen
                 ".networkField" #> SHtml.text(

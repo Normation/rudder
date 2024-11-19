@@ -2,15 +2,7 @@
 
 <head>
   <title>Rudder - Reports database</title>
-  <style>
-    .rudder-template > .one-col{
-      flex: 1;
-    }
-    .template-main{
-      flex-basis : initial !important;
-      flex: auto !important;
-    }
-  </style>
+  <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-database.css" media="screen">
   <script type="text/javascript">
     // <![CDATA[
     var initReportDatepickler = function(selector) {
@@ -101,19 +93,14 @@
                         highly recommended, to avoid Rudder's disk usage growing forever.
                       </div>
                     </div>
-                    <div class="automaticCleanDetail">
-                      Automatic report deleting is <b><span id="autoDeleteStatus">[Here
-              comes the report deleting status]</span></b>.
-                      <span id="autoDeleteDetails"> All reports older than
-              <b><span id="autoDeleteDays">[Here comes the automatic report
-              delete age parameter]</span> days</b> will be deleted regularly.
-              </span>
+                    <div class="mb-1">
+                      Automatic report deleting is <b><span id="autoDeleteStatus">[Here comes the report deleting status]</span></b>.
+                      <span id="autoDeleteDetails"> All reports older than <b><span id="autoDeleteDays">[Here comes the automatic report delete age parameter]</span> days</b> will be deleted regularly.</span>
                     </div>
                     <table id="automaticCleanDetails" class="database-info-table">
                       <tr>
                         <td>Frequency:</td>
-                        <td><b><span id="cleanFrequency">[Here
-                      comes the cleaning job frequency]</span></b></td>
+                        <td><b><span id="cleanFrequency">[Here comes the cleaning job frequency]</span></b></td>
                       </tr>
                       <tr>
                         <td>Next run:</td>
@@ -136,7 +123,7 @@
                         until the cleaning process is idle.
                       </div>
                     </div>
-                    <div class="automaticCleanDetail">
+                    <div class="mb-1">
                       The delete process is <b id="deleteProgress">
                       [Here comes the report archiving progress]</b>.
                     </div>
@@ -145,12 +132,12 @@
                         <td colspan="2">
                           <form class="lift:form.ajax">
                             <div>
-                      <span id="cleanParam">
-                        <span id="modeSelector"></span> all reports older than: <input id="reportFromDate" value="" />
-                        <lift:authz role="administration_write">
-                          <button id="deleteReports">Start cleaning reports</button>
-                        </lift:authz>
-                      </span>
+                              <span id="cleanParam">
+                                <span id="modeSelector"></span> all reports older than: <input id="reportFromDate" value="" />
+                                <lift:authz role="administration_write">
+                                  <button id="deleteReports">Start cleaning reports</button>
+                                </lift:authz>
+                              </span>
                               <span id="confirm"></span>
                             </div>
                             <lift:Msgs>

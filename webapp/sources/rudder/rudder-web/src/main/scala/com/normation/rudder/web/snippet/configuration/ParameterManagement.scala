@@ -93,7 +93,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
         ".parameterLine [class]" #> Text("curspoint") &
         ".name *" #> <b>{param.name}</b> &
         ".value *" #> <pre class="json-beautify">{param.valueAsString}</pre> &
-        ".description *" #> <span><ul class="evlogviewpad"><li><b>Description:</b> {Text(param.description)}</li></ul></span> &
+        ".description *" #> <span><ul class="ms-2"><li><b>Description:</b> {Text(param.description)}</li></ul></span> &
         ".description [id]" #> ("description-" + lineHtmlId) &
         ".change *" #> <div>{
           if (param.provider.isEmpty || param.provider == Some(PropertyProvider.defaultPropertyProvider)) {

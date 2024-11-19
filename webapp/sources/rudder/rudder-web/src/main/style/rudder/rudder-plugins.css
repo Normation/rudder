@@ -96,3 +96,18 @@
 .rudder-package-doc {
   margin-top: 25px;
 }
+
+.pluginpadd{
+  padding: 0 10px;
+}
+
+.badge-plugin-version{
+  margin-left:15px;
+  display: inline-block;
+  background-color: #FFEAD1;
+  color: #EF9600;
+  padding: 5px;
+  border-radius: 3px;
+  font-size:12px;
+  font-weight:bold;
+}
