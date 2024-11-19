@@ -32,7 +32,6 @@ encodeAccount datePickerInfo account =
          , ( "kind", string account.kind )
          , ( "enabled", bool account.enabled )
          , ( "creationDate", string account.creationDate )
-         , ( "token", string account.token )
          , ( "tokenGenerationDate", string account.tokenGenerationDate )
          , ( "expirationDateDefined", bool expirationDateDefined )
          , ( "tenants", string (encodeTenants account.tenantMode account.selectedTenants) )

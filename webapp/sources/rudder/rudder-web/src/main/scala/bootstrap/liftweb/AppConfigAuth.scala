@@ -747,7 +747,7 @@ class RestAuthenticationFilter(
                 ), // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
 
                 ApiAccountName(name),
-                ApiToken(name),
+                ApiTokenHash.neverMatch,
                 "API Account for un-authenticated API",
                 isEnabled = true,
                 creationDate = new DateTime(0),
@@ -775,9 +775,10 @@ class RestAuthenticationFilter(
 
           case token =>
             // try to authenticate
-            val apiToken      = ApiToken(token)
+            val apiToken      = ApiTokenSecret(token)
+            val apiTokenHash  = apiToken.hash()
             val systemAccount = apiTokenRepository.getSystemAccount
-            if (systemAccount.token == apiToken) { // system token with super authz
+            if (systemAccount.token == apiTokenHash) { // system token with super authz
               authenticate(
                 RudderUserDetail(
                   RudderAccount.Api(systemAccount),
@@ -790,7 +791,7 @@ class RestAuthenticationFilter(
 
               chain.doFilter(request, response)
             } else { // standard token, try to find it in DB
-              apiTokenRepository.getByToken(apiToken).either.runNow match {
+              apiTokenRepository.getByToken(apiTokenHash).either.runNow match {
                 case Left(err) =>
                   failsAuthentication(httpRequest, httpResponse, err)
 

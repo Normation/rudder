@@ -41,21 +41,85 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
+final class TestTokenGenerator extends TokenGenerator {
+  override def newToken(size: Int): String = "a" * size
+}
+
 @RunWith(classOf[JUnitRunner])
 class TestApiToken extends Specification {
 
   "API tokens" should {
-    "be hidden in strings" in {
-      val token = ApiToken("UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
-      token.toString() must beEqualTo("[REDACTED ApiToken]")
+    "be generated from generator" in {
+      val token = ApiTokenSecret.generate(new TestTokenGenerator)
+      token.exposeSecret() must beEqualTo("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
     }
-    "be partly hidden in controled exposure" in {
-      val token          = ApiToken("UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
-      token.exposeSecretBeginning must beEqualTo("UBeJ[SHORTENED ApiToken]")
-      val shortToken     = ApiToken("test")
-      shortToken.exposeSecretBeginning must beEqualTo("test[SHORTENED ApiToken]")
-      val veryShortToken = ApiToken("t")
-      veryShortToken.exposeSecretBeginning must beEqualTo("t[SHORTENED ApiToken]")
+    "be generated with suffix" in {
+      val token = ApiTokenSecret.generate(new TestTokenGenerator, "end")
+      token.exposeSecret() must beEqualTo("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-end")
+    }
+    "not be comparable" in {
+      val token = ApiTokenSecret.generate(new TestTokenGenerator, "end")
+      token.equals(token) must beFalse
+    }
+    "be hidden in strings" in {
+      val token = ApiTokenSecret("UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
+      token.toString() must beEqualTo("[REDACTED ApiTokenSecret]")
+    }
+    "be partly hidden in controlled exposure" in {
+      val token          = ApiTokenSecret("UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
+      token.exposeSecretBeginning must beEqualTo("UBeJ[SHORTENED ApiTokenSecret]")
+      val shortToken     = ApiTokenSecret("test")
+      shortToken.exposeSecretBeginning must beEqualTo("test[SHORTENED ApiTokenSecret]")
+      val veryShortToken = ApiTokenSecret("t")
+      veryShortToken.exposeSecretBeginning must beEqualTo("t[SHORTENED ApiTokenSecret]")
+    }
+    "be hashed" in {
+      val token = ApiTokenSecret("UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
+      token.hash() must beEqualTo(
+        ApiTokenHash(
+          "v2:100caab9f3996edb04119ad4b2647b45150b10f75007b86bd82cdd0b7a9b009e2d5327115b3153bc4dc31bbbc775c6257f63f64a31f3c2d3924f11e8d24855bc"
+        )
+      )
+    }
+  }
+
+  "Hashed API tokens" should {
+    "be hidden in strings" in {
+      val token = ApiTokenHash("UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
+      token.toString() must beEqualTo("[REDACTED ApiTokenHash]")
+    }
+
+    "be compared correctly" in {
+      val hash   = "UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY"
+      val token1 = ApiTokenHash(hash)
+      val token2 = ApiTokenHash(hash)
+      val token3 = ApiTokenHash(hash + "z")
+      val token4 = ApiTokenSecret(hash)
+      val token5 = ApiTokenHash("")
+      token1.equals(token2) must beTrue
+      token1.equals(token3) must beFalse
+      token1.equals(token4) must beFalse
+      token1.equals(token5) must beFalse
+    }
+
+    "have correct version 1" in {
+      val token = ApiTokenHash("UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
+      token.version() must beEqualTo(1)
+    }
+
+    "have correct version 2" in {
+      val token = ApiTokenHash("v2:UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
+      token.version() must beEqualTo(2)
+    }
+
+    "have correct version 2 with empty hash" in {
+      val token = ApiTokenHash("v2:")
+      token.version() must beEqualTo(2)
+    }
+
+    "not recognize version 3" in {
+      val token = ApiTokenHash("v3:UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
+      token.version() must beEqualTo(1)
     }
   }
 }

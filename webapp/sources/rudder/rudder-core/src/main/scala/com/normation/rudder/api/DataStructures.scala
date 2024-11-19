@@ -38,7 +38,6 @@ package com.normation.rudder.api
 
 import cats.data.*
 import cats.implicits.*
-import com.normation.rudder.api.ApiToken.prefixV2
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import enumeratum.*
 import java.nio.charset.StandardCharsets
@@ -58,53 +57,102 @@ final case class ApiAccountId(value: String) extends AnyVal
 final case class ApiAccountName(value: String) extends AnyVal
 
 /**
- * The actual authentication token.
+ * The actual authentication token, in clear text.
  *
- * TODO: Once support for plain text tokens is dropped, make separate types for plain and hashed tokens.
-         Current situation is confusing, and hence a bit risky.
+ * All tokens are 32 alphanumeric characters, optionally
+ * followed by a "-system" suffix, indicating a system token.
  *
- * There are two versions of tokens:
- *
- * * v1: 32 alphanumeric characters stored as clear text
- *       they are also displayed in clear text in the interface.
- * * v2: starting from Rudder 8.1, tokens are still 32 alphanumeric characters,
- *       but are now stored hashed in sha512 (128 characters), prefixed with "v2:".
- *       The tokens are only displayed once at creation.
- *
- * Both can have a `-system` suffix to mark the system token.
- *
- * To make the difference, we use a prefix to the hash value in v2
- *
- * * If it starts with "v2:", it is a v2 SHA512 hash of the token
- * * If it does not start with "v2:", it is a clear-text v1 token
- *   Note: v2 tokens can never start with "v" as they are encoded as en hexadecimal string
  */
-case class ApiToken(value: String) extends AnyVal {
+final case class ApiTokenSecret(private val secret: String) {
   // Avoid printing the value in logs, regardless of token type
-  override def toString: String = "[REDACTED ApiToken]"
+  override def toString: String = "[REDACTED ApiTokenSecret]"
 
-  // For cases we need to print a part of the plain token for debug.
+  // Prevent comparison
+  override def equals(obj: Any) = false
+
+  // For cases when we need to print a part of the plain token for debugging.
   // Show the first 4 chars: enough to disambiguate, and preserves 166 bits of randomness.
   def exposeSecretBeginning: String = {
-    value.take(4) + "[SHORTENED ApiToken]"
+    secret.take(4) + "[SHORTENED ApiTokenSecret]"
   }
 
-  def isHashed: Boolean = {
-    value.startsWith(prefixV2)
+  def exposeSecret(): String = {
+    secret
+  }
+
+  def hash(): ApiTokenHash = {
+    ApiTokenHash.hash(this)
   }
 }
 
-object ApiToken {
+object ApiTokenSecret {
   private val tokenSize = 32
-  private val prefixV2  = "v2:"
 
-  def hash(clearText: String): String = {
-    val digest = MessageDigest.getInstance("SHA-512")
-    prefixV2 + new String(Hex.encode(digest.digest(clearText.getBytes(StandardCharsets.UTF_8))), StandardCharsets.UTF_8)
+  def generate(tokenGenerator: TokenGenerator, suffix: String = ""): ApiTokenSecret = {
+    val completeSuffix = if (suffix.isEmpty) "" else "-" + suffix
+    ApiTokenSecret(tokenGenerator.newToken(tokenSize) + completeSuffix)
+  }
+}
+
+/*
+ * There are two versions of token hashes:
+ *
+ * * v1: 32 alphanumeric characters stored as clear text.
+ *       They were also displayed in clear text in the interface.
+ *       They are not supported anymore since 8.3, we just ignore them.
+ * * v2: starting from Rudder 8.1, tokens are still 32 alphanumeric characters,
+ *       but are now stored hashed in sha512 (128 characters), prefixed with "v2:".
+ *       The secret are only displayed once at creation.
+ *
+ * Hashes are stored with a prefix indicating the hash algorithm:
+ *
+ * * If it starts with "v2:", it is a v2 SHA512 hash of the token
+ * * If it does not start with "v2:", it is a clear-text v1 token
+ *   Note: stored v1 tokens can never start with "v" as they are encoded as en hexadecimal string.
+ *
+ * We don't have generic code as V2 is (very) likely the last simple API key mechanism we'll need.
+ *
+ */
+
+final case class ApiTokenHash(private val value: String) {
+  override def toString: String = "[REDACTED ApiTokenHash]"
+
+  // Constant time comparison
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case ApiTokenHash(other) => MessageDigest.isEqual(value.getBytes(), other.getBytes())
+      case _                   => false
+    }
   }
 
-  def generate_secret(tokenGenerator: TokenGenerator, suffix: String = ""): String = {
-    tokenGenerator.newToken(tokenSize) + suffix
+  def exposeHash(): String = {
+    value
+  }
+
+  def version(): Int = {
+    if (value.startsWith(ApiTokenHash.prefix)) {
+      2
+    } else {
+      1
+    }
+  }
+}
+
+object ApiTokenHash {
+  val prefix     = "v2"
+  // Guaranteed to never match
+  val neverMatch = ApiTokenHash.build("not-matching")
+
+  // Build from hashed value
+  private def build(value: String): ApiTokenHash = {
+    ApiTokenHash(prefix + ":" + value)
+  }
+
+  def hash(token: ApiTokenSecret): ApiTokenHash = {
+    val sha512Digest = MessageDigest.getInstance("SHA-512")
+    val hash         = sha512Digest.digest(token.exposeSecret().getBytes(StandardCharsets.UTF_8))
+    val hexHash      = Hex.encode(hash)
+    ApiTokenHash.build(new String(hexHash, StandardCharsets.UTF_8))
   }
 }
 
@@ -354,10 +402,54 @@ final case class ApiAccount(
 
     name: ApiAccountName, // used in event log to know who did actions.
 
-    token:               ApiToken,
+    token:               ApiTokenHash,
     description:         String,
     isEnabled:           Boolean,
     creationDate:        DateTime,
     tokenGenerationDate: DateTime,
     tenants:             NodeSecurityContext
-)
+) {
+  def toNewApiAccount(secret: ApiTokenSecret): NewApiAccount = {
+    NewApiAccount(
+      id,
+      kind,
+      name,
+      secret,
+      description,
+      isEnabled,
+      creationDate,
+      tokenGenerationDate,
+      tenants
+    )
+  }
+}
+
+/**
+ * An API principal, containing the secret, to be used just after creation, and never stored.
+ */
+final case class NewApiAccount(
+    id:                  ApiAccountId,
+    kind:                ApiAccountKind,
+    name:                ApiAccountName,
+    // Clear text token, only used for just-created accounts, never stored
+    token:               ApiTokenSecret,
+    description:         String,
+    isEnabled:           Boolean,
+    creationDate:        DateTime,
+    tokenGenerationDate: DateTime,
+    tenants:             NodeSecurityContext
+) {
+  def toApiAccount(): ApiAccount = {
+    ApiAccount(
+      id,
+      kind,
+      name,
+      token.hash(),
+      description,
+      isEnabled,
+      creationDate,
+      tokenGenerationDate,
+      tenants
+    )
+  }
+}
