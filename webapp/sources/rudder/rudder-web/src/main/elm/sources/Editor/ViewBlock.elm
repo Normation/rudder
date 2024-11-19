@@ -394,7 +394,7 @@ blockBody model parentId block ui techniqueUi =
                   |> appendChild removeIcon
     condition = element "div"
                 |> addClass "method-condition flex-form"
-                |> addClassConditional "visually-hidden" (block.condition.os == Nothing && block.condition.advanced == "")
+                |> addClassConditional "d-none" (block.condition.os == Nothing && block.condition.advanced == "")
                 |> appendChildList
                    [ element "label"
                      |> appendText "Condition:"

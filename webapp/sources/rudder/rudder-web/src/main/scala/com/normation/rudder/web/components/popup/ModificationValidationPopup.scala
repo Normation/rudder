@@ -412,7 +412,7 @@ class ModificationValidationPopup(
 
   private val changeRequestDescription = new WBTextAreaField("Description", "") {
     override def setFilter      = notNull _ :: trim _ :: Nil
-    override def inputField     = super.inputField % ("style" -> "height:7em") % ("tabindex" -> "2") % ("class" -> "visually-hidden")
+    override def inputField     = super.inputField % ("style" -> "height:7em") % ("tabindex" -> "2") % ("class" -> "d-none")
     override def errorClassName = "col-xl-12 errors-container"
     override def validations: List[String => List[FieldError]] = Nil
 

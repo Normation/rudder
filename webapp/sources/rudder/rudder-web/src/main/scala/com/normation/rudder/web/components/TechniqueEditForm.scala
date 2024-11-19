@@ -218,7 +218,7 @@ class TechniqueEditForm(
             (
               "#techniqueName" #> t.name &
               "#techniqueDescription *" #> t.description &
-              "#techniqueDocumentation [class]" #> (if (t.longDescription.isEmpty) "visually-hidden" else "") &
+              "#techniqueDocumentation [class]" #> (if (t.longDescription.isEmpty) "d-none" else "") &
               "#techniqueLongDescription" #> Script(
                 OnLoad(
                   JsRaw(s"""generateMarkdown(${Str(t.longDescription).toJsCmd}, "#techniqueLongDescription")""")

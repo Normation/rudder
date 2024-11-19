@@ -228,7 +228,7 @@ var buildRuleCategoryTree = function(id, initially_select , appContext) {
       },
       "plugins" : [  "types", "dnd" ]
   })
-  $(id).removeClass('visually-hidden');
+  $(id).removeClass('d-none');
 }
 
 /*
@@ -266,7 +266,7 @@ var buildRuleCategoryTreeNoDnD = function(id, initially_select , appContext) {
       },
       "plugins" : [ "types" ]
   })
-  $(id).removeClass('visually-hidden');
+  $(id).removeClass('d-none');
 }
 
 /*

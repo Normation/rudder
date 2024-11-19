@@ -1178,9 +1178,9 @@ class EventLogDetailsGenerator(
       name: String
   )(implicit fun: T => String = (t: T) => t.toString): NodeSeq = {
     <pre style="width:200px;" id={s"before${name}"}
-         class="visually-hidden">{fun(diff.oldValue)}</pre>
+         class="d-none">{fun(diff.oldValue)}</pre>
       <pre style="width:200px;" id={s"after${name}"}
-           class="visually-hidden">{fun(diff.newValue)}</pre>
+           class="d-none">{fun(diff.newValue)}</pre>
       <pre id={s"result${name}"} ></pre> ++
     Script(
       OnLoad(
@@ -1200,9 +1200,9 @@ class EventLogDetailsGenerator(
       case Some(id) =>
         (
           <pre style="width:200px;" id={"before" + id}
-               class="visually-hidden">{xmlPretty.format(SectionVal.toXml(diff.oldValue))}</pre>
+               class="d-none">{xmlPretty.format(SectionVal.toXml(diff.oldValue))}</pre>
             <pre style="width:200px;" id={"after" + id}
-                 class="visually-hidden">{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
+                 class="d-none">{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
             <pre id={"result" + id} ></pre>
         ) ++ Script(OnLoad(JsRaw(s"""
             var before = "before${id}";
