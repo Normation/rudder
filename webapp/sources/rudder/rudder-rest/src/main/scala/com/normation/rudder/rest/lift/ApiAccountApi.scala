@@ -103,7 +103,7 @@ class ApiAccountApi(
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       (for {
-        account <- ZioJsonExtractor.parseJson[NewApiAccount](req).toIO
+        account <- ZioJsonExtractor.parseJson[NewRestApiAccount](req).toIO
         res     <- service.saveAccount(account)
       } yield res).toLiftResponseOne(params, schema, x => Some(x.id.value))
     }
@@ -147,7 +147,7 @@ class ApiAccountApi(
 trait ApiAccountApiService {
   def getAccounts(): IOResult[List[ApiAccountDetails.Public]]
   def getAccount(id:       ApiAccountId): IOResult[Option[ApiAccountDetails.Public]]
-  def saveAccount(account: NewApiAccount): IOResult[ApiAccountDetails]
+  def saveAccount(account: NewRestApiAccount): IOResult[ApiAccountDetails]
   def updateAccount(id:    ApiAccountId, data: UpdateApiAccount): IOResult[ApiAccountDetails.Public]
   def regenerateToken(id:  ApiAccountId): IOResult[ApiAccountDetails]
   def deleteAccount(id:    ApiAccountId): IOResult[Option[ApiAccountDetails.Public]]
@@ -164,8 +164,9 @@ class ApiAccountApiServiceV1(
   private val mapper = {
     val getNow         = DateTime.now().succeed
     val generateId     = ApiAccountId(uuidGen.newUuid).succeed
-    val generateSecret = ClearTextSecret(ApiToken.generate_secret(tokenGenerator)).succeed
-    def generateToken(secret: ClearTextSecret): IOResult[ApiToken] = ApiToken(ApiToken.hash(secret.value)).succeed
+    val generateSecret = ApiTokenSecret.generate(tokenGenerator).transformInto[ClearTextSecret].succeed
+    def generateToken(secret: ClearTextSecret): IOResult[ApiTokenHash] =
+      ApiTokenHash.fromSecret(secret.transformInto[ApiTokenSecret]).succeed
 
     new ApiAccountMapping(getNow, generateId, generateSecret, generateToken)
   }
@@ -186,7 +187,7 @@ class ApiAccountApiServiceV1(
     }
   }
 
-  override def saveAccount(data: NewApiAccount): IOResult[ApiAccountDetails] = {
+  override def saveAccount(data: NewRestApiAccount): IOResult[ApiAccountDetails] = {
     for {
       pair <- mapper.fromNewApiAccount(data)
       _    <- writeApi.save(pair._1, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor)

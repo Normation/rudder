@@ -40,6 +40,10 @@ type TenantMode
     | NoAccess -- special "-" permission giving access to no object, whatever the tenant or its absence
     | ByTenants --give access to object in any of the listed tenants
 
+type Token
+    = New String 
+    | Hashed
+    | ClearText
 
 type alias DatePickerInfo =
     { currentTime : Posix
@@ -71,7 +75,7 @@ type alias Account =
     , kind : String
     , enabled : Bool
     , creationDate : String
-    , token : String
+    , token : Token
     , tokenGenerationDate : Maybe String
     , expirationPolicy: ExpirationPolicy
     , acl : Maybe (List AccessControl)

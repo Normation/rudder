@@ -42,6 +42,7 @@ import com.normation.rudder.api.ApiAuthorization as ApiAuthz
 import com.normation.rudder.api.RoApiAccountRepository
 import com.normation.rudder.api.WoApiAccountRepository
 import com.normation.rudder.apidata.ApiAccountSerialisation.*
+import com.normation.rudder.apidata.NewApiAccountSerialisation.*
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.ApiAuthorizationLevelService
 import com.normation.rudder.rest.OldInternalApiAuthz
@@ -88,26 +89,12 @@ class RestApiAccounts(
       // and we want to avoid escalation
       OldInternalApiAuthz.withWriteAdmin(readApi.getAllStandardAccounts.either.runNow match {
         case Right(accountSeq) =>
-          val filtered = accountSeq.toList
-            .map((a) => {
-              // Don't send hashes
-
-              a.copy(token = a.token match {
-                case Some(t) =>
-                  if (t.isHashed) {
-                    None
-                  } else {
-                    Some(t)
-                  }
-                case None    => None
-              })
-            })
           val accounts = {
             (
               ("aclPluginEnabled"     -> apiAuthService.aclEnabled) ~
               ("tenantsPluginEnabled" -> tenantsService.tenantsEnabled) ~
               ("accounts"             -> JArray(
-                filtered.map(_.toJson)
+                accountSeq.toList.map(_.toJson)
               ))
             )
           }
@@ -142,8 +129,8 @@ class RestApiAccounts(
                     case Some(id) if (id.value.trim.nonEmpty) =>
                       (id, None, None)
                     case _                                    =>
-                      val secret = ApiToken(ApiToken.generate_secret(tokenGenerator))
-                      val hash   = ApiToken(ApiToken.hash(secret.value))
+                      val secret = ApiTokenSecret.generate(tokenGenerator)
+                      val hash   = secret.toHash()
                       (ApiAccountId(uuidGen.newUuid), Some(secret), Some(hash))
                   }
                 }
@@ -152,29 +139,25 @@ class RestApiAccounts(
                 val expiration         = restApiAccount.expiration.getOrElse(Some(now.plusMonths(1)))
                 val acl                = restApiAccount.authz.getOrElse(ApiAuthz.None)
 
-                val account = ApiAccount(
+                val newAccount = NewApiAccount(
                   id,
                   ApiAccountKind.PublicApi(acl, expiration),
                   restApiAccount.name.get,
-                  hash,
+                  secret,
                   restApiAccount.description.getOrElse(""),
                   restApiAccount.enabled.getOrElse(true),
                   now,
                   now,
                   restApiAccount.tenants.getOrElse(NodeSecurityContext.All)
                 )
+                val account    = newAccount.toApiAccount()
                 writeApi.save(account, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor).either.runNow match {
                   case Right(_) =>
-                    val accounts = ("accounts" -> JArray(
+                    val accounts = "accounts" -> JArray(
                       List(
-                        account
-                          .copy(
-                            // Send clear text secret
-                            token = secret
-                          )
-                          .toJson
+                        newAccount.toJson
                       )
-                    ))
+                    )
                     toJsonResponse(None, accounts)
 
                   case Left(err) =>
@@ -249,12 +232,7 @@ class RestApiAccounts(
         case Right(Some(account)) =>
           writeApi.delete(account.id, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor).either.runNow match {
             case Right(_) =>
-              val filtered = account.copy(token = if (account.token.map(_.isHashed).getOrElse(true)) {
-                None
-              } else {
-                account.token
-              })
-              val accounts = ("accounts" -> JArray(List(filtered.toJson)))
+              val accounts = ("accounts" -> JArray(List(account.toJson)))
               toJsonResponse(None, accounts)
 
             case Left(err) =>
@@ -279,13 +257,13 @@ class RestApiAccounts(
 
       OldInternalApiAuthz.withWriteAdmin(readApi.getById(apiTokenId).either.runNow match {
         case Right(Some(account)) =>
-          val newSecret = ApiToken.generate_secret(tokenGenerator)
-          val newHash   = ApiToken.hash(newSecret)
+          val newSecret = ApiTokenSecret.generate(tokenGenerator)
+          val newHash   = newSecret.toHash()
 
           val generationDate = DateTime.now
           writeApi
             .save(
-              account.copy(token = Some(ApiToken(newHash)), tokenGenerationDate = generationDate),
+              account.copy(token = Some(newHash), tokenGenerationDate = generationDate),
               ModificationId(uuidGen.newUuid),
               userService.getCurrentUser.actor
             )
@@ -294,12 +272,7 @@ class RestApiAccounts(
             case Right(account) =>
               val accounts = ("accounts" -> JArray(
                 List(
-                  account
-                    .copy(
-                      // Send clear text secret
-                      token = Some(ApiToken(newSecret))
-                    )
-                    .toJson
+                  account.toNewApiAccount(newSecret).toJson
                 )
               ))
               toJsonResponse(None, accounts)
@@ -328,12 +301,7 @@ class RestApiAccounts(
   def save(account: ApiAccount)(implicit action: String, prettify: Boolean): LiftResponse = {
     writeApi.save(account, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor).either.runNow match {
       case Right(res) =>
-        val filtered = res.copy(token = if (res.token.map(_.isHashed).getOrElse(true)) {
-          None
-        } else {
-          res.token
-        })
-        val accounts = ("accounts" -> JArray(List(filtered.toJson)))
+        val accounts = ("accounts" -> JArray(List(res.toJson)))
         toJsonResponse(None, accounts)
 
       case Left(err) =>

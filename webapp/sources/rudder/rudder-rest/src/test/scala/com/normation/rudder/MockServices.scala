@@ -81,7 +81,7 @@ import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.rest.data.ApiAccountDetails
 import com.normation.rudder.rest.data.ApiAccountMapping
 import com.normation.rudder.rest.data.ClearTextSecret
-import com.normation.rudder.rest.data.NewApiAccount
+import com.normation.rudder.rest.data.NewRestApiAccount
 import com.normation.rudder.rest.data.UpdateApiAccount
 import com.normation.rudder.rest.lift.ApiAccountApiService
 import com.normation.rudder.rest.lift.ComplianceAPIService
@@ -983,7 +983,7 @@ class MockApiAccountService() {
         ApiAccountId("system-token"),
         ApiAccountKind.System, // must be filtered out
         ApiAccountName("system"),
-        Some(ApiToken("v2:system-hashed-token")),
+        Some(ApiTokenHash.fromHashValue("v2:system-hashed-token")),
         "system",
         isEnabled = true,
         creationDate = accountCreationDate,
@@ -995,7 +995,7 @@ class MockApiAccountService() {
         ApiAccountId("user1"),
         ApiAccountKind.PublicApi(ApiAuthorization.RW, None),
         ApiAccountName("user one"),
-        Some(ApiToken("v2:some-hashed-token")),
+        Some(ApiTokenHash.fromHashValue("v2:some-hashed-token")),
         "number one user",
         isEnabled = true,
         creationDate = accountCreationDate,
@@ -1010,7 +1010,7 @@ class MockApiAccountService() {
           Some(accountExpireDate)
         ),
         ApiAccountName("user2"),
-        Some(ApiToken("v2:some-hashed-token")),
+        Some(ApiTokenHash.fromHashValue("v2:some-hashed-token")),
         "number one user",
         isEnabled = true,
         creationDate = accountCreationDate,
@@ -1039,7 +1039,7 @@ class MockApiAccountService() {
         case h :: t => (ClearTextSecret(h), t)
       }
 
-      def generateToken(secret: ClearTextSecret): IOResult[ApiToken] = ApiToken("token-" + secret.value).succeed
+      def generateToken(secret: ClearTextSecret): IOResult[ApiTokenHash] = ApiTokenHash.disabled().succeed
 
       new ApiAccountMapping(creationDate, generateId, generateSecret, generateToken)
     }
@@ -1059,7 +1059,7 @@ class MockApiAccountService() {
       accounts.get.map(_.get(id).map(_.transformInto[ApiAccountDetails.Public]))
     }
 
-    override def saveAccount(data: NewApiAccount): IOResult[ApiAccountDetails] = {
+    override def saveAccount(data: NewRestApiAccount): IOResult[ApiAccountDetails] = {
       for {
         pair  <- mapper.fromNewApiAccount(data)
         (a, s) = pair

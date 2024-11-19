@@ -53,18 +53,18 @@ class ApiAccountTest extends Specification with DateTimeCodecs {
 
   private val now       = DateTime.parse("2025-02-10T10:10:10Z")
   private val accountId = ApiAccountId("account1")
-  private val token     = ApiToken("token1")
+  private val secret    = ApiTokenSecret("token1")
 
   // test transformer with fixed id generation, fix token id, fixe date now
   private val mapper = new ApiAccountMapping(
     now.succeed,
     accountId.succeed,
-    ClearTextSecret(token.value).succeed,
-    s => ApiToken(s.value).succeed
+    secret.transformInto[ClearTextSecret].succeed,
+    s => ApiTokenHash.fromSecret(s.transformInto[ApiTokenSecret]).succeed
   )
 
   "New account with the minimal of data get a new id and are limited to one month" >> {
-    val data = NewApiAccount(
+    val data = NewRestApiAccount(
       None,
       ApiAccountName("a1"),
       None,
@@ -80,7 +80,7 @@ class ApiAccountTest extends Specification with DateTimeCodecs {
     val (account, _) = mapper.fromNewApiAccount(data).runNow
 
     account.id === accountId
-    account.token === Some(token)
+    account.token === Some(ApiTokenHash.fromSecret(secret))
     account.kind match {
       case ApiAccountKind.PublicApi(_, expirationDate) =>
         expirationDate === Some(now.plusMonths(1))
@@ -93,7 +93,7 @@ class ApiAccountTest extends Specification with DateTimeCodecs {
     val id         = ApiAccountId("defined-id")
     val expiration = now.plusYears(1).transformInto[ZonedDateTime]
 
-    val data = NewApiAccount(
+    val data = NewRestApiAccount(
       Some(id),
       ApiAccountName("a2"),
       None,
@@ -109,7 +109,7 @@ class ApiAccountTest extends Specification with DateTimeCodecs {
     val (account, _) = mapper.fromNewApiAccount(data).runNow
 
     account.id === id
-    account.token === Some(token)
+    account.token === Some(ApiTokenHash.fromSecret(secret))
     account.kind match {
       case ApiAccountKind.PublicApi(_, expirationDate) =>
         expirationDate === Some(expiration.transformInto[DateTime])
