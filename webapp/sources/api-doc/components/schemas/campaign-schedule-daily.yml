@@ -30,6 +30,10 @@ properties:
         format: "[0-59]"
         description: Minute of the hour the campaign should end
     description: Date when the campaign should end
+  tz:
+    type: string
+    description: IANA timezone ID associated with the start and end times of the campaign schedule
+    example: Europe/Paris
   type:
     type: string
     format: daily
