@@ -38,36 +38,39 @@
 package com.normation.rudder.web.snippet
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box.*
 import com.normation.rudder.AuthorizationType.Administration
 import com.normation.rudder.users.CurrentUser
+import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
 import net.liftweb.http.CurrentReq
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds.*
 import scala.xml.NodeSeq
+import zio.syntax.*
 
 class SetupRedirect extends DispatchSnippet with Loggable {
 
-  private val configService = RudderConfig.configService
+  private val pluginSettingsService = RudderConfig.pluginSettingsService
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
     case "display" => _ => WithNonce.scriptWithNonce(Script(display()))
   }
 
   def display(): JsCmd = {
-
-    configService.rudder_setup_done().toBox match {
-      case Full(false)
-          if CurrentUser.checkRights(Administration.Write) && !CurrentReq.value.request.url.contains("administration/setup") =>
-        RedirectTo("/secure/administration/setup")
-      case Full(_) =>
-        Noop
-      case eb: EmptyBox =>
-        val msg = eb ?~! "Could not get 'setup done' property"
-        logger.error(msg.messageChain)
-        Noop
-    }
+    pluginSettingsService
+      .checkIsSetup()
+      .map {
+        // only redirect if the user also is admin and is not already on page
+        case false
+            if (
+              CurrentUser
+                .checkRights(Administration.Write) && !CurrentReq.value.request.url.contains("administration/setup")
+            ) =>
+          RedirectTo("/secure/administration/setup")
+        case _ => Noop
+      }
+      .catchAll(_ => Noop.succeed)
+      .runNow
   }
 }
