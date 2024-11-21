@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.queries
 
-import com.normation.rudder.domain.queries.NodeReturnType
+import com.normation.rudder.domain.queries.QueryReturnType.NodeReturnType
 import net.liftweb.common.*
 import org.junit.*
 import org.junit.Assert.*

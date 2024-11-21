@@ -182,7 +182,8 @@ final case class RestDataSerializerImpl(
   }
 
   override def serializeGroup(group: NodeGroup, cat: Option[NodeGroupCategoryId], crId: Option[ChangeRequestId]): JValue = {
-    val query = group.query.map(query => query.toJSON)
+    import zio.json.*
+    val query = group.query.map(query => parse(query.toJson))
     (
       ("changeRequestId" -> crId.map(_.value.toString))
       ~ ("id"            -> group.id.serialize)

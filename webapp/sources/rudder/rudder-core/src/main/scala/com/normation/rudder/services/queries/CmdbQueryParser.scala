@@ -40,6 +40,7 @@ package com.normation.rudder.services.queries
 import cats.implicits.*
 import com.normation.box.*
 import com.normation.rudder.domain.queries.*
+import com.normation.rudder.domain.queries.QueryReturnType.*
 import com.normation.rudder.services.queries.CmdbQueryParser.*
 import com.normation.utils.Control.traverse
 import net.liftweb.common.*
@@ -108,7 +109,7 @@ trait DefaultStringQueryParser extends StringQueryParser {
 
     for {
       comp  <- query.composition match {
-                 case None    => Full(And)
+                 case None    => Full(CriterionComposition.And)
                  case Some(s) =>
                    CriterionComposition.parse(s) match {
                      case Some(x) => Full(x)

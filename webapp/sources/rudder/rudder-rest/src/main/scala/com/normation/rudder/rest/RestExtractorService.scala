@@ -65,9 +65,9 @@ import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
-import com.normation.rudder.domain.queries.NodeReturnType
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
+import com.normation.rudder.domain.queries.QueryReturnType.NodeReturnType
 import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.facts.nodes.NodeSecurityContext

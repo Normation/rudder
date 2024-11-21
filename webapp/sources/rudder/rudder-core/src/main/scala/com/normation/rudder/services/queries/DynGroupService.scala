@@ -317,7 +317,7 @@ class CheckPendingNodeInDynGroups(
         blocked: List[DynGroup],
         done:    List[(NodeGroupId, Set[NodeId])]
     ): IOResult[List[(NodeGroupId, Set[NodeId])]] = {
-      import com.normation.rudder.domain.queries.And as CAnd
+      import com.normation.rudder.domain.queries.CriterionComposition.And as CAnd
 
       NodeLogger.PendingNode.Policies.trace("TODO   :" + todo.debugString)
       NodeLogger.PendingNode.Policies.trace("BLOCKED:" + blocked.debugString)

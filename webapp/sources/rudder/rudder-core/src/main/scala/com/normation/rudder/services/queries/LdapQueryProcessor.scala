@@ -50,6 +50,7 @@ import com.normation.ldap.sdk.syntax.*
 import com.normation.rudder.domain.*
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.queries.*
+import com.normation.rudder.domain.queries.CriterionComposition.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.zio.currentTimeMillis

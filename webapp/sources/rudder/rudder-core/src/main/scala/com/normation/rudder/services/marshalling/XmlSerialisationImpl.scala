@@ -248,7 +248,7 @@ class NodeGroupSerialisationImpl(xmlVersion: String) extends NodeGroupSerialisat
       <id>{group.id.withDefaultRev.serialize}</id>
         <displayName>{group.name}</displayName>
         <description>{group.description}</description>
-        <query>{group.query.map(_.toJSONString).getOrElse("")}</query>
+        <query>{group.query.map(_.toJson).getOrElse("")}</query>
         <isDynamic>{group.isDynamic}</isDynamic>
         <nodeIds>{
         if (group.isDynamic) {

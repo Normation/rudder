@@ -82,6 +82,7 @@ import scala.util.Random
 import scala.util.Success
 import scala.util.Try
 import scala.xml.*
+import zio.json.*
 
 class EventLogDetailsGenerator(
     logDetailsService:   EventLogDetailsService,
@@ -493,7 +494,7 @@ class EventLogDetailsGenerator(
                           val mapOptionQuery = (opt: Option[Query]) => {
                             opt match {
                               case None    => Text("None")
-                              case Some(q) => Text(q.toJSONString)
+                              case Some(q) => Text(q.toJson)
                             }
                           }
 
@@ -1287,7 +1288,7 @@ class EventLogDetailsGenerator(
       "#shortDescription" #> group.description &
       "#query" #> (group.query match {
         case None    => Text("None")
-        case Some(q) => Text(q.toJSONString)
+        case Some(q) => Text(q.toJson)
       }) &
       "#isDynamic" #> group.isDynamic &
       "#nodes" #> ({
