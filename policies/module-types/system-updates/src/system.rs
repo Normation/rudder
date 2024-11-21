@@ -3,7 +3,7 @@
 
 use std::process::Command;
 
-use crate::output::{CommandBehavior, ResultOutput};
+use crate::output::{CommandBehavior, CommandCapture, ResultOutput};
 
 pub trait System {
     fn reboot(&self) -> ResultOutput<()>;
@@ -29,18 +29,31 @@ impl System for Systemd {
     fn reboot(&self) -> ResultOutput<()> {
         let mut c = Command::new("systemctl");
         c.arg("reboot");
-        ResultOutput::command(c, CommandBehavior::FailOnErrorCode).clear_ok()
+        ResultOutput::command(
+            c,
+            CommandBehavior::FailOnErrorCode,
+            CommandCapture::StdoutStderr,
+        )
+        .clear_ok()
     }
 
     fn restart_services(&self, services: &[String]) -> ResultOutput<()> {
         // Make sure the units are up-to-date
         let mut c = Command::new("systemctl");
         c.arg("daemon-reload");
-        let res = ResultOutput::command(c, CommandBehavior::FailOnErrorCode);
+        let res = ResultOutput::command(
+            c,
+            CommandBehavior::FailOnErrorCode,
+            CommandCapture::StdoutStderr,
+        );
 
         let mut c = Command::new("systemctl");
         c.arg("restart").args(services);
-        let res = res.step(ResultOutput::command(c, CommandBehavior::FailOnErrorCode));
+        let res = res.step(ResultOutput::command(
+            c,
+            CommandBehavior::FailOnErrorCode,
+            CommandCapture::StdoutStderr,
+        ));
         res.clear_ok()
     }
 }

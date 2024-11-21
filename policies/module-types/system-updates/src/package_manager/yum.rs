@@ -5,7 +5,7 @@ use std::process::Command;
 
 use anyhow::Result;
 
-use crate::output::CommandBehavior;
+use crate::output::{CommandBehavior, CommandCapture};
 use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
@@ -49,7 +49,12 @@ impl YumPackageManager {
         // https://serverfault.com/a/1075175
         let mut c = Command::new("yum");
         c.arg("--assumeyes").arg("update");
-        ResultOutput::command(c, CommandBehavior::FailOnErrorCode).clear_ok()
+        ResultOutput::command(
+            c,
+            CommandBehavior::FailOnErrorCode,
+            CommandCapture::StdoutStderr,
+        )
+        .clear_ok()
     }
 
     /// `yum install yum-plugin-security` is only necessary on RHEL < 7, which are not supported.
@@ -57,7 +62,12 @@ impl YumPackageManager {
         // See https://access.redhat.com/solutions/10021
         let mut c = Command::new("yum");
         c.arg("--assumeyes").arg("--security").arg("update");
-        ResultOutput::command(c, CommandBehavior::FailOnErrorCode).clear_ok()
+        ResultOutput::command(
+            c,
+            CommandBehavior::FailOnErrorCode,
+            CommandCapture::StdoutStderr,
+        )
+        .clear_ok()
     }
 
     fn software_upgrade(&mut self, packages: &[PackageSpec]) -> ResultOutput<()> {
@@ -65,7 +75,12 @@ impl YumPackageManager {
         c.arg("--assumeyes")
             .arg("update")
             .args(packages.iter().map(Self::package_spec_as_argument));
-        ResultOutput::command(c, CommandBehavior::FailOnErrorCode).clear_ok()
+        ResultOutput::command(
+            c,
+            CommandBehavior::FailOnErrorCode,
+            CommandCapture::StdoutStderr,
+        )
+        .clear_ok()
     }
 }
 
@@ -85,7 +100,11 @@ impl LinuxPackageManager for YumPackageManager {
     fn reboot_pending(&self) -> ResultOutput<bool> {
         let mut c = Command::new("needs-restarting");
         c.arg("--reboothint");
-        let res = ResultOutput::command(c, CommandBehavior::OkOnErrorCode);
+        let res = ResultOutput::command(
+            c,
+            CommandBehavior::OkOnErrorCode,
+            CommandCapture::StdoutStderr,
+        );
 
         let (r, o, e) = (res.inner, res.stdout, res.stderr);
         let res = match r {
@@ -99,7 +118,11 @@ impl LinuxPackageManager for YumPackageManager {
     fn services_to_restart(&self) -> ResultOutput<Vec<String>> {
         let mut c = Command::new("needs-restarting");
         c.arg("--services");
-        let res = ResultOutput::command(c, CommandBehavior::FailOnErrorCode);
+        let res = ResultOutput::command(
+            c,
+            CommandBehavior::FailOnErrorCode,
+            CommandCapture::StdoutStderr,
+        );
         let (r, o, e) = (res.inner, res.stdout, res.stderr);
         let res = match r {
             Ok(_) => {
