@@ -83,14 +83,14 @@ impl LinuxPackageManager for YumPackageManager {
     }
 
     fn reboot_pending(&self) -> ResultOutput<bool> {
-        // only report whether a reboot is required (exit code 1) or not (exit code 0)
         let mut c = Command::new("needs-restarting");
         c.arg("--reboothint");
         let res = ResultOutput::command(c, CommandBehavior::OkOnErrorCode);
 
         let (r, o, e) = (res.inner, res.stdout, res.stderr);
         let res = match r {
-            Ok(o) => Ok(o.status.success()),
+            // report whether a reboot is required (exit code 1) or not (exit code 0)
+            Ok(o) => Ok(!o.status.success()),
             Err(e) => Err(e),
         };
         ResultOutput::new_output(res, o, e)
