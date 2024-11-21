@@ -103,16 +103,30 @@ pub enum CommandBehavior {
     OkOnErrorCode,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Copy)]
+pub enum CommandCapture {
+    /// Capture everything
+    StdoutStderr,
+    /// Only capture stderr
+    Stderr,
+}
+
 impl ResultOutput<Output> {
     /// Run a command and return output
-    pub fn command(mut c: Command, behavior: CommandBehavior) -> Self {
+    pub fn command(
+        mut c: Command,
+        behavior: CommandBehavior,
+        output_behavior: CommandCapture,
+    ) -> Self {
         let output = c.output();
         let mut res = ResultOutput::new(output.map_err(|e| e.into()));
 
         if let Ok(ref o) = res.inner {
             let stdout_s = String::from_utf8_lossy(&o.stdout);
-            res.stdout.push(stdout_s.to_string());
             debug!("stdout: {stdout_s}");
+            if output_behavior == CommandCapture::StdoutStderr {
+                res.stdout.push(stdout_s.to_string());
+            }
             let stderr_s = String::from_utf8_lossy(&o.stderr);
             res.stderr.push(stderr_s.to_string());
             debug!("stderr: {stderr_s}");

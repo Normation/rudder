@@ -3,7 +3,7 @@
 
 use std::{collections::HashMap, process::Command};
 
-use crate::output::CommandBehavior;
+use crate::output::{CommandBehavior, CommandCapture};
 use crate::{
     output::ResultOutput,
     package_manager::{PackageId, PackageInfo, PackageList, PackageManager},
@@ -21,7 +21,8 @@ impl RpmPackageManager {
         let output_format = r###"%{name} %{epochnum}:%{version}-%{release} %{arch}\n"###;
         let mut c = Command::new("rpm");
         c.arg("-qa").arg("--qf").arg(output_format);
-        let res = ResultOutput::command(c, CommandBehavior::FailOnErrorCode);
+        let res =
+            ResultOutput::command(c, CommandBehavior::FailOnErrorCode, CommandCapture::Stderr);
         let (r, o, e) = (res.inner, res.stdout, res.stderr);
         let res = match r {
             Ok(o) => {

@@ -4,7 +4,7 @@
 mod filter;
 mod progress;
 
-use crate::output::CommandBehavior;
+use crate::output::{CommandBehavior, CommandCapture};
 use crate::package_manager::apt::progress::AptAcquireProgress;
 use crate::{
     campaign::FullCampaignType,
@@ -346,7 +346,11 @@ impl LinuxPackageManager for AptPackageManager {
             .arg("l")
             // batch mode (parsable output)
             .arg("-b");
-        let res = ResultOutput::command(c, CommandBehavior::FailOnErrorCode);
+        let res = ResultOutput::command(
+            c,
+            CommandBehavior::FailOnErrorCode,
+            CommandCapture::StdoutStderr,
+        );
         let (r, o, e) = (res.inner, res.stdout, res.stderr);
         let res = match r {
             Ok(_) => self.parse_services_to_restart(&o),
