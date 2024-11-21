@@ -105,6 +105,14 @@ object DateFormaterService {
     }
   }
 
+  def parseDateOnly(date: String): PureResult[DateTime] = {
+    try {
+      Right(ISODateTimeFormat.date().parseDateTime(date))
+    } catch {
+      case NonFatal(ex) => Left(Inconsistency(s"String '${date}' can't be parsed as an ISO date: ${ex.getMessage}"))
+    }
+  }
+
   def parseDateZDT(date: String): PureResult[ZonedDateTime] = {
     try {
       Right(ZonedDateTime.parse(date, java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME))

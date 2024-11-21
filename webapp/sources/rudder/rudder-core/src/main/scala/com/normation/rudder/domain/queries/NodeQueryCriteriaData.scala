@@ -614,7 +614,8 @@ final case class NodeCriterionMatcherMemory(extractor: CoreNodeFact => Chunk[Mem
 final case class NodeCriterionMatcherDate(extractorNode: CoreNodeFact => Chunk[DateTime])
     extends NodeCriterionOrderedValueMatcher[DateTime] {
   val parseDate: String => Option[DateTime] = (s: String) =>
-    DateFormaterService.parseDate(s).toOption.orElse(Try(DateTimeFormat.forPattern("dd/MM/YYYY").parseDateTime(s)).toOption)
+    DateFormaterService.parseDateOnly(s).toOption.orElse(Try(DateTimeFormat.forPattern("dd/MM/YYYY").parseDateTime(s)).toOption)
+
   // we need to accept both ISO format and old dd/MM/YYYY format for compatibility
   // also, we discard the time, only keep date
 
