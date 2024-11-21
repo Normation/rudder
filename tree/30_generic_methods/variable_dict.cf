@@ -29,6 +29,7 @@
 # 
 # @parameter_rename variable_prefix prefix
 # @parameter_rename variable_name name
+# @parameter_constraint value  "valid_format" : "json"
 # @class_prefix variable_dict
 # @class_parameter name
 # @agent_support = ["cfengine-community", "dsc"]
