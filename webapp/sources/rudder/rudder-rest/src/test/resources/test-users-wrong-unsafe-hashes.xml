@@ -1,0 +1,4 @@
+<authentication unsafe-hashes="fsale" hash="bcrypt" case-sensitivity="true">
+  <user name="user1" password="$2a$04$DpsSbx141dUoKPyOFmohz.h9AbXRUbvaKX.3vK70U2PzD.yGiEU5K" permissions="user" tenants="zoneA" />
+  <user name="user2" password="a94a8fe5ccb19ba61c4c0873d391e987982fbbd3" permissions="read_only" />
+</authentication>

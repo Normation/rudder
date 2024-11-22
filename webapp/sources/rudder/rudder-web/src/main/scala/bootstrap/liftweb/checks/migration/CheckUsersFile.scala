@@ -45,38 +45,53 @@ import com.normation.rudder.users.UserFileProcessing
 import com.normation.rudder.users.UserFileSecurityLevelMigration
 import com.normation.rudder.users.UserManagementIO
 import com.normation.zio.UnsafeRun
-import zio.*
+import zio.ZIO
 
 class CheckUsersFile(migration: UserFileSecurityLevelMigration) extends BootstrapChecks {
 
   override def description: String = "Check if hash algorithm for user password is a modern one, if not enable unsafe_hashes"
 
-  def allChecks(currentSecurityLevel: SecurityLevel): IOResult[Unit] = {
-    for {
-      _ <- currentSecurityLevel match {
-             case SecurityLevel.Modern => ZIO.unit
-             case SecurityLevel.Legacy => migration.allowLegacy(UserManagementIO.getUserFilePath(migration.file))
-           }
-    } yield {}
-  }
-
   override def checks(): Unit = {
-    // at startup we need to read the file that may need to be migrated
-    (for {
-      xml        <- UserFileProcessing.readUserFile(migration.file)
-      parsedHash <- UserFileProcessing.parseXmlHash(xml)
-
-      // invalid hash also need to be renamed to modern one
-      securityLevel = parsedHash
-                        .map(SecurityLevel.fromPasswordEncoderType)
-                        .getOrElse(
-                          SecurityLevel.Legacy
-                        )
-      _            <- allChecks(securityLevel)
-    } yield {})
+    prog
       .catchAll(err => BootstrapLogger.error(s"Error when trying to check users file: ${err.fullMsg}"))
       .forkDaemon
       .runNow
   }
 
+  def prog: IOResult[Unit] = {
+    // at startup we need to read the file that may need to be migrated
+    (for {
+      xml               <- UserFileProcessing.readUserFile(migration.file)
+      parsedHash        <- UserFileProcessing.parseXmlHash(xml)
+      parsedUnsafeHashes = UserFileProcessing.parseXmlUnsafeHashes(xml)
+
+      // invalid hash also need to be renamed to modern one
+      securityLevel <- (parsedHash, parsedUnsafeHashes) match {
+                         case (Right(hash), Right(_)) =>
+                           allChecks(SecurityLevel.fromPasswordEncoderType(hash))
+
+                         case (Left(unknownValue), _) =>
+                           BootstrapLogger.warn(
+                             s"Error when reading users file hash in ${migration.file.name}, value '${unknownValue}' is unknown, falling back to secure authentication method"
+                           ) *>
+                           migration.enforceModern(userFile)
+                         case (_, Left(unknownValue)) =>
+                           BootstrapLogger.warn(
+                             s"Error when reading users file unsafe-hashes in ${migration.file.name}, value '${unknownValue}' is unknown, falling back to safe hashes"
+                           ) *>
+                           migration.enforceModern(userFile)
+                       }
+    } yield {})
+  }
+
+  def allChecks(currentSecurityLevel: SecurityLevel): IOResult[Unit] = {
+    for {
+      _ <- currentSecurityLevel match {
+             case SecurityLevel.Modern => ZIO.unit // it has already been migrated
+             case SecurityLevel.Legacy => migration.allowLegacy(userFile)
+           }
+    } yield {}
+  }
+
+  private def userFile = UserManagementIO.getUserFilePath(migration.file)
 }
