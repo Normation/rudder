@@ -85,7 +85,7 @@ class TestRestFromFileDef extends ZIOSpecDefault {
   tmpApiTemplate.createDirectories()
 
   override def spec: Spec[TestEnvironment with Scope, Any] = {
-    (suite("All REST tests defined in files") {
+    suite("All REST tests defined in files") {
 
       for {
         s <- TraitTestApiFromYamlFiles.doTest(
@@ -100,7 +100,7 @@ class TestRestFromFileDef extends ZIOSpecDefault {
                else ZIO.unit
              )
       } yield s
-    })
+    } @@ TestAspect.sequential // this is important so that modification done in files are always in the same order in the global env
   }
 
 }

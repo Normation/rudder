@@ -1322,28 +1322,6 @@ response:
                   "mode" : "expire_immediately"
                 }
               }
-            },            
-            {
-              "name" : "someJson2",
-              "value" : "string",
-              "inheritMode" : "opa",
-              "provider" : "inherited",
-              "hierarchy" : [
-                {
-                  "kind" : "global",
-                  "value" : "string"
-                }
-              ],
-              "hierarchyStatus" : {
-                "hasChildTypeConflicts" : false,
-                "fullHierarchy" : [
-                  {
-                    "kind" : "global",
-                    "valueType" : "String"
-                  }
-                ]
-              },
-              "origval" : "string"
             },
             {
               "name" : "stringParam",
