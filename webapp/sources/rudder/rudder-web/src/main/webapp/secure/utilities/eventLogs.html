@@ -2,33 +2,7 @@
 
   <head_merge>
     <title>Rudder - Event logs</title>
-    <style>
-      .rudder-template > .one-col{
-        flex: 1;
-      }
-      .template-main{
-        flex-basis : initial !important;
-        flex: auto !important;
-      }
-      pre.technical-details{
-        white-space: pre-wrap;
-        border: 1px solid #D6DEEF;
-        border-radius: 4px;
-        background-color: #F8F9FC;
-        padding: 4px;
-      }
-      #filterLogs {
-        margin-top: 10px;
-        color: #738195;
-      }
-      .btn.showParameters{
-        margin-bottom: 10px;
-        min-width: 195px;
-      }
-      .dataTables_filter label input{
-        margin-left: 8px;
-      }
-    </style>
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-eventlogs.css" media="screen">
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/jsondiffpatch.umd.slim.js"></script>
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/libs/html.css" />
   </head_merge>
@@ -59,7 +33,7 @@
 
                   <table id="eventLogsGrid" class="display" cellspacing="0"></table>
 
-                  <div id="eventDetailPopup" class="nodisplay">
+                  <div id="eventDetailPopup" class="d-none">
                     <lift:ignore>
                       This div gets the content of the eventDetailPopup injected within
                     </lift:ignore>

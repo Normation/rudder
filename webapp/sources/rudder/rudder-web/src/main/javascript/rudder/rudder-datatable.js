@@ -276,7 +276,7 @@ function recentChangesText(id) {
 
 
   // Elem Content
-  graphElem.text(count).addClass("center")
+  graphElem.text(count).addClass("text-center")
   initBsTooltips();
 }
 
@@ -593,7 +593,7 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
         editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement/rule/'+oData.id);
         editLink.click(function(e) {e.stopPropagation();});
         editLink.append(editIcon);
-        editLink.addClass("reportIcon");
+        editLink.addClass("ps-1");
         $(nTd).append(editLink);
         $(nTd).prepend(createBadgeAgentPolicyMode('rule', oData.policyMode, oData.explanation));
       }
@@ -707,7 +707,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
             editIcon.addClass("fa fa-pencil");
             editLink.click(function(e) {e.stopPropagation();});
             editLink.append(editIcon);
-            editLink.addClass("reportIcon");
+            editLink.addClass("ps-1");
             var policyMode = oData.policyMode ? oData.policyMode : "";
             $(nTd).prepend(createBadgeAgentPolicyMode('directive', policyMode, oData.explanation));
             $(nTd).append(editLink);
@@ -740,7 +740,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
         editIcon.addClass("fa fa-pencil");
         editLink.click(function(e) {e.stopPropagation();});
         editLink.append(editIcon);
-        editLink.addClass("reportIcon");
+        editLink.addClass("ps-1");
         $(nTd).append(editLink);
         $(nTd).prepend(createBadgeAgentPolicyMode('rule', oData.policyMode, oData.explanation));
       }
@@ -805,7 +805,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
           editIcon.addClass("fa fa-pencil");
           editLink.click(function(e) {e.stopPropagation();});
           editLink.append(editIcon);
-          editLink.addClass("reportIcon");
+          editLink.addClass("ps-1");
           $(nTd).append(editLink);
           var policyMode = oData.policyMode ? oData.policyMode : policyMode ;
           $(nTd).prepend(createBadgeAgentPolicyMode('directive', policyMode, oData.explanation));
@@ -877,7 +877,7 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
         editIcon.addClass("fa fa-search node-details");
         editLink.click(function(e) {e.stopPropagation();});
         editLink.append(editIcon);
-        editLink.addClass("reportIcon");
+        editLink.addClass("ps-1");
         $(nTd).append(editLink);
         $(nTd).prepend(createBadgeAgentPolicyMode('node', oData.policyMode, oData.explanation));
       }

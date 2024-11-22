@@ -871,7 +871,7 @@ groupsTab model details =
             [ i [class "jstree-icon jstree-ocl"][]
             , a [class ("jstree-anchor" ++ includeClass), onClick (SelectGroup item.target True)]
               [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
-              , span [class "item-name"][text item.name, (if item.dynamic then (small [class "greyscala"][text "- Dynamic"]) else (text ""))]
+              , span [class "item-name"][text item.name, (if item.dynamic then (small [class "text-secondary"][text "- Dynamic"]) else (text ""))]
               , disabledLabel
               , div [class "treeActions-container"]
                 [ span [class "treeActions"][ span [class "fa action-icon accept"][]]

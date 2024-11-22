@@ -527,7 +527,7 @@ class NodeGroupForm(
       override def labelClassName        = ""
       override def subContainerClassName = ""
       override def containerClassName    = "pe-2"
-      override def errorClassName        = "field_errors paddscala"
+      override def errorClassName        = "text-danger mt-1"
       override def inputAttributes: Seq[(String, String)] = Seq(("rows", "15"))
       override def labelExtensions: NodeSeq               = {
         <i class="fa fa-check text-success cursorPointer half-opacity"     onmouseenter="toggleOpacity(this)" title="Valid description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> ++ Text(
@@ -901,7 +901,7 @@ class NodeGroupForm(
     } else {
       val html = {
         <div id="errorNotification" class="notify">
-          <ul class="field_errors">{notifications.map(n => <li>{n}</li>)}</ul>
+          <ul class="text-danger">{notifications.map(n => <li>{n}</li>)}</ul>
         </div>
       }
       html

@@ -253,7 +253,7 @@ object PendingHistoryGrid extends Loggable {
     effectiveEvents.sortWith((ev1, ev2) => ev1.creationDate.isBefore(ev2.creationDate)).headOption match {
       case Some(deleted) =>
         <div style="padding: 10px 15px 0">
-          <i class="fa fa-exclamation-triangle warnicon" aria-hidden="true"></i>
+          <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"></i>
           <h3> {
           s"This node was deleted on ${DateFormaterService.getDisplayDate(deleted.creationDate)} by ${deleted.principal.name}"
         }</h3>

@@ -295,7 +295,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
             "*" #> {
               <div id="techniqueDetails">
-              <div class="deca">
+              <div class="p-2">
               <p class="error">{m}</p>
               </div>
               </div>
@@ -339,7 +339,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
               else <span class="badge-disabled"></span>
             }</span> &
             "#techniqueID *" #> technique.id.name.value &
-            "#techniqueDocumentation [class]" #> (if (technique.longDescription.isEmpty) "visually-hidden" else "") &
+            "#techniqueDocumentation [class]" #> (if (technique.longDescription.isEmpty) "d-none" else "") &
             "#techniqueLongDescription *" #> Script(
               JsRaw(
                 s"""generateMarkdown(${Str(technique.longDescription).toJsCmd}, "#techniqueLongDescription");"""
@@ -587,7 +587,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         val fail      = eb ?~! "Could not get global policy mode while creating new directive"
         logger.error(fail.messageChain)
         val errorHtml = {
-          <div class="deca">
+          <div class="p-2">
               <p class="error">{fail.messageChain}</p>
               </div>
         }

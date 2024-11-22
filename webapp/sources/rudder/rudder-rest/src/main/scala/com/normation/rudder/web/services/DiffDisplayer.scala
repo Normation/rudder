@@ -159,7 +159,7 @@ class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
             .map { targetInfo =>
               <span>
             {targetInfo.name}
-            {if (targetInfo.isSystem) <span class="greyscala">(System)</span>}
+            {if (targetInfo.isSystem) <span class="text-secondary">(System)</span>}
           </span>
             }
             .getOrElse(<span> {x.target}</span>)

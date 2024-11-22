@@ -198,8 +198,8 @@ object DisplayNodeGroupTree extends Loggable {
           val tooltipContent = s"<h4>${targetInfo.name}</h4>\n<div class='tooltip-content'>${targetInfo.description}</div>"
           <span class="treeGroupName" data-bs-toggle="tooltip" title={tooltipContent}>
             {targetInfo.name}
-            {if (targetInfo.isSystem) <small class="greyscala"> - System</small>}
-            <small class="greyscala">{
+            {if (targetInfo.isSystem) <small class="text-secondary"> - System</small>}
+            <small class="text-secondary">{
             targetInfo.target match {
               case g: FullGroupTarget => s" - ${if (g.nodeGroup.isDynamic) "Dynamic" else "Static"}"
               case _ => ""

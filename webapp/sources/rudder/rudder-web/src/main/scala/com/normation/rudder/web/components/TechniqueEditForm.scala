@@ -218,7 +218,7 @@ class TechniqueEditForm(
             (
               "#techniqueName" #> t.name &
               "#techniqueDescription *" #> t.description &
-              "#techniqueDocumentation [class]" #> (if (t.longDescription.isEmpty) "visually-hidden" else "") &
+              "#techniqueDocumentation [class]" #> (if (t.longDescription.isEmpty) "d-none" else "") &
               "#techniqueLongDescription" #> Script(
                 OnLoad(
                   JsRaw(s"""generateMarkdown(${Str(t.longDescription).toJsCmd}, "#techniqueLongDescription")""")
@@ -263,8 +263,8 @@ class TechniqueEditForm(
     import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
-      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
-      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+      case Mandatory => Some(buildReasonField(true, "px-1"))
+      case Optionnal => Some(buildReasonField(false, "px-1"))
     }
   }
 
@@ -272,8 +272,8 @@ class TechniqueEditForm(
     import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
-      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
-      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+      case Mandatory => Some(buildReasonField(true, "px-1"))
+      case Optionnal => Some(buildReasonField(false, "px-1"))
     }
   }
 
@@ -281,8 +281,8 @@ class TechniqueEditForm(
     import com.normation.rudder.web.services.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior: @unchecked) match {
       case Disabled  => None
-      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
-      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+      case Mandatory => Some(buildReasonField(true, "px-1"))
+      case Optionnal => Some(buildReasonField(false, "px-1"))
     }
   }
 
@@ -457,7 +457,7 @@ class TechniqueEditForm(
             </ul>
         case None          => // display the add button if a user lib category is defined
           userCategoryLibrary match {
-            case None           => <span class="greenscala">Click on a category in the user library</span>
+            case None           => <span class="text-success">Click on a category in the user library</span>
             case Some(category) => {
               /*
                * Actually add the Technique to category:
@@ -591,7 +591,7 @@ class TechniqueEditForm(
       NodeSeq.Empty
     } else {
       val html = <div id="notifications">
-        <ul class="field_errors">{notifications.map(n => <li>{n}</li>)}</ul></div>
+        <ul class="text-danger">{notifications.map(n => <li>{n}</li>)}</ul></div>
       html
     }
   }

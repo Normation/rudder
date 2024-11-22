@@ -49,6 +49,15 @@ a{
 ul {
   padding-left: 0;
 }
+
+/* === UTILS === */
+.cursorPointer {
+  cursor:pointer !important;
+}
+
+.text-warning-rudder {
+  color : $rudder-warning
+}
 /*=== FONT AWESOME 5 MISSING ICONS FIX ===*/
 .fa{
   font-weight: bold;
@@ -390,6 +399,10 @@ pre.json-beautify code.elmsh {
   vertical-align: middle;
   display: inline-block;
 }
+
+.searchNodes tr > td:first-child {
+  padding-left: 0;
+}
 /* --- ACCEPT NEW NODES --- */
 .action-btns{
   float: left;
@@ -426,7 +439,7 @@ pre.json-beautify code.elmsh {
   color:#555;
 }
 .text-warning-rudder{
-  color: #EF9600;
+  color: $rudder-warning;
 }
 .text-danger-rudder{
   color: #C50000;
@@ -493,7 +506,7 @@ pre.json-beautify code.elmsh {
   content: "DISABLED";
 }
 .badge-expired {
-  background-color: #ef9600;
+  background-color: $rudder-warning;
 }
 .badge-expired:before {
   content: "EXPIRED";
@@ -850,18 +863,18 @@ form .tooltip-content p {
 }
 /* --- WARNING --- */
 .callout-fade.callout-warning{
-  border-left-color: #EF9600;
+  border-left-color: $rudder-warning;
   background-color: #fefcf7;
 }
 .callout-fade.callout-warning h4,.callout-fade.callout-warning b{
-  color: #EF9600;
+  color: $rudder-warning;
 }
 .callout-fade.callout-warning div.marker{
-  background-color: #EF9600;
+  background-color: $rudder-warning;
 }
 .callout-fade.callout-warning .actions .btn-action{
   color: #fff;
-  background-color: #EF9600;
+  background-color: $rudder-warning;
   border-color: #ca6a00;
 }
 .callout-fade.callout-warning .actions .btn-action:hover{
@@ -940,7 +953,7 @@ form .tooltip-content p {
 }
 /* WARNING */
 .group-button.group-warning button.btn{
-  background-color: #EF9600;
+  background-color: $rudder-warning;
 }
 /*
 *-----------------------------------------
@@ -966,10 +979,10 @@ form .tooltip-content p {
   background-color: #1b809e;
 }
 .small-box.bg-fade-3 .icon {
-  color:#EF9600;
+  color:$rudder-warning;
 }
 .small-box.bg-fade-3 .small-box-footer {
-  background-color: #EF9600;
+  background-color: $rudder-warning;
 }
   .small-box.bg-fade-4 .icon {
   color:#c50000  ;
@@ -1388,7 +1401,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   background-color: #13BEB7;
 }
 .message.message-warning{
-  background-color: #EF9600;
+  background-color: $rudder-warning;
 }
 .rudder-form .validation-form-message .message.success{
   opacity: 1;
@@ -1409,7 +1422,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   border-left: 14px solid #13BEB7;
 }
 .rudder-form .validation-form-message .message.message-warning.success:after {
-  border-left: 14px solid #EF9600 ;
+  border-left: 14px solid $rudder-warning ;
 }
 
 /* RADIO BUTTONS + CHECKBOX */
@@ -1443,7 +1456,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
 }
 .bootstrap-switch .bootstrap-switch-handle-off.bootstrap-switch-primary, .bootstrap-switch .bootstrap-switch-handle-on.bootstrap-switch-primary {
   color: #fff;
-  background: #EF9600;
+  background: $rudder-warning;
 }
 .label-switch{
   margin-left: 8px;
@@ -1656,7 +1669,7 @@ hr.separation{
 #submitAllowedNetwork{
   margin-top:10px;
 }
-#allowNetworkFields .bs-text-danger{
+#allowNetworkFields .text-danger{
   height: 30px;
   padding: 5px 10px;
   line-height: 1.5;
@@ -1679,6 +1692,9 @@ hr.separation{
   float:left;
   width:100%;
   margin-bottom:15px;
+}
+input.deleteNetwork * {
+  padding: 0 !important;
 }
 .delete input.deleteNetwork.btn {
   width:20px;
@@ -1885,6 +1901,10 @@ ul > li.rudder-form > .input-group.disabled *{
   margin: 0;
   cursor: pointer;
 }
+.radioTextLabel {
+  margin-right:6px;
+  margin-left:3px;
+}
 .wbBaseField.form-group .switch label.radio-inline input + .radioTextLabel{
   display: inline-block;
   min-width: 75px;
@@ -2055,7 +2075,7 @@ h3.box-title {
 
 /* DEPRECATION */
 .deprecation-icon {
-  color: #EF9600;
+  color: $rudder-warning;
   top: -5px;
   left: -3px;
   position: relative;
@@ -2137,7 +2157,7 @@ span.techversion {
 .fa.warnicon{
   margin-left:8px;
   font-size:32px;
-  color:#EF9600;
+  color:$rudder-warning;
 }
 #confirmDeletion .fa.warnicon{
   font-size: 22px;
@@ -2156,6 +2176,36 @@ table a > i.fa-pencil:hover{
 }
 /* RULES TABLE */
 
+/* CHART.JS */
+#chartjs-tooltip {
+  opacity: 1;
+  position: fixed !important;
+  background: rgba(0, 0, 0, .7);
+  color: white;
+  border-radius: 3px;
+  -webkit-transition: all .1s ease;
+  transition: all .1s ease;
+  pointer-events: none;
+  -webkit-transform: translate(-50%, 10px);
+  transform: translate(-50%, 10px);
+  z-index: 500;
+  max-width: unset;
+  padding: 10px !important;
+
+  ul {
+    margin-bottom: 0;
+  }
+  h4 {
+    font-size: 16px;
+    white-space: pre;
+    margin-top: 0;
+  }
+}
+.chartjs-tooltip-key {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+}
 
 /* DATEPICKERS */
 #ui-datepicker-div{
@@ -2164,15 +2214,16 @@ table a > i.fa-pencil:hover{
   border: 1px solid #ccc;
 }
 .ui-datepicker {
-    width: 17em;
-    padding: .2em .2em 0;
-    display: none
-}
+  width: 17em;
+  padding: .2em .2em 0;
+  display: none;
 
-.ui-datepicker .ui-datepicker-header {
+  .ui-datepicker-header {
     position: relative;
     padding: .2em 0;
+  }
 }
+
 
 .ui-datepicker .ui-datepicker-prev,
 .ui-datepicker .ui-datepicker-next {
@@ -2817,7 +2868,46 @@ $node-logo-size: 50px;
     background-image: url(../../images/os/freebsd-logo.svg);
   }
 }
+/* OLD COLUMN SYSTEM */
+.twoCol {
+  float:left;
+  width:67%;
+}
+.threeCol {
+  float:left;
+  width:30%;
+  margin-right: 4px;
+}
+.largeCol {
+  float:left;
+  margin-right: 2px;
+  width:60%;
+}
 
+/* LOADER */
+.ajaxloader{
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  text-align:center;
+  padding:10px;
+  margin-left: -40px;
+  margin-top: -40px;
+  z-index:9999;
+  display:none;
+}
+
+.svg-loading{
+  height:25px;
+  width:25px;
+  padding: 0 !important;
+}
+
+.svg-loader{
+  height:40px;
+  width:40px;
+  padding: 0 !important;
+}
 /* KEYFRAMES */
 @-webkit-keyframes text-radio-on {
   0%   {color: #646464;}

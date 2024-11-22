@@ -31,7 +31,7 @@ view model =
         ]
       , button [ class "btn btn-default more-filters", onClick ShowMore][]
       ]
-    , div [ class ("filters-container" ++ if model.showMore then "" else " visually-hidden")]
+    , div [ class ("filters-container" ++ if model.showMore then "" else " d-none")]
       [ div [class "filterTag"]
         [ div [ id "form-tag" ]
           [ displayTagForm model.newTag model.tags model.completionKeys model.completionValues Filters.DataTypes.UpdateTag Filters.DataTypes.UpdateTags addBtnDisabled

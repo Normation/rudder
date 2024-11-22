@@ -189,7 +189,7 @@ class DirectiveEditForm(
         }).getOrElse(NodeSeq.Empty)
       })
     case None       =>
-      ("#deprecation-warning [class+]" #> "visually-hidden")
+      ("#deprecation-warning [class+]" #> "d-none")
   }
 
   def showDirectiveForm(): NodeSeq = {
@@ -637,7 +637,7 @@ class DirectiveEditForm(
     ) {
       override def setFilter             = notNull _ :: trim _ :: Nil
       override def className             = "checkbox-group policymode-group"
-      override def labelClassName        = "visually-hidden"
+      override def labelClassName        = "d-none"
       override def subContainerClassName = "col-sm-12"
     }
   }

@@ -1,0 +1,131 @@
+/*
+*************************************************************************************
+* Copyright 2024 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
+// Modules
+@use 'rudder-variables' as *;
+
+#categoryTree.jstree-rudder a {
+  vertical-align: middle;
+}
+
+.treeActiveTechniqueName,
+.treeActiveTechniqueCategoryName,
+.treeRuleCategoryName,
+ i.jstree-icon.jstree-themeicon.fa.fa-file-text.jstree-themeicon-custom {
+  color: #555
+}
+
+ins.jstree-icon {
+  float: left;
+}
+
+a > .jstree-icon{
+  background-position: 0!important;
+}
+
+.jstree-default {
+  .jstree-node {
+    min-height: 20px;
+    line-height: 20px;
+    margin-left: 20px;
+    min-width: 20px;
+  }
+
+  .jstree-anchor {
+    line-height: 20px;
+    height: 20px;
+
+    & > .jstree-themeicon {
+      margin-right: 0px;
+    }
+  }
+
+  .jstree-icon {
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+
+    &:empty {
+      width: 20px;
+      height: 20px;
+      line-height: 20px;
+    }
+  }
+
+  .jstree-wholerow {
+    height: 20px;
+  }
+}
+
+.jstree{
+  a.jstree-anchor,
+  a.jstree-anchor:hover,
+  a.jstree-anchor:focus,
+  a.jstree-anchor:active {
+    white-space: normal !important;
+    height: auto;
+    padding: 1px 2px;
+    text-decoration: none;
+  }
+  a.jstree-anchor .categoryAction,
+  a.jstree-anchor .treeActions  {
+    opacity: 0.2;
+    cursor: pointer !important;
+    font-size: 20px !important;
+  }
+  a.jstree-anchor:hover .categoryAction,
+  a.jstree-anchor:hover .treeActions  {
+    opacity: .7;
+  }
+  a.jstree-anchor:hover .categoryAction,
+  a.jstree-anchor .treeActions:hover {
+    opacity: 1 !important;
+  }
+
+  .fa.jstree-icon {
+    color : #999
+  }
+  .fa.fa-gear, .fa.fa-folder {
+    position: relative;
+    top: 1px;
+  }
+}
+
+.treeActions-container {
+  display: inline-block;
+  position: relative;
+  top: 1px;
+}

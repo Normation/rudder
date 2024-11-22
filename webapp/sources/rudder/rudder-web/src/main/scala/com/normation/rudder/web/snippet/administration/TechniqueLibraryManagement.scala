@@ -356,10 +356,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         updateCurrentTechniqueDetails(Some(technique), None)
         showTechniqueDetails()
       case _               =>
-        <div id={htmlId_bottomPanel}>
-          <div  class="text-center">
+        <div id={htmlId_bottomPanel} class="portlet pt-3 pb-4">
           Click on a technique or a category from user library to
-          display its details.</div>
+          display its details.
         </div>
     }
   }

@@ -278,7 +278,7 @@ class RuleGrid(
         logger.error(e)
 
         <div id={htmlId_rulesGridZone}>
-          <div id={htmlId_modalReportsPopup} class="nodisplay">
+          <div id={htmlId_modalReportsPopup} class="d-none">
             <div id={htmlId_reportsPopup} ></div>
           </div>
           <span class="error">{e}</span>
@@ -304,7 +304,7 @@ class RuleGrid(
           """
         }
         <div id={htmlId_rulesGridZone}>
-          <div id={htmlId_modalReportsPopup} class="nodisplay">
+          <div id={htmlId_modalReportsPopup} class="d-none">
             <div id={htmlId_reportsPopup} ></div>
           </div>
           <table id={htmlId_rulesGridId} class="display" cellspacing="0"> </table>

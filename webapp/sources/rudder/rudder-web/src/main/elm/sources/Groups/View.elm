@@ -38,7 +38,7 @@ view model =
           [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
           , span [class "treeGroupName", title (buildTooltipContent item.name item.description)]
             [ text item.name
-            , small [class "greyscala"] [text (" - " ++ if item.dynamic then "Dynamic" else "Static")]
+            , small [class "text-secondary"] [text (" - " ++ if item.dynamic then "Dynamic" else "Static")]
             , badgeDisabled
             ]
           ]

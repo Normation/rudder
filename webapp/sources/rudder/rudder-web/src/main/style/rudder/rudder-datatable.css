@@ -326,6 +326,10 @@ td.listclose:after {
   float: left;
   width: 100%;
 }
+table .innerDetails li{
+  word-break: break-all;
+  white-space: pre-wrap;
+}
 .dataTable > tbody > tr > td.details ul {
   margin-bottom: 0;
 }
