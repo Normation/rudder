@@ -48,7 +48,6 @@ import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.zio.*
-import net.liftweb.http.LiftRules
 import org.junit.runner.RunWith
 import zio.*
 import zio.test.*
@@ -65,9 +64,8 @@ class TestInheritedProperties extends ZIOSpecDefault {
 
   // nodeXX appears at several places
 
-  def yamlSourceDirectory:  String    = "api_inherited_prop"
-  def yamlDestTmpDirectory: File      = tmpApiTemplate
-  def liftRules:            LiftRules = restTestSetUp.liftRules
+  def yamlSourceDirectory:  String = "api_inherited_prop"
+  def yamlDestTmpDirectory: File   = tmpApiTemplate
 
   val transformations: Map[String, String => String] = Map()
 
