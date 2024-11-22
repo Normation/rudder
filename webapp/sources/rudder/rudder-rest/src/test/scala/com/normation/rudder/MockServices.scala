@@ -920,9 +920,9 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
 
 object MockUserManagement {
   // Default mock with fake values and returning the temporary directory for cleanup
-  def apply(): (File, MockUserManagement) = {
+  def apply(resourceFile: String = "test-users.xml"): (File, MockUserManagement) = {
     val tmpDir = File.newTemporaryDirectory("rudder-users")
-    (tmpDir, new MockUserManagement(fakeUsers, fakeUserSessions, fakeUserFile(tmpDir)))
+    (tmpDir, new MockUserManagement(fakeUsers, fakeUserSessions, fakeUserFile(tmpDir, resourceFile)))
   }
 
   val fakeUsers:        List[UserInfo]    = {
@@ -990,9 +990,9 @@ object MockUserManagement {
   }
 
   // copy the resource file to a temporary directory
-  def fakeUserFile(tmpDir: File) = Resource
-    .asStream("test-users.xml")
+  def fakeUserFile(tmpDir: File, resourceFile: String) = Resource
+    .asStream(resourceFile)
     .map(IOUtils.toString(_, StandardCharsets.UTF_8))
-    .map(File(tmpDir, "test-users.xml").writeText(_))
-    .getOrElse(throw new Exception("Cannot find test-users.xml in test resources"))
+    .map(File(tmpDir, resourceFile).writeText(_))
+    .getOrElse(throw new Exception(s"Cannot find ${resourceFile} in test resources"))
 }

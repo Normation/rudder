@@ -381,6 +381,11 @@ trait UserFileSecurityLevelMigration {
     * Migrates the provided file to the modern security level, but allow legacy hashes to subsist
     */
   def allowLegacy(file: File): IOResult[Unit]
+
+  /**
+    * Migrate the provided file to the modern security level by enforcing that legacy unsafe hashes are no longer supported
+    */
+  def enforceModern(file: File): IOResult[Unit]
 }
 
 final class FileUserDetailListProvider(
@@ -388,7 +393,6 @@ final class FileUserDetailListProvider(
     override val file:         UserFile,
     passwordEncoderDispatcher: PasswordEncoderDispatcher
 ) extends UserDetailListProvider with UserFileSecurityLevelMigration {
-
   import RudderPasswordEncoder.SecurityLevel.*
 
   private val logger = ApplicationLoggerPure.Auth
@@ -443,9 +447,12 @@ final class FileUserDetailListProvider(
 
   override def authConfig: ValidatedUserList = cache.get.runNow
 
+  override def allowLegacy(file:   File): IOResult[Unit] = migrateAuthentication(file, "bcrypt", unsafeHashes = true)
+  override def enforceModern(file: File): IOResult[Unit] = migrateAuthentication(file, "bcrypt", unsafeHashes = false)
+
   // directly changes the file content !!
-  override def allowLegacy(sourceTargetFile: File): IOResult[Unit] = {
-    // replace "hash" value by "bcrypt", mark unsafe_hashes=true
+  private def migrateAuthentication(sourceTargetFile: File, hash: String, unsafeHashes: Boolean): IOResult[Unit] = {
+    // replace "hash" value and "unsafe-hashes" value
     for {
       parsedFile <- IOResult.attempt(ConstructingParser.fromFile(sourceTargetFile.toJava, preserveWS = true))
       userXML    <- IOResult.attempt(parsedFile.document().children)
@@ -458,11 +465,11 @@ final class FileUserDetailListProvider(
                  e.copy(attributes = {
                    e.attributes
                      .append(
-                       new scala.xml.UnprefixedAttribute("hash", "bcrypt", scala.xml.Null)
+                       new scala.xml.UnprefixedAttribute("hash", hash, scala.xml.Null)
                      ) // will override existing hash attribute
                      .append(
-                       new scala.xml.UnprefixedAttribute("unsafe-hashes", "true", scala.xml.Null)
-                     ) // default to true because the legacy hashes are kept in the file
+                       new scala.xml.UnprefixedAttribute("unsafe-hashes", unsafeHashes.toString, scala.xml.Null)
+                     )
                  })
                }
 
@@ -609,12 +616,24 @@ object UserFileProcessing {
     }
   }
 
+  /**
+    * Attempt to read the unsafe-hashes="<boolean>" attribute. Return the unknown value as Left
+    */
+  def parseXmlUnsafeHashes(xml: Elem):                     Either[String, Option[Boolean]] = {
+    (xml(0) \ "@unsafe-hashes").text.toLowerCase match {
+      case ""      => Right(None)
+      case "true"  => Right(Some(true))
+      case "false" => Right(Some(false))
+      case str     => Left(str)
+
+    }
+  }
   /*
    * This method just parse XML file & validate its general structure, but it does not resolve roles
    * or rights.
    * This is done in a second pass.
    */
-  def parseXmlNoResolve(xml: Elem, debugFileName: String): IOResult[ParsedUserFile] = {
+  def parseXmlNoResolve(xml: Elem, debugFileName: String): IOResult[ParsedUserFile]        = {
     // one unique name attribute, text content non empty
     def getRoleName(node: scala.xml.Node): PureResult[String] = {
       node.attribute("name").map(_.map(_.text.strip())) match {
@@ -713,6 +732,26 @@ object UserFileProcessing {
                         value.succeed
                     }
 
+      defaultUnsafeHashes = false
+      unsafeHashes       <- parseXmlUnsafeHashes(xml) match {
+                              case Left(nonBoolValue) =>
+                                // we need a warning when value is unknown :
+                                // - unless we are already using legacy
+                                // - unless the value is empty (or it does not exist) and we are already using modern
+                                // In all cases, fallback value is false : we want user to specify explicitly when some hashes are unsafe
+                                val legacy = RudderPasswordEncoder.SecurityLevel.fromPasswordEncoderType(
+                                  hash
+                                ) == RudderPasswordEncoder.SecurityLevel.Legacy
+                                ZIO
+                                  .unless(legacy || nonBoolValue.isEmpty) {
+                                    logger.warn(
+                                      s"Unsafe hashes: in file '${debugFileName}' parameter `unsafe-hashes` is not a boolean, set by default on `false`. If you still use non-bcrypt hash, you can set this parameter to `true`"
+                                    )
+                                  }
+                                  .as(defaultUnsafeHashes)
+                              case Right(value)       => value.getOrElse(defaultUnsafeHashes).succeed
+                            }
+
       isCaseSensitive <- (xml(0) \ "@case-sensitivity").text.toLowerCase match {
                            case "true"  => true.succeed
                            case "false" => false.succeed
@@ -727,26 +766,6 @@ object UserFileProcessing {
                                 )
                               }) *> true.succeed
                          }
-
-      unsafeHashes <- (xml(0) \ "@unsafe-hashes").text.toLowerCase match {
-                        case "true"  => true.succeed
-                        case "false" => false.succeed
-                        case str     =>
-                          // we need a warning when value is unknown :
-                          // - unless we are already using legacy
-                          // - unless the value is empty and we are already using modern
-                          // In all cases, fallback value is false : we want user to specify explicitly when some hashes are unsafe
-                          val legacy = RudderPasswordEncoder.SecurityLevel.fromPasswordEncoderType(
-                            hash
-                          ) == RudderPasswordEncoder.SecurityLevel.Legacy
-                          ZIO
-                            .unless(legacy || str.isEmpty) {
-                              logger.warn(
-                                s"Unsafe hashes: in file '${debugFileName}' parameter `unsafe-hashes` is not a boolean, set by default on `false`. If you still use non-bcrypt hash, you can set this parameter to `true`"
-                              )
-                            }
-                            .as(false)
-                      }
 
       roles <- customRoles
       users <- getUsers()
