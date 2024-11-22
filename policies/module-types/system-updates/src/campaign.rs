@@ -218,8 +218,9 @@ fn update(
         Ok(ref l) => Some(l.clone()),
         _ => None,
     };
+    let after_failed = after.inner.is_err();
     report.step(after);
-    if report.is_err() {
+    if after_failed {
         report.stderr("Failed to list installed packages, aborting upgrade");
         return Ok((report, false));
     }
