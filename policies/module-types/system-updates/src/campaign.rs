@@ -220,6 +220,8 @@ fn update(
     };
     let after_failed = after.inner.is_err();
     report.step(after);
+    // The report can be in error state, we only want to fail
+    // if the package listing failed.
     if after_failed {
         report.stderr("Failed to list installed packages, aborting upgrade");
         return Ok((report, false));
