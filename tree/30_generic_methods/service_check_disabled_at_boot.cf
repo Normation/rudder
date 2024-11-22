@@ -20,6 +20,7 @@
 # @description Check if a service is set to not start at boot using the appropriate method
 #
 # @parameter name  Service name (as recognized by systemd, init.d, etc...)
+# @deprecated Use [service_disabled](#_service_disabled) with policy_mode_override set to audit instead
 # 
 #
 # @parameter_rename service_name name

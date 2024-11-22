@@ -22,6 +22,7 @@
 # directory exists, or `directory_check_exists_${path}_{not_ok, reached, not_kept, failed}` if
 # the directory doesn't exists
 #
+# @deprecated Use [directory_present](#_directory_present) with policy_mode_override set to audit instead
 # @parameter path     Full path of the directory to check
 # 
 #
