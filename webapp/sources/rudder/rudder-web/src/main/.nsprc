@@ -1,8 +1,4 @@
 {
-  "GHSA-ww39-953v-wcq6": "A DoS", 
-  "GHSA-f8q6-p94x-37v3": "A DoS",
-  "GHSA-w5p7-h5w8-2hfq": "A DoS",
-  "GHSA-xvch-5gv4-984h": "Not used",
-  "GHSA-w573-4hg7-7wgq": "A DoS",
-  "GHSA-grv7-fg5c-xmjg": "A DoS"
+  "GHSA-grv7-fg5c-xmjg": "A DoS",
+  "GHSA-3xgq-45jj-v275": "A DoS on regexp, probably only in a Dev ependency"
 }
