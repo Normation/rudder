@@ -338,7 +338,7 @@ object TraitTestApiFromYamlFiles {
 
       limitToFiles:    List[String] = Nil,
       transformations: Map[String, String => String]
-  ) = {
+  ): UIO[List[Spec[Any, Throwable]]] = {
 
     ///// tests ////
     val restTest = new RestTest(liftRules)
