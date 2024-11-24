@@ -68,7 +68,13 @@ pub fn pg_pool(configuration: &DatabaseConfig) -> Result<PgPool, Error> {
             "?"
         },
         percent_encoding::percent_encode(
-            configuration.password.expose_secret().as_bytes(),
+            // database is selected at this point, so validation must have detected None password
+            configuration
+                .password
+                .as_ref()
+                .unwrap()
+                .expose_secret()
+                .as_bytes(),
             NON_ALPHANUMERIC
         )
     ));
@@ -181,7 +187,7 @@ mod tests {
     pub fn db() -> PgPool {
         let db_config = DatabaseConfig {
             url: "postgres://rudderreports:@postgres/rudder".to_string(),
-            password: "PASSWORD".into(),
+            password: Some("PASSWORD".into()),
             max_pool_size: 5,
         };
         pg_pool(&db_config).unwrap()
