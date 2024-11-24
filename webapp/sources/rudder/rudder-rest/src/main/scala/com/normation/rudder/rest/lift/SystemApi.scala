@@ -106,50 +106,48 @@ class SystemApi(
 
   override def getLiftEndpoints(): List[LiftApiModule] = {
 
-    API.endpoints.map(e => {
-      e match {
-        case API.Info                           => Info
-        case API.Status                         => Status
-        case API.DebugInfo                      => DebugInfo
-        case API.TechniquesReload               => TechniquesReload
-        case API.DyngroupsReload                => DyngroupsReload
-        case API.ReloadAll                      => ReloadAll
-        case API.PoliciesUpdate                 => PoliciesUpdate
-        case API.PoliciesRegenerate             => PoliciesRegenerate
-        case API.ArchivesGroupsList             => ArchivesGroupsList
-        case API.ArchivesDirectivesList         => ArchivesDirectivesList
-        case API.ArchivesRulesList              => ArchivesRulesList
-        case API.ArchivesParametersList         => ArchivesParametersList
-        case API.ArchivesFullList               => ArchivesFullList
-        case API.RestoreGroupsLatestArchive     => RestoreGroupsLatestArchive
-        case API.RestoreDirectivesLatestArchive => RestoreDirectivesLatestArchive
-        case API.RestoreRulesLatestArchive      => RestoreRulesLatestArchive
-        case API.RestoreParametersLatestArchive => RestoreParametersLatestArchive
-        case API.RestoreFullLatestArchive       => RestoreFullLatestArchive
-        case API.RestoreGroupsLatestCommit      => RestoreGroupsLatestCommit
-        case API.RestoreDirectivesLatestCommit  => RestoreDirectivesLatestCommit
-        case API.RestoreRulesLatestCommit       => RestoreRulesLatestCommit
-        case API.RestoreParametersLatestCommit  => RestoreParametersLatestCommit
-        case API.RestoreFullLatestCommit        => RestoreFullLatestCommit
-        case API.ArchiveGroups                  => ArchiveGroups
-        case API.ArchiveDirectives              => ArchiveDirectives
-        case API.ArchiveRules                   => ArchiveRules
-        case API.ArchiveParameters              => ArchiveParameters
-        case API.ArchiveFull                    => ArchiveAll
-        case API.ArchiveGroupDateRestore        => ArchiveGroupDateRestore
-        case API.ArchiveDirectiveDateRestore    => ArchiveDirectiveDateRestore
-        case API.ArchiveRuleDateRestore         => ArchiveRuleDateRestore
-        case API.ArchiveParameterDateRestore    => ArchiveParameterDateRestore
-        case API.ArchiveFullDateRestore         => ArchiveFullDateRestore
-        case API.GetGroupsZipArchive            => GetGroupsZipArchive
-        case API.GetDirectivesZipArchive        => GetDirectivesZipArchive
-        case API.GetRulesZipArchive             => GetRulesZipArchive
-        case API.GetParametersZipArchive        => GetParametersZipArchive
-        case API.GetAllZipArchive               => GetAllZipArchive
-        case API.GetHealthcheckResult           => GetHealthcheckResult
-        case API.PurgeSoftware                  => PurgeSoftware
-      }
-    })
+    API.endpoints.map {
+      case API.Info                           => Info
+      case API.Status                         => Status
+      case API.DebugInfo                      => DebugInfo
+      case API.TechniquesReload               => TechniquesReload
+      case API.DyngroupsReload                => DyngroupsReload
+      case API.ReloadAll                      => ReloadAll
+      case API.PoliciesUpdate                 => PoliciesUpdate
+      case API.PoliciesRegenerate             => PoliciesRegenerate
+      case API.ArchivesGroupsList             => ArchivesGroupsList
+      case API.ArchivesDirectivesList         => ArchivesDirectivesList
+      case API.ArchivesRulesList              => ArchivesRulesList
+      case API.ArchivesParametersList         => ArchivesParametersList
+      case API.ArchivesFullList               => ArchivesFullList
+      case API.RestoreGroupsLatestArchive     => RestoreGroupsLatestArchive
+      case API.RestoreDirectivesLatestArchive => RestoreDirectivesLatestArchive
+      case API.RestoreRulesLatestArchive      => RestoreRulesLatestArchive
+      case API.RestoreParametersLatestArchive => RestoreParametersLatestArchive
+      case API.RestoreFullLatestArchive       => RestoreFullLatestArchive
+      case API.RestoreGroupsLatestCommit      => RestoreGroupsLatestCommit
+      case API.RestoreDirectivesLatestCommit  => RestoreDirectivesLatestCommit
+      case API.RestoreRulesLatestCommit       => RestoreRulesLatestCommit
+      case API.RestoreParametersLatestCommit  => RestoreParametersLatestCommit
+      case API.RestoreFullLatestCommit        => RestoreFullLatestCommit
+      case API.ArchiveGroups                  => ArchiveGroups
+      case API.ArchiveDirectives              => ArchiveDirectives
+      case API.ArchiveRules                   => ArchiveRules
+      case API.ArchiveParameters              => ArchiveParameters
+      case API.ArchiveFull                    => ArchiveAll
+      case API.ArchiveGroupDateRestore        => ArchiveGroupDateRestore
+      case API.ArchiveDirectiveDateRestore    => ArchiveDirectiveDateRestore
+      case API.ArchiveRuleDateRestore         => ArchiveRuleDateRestore
+      case API.ArchiveParameterDateRestore    => ArchiveParameterDateRestore
+      case API.ArchiveFullDateRestore         => ArchiveFullDateRestore
+      case API.GetGroupsZipArchive            => GetGroupsZipArchive
+      case API.GetDirectivesZipArchive        => GetDirectivesZipArchive
+      case API.GetRulesZipArchive             => GetRulesZipArchive
+      case API.GetParametersZipArchive        => GetParametersZipArchive
+      case API.GetAllZipArchive               => GetAllZipArchive
+      case API.GetHealthcheckResult           => GetHealthcheckResult
+      case API.PurgeSoftware                  => PurgeSoftware
+    }
   }
 
   object Info extends LiftApiModule0 {

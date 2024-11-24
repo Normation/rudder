@@ -38,72 +38,41 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.GitVersion
-import com.normation.box.*
 import com.normation.errors.*
-import com.normation.eventlog.*
 import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiVersion
-import com.normation.rudder.apidata.DetailLevel
-import com.normation.rudder.apidata.FullDetails
 import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
-import com.normation.rudder.apidata.MinimalDetails
-import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.domain.logger.ConfigurationLoggerPure
+import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.policies.ApplicationStatus
 import com.normation.rudder.domain.policies.ChangeRequestRuleDiff
-import com.normation.rudder.domain.policies.DeleteRuleDiff
-import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.ModifyToRuleDiff
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.RuleUid
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.CoreNodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.repository.RoNodeGroupRepository
-import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.repository.WoRuleRepository
+import com.normation.rudder.facts.nodes.*
+import com.normation.rudder.repository.*
 import com.normation.rudder.rest.*
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
-import com.normation.rudder.rest.RestUtils.getActor
-import com.normation.rudder.rest.RestUtils.toJsonError
-import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.RuleApi as API
-import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rule.category.*
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.policies.RuleApplicationStatusService
-import com.normation.rudder.services.workflows.ChangeRequestService
-import com.normation.rudder.services.workflows.RuleChangeRequest
-import com.normation.rudder.services.workflows.RuleModAction
-import com.normation.rudder.services.workflows.WorkflowLevelService
-import com.normation.rudder.users.UserService
+import com.normation.rudder.services.workflows.*
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
-import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.*
-import net.liftweb.json.JArray
-import net.liftweb.json.JsonDSL.*
 import org.joda.time.DateTime
 import scala.collection.MapView
 import zio.*
@@ -112,9 +81,7 @@ import zio.syntax.*
 class RuleApi(
     restExtractorService: RestExtractorService,
     zioJsonExtractor:     ZioJsonExtractor,
-    serviceV2:            RuleApiService2,
-    serviceV6:            RuleApiService6,
-    serviceV14:           RuleApiService14,
+    service:              RuleApiService14,
     uuidGen:              StringUuidGenerator
 ) extends LiftApiModuleProvider[API] {
 
@@ -138,243 +105,33 @@ class RuleApi(
   def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints.map(e => {
-      e match {
-        case API.ListRules                       => ChooseApi0(ListRules, ListRulesV14)
-        case API.RuleDetails                     => ChooseApiN(RuleDetails, RuleDetailsV14)
-        case API.CreateRule                      => ChooseApi0(CreateRule, CreateRuleV14)
-        case API.UpdateRule                      => ChooseApiN(UpdateRule, UpdateRuleV14)
-        case API.DeleteRule                      => ChooseApiN(DeleteRule, DeleteRuleV14)
-        case API.GetRuleTree                     => ChooseApi0(GetRuleTree, GetRuleTreeV14)
-        case API.GetRuleCategoryDetails          => ChooseApiN(GetRuleCategoryDetails, GetRuleCategoryDetailsV14)
-        case API.CreateRuleCategory              => ChooseApi0(CreateRuleCategory, CreateRuleCategoryV14)
-        case API.UpdateRuleCategory              => ChooseApiN(UpdateRuleCategory, UpdateRuleCategoryV14)
-        case API.DeleteRuleCategory              => ChooseApiN(DeleteRuleCategory, DeleteRuleCategoryV14)
-        case API.LoadRuleRevisionForGeneration   => LoadRuleRevisionForGeneration
-        case API.UnloadRuleRevisionForGeneration => UnloadRuleRevisionForGeneration
-      }
-    })
-  }
-
-  object ListRules extends LiftApiModule0 {
-    val schema: API.ListRules.type = API.ListRules
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV2.listRules(req)
-    }
-  }
-
-  object CreateRule extends LiftApiModule0 {
-    val schema: API.CreateRule.type = API.CreateRule
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      var action = "createRule"
-      val id     = restExtractor.extractId(req)(x => RuleId.parse(x).toBox).map(_.getOrElse(RuleId(RuleUid(uuidGen.newUuid))))
-
-      val response = for {
-        ruleId     <- id
-        restRule   <- restExtractor.extractRule(req) ?~! s"Could not extract Rule parameters from request"
-        optCloneId <- restExtractor.extractString("source")(req)(x => RuleId.parse(x).toBox)
-        result     <- serviceV2.createRule(restRule, ruleId, optCloneId, authzToken.qc.actor)
-      } yield {
-        if (optCloneId.nonEmpty)
-          action = "cloneRule"
-        result
-      }
-
-      actionResponse(response, req, "Could not create Rule", id.map(_.serialize), authzToken.qc.actor, "rules")(action)
-    }
-  }
-
-  object RuleDetails extends LiftApiModuleString {
-    val schema: API.RuleDetails.type = API.RuleDetails
-    val restExtractor = restExtractorService
-    def process(
-        version:    ApiVersion,
-        path:       ApiPath,
-        id:         String,
-        req:        Req,
-        params:     DefaultParams,
-        authzToken: AuthzToken
-    ): LiftResponse = {
-      serviceV2.ruleDetails(id, req)
-    }
-  }
-
-  object DeleteRule extends LiftApiModuleString {
-    val schema: API.DeleteRule.type = API.DeleteRule
-    val restExtractor = restExtractorService
-    def process(
-        version:    ApiVersion,
-        path:       ApiPath,
-        id:         String,
-        req:        Req,
-        params:     DefaultParams,
-        authzToken: AuthzToken
-    ): LiftResponse = {
-      implicit val qc: QueryContext = authzToken.qc
-      serviceV2.deleteRule(id, req)
-    }
-  }
-
-  object UpdateRule extends LiftApiModuleString {
-    val schema: API.UpdateRule.type = API.UpdateRule
-    val restExtractor = restExtractorService
-    def process(
-        version:    ApiVersion,
-        path:       ApiPath,
-        id:         String,
-        req:        Req,
-        params:     DefaultParams,
-        authzToken: AuthzToken
-    ): LiftResponse = {
-      implicit val qc: QueryContext = authzToken.qc
-      if (req.json_?) {
-        req.json match {
-          case Full(arg) =>
-            val restRule = restExtractor.extractRuleFromJSON(arg)
-            serviceV2.updateRule(id, req, restRule)
-          case eb: EmptyBox =>
-            toJsonError(None, JString("No Json data sent"))("updateRule", restExtractor.extractPrettify(req.params))
-        }
-      } else {
-        val restRule = restExtractor.extractRule(req.params)
-        serviceV2.updateRule(id, req, restRule)
-      }
-    }
-  }
-
-  object GetRuleTree extends LiftApiModule0 {
-    val schema: API.GetRuleTree.type = API.GetRuleTree
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      response(
-        serviceV6.getCategoryTree,
-        req,
-        s"Could not fetch Rule category tree",
-        "ruleCategories"
-      )("getRuleTree")
-    }
-  }
-
-  object GetRuleCategoryDetails extends LiftApiModuleString {
-    val schema: API.GetRuleCategoryDetails.type = API.GetRuleCategoryDetails
-    val restExtractor = restExtractorService
-    def process(
-        version:    ApiVersion,
-        path:       ApiPath,
-        id:         String,
-        req:        Req,
-        params:     DefaultParams,
-        authzToken: AuthzToken
-    ): LiftResponse = {
-      response(
-        serviceV6.getCategoryDetails(RuleCategoryId(id)),
-        req,
-        s"Could not fetch Rule category '${id}' details",
-        "ruleCategories"
-      )("getRuleCategoryDetails")
-    }
-  }
-
-  object DeleteRuleCategory extends LiftApiModuleString {
-    val schema: API.DeleteRuleCategory.type = API.DeleteRuleCategory
-    val restExtractor = restExtractorService
-    def process(
-        version:    ApiVersion,
-        path:       ApiPath,
-        id:         String,
-        req:        Req,
-        params:     DefaultParams,
-        authzToken: AuthzToken
-    ): LiftResponse = {
-      actionResponse(
-        Full(serviceV6.deleteCategory(RuleCategoryId(id))),
-        req,
-        s"Could not delete Rule category '${id}'",
-        Some(id),
-        authzToken.qc.actor,
-        "ruleCategories"
-      )("deleteRuleCategory")
-    }
-  }
-
-  object UpdateRuleCategory extends LiftApiModuleString {
-    val schema: API.UpdateRuleCategory.type = API.UpdateRuleCategory
-    val restExtractor = restExtractorService
-    def process(
-        version:    ApiVersion,
-        path:       ApiPath,
-        id:         String,
-        req:        Req,
-        params:     DefaultParams,
-        authzToken: AuthzToken
-    ): LiftResponse = {
-      val action = {
-        if (req.json_?) {
-          for {
-            json <- req.json ?~! "No JSON data sent"
-            cat  <- restExtractor.extractRuleCategory(json)
-          } yield {
-            serviceV6.updateCategory(RuleCategoryId(id), cat) _
-          }
-        } else {
-          for {
-            restCategory <- restExtractor.extractRuleCategory(req.params)
-          } yield {
-            serviceV6.updateCategory(RuleCategoryId(id), restCategory) _
-          }
-        }
-      }
-      actionResponse(
-        action,
-        req,
-        s"Could not update Rule category '${id}'",
-        Some(id),
-        authzToken.qc.actor,
-        "ruleCategories"
-      )("updateRuleCategory")
-    }
-  }
-
-  object CreateRuleCategory extends LiftApiModule0 {
-    val schema: API.CreateRuleCategory.type = API.CreateRuleCategory
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val restData = if (req.json_?) {
-        for {
-          json <- req.json
-          cat  <- restExtractor.extractRuleCategory(json)
-        } yield {
-          cat
-        }
-      } else { restExtractor.extractRuleCategory(req.params) }
-      val id       = restData.map(_.id).toOption.flatten.getOrElse(RuleCategoryId(uuidGen.newUuid))
-      val action   = restData.map(cat => serviceV6.createCategory(cat, () => id) _)
-
-      actionResponse(
-        action,
-        req,
-        s"Could not create Rule category",
-        Some(id.value), // I'm not sure it's relevant to give that on creation
-
-        authzToken.qc.actor,
-        "ruleCategories"
-      )("createRuleCategory")
+    API.endpoints.map {
+      case API.ListRules                       => ListRules
+      case API.RuleDetails                     => RuleDetails
+      case API.CreateRule                      => CreateRule
+      case API.UpdateRule                      => UpdateRule
+      case API.DeleteRule                      => DeleteRule
+      case API.GetRuleTree                     => GetRuleTree
+      case API.GetRuleCategoryDetails          => GetRuleCategoryDetails
+      case API.CreateRuleCategory              => CreateRuleCategory
+      case API.UpdateRuleCategory              => UpdateRuleCategory
+      case API.DeleteRuleCategory              => DeleteRuleCategory
+      case API.LoadRuleRevisionForGeneration   => LoadRuleRevisionForGeneration
+      case API.UnloadRuleRevisionForGeneration => UnloadRuleRevisionForGeneration
     }
   }
 
   //////////////////// new API using only zio_json ////////////////////
 
-  object ListRulesV14 extends LiftApiModule0 {
+  object ListRules extends LiftApiModule0 {
     val schema:                                                                                                API.ListRules.type = API.ListRules
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse       = {
       implicit val qc: QueryContext = authzToken.qc
-      serviceV14.listRules().toLiftResponseList(params, schema)
+      service.listRules().toLiftResponseList(params, schema)
     }
   }
 
-  object RuleDetailsV14 extends LiftApiModuleString {
+  object RuleDetails extends LiftApiModuleString {
     val schema: API.RuleDetails.type = API.RuleDetails
     def process(
         version:    ApiVersion,
@@ -387,19 +144,19 @@ class RuleApi(
       implicit val qc: QueryContext = authzToken.qc
       (for {
         id <- RuleId.parse(sid).toIO
-        r  <- serviceV14.getRule(id)
+        r  <- service.getRule(id)
       } yield r).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
-  object CreateRuleV14 extends LiftApiModule0 {
+  object CreateRule extends LiftApiModule0 {
     val schema: API.CreateRule.type = API.CreateRule
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
       (for {
         restRule <- zioJsonExtractor.extractRule(req).chainError(s"Could not extract rule parameters from request").toIO
-        result   <- serviceV14.createRule(
+        result   <- service.createRule(
                       restRule,
                       restRule.id.getOrElse(RuleId(RuleUid(uuidGen.newUuid))),
                       restRule.source,
@@ -413,7 +170,7 @@ class RuleApi(
     }
   }
 
-  object UpdateRuleV14 extends LiftApiModuleString {
+  object UpdateRule extends LiftApiModuleString {
     val schema: API.UpdateRule.type = API.UpdateRule
     def process(
         version:    ApiVersion,
@@ -427,14 +184,14 @@ class RuleApi(
       (for {
         id       <- RuleId.parse(sid).toIO
         restRule <- zioJsonExtractor.extractRule(req).chainError(s"Could not extract a rule from request.").toIO
-        res      <- serviceV14.updateRule(restRule.copy(id = Some(id)), params, authzToken.qc.actor)
+        res      <- service.updateRule(restRule.copy(id = Some(id)), params, authzToken.qc.actor)
       } yield {
         res
       }).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
-  object DeleteRuleV14 extends LiftApiModuleString {
+  object DeleteRule extends LiftApiModuleString {
     val schema: API.DeleteRule.type = API.DeleteRule
     def process(
         version:    ApiVersion,
@@ -447,22 +204,22 @@ class RuleApi(
       implicit val qc: QueryContext = authzToken.qc
       (for {
         id <- RuleId.parse(sid).toIO
-        r  <- serviceV14.deleteRule(id, params, authzToken.qc.actor)
+        r  <- service.deleteRule(id, params, authzToken.qc.actor)
       } yield r).toLiftResponseOne(params, schema, s => Some(s.id))
 
     }
   }
 
-  object GetRuleTreeV14 extends LiftApiModule0 {
+  object GetRuleTree extends LiftApiModule0 {
     val schema: API.GetRuleTree.type = API.GetRuleTree
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
-      serviceV14.getCategoryTree().toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
+      service.getCategoryTree().toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
     }
   }
 
-  object GetRuleCategoryDetailsV14 extends LiftApiModuleString {
+  object GetRuleCategoryDetails extends LiftApiModuleString {
     val schema: API.GetRuleCategoryDetails.type = API.GetRuleCategoryDetails
     def process(
         version:    ApiVersion,
@@ -472,23 +229,23 @@ class RuleApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      serviceV14.getCategoryDetails(RuleCategoryId(id)).toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
+      service.getCategoryDetails(RuleCategoryId(id)).toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
     }
   }
 
-  object CreateRuleCategoryV14 extends LiftApiModule0 {
+  object CreateRuleCategory extends LiftApiModule0 {
     val schema:                                                                                                API.CreateRuleCategory.type = API.CreateRuleCategory
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                = {
       (for {
         cat <- zioJsonExtractor.extractRuleCategory(req).toIO
-        res <- serviceV14.createCategory(cat, () => uuidGen.newUuid, params, authzToken.qc.actor)
+        res <- service.createCategory(cat, () => uuidGen.newUuid, params, authzToken.qc.actor)
       } yield {
         res
       }).toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
     }
   }
 
-  object UpdateRuleCategoryV14 extends LiftApiModuleString {
+  object UpdateRuleCategory extends LiftApiModuleString {
     val schema: API.UpdateRuleCategory.type = API.UpdateRuleCategory
     def process(
         version:    ApiVersion,
@@ -500,14 +257,14 @@ class RuleApi(
     ): LiftResponse = {
       (for {
         cat <- zioJsonExtractor.extractRuleCategory(req).toIO
-        res <- serviceV14.updateCategory(RuleCategoryId(id), cat, params, authzToken.qc.actor)
+        res <- service.updateCategory(RuleCategoryId(id), cat, params, authzToken.qc.actor)
       } yield {
         res
       }).toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
     }
   }
 
-  object DeleteRuleCategoryV14 extends LiftApiModuleString {
+  object DeleteRuleCategory extends LiftApiModuleString {
     val schema: API.DeleteRuleCategory.type = API.DeleteRuleCategory
     def process(
         version:    ApiVersion,
@@ -517,7 +274,7 @@ class RuleApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      serviceV14
+      service
         .deleteCategory(RuleCategoryId(id), params, authzToken.qc.actor)
         .toLiftResponseOne(params, schema, s => Some(s.ruleCategories.id))
     }
@@ -537,7 +294,7 @@ class RuleApi(
 
       (for {
         rid <- RuleId.parse(id).toIO
-        res <- serviceV14.loadRule(rid, params, authzToken.qc.actor)
+        res <- service.loadRule(rid, params, authzToken.qc.actor)
       } yield res).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
@@ -554,300 +311,8 @@ class RuleApi(
     ): LiftResponse = {
       (for {
         rid <- RuleId.parse(id).toIO
-        res <- serviceV14.unloadRule(rid, params, authzToken.qc.actor)
+        res <- service.unloadRule(rid, params, authzToken.qc.actor)
       } yield res).toLiftResponseOne(params, schema, s => Some(s.serialize))
-    }
-  }
-
-}
-
-class RuleApiService2(
-    readRule:             RoRuleRepository,
-    writeRule:            WoRuleRepository,
-    uuidGen:              StringUuidGenerator,
-    asyncDeploymentAgent: AsyncDeploymentActor,
-    workflowLevelService: WorkflowLevelService,
-    restExtractor:        RestExtractorService,
-    restDataSerializer:   RestDataSerializer
-)(implicit userService: UserService) {
-
-  import restDataSerializer.serializeRule as serialize
-
-  private def createChangeRequestAndAnswer(
-      id:     String,
-      diff:   ChangeRequestRuleDiff,
-      change: RuleChangeRequest,
-      actor:  EventActor,
-      req:    Req
-  )(implicit action: String, prettify: Boolean, qc: QueryContext) = {
-    (for {
-      workflow <- workflowLevelService.getForRule(actor, change)
-      reason   <- restExtractor.extractReason(req)
-      crName   <- restExtractor
-                    .extractChangeRequestName(req)
-                    .map(_.getOrElse(s"${change.action.name} rule '${change.newRule.name}' by API request"))
-      crDesc    = restExtractor.extractChangeRequestDescription(req)
-      cr        = ChangeRequestService.createChangeRequestFromRule(
-                    crName,
-                    crDesc,
-                    change.newRule,
-                    change.previousRule,
-                    diff,
-                    actor,
-                    reason
-                  )
-      id       <- workflowLevelService
-                    .getWorkflowService()
-                    .startWorkflow(cr)(
-                      ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), reason, None, qc.nodePerms)
-                    )
-    } yield {
-      (workflow.needExternalValidation(), id)
-    }) match {
-      case Full((needValidation, crId)) =>
-        val optCrId  = if (needValidation) Some(crId) else None
-        val jsonRule = List(serialize(change.newRule, optCrId))
-        toJsonResponse(Some(id), ("rules" -> JArray(jsonRule)))
-      case eb: EmptyBox =>
-        val fail = eb ?~ (s"Could not save changes on Rule ${id}")
-        val msg  = s"${change.action.name} failed, cause is: ${fail.msg}."
-        toJsonError(Some(id), msg)
-    }
-  }
-
-  def listRules(req: Req): LiftResponse = {
-    implicit val action   = "listRules"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    readRule.getAll(false).toBox match {
-      case Full(rules) =>
-        toJsonResponse(None, ("rules" -> JArray(rules.map(serialize(_, None)).toList)))
-      case eb: EmptyBox =>
-        val message = (eb ?~ ("Could not fetch Rules")).msg
-        toJsonError(None, message)
-    }
-  }
-
-  def actualRuleCreation(
-      change: RuleChangeRequest
-  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JArray] = {
-    (for {
-      _ <- writeRule.create(change.newRule, modId, actor, reason).toBox
-    } yield {
-      asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
-      JArray(serialize(change.newRule, None) :: Nil)
-    }) ?~ (s"Could not save Rule ${change.newRule.id.serialize}")
-  }
-
-  def createRule(
-      restRule: RestRule,
-      ruleId:   RuleId,
-      clone:    Option[RuleId],
-      actor:    EventActor
-  ): Box[(EventActor, ModificationId, Option[String]) => Box[JValue]] = {
-    // decide if we should create a new rule or clone an existing one
-    // Return the source rule to use in each case.
-    def createOrClone(name: String): Box[RuleChangeRequest] = {
-      clone match {
-        case Some(sourceId) =>
-          // clone existing rule
-          for {
-            rule <- readRule.get(sourceId).toBox ?~!
-                    s"Could not create rule '${name}' (id:${ruleId.serialize}) by cloning rule '${sourceId.serialize}')"
-          } yield {
-            RuleChangeRequest(RuleModAction.Create, restRule.updateRule(rule).copy(id = ruleId), Some(rule))
-          }
-
-        case None =>
-          // create from scratch - base rule is the same with default values
-          val category       = restRule.category.getOrElse(RuleCategoryId("rootRuleCategory"))
-          val baseRule       = Rule(ruleId, name, category)
-          // If enable is missing in parameter consider it to true
-          val defaultEnabled = restRule.enabled.getOrElse(true)
-
-          val change = RuleChangeRequest(RuleModAction.Create, restRule.updateRule(baseRule), Some(baseRule))
-          // if only the name parameter is set, consider it to be enabled
-          // if not if workflow are enabled, consider it to be disabled
-          // if there is no workflow, use the value used as parameter (default to true)
-          // code extract :
-          /*
-           * if (restRule.onlyName) true
-           * else if (workflowEnabled) false
-           * else defaultEnabled
-           */
-          for {
-            workflow <- workflowLevelService.getForRule(actor, change) ?~! "Could not find workflow status for that rule creation"
-          } yield {
-            // we don't actually start a workflow, we only disable the rule if a workflow should be
-            // started. Update rule "enable" status accordingly.
-            val enableCheck = restRule.onlyName || (!workflow.needExternalValidation() && defaultEnabled)
-            // Then enabled value in restRule will be used in the saved Rule
-            change.copy(newRule = change.newRule.copy(isEnabledStatus = enableCheck))
-          }
-      }
-    }
-
-    (for {
-      name   <- Box(restRule.name) ?~! "Missing manadatory parameter Name"
-      change <- createOrClone(name)
-    } yield {
-      (actualRuleCreation(change) _)
-    }) ?~ (s"Error when creating new rule")
-  }
-
-  // only used in old API, don't care about revision
-  def ruleDetails(id: String, req: Req): LiftResponse = {
-    implicit val action   = "ruleDetails"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-
-    readRule.get(RuleId(RuleUid(id))).toBox match {
-      case Full(rule) =>
-        val jsonRule = List(serialize(rule, None))
-        toJsonResponse(Some(id), ("rules" -> JArray(jsonRule)))
-      case eb: EmptyBox =>
-        val fail    = eb ?~! (s"Could not find Rule ${id}")
-        val message = s"Could not get Rule ${id} details cause is: ${fail.msg}."
-        toJsonError(Some(id), message)
-    }
-  }
-
-  def deleteRule(id: String, req: Req)(implicit qc: QueryContext): LiftResponse = {
-    implicit val action   = "deleteRule"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    val actor             = RestUtils.getActor(req)
-    val ruleId            = RuleId(RuleUid(id))
-
-    readRule.get(ruleId).toBox match {
-      case Full(rule) =>
-        val deleteRuleDiff = DeleteRuleDiff(rule)
-        val change         = RuleChangeRequest(RuleModAction.Delete, rule, Some(rule))
-        createChangeRequestAndAnswer(id, deleteRuleDiff, change, actor, req)
-
-      case eb: EmptyBox =>
-        val fail    = eb ?~ (s"Could not find Rule ${ruleId.serialize}")
-        val message = s"Could not delete Rule ${ruleId.serialize} cause is: ${fail.msg}."
-        toJsonError(Some(ruleId.serialize), message)
-    }
-  }
-
-  def updateRule(id: String, req: Req, restValues: Box[RestRule])(implicit qc: QueryContext): LiftResponse = {
-    implicit val action   = "updateRule"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    val actor             = getActor(req)
-    val ruleId            = RuleId(RuleUid(id))
-
-    readRule.get(ruleId).toBox match {
-      case Full(rule) =>
-        restValues match {
-          case Full(restRule) =>
-            val updatedRule = restRule.updateRule(rule)
-            val diff        = ModifyToRuleDiff(updatedRule)
-            val change      = RuleChangeRequest(RuleModAction.Update, updatedRule, Some(rule))
-            createChangeRequestAndAnswer(id, diff, change, actor, req)
-
-          case eb: EmptyBox =>
-            val fail    = eb ?~ (s"Could extract values from request")
-            val message = s"Could not modify Rule ${ruleId.serialize} cause is: ${fail.msg}."
-            toJsonError(Some(ruleId.serialize), message)
-        }
-
-      case eb: EmptyBox =>
-        val fail    = eb ?~ (s"Could not find Rule ${ruleId.serialize}")
-        val message = s"Could not modify Rule ${ruleId.serialize} cause is: ${fail.msg}."
-        toJsonError(Some(ruleId.serialize), message)
-    }
-  }
-
-}
-
-class RuleApiService6(
-    readRuleCategory:   RoRuleCategoryRepository,
-    readRule:           RoRuleRepository,
-    writeRuleCategory:  WoRuleCategoryRepository,
-    restDataSerializer: RestDataSerializer
-) extends Loggable {
-
-  def getCategoryInformations(category: RuleCategory, parent: RuleCategoryId, detail: DetailLevel): Box[JValue] = {
-    for {
-      rules <- readRule.getAll()
-
-    } yield {
-      restDataSerializer.serializeRuleCategory(category, parent, rules.groupBy(_.categoryId), detail)
-    }
-  }.toBox
-
-  def getCategoryTree: Box[JValue] = {
-    for {
-      root       <- readRuleCategory.getRootCategory().toBox
-      categories <- getCategoryInformations(root, root.id, FullDetails)
-    } yield {
-      categories
-    }
-  }
-
-  def getCategoryDetails(id: RuleCategoryId): Box[JValue] = {
-    for {
-      root              <- readRuleCategory.getRootCategory().toBox
-      found             <- root.find(id)
-      (category, parent) = found
-      categories        <- getCategoryInformations(category, parent, MinimalDetails)
-    } yield {
-      categories
-    }
-  }
-
-  def deleteCategory(id: RuleCategoryId)(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
-    for {
-      root              <- readRuleCategory.getRootCategory()
-      found             <- root.find(id).toIO
-      (category, parent) = found
-      rules             <- readRule.getAll()
-      ok                <- ZIO.when(!category.canBeDeleted(rules.toList)) {
-                             Inconsistency(s"Cannot delete category '${category.name}' since that category is not empty").fail
-                           }
-      _                 <- writeRuleCategory.delete(id, modId, actor, reason)
-      category          <- getCategoryInformations(category, parent, MinimalDetails).toIO
-    } yield {
-      category
-    }
-  }.toBox
-
-  def updateCategory(
-      id:       RuleCategoryId,
-      restData: RestRuleCategory
-  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
-    logger.info(restData)
-    for {
-      root              <- readRuleCategory.getRootCategory()
-      found             <- root.find(id).toIO
-      (category, parent) = found
-      rules             <- readRule.getAll()
-      update             = restData.update(category)
-      updatedParent      = restData.parent.getOrElse(parent)
-
-      _        <- restData.parent match {
-                    case Some(parent) =>
-                      writeRuleCategory.updateAndMove(update, parent, modId, actor, reason)
-                    case None         =>
-                      writeRuleCategory.updateAndMove(update, parent, modId, actor, reason)
-                  }
-      category <- getCategoryInformations(update, updatedParent, MinimalDetails).toIO
-    } yield {
-      category
-    }
-  }.toBox
-
-  def createCategory(
-      restData:  RestRuleCategory,
-      defaultId: () => RuleCategoryId
-  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
-    for {
-      name     <- restData.name.notOptional("Could not create Rule Category, cause name is not defined").toBox
-      update    = RuleCategory(restData.id.getOrElse(defaultId()), name, restData.description.getOrElse(""), Nil)
-      parent    = restData.parent.getOrElse(RuleCategoryId("rootRuleCategory"))
-      _        <- writeRuleCategory.create(update, parent, modId, actor, reason).toBox
-      category <- getCategoryInformations(update, parent, MinimalDetails)
-    } yield {
-      category
     }
   }
 

@@ -1577,26 +1577,6 @@ object RudderConfigInit {
     )
     lazy val restCompletion  = new RestCompletion(new RestCompletionService(roDirectiveRepository, roRuleRepository))
 
-    lazy val ruleApiService2 = {
-      new RuleApiService2(
-        roRuleRepository,
-        woRuleRepository,
-        uuidGen,
-        asyncDeploymentAgent,
-        workflowLevelService,
-        restExtractorService,
-        restDataSerializer
-      )
-    }
-
-    lazy val ruleApiService6  = {
-      new RuleApiService6(
-        roRuleCategoryRepository,
-        roRuleRepository,
-        woRuleCategoryRepository,
-        restDataSerializer
-      )
-    }
     lazy val ruleApiService13 = {
       new RuleApiService14(
         roRuleRepository,
@@ -1615,20 +1595,6 @@ object RudderConfigInit {
       )
     }
 
-    lazy val directiveApiService2 = {
-      new DirectiveApiService2(
-        roDirectiveRepository,
-        woDirectiveRepository,
-        uuidGen,
-        asyncDeploymentAgent,
-        workflowLevelService,
-        restExtractorService,
-        directiveEditorService,
-        restDataSerializer,
-        techniqueRepositoryImpl
-      )
-    }
-
     lazy val directiveApiService14 = {
       new DirectiveApiService14(
         roDirectiveRepository,
@@ -1643,13 +1609,6 @@ object RudderConfigInit {
       )
     }
 
-    lazy val techniqueApiService6 = {
-      new TechniqueAPIService6(
-        roDirectiveRepository,
-        restDataSerializer
-      )
-    }
-
     lazy val techniqueApiService14 = {
       new TechniqueAPIService14(
         roDirectiveRepository,
@@ -1658,27 +1617,6 @@ object RudderConfigInit {
         techniqueSerializer,
         restDataSerializer,
         techniqueCompiler
-      )
-    }
-
-    lazy val groupApiService2 = {
-      new GroupApiService2(
-        roNodeGroupRepository,
-        woNodeGroupRepository,
-        uuidGen,
-        asyncDeploymentAgent,
-        workflowLevelService,
-        restExtractorService,
-        queryProcessor,
-        restDataSerializer
-      )
-    }
-
-    lazy val groupApiService6 = {
-      new GroupApiService6(
-        roNodeGroupRepository,
-        woNodeGroupRepository,
-        restDataSerializer
       )
     }
 
@@ -1719,20 +1657,9 @@ object RudderConfigInit {
       scoreService
     )
 
-    lazy val parameterApiService2  = {
-      new ParameterApiService2(
-        roLDAPParameterRepository,
-        woLDAPParameterRepository,
-        uuidGen,
-        workflowLevelService,
-        restExtractorService,
-        restDataSerializer
-      )
-    }
     lazy val parameterApiService14 = {
       new ParameterApiService14(
         roLDAPParameterRepository,
-        woLDAPParameterRepository,
         uuidGen,
         workflowLevelService
       )
@@ -2044,13 +1971,10 @@ object RudderConfigInit {
      * - 5.2.5: 16
      */
     lazy val ApiVersions: List[ApiVersion] = {
-      ApiVersion(14, deprecated = true) ::  // rudder 7.0
-      ApiVersion(15, deprecated = true) ::  // rudder 7.1 - system update on node details
-      ApiVersion(16, deprecated = true) ::  // rudder 7.2 - create node api, import/export archive, hooks & campaigns internal API
-      ApiVersion(17, deprecated = true) ::  // rudder 7.3 - directive compliance, campaign API is public
-      ApiVersion(18, deprecated = false) :: // rudder 8.0 - allowed network
-      ApiVersion(19, deprecated = false) :: // rudder 8.1 - (score), tenants
+      ApiVersion(18, deprecated = true) ::  // rudder 8.0 - allowed network
+      ApiVersion(19, deprecated = true) ::  // rudder 8.1 - (score), tenants
       ApiVersion(20, deprecated = false) :: // rudder 8.2 - zio-json
+      ApiVersion(21, deprecated = false) :: // rudder 8.3 - zio-json
       Nil
     }
 
@@ -2061,36 +1985,28 @@ object RudderConfigInit {
     lazy val rudderApi           = {
       import com.normation.rudder.rest.lift.*
 
-      val nodeInheritedProperties  = new NodeApiInheritedProperties(propertiesRepository)
-      val groupInheritedProperties = new GroupApiInheritedProperties(propertiesRepository)
+      val nodeInheritedProperties = new NodeApiInheritedProperties(propertiesRepository)
 
       val campaignApi = new lift.CampaignApi(
         campaignRepo,
         campaignSerializer,
         campaignEventRepo,
         mainCampaignService,
-        restExtractorService,
         stringUuidGenerator
       )
       val modules     = List(
         new ComplianceApi(restExtractorService, complianceAPIService, roDirectiveRepository),
         new GroupsApi(
-          roLdapNodeGroupRepository,
           propertiesService,
           restExtractorService,
           zioJsonExtractor,
           stringUuidGenerator,
-          groupApiService2,
-          groupApiService6,
-          groupApiService14,
-          groupInheritedProperties
+          groupApiService14
         ),
         new DirectiveApi(
-          roDirectiveRepository,
           restExtractorService,
           zioJsonExtractor,
           stringUuidGenerator,
-          directiveApiService2,
           directiveApiService14
         ),
         new NodeApi(
@@ -2103,7 +2019,7 @@ object RudderConfigInit {
           uuidGen,
           DeleteMode.Erase // only supported mode for Rudder 8.0
         ),
-        new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14),
+        new ParameterApi(zioJsonExtractor, parameterApiService14),
         new SettingsApi(
           restExtractorService,
           configService,
@@ -2114,7 +2030,6 @@ object RudderConfigInit {
         ),
         new TechniqueApi(
           restExtractorService,
-          techniqueApiService6,
           techniqueApiService14,
           ncfTechniqueWriter,
           ncfTechniqueReader,
@@ -2127,8 +2042,6 @@ object RudderConfigInit {
         new RuleApi(
           restExtractorService,
           zioJsonExtractor,
-          ruleApiService2,
-          ruleApiService6,
           ruleApiService13,
           stringUuidGenerator
         ),
@@ -2149,7 +2062,6 @@ object RudderConfigInit {
             passwordEncoderDispatcher,
             UserFileProcessing.getUserResourceFile()
           ),
-          roleApiMapping,
           tenantService,
           () => authenticationProviders.getProviderProperties().view.mapValues(_.providerRoleExtension).toMap,
           () => authenticationProviders.getConfiguredProviders().map(_.name).toSet

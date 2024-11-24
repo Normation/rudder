@@ -658,23 +658,8 @@ class RestTestSetUp {
     null
   )
 
-  val ruleApiService2 = new RuleApiService2(
-    mockRules.ruleRepo,
-    mockRules.ruleRepo,
-    uuidGen,
-    asyncDeploymentAgent,
-    workflowLevelService,
-    restExtractorService,
-    restDataSerializer
-  )
+  val ruleCategoryService = new RuleCategoryService()
 
-  val ruleCategoryService     = new RuleCategoryService()
-  val ruleApiService6         = new RuleApiService6(
-    mockRules.ruleCategoryRepo,
-    mockRules.ruleRepo,
-    mockRules.ruleCategoryRepo,
-    restDataSerializer
-  )
   val ruleApiService14        = new RuleApiService14(
     mockRules.ruleRepo,
     mockRules.ruleRepo,
@@ -698,7 +683,7 @@ class RestTestSetUp {
   )
   val groupInternalApiService = new GroupInternalApiService(mockNodeGroups.groupsRepo)
 
-  val fieldFactory:         DirectiveFieldFactory = new DirectiveFieldFactory {
+  val fieldFactory: DirectiveFieldFactory = new DirectiveFieldFactory {
     override def forType(fieldType: VariableSpec, id: String): DirectiveField = default(id)
     override def default(withId: String): DirectiveField = new DirectiveField {
       self => type ValueType = String
@@ -723,19 +708,6 @@ class RestTestSetUp {
     mockConfigRepo.configurationRepository,
     new Section2FieldService(fieldFactory, Translator.defaultTranslators)
   )
-  val directiveApiService2: DirectiveApiService2  = {
-    new DirectiveApiService2(
-      mockDirectives.directiveRepo,
-      mockDirectives.directiveRepo,
-      uuidGen,
-      asyncDeploymentAgent,
-      workflowLevelService,
-      restExtractorService,
-      directiveEditorService,
-      restDataSerializer,
-      mockTechniques.techniqueRepo
-    )
-  }
 
   val directiveApiService14: DirectiveApiService14 = {
     new DirectiveApiService14(
@@ -750,11 +722,6 @@ class RestTestSetUp {
       mockTechniques.techniqueRepo
     )
   }
-
-  val techniqueAPIService6 = new TechniqueAPIService6(
-    mockDirectives.directiveRepo,
-    restDataSerializer
-  )
 
   val techniqueAPIService14 = new TechniqueAPIService14(
     mockDirectives.directiveRepo,
@@ -840,33 +807,13 @@ class RestTestSetUp {
     }
   }
 
-  val parameterApiService2  = new ParameterApiService2(
-    mockParameters.paramsRepo,
-    mockParameters.paramsRepo,
-    uuidGen,
-    workflowLevelService,
-    restExtractorService,
-    restDataSerializer
-  )
   val parameterApiService14 = new ParameterApiService14(
-    mockParameters.paramsRepo,
     mockParameters.paramsRepo,
     uuidGen,
     workflowLevelService
   )
 
-  val groupService2               = new GroupApiService2(
-    mockNodeGroups.groupsRepo,
-    mockNodeGroups.groupsRepo,
-    uuidGen,
-    asyncDeploymentAgent,
-    workflowLevelService,
-    restExtractorService,
-    mockNodes.queryProcessor,
-    restDataSerializer
-  )
-  val groupService6               = new GroupApiService6(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, restDataSerializer)
-  val groupService14              = new GroupApiService14(
+  val groupService14 = new GroupApiService14(
     mockNodes.nodeFactRepo,
     mockNodeGroups.groupsRepo,
     mockNodeGroups.groupsRepo,
@@ -879,7 +826,6 @@ class RestTestSetUp {
     mockNodes.queryProcessor,
     restDataSerializer
   )
-  val groupApiInheritedProperties = new GroupApiInheritedProperties(mockNodes.propRepo)
   val ncfTechniqueWriter:  TechniqueWriter       = null
   val ncfTechniqueReader:  EditorTechniqueReader = null
   val techniqueRepository: TechniqueRepository   = null
@@ -923,15 +869,14 @@ class RestTestSetUp {
     val translator = new CampaignSerializer()
     translator.addJsonTranslater(mockCampaign.dumbCampaignTranslator)
     import mockCampaign.*
-    val api        = new CampaignApi(repo, translator, dumbCampaignEventRepository, mainCampaignService, restExtractorService, uuidGen)
+    val api        = new CampaignApi(repo, translator, dumbCampaignEventRepository, mainCampaignService, uuidGen)
   }
 
   val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema with SortIndex]] = List(
     systemApi,
-    new ParameterApi(restExtractorService, zioJsonExtractor, parameterApiService2, parameterApiService14),
+    new ParameterApi(zioJsonExtractor, parameterApiService14),
     new TechniqueApi(
       restExtractorService,
-      techniqueAPIService6,
       techniqueAPIService14,
       ncfTechniqueWriter,
       ncfTechniqueReader,
@@ -942,14 +887,12 @@ class RestTestSetUp {
       mockGitRepo.configurationRepositoryRoot.pathAsString
     ),
     new DirectiveApi(
-      mockDirectives.directiveRepo,
       restExtractorService,
       zioJsonExtractor,
       uuidGen,
-      directiveApiService2,
       directiveApiService14
     ),
-    new RuleApi(restExtractorService, zioJsonExtractor, ruleApiService2, ruleApiService6, ruleApiService14, uuidGen),
+    new RuleApi(restExtractorService, zioJsonExtractor, ruleApiService14, uuidGen),
     new RulesInternalApi(ruleInternalApiService, ruleApiService14),
     new GroupsInternalApi(groupInternalApiService),
     new NodeApi(
@@ -963,15 +906,11 @@ class RestTestSetUp {
       DeleteMode.Erase
     ),
     new GroupsApi(
-      mockNodeGroups.groupsRepo,
       mockNodeGroups.propService,
       restExtractorService,
       zioJsonExtractor,
       uuidGen,
-      groupService2,
-      groupService6,
-      groupService14,
-      groupApiInheritedProperties
+      groupService14
     ),
     new SettingsApi(
       restExtractorService,
@@ -992,7 +931,6 @@ class RestTestSetUp {
       mockUserManagement.userRepo,
       mockUserManagement.userService,
       mockUserManagement.userManagementService,
-      new RoleApiMapping(new ExtensibleAuthorizationApiMapping(AuthorizationApiMapping.Core :: Nil)),
       mockUserManagement.tenantsService,
       () => mockUserManagement.providerRoleExtension,
       () => mockUserManagement.authBackendProviders

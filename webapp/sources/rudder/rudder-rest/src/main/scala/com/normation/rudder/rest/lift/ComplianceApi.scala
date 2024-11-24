@@ -110,30 +110,26 @@ class ComplianceApi(
 
   /*
    * The actual builder for the compliance API.
-   * Depends of authz method and supported version.
+   * Depends on authz method and supported version.
    *
    * It's quite verbose, but it's the only way I found to
    * get the exhaustivity check and be sure that ALL
    * endpoints are processed.
    */
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints
-      .map(e => {
-        e match {
-          case API.GetRulesCompliance             => GetRules
-          case API.GetRulesComplianceId           => GetRuleId
-          case API.GetNodesCompliance             => GetNodes
-          case API.GetNodeSystemCompliance        => GetNodeSystemCompliance
-          case API.GetNodeComplianceId            => GetNodeId
-          case API.GetGlobalCompliance            => GetGlobal
-          case API.GetDirectiveComplianceId       => GetDirectiveId
-          case API.GetDirectivesCompliance        => GetDirectives
-          case API.GetNodeGroupComplianceSummary  => GetNodeGroupSummary
-          case API.GetNodeGroupComplianceId       => GetNodeGroupId
-          case API.GetNodeGroupComplianceTargetId => GetNodeGroupTargetId
-        }
-      })
-      .toList
+    API.endpoints.map {
+      case API.GetRulesCompliance             => GetRules
+      case API.GetRulesComplianceId           => GetRuleId
+      case API.GetNodesCompliance             => GetNodes
+      case API.GetNodeSystemCompliance        => GetNodeSystemCompliance
+      case API.GetNodeComplianceId            => GetNodeId
+      case API.GetGlobalCompliance            => GetGlobal
+      case API.GetDirectiveComplianceId       => GetDirectiveId
+      case API.GetDirectivesCompliance        => GetDirectives
+      case API.GetNodeGroupComplianceSummary  => GetNodeGroupSummary
+      case API.GetNodeGroupComplianceId       => GetNodeGroupId
+      case API.GetNodeGroupComplianceTargetId => GetNodeGroupTargetId
+    }
   }
 
   object GetRules extends LiftApiModule0 {

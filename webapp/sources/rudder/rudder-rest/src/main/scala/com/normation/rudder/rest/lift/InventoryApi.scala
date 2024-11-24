@@ -67,17 +67,13 @@ class InventoryApi(
   def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints
-      .map(e => {
-        e match {
-          case API.QueueInformation   => QueueInformation
-          case API.UploadInventory    => UploadInventory
-          case API.FileWatcherStart   => FileWatcherStart
-          case API.FileWatcherStop    => FileWatcherStop
-          case API.FileWatcherRestart => FileWatcherRestart
-        }
-      })
-      .toList
+    API.endpoints.map {
+      case API.QueueInformation   => QueueInformation
+      case API.UploadInventory    => UploadInventory
+      case API.FileWatcherStart   => FileWatcherStart
+      case API.FileWatcherStop    => FileWatcherStop
+      case API.FileWatcherRestart => FileWatcherRestart
+    }
   }
 
   object QueueInformation extends LiftApiModule0 {

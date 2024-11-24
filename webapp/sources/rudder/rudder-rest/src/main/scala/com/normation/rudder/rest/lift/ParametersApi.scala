@@ -38,7 +38,6 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.GitVersion
-import com.normation.box.*
 import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
@@ -46,7 +45,6 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonQueryObjects.JQGlobalParameter
 import com.normation.rudder.apidata.JsonResponseObjects.JRGlobalParameter
-import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.properties.*
@@ -55,107 +53,48 @@ import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoParameterRepository
-import com.normation.rudder.repository.WoParameterRepository
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.ParameterApi as API
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils
-import com.normation.rudder.rest.RestUtils.getActor
-import com.normation.rudder.rest.RestUtils.toJsonError
-import com.normation.rudder.rest.RestUtils.toJsonResponse
-import com.normation.rudder.rest.data.RestParameter
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowLevelService
-import com.normation.rudder.users.UserService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
-import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.JArray
-import net.liftweb.json.JsonDSL.*
-import net.liftweb.json.JString
 import org.joda.time.DateTime
 import zio.syntax.*
 
 class ParameterApi(
-    restExtractorService: RestExtractorService,
-    zioJsonExtractor:     ZioJsonExtractor,
-    serviceV2:            ParameterApiService2,
-    serviceV14:           ParameterApiService14
+    zioJsonExtractor: ZioJsonExtractor,
+    service:          ParameterApiService14
 ) extends LiftApiModuleProvider[API] {
 
   def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints
-      .map(e => {
-        e match {
-          case API.ListParameters   => ChooseApi0(ListParameters, ListParametersV14)
-          case API.CreateParameter  => ChooseApi0(CreateParameter, CreateParameterV14)
-          case API.DeleteParameter  => ChooseApiN(DeleteParameter, DeleteParameterV14)
-          case API.ParameterDetails => ChooseApiN(ParameterDetails, ParameterDetailsV14)
-          case API.UpdateParameter  => ChooseApiN(UpdateParameter, UpdateParameterV14)
-        }
-      })
-      .toList
-  }
-
-  object ListParameters extends LiftApiModule0 {
-    val schema: API.ListParameters.type = API.ListParameters
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV2.listParameters(req)
+    API.endpoints.map {
+      case API.ListParameters   => ListParameters
+      case API.CreateParameter  => CreateParameter
+      case API.DeleteParameter  => DeleteParameter
+      case API.ParameterDetails => ParameterDetails
+      case API.UpdateParameter  => UpdateParameter
     }
   }
 
-  object CreateParameter extends LiftApiModule0 {
-    val schema: API.CreateParameter.type = API.CreateParameter
-    val restExtractor = restExtractorService
-    implicit val action:                                                                                       String       = "createParameter"
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val qc: QueryContext = authzToken.qc
-      implicit val prettify = params.prettify
-
-      if (req.json_?) {
-        req.json match {
-          case Full(json) =>
-            val restParameter = restExtractor.extractParameterFromJSON(json)
-            restExtractor.extractParameterNameFromJSON(json) match {
-              case Full(parameterName) =>
-                serviceV2.createParameter(restParameter, parameterName, req)
-              case eb: EmptyBox =>
-                val fail    = eb ?~ (s"Could extract parameter id from request")
-                val message = s"Could not create Parameter cause is: ${fail.msg}."
-                toJsonError(None, message)
-            }
-          case eb: EmptyBox =>
-            toJsonError(None, JString("No Json data sent"))
-        }
-      } else {
-        val restParameter = restExtractor.extractParameter(req.params)
-        restExtractor.extractParameterName(req.params) match {
-          case Full(parameterName) =>
-            serviceV2.createParameter(restParameter, parameterName, req)
-          case eb: EmptyBox =>
-            val fail    = eb ?~ (s"Could extract parameter id from request")
-            val message = s"Could not create Parameter cause is: ${fail.msg}."
-            toJsonError(None, message)
-        }
-      }
+  object ListParameters extends LiftApiModule0 {
+    val schema:                                                                                                API.ListParameters.type = API.ListParameters
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse            = {
+      service.listParameters().toLiftResponseList(params, schema)
     }
   }
 
   object ParameterDetails extends LiftApiModuleString {
     val schema: API.ParameterDetails.type = API.ParameterDetails
-    val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -164,91 +103,25 @@ class ParameterApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      serviceV2.parameterDetails(id, req)
+      service.parameterDetails(id).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
-  object DeleteParameter extends LiftApiModuleString {
-    val schema: API.DeleteParameter.type = API.DeleteParameter
-    val restExtractor = restExtractorService
-    def process(
-        version:    ApiVersion,
-        path:       ApiPath,
-        id:         String,
-        req:        Req,
-        params:     DefaultParams,
-        authzToken: AuthzToken
-    ): LiftResponse = {
-      implicit val qc: QueryContext = authzToken.qc
-      serviceV2.deleteParameter(id, req)
-    }
-  }
-
-  object UpdateParameter extends LiftApiModuleString {
-    val schema: API.UpdateParameter.type = API.UpdateParameter
-    val restExtractor = restExtractorService
-    def process(
-        version:    ApiVersion,
-        path:       ApiPath,
-        id:         String,
-        req:        Req,
-        params:     DefaultParams,
-        authzToken: AuthzToken
-    ): LiftResponse = {
-      implicit val qc: QueryContext = authzToken.qc
-      implicit val action   = "updateParameter"
-      implicit val prettify = params.prettify
-      if (req.json_?) {
-        req.json match {
-          case Full(arg) =>
-            val restParameter = restExtractor.extractParameterFromJSON(arg)
-            serviceV2.updateParameter(id, req, restParameter)
-          case eb: EmptyBox =>
-            toJsonError(None, JString("No Json data sent"))
-        }
-      } else {
-        val restParameter = restExtractor.extractParameter(req.params)
-        serviceV2.updateParameter(id, req, restParameter)
-      }
-    }
-  }
-
-  object ListParametersV14 extends LiftApiModule0 {
-    val schema:                                                                                                API.ListParameters.type = API.ListParameters
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse            = {
-      serviceV14.listParameters().toLiftResponseList(params, schema)
-    }
-  }
-
-  object ParameterDetailsV14 extends LiftApiModuleString {
-    val schema: API.ParameterDetails.type = API.ParameterDetails
-    def process(
-        version:    ApiVersion,
-        path:       ApiPath,
-        id:         String,
-        req:        Req,
-        params:     DefaultParams,
-        authzToken: AuthzToken
-    ): LiftResponse = {
-      serviceV14.parameterDetails(id).toLiftResponseOne(params, schema, s => Some(s.id))
-    }
-  }
-
-  object CreateParameterV14 extends LiftApiModule0 {
+  object CreateParameter extends LiftApiModule0 {
     val schema:                                                                                                API.CreateParameter.type = API.CreateParameter
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse             = {
       implicit val qc: QueryContext = authzToken.qc
       (for {
         restParam <-
           zioJsonExtractor.extractGlobalParam(req).chainError(s"Could not extract a global parameter from request").toIO
-        result    <- serviceV14.createParameter(restParam, params, authzToken.qc.actor)
+        result    <- service.createParameter(restParam, params, authzToken.qc.actor)
       } yield {
         result
       }).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
-  object DeleteParameterV14 extends LiftApiModuleString {
+  object DeleteParameter extends LiftApiModuleString {
     val schema: API.DeleteParameter.type = API.DeleteParameter
     def process(
         version:    ApiVersion,
@@ -259,11 +132,11 @@ class ParameterApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
-      serviceV14.deleteParameter(id, params, authzToken.qc.actor).toLiftResponseOne(params, schema, s => Some(s.id))
+      service.deleteParameter(id, params, authzToken.qc.actor).toLiftResponseOne(params, schema, s => Some(s.id))
     }
   }
 
-  object UpdateParameterV14 extends LiftApiModuleString {
+  object UpdateParameter extends LiftApiModuleString {
     val schema: API.UpdateParameter.type = API.UpdateParameter
     def process(
         version:    ApiVersion,
@@ -276,7 +149,7 @@ class ParameterApi(
       implicit val qc: QueryContext = authzToken.qc
       (for {
         restParam <- zioJsonExtractor.extractGlobalParam(req).chainError(s"Could not extract parameter from request.").toIO
-        result    <- serviceV14.updateParameter(restParam.copy(id = Some(id)), params, authzToken.qc.actor)
+        result    <- service.updateParameter(restParam.copy(id = Some(id)), params, authzToken.qc.actor)
       } yield {
         result
       }).toLiftResponseOne(params, schema, s => Some(s.id))
@@ -285,170 +158,8 @@ class ParameterApi(
 
 }
 
-class ParameterApiService2(
-    readParameter:        RoParameterRepository,
-    writeParameter:       WoParameterRepository,
-    uuidGen:              StringUuidGenerator,
-    workflowLevelService: WorkflowLevelService,
-    restExtractor:        RestExtractorService,
-    restDataSerializer:   RestDataSerializer
-)(implicit userService: UserService)
-    extends Loggable {
-
-  import restDataSerializer.serializeParameter as serialize
-
-  private def createChangeRequestAndAnswer(
-      id:           String,
-      diff:         ChangeRequestGlobalParameterDiff,
-      parameter:    GlobalParameter,
-      initialState: Option[GlobalParameter],
-      actor:        EventActor,
-      req:          Req,
-      act:          GlobalParamModAction
-  )(implicit action: String, prettify: Boolean, qc: QueryContext) = {
-
-    val change = GlobalParamChangeRequest(act, initialState)
-    logger.info(restExtractor.extractReason(req))
-    (for {
-      reason   <- restExtractor.extractReason(req)
-      crName   <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${act} Parameter ${parameter.name} from API"))
-      workflow <- workflowLevelService.getForGlobalParam(actor, change)
-      cr        = ChangeRequestService.createChangeRequestFromGlobalParameter(
-                    crName,
-                    restExtractor.extractChangeRequestDescription(req),
-                    parameter,
-                    initialState,
-                    diff,
-                    actor,
-                    reason
-                  )
-      id       <- {
-        workflow.startWorkflow(cr)(
-          ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), reason, None, qc.nodePerms)
-        )
-      }
-    } yield {
-      (id, workflow)
-    }) match {
-      case Full((crId, workflow)) =>
-        val optCrId       = if (workflow.needExternalValidation()) Some(crId) else None
-        val jsonParameter = List(serialize(parameter, optCrId))
-        toJsonResponse(Some(id), ("parameters" -> JArray(jsonParameter)))
-      case eb: EmptyBox =>
-        val fail = eb ?~ (s"Could not save changes on Parameter ${id}")
-        val msg  = s"${act} failed, cause is: ${fail.msg}."
-        toJsonError(Some(id), msg)
-    }
-  }
-
-  def listParameters(req: Req): LiftResponse = {
-    implicit val action   = "listParameters"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    readParameter.getAllGlobalParameters().toBox match {
-      case Full(parameters) =>
-        toJsonResponse(None, ("parameters" -> JArray(parameters.map(serialize(_, None)).toList)))
-      case eb: EmptyBox =>
-        val message = (eb ?~ ("Could not fetch Parameters")).msg
-        toJsonError(None, message)
-    }
-  }
-
-  def createParameter(restParameter: Box[RestParameter], parameterName: String, req: Req)(implicit
-      qc: QueryContext
-  ): LiftResponse = {
-    implicit val action   = "createParameter"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    val actor             = RestUtils.getActor(req)
-
-    restParameter match {
-      case Full(restParameter) =>
-        import GenericProperty.*
-        val parameter =
-          restParameter.updateParameter(GlobalParameter(parameterName, GitVersion.DEFAULT_REV, "".toConfigValue, None, "", None))
-
-        val diff = AddGlobalParameterDiff(parameter)
-        createChangeRequestAndAnswer(
-          parameterName,
-          diff,
-          parameter,
-          None,
-          actor,
-          req,
-          GlobalParamModAction.Create
-        )
-
-      case eb: EmptyBox =>
-        val fail    = eb ?~ (s"Could extract values from request")
-        val message = s"Could not create Parameter ${parameterName} cause is: ${fail.msg}."
-        toJsonError(Some(parameterName), message)
-    }
-  }
-
-  def parameterDetails(id: String, req: Req): LiftResponse = {
-    implicit val action   = "parameterDetails"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-
-    readParameter.getGlobalParameter(id).notOptional(s"Could not find Parameter ${id}").toBox match {
-      case Full(parameter) =>
-        val jsonParameter = List(serialize(parameter, None))
-        toJsonResponse(Some(id), ("parameters" -> JArray(jsonParameter)))
-      case eb: EmptyBox =>
-        val fail    = eb ?~! (s"Could not find Parameter ${id}")
-        val message = s"Could not get Parameter ${id} details cause is: ${fail.msg}."
-        toJsonError(Some(id), message)
-    }
-  }
-
-  def deleteParameter(id: String, req: Req)(implicit qc: QueryContext): LiftResponse = {
-    implicit val action   = "deleteParameter"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    val actor             = RestUtils.getActor(req)
-    val parameterId       = id
-
-    readParameter.getGlobalParameter(parameterId).notOptional(s"Could not find Parameter ${id}").toBox match {
-      case Full(parameter) =>
-        val deleteParameterDiff = DeleteGlobalParameterDiff(parameter)
-        createChangeRequestAndAnswer(id, deleteParameterDiff, parameter, Some(parameter), actor, req, GlobalParamModAction.Delete)
-
-      case eb: EmptyBox =>
-        val fail    = eb ?~ (s"Could not find Parameter ${parameterId}")
-        val message = s"Could not delete Parameter ${parameterId} cause is: ${fail.msg}."
-        toJsonError(Some(parameterId), message)
-    }
-  }
-
-  def updateParameter(id: String, req: Req, restValues: Box[RestParameter])(implicit qc: QueryContext): LiftResponse = {
-    implicit val action   = "updateParameter"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    val actor             = getActor(req)
-    val parameterId       = id
-    logger.info(req)
-    readParameter.getGlobalParameter(parameterId).notOptional(s"Could not find Parameter ${id}").toBox match {
-      case Full(parameter) =>
-        restValues match {
-          case Full(restParameter) =>
-            val updatedParameter = restParameter.updateParameter(parameter)
-            val diff             = ModifyToGlobalParameterDiff(updatedParameter)
-            createChangeRequestAndAnswer(id, diff, updatedParameter, Some(parameter), actor, req, GlobalParamModAction.Update)
-
-          case eb: EmptyBox =>
-            val fail    = eb ?~ (s"Could extract values from request")
-            val message = s"Could not modify Parameter ${parameterId} cause is: ${fail.msg}."
-            toJsonError(Some(parameterId), message)
-        }
-
-      case eb: EmptyBox =>
-        val fail    = eb ?~ (s"Could not find Parameter ${parameterId}")
-        val message = s"Could not modify Parameter ${parameterId} cause is: ${fail.msg}."
-        toJsonError(Some(parameterId), message)
-    }
-  }
-
-}
-
 class ParameterApiService14(
     readParameter:        RoParameterRepository,
-    writeParameter:       WoParameterRepository,
     uuidGen:              StringUuidGenerator,
     workflowLevelService: WorkflowLevelService
 ) {

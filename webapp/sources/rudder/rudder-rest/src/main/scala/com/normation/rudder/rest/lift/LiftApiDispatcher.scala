@@ -276,42 +276,9 @@ class LiftHandler(
   }
 }
 
-/*
- * some type machinery to be able to have an implementation for old RuleApi up to V13
- * and an other for API with zio_json in V14 (and choose processing based on that)
- */
-final case class ChooseApi0[A <: LiftApiModule0](old: A, current: A) extends LiftApiModule0 {
-  override val schema = current.schema
-  override def process0(
-      version:    ApiVersion,
-      path:       ApiPath,
-      req:        Req,
-      params:     DefaultParams,
-      authzToken: AuthzToken
-  ): LiftResponse = {
-    if (version.value < 14) old.process0(version, path, req, params, authzToken)
-    else current.process0(version, path, req, params, authzToken)
-  }
-}
-trait LiftApiModuleN[R]                                              extends LiftApiModule  {
+trait LiftApiModuleN[R] extends LiftApiModule {
   type Aux[a] = EndpointSchema { type RESOURCES = a }
   override val schema: Aux[R]
-}
-
-final case class ChooseApiN[R](old: LiftApiModuleN[R], current: LiftApiModuleN[R]) extends LiftApiModule {
-  override val schema: EndpointSchema = old.schema
-  override def process(
-      version:    ApiVersion,
-      path:       ApiPath,
-      _resources: schema.RESOURCES,
-      req:        Req,
-      params:     DefaultParams,
-      authzToken: AuthzToken
-  ): LiftResponse = {
-    val resources = _resources.asInstanceOf[R]
-    if (version.value < 14) old.process(version, path, resources, req, params, authzToken)
-    else current.process(version, path, resources, req, params, authzToken)
-  }
 }
 
 /*

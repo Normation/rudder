@@ -196,7 +196,6 @@ class UserManagementApiImpl(
     userRepo:                  UserRepository,
     userService:               FileUserDetailListProvider,
     userManagementService:     UserManagementService,
-    roleApiMapping:            RoleApiMapping,
     tenantsService:            TenantService,
     getProviderRoleExtensions: () => Map[String, ProviderRoleExtension],
     getAuthBackendsProviders:  () => Set[String]
@@ -218,7 +217,7 @@ class UserManagementApiImpl(
       case UserManagementApi.DisableUser     => DisableUser
       case UserManagementApi.RoleCoverage    => RoleCoverage
       case UserManagementApi.GetRoles        => GetRoles
-    }.toList
+    }
   }
 
   /*

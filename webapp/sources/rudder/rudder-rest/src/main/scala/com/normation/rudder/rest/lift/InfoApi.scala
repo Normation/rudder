@@ -59,15 +59,11 @@ class InfoApi(
   def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints
-      .map(e => {
-        e match {
-          case API.ApiGeneralInformations => ApiGeneralInformations
-          case API.ApiSubInformations     => ApiSubInformations
-          case API.ApiInformations        => ApiInformations
-        }
-      })
-      .toList
+    API.endpoints.map {
+      case API.ApiGeneralInformations => ApiGeneralInformations
+      case API.ApiSubInformations     => ApiSubInformations
+      case API.ApiInformations        => ApiInformations
+    }
   }
 
   private case class EndpointInfo(

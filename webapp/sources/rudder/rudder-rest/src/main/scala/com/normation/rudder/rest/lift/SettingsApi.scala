@@ -94,7 +94,8 @@ class SettingsApi(
     val nodeFactRepo:                  NodeFactRepository
 ) extends LiftApiModuleProvider[API] {
 
-  val allSettings_v10: List[RestSetting[?]] = {
+  val allSettings: List[RestSetting[?]] = {
+    RestReportProtocolDefault ::
     RestPolicyMode ::
     RestPolicyModeOverridable ::
     RestRunFrequency ::
@@ -136,33 +137,21 @@ class SettingsApi(
     Nil
   }
 
-  val allSettings_v12: List[RestSetting[?]] = RestReportProtocolDefault :: allSettings_v10
-
-  def allSettings(version: ApiVersion): List[RestSetting[?]] = {
-    if (version.value <= 10) {
-      allSettings_v10
-    } else {
-      allSettings_v12
-    }
-  }
-
   val kind = "settings"
 
   def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints.map(e => {
-      e match {
-        case API.GetAllAllowedNetworks     => GetAllAllowedNetworks
-        case API.GetAllowedNetworks        => GetAllowedNetworks
-        case API.ModifyAllowedNetworks     => ModifyAllowedNetworks
-        case API.ModifyDiffAllowedNetworks => ModifyDiffAllowedNetworks
-        case API.GetAllSettings            => GetAllSettings
-        case API.ModifySettings            => ModifySettings
-        case API.GetSetting                => GetSetting
-        case API.ModifySetting             => ModifySetting
-      }
-    })
+    API.endpoints.map {
+      case API.GetAllAllowedNetworks     => GetAllAllowedNetworks
+      case API.GetAllowedNetworks        => GetAllowedNetworks
+      case API.ModifyAllowedNetworks     => ModifyAllowedNetworks
+      case API.ModifyDiffAllowedNetworks => ModifyDiffAllowedNetworks
+      case API.GetAllSettings            => GetAllSettings
+      case API.ModifySettings            => ModifySettings
+      case API.GetSetting                => GetSetting
+      case API.ModifySetting             => ModifySetting
+    }
   }
 
   object GetAllSettings extends LiftApiModule0 {
@@ -170,7 +159,7 @@ class SettingsApi(
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val settings = for {
-        setting <- allSettings(version)
+        setting <- allSettings
       } yield {
         val result = setting.getJson match {
           case Full(res) => res
@@ -206,7 +195,7 @@ class SettingsApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       var generate = false
       val data     = for {
-        setting <- allSettings(version)
+        setting <- allSettings
         value   <- setting.setFromRequestOpt(req, authzToken.qc.actor)
       } yield {
         if (value.isDefined) generate = generate || setting.startPolicyGeneration
@@ -229,7 +218,7 @@ class SettingsApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       val data: Box[JValue] = for {
-        setting <- settingFromKey(key, allSettings(version))
+        setting <- settingFromKey(key, allSettings)
         value   <- setting.getJson
       } yield {
         (key -> value)
@@ -252,7 +241,7 @@ class SettingsApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       val data: Box[JValue] = for {
-        setting <- settingFromKey(key, allSettings(version))
+        setting <- settingFromKey(key, allSettings)
         value   <- setting.setFromRequest(req, authzToken.qc.actor)
       } yield {
         (key -> value)

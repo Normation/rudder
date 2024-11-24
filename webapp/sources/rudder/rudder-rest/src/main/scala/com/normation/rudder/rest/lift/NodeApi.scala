@@ -168,31 +168,28 @@ class NodeApi(
   def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints.map(e => {
-
-      e match {
-        case API.ListPendingNodes               => ListPendingNodes
-        case API.NodeDetails                    => NodeDetails
-        case API.NodeInheritedProperties        => NodeInheritedProperties
-        case API.NodeDisplayInheritedProperties => NodeDisplayInheritedProperties
-        case API.PendingNodeDetails             => PendingNodeDetails
-        case API.DeleteNode                     => DeleteNode
-        case API.ChangePendingNodeStatus        => ChangePendingNodeStatus
-        case API.ChangePendingNodeStatus2       => ChangePendingNodeStatus2
-        case API.ApplyPolicyAllNodes            => ApplyPolicyAllNodes
-        case API.UpdateNode                     => UpdateNode
-        case API.ListAcceptedNodes              => ListAcceptedNodes
-        case API.ApplyPolicy                    => ApplyPolicy
-        case API.GetNodesStatus                 => GetNodesStatus
-        case API.NodeDetailsTable               => NodeDetailsTable
-        case API.NodeDetailsSoftware            => NodeDetailsSoftware
-        case API.NodeDetailsProperty            => NodeDetailsProperty
-        case API.CreateNodes                    => CreateNodes
-        case API.NodeGlobalScore                => GetNodeGlobalScore
-        case API.NodeScoreDetails               => GetNodeScoreDetails
-        case API.NodeScoreDetail                => GetNodeScoreDetail
-      }
-    })
+    API.endpoints.map {
+      case API.ListPendingNodes               => ListPendingNodes
+      case API.NodeDetails                    => NodeDetails
+      case API.NodeInheritedProperties        => NodeInheritedProperties
+      case API.NodeDisplayInheritedProperties => NodeDisplayInheritedProperties
+      case API.PendingNodeDetails             => PendingNodeDetails
+      case API.DeleteNode                     => DeleteNode
+      case API.ChangePendingNodeStatus        => ChangePendingNodeStatus
+      case API.ChangePendingNodeStatus2       => ChangePendingNodeStatus2
+      case API.ApplyPolicyAllNodes            => ApplyPolicyAllNodes
+      case API.UpdateNode                     => UpdateNode
+      case API.ListAcceptedNodes              => ListAcceptedNodes
+      case API.ApplyPolicy                    => ApplyPolicy
+      case API.GetNodesStatus                 => GetNodesStatus
+      case API.NodeDetailsTable               => NodeDetailsTable
+      case API.NodeDetailsSoftware            => NodeDetailsSoftware
+      case API.NodeDetailsProperty            => NodeDetailsProperty
+      case API.CreateNodes                    => CreateNodes
+      case API.NodeGlobalScore                => GetNodeGlobalScore
+      case API.NodeScoreDetails               => GetNodeScoreDetails
+      case API.NodeScoreDetail                => GetNodeScoreDetail
+    }
   }
 
   /*

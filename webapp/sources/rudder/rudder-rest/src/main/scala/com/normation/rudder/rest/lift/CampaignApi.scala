@@ -19,7 +19,6 @@ import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.CampaignApi as API
 import com.normation.rudder.rest.OneParam
-import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.implicits.*
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
@@ -36,28 +35,26 @@ class CampaignApi(
     campaignSerializer:      CampaignSerializer,
     campaignEventRepository: CampaignEventRepository,
     mainCampaignService:     MainCampaignService,
-    restExtractorService:    RestExtractorService,
     stringUuidGenerator:     StringUuidGenerator
 ) extends LiftApiModuleProvider[API] {
 
   def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints.map(e => {
-      e match {
-        case API.SaveCampaign              => SaveCampaign
-        case API.ScheduleCampaign          => ScheduleCampaign
-        case API.SaveCampaignEvent         => SaveCampaignEvent
-        case API.GetCampaignEventDetails   => GetCampaignEventDetails
-        case API.GetCampaignEvents         => GetCampaignEvents
-        case API.GetCampaignDetails        => GetCampaignDetails
-        case API.GetCampaignEventsForModel => GetAllEventsForCampaign
-        case API.GetCampaigns              => GetCampaigns
-        case API.DeleteCampaign            => DeleteCampaign
-        case API.DeleteCampaignEvent       => DeleteCampaignEvent
-      }
-    })
+    API.endpoints.map {
+      case API.SaveCampaign              => SaveCampaign
+      case API.ScheduleCampaign          => ScheduleCampaign
+      case API.SaveCampaignEvent         => SaveCampaignEvent
+      case API.GetCampaignEventDetails   => GetCampaignEventDetails
+      case API.GetCampaignEvents         => GetCampaignEvents
+      case API.GetCampaignDetails        => GetCampaignDetails
+      case API.GetCampaignEventsForModel => GetAllEventsForCampaign
+      case API.GetCampaigns              => GetCampaigns
+      case API.DeleteCampaign            => DeleteCampaign
+      case API.DeleteCampaignEvent       => DeleteCampaignEvent
+    }
   }
+
   object GetCampaigns extends LiftApiModule0 {
     val schema: API.GetCampaigns.type = API.GetCampaigns
 
@@ -79,6 +76,7 @@ class CampaignApi(
 
     }
   }
+
   object GetCampaignDetails extends LiftApiModule {
     val schema: OneParam = API.GetCampaignDetails
 

@@ -61,8 +61,6 @@ import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.configuration.ConfigurationRepository
-import com.normation.rudder.domain.appconfig.FeatureSwitch
-import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategory
@@ -98,9 +96,6 @@ import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.ArchiveApi as API
 import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.EndpointSchema0
-import com.normation.rudder.rest.RudderJsonResponse
-import com.normation.rudder.rest.RudderJsonResponse.ResponseSchema
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rest.lift.ImportAnswer.*
 import com.normation.rudder.rule.category.RuleCategoryId
@@ -126,32 +121,6 @@ import scala.xml.XML
 import zio.*
 import zio.json.*
 import zio.syntax.*
-
-/*
- * Machinery to enable/disable the API given the value of the feature switch in config service.
- * If disabled, always return an error with the info about how to enable it.
- */
-final case class FeatureSwitch0[A <: LiftApiModule0](enable: A, disable: A)(featureSwitchState: IOResult[FeatureSwitch])
-    extends LiftApiModule0 {
-  override val schema: EndpointSchema0 = enable.schema
-  override def process0(
-      version:    ApiVersion,
-      path:       ApiPath,
-      req:        Req,
-      params:     DefaultParams,
-      authzToken: AuthzToken
-  ): LiftResponse = {
-    featureSwitchState.either.runNow match {
-      case Left(err)                     =>
-        ApplicationLogger.error(err.fullMsg)
-        RudderJsonResponse.internalError(None, ResponseSchema.fromSchema(schema), err.fullMsg)(params.prettify).toResponse
-      case Right(FeatureSwitch.Disabled) =>
-        disable.process0(version, path, req, params, authzToken)
-      case Right(FeatureSwitch.Enabled)  =>
-        enable.process0(version, path, req, params, authzToken)
-    }
-  }
-}
 
 sealed trait ArchiveScope extends EnumEntry          { def value: String }
 object ArchiveScope       extends Enum[ArchiveScope] {
@@ -206,12 +175,10 @@ class ArchiveApi(
   def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints.map(e => {
-      e match {
-        case API.Import       => Import
-        case API.ExportSimple => ExportSimple
-      }
-    })
+    API.endpoints.map {
+      case API.Import       => Import
+      case API.ExportSimple => ExportSimple
+    }
   }
 
   /*

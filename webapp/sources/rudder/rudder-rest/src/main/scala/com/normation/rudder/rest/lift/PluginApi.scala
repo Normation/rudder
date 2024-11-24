@@ -66,12 +66,10 @@ class PluginApi(
   def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints.map { e =>
-      e match {
-        case API.GetPluginsInfo        => GetPluginInfo
-        case API.GetPluginsSettings    => GetPluginSettings
-        case API.UpdatePluginsSettings => UpdatePluginSettings
-      }
+    API.endpoints.map {
+      case API.GetPluginsInfo        => GetPluginInfo
+      case API.GetPluginsSettings    => GetPluginSettings
+      case API.UpdatePluginsSettings => UpdatePluginSettings
     }
   }
 
