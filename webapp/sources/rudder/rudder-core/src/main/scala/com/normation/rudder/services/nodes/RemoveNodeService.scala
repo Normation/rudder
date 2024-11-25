@@ -644,7 +644,7 @@ class CleanUpNodeScore(scoreService: ScoreService) extends PostNodeDeleteAction 
   )(implicit cc: ChangeContext): UIO[Unit] = {
     NodeLoggerPure.Delete.debug(s"  - clean-up node '${nodeId.value}' score") *>
     scoreService
-      .deleteNodeScore(nodeId)
+      .deleteNodeScore(nodeId)(cc.toQuery)
       .catchAll(err => {
         NodeLoggerPure.Delete.info(
           s"Error when cleaning-up scores for node ${(nodeId, info).name}: ${err.fullMsg}"

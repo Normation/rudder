@@ -67,10 +67,7 @@ import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.score.DummyGlobalScoreRepository
-import com.normation.rudder.score.DummyScoreRepository
-import com.normation.rudder.score.ScoreServiceImpl
-import com.normation.rudder.score.ScoreServiceManager
+import com.normation.rudder.score.{InMemoryGlobalScoreRepository, InMemoryScoreRepository, ScoreServiceImpl, ScoreServiceManager}
 import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
@@ -91,6 +88,7 @@ import org.joda.time.DateTime
 import org.joda.time.Duration
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
+
 import scala.annotation.nowarn
 import scala.collection.SortedMap
 import zio.*
@@ -226,7 +224,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   }
 
   lazy val dummyScoreManager: ScoreServiceManager = new ScoreServiceManager(
-    new ScoreServiceImpl(new DummyGlobalScoreRepository(), new DummyScoreRepository())
+    new ScoreServiceImpl(new InMemoryGlobalScoreRepository(), new InMemoryScoreRepository(), nodeFactRepo)
   )
 
   lazy val updateRuns: ReportsExecutionService = {
