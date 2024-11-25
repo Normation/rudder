@@ -72,7 +72,6 @@ import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.*
 import org.joda.time.DateTime
 import scala.collection.MapView
 import zio.*
@@ -86,10 +85,6 @@ class RuleApi(
 ) extends LiftApiModuleProvider[API] {
 
   import RestUtils.*
-
-  def response(function: Box[JValue], req: Req, errorMessage: String, dataName: String)(implicit action: String): LiftResponse = {
-    RestUtils.response(restExtractorService, dataName, None)(function, req, errorMessage)
-  }
 
   def actionResponse(
       function:     Box[ActionType],

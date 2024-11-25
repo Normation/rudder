@@ -64,7 +64,6 @@ import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.ModifyToDirectiveDiff
-import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullActiveTechniqueCategory
@@ -90,7 +89,6 @@ import com.softwaremill.quicklens.*
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.JsonAST.JValue
 import org.joda.time.DateTime
 import zio.*
 import zio.syntax.*
@@ -105,12 +103,6 @@ class DirectiveApi(
   private val dataName = "directives"
 
   def schemas: ApiModuleProvider[API] = API
-
-  def response(function: Box[JValue], req: Req, errorMessage: String, id: Option[String])(implicit
-      action: String
-  ): LiftResponse = {
-    RestUtils.response(restExtractorService, dataName, id)(function, req, errorMessage)
-  }
 
   type ActionType = RestUtils.ActionType
   def actionResponse(function: Box[ActionType], req: Req, errorMessage: String, id: Option[String], actor: EventActor)(implicit
@@ -310,8 +302,6 @@ class DirectiveApiService14(
     restDataSerializer:   RestDataSerializer,
     techniqueRepository:  TechniqueRepository
 ) {
-
-  def serialize: (Technique, Directive, Option[ChangeRequestId]) => JValue = restDataSerializer.serializeDirective _
 
   def directiveTree(includeSystem: Boolean): IOResult[JRDirectiveTreeCategory] = {
     def filterSystem(cat: FullActiveTechniqueCategory): FullActiveTechniqueCategory = {
