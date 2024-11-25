@@ -1,0 +1,3 @@
+# Augeas
+
+Augeas module type.
