@@ -77,8 +77,8 @@ final case class ApiTokenSecret(private val secret: String) {
     secret
   }
 
-  def hash(): ApiTokenHash = {
-    ApiTokenHash.hash(this)
+  def toHash(): ApiTokenHash = {
+    ApiTokenHash.fromSecret(this)
   }
 }
 
@@ -113,45 +113,74 @@ object ApiTokenSecret {
  *
  */
 
-final case class ApiTokenHash(private val value: String) {
+trait CompareToken {
+  def equalsToken(other: ApiTokenHash): Boolean
+}
+
+sealed trait ApiTokenHash extends CompareToken {
   override def toString: String = "[REDACTED ApiTokenHash]"
 
-  // Constant time comparison
-  def isEqual(other: ApiTokenHash): Boolean = {
-    other match {
-      case ApiTokenHash(hash) => MessageDigest.isEqual(value.getBytes(), hash.getBytes())
-      case _                  => false
+  override def equalsToken(token: ApiTokenHash) = {
+    (this, token) match {
+      case (ApiTokenHash.V2(a), ApiTokenHash.V2(b)) => MessageDigest.isEqual(a.getBytes(), b.getBytes())
+      case _                                        => false
     }
   }
 
-  def exposeHash(): String = {
-    value
+  /*
+  Deprecated or invalid hashes are not returned.
+   */
+  def exposeHash(): Option[String] = {
+    this match {
+      case ApiTokenHash.V2(h) => Some(h)
+      case _                  => None
+    }
   }
 
   def version(): Int = {
-    if (value.startsWith(ApiTokenHash.prefix)) {
-      2
-    } else {
-      1
+    this match {
+      case ApiTokenHash.V2(_) => 2
+      case _                  => 1
     }
   }
 }
 
 object ApiTokenHash {
-  val prefix     = "v2"
-  // Guaranteed to never match
-  val neverMatch = ApiTokenHash.build("not-matching")
+  // A hash that will never match
+  private case object Disabled                     extends ApiTokenHash
+  // A pre-hash API token. The value is not stored.
+  private case object V1                           extends ApiTokenHash
+  private case class V2(private val value: String) extends ApiTokenHash
 
-  // Build from hashed value
-  private def build(value: String): ApiTokenHash = {
-    ApiTokenHash(prefix + ":" + value)
+  private object V2 {
+    val prefix = "v2:"
+
+    def hash(token: ApiTokenSecret): ApiTokenHash = {
+      val sha512Digest = MessageDigest.getInstance("SHA-512")
+      val hash         = sha512Digest.digest(token.exposeSecret().getBytes(StandardCharsets.UTF_8))
+      val hexHash      = Hex.encode(hash)
+      val hexString    = new String(hexHash, StandardCharsets.UTF_8)
+      V2(prefix + hexString)
+    }
   }
 
-  def hash(token: ApiTokenSecret): ApiTokenHash = {
-    val sha512Digest = MessageDigest.getInstance("SHA-512")
-    val hash         = sha512Digest.digest(token.exposeSecret().getBytes(StandardCharsets.UTF_8))
-    val hexHash      = Hex.encode(hash)
-    ApiTokenHash.build(new String(hexHash, StandardCharsets.UTF_8))
+  def fromHashValue(hash: String): ApiTokenHash = {
+    if (hash.startsWith(V2.prefix)) {
+      V2(hash)
+    } else {
+      // Don't bother to try to recognize old patterns.
+      // The hash is not used anyway.
+      V1
+    }
+  }
+
+  // Use latest version for new hashes
+  def fromSecret(token: ApiTokenSecret): ApiTokenHash = {
+    V2.hash(token)
+  }
+
+  def disabled(): ApiTokenHash = {
+    Disabled
   }
 }
 
@@ -443,7 +472,7 @@ final case class NewApiAccount(
       id,
       kind,
       name,
-      token.hash(),
+      token.toHash(),
       description,
       isEnabled,
       creationDate,

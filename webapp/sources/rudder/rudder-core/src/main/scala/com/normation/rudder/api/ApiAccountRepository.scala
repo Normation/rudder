@@ -143,10 +143,14 @@ final class RoLDAPApiAccountRepository(
   Look for a given token hash in the LDAP.
    */
   override def getByToken(hashedToken: ApiTokenHash): IOResult[Option[ApiAccount]] = {
+    val hash = hashedToken.exposeHash();
     for {
       ldap     <- ldapConnexion
       // here, be careful to the semantic of get with a filter!
-      optEntry <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, hashedToken.exposeHash()))
+      optEntry <- hash match {
+                    case None    => None.succeed
+                    case Some(h) => ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, h))
+                  }
       optRes   <- optEntry match {
                     case None    => None.succeed
                     case Some(e) => mapper.entry2ApiAccount(e).map(Some(_)).toIO

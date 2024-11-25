@@ -71,8 +71,8 @@ class TestApiToken extends Specification {
     }
     "be hashed" in {
       val token = ApiTokenSecret("UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
-      token.hash() must beEqualTo(
-        ApiTokenHash(
+      token.toHash() must beEqualTo(
+        ApiTokenHash.fromHashValue(
           "v2:100caab9f3996edb04119ad4b2647b45150b10f75007b86bd82cdd0b7a9b009e2d5327115b3153bc4dc31bbbc775c6257f63f64a31f3c2d3924f11e8d24855bc"
         )
       )
@@ -81,38 +81,50 @@ class TestApiToken extends Specification {
 
   "Hashed API tokens" should {
     "be hidden in strings" in {
-      val token = ApiTokenHash("UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
-      token.toString() must beEqualTo("[REDACTED ApiTokenHash]")
+      val token = ApiTokenSecret.generate(new TestTokenGenerator)
+      val hash  = token.toHash()
+      hash.toString() must beEqualTo("[REDACTED ApiTokenHash]")
     }
 
-    "be compared correctly" in {
-      val hash   = "UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY"
-      val token1 = ApiTokenHash(hash)
-      val token2 = ApiTokenHash(hash)
-      val token3 = ApiTokenHash(hash + "z")
-      val token5 = ApiTokenHash("")
-      token1.isEqual(token2) must beTrue
-      token1.isEqual(token3) must beFalse
-      token1.isEqual(token5) must beFalse
+    "be compared correctly when identical" in {
+      val hash   = "v2:UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY"
+      val token1 = ApiTokenHash.fromHashValue(hash)
+      val token2 = ApiTokenHash.fromHashValue(hash)
+      token1.equalsToken(token1) must beTrue
+      token1.equalsToken(token2) must beTrue
+    }
+
+    "be compared correctly when different" in {
+      val hash   = "v2:UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY"
+      val token1 = ApiTokenHash.fromHashValue(hash)
+      val token2 = ApiTokenHash.fromHashValue(hash + "z")
+      token1.equalsToken(token2) must beFalse
+    }
+
+    "be compared correctly when different and empty" in {
+      val hash   = "v2:UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY"
+      val token1 = ApiTokenHash.fromHashValue(hash)
+      val token2 = ApiTokenHash.fromHashValue("")
+      token1.equalsToken(token2) must beFalse
     }
 
     "have correct version 1" in {
-      val token = ApiTokenHash("UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
+      val token = ApiTokenHash.fromHashValue("UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
       token.version() must beEqualTo(1)
     }
 
     "have correct version 2" in {
-      val token = ApiTokenHash("v2:UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
+      val token = ApiTokenHash.fromHashValue("v2:UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
       token.version() must beEqualTo(2)
     }
 
     "have correct version 2 with empty hash" in {
-      val token = ApiTokenHash("v2:")
+      val token = ApiTokenHash.fromHashValue("v2:")
       token.version() must beEqualTo(2)
     }
 
     "not recognize version 3" in {
-      val token = ApiTokenHash("v3:UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
+      val token = ApiTokenHash.fromHashValue("v3:UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
       token.version() must beEqualTo(1)
     }
   }
