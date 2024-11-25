@@ -57,10 +57,6 @@ class TestApiToken extends Specification {
       val token = ApiTokenSecret.generate(new TestTokenGenerator, "end")
       token.exposeSecret() must beEqualTo("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-end")
     }
-    "not be comparable" in {
-      val token = ApiTokenSecret.generate(new TestTokenGenerator, "end")
-      token.equals(token) must beFalse
-    }
     "be hidden in strings" in {
       val token = ApiTokenSecret("UBeJJbm1tPDwILWVHXqBdgmIm3s4xjtY")
       token.toString() must beEqualTo("[REDACTED ApiTokenSecret]")
@@ -94,12 +90,10 @@ class TestApiToken extends Specification {
       val token1 = ApiTokenHash(hash)
       val token2 = ApiTokenHash(hash)
       val token3 = ApiTokenHash(hash + "z")
-      val token4 = ApiTokenSecret(hash)
       val token5 = ApiTokenHash("")
-      token1.equals(token2) must beTrue
-      token1.equals(token3) must beFalse
-      token1.equals(token4) must beFalse
-      token1.equals(token5) must beFalse
+      token1.isEqual(token2) must beTrue
+      token1.isEqual(token3) must beFalse
+      token1.isEqual(token5) must beFalse
     }
 
     "have correct version 1" in {

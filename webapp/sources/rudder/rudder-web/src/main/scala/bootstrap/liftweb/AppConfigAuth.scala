@@ -778,7 +778,7 @@ class RestAuthenticationFilter(
             val apiToken      = ApiTokenSecret(token)
             val apiTokenHash  = apiToken.hash()
             val systemAccount = apiTokenRepository.getSystemAccount
-            if (systemAccount.token == apiTokenHash) { // system token with super authz
+            if (systemAccount.token.isEqual(apiTokenHash)) { // system token with super authz
               authenticate(
                 RudderUserDetail(
                   RudderAccount.Api(systemAccount),

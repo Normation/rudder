@@ -67,9 +67,6 @@ final case class ApiTokenSecret(private val secret: String) {
   // Avoid printing the value in logs, regardless of token type
   override def toString: String = "[REDACTED ApiTokenSecret]"
 
-  // Prevent comparison
-  override def equals(obj: Any) = false
-
   // For cases when we need to print a part of the plain token for debugging.
   // Show the first 4 chars: enough to disambiguate, and preserves 166 bits of randomness.
   def exposeSecretBeginning: String = {
@@ -112,16 +109,18 @@ object ApiTokenSecret {
  *
  * We don't have generic code as V2 is (very) likely the last simple API key mechanism we'll need.
  *
+ * Token hash comparison must use the isEqual method.
+ *
  */
 
 final case class ApiTokenHash(private val value: String) {
   override def toString: String = "[REDACTED ApiTokenHash]"
 
   // Constant time comparison
-  override def equals(obj: Any): Boolean = {
-    obj match {
-      case ApiTokenHash(other) => MessageDigest.isEqual(value.getBytes(), other.getBytes())
-      case _                   => false
+  def isEqual(other: ApiTokenHash): Boolean = {
+    other match {
+      case ApiTokenHash(hash) => MessageDigest.isEqual(value.getBytes(), hash.getBytes())
+      case _                  => false
     }
   }
 

@@ -139,17 +139,9 @@ final class RoLDAPApiAccountRepository(
     }
   }
 
-  // Here the process is:
-  //
-  // * Ensure it is a clear-text token
-  // * Check if token matches in-memory system account
-  // * Then look for it in the LDAP:
-  //   * First as a hash
-  //   * Then, in fallback, as clear-text token
-  //
-  // Warning: When matching clear-text value we MUST make sure it is not
-  // a hash but a clear text token to avoid accepting the hash as valid token itself.
-  //
+  /*
+  Look for a given token hash in the LDAP.
+   */
   override def getByToken(hashedToken: ApiTokenHash): IOResult[Option[ApiAccount]] = {
     for {
       ldap     <- ldapConnexion
