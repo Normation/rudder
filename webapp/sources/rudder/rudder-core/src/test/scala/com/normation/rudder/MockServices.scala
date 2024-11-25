@@ -128,6 +128,10 @@ import com.normation.rudder.repository.xml.GitParseRules
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rule.category.*
+import com.normation.rudder.score.InMemoryGlobalScoreRepository
+import com.normation.rudder.score.InMemoryScoreRepository
+import com.normation.rudder.score.ScoreServiceImpl
+import com.normation.rudder.score.ScoreServiceManager
 import com.normation.rudder.services.marshalling.NodeGroupCategoryUnserialisationImpl
 import com.normation.rudder.services.marshalling.NodeGroupUnserialisationImpl
 import com.normation.rudder.services.marshalling.RuleUnserialisationImpl
@@ -2337,6 +2341,11 @@ class MockNodes() {
       ZIO.foreach(ids)(refuse)
     }
   }
+
+  val globalScoreRepo = new InMemoryGlobalScoreRepository()
+  val scoreRepo       = new InMemoryScoreRepository()
+  val scoreService    = new ScoreServiceImpl(globalScoreRepo, scoreRepo, nodeFactRepo)
+  val scoreManager: ScoreServiceManager = new ScoreServiceManager(scoreService)
 }
 
 class MockNodeGroups(nodesRepo: MockNodes) {

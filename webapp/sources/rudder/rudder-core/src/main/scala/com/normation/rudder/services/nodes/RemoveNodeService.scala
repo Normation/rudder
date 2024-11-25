@@ -39,13 +39,7 @@ package com.normation.rudder.services.servers
 import com.normation.box.*
 import com.normation.errors.*
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.AcceptedInventory
-import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.InventoryStatus
-import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.PendingInventory
-import com.normation.inventory.domain.RemovedInventory
-import com.normation.inventory.domain.UndefinedKey
+import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
@@ -56,11 +50,7 @@ import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.facts.nodes.SelectNodeStatus
+import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.HookReturnCode
 import com.normation.rudder.hooks.RunHooks
@@ -68,7 +58,6 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.repository.ldap.ScalaReadWriteLock
-import com.normation.rudder.score.ScoreService
 import com.normation.rudder.services.policies.write.NodePoliciesPaths
 import com.normation.rudder.services.policies.write.PathComputer
 import com.normation.rudder.services.servers.DeletionResult.*
@@ -146,7 +135,7 @@ object PostNodeDeleteAction {
     }
   }
 }
-import PostNodeDeleteAction.*
+import com.normation.rudder.services.servers.PostNodeDeleteAction.*
 
 trait RemoveNodeService {
 
@@ -632,24 +621,6 @@ class CleanUpCFKeys extends PostNodeDeleteAction {
             )
           })
     }
-  }
-}
-
-class CleanUpNodeScore(scoreService: ScoreService) extends PostNodeDeleteAction {
-  override def run(
-      nodeId: NodeId,
-      mode:   DeleteMode,
-      info:   Option[CoreNodeFact],
-      status: Set[InventoryStatus]
-  )(implicit cc: ChangeContext): UIO[Unit] = {
-    NodeLoggerPure.Delete.debug(s"  - clean-up node '${nodeId.value}' score") *>
-    scoreService
-      .deleteNodeScore(nodeId)
-      .catchAll(err => {
-        NodeLoggerPure.Delete.info(
-          s"Error when cleaning-up scores for node ${(nodeId, info).name}: ${err.fullMsg}"
-        )
-      })
   }
 }
 

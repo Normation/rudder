@@ -614,7 +614,7 @@ class NodeApi(
       import ScoreSerializer.*
       import com.normation.rudder.rest.implicits.*
       (for {
-        score <- nodeApiService.getNodeGlobalScore(NodeId(id))
+        score <- nodeApiService.getNodeGlobalScore(NodeId(id))(authzToken.qc)
       } yield {
         score
       }).toLiftResponseOne(params, schema, _ => Some(id))
@@ -635,7 +635,7 @@ class NodeApi(
     ): LiftResponse = {
       import ScoreSerializer.*
       import com.normation.rudder.rest.implicits.*
-      nodeApiService.getNodeDetailsScore(NodeId(id)).toLiftResponseOne(params, schema, _ => Some(id))
+      nodeApiService.getNodeDetailsScore(NodeId(id))(authzToken.qc).toLiftResponseOne(params, schema, _ => Some(id))
     }
   }
 
@@ -657,7 +657,7 @@ class NodeApi(
       import com.normation.rudder.rest.implicits.*
       val (nodeId, scoreId) = id
       (for {
-        allDetails <- nodeApiService.getNodeDetailsScore(NodeId(nodeId))
+        allDetails <- nodeApiService.getNodeDetailsScore(NodeId(nodeId))(authzToken.qc)
       } yield {
         allDetails.filter(_.scoreId == scoreId)
       }).toLiftResponseOne(params, schema, _ => Some(nodeId))
@@ -1465,11 +1465,11 @@ class NodeApiService(
     }
   }
 
-  def getNodeGlobalScore(nodeId: NodeId): IOResult[GlobalScore] = {
+  def getNodeGlobalScore(nodeId: NodeId)(implicit qc: QueryContext): IOResult[GlobalScore] = {
     scoreService.getGlobalScore(nodeId)
   }
 
-  def getNodeDetailsScore(nodeId: NodeId): IOResult[List[Score]] = {
+  def getNodeDetailsScore(nodeId: NodeId)(implicit qc: QueryContext): IOResult[List[Score]] = {
     scoreService.getScoreDetails(nodeId)
   }
   def queryNodes(query: Query, state: InventoryStatus, detailLevel: NodeDetailLevel, version: ApiVersion)(implicit

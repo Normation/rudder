@@ -108,23 +108,7 @@ import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.queries.*
-import com.normation.rudder.facts.nodes.AppLogNodeFactChangeEventCallback
-import com.normation.rudder.facts.nodes.CacheInvalidateNodeFactEventCallback
-import com.normation.rudder.facts.nodes.CoreNodeFactRepository
-import com.normation.rudder.facts.nodes.EventLogsNodeFactChangeEventCallback
-import com.normation.rudder.facts.nodes.GenerationOnChange
-import com.normation.rudder.facts.nodes.GitNodeFactStorageImpl
-import com.normation.rudder.facts.nodes.HistorizeNodeState
-import com.normation.rudder.facts.nodes.LdapNodeFactStorage
-import com.normation.rudder.facts.nodes.NodeFactChangeEventCallback
-import com.normation.rudder.facts.nodes.NodeFactInventorySaver
-import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.NodeInfoServiceProxy
-import com.normation.rudder.facts.nodes.NoopFactStorage
-import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.facts.nodes.SelectNodeStatus
-import com.normation.rudder.facts.nodes.SoftDaoGetNodesBySoftwareName
-import com.normation.rudder.facts.nodes.WoFactNodeRepositoryProxy
+import com.normation.rudder.facts.nodes.{AppLogNodeFactChangeEventCallback, CacheInvalidateNodeFactEventCallback, CoreNodeFactRepository, EventLogsNodeFactChangeEventCallback, GenerationOnChange, GitNodeFactStorageImpl, HistorizeNodeState, LdapNodeFactStorage, NodeFactChangeEventCallback, NodeFactInventorySaver, NodeFactRepository, NodeInfoServiceProxy, NoopFactStorage, QueryContext, ScoreUpdateOnNodeFactChange, SelectNodeStatus, SoftDaoGetNodesBySoftwareName, WoFactNodeRepositoryProxy}
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
@@ -135,7 +119,6 @@ import com.normation.rudder.inventory.InventoryMover
 import com.normation.rudder.inventory.InventoryProcessor
 import com.normation.rudder.inventory.PostCommitInventoryHooks
 import com.normation.rudder.inventory.ProcessFile
-import com.normation.rudder.inventory.TriggerInventoryScorePostCommit
 import com.normation.rudder.metrics.*
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import com.normation.rudder.ncf
@@ -210,6 +193,7 @@ import com.typesafe.config.ConfigFactory
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import cron4s.CronExpr
+
 import java.io.File
 import java.nio.file.attribute.PosixFilePermission
 import java.security.Security
@@ -219,6 +203,7 @@ import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
+
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration
 import scala.concurrent.duration.FiniteDuration
@@ -2103,6 +2088,11 @@ object RudderConfigInit {
         new CacheInvalidateNodeFactEventCallback(cachedNodeConfigurationService, reportingServiceImpl, Nil)
       )
     )
+    deferredEffects.append(
+      nodeFactRepository.registerChangeCallbackAction(
+        new ScoreUpdateOnNodeFactChange(scoreServiceManager, scoreService)
+      )
+    )
 
     lazy val inventorySaver = new NodeFactInventorySaver(
       nodeFactRepository,
@@ -2124,7 +2114,6 @@ object RudderConfigInit {
 //      new FactRepositoryPostCommit[Unit](factRepo, nodeFactInfoService)
         // deprecated: we use fact repo now
 //      :: new PostCommitLogger(ldifInventoryLogger)
-        new TriggerInventoryScorePostCommit[Unit](scoreServiceManager) ::
         new PostCommitInventoryHooks[Unit](HOOKS_D, HOOKS_IGNORE_SUFFIXES, nodeFactRepository)
         // removed: this is done as a callback of CoreNodeFactRepos
         // :: new TriggerPolicyGenerationPostCommit[Unit](asyncDeploymentAgent, uuidGen)
@@ -3190,7 +3179,7 @@ object RudderConfigInit {
 
     lazy val globalScoreRepository = new GlobalScoreRepositoryImpl(doobie)
     lazy val scoreRepository       = new ScoreRepositoryImpl(doobie)
-    lazy val scoreService          = new ScoreServiceImpl(globalScoreRepository, scoreRepository)
+    lazy val scoreService          = new ScoreServiceImpl(globalScoreRepository, scoreRepository, nodeFactRepository)
     lazy val scoreServiceManager: ScoreServiceManager = new ScoreServiceManager(scoreService)
 
     deferredEffects.append(scoreService.init())
@@ -3384,7 +3373,6 @@ object RudderConfigInit {
         :: new ResetKeyStatus(rwLdap, removedNodesDitImpl)
         :: new CleanUpCFKeys()
         :: new CleanUpNodePolicyFiles("/var/rudder/share")
-        :: new CleanUpNodeScore(scoreService)
         :: Nil
       )
       .runNow

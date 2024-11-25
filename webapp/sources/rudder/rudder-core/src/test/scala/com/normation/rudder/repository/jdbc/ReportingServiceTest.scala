@@ -67,8 +67,8 @@ import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.score.DummyGlobalScoreRepository
-import com.normation.rudder.score.DummyScoreRepository
+import com.normation.rudder.score.InMemoryGlobalScoreRepository
+import com.normation.rudder.score.InMemoryScoreRepository
 import com.normation.rudder.score.ScoreServiceImpl
 import com.normation.rudder.score.ScoreServiceManager
 import com.normation.rudder.services.policies.NodeConfigData
@@ -226,7 +226,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   }
 
   lazy val dummyScoreManager: ScoreServiceManager = new ScoreServiceManager(
-    new ScoreServiceImpl(new DummyGlobalScoreRepository(), new DummyScoreRepository())
+    new ScoreServiceImpl(new InMemoryGlobalScoreRepository(), new InMemoryScoreRepository(), nodeFactRepo)
   )
 
   lazy val updateRuns: ReportsExecutionService = {
