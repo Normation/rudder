@@ -51,7 +51,6 @@ import com.normation.ldap.sdk.schema.LDAPObjectClass
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.{Version as _, *}
 import java.net.InetAddress
-import net.liftweb.json.*
 import org.joda.time.DateTime
 import zio.*
 import zio.json.*
@@ -115,8 +114,6 @@ class InventoryMapper(
     acceptedDit: InventoryDit,
     removedDit:  InventoryDit
 ) {
-
-  implicit val formats: Formats = DefaultFormats
 
   ////////////////////////////////////////////////////////////
   ///////////////////////// Software /////////////////////////
@@ -811,7 +808,7 @@ class InventoryMapper(
     root.setOpt(server.receiveDate, A_RECEIVE_DATE, (x: DateTime) => GeneralizedTime(x).toString)
     root.resetValuesTo(A_AGENTS_NAME, server.agents.map(x => x.toJson)*)
     root.resetValuesTo(A_SOFTWARE_DN, server.softwareIds.map(x => dit.SOFTWARE.SOFT.dn(x).toString)*)
-    root.resetValuesTo(A_EV, server.environmentVariables.map(x => Serialization.write(x))*)
+    root.resetValuesTo(A_EV, server.environmentVariables.map(_.toJson)*)
     root.resetValuesTo(A_LIST_OF_IP, server.serverIps.distinct*)
     // we don't know their dit...
     root.resetValuesTo(
@@ -828,7 +825,6 @@ class InventoryMapper(
     }
     server.customProperties.foreach(cp => root.addValues(A_CUSTOM_PROPERTY, cp.toJson))
     server.softwareUpdates.foreach { s =>
-      import zio.json.*
       import JsonSerializers.implicits.*
       root.addValues(A_SOFTWARE_UPDATE, s.toJson)
     }
@@ -844,7 +840,7 @@ class InventoryMapper(
   // map process from node
   def processesFromNode(node: NodeInventory): Seq[String] = {
     // convert the processes
-    node.processes.map(x => Serialization.write(x))
+    node.processes.map(_.toJson)
   }
 
   // Create the entry with only processes
@@ -1026,16 +1022,42 @@ class InventoryMapper(
 
       lastLoggedUser     = entry(A_LAST_LOGGED_USER)
       lastLoggedUserTime = entry.getAsGTime(A_LAST_LOGGED_USER_TIME).map(_.dateTime)
-      ev                 = entry.valuesFor(A_EV).toSeq.map(Serialization.read[EnvironmentVariable](_))
-      process            = entry.valuesFor(A_PROCESS).toSeq.map(Serialization.read[Process](_))
-      softwareIds        = entry.valuesFor(A_SOFTWARE_DN).toSeq.flatMap(x => dit.SOFTWARE.SOFT.idFromDN(new DN(x)).toOption)
+      ev                <- ZIO.foldLeft(entry.valuesFor(A_EV))(List.empty[EnvironmentVariable]) {
+                             case (l, json) =>
+                               json.fromJson[EnvironmentVariable] match {
+                                 case Left(err) =>
+                                   InventoryProcessingLogger
+                                     .warn(s"Error when deserializing environment variable, ignoring it: ${json} ; error: ${err}") *> l.succeed
+                                 case Right(ev) => (ev :: l).succeed
+                               }
+                           }
+      process           <- ZIO.foldLeft(entry.valuesFor(A_PROCESS))(List.empty[Process]) {
+                             case (l, json) =>
+                               json.fromJson[Process] match {
+                                 case Left(err) =>
+                                   InventoryProcessingLogger
+                                     .warn(s"Error when deserializing process, ignoring it: ${json} ; error: ${err}") *> l.succeed
+                                 case Right(p)  => (p :: l).succeed
+                               }
+                           }
+      softwareIds       <- ZIO.foldLeft(entry.valuesFor(A_SOFTWARE_DN))(List.empty[SoftwareUuid]) {
+                             case (l, x) =>
+                               dit.SOFTWARE.SOFT.idFromDN(new DN(x)) match {
+                                 case Left(err) =>
+                                   InventoryProcessingLogger
+                                     .warn(
+                                       s"Error when deserializing software, ignoring it: ${x} ; error: ${err.msg}"
+                                     ) *> l.succeed
+                                 case Right(s)  => (s :: l).succeed
+                               }
+                           }
       machineId         <- mapSeqStringToMachineIdAndStatus(entry.valuesFor(A_CONTAINER_DN)).toList match {
                              case Nil                 => None.succeed
                              case m :: Nil            => Some(m).succeed
                              case l @ (m1 :: m2 :: _) =>
                                InventoryProcessingLogger.error(
                                  "Several machine were registered for a node. That is not supported. " +
-                                 "The first in the following list will be choosen, but you may encouter strange " +
+                                 "The first in the following list will be chosen, but you may encounter strange " +
                                  "results in the future: %s".format(
                                    l.map { case (id, status) => "%s [%s]".format(id.value, status.name) }.mkString(" ; ")
                                  )

@@ -530,7 +530,7 @@ object NodeFact {
       // really not sure about what to do here
       softwareIds = List(),
       node.accounts,
-      node.environmentVariables.map { case (a, b) => EnvironmentVariable(a, Some(b), None) },
+      node.environmentVariables.map { case (a, b) => EnvironmentVariable(a, Some(b)) },
       node.processes,
       node.vms,
       node.networks,
