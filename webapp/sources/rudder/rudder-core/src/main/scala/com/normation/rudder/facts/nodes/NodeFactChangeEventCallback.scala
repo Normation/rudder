@@ -55,6 +55,9 @@ import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.ModifyNodeDiff
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.repository.EventLogRepository
+import com.normation.rudder.score.ScoreService
+import com.normation.rudder.score.ScoreServiceManager
+import com.normation.rudder.score.SystemUpdateScoreEvent
 import com.normation.rudder.services.nodes.history.impl.FactLogData
 import com.normation.rudder.services.nodes.history.impl.InventoryHistoryJdbcRepository
 import com.normation.rudder.services.reports.CacheComplianceQueueAction
@@ -146,6 +149,24 @@ class GenerationOnChange(
       case NodeFactChangeEvent.Noop(nodeId, attrs)                     => ZIO.unit
     }
   }
+}
+
+class ScoreUpdateOnNodeFactChange(scoreServiceManager: ScoreServiceManager, scoreService: ScoreService)
+    extends NodeFactChangeEventCallback {
+
+  def run(change: NodeFactChangeEventCC): IOResult[Unit] = {
+    change.event match {
+      case NodeFactChangeEvent.Accepted(node, _)      =>
+        scoreServiceManager.handleEvent(SystemUpdateScoreEvent(node.id, node.softwareUpdate.toList))
+      case NodeFactChangeEvent.Updated(_, newNode, _) =>
+        scoreServiceManager.handleEvent(SystemUpdateScoreEvent(newNode.id, newNode.softwareUpdate.toList))
+      case NodeFactChangeEvent.Deleted(node, _)       => scoreService.deleteNodeScore(node.id)(change.cc.toQuery)
+      case _                                          => ZIO.unit
+    }
+  }
+
+  override def name: String = "trigger-score-update"
+
 }
 
 /*

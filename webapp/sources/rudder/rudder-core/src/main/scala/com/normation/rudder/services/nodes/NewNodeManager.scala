@@ -64,6 +64,8 @@ import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
+import com.normation.rudder.score.ScoreServiceManager
+import com.normation.rudder.score.SystemUpdateScoreEvent
 import com.normation.rudder.services.queries.QueryProcessor
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -168,6 +170,16 @@ class PostNodeAcceptanceHookScripts(
   }
 }
 
+class UpdateScorePostAcceptance(scoreServiceManager: ScoreServiceManager, nodeFactRepository: NodeFactRepository)
+    extends NewNodePostAcceptHooks {
+  override def name:                                           String         = "trigger-system-update-score-on-acceptance"
+  override def run(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Unit] = {
+    for {
+      fact <- nodeFactRepository.get(nodeId).notOptional("")
+      _    <- scoreServiceManager.handleEvent(SystemUpdateScoreEvent(nodeId, fact.softwareUpdate.toList))
+    } yield {}
+  }
+}
 class NewNodeManagerHooksImpl(
     nodeFactRepository:    NodeFactRepository,
     HOOKS_D:               String,

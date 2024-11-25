@@ -37,10 +37,10 @@
 
 package com.normation.rudder.score
 
-import com.normation.errors.IOResult
-import com.normation.errors.Unexpected
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
+import com.normation.zio.*
 import doobie.Fragments
 import doobie.Meta
 import doobie.Read
@@ -49,10 +49,9 @@ import doobie.implicits.*
 import doobie.implicits.toSqlInterpolator
 import doobie.postgres.implicits.pgEnumString
 import doobie.util.invariant.InvalidEnum
-import zio.ZIO
+import zio.Ref
 import zio.interop.catz.*
 import zio.json.ast.Json
-import zio.syntax.*
 
 trait ScoreRepository {
 
@@ -67,14 +66,34 @@ trait ScoreRepository {
 /*
  * A score repository that does nothing, for tests
  */
-class DummyScoreRepository extends ScoreRepository {
-  override def getAll(): IOResult[Map[NodeId, List[Score]]] = Map().succeed
-  override def getScore(nodeId: NodeId, scoreId: Option[String]): IOResult[List[Score]] = Nil.succeed
-  override def getOneScore(nodeId: NodeId, scoreId: String): IOResult[Score] = Unexpected(
-    s"Score node found in dummy repository"
-  ).fail
-  override def saveScore(nodeId:   NodeId, score:   Score):          IOResult[Unit] = ZIO.unit
-  override def deleteScore(nodeId: NodeId, scoreId: Option[String]): IOResult[Unit] = ZIO.unit
+class InMemoryScoreRepository extends ScoreRepository {
+  private[this] val cache:                                           Ref[Map[NodeId, List[Score]]]      = Ref.make(Map[NodeId, List[Score]]()).runNow
+  override def getAll():                                             IOResult[Map[NodeId, List[Score]]] = cache.get
+  override def getScore(nodeId: NodeId, scoreId: Option[String]):    IOResult[List[Score]]              = cache.get.map { c =>
+    val nodeScore = c.get(nodeId).getOrElse(Nil)
+    scoreId match {
+      case None     => nodeScore
+      case Some(id) => nodeScore.filter(_.scoreId == id)
+    }
+  }
+  override def getOneScore(nodeId: NodeId, scoreId: String):         IOResult[Score]                    =
+    getScore(nodeId, Some(scoreId)).flatMap(_.headOption.notOptional(""))
+  override def saveScore(nodeId: NodeId, score: Score):              IOResult[Unit]                     = cache.update(c => {
+    c.updatedWith(nodeId) {
+      case None         => Some(score :: Nil)
+      case Some(values) => Some(score :: values.filterNot(_.scoreId == score.scoreId))
+    }
+  })
+  override def deleteScore(nodeId: NodeId, scoreId: Option[String]): IOResult[Unit]                     = cache.update(c => {
+    c.updatedWith(nodeId) {
+      case None         => None
+      case Some(values) =>
+        scoreId match {
+          case None          => None
+          case Some(scoreId) => Some(values.filterNot(_.scoreId == scoreId))
+        }
+    }
+  })
 }
 
 class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
