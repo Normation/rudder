@@ -460,13 +460,33 @@ object RudderParsedProperties {
   filteredPasswords += "ldap.authpw"
   val LDAP_MAX_POOL_SIZE:                Int            = {
     try {
-      config.getInt("ldap.maxPoolSize")
+      val poolSize = config.getInt("ldap.maxPoolSize")
+      if (poolSize < 10) {
+        ApplicationLogger.warn(
+          "Property 'ldap.maxPoolSize' value is below 10, setting value to 10 connections. see https://issues.rudder.io/issues/25892"
+        )
+        10
+      } else {
+        poolSize
+      }
+
     } catch {
       case ex: ConfigException =>
         ApplicationLogger.info(
-          "Property 'ldap.maxPoolSize' is missing or empty in rudder.configFile. Default to 2 connections."
+          "Property 'ldap.maxPoolSize' is missing or empty in rudder.configFile. Default to 10 connections."
         )
-        2
+        10
+    }
+  }
+  val LDAP_CREATE_IF_NECESSARY:          Boolean        = {
+    try {
+      config.getBoolean("ldap.createIfNecessary")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.info(
+          "Property 'ldap.createIfNecessary' is missing or empty in rudder.configFile. Default to true."
+        )
+        true
     }
   }
   val LDAP_CACHE_NODE_INFO_MIN_INTERVAL: Duration       = {
@@ -2565,7 +2585,8 @@ object RudderConfigInit {
         port = LDAP_PORT,
         authDn = LDAP_AUTHDN,
         authPw = LDAP_AUTHPW,
-        poolSize = LDAP_MAX_POOL_SIZE
+        poolSize = LDAP_MAX_POOL_SIZE,
+        createIfNecessary = LDAP_CREATE_IF_NECESSARY
       )
     }
     lazy val roLDAPConnectionProvider = roLdap
@@ -2575,7 +2596,8 @@ object RudderConfigInit {
         port = LDAP_PORT,
         authDn = LDAP_AUTHDN,
         authPw = LDAP_AUTHPW,
-        poolSize = LDAP_MAX_POOL_SIZE
+        poolSize = LDAP_MAX_POOL_SIZE,
+        createIfNecessary = LDAP_CREATE_IF_NECESSARY
       )
     }
 
