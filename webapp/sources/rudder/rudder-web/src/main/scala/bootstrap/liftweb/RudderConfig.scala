@@ -453,22 +453,103 @@ object RudderParsedProperties {
   }
   // other values
 
-  val LDAP_HOST:                         String         = config.getString("ldap.host")
-  val LDAP_PORT:                         Int            = config.getInt("ldap.port")
-  val LDAP_AUTHDN:                       String         = config.getString("ldap.authdn")
-  val LDAP_AUTHPW:                       String         = config.getString("ldap.authpw");
+  val LDAP_HOST:   String = config.getString("ldap.host")
+  val LDAP_PORT:   Int    = config.getInt("ldap.port")
+  val LDAP_AUTHDN: String = config.getString("ldap.authdn")
+  val LDAP_AUTHPW: String = config.getString("ldap.authpw");
   filteredPasswords += "ldap.authpw"
-  val LDAP_MAX_POOL_SIZE:                Int            = {
+
+  // Define the increased minimum pool size following https://issues.rudder.io/issues/25892
+  // 7 was tested in our load server (10k nodes, 7 load-test for node property change in parallel) and should
+  // be enough even for big environments. More connection has a negative impact on startup time.
+  val MIN_LDAP_MAX_POOL_SIZE = 7
+  val LDAP_MAX_POOL_SIZE:                     Int      = {
     try {
-      config.getInt("ldap.maxPoolSize")
+      val poolSize = config.getInt("ldap.maxPoolSize")
+      if (poolSize < MIN_LDAP_MAX_POOL_SIZE) {
+        ApplicationLogger.warn(
+          s"Property 'ldap.maxPoolSize' value is below ${MIN_LDAP_MAX_POOL_SIZE}, setting value to ${MIN_LDAP_MAX_POOL_SIZE} connections. see https://issues.rudder.io/issues/25892"
+        )
+        MIN_LDAP_MAX_POOL_SIZE
+      } else {
+        poolSize
+      }
+
     } catch {
-      case ex: ConfigException =>
+      case _: ConfigException =>
         ApplicationLogger.info(
-          "Property 'ldap.maxPoolSize' is missing or empty in rudder.configFile. Default to 2 connections."
+          s"Property 'ldap.maxPoolSize' is missing or empty in rudder.configFile. Default to ${MIN_LDAP_MAX_POOL_SIZE} connections."
+        )
+        MIN_LDAP_MAX_POOL_SIZE
+    }
+  }
+  val LDAP_MINIMUM_AVAILABLE_CONNECTION_GOAL: Int      = {
+    try {
+      val min = config.getInt("ldap.minimumAvailableConnectionGoal")
+      if (min < 1) {
+        ApplicationLogger.warn(
+          "Property 'ldap.minimumAvailableConnectionGoal' value is below 1, setting value to 1"
+        )
+        1
+      } else {
+        min
+      }
+    } catch {
+      case _: ConfigException =>
+        ApplicationLogger.info(
+          "Property 'ldap.minimumAvailableConnectionGoal' is missing or empty in rudder.configFile. Default to 2 always alive connections."
         )
         2
     }
   }
+  val LDAP_CREATE_IF_NECESSARY:               Boolean  = {
+    try {
+      config.getBoolean("ldap.createIfNecessary")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.info(
+          "Property 'ldap.createIfNecessary' is missing or empty in rudder.configFile. Default to true."
+        )
+        true
+    }
+  }
+  val LDAP_MAX_WAIT_TIME:                     Duration = {
+    try {
+      val age = config.getString("ldap.maxWaitTime")
+      Duration.fromScala(scala.concurrent.duration.Duration.apply(age))
+    } catch {
+      case _: Exception =>
+        ApplicationLogger.info(
+          "Property 'ldap.maxWaitTime' is missing or empty in rudder.configFile. Default to 30 seconds."
+        )
+        30.seconds
+    }
+  }
+  val LDAP_MAX_CONNECTION_AGE:                Duration = {
+    try {
+      val age = config.getString("ldap.maxConnectionAge")
+      Duration.fromScala(scala.concurrent.duration.Duration.apply(age))
+    } catch {
+      case _: ConfigException =>
+        ApplicationLogger.info(
+          "Property 'ldap.maxConnectionAge' is missing or empty in rudder.configFile. Default to 3O minutes."
+        )
+        30.minutes
+    }
+  }
+  val LDAP_MIN_DISCONNECT_INTERVAL:           Duration = {
+    try {
+      val age = config.getString("ldap.minDisconnectInterval")
+      Duration.fromScala(scala.concurrent.duration.Duration.apply(age))
+    } catch {
+      case _: ConfigException =>
+        ApplicationLogger.info(
+          "Property 'ldap.minDisconnectInterval' is missing or empty in rudder.configFile. Default to 5 seconds."
+        )
+        5.seconds
+    }
+  }
+
   val LDAP_CACHE_NODE_INFO_MIN_INTERVAL: Duration       = {
     val x = {
       try {
@@ -562,6 +643,31 @@ object RudderParsedProperties {
       500
     } else {
       x
+    }
+  }
+
+  // `connectionTimeout` is the time hikari wait when there is no connection available or base down before telling
+  // upward that there is no connection. It makes Rudder slow, and we prefer to be notified quickly that it was
+  // impossible to get a connection. Must be >=250ms. Rudder knows how to handle that gracefully.
+  val MIN_JDBC_GET_CONNECTION_TIMEOUT = 250.millis
+  val JDBC_GET_CONNECTION_TIMEOUT: Duration = {
+    try {
+      val age = config.getString("rudder.jdbc.getConnectionTimeout")
+      val a   = Duration.fromScala(scala.concurrent.duration.Duration.apply(age))
+      if (a.toMillis < MIN_JDBC_GET_CONNECTION_TIMEOUT.toMillis) {
+        ApplicationLogger.info(
+          s"Property 'rudder.jdbc.getConnectionTimeout' must be greater than ${MIN_JDBC_GET_CONNECTION_TIMEOUT.toMillis} ms in rudder.configFile. Default to ${MIN_JDBC_GET_CONNECTION_TIMEOUT.toMillis} ms."
+        )
+        MIN_JDBC_GET_CONNECTION_TIMEOUT
+      } else {
+        a
+      }
+    } catch {
+      case _: ConfigException =>
+        ApplicationLogger.info(
+          s"Property 'rudder.jdbc.getConnectionTimeout' is missing or empty in rudder.configFile. Default to ${MIN_JDBC_GET_CONNECTION_TIMEOUT.toMillis} ms."
+        )
+        MIN_JDBC_GET_CONNECTION_TIMEOUT
     }
   }
 
@@ -2565,7 +2671,12 @@ object RudderConfigInit {
         port = LDAP_PORT,
         authDn = LDAP_AUTHDN,
         authPw = LDAP_AUTHPW,
-        poolSize = LDAP_MAX_POOL_SIZE
+        poolSize = LDAP_MAX_POOL_SIZE,
+        createIfNecessary = LDAP_CREATE_IF_NECESSARY,
+        minimumAvailableConnectionGoal = LDAP_MINIMUM_AVAILABLE_CONNECTION_GOAL,
+        maxWaitTime = LDAP_MAX_WAIT_TIME,
+        maxConnectionAge = LDAP_MAX_CONNECTION_AGE,
+        minDisconnectInterval = LDAP_MIN_DISCONNECT_INTERVAL
       )
     }
     lazy val roLDAPConnectionProvider = roLdap
@@ -2575,7 +2686,12 @@ object RudderConfigInit {
         port = LDAP_PORT,
         authDn = LDAP_AUTHDN,
         authPw = LDAP_AUTHPW,
-        poolSize = LDAP_MAX_POOL_SIZE
+        poolSize = LDAP_MAX_POOL_SIZE,
+        createIfNecessary = LDAP_CREATE_IF_NECESSARY,
+        minimumAvailableConnectionGoal = LDAP_MINIMUM_AVAILABLE_CONNECTION_GOAL,
+        maxWaitTime = LDAP_MAX_WAIT_TIME,
+        maxConnectionAge = LDAP_MAX_CONNECTION_AGE,
+        minDisconnectInterval = LDAP_MIN_DISCONNECT_INTERVAL
       )
     }
 
@@ -3110,7 +3226,8 @@ object RudderConfigInit {
       RUDDER_JDBC_URL,
       RUDDER_JDBC_USERNAME,
       RUDDER_JDBC_PASSWORD,
-      RUDDER_JDBC_MAX_POOL_SIZE
+      RUDDER_JDBC_MAX_POOL_SIZE,
+      JDBC_GET_CONNECTION_TIMEOUT.asScala
     )
     lazy val doobie                   = new Doobie(dataSourceProvider.datasource)
 
