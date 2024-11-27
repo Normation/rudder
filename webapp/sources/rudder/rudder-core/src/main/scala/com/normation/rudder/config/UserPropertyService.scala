@@ -34,14 +34,16 @@
  *
  *************************************************************************************
  */
-package com.normation.rudder.web.services
+package com.normation.rudder.config
 import com.normation.box.*
 import com.normation.errors.*
-import zio.syntax.*
 
-object ReasonBehavior extends Enumeration {
-  type ReasonBehavior = Value
-  val Disabled, Mandatory, Optionnal = Value
+sealed trait ReasonBehavior
+
+object ReasonBehavior {
+  case object Disabled  extends ReasonBehavior
+  case object Mandatory extends ReasonBehavior
+  case object Optional  extends ReasonBehavior
 }
 
 /**
@@ -54,18 +56,9 @@ trait UserPropertyService {
    * @return the strategy
    */
   // def reasonsFieldEnabled() : Boolean
-  def reasonsFieldBehavior:    ReasonBehavior.ReasonBehavior
+  def reasonsFieldBehavior:    ReasonBehavior
   def reasonsFieldExplanation: String
 
-}
-
-class UserPropertyServiceImpl(val opt: ReasonsMessageInfo) extends UserPropertyService {
-
-  private val impl =
-    new StatelessUserPropertyService(() => opt.enabled.succeed, () => opt.mandatory.succeed, () => opt.explanation.succeed)
-
-  override val reasonsFieldBehavior = impl.reasonsFieldBehavior
-  override val reasonsFieldExplanation: String = impl.reasonsFieldExplanation
 }
 
 /**
@@ -76,17 +69,16 @@ class StatelessUserPropertyService(
     getMandatory:   () => IOResult[Boolean],
     getExplanation: () => IOResult[String]
 ) extends UserPropertyService {
+  import ReasonBehavior.*
 
   // TODO: handle errors here!
 
-  override def reasonsFieldBehavior:    ReasonBehavior.ReasonBehavior = {
+  override def reasonsFieldBehavior:    ReasonBehavior = {
     (getEnable().toBox.getOrElse(true), getMandatory().toBox.getOrElse(true)) match {
-      case (true, true)  => ReasonBehavior.Mandatory
-      case (true, false) => ReasonBehavior.Optionnal
-      case (false, _)    => ReasonBehavior.Disabled
+      case (true, true)  => Mandatory
+      case (true, false) => Optional
+      case (false, _)    => Disabled
     }
   }
-  override def reasonsFieldExplanation: String                        = getExplanation().toBox.getOrElse("")
+  override def reasonsFieldExplanation: String         = getExplanation().toBox.getOrElse("")
 }
-
-class ReasonsMessageInfo(val enabled: Boolean, val mandatory: Boolean, val explanation: String)

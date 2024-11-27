@@ -184,7 +184,8 @@ class SettingsApi(
 
       // sort settings alphanum
       RestUtils.response(restExtractorService, "settings", None)(Full(data.sortBy(_.name)), req, s"Could not settings")(
-        "getAllSettings"
+        "getAllSettings",
+        params.prettify
       )
     }
   }
@@ -202,7 +203,10 @@ class SettingsApi(
         JField(setting.key, value)
       }
       startNewPolicyGeneration(authzToken.qc.actor)
-      RestUtils.response(restExtractorService, "settings", None)(Full(data), req, s"Could not modfiy settings")("modifySettings")
+      RestUtils.response(restExtractorService, "settings", None)(Full(data), req, s"Could not modfiy settings")(
+        "modifySettings",
+        params.prettify
+      )
     }
   }
 
@@ -224,7 +228,8 @@ class SettingsApi(
         (key -> value)
       }
       RestUtils.response(restExtractorService, "settings", Some(key))(data, req, s"Could not get parameter '${key}'")(
-        "getSetting"
+        "getSetting",
+        params.prettify
       )
     }
   }
@@ -247,7 +252,8 @@ class SettingsApi(
         (key -> value)
       }
       RestUtils.response(restExtractorService, "settings", Some(key))(data, req, s"Could not modify parameter '${key}'")(
-        "modifySetting"
+        "modifySetting",
+        params.prettify
       )
     }
   }
@@ -693,7 +699,8 @@ class SettingsApi(
   }
 
   def response(function: Box[JValue], req: Req, errorMessage: String, id: Option[String])(implicit
-      action: String
+      action:   String,
+      prettify: Boolean
   ): LiftResponse = {
     RestUtils.response(restExtractorService, kind, id)(function, req, errorMessage)
   }
@@ -847,6 +854,7 @@ class SettingsApi(
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action = "getAllAllowedNetworks"
+      implicit val prettify: Boolean = params.prettify
       RestUtils.response(restExtractorService, getRootNameForVersion(version), None)(
         getAllowedNetworks()(authzToken.qc).toBox,
         req,
@@ -868,7 +876,8 @@ class SettingsApi(
     ): LiftResponse = {
 
       implicit val action = "getAllowedNetworks"
-      val result          = for {
+      implicit val prettify: Boolean = params.prettify
+      val result = for {
         nodeInfo <- nodeFactRepo.get(NodeId(id))(authzToken.qc)
         isServer <- nodeInfo match {
                       case Some(info) if info.rudderSettings.isPolicyServer =>
@@ -909,6 +918,7 @@ class SettingsApi(
     ): LiftResponse = {
 
       implicit val action = "modifyAllowedNetworks"
+      implicit val prettify: Boolean = params.prettify
 
       def checkAllowedNetwork(v: String) = {
         val netWithoutSpaces = v.replaceAll("""\s""", "")
@@ -992,6 +1002,7 @@ class SettingsApi(
     ): LiftResponse = {
 
       implicit val action = "modifyDiffAllowedNetworks"
+      implicit val prettify: Boolean = params.prettify
 
       def checkAllowedNetwork(v: String) = {
         val netWithoutSpaces = v.replaceAll("""\s""", "")

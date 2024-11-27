@@ -82,6 +82,7 @@ import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.dsl.*
 import net.liftweb.common.*
 import net.liftweb.http.Req
+import zio.Chunk
 import zio.NonEmptyChunk
 import zio.json.*
 
@@ -115,6 +116,9 @@ object JsonQueryObjects {
   final case class JQClasses(
       classes: Option[List[String]]
   )
+  final case class JQNodeIdChunk(
+      nodeId: Option[Chunk[NodeId]]
+  )
   final case class JQNodeIdStatus(
       nodeId: List[NodeId],
       status: JQNodeStatusAction
@@ -141,6 +145,10 @@ object JsonQueryObjects {
     )
   }
 
+  final case class JQNodeInherited(
+      inherited: Option[Boolean]
+  )
+
   final case class JQNodePropertyInfo(
       inherited: Boolean,
       value:     String
@@ -165,6 +173,10 @@ object JsonQueryObjects {
       )
     }
   }
+
+  final case class JQIncludeSystem(
+      includeSystem: Option[Boolean]
+  )
 
   final case class JQDirectiveSectionVar(
       name:  String,
@@ -443,6 +455,7 @@ trait RudderJsonDecoders {
   implicit val classesDecoder:      JsonDecoder[JQClasses]    = DeriveJsonDecoder.gen[JQClasses].orElse((_, _) => JQClasses(None))
 
   implicit val nodeIdDecoder:             JsonDecoder[NodeId]                      = JsonDecoder[String].map(NodeId.apply)
+  implicit val nodeIdChunkDecoder:        JsonDecoder[JQNodeIdChunk]               = DeriveJsonDecoder.gen[JQNodeIdChunk]
   implicit val nodeStatusActionDecoder:   JsonDecoder[JQNodeStatusAction]          =
     JsonDecoder[String].mapOrFail(JQNodeStatusAction.withNameInsensitiveEither(_).left.map(_.getMessage()))
   implicit val nodeIdStatusDecoder:       JsonDecoder[JQNodeIdStatus]              = DeriveJsonDecoder
@@ -454,6 +467,7 @@ trait RudderJsonDecoders {
         Right(x)
       }
     })
+  implicit val nodeInheritedDecoder:      JsonDecoder[JQNodeInherited]             = DeriveJsonDecoder.gen[JQNodeInherited]
   implicit val nodestatusDecoder:         JsonDecoder[JQNodeStatus]                = DeriveJsonDecoder.gen[JQNodeStatus]
   implicit val nodePropertyInfoDecoder:   JsonDecoder[JQNodePropertyInfo]          = DeriveJsonDecoder.gen[JQNodePropertyInfo]
   implicit val nodeIdsSoftwareProperties: JsonDecoder[JQNodeIdsSoftwareProperties] =
@@ -516,6 +530,8 @@ trait RudderJsonDecoders {
   implicit lazy val ruleDecoder: JsonDecoder[JQRule] = DeriveJsonDecoder.gen
 
   implicit val ruleCategoryDecoder: JsonDecoder[JQRuleCategory] = DeriveJsonDecoder.gen
+
+  implicit val includeSystemDecoder: JsonDecoder[JQIncludeSystem] = DeriveJsonDecoder.gen
 
   // RestDirective - lazy because section/sectionVar/directive are mutually recursive
   implicit lazy val sectionDecoder:   JsonDecoder[JQDirectiveSection]    = DeriveJsonDecoder.gen
@@ -664,6 +680,14 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
     }
   }
 
+  def extractNodeIdChunk(req: Req): PureResult[Option[Chunk[NodeId]]] = {
+    parseJson[JQNodeIdChunk](req).map(_.nodeId)
+  }
+
+  def extractNodeInherited(req: Req): PureResult[Option[Boolean]] = {
+    parseJson[JQNodeInherited](req).map(_.inherited)
+  }
+
   def extractNodeIdStatus(req: Req): PureResult[JQNodeIdStatus] = {
     if (req.json_?) {
       parseJson[JQNodeIdStatus](req)
@@ -693,6 +717,14 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
       parseJson[JQUpdateNode](req)
     } else {
       extractUpdateNodeFromParams(req.params)
+    }
+  }
+
+  def extractIncludeSystem(req: Req): PureResult[Option[Boolean]] = {
+    if (req.json_?) {
+      parseJson[JQIncludeSystem](req).map(_.includeSystem)
+    } else {
+      extractIncludeSystemFromParams(req.params)
     }
   }
 
@@ -900,4 +932,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
     }
   }
 
+  def extractIncludeSystemFromParams(params: Map[String, List[String]]): PureResult[Option[Boolean]] = {
+    params.parse("includeSystem", JsonDecoder[Boolean])
+  }
 }

@@ -78,7 +78,6 @@ import scala.reflect.ClassTag
 import zio.Chunk
 import zio.NonEmptyChunk
 
-
 @RunWith(classOf[JUnitRunner])
 class TestMergeGroupProperties extends Specification {
 

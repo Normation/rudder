@@ -59,8 +59,6 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.rest.*
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.RuleApi as API
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rule.category.*
@@ -69,7 +67,6 @@ import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.services.workflows.*
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.utils.StringUuidGenerator
-import net.liftweb.common.Box
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
@@ -78,24 +75,10 @@ import zio.*
 import zio.syntax.*
 
 class RuleApi(
-    restExtractorService: RestExtractorService,
-    zioJsonExtractor:     ZioJsonExtractor,
-    service:              RuleApiService14,
-    uuidGen:              StringUuidGenerator
+    zioJsonExtractor: ZioJsonExtractor,
+    service:          RuleApiService14,
+    uuidGen:          StringUuidGenerator
 ) extends LiftApiModuleProvider[API] {
-
-  import RestUtils.*
-
-  def actionResponse(
-      function:     Box[ActionType],
-      req:          Req,
-      errorMessage: String,
-      id:           Option[String],
-      actor:        EventActor,
-      dataName:     String
-  )(implicit action: String): LiftResponse = {
-    RestUtils.actionResponse2(restExtractorService, dataName, uuidGen, id)(function, req, errorMessage)(action, actor)
-  }
 
   def schemas: ApiModuleProvider[API] = API
 

@@ -42,6 +42,7 @@ import com.normation.box.*
 import com.normation.cfclerk.domain.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.config.ReasonBehavior.*
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.users.CurrentUser
@@ -50,7 +51,6 @@ import com.normation.rudder.web.components.popup.CreateActiveTechniqueCategoryPo
 import com.normation.rudder.web.components.popup.GiveReasonPopup
 import com.normation.rudder.web.model.JsTreeNode
 import com.normation.rudder.web.services.AgentCompat
-import com.normation.rudder.web.services.ReasonBehavior.*
 import net.liftweb.common.*
 import net.liftweb.common.Box.box2Option
 import net.liftweb.common.Box.option2Box

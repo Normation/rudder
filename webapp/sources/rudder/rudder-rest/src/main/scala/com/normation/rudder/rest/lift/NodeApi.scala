@@ -57,6 +57,8 @@ import com.normation.rudder.apidata.RenderInheritedProperties
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
+import com.normation.rudder.config.ReasonBehavior
+import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
@@ -86,14 +88,13 @@ import com.normation.rudder.properties.PropertiesRepository
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
-import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.NodeApi as API
 import com.normation.rudder.rest.OneParam
-import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.rest.RudderJsonResponse
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.data.Creation.CreationError
@@ -118,8 +119,6 @@ import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.RemoveNodeService
-import com.normation.rudder.web.services.ReasonBehavior
-import com.normation.rudder.web.services.UserPropertyService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import io.scalaland.chimney.syntax.*
@@ -164,6 +163,8 @@ class NodeApi(
     uuidGen:               StringUuidGenerator,
     deleteDefaultMode:     DeleteMode
 ) extends LiftApiModuleProvider[API] {
+
+  implicit def reasonBehavior: ReasonBehavior = userPropertyService.reasonsFieldBehavior
 
   def schemas: ApiModuleProvider[API] = API
 
@@ -387,7 +388,7 @@ class NodeApi(
 
       (for {
         restNode <- restExtractor.extractUpdateNode(req).toIO
-        reason   <- extractReason(req)
+        reason   <- extractReason(req).toIO
         result   <- nodeApiService.updateRestNode(NodeId(id), restNode)
         // await all properties update to guarantee that properties are resolved after node modification
         _        <- nodePropertiesService.updateAll()
@@ -708,7 +709,7 @@ class NodeApi(
       implicit val qc       = authzToken.qc
 
       val result = (for {
-        inheritedProperty <- req.json.flatMap(j => OptionnalJson.extractJsonBoolean(j, "inherited")).toIO
+        inheritedProperty <- zioJsonExtractor.extractNodeInherited(req).toIO
         response          <- nodeApiService.property(req, property, inheritedProperty.getOrElse(false))
       } yield {
         response
@@ -731,25 +732,6 @@ class NodeApi(
       DeriveJsonEncoder.gen[JRNodeDetailLevel]
   }
 
-  // TODO: known to be duplicated in change-validation. Some day we will need to factor this out in zio (moving prop service to rudder-core)
-  private def extractReason(req: Req): IOResult[Option[String]] = {
-    import ReasonBehavior.*
-    (userPropertyService.reasonsFieldBehavior match {
-      case Disabled => ZIO.none
-      case mode     =>
-        val reason = req.params.get("reason").flatMap(_.headOption)
-        (mode: @unchecked) match {
-          case Mandatory =>
-            reason
-              .notOptional("Reason field is mandatory and should be at least 5 characters long")
-              .reject {
-                case s if s.lengthIs < 5 => Inconsistency("Reason field should be at least 5 characters long")
-              }
-              .map(Some(_))
-          case Optionnal => reason.succeed
-        }
-    }).chainError("There was an error while extracting reason message")
-  }
 }
 
 class NodeApiInheritedProperties(
@@ -806,7 +788,7 @@ class NodeApiService(
     acceptedDit:                InventoryDit,
     newNodeManager:             NewNodeManager,
     removeNodeService:          RemoveNodeService,
-    restExtractor:              RestExtractorService,
+    restExtractor:              ZioJsonExtractor,
     reportingService:           ReportingService,
     acceptedNodeQueryProcessor: QueryProcessor,
     pendingNodeQueryProcessor:  QueryChecker,
@@ -1086,7 +1068,7 @@ class NodeApiService(
   def software(req: Req, software: String)(implicit qc: QueryContext): IOResult[Map[String, Version]] = {
 
     for {
-      optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson).toIO
+      optNodeIds <- restExtractor.extractNodeIdChunk(req).toIO
       nodes      <- optNodeIds match {
                       case None          => nodeFactRepository.getAll()
                       case Some(nodeIds) => nodeFactRepository.getAll().map(_.filterKeys(id => nodeIds.contains(id.value)))
@@ -1102,7 +1084,7 @@ class NodeApiService(
   ): IOResult[Map[String, JRProperty]] = {
 
     for {
-      optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson).toIO
+      optNodeIds <- restExtractor.extractNodeIdChunk(req).toIO
       nodes      <- optNodeIds match {
                       case None          => nodeFactRepository.getAll()
                       case Some(nodeIds) => nodeFactRepository.getAll().map(_.filterKeys(id => nodeIds.contains(id.value)))

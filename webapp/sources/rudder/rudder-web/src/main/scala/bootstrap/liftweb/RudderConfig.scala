@@ -61,6 +61,8 @@ import com.normation.rudder.api.*
 import com.normation.rudder.apidata.*
 import com.normation.rudder.batch.*
 import com.normation.rudder.campaigns.*
+import com.normation.rudder.config.StatelessUserPropertyService
+import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.configuration.*
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.domain.*
@@ -1754,7 +1756,7 @@ object RudderConfigInit {
       acceptedNodesDit,
       newNodeManagerImpl,
       removeNodeServiceImpl,
-      restExtractorService,
+      zioJsonExtractor,
       reportingService,
       queryProcessor,
       inventoryQueryChecker,
@@ -2107,10 +2109,10 @@ object RudderConfigInit {
           restExtractorService,
           zioJsonExtractor,
           stringUuidGenerator,
+          userPropertyService,
           groupApiService14
         ),
         new DirectiveApi(
-          restExtractorService,
           zioJsonExtractor,
           stringUuidGenerator,
           directiveApiService14
@@ -2142,11 +2144,11 @@ object RudderConfigInit {
           techniqueRepository,
           techniqueSerializer,
           stringUuidGenerator,
+          userPropertyService,
           resourceFileService,
           RUDDER_GIT_ROOT_CONFIG_REPO
         ),
         new RuleApi(
-          restExtractorService,
           zioJsonExtractor,
           ruleApiService13,
           stringUuidGenerator
@@ -2420,7 +2422,7 @@ object RudderConfigInit {
       configService.rudder_ui_changeMessage_mandatory _,
       configService.rudder_ui_changeMessage_explanation _
     )
-    lazy val userPropertyService     = userPropertyServiceImpl
+    lazy val userPropertyService: UserPropertyService = userPropertyServiceImpl
 
     ////////////////////////////////////
     //  non success services

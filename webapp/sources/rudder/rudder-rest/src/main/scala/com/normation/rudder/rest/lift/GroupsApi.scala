@@ -52,6 +52,8 @@ import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
+import com.normation.rudder.config.ReasonBehavior
+import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
@@ -87,8 +89,11 @@ class GroupsApi(
     restExtractorService: RestExtractorService,
     zioJsonExtractor:     ZioJsonExtractor,
     uuidGen:              StringUuidGenerator,
+    userPropertyService:  UserPropertyService,
     service:              GroupApiService14
 ) extends LiftApiModuleProvider[API] {
+
+  def reasonBehavior: ReasonBehavior = userPropertyService.reasonsFieldBehavior
 
   def schemas: ApiModuleProvider[API] = API
 
@@ -118,15 +123,22 @@ class GroupsApi(
   import net.liftweb.json.*
 
   def response(function: Box[JValue], req: Req, errorMessage: String, id: Option[String])(implicit
-      action: String
+      action:   String,
+      prettify: Boolean
   ): LiftResponse = {
     RestUtils.response(restExtractorService, "groupCategories", id)(function, req, errorMessage)
   }
 
   def actionResponse(function: Box[ActionType], req: Req, errorMessage: String, id: Option[String], actor: EventActor)(implicit
-      action: String
+      action:   String,
+      prettify: Boolean
   ): LiftResponse = {
-    RestUtils.actionResponse2(restExtractorService, "groupCategories", uuidGen, id)(function, req, errorMessage)(action, actor)
+    RestUtils.actionResponse2(restExtractorService, "groupCategories", uuidGen, id)(function, req, errorMessage)(
+      action,
+      prettify,
+      reasonBehavior,
+      actor
+    )
   }
 
   // group categories
@@ -281,6 +293,7 @@ class GroupsApi(
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action = schema.name
+      implicit val prettify: Boolean = params.prettify
       response(
         service.getCategoryTree(version),
         req,
@@ -301,6 +314,7 @@ class GroupsApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       implicit val action = schema.name
+      implicit val prettify: Boolean = params.prettify
       response(
         service.getCategoryDetails(NodeGroupCategoryId(id), version),
         req,
@@ -321,6 +335,7 @@ class GroupsApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       implicit val action = schema.name
+      implicit val prettify: Boolean = params.prettify
       actionResponse(
         Full(service.deleteCategory(NodeGroupCategoryId(id), version)),
         req,
@@ -342,7 +357,8 @@ class GroupsApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       implicit val action = schema.name
-      val x               = for {
+      implicit val prettify: Boolean = params.prettify
+      val x = for {
         restCategory <- {
           if (req.json_?) {
             for {
@@ -372,8 +388,9 @@ class GroupsApi(
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action = schema.name
-      val id              = () => NodeGroupCategoryId(uuidGen.newUuid)
-      val x               = for {
+      implicit val prettify: Boolean = params.prettify
+      val id = () => NodeGroupCategoryId(uuidGen.newUuid)
+      val x  = for {
         restCategory <- {
           if (req.json_?) {
             for {

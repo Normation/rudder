@@ -41,6 +41,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.config.ReasonBehavior.*
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.PolicyTypes
@@ -48,7 +49,6 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.FormTracker
 import com.normation.rudder.web.model.WBTextAreaField
-import com.normation.rudder.web.services.ReasonBehavior.*
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.SHtml
@@ -104,10 +104,10 @@ class GiveReasonPopup(
 
 ///////////// fields for category settings ///////////////////
   private val crReasons = {
-    (userPropertyService.reasonsFieldBehavior: @unchecked) match {
+    userPropertyService.reasonsFieldBehavior match {
       case Disabled  => None
       case Mandatory => Some(buildReasonField(true, "px-1"))
-      case Optionnal => Some(buildReasonField(false, "px-1"))
+      case Optional  => Some(buildReasonField(false, "px-1"))
     }
   }
 

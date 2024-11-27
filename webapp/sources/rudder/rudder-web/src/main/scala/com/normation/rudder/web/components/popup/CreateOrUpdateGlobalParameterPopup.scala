@@ -330,11 +330,11 @@ class CreateOrUpdateGlobalParameterPopup(
   val parameterOverridable = true
 
   private val paramReasons = {
-    import com.normation.rudder.web.services.ReasonBehavior.*
-    (userPropertyService.reasonsFieldBehavior: @unchecked) match {
+    import com.normation.rudder.config.ReasonBehavior.*
+    userPropertyService.reasonsFieldBehavior match {
       case Disabled  => None
       case Mandatory => Some(buildReasonField(true, "px-1"))
-      case Optionnal => Some(buildReasonField(false, "px-1"))
+      case Optional  => Some(buildReasonField(false, "px-1"))
     }
   }
 

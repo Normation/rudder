@@ -37,10 +37,13 @@
 
 package com.normation.rudder.rest
 
+import com.normation.box.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.config.ReasonBehavior
 import com.normation.rudder.domain.logger.ApiLogger
+import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.users.UserService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
@@ -219,8 +222,7 @@ object RestUtils {
       restExtractor: RestExtractorService,
       dataName:      String,
       id:            Option[String]
-  )(function: Box[JValue], req: Req, errorMessage: String)(implicit action: String): LiftResponse = {
-    implicit val prettify = restExtractor.extractPrettify(req.params)
+  )(function: Box[JValue], req: Req, errorMessage: String)(implicit action: String, prettify: Boolean): LiftResponse = {
     function match {
       case Full(category: JValue) =>
         toJsonResponse(id, (dataName -> category))
@@ -237,56 +239,24 @@ object RestUtils {
       function:     Box[ActionType],
       req:          Req,
       errorMessage: String
-  )(implicit action: String, userService: UserService): LiftResponse = {
-    actionResponse2(restExtractor, dataName, uuidGen, id)(function, req, errorMessage)(action, RestUtils.getActor(req))
+  )(implicit action: String, prettify: Boolean, reasonBehavior: ReasonBehavior, userService: UserService): LiftResponse = {
+    actionResponse2(restExtractor, dataName, uuidGen, id)(function, req, errorMessage)(
+      action,
+      prettify,
+      reasonBehavior,
+      RestUtils.getActor(req)
+    )
   }
   def actionResponse2(restExtractor: RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id: Option[String])(
       function:     Box[ActionType],
       req:          Req,
       errorMessage: String
-  )(implicit action: String, actor: EventActor): LiftResponse = {
-    implicit val prettify = restExtractor.extractPrettify(req.params)
+  )(implicit action: String, prettify: Boolean, reasonBehavior: ReasonBehavior, actor: EventActor): LiftResponse = {
 
     (for {
-      reason <- restExtractor.extractReason(req)
+      reason <- extractReason(req).toBox
       modId   = ModificationId(uuidGen.newUuid)
       result <- function.flatMap(_(actor, modId, reason))
-    } yield {
-      result
-    }) match {
-      case Full(result: JValue) =>
-        toJsonResponse(id, (dataName -> result))
-      case eb: EmptyBox =>
-        val message = (eb ?~! errorMessage).messageChain
-        toJsonError(id, message)
-    }
-  }
-
-  type WorkflowType = (EventActor, Option[String], String, String) => Box[JValue]
-  def workflowResponse(restExtractor: RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id: Option[String])(
-      function:     Box[WorkflowType],
-      req:          Req,
-      errorMessage: String,
-      defaultName:  String
-  )(implicit action: String, userService: UserService): LiftResponse = {
-    workflowResponse2(restExtractor, dataName, uuidGen, id)(function, req, errorMessage, defaultName)(
-      action,
-      RestUtils.getActor(req)
-    )
-  }
-  def workflowResponse2(restExtractor: RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id: Option[String])(
-      function:     Box[WorkflowType],
-      req:          Req,
-      errorMessage: String,
-      defaultName:  String
-  )(implicit action: String, actor: EventActor): LiftResponse = {
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-
-    (for {
-      reason <- restExtractor.extractReason(req)
-      crName <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(defaultName))
-      crDesc  = restExtractor.extractChangeRequestDescription(req)
-      result <- function.flatMap(_(actor, reason, crName, crDesc))
     } yield {
       result
     }) match {

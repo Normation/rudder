@@ -42,12 +42,13 @@ import com.normation.box.*
 import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.implicits.*
+import com.normation.rudder.config.ReasonBehavior
+import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.ncf.*
@@ -56,7 +57,6 @@ import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rest.{TechniqueApi as API, *}
-import com.normation.rudder.rest.RestUtils.ActionType
 import com.normation.rudder.rest.RestUtils.response
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rest.lift.TechniqueApi.QueryFormat
@@ -97,6 +97,7 @@ class TechniqueApi(
     techniqueRepository:  TechniqueRepository,
     techniqueSerializer:  TechniqueSerializer,
     uuidGen:              StringUuidGenerator,
+    userPropertyService:  UserPropertyService,
     resourceFileService:  ResourceFileService,
     configRepoPath:       String
 ) extends LiftApiModuleProvider[API] {
@@ -104,38 +105,16 @@ class TechniqueApi(
   import TechniqueApi.*
   import zio.json.*
   import zio.json.yaml.*
+
+  implicit def reasonBehavior: ReasonBehavior = userPropertyService.reasonsFieldBehavior
+
   def schemas: ApiModuleProvider[API] = API
 
   val dataName = "techniques"
-  def resp(function: Box[JValue], req: Req, errorMessage: String)(action: String)(implicit dataName: String): LiftResponse = {
-    response(restExtractorService, dataName, None)(function, req, errorMessage)
-  }
-
-  def actionResp(function: Box[ActionType], req: Req, errorMessage: String, actor: EventActor)(implicit
+  def resp(function: Box[JValue], req: Req, errorMessage: String)(
       action: String
-  ): LiftResponse = {
-    // implementation copied from RestUtils#actionResponse2
-    // but changed to never fail on reason message extraction
-    implicit val prettify = restExtractorService.extractPrettify(req.params)
-    import net.liftweb.json.JsonDSL.*
-    import net.liftweb.common.EmptyBox
-
-    (
-      for {
-        reason <- restExtractorService.extractReason(req).or(Full(Some("Technique updated via technique editor API")))
-        modId   = ModificationId(uuidGen.newUuid)
-        result <- function.flatMap(_(actor, modId, reason))
-      } yield {
-        result
-      }
-    ) match {
-      case Full(result: JValue) =>
-        RestUtils.toJsonResponse(None, (dataName -> result))
-      case eb: EmptyBox =>
-        val message = (eb ?~! errorMessage).messageChain
-        RestUtils.toJsonError(None, message)
-    }
-
+  )(implicit dataName: String, prettify: Boolean): LiftResponse = {
+    response(restExtractorService, dataName, None)(function, req, errorMessage)
   }
 
   def getLiftEndpoints(): List[LiftApiModule] = {
@@ -177,6 +156,8 @@ class TechniqueApi(
 
       import net.liftweb.json.JsonDSL.*
       import zio.syntax.*
+
+      implicit val prettify: Boolean = params.prettify
 
       def serializeResourceWithState(resource: ResourceFile) = {
         (("path" -> resource.path) ~ ("state" -> resource.state.value))
@@ -245,6 +226,7 @@ class TechniqueApi(
         params:        DefaultParams,
         authzToken:    AuthzToken
     ): LiftResponse = {
+      implicit val prettify: Boolean = params.prettify
 
       val modId = ModificationId(uuidGen.newUuid)
 
@@ -314,6 +296,7 @@ class TechniqueApi(
     implicit val dataName: String = "methods"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val prettify: Boolean = params.prettify
       val response = for {
         methods <- techniqueReader.getMethodsMetadata
         sorted   = methods.toList.sortBy(_._1.value)
@@ -332,6 +315,7 @@ class TechniqueApi(
     implicit val dataName: String = "methods"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val prettify: Boolean = params.prettify
       val response = for {
         _       <- techniqueReader.updateMethodsMetadataFile
         methods <- techniqueReader.getMethodsMetadata
@@ -379,6 +363,7 @@ class TechniqueApi(
     implicit val dataName: String = "techniqueCategories"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val prettify: Boolean = params.prettify
       val response = {
         val categories = techniqueRepository.getAllCategories
         def serializeTechniqueCategory(t: TechniqueCategory): JObject = {

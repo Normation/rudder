@@ -59,6 +59,7 @@ import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch.*
 import com.normation.rudder.batch.PolicyGenerationTrigger.AllGeneration
 import com.normation.rudder.campaigns.CampaignSerializer
+import com.normation.rudder.config.StatelessUserPropertyService
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -147,7 +148,6 @@ import com.normation.rudder.web.model.LinkUtil
 import com.normation.rudder.web.services.DirectiveEditorServiceImpl
 import com.normation.rudder.web.services.DirectiveFieldFactory
 import com.normation.rudder.web.services.Section2FieldService
-import com.normation.rudder.web.services.StatelessUserPropertyService
 import com.normation.rudder.web.services.Translator
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
@@ -757,7 +757,7 @@ class RestTestSetUp {
         null,
         mockNodes.newNodeManager,
         mockNodes.removeNodeService,
-        restExtractorService,
+        zioJsonExtractor,
         mockCompliance.reportingService(Map.empty),
         mockNodes.queryProcessor,
         null,
@@ -894,16 +894,16 @@ class RestTestSetUp {
       techniqueRepository,
       techniqueSerializer,
       uuidGen,
+      userPropertyService,
       resourceFileService,
       mockGitRepo.configurationRepositoryRoot.pathAsString
     ),
     new DirectiveApi(
-      restExtractorService,
       zioJsonExtractor,
       uuidGen,
       directiveApiService14
     ),
-    new RuleApi(restExtractorService, zioJsonExtractor, ruleApiService14, uuidGen),
+    new RuleApi(zioJsonExtractor, ruleApiService14, uuidGen),
     new RulesInternalApi(ruleInternalApiService, ruleApiService14),
     new GroupsInternalApi(groupInternalApiService),
     new NodeApi(
@@ -921,6 +921,7 @@ class RestTestSetUp {
       restExtractorService,
       zioJsonExtractor,
       uuidGen,
+      userPropertyService,
       groupService14
     ),
     new SettingsApi(

@@ -73,8 +73,6 @@ import com.normation.rudder.rest.*
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.DirectiveApi as API
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.services.workflows.ChangeRequestService
@@ -94,37 +92,12 @@ import zio.*
 import zio.syntax.*
 
 class DirectiveApi(
-    restExtractorService: RestExtractorService,
-    zioJsonExtractor:     ZioJsonExtractor,
-    uuidGen:              StringUuidGenerator,
-    service:              DirectiveApiService14
+    zioJsonExtractor: ZioJsonExtractor,
+    uuidGen:          StringUuidGenerator,
+    service:          DirectiveApiService14
 ) extends LiftApiModuleProvider[API] {
 
-  private val dataName = "directives"
-
   def schemas: ApiModuleProvider[API] = API
-
-  type ActionType = RestUtils.ActionType
-  def actionResponse(function: Box[ActionType], req: Req, errorMessage: String, id: Option[String], actor: EventActor)(implicit
-      action: String
-  ): LiftResponse = {
-    RestUtils.actionResponse2(restExtractorService, dataName, uuidGen, id)(function, req, errorMessage)(action, actor)
-  }
-
-  type WorkflowType = RestUtils.WorkflowType
-  def workflowResponse(
-      function:     Box[WorkflowType],
-      req:          Req,
-      errorMessage: String,
-      id:           Option[String],
-      defaultName:  String,
-      actor:        EventActor
-  )(implicit action: String): LiftResponse = {
-    RestUtils.workflowResponse2(restExtractorService, dataName, uuidGen, id)(function, req, errorMessage, defaultName)(
-      action,
-      actor
-    )
-  }
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map {
@@ -149,7 +122,7 @@ class DirectiveApi(
     val schema:                                                                                                API.DirectiveTree.type = API.DirectiveTree
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse           = {
       (for {
-        includeSystem <- restExtractorService.extractBoolean("includeSystem")(req)(identity).toIO
+        includeSystem <- zioJsonExtractor.extractIncludeSystem(req).toIO
         res           <- service.directiveTree(includeSystem.getOrElse(false))
       } yield {
         res

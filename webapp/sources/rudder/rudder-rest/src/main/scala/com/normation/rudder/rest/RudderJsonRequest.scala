@@ -37,8 +37,14 @@
 
 package com.normation.rudder.rest
 
+import cats.syntax.either.*
+import cats.syntax.monadError.*
+import com.normation.errors.Chained
+import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
 import com.normation.rudder.apidata.ZioJsonExtractor
+import com.normation.rudder.config.ReasonBehavior
+import com.normation.rudder.config.ReasonBehavior.*
 import net.liftweb.http.Req
 import zio.json.*
 
@@ -55,5 +61,20 @@ object RudderJsonRequest {
       ZioJsonExtractor.parseJson(req)
     }
 
+  }
+
+  def extractReason(req: Req)(implicit reasonBehavior: ReasonBehavior): PureResult[Option[String]] = {
+    def reason = req.params.get("reason").flatMap(_.headOption)
+    (reasonBehavior match {
+      case Disabled  => Right(None)
+      case Mandatory =>
+        reason
+          .toRight[String]("Reason field is mandatory and should be at least 5 characters long")
+          .reject {
+            case s if s.lengthIs < 5 => "Reason field should be at least 5 characters long"
+          }
+          .map(Some(_))
+      case Optional  => Right(reason)
+    }).leftMap(err => Chained("There was an error while extracting reason message", Inconsistency(err)))
   }
 }

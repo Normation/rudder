@@ -88,59 +88,44 @@ trait JsonExtractorUtils[A[_]] {
     }
   }
 
+  /*
+   * Still used in apiaccount/eventlog/group API, tags
+   */
   def extractJsonString[T](json: JValue, key: String, convertTo: String => Box[T] = boxedIdentity[String]): Box[A[T]] = {
     extractJson(json, key, convertTo, { case JString(value) => value })
   }
-  def extractJsonStringMultipleKeys[T](
-      json:      JValue,
-      keys:      List[String],
-      convertTo: String => Box[T] = boxedIdentity[String]
-  ): Box[A[T]] = {
-    extractJson(json, keys, convertTo, { case JString(value) => value })
-  }
 
+  /*
+   * Still used in apiaccount API
+   */
   def extractJsonBoolean[T](json: JValue, key: String, convertTo: Boolean => Box[T] = boxedIdentity[Boolean]): Box[A[T]] = {
     extractJson(json, key, convertTo, { case JBool(value) => value })
   }
 
+  /*
+   * Still used in eventlog API
+   */
   def extractJsonInt(json: JValue, key: String): Box[A[Int]] = {
     extractJsonBigInt(json, key, i => Full(i.toInt))
   }
 
+  /*
+   * Still used in eventlog API
+   */
   def extractJsonBigInt[T](json: JValue, key: String, convertTo: BigInt => Box[T] = boxedIdentity[BigInt]): Box[A[T]] = {
     extractJson(json, key, convertTo, { case JInt(value) => value })
   }
 
-  def extractJsonObj[T](json: JValue, key: String, jsonValueFun: JObject => Box[T]):                    Box[A[T]] = {
+  /*
+   * Still used in eventlog API
+   */
+  def extractJsonObj[T](json: JValue, key: String, jsonValueFun: JObject => Box[T]): Box[A[T]] = {
     extractJson(json, key, jsonValueFun, { case obj: JObject => obj })
   }
-  def extractJsonObjMultipleKeys[T](json: JValue, keys: List[String], jsonValueFun: JObject => Box[T]): Box[A[T]] = {
-    extractJson(json, keys, jsonValueFun, { case obj: JObject => obj })
-  }
 
-  def extractJsonListString[T](
-      json:      JValue,
-      key:       String,
-      convertTo: List[String] => Box[T] = boxedIdentity[List[String]]
-  ): Box[A[T]] = {
-    json \ key match {
-      case JArray(values) =>
-        (for {
-          strings   <- traverse(values) {
-                         _ match {
-                           case JString(s) => Full(s)
-                           case x          => Failure(s"Error extracting a string from json: '${x}'")
-                         }
-                       }
-          converted <- convertTo(strings.toList)
-        } yield {
-          converted
-        }).map(monad.pure(_))
-      case JNothing       => emptyValue(key) ?~! s"Array of string is empty"
-      case _              => Failure(s"Not a good value for parameter ${key}")
-    }
-  }
-
+  /*
+   * Still used in tags, eventlog/apiaccount API
+   */
   def extractJsonArray[T](json: JValue, key: String)(convertTo: JValue => Box[T]):        Box[A[List[T]]] = {
     val trueJson =
       if (key.isEmpty) json else json \ key
@@ -155,6 +140,9 @@ trait JsonExtractorUtils[A[_]] {
       case _              => Failure(s"Invalid json to extract a json array, current value is: ${compactRender(json)}")
     }
   }
+  /*
+   * Still used in tags, eventlog/apiaccount API
+   */
   def extractJsonArray[T](json: JValue, keys: List[String])(convertTo: JValue => Box[T]): Box[A[List[T]]] = {
     keys.map(k => extractJsonArray(json, k)(convertTo)).reduce[Box[A[List[T]]]] {
       case (Full(res), _)                 => Full(res)
