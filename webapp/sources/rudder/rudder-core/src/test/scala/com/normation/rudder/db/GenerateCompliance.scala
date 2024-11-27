@@ -56,6 +56,7 @@ import java.nio.charset.StandardCharsets
 import java.util.Properties
 import javax.sql.DataSource
 import org.joda.time.DateTime
+import scala.concurrent.duration.DurationInt
 import scala.util.Random
 import zio.interop.catz.*
 
@@ -90,7 +91,8 @@ object GenerateCompliance {
       properties.getProperty("rudder.jdbc.url"),
       properties.getProperty("rudder.jdbc.username"),
       properties.getProperty("rudder.jdbc.password"),
-      properties.getProperty("rudder.jdbc.maxPoolSize").toInt
+      properties.getProperty("rudder.jdbc.maxPoolSize").toInt,
+      250.millis
     )
     config.datasource
   }
