@@ -961,8 +961,6 @@ class RestTestSetUp {
   }
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
 
-  val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
-
   // RestHelpers
   liftRules.statelessDispatch.append(RestStatus)
   liftRules.statelessDispatch.append(sharedFilesApi)

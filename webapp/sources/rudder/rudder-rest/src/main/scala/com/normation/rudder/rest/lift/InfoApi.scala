@@ -41,10 +41,12 @@ import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.rest.*
 import com.normation.rudder.rest.InfoApi as API
+import com.normation.rudder.rest.implicits.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.*
-import net.liftweb.json.JsonDSL.*
+import zio.json.ast.*
+import zio.json.ast.Json.*
+import zio.syntax.*
 
 /*
  * Information about the API
@@ -73,28 +75,37 @@ class InfoApi(
       path:     ApiPath
   )
 
-  private def list(startWith: Option[String]): JValue = {
-    implicit def apiVersionToJValue(version: ApiVersion): JValue = {
-      ("version" -> version.value) ~
-      ("status"  -> { if (version.deprecated) "deprecated" else "maintained" })
+  implicit class ApiVersionToJson(version: ApiVersion) {
+    def json: Json.Obj = {
+      Obj(
+        "version" -> Num(version.value),
+        "status"  -> Str({ if (version.deprecated) "deprecated" else "maintained" })
+      )
     }
+  }
 
-    implicit class EndpointToJValue(endpoint: EndpointInfo) {
-      def json: JValue = {
+  private def list(startWith: Option[String]): Obj = {
+
+    implicit class EndpointToJson(endpoint: EndpointInfo) {
+      def json: Json.Obj = {
         val versions = endpoint.versions.map(_.value).toList.sorted.mkString("[", ",", "]")
         val action   = endpoint.action.name.toUpperCase()
 
-        (endpoint.name -> endpoint.desc) ~
-        (action        -> JString(versions + " /" + endpoint.path.value))
+        Obj(
+          endpoint.name -> Str(endpoint.desc),
+          action        -> Str(versions + " /" + endpoint.path.value)
+        )
       }
     }
 
-    val availableVersions = supportedVersions.toList.sortBy(_.value)
+    val availableVersions = supportedVersions.sortBy(_.value)
 
     availableVersions.reverse match {
       case Nil =>
-        ("documentation" -> "https://docs.rudder.io/api/") ~
-        ("error"         -> "No API version supported. please contact your administrator or report a bug")
+        Obj(
+          "documentation" -> Str("https://docs.rudder.io/api/"),
+          "error"         -> Str("No API version supported. please contact your administrator or report a bug")
+        )
 
       case max :: tail =>
         val list = endpoints.filter(e => {
@@ -105,7 +116,7 @@ class InfoApi(
           })
         })
 
-        // we want to keep endpoints in their zz order, because it's an important information.
+        // we want to keep endpoints in their zz order, because it's important information.
         val jsonInfos     = list.groupBy(_.schema.name).map {
           case (name, seq) =>
             // we just want to gather version for each api
@@ -120,21 +131,21 @@ class InfoApi(
               ).json
             )
         }
-        val jsonEndpoints = list.map(_.schema.name).distinct.map(n => jsonInfos(n)) // can't fails, same source 'list'
+        val jsonEndpoints = list.map(_.schema.name).distinct.map(n => jsonInfos(n)) // can't fail, same source 'list'
 
-        ("documentation"     -> "https://docs.rudder.io/api/") ~
-        ("availableVersions" ->
-        ("latest"            -> max.value) ~
-        ("all"               -> availableVersions)) ~
-        ("endpoints"         -> jsonEndpoints)
+        Obj(
+          "documentation"     -> Str("https://docs.rudder.io/api/"),
+          "availableVersions" -> Obj("latest" -> Num(max.value), "all" -> Arr(availableVersions.map(_.json)*)),
+          "endpoints"         -> Arr(jsonEndpoints*)
+        )
     }
   }
 
   object ApiGeneralInformations extends LiftApiModule0 {
-    val schema:                                                                                                API.ApiGeneralInformations.type = API.ApiGeneralInformations
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                    = {
-      val json = list(None)
-      RestUtils.toJsonResponse(None, json)(schema.name, params.prettify)
+    val schema: API.ApiGeneralInformations.type = API.ApiGeneralInformations
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      list(None).succeed.toLiftResponseOne(params, schema, _ => None)
     }
   }
 
@@ -148,8 +159,7 @@ class InfoApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      val json = list(Some(name))
-      RestUtils.toJsonResponse(None, json)(schema.name, params.prettify)
+      list(Some(name)).succeed.toLiftResponseOne(params, schema, _ => None)
     }
   }
 
@@ -163,37 +173,38 @@ class InfoApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit def apiVersionToJValue(version: ApiVersion): JValue = {
-        ("version" -> version.value) ~
-        ("status"  -> { if (version.deprecated) "deprecated" else "maintained" })
-      }
 
-      implicit class EndpointToJValue(endpoint: Endpoint) {
-        def json: JValue = {
+      implicit class EndpointToJson(endpoint: Endpoint) {
+        def json: Json.Obj = {
           val path   = "/" + endpoint.prefix.value + "/" + endpoint.schema.path.value
           val action = endpoint.schema.action.name.toUpperCase()
 
-          (action    -> path) ~
-          ("version" -> endpoint.version)
+          Obj(
+            action    -> Str(path),
+            "version" -> endpoint.version.json
+          )
         }
       }
 
       val json = endpoints
         .filter(e => e.schema.name.equalsIgnoreCase(name) && e.schema.kind != ApiKind.Internal)
-        .sortBy(_.version.value)
-        .toList match {
+        .sortBy(_.version.value) match {
         case Nil =>
-          ("documentation" -> "https://docs.rudder.io/api/") ~
-          ("error"         -> s"No endpoint with name '${name}' defined.")
+          Obj(
+            "documentation" -> Str("https://docs.rudder.io/api/"),
+            "error"         -> Str(s"No endpoint with name '${name}' defined.")
+          )
 
         case h :: tail =>
           val jsonEndpoints = (h :: tail).map(_.json)
 
-          ("documentation" -> "https://docs.rudder.io/api/") ~
-          (name            -> h.schema.description) ~
-          ("endpoints"     -> jsonEndpoints)
+          Obj(
+            "documentation" -> Str("https://docs.rudder.io/api/"),
+            name            -> Str(h.schema.description),
+            "endpoints"     -> Arr(jsonEndpoints*)
+          )
       }
-      RestUtils.toJsonResponse(None, json)(schema.name, params.prettify)
+      json.succeed.toLiftResponseOne(params, schema, _ => None)
     }
   }
 
