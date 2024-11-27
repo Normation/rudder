@@ -208,7 +208,7 @@ class RestApiAccounts(
       OldInternalApiAuthz.withWriteAdmin(readApi.getById(apiTokenId).either.runNow match {
         case Right(Some(account)) =>
           val newSecret = ApiTokenSecret.generate(tokenGenerator)
-          val newHash   = newSecret.hash()
+          val newHash   = newSecret.toHash()
 
           val generationDate = DateTime.now
           writeApi
