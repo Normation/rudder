@@ -1,0 +1,168 @@
+description: API info
+method: GET
+url: /secure/api/info
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "apiGeneralInformations",
+      "result" : "success",
+      "data" : {
+        "documentation" : "https://docs.rudder.io/api/",
+        "availableVersions" : {
+          "latest" : 20,
+          "all" : [
+            {
+              "version" : 19,
+              "status" : "deprecated"    
+            },
+            {
+              "version" : 20,
+              "status" : "maintained"
+            }
+          ]
+        },
+        "endpoints" : [
+          {
+            "listParameters" : "List all global parameters",
+            "GET" : "[19,20] /parameters"
+          },
+          {
+            "createParameter" : "Create a new parameter",
+            "PUT" : "[19,20] /parameters"
+          },
+          {
+            "parameterDetails" : "Get information about the given parameter",
+            "GET" : "[19,20] /parameters/{id}"
+          },
+          {
+            "deleteParameter" : "Delete given parameter",
+            "DELETE" : "[19,20] /parameters/{id}"
+          },
+          {
+            "updateParameter" : "Update information about given parameter",
+            "POST" : "[19,20] /parameters/{id}"
+          },
+          {
+            "apiGeneralInformations" : "Get information about Rudder public API",
+            "GET" : "[19,20] /info"
+          },
+          {
+            "apiInformations" : "Get detailed information about Rudder public API with the given name",
+            "GET" : "[19,20] /info/details/{id}"
+          },
+          {
+            "apiSubInformations" : "Get information about Rudder public API starting with given path",
+            "GET" : "[19,20] /info/{id}"
+          }
+        ]
+      }
+    }
+---
+description: API details for parameters
+method: GET
+url: /secure/api/info/details/deleteParameter
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "apiInformations",
+      "result" : "success",
+      "data" : {
+        "documentation" : "https://docs.rudder.io/api/",
+        "deleteParameter" : "Delete given parameter",
+        "endpoints" : [
+          {
+            "DELETE" : "/api/19/parameters/{id}",
+            "version" : {
+              "version" : 19,
+              "status" : "deprecated"
+            }
+          },
+          {
+            "DELETE" : "/api/parameters/{id}",
+            "version" : {
+              "version" : 19,
+              "status" : "deprecated"
+            }
+          },
+          {
+            "DELETE" : "/secure/api/parameters/{id}",
+            "version" : {
+              "version" : 20,
+              "status" : "maintained"
+            }
+          },
+          {
+            "DELETE" : "/api/20/parameters/{id}",
+            "version" : {
+              "version" : 20,
+              "status" : "maintained"
+            }
+          },
+          {
+            "DELETE" : "/api/latest/parameters/{id}",
+            "version" : {
+              "version" : 20,
+              "status" : "maintained"
+            }
+          },
+          {
+            "DELETE" : "/api/parameters/{id}",
+            "version" : {
+              "version" : 20,
+              "status" : "maintained"
+            }
+          }
+        ]
+      }
+    }
+---
+description: API details for path starting with parameters
+method: GET
+url: /secure/api/info/parameters
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "apiSubInformations",
+      "result" : "success",
+      "data" : {
+        "documentation" : "https://docs.rudder.io/api/",
+        "availableVersions" : {
+          "latest" : 20,
+          "all" : [
+            {
+              "version" : 19,
+              "status" : "deprecated"    
+            },
+            {
+              "version" : 20,
+              "status" : "maintained"
+            }
+          ]
+        },
+        "endpoints" : [
+          {
+            "listParameters" : "List all global parameters",
+            "GET" : "[19,20] /parameters"
+          },
+          {
+            "createParameter" : "Create a new parameter",
+            "PUT" : "[19,20] /parameters"
+          },
+          {
+            "parameterDetails" : "Get information about the given parameter",
+            "GET" : "[19,20] /parameters/{id}"
+          },
+          {
+            "deleteParameter" : "Delete given parameter",
+            "DELETE" : "[19,20] /parameters/{id}"
+          },
+          {
+            "updateParameter" : "Update information about given parameter",
+            "POST" : "[19,20] /parameters/{id}"
+          }
+        ]
+      }
+    }

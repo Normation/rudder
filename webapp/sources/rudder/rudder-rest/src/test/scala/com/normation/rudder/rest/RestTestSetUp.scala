@@ -872,9 +872,22 @@ class RestTestSetUp {
     val api        = new CampaignApi(repo, translator, dumbCampaignEventRepository, mainCampaignService, uuidGen)
   }
 
+  // name that one for version API
+  val parameterApi = new ParameterApi(zioJsonExtractor, parameterApiService14)
+  // info is special and should be based on all api and version, but to avoid change at each tests/version, build
+  // it with static values
+  val infoApi      = {
+    val infoVersion = ApiVersion(19, deprecated = true) ::
+      ApiVersion(20, deprecated = false) ::
+      Nil
+    val schemas     = parameterApi.schemas.endpoints ++ InfoApi.endpoints
+    val endpoints   = schemas.flatMap(new RudderEndpointDispatcher(LiftApiProcessingLogger).withVersion(_, infoVersion))
+    new InfoApi(infoVersion, endpoints)
+  }
+
   val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema with SortIndex]] = List(
     systemApi,
-    new ParameterApi(zioJsonExtractor, parameterApiService14),
+    parameterApi,
     new TechniqueApi(
       restExtractorService,
       techniqueAPIService14,
@@ -934,20 +947,21 @@ class RestTestSetUp {
       mockUserManagement.tenantsService,
       () => mockUserManagement.providerRoleExtension,
       () => mockUserManagement.authBackendProviders
-    )
+    ),
+    infoApi
   )
 
   val apiVersions: List[ApiVersion] = {
-    ApiVersion(14, deprecated = true) ::
-    ApiVersion(15, deprecated = true) ::
-    ApiVersion(16, deprecated = true) ::
     ApiVersion(17, deprecated = true) ::
-    ApiVersion(18, deprecated = false) ::
-    ApiVersion(19, deprecated = false) ::
+    ApiVersion(18, deprecated = true) ::
+    ApiVersion(19, deprecated = true) ::
     ApiVersion(20, deprecated = false) ::
+    ApiVersion(21, deprecated = false) ::
     Nil
   }
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
+
+  val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
 
   // RestHelpers
   liftRules.statelessDispatch.append(RestStatus)

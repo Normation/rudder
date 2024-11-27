@@ -528,7 +528,7 @@ class Boot extends Loggable {
       // all used api - add info as it is not yet declared
       val schemas   = RudderConfig.rudderApi.apis().map(_.schema) ++ InfoApiDef.endpoints
       val endpoints = schemas.flatMap(RudderConfig.apiDispatcher.withVersion(_, RudderConfig.ApiVersions))
-      new InfoApi(RudderConfig.restExtractorService, RudderConfig.ApiVersions, endpoints)
+      new InfoApi(RudderConfig.ApiVersions, endpoints)
     }
     RudderConfig.rudderApi.addModules(infoApi.getLiftEndpoints())
     LiftRules.statelessDispatch.append(RudderConfig.rudderApi.getLiftRestApi())

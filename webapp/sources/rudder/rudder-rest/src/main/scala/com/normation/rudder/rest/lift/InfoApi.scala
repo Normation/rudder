@@ -50,7 +50,6 @@ import net.liftweb.json.JsonDSL.*
  * Information about the API
  */
 class InfoApi(
-    restExtractor:     RestExtractorService,
     supportedVersions: List[ApiVersion],
     endpoints:         List[Endpoint]
 ) extends LiftApiModuleProvider[API] {
@@ -132,9 +131,8 @@ class InfoApi(
   }
 
   object ApiGeneralInformations extends LiftApiModule0 {
-    val schema: API.ApiGeneralInformations.type = API.ApiGeneralInformations
-    val restExtractor = api.restExtractor
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.ApiGeneralInformations.type = API.ApiGeneralInformations
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                    = {
       val json = list(None)
       RestUtils.toJsonResponse(None, json)(schema.name, params.prettify)
     }
@@ -142,7 +140,6 @@ class InfoApi(
 
   object ApiSubInformations extends LiftApiModule {
     val schema: OneParam = API.ApiSubInformations
-    val restExtractor = api.restExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -158,7 +155,6 @@ class InfoApi(
 
   object ApiInformations extends LiftApiModule {
     val schema: OneParam = API.ApiInformations
-    val restExtractor = api.restExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
