@@ -42,6 +42,8 @@ import com.zaxxer.hikari.HikariDataSource
 import java.io.Closeable
 import javax.sql.DataSource
 import net.liftweb.common.Loggable
+import scala.concurrent.duration.Duration
+import scala.concurrent.duration.DurationInt
 
 /**
  * A wrapper around defaut data source provider to allow for several
@@ -51,11 +53,12 @@ import net.liftweb.common.Loggable
  * http://blog.trustiv.co.uk/2014/06/battle-connection-pools
  */
 class RudderDatasourceProvider(
-    driver:      String,
-    url:         String,
-    username:    String,
-    password:    String,
-    maxPoolSize: Int
+    driver:               String,
+    url:                  String,
+    username:             String,
+    password:             String,
+    maxPoolSize:          Int,
+    getConnectionTimeout: Duration = 250.millis
 ) extends Loggable {
   Class.forName(driver)
 
@@ -67,10 +70,7 @@ class RudderDatasourceProvider(
   config.setMaximumPoolSize(if (maxPoolSize < 1) 1 else maxPoolSize)
   config.setAutoCommit(false)
 
-  // `connectionTimeout` is the time hikari wait when there is no connection available or base down before telling
-  // upward that there is no connection. It makes Rudder slow, and we prefer to be notified quickly that it was
-  // impossible to get a connection. Must be >=250ms. Rudder know how to handle that gracefullly.
-  config.setConnectionTimeout(250) // in milliseconds
+  config.setConnectionTimeout(getConnectionTimeout.toMillis) // in milliseconds
 
   // since we use JDBC4 driver, we MUST NOT set `setConnectionTestQuery("SELECT 1")`
   // more over, it causes problems, see: https://issues.rudder.io/issues/14789

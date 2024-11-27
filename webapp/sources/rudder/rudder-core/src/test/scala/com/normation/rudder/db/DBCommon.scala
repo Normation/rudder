@@ -155,7 +155,8 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
       properties.getProperty("jdbc.password"),
       // maxPoolSize MUST BE '1', else temp table disappear between the two connections in
       // really funny ways
-      1
+      1,
+      250.millis.asScala
     )
     config.datasource
   }
