@@ -40,6 +40,7 @@ package bootstrap.liftweb
 import com.normation.errors.*
 import com.normation.rudder.Role
 import com.normation.rudder.api.*
+import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.facts.nodes.NodeSecurityContext
@@ -142,45 +143,101 @@ class AppConfigAuth extends ApplicationContextAware {
     // the list of authentication backend configured by the user
     val configuredAuthProviders = AuthenticationMethods.getForConfig(config)
 
-    // prepare specific properties for each configuredAuthProviders - we need system properties for spring
+    // by default enable user REST token authentication for compatibility
+    val defaultEnableRestToken = FeatureSwitch.Enabled
+    val restTokenGlobalFeatureSwitch: FeatureSwitch = {
+      val value = {
+        try {
+          FeatureSwitch.parse(config.getString(s"rudder.auth.userRestToken")).getOrElse(defaultEnableRestToken)
+        } catch { case _: ConfigException.Missing => defaultEnableRestToken }
+      }
+      logger.info(
+        s"User access to REST API via token is globally configured by default to be ${value.name} when the api-authorizations plugin is active"
+      )
+      value
+    }
 
+    // prepare specific properties for each configuredAuthProviders - we need system properties for spring
     import scala.jdk.CollectionConverters.*
-    val providerProperties: Map[String, AuthBackendProviderProperties] = configuredAuthProviders.flatMap { x =>
-      try {
-        // try to load all the specific properties of that auth type
-        // so that they are available from Spring
-        // the config can have 0 specif entry => try/catch
-        config.getConfig(s"rudder.auth.${x.name}").entrySet.asScala.foreach {
-          case e =>
-            val fullKey = s"rudder.auth.${x.name}.${e.getKey}"
-            System.setProperty(fullKey, config.getString(fullKey))
+    // provider properties need to be set to global config before being overridden by specific config by provider
+    val globalProviderProperties: Map[String, AuthBackendProviderProperties] = configuredAuthProviders
+      .map(_.name)
+      .map(
+        _ ->
+        AuthBackendProviderProperties.default
+          // providerRoleExtension has no global config value
+          .copy(restTokenFeatureSwitch = restTokenGlobalFeatureSwitch)
+      )
+      .toMap
+    val providerProperties:       Map[String, AuthBackendProviderProperties] = {
+      globalProviderProperties ++ configuredAuthProviders.flatMap { x =>
+        try {
+          // try to load all the specific properties of that auth type
+          // so that they are available from Spring
+          // the config can have 0 specif entry => try/catch
+          config.getConfig(s"rudder.auth.${x.name}").entrySet.asScala.foreach {
+            case e =>
+              val fullKey = s"rudder.auth.${x.name}.${e.getKey}"
+              System.setProperty(fullKey, config.getString(fullKey))
+          }
+        } catch {
+          case _: ConfigException.Missing => logger.debug(s"Provider configuration missing : rudder.auth.${x.name}")
         }
-      } catch {
-        case ex: ConfigException.Missing => // does nothing - the beauty of imperative prog :(
-      }
-      val properties: Option[(String, AuthBackendProviderProperties)] = x.name match {
-        case "ldap"            =>
-          // roles for LDAP-provided users come directly from the file, so we can say they override the file roles
-          Some("ldap" -> AuthBackendProviderProperties(ProviderRoleExtension.WithOverride))
-        case "oidc" | "oauth2" => {
-          val baseProperty  = "rudder.auth.oauth2.provider"
-          // we need to read under the registration key, under the base property
-          val registrations =
-            Try(config.getString(baseProperty + ".registrations").split(",").map(_.trim).toList).getOrElse(List.empty)
-          // when there are multiple registrations we should take the most prioritized configuration under the same provider
-          Some(x.name -> registrations.foldLeft(AuthBackendProviderProperties.empty) {
-            case (acc, reg) =>
-              val rolesEnabled = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_ENABLED}"))
-                .getOrElse(false) // default value, same as in the auth backend plugin
-              val rolesOverride = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_OVERRIDE}"))
-                .getOrElse(false) // default value, same as in the auth backend plugin
-              acc.maxByPriority(AuthBackendProviderProperties.fromConfig(x.name, rolesEnabled, rolesOverride))
-          })
+        val restTokenFeatureSwitch: FeatureSwitch                                   = {
+          // special feature switch depends on global one.
+          restTokenGlobalFeatureSwitch match {
+            case FeatureSwitch.Disabled => FeatureSwitch.Disabled
+            case FeatureSwitch.Enabled  =>
+              try {
+                val configKey   = s"rudder.auth.${x.name}.userRestToken"
+                val configValue = config.getString(configKey)
+                FeatureSwitch.parse(configValue) match {
+                  case Left(value)  =>
+                    logger.warn(
+                      s"User access to REST API via token is configured to the be ${defaultEnableRestToken.name} by default, the ${configKey} property is ignored, cause was : ${value.msg}"
+                    )
+                    defaultEnableRestToken
+                  case Right(value) =>
+                    if (value != restTokenGlobalFeatureSwitch) {
+                      logger.info(
+                        s"User access to REST API via token for provider ${x.name} is configured to be ${value.name}, overriding the global configuration"
+                      )
+                    } else {
+                      logger.debug(
+                        s"User access to REST API via token for provider ${x.name} is ${restTokenGlobalFeatureSwitch.name} as the global one"
+                      )
+                    }
+                    value
+                }
+              } catch { case ex: ConfigException.Missing => defaultEnableRestToken }
+          }
         }
-        case _                 => None // default providers or providers for which handling the properties is still unkown
-      }
-      properties
-    }.toMap
+        val properties:             Option[(String, AuthBackendProviderProperties)] = x.name match {
+          case "ldap"            =>
+            // roles for LDAP-provided users come directly from the file, so we can say they override the file roles
+            Some("ldap" -> AuthBackendProviderProperties(ProviderRoleExtension.WithOverride, restTokenFeatureSwitch))
+          case "oidc" | "oauth2" => {
+            val baseProperty  = "rudder.auth.oauth2.provider"
+            // we need to read under the registration key, under the base property
+            val registrations =
+              Try(config.getString(baseProperty + ".registrations").split(",").map(_.trim).toList).getOrElse(List.empty)
+            // when there are multiple registrations we should take the most prioritized configuration under the same provider
+            Some(x.name -> registrations.foldLeft(AuthBackendProviderProperties.default) {
+              case (acc, reg) =>
+                val rolesEnabled = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_ENABLED}"))
+                  .getOrElse(false) // default value, same as in the auth backend plugin
+                val rolesOverride = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_OVERRIDE}"))
+                  .getOrElse(false) // default value, same as in the auth backend plugin
+                acc.maxByPriority(
+                  AuthBackendProviderProperties.fromConfig(x.name, rolesEnabled, rolesOverride, restTokenFeatureSwitch)
+                )
+            })
+          }
+          case _                 => None // default providers or providers for which handling the properties is still unkown
+        }
+        properties
+      }.toMap
+    }
 
     // load additional beans from authentication dedicated resource files
 
@@ -425,6 +482,10 @@ class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListPro
   @throws(classOf[UsernameNotFoundException])
   @throws(classOf[DisabledException])
   override def loadUserByUsername(username: String): RudderUserDetail = {
+    loadUserDetailInfoByUsername(username)._1
+  }
+
+  def loadUserDetailInfoByUsername(username: String): (RudderUserDetail, UserInfo) = {
     userRepository
       .get(username, isCaseSensitive = authConfigProvider.authConfig.isCaseSensitive)
       .catchSome {
@@ -437,29 +498,28 @@ class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListPro
       }
       .flatMap {
         case Some(user) if (user.status != UserStatus.Deleted) =>
-          authConfigProvider.getUserByName(username) match {
+          val rudderUserDetails = authConfigProvider.getUserByName(username) match {
             case Left(err) =>
               // when the user is not found, we return a default "no roles" user.
               // It will be the responsibility of other backend to provided the correct set of rights.
-              Some(
-                RudderUserDetail(
-                  RudderAccount.User(user.id, ""),
-                  user.status,
-                  Set(),
-                  ApiAuthorization.None,
-                  NodeSecurityContext.None
-                )
-              ).succeed
+              RudderUserDetail(
+                RudderAccount.User(user.id, ""),
+                user.status,
+                Set(),
+                ApiAuthorization.None,
+                NodeSecurityContext.None
+              )
             case Right(d)  =>
               // update status, user can be disabled for ex
-              Some(d.modify(_.status).setTo(user.status)).succeed
+              d.modify(_.status).setTo(user.status)
           }
+          Some(rudderUserDetails -> user).succeed
         case _                                                 => None.succeed
       }
       .runNow match {
-      case None                                       => throw new UsernameNotFoundException(s"User '${username}' was not found in Rudder base")
-      case Some(u) if u.status == UserStatus.Disabled => throw new DisabledException("User is disabled")
-      case Some(u)                                    => u
+      case None                                            => throw new UsernameNotFoundException(s"User '${username}' was not found in Rudder base")
+      case Some((u, _)) if u.status == UserStatus.Disabled => throw new DisabledException("User is disabled")
+      case Some(u)                                         => u
     }
   }
 }
@@ -498,7 +558,8 @@ object ProviderRoleExtension       {
   * A description of some properties of an authentication backend
   */
 final case class AuthBackendProviderProperties(
-    providerRoleExtension: ProviderRoleExtension
+    providerRoleExtension:  ProviderRoleExtension,
+    restTokenFeatureSwitch: FeatureSwitch
 ) {
   def maxByPriority(
       that: AuthBackendProviderProperties
@@ -515,28 +576,35 @@ object AuthBackendProviderProperties {
   implicit val ordering: Ordering[AuthBackendProviderProperties] = Ordering.by(_.providerRoleExtension.priority)
 
   def fromConfig(
-      name:               String,
-      hasAdditionalRoles: Boolean,
-      overridesRoles:     Boolean
+      name:                   String,
+      hasAdditionalRoles:     Boolean,
+      overridesRoles:         Boolean,
+      restTokenFeatureSwitch: FeatureSwitch
   ): AuthBackendProviderProperties = {
     (hasAdditionalRoles, overridesRoles) match {
       case (false, false) =>
-        new AuthBackendProviderProperties(ProviderRoleExtension.None)
+        new AuthBackendProviderProperties(ProviderRoleExtension.None, restTokenFeatureSwitch)
       case (false, true)  =>
         // This is not a consistent configuration, we log a warning and persue with the most restrictive configuration
         ApplicationLogger.warn(
           s"Backend provider properties for '${name}' are not consistent: backend does not enables providing roles but roles overrides is set to true. " +
           s"Overriding roles will not be enabled."
         )
-        new AuthBackendProviderProperties(ProviderRoleExtension.None)
+        new AuthBackendProviderProperties(ProviderRoleExtension.None, restTokenFeatureSwitch)
       case (true, false)  =>
-        new AuthBackendProviderProperties(ProviderRoleExtension.NoOverride)
+        new AuthBackendProviderProperties(ProviderRoleExtension.NoOverride, restTokenFeatureSwitch)
       case (true, true)   =>
-        new AuthBackendProviderProperties(ProviderRoleExtension.WithOverride)
+        new AuthBackendProviderProperties(ProviderRoleExtension.WithOverride, restTokenFeatureSwitch)
     }
   }
 
-  def empty: AuthBackendProviderProperties = new AuthBackendProviderProperties(ProviderRoleExtension.None)
+  /**
+    * The default properties the ones handled in the config parsing to be the default values: 
+    * - a provider can provide roles and roles are not overriden accross different providers
+    * - the rest API token feature for users is allowed
+    */
+  def default: AuthBackendProviderProperties =
+    new AuthBackendProviderProperties(ProviderRoleExtension.NoOverride, restTokenFeatureSwitch = FeatureSwitch.Enabled)
 }
 
 /**
@@ -624,17 +692,25 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
   // a map of properties registered for each backend
   private[this] var backendProperties = Map[String, AuthBackendProviderProperties]()
 
+  // add default providers into mutable variables
+  initializeDefaultProviders()
+
+  private def initializeDefaultProviders(): Unit = {
+    this.addProvider(defaultAuthBackendsProvider)
+    this.addProviderProperties(
+      defaultAuthBackendsProvider.authenticationBackends
+        .map(
+          _ -> AuthBackendProviderProperties.default
+        )
+        .toMap
+    )
+  }
+
   def addProvider(p: AuthBackendsProvider): Unit = {
     ApplicationLogger.info(s"Add backend providers '${p.name}'")
     backends = backends :+ p
     allowedToUseBackend = allowedToUseBackend ++ (p.authenticationBackends.map(name => (name, () => p.allowedToUseBackend(name))))
   }
-
-  // add default providers
-  this.addProvider(defaultAuthBackendsProvider)
-  this.addProviderProperties(
-    Map(DefaultAuthBackendProvider.FILE -> AuthBackendProviderProperties(ProviderRoleExtension.WithOverride))
-  )
 
   /*
    * Add a spring configured name -> provider
@@ -837,7 +913,7 @@ class RestAuthenticationFilter(
                       case ApiAccountKind.User                             =>
                         // User account need an update for their ACL.
                         (try {
-                          Right(userDetailsService.loadUserByUsername(principal.id.value))
+                          Right(userDetailsService.loadUserDetailInfoByUsername(principal.id.value))
                         } catch {
                           case ex: UsernameNotFoundException =>
                             Left(
@@ -846,7 +922,13 @@ class RestAuthenticationFilter(
                           case ex: Exception                 =>
                             Left(s"Error when trying to get user information linked to user '${principal.id.value}' API token.")
                         }) match {
-                          case Right(u) => // update acl
+                          case Right((u, info))
+                              if RudderConfig.authenticationProviders
+                                .getProviderProperties()
+                                .get(info.managedBy)
+                                .map(_.restTokenFeatureSwitch == FeatureSwitch.Enabled)
+                                .getOrElse(false) => // do not allow rest authentication if user is managed by unknown provider
+                            // update acl
                             authenticate(
                               RudderUserDetail(
                                 RudderAccount.Api(principal),
@@ -857,6 +939,16 @@ class RestAuthenticationFilter(
                               )
                             )
                             chain.doFilter(request, response)
+
+                          case Right((u, info)) =>
+                            failsAuthentication(
+                              httpRequest,
+                              httpResponse,
+                              Inconsistency(
+                                s"User with id '${u.getUsername} and managed by provider ${info.managedBy} is not allowed to use the REST API. " +
+                                s"The configuration for this provider disables REST API token authentication, you should change the provider configuration to enable that."
+                              )
+                            )
 
                           case Left(er) =>
                             failsAuthentication(httpRequest, httpResponse, Inconsistency(er))

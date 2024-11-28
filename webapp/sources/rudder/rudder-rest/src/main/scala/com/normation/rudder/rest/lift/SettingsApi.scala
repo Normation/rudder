@@ -648,12 +648,12 @@ class SettingsApi(
     def toJson(value: FeatureSwitch): JValue = value.name
     def parseJson(json: JValue):   Box[FeatureSwitch] = {
       json match {
-        case JString(value) => FeatureSwitch.parse(value)
+        case JString(value) => FeatureSwitch.parse(value).toBox
         case x              => Failure("Invalid value " + x)
       }
     }
     def parseParam(param: String): Box[FeatureSwitch] = {
-      FeatureSwitch.parse(param)
+      FeatureSwitch.parse(param).toBox
     }
     val key = "enable_javascript_directives"
     def get: IOResult[FeatureSwitch]                                       = configService.rudder_featureSwitch_directiveScriptEngine()
