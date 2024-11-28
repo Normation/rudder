@@ -1,0 +1,95 @@
+<TECHNIQUE name="Loops">
+  <DESCRIPTION>Short description</DESCRIPTION>
+  <LONG_DESCRIPTION>Long documentation</LONG_DESCRIPTION>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+  <POLICYGENERATION>separated</POLICYGENERATION>
+  <AGENT type="cfengine-community">
+    <BUNDLES>
+      <NAME>technique_with_loops</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>Technique-Technique-With-Loops</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION name="Install a package" id="d86ce2e5-d5b6-45cc-87e8-c11cca71d907" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE id="d86ce2e5-d5b6-45cc-87e8-c11cca71d907">vim</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION name="Install a package" id="d86ce2e5-d5b6-45cc-87e8-c11cca71d907" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE id="d86ce2e5-d5b6-45cc-87e8-c11cca71d907">htop</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION id="89f36b72-43c8-4b42-89e2-6cf8cb54497f" name="Configure user bob" reporting="weighted" component="true" multivalued="true">
+      <SECTION id="726a1cf9-7d22-4c12-85fd-9e3d87771bc9" name="Group related things" reporting="weighted" component="true" multivalued="true">
+        <SECTION name="Create home" id="b461df26-f0b8-44ec-b3b9-6bb278e0f3a5" component="true" multivalued="true">
+          <REPORTKEYS>
+            <VALUE id="b461df26-f0b8-44ec-b3b9-6bb278e0f3a5">bob</VALUE>
+          </REPORTKEYS>
+        </SECTION>
+      </SECTION>
+      <SECTION id="726a1cf9-7d22-4c12-85fd-9e3d87771bc9" name="Group related things" reporting="weighted" component="true" multivalued="true">
+        <SECTION name="Create home" id="b461df26-f0b8-44ec-b3b9-6bb278e0f3a5" component="true" multivalued="true">
+          <REPORTKEYS>
+            <VALUE id="b461df26-f0b8-44ec-b3b9-6bb278e0f3a5">bob</VALUE>
+          </REPORTKEYS>
+        </SECTION>
+      </SECTION>
+      <SECTION id="cfe2aabc-c16e-4c34-962f-f824f8ce48e6" name="Deploy default conf files" reporting="weighted" component="true" multivalued="true">
+        <SECTION name="Deploy file ~/.vimrc" id="20676b22-2de2-4029-a4e2-e0be2453e78e" component="true" multivalued="true">
+          <REPORTKEYS>
+            <VALUE id="20676b22-2de2-4029-a4e2-e0be2453e78e">/home/bob/.vimrc</VALUE>
+          </REPORTKEYS>
+        </SECTION>
+        <SECTION name="Deploy file ~/.bashrc" id="20676b22-2de2-4029-a4e2-e0be2453e78e" component="true" multivalued="true">
+          <REPORTKEYS>
+            <VALUE id="20676b22-2de2-4029-a4e2-e0be2453e78e">/home/bob/.bashrc</VALUE>
+          </REPORTKEYS>
+        </SECTION>
+      </SECTION>
+    </SECTION>
+    <SECTION id="89f36b72-43c8-4b42-89e2-6cf8cb54497f" name="Configure user alice" reporting="weighted" component="true" multivalued="true">
+      <SECTION id="726a1cf9-7d22-4c12-85fd-9e3d87771bc9" name="Group related things" reporting="weighted" component="true" multivalued="true">
+        <SECTION name="Create home" id="b461df26-f0b8-44ec-b3b9-6bb278e0f3a5" component="true" multivalued="true">
+          <REPORTKEYS>
+            <VALUE id="b461df26-f0b8-44ec-b3b9-6bb278e0f3a5">alice</VALUE>
+          </REPORTKEYS>
+        </SECTION>
+      </SECTION>
+      <SECTION id="726a1cf9-7d22-4c12-85fd-9e3d87771bc9" name="Group related things" reporting="weighted" component="true" multivalued="true">
+        <SECTION name="Create home" id="b461df26-f0b8-44ec-b3b9-6bb278e0f3a5" component="true" multivalued="true">
+          <REPORTKEYS>
+            <VALUE id="b461df26-f0b8-44ec-b3b9-6bb278e0f3a5">alice</VALUE>
+          </REPORTKEYS>
+        </SECTION>
+      </SECTION>
+      <SECTION id="cfe2aabc-c16e-4c34-962f-f824f8ce48e6" name="Deploy default conf files" reporting="weighted" component="true" multivalued="true">
+        <SECTION name="Deploy file ~/.vimrc" id="20676b22-2de2-4029-a4e2-e0be2453e78e" component="true" multivalued="true">
+          <REPORTKEYS>
+            <VALUE id="20676b22-2de2-4029-a4e2-e0be2453e78e">/home/alice/.vimrc</VALUE>
+          </REPORTKEYS>
+        </SECTION>
+        <SECTION name="Deploy file ~/.bashrc" id="20676b22-2de2-4029-a4e2-e0be2453e78e" component="true" multivalued="true">
+          <REPORTKEYS>
+            <VALUE id="20676b22-2de2-4029-a4e2-e0be2453e78e">/home/alice/.bashrc</VALUE>
+          </REPORTKEYS>
+        </SECTION>
+      </SECTION>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

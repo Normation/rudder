@@ -1,0 +1,55 @@
+---
+id: technique_with_loops
+name: Loops
+version: "0.1"
+description: "Short description"
+documentation: "Long documentation"
+items:
+  - name: "Install a package"
+    id: d86ce2e5-d5b6-45cc-87e8-c11cca71d907
+    condition: false
+    method: package_present
+    params:
+      name: "${plouf.name}"
+      version: "${plouf.version}"
+    foreach:
+      - name: "vim"
+        version: "latest"
+      - name: "htop"
+        version: "2.3.4"
+    foreach_name: "plouf"
+  - name: "Configure user ${user.login}"
+    id: 89f36b72-43c8-4b42-89e2-6cf8cb54497f
+    condition: "${user.login}"
+    foreach_name: "user"
+    foreach:
+      - login: "bob"
+      - login: "alice"
+    items:
+      - name: "Group related things"
+        id: 726a1cf9-7d22-4c12-85fd-9e3d87771bc9
+        foreach:
+          - name: "wheel"
+          - name: "docker"
+        foreach_name: "group"
+        items:
+          - name: "Create home"
+            id: b461df26-f0b8-44ec-b3b9-6bb278e0f3a5
+            method: user_group
+            params:
+              login: "${user.login}"
+              group_name: "${group.name}"
+      - name: "Deploy default conf files"
+        id: cfe2aabc-c16e-4c34-962f-f824f8ce48e6
+        items:
+          - name: "Deploy file ~/${file.path}"
+            id: 20676b22-2de2-4029-a4e2-e0be2453e78e
+            method: file_from_shared_folder
+            params:
+              hash_type: sha256
+              source: "${file.path}"
+              path: "/home/${user.login}/${file.path}"
+            foreach_name: "file"
+            foreach:
+              - path: ".vimrc"
+              - path: ".bashrc"

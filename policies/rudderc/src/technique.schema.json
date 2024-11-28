@@ -2,6 +2,25 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://json.schemastore.org/rudder-techniques.json",
   "$defs": {
+    "foreach": {
+        "type": "array",
+        "title": "Method/Block loop",
+        "items": {
+          "type": "object",
+          "propertiyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 1
+
+        }
+    },
+    "foreachName": {
+      "type": "string",
+      "pattern": "[a-zA-Z0-9_]+"
+    },
     "uuid": {
       "type": "string",
       "format": "uuid"
@@ -317,6 +336,12 @@
         },
         "reporting": {
           "$ref": "#/$defs/methodReportingMode"
+        },
+        "foreach_name": {
+          "$ref": "#/$defs/foreachName"
+        },
+        "foreach": {
+          "$ref": "#/$defs/foreach"
         }
       },
       "required": [
@@ -398,6 +423,12 @@
         },
         "reporting": {
           "$ref": "#/$defs/blockReportingMode"
+        },
+        "foreach_name": {
+          "$ref": "#/$defs/foreachName"
+        },
+        "foreach": {
+          "$ref": "#/$defs/foreach"
         }
       },
       "required": [
