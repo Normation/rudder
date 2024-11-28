@@ -3,11 +3,14 @@
 
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Utc};
+use flate2::read::GzDecoder;
 use serde::Serialize;
+use std::fs::File;
 use std::{collections::HashMap, fs, path::Path};
+use tar::Archive;
 
-/// Very simple signature file reader
-/// We mainly need to extract expiration date for each plugin
+/// Very simple signature file reader.
+/// We mainly need to extract expiration date for each plugin.
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize)]
 pub struct License {
@@ -61,11 +64,41 @@ impl Licenses {
         }
         Ok(Self { inner: res })
     }
+
+    /// Expects a path to a license tar from the repository.
+    ///
+    /// Don't remove anything, only replace by new files present in the archive.
+    pub fn update_from_archive(local_archive_path: &Path, license_folder: &Path) -> Result<()> {
+        fs::create_dir_all(license_folder)?;
+        let file = File::open(local_archive_path)?;
+        let mut archive = Archive::new(GzDecoder::new(file));
+        archive.unpack(license_folder)?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs::{self};
+    use tempfile::tempdir;
+
+    #[test]
+    fn it_updates_from_archive() {
+        // Create a temporary directory for the test
+        let temp_dir = tempdir().unwrap();
+        let license_folder = temp_dir.path().join("licenses");
+        let license_file_path = license_folder.join("test-plugin.license");
+        let license_content = "license-content";
+        fs::create_dir(&license_folder).unwrap();
+
+        Licenses::update_from_archive(Path::new("tests/licenses.tar.gz"), &license_folder).unwrap();
+
+        // Verify that the license file was extracted correctly
+        assert!(license_file_path.exists());
+        let extracted_content = fs::read_to_string(license_file_path).unwrap();
+        assert_eq!(extracted_content.trim(), license_content);
+    }
 
     #[test]
     fn it_parses_license() {
