@@ -130,6 +130,15 @@ pub fn run_inner(args: Args) -> Result<()> {
         Command::Install { force, package } => {
             let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
             for full_p in &long_names(package) {
+                if full_p.ends_with("-license.tar.gz") {
+                    if let Err(e) =
+                        Licenses::update_from_archive(Path::new(full_p), Path::new(LICENSES_FOLDER))
+                    {
+                        errors = true;
+                        error!("Installation of licenses from {} failed: {e:?}", full_p);
+                    }
+                }
+
                 // Extract version numbers
                 let (p, v) = match full_p.split_once(':') {
                     None => (full_p.as_str(), None),

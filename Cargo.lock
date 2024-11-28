@@ -2458,7 +2458,6 @@ dependencies = [
  "serde",
  "serde_ini",
  "serde_json",
- "serde_toml",
  "sha2",
  "spinners",
  "tar",
@@ -2819,12 +2818,6 @@ checksum = "eb3622f419d1296904700073ea6cc23ad690adbd66f13ea683df73298736f0c1"
 dependencies = [
  "serde",
 ]
-
-[[package]]
-name = "serde_toml"
-version = "0.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e68184169792863bfb6d8b5de8e15456ebf4302f28236f0ff1136591eb66541"
 
 [[package]]
 name = "serde_urlencoded"

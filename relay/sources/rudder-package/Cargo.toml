@@ -29,7 +29,6 @@ secrecy = { version = "0.10.3", features = ["serde"] }
 serde = { version = "1.0.189", features = ["derive"] }
 serde_ini = "0.2.0"
 serde_json = "1.0.107"
-serde_toml = "0.0.1"
 sha2 = "0.10.8"
 tar = "0.4.40"
 tempfile = "3.8.0"
