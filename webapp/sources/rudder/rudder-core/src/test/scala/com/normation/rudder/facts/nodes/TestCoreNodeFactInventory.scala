@@ -48,6 +48,8 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.MachineInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.properties.GenericProperty.*
+import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
@@ -213,7 +215,12 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
   }
 
 //  org.slf4j.LoggerFactory
-//    .getLogger("nodes")
+//    .getLogger("inventory-processing")
+//    .asInstanceOf[ch.qos.logback.classic.Logger]
+//    .setLevel(ch.qos.logback.classic.Level.TRACE)
+
+//  org.slf4j.LoggerFactory
+//    .getLogger("nodes.details.write")
 //    .asInstanceOf[ch.qos.logback.classic.Logger]
 //    .setLevel(ch.qos.logback.classic.Level.TRACE)
 
@@ -674,5 +681,74 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       )
     }
 
+  }
+
+  "Inventory properties must be retrieved, migrated and not seen new each time (#25704)" >> {
+    val existingProp1 =
+      NodeProperty.apply("datacenter", "Paris".toConfigValue, None, Some(NodeProperty.customPropertyProvider))
+    val existingProp2 = {
+      NodeProperty.apply(
+        "from_inv",
+        Map("key1" -> "custom prop value", "key2" -> "some more json").toConfigValue,
+        None,
+        Some(NodeProperty.customPropertyProvider)
+      )
+    }
+    val newProp       =
+      NodeProperty.apply("new_inv", "inventory value".toConfigValue, None, Some(NodeProperty.customPropertyProvider))
+
+    // no provider in the json of custom properties
+    val beforeInv = mockLdapFactStorage.testServer
+      .getEntry("nodeId=node1,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
+      .getAttribute("customProperty")
+      .getValues === Array(
+      """{"name":"datacenter", "value":"Paris"}""",
+      """{"name":"from_inv", "value":{ "key1":"custom prop value", "key2":"some more json"}}"""
+    )
+
+    val beforeNode = mockLdapFactStorage.testServer
+      .getEntry("nodeId=node1,ou=Nodes,cn=rudder-configuration")
+      .getAttribute("serializedNodeProperty")
+      .getValues === Array("""{"name":"foo","value":"bar"}""")
+
+    val res = (for {
+      node <- factRepo.get(NodeId("node1")).notOptional("node1 must be here")
+      props = node.properties.appended(newProp)
+      // first time: change should be here
+      d1   <- factRepo.save(node.modify(_.properties).setTo(props))(testChangeContext)
+      // second time: should be noop
+      d2   <- factRepo.save(node.modify(_.properties).setTo(props))(testChangeContext)
+    } yield (d1, d2)).either.runNow
+
+    // after a new save, even only touching core node fact, custom props are removed
+    val afterInv = mockLdapFactStorage.testServer
+      .getEntry("nodeId=node1,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
+      .getAttribute("customProperty") === null
+
+    // here, we now have the provider info
+    val afterNode = mockLdapFactStorage.testServer
+      .getEntry("nodeId=node1,ou=Nodes,cn=rudder-configuration")
+      .getAttribute("serializedNodeProperty")
+      .getValues === Array(
+      """{"name":"foo","value":"bar"}""", // this one is a node property
+      existingProp1.toData,
+      existingProp2.toData,
+      """{"name":"new_inv","provider":"inventory","value":"inventory value"}"""
+    )
+
+    beforeInv and beforeNode and afterInv and afterNode and {
+      res.forceGet match {
+        case (
+              NodeFactChangeEventCC(NodeFactChangeEvent.Updated(oldNode, newNode, _), _),
+              secondChange
+            ) =>
+          (oldNode.properties.size === 1) and // old node is incorrectly reporting 1 because of the bug: it doesn't see custom props
+          (newNode.properties.size === 4) and
+          (newNode.properties.last === newProp) and
+          (secondChange.event must beAnInstanceOf[NodeFactChangeEvent.Noop])
+
+        case x => ko(s"bad change event, got: ${x._1.event}")
+      }
+    }
   }
 }
