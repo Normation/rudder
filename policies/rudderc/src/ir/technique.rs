@@ -3,8 +3,7 @@
 
 use std::{
     collections::HashMap,
-    fmt,
-    fmt::{Display, Formatter},
+    fmt::{self, Display, Formatter},
     str::FromStr,
 };
 
@@ -379,10 +378,10 @@ pub struct DeserItem {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub foreach_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub foreach:  Option<Vec<HashMap<String, String>>>,
+    pub foreach: Option<Vec<HashMap<String, String>>>,
     // If a DeserItem is a result of a loop, "is_virtual" is true
     #[serde(default)]
-    pub is_virtual: bool
+    pub is_virtual: bool,
 }
 
 // Variant of Technique for first level of deserialization
@@ -418,72 +417,143 @@ impl DeserTechnique {
             items: self
                 .items
                 .into_iter()
-                .map(|i| {
-                    i.resolve_loop()
-                    .iter()
-                    .map(|j| j.clone().into_kind().unwrap())
-                    .collect::<Vec<ItemKind>>()
-                }).flatten().collect(),
+                .flat_map(|i| {
+                    i.resolve_loop(vec![], false)
+                        .iter()
+                        .map(|j| j.clone().into_kind().unwrap())
+                        .collect::<Vec<ItemKind>>()
+                })
+                .collect(),
             params: self.params,
         })
     }
 }
 
 impl DeserItem {
-    fn resolve_loop(self) -> Vec<DeserItem> {
-        fn replace_placeholders(s: &str, h: &HashMap<String, String>, vn: Option<String>) -> String {
-            let variable_name = vn.unwrap_or("item".to_string());
-            // Define the pattern to match `${variable_name.key}`.
-            let pattern = format!(r"\$\{{{}\.(\w+)\}}", regex::escape(&variable_name));
-            let regex = regex::Regex::new(&pattern).expect(&format!("Invalid loop variable iterator {}", variable_name));
-        
-            // Replace matches with corresponding values from the hashmap.
-            regex
-                .replace_all(s, |captures: &regex::Captures| {
-                    let key = &captures[1];
-                    // Replace with the value from the hashmap, or keep the placeholder if the key doesn't exist.
-                    h.get(key).cloned().unwrap_or_else(|| captures[0].to_string())
-                })
-                .to_string()
+    // Replace simple templates of the form ${x.y}, ${x.z} by their corresponding value successively in a string, using a dataset of the form:
+    // (
+    //   "x",
+    //   vec [
+    //      { "y": "cat" },
+    //      { "z": "dog" },
+    //   ]
+    // )
+    fn resolve_loop(
+        self,
+        parent_context: Vec<(Option<String>, HashMap<String, String>)>,
+        force_virtual: bool,
+    ) -> Vec<DeserItem> {
+        fn replace_placeholders(
+            s: &str,
+            d: Vec<(Option<String>, HashMap<String, String>)>,
+        ) -> String {
+            let r = d.iter().fold(s.to_string(), |acc, x| {
+                let variable_name = x.0.clone().unwrap_or("item".to_string());
+                // Define the pattern to match `${variable_name.key}`.
+                let pattern = format!(r"\$\{{{}\.(\w+)\}}", regex::escape(&variable_name));
+                let regex = regex::Regex::new(&pattern)
+                    .unwrap_or_else(|_| panic!("Invalid loop variable iterator {}", variable_name));
+                // Replace matches with corresponding values from the hashmap.
+                regex
+                    .replace_all(&acc, |captures: &regex::Captures| {
+                        let key = &captures[1];
+                        // Replace with the value from the hashmap, or keep the placeholder if the key doesn't exist.
+                        x.1.get(key)
+                            .cloned()
+                            .unwrap_or_else(|| captures[0].to_string())
+                    })
+                    .to_string()
+            });
+            r
         }
 
-        if let Some(iterators) = self.foreach {
-            let vn =  self.foreach_name.clone();
-            let mut r: Vec<DeserItem> = iterators.iter().map(|h|
-                DeserItem {
-                    condition: self.condition.clone(),
-                    name: replace_placeholders(&self.name, &h.clone(), vn.clone()),
-                    description: if let Some(d) = &self.description {
-                        Some(replace_placeholders(&d, &h.clone(), vn.clone()))
-                    } else  { None },
-                    documentation: if let Some(d) = &self.documentation {
-                        Some(replace_placeholders(&d, &h.clone(), vn.clone()))
-                    } else { None },
-                    id: self.id.clone(),
-                    reporting: self.reporting.clone(),
-                    policy_mode_override: self.policy_mode_override,
-                    foreach_name: None,
-                    foreach: None,
-                    method: self.method.clone(),
-                    tags: self.tags.clone(),
-                    params: self.params.iter().map(|(k, v)| (k.clone(), replace_placeholders(v, h, vn.clone()))).collect(),
-                    items: self.items.iter().map(|i| i.clone().resolve_loop()).flatten().collect(),
-                    module: self.module.clone(),
-                    is_virtual: true,
-                }
-            ).collect();
-            // The first element is always the only "true" one
-            let loop_master = DeserItem {
-             is_virtual: false,
-             ..r.first().unwrap().clone()
-            };
-            if let Some(first) = r.get_mut(0) {
-              *first = loop_master;
+        // Replace every description, documentation, name, condition, params fields in the tree, using the given context.
+        // Recursively
+        fn replace_using_context(
+            item: DeserItem,
+            context: Vec<(Option<String>, HashMap<String, String>)>,
+        ) -> DeserItem {
+            DeserItem {
+                is_virtual: true,
+                condition: Condition::Expression(replace_placeholders(
+                    item.condition.as_ref(),
+                    context.clone(),
+                )),
+                name: replace_placeholders(&item.name, context.clone()),
+                description: item
+                    .documentation
+                    .as_ref()
+                    .map(|d| replace_placeholders(d, context.clone())),
+                documentation: item
+                    .documentation
+                    .as_ref()
+                    .map(|d| replace_placeholders(d, context.clone())),
+                params: item
+                    .params
+                    .iter()
+                    .map(|(k, v)| (k.clone(), replace_placeholders(v, context.clone())))
+                    .collect(),
+                items: item
+                    .items
+                    .iter()
+                    .map(|i| replace_using_context(i.clone(), context.clone()))
+                    .collect(),
+                ..item
             }
-            r 
+        }
+
+        //Resolve branches of foreach if any
+        // Replace the strings using templating from top to bottom of the tree using current context
+        let mut branches = if let Some(ref cases) = self.foreach {
+            cases
+                .iter()
+                .map(|b| {
+                    let mut branch_context = parent_context.clone();
+                    branch_context.push((self.foreach_name.clone(), b.clone()));
+                    DeserItem {
+                        foreach_name: None,
+                        foreach: None,
+                        ..replace_using_context(self.clone(), branch_context)
+                    }
+                })
+                .collect()
         } else {
             vec![self]
+        };
+
+        // If we are not in a "virtual" branch, the first element is always a "true" one
+        if !force_virtual {
+            let loop_master = DeserItem {
+                is_virtual: false,
+                ..branches.first().unwrap().clone()
+            };
+            if let Some(first) = branches.get_mut(0) {
+                *first = loop_master;
+            }
         }
+
+        // Recurse if we are on a block
+        let mut force_virtual = force_virtual;
+        branches
+            .iter()
+            .map(|b| {
+                if b.items.is_empty() {
+                    b.clone()
+                } else {
+                    // Only the first branch is a "true" one, others are virtual ones
+                    let i = DeserItem {
+                        items: b
+                            .items
+                            .iter()
+                            .flat_map(|i| i.clone().resolve_loop(vec![], force_virtual))
+                            .collect(),
+                        ..b.clone()
+                    };
+                    force_virtual = true;
+                    i
+                }
+            })
+            .collect()
     }
 
     // Can't use TryFrom as the implementation is recursive
@@ -510,7 +580,7 @@ impl DeserItem {
                 ))?,
                 info: None,
                 policy_mode_override: self.policy_mode_override,
-                generate_method_call_bundle: !self.is_virtual
+                generate_method_call_bundle: !self.is_virtual,
             })),
             (true, false, _, false) => {
                 bail!("Method {} ({}) requires params", self.name, self.id)
@@ -529,7 +599,7 @@ impl DeserItem {
                     self.name, self.id
                 ))?,
                 policy_mode_override: self.policy_mode_override,
-                generate_method_call_bundle: !self.is_virtual
+                generate_method_call_bundle: !self.is_virtual,
             })),
             (false, true, _, false) => {
                 bail!("Module {} ({}) requires params", self.name, self.id)
@@ -552,6 +622,7 @@ impl DeserItem {
                     .map(|i| i.into_kind().unwrap())
                     .collect(),
                 policy_mode_override: self.policy_mode_override,
+                generate_method_call_bundle: !self.is_virtual,
             })),
             (false, false, false, false) => {
                 bail!("Block {} ({}) requires items", self.name, self.id)
@@ -603,6 +674,8 @@ pub struct Block {
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub policy_mode_override: Option<PolicyMode>,
+    #[serde(default = "default_bool::<true>")]
+    pub generate_method_call_bundle: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

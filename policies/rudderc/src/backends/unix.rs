@@ -138,14 +138,7 @@ impl Backend for Unix {
             for call in resolve_module(item.clone(), Condition::Defined, &technique.id)? {
                 let (use_bundle, bundle) = call;
                 main_bundle.add_promise_group(vec![use_bundle]);
-                match item.clone() {
-                    ItemKind::Method(m) => {
-                        if m.generate_method_call_bundle {
-                            call_bundles.push(bundle)
-                        }
-                    }
-                    _ => call_bundles.push(bundle)
-                }
+                call_bundles.push(bundle);
             }
         }
         let cf_technique = Technique::new()

@@ -105,7 +105,7 @@ pub fn method_call(
             pop_policy_mode,
             Some(Promise::usebundle("_classes_noop", Some(&report_component), vec![na_condition.clone()]).unless_condition(incall_condition.clone())),
             Some(Promise::usebundle("log_rudder", Some(&report_component), vec![
-                quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, condition)),
+                quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", &method_name, condition)),
                 quoted(&report_parameter),
                 na_condition.clone(),
                 na_condition,
@@ -185,10 +185,14 @@ pub fn method_call(
     method_parameters.append(&mut specific_parameters);
     Ok((
         bundle_call,
-        Some(
-            Bundle::agent(bundle_name)
-                .parameters(method_parameters)
-                .promise_group(bundle_content),
-        ),
+        if m.generate_method_call_bundle {
+            Some(
+                Bundle::agent(bundle_name)
+                    .parameters(method_parameters)
+                    .promise_group(bundle_content),
+            )
+        } else {
+            None
+        },
     ))
 }
