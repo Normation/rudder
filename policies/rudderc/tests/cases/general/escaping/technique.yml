@@ -21,3 +21,14 @@ items:
     params:
       name: "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3\r\n\t"
       version: if(Get-Service "Zabbix agent") { write-output "exists" }
+  - name: "cache_prefix=\"zapache-$UID-${STATUS_URL//[^a-zA-Z0-9_-]/_}\" "
+    id: a86ce2e5-d5b6-45cc-87e8-c11cca71d978
+    method: package_present
+    params:
+      name: "cache_prefix=\"zapache-$UID-${STATUS_URL//[^a-zA-Z0-9_-]/_}\" "
+      version: "plop"
+
+
+
+
+

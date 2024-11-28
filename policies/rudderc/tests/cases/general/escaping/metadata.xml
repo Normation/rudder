@@ -52,5 +52,12 @@
 	</VALUE>
       </REPORTKEYS>
     </SECTION>
+    <SECTION name="cache_prefix=&quot;zapache-$UID-${STATUS_URL//[^a-zA-Z0-9_-]/_}&quot; " id="a86ce2e5-d5b6-45cc-87e8-c11cca71d978" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE id="a86ce2e5-d5b6-45cc-87e8-c11cca71d978">
+          cache_prefix=&quot;zapache-$UID-${STATUS_URL//[^a-zA-Z0-9_-]/_}&quot; 
+        </VALUE>
+      </REPORTKEYS>
+    </SECTION>
   </SECTIONS>
 </TECHNIQUE>
