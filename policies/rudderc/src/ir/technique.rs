@@ -376,6 +376,13 @@ pub struct DeserItem {
     #[serde(deserialize_with = "PolicyMode::from_string")]
     #[serde(default)]
     pub policy_mode_override: Option<PolicyMode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub foreach_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub foreach:  Option<Vec<HashMap<String, String>>>,
+    // If a DeserItem is a result of a loop, "is_virtual" is true
+    #[serde(default)]
+    pub is_virtual: bool
 }
 
 // Variant of Technique for first level of deserialization
@@ -411,14 +418,74 @@ impl DeserTechnique {
             items: self
                 .items
                 .into_iter()
-                .map(|i| i.into_kind())
-                .collect::<Result<Vec<ItemKind>>>()?,
+                .map(|i| {
+                    i.resolve_loop()
+                    .iter()
+                    .map(|j| j.clone().into_kind().unwrap())
+                    .collect::<Vec<ItemKind>>()
+                }).flatten().collect(),
             params: self.params,
         })
     }
 }
 
 impl DeserItem {
+    fn resolve_loop(self) -> Vec<DeserItem> {
+        fn replace_placeholders(s: &str, h: &HashMap<String, String>, vn: Option<String>) -> String {
+            let variable_name = vn.unwrap_or("item".to_string());
+            // Define the pattern to match `${variable_name.key}`.
+            let pattern = format!(r"\$\{{{}\.(\w+)\}}", regex::escape(&variable_name));
+            let regex = regex::Regex::new(&pattern).expect(&format!("Invalid loop variable iterator {}", variable_name));
+        
+            // Replace matches with corresponding values from the hashmap.
+            regex
+                .replace_all(s, |captures: &regex::Captures| {
+                    let key = &captures[1];
+                    // Replace with the value from the hashmap, or keep the placeholder if the key doesn't exist.
+                    h.get(key).cloned().unwrap_or_else(|| captures[0].to_string())
+                })
+                .to_string()
+        }
+
+        if let Some(iterators) = self.foreach {
+            let vn =  self.foreach_name.clone();
+            let mut r: Vec<DeserItem> = iterators.iter().map(|h|
+                DeserItem {
+                    condition: self.condition.clone(),
+                    name: replace_placeholders(&self.name, &h.clone(), vn.clone()),
+                    description: if let Some(d) = &self.description {
+                        Some(replace_placeholders(&d, &h.clone(), vn.clone()))
+                    } else  { None },
+                    documentation: if let Some(d) = &self.documentation {
+                        Some(replace_placeholders(&d, &h.clone(), vn.clone()))
+                    } else { None },
+                    id: self.id.clone(),
+                    reporting: self.reporting.clone(),
+                    policy_mode_override: self.policy_mode_override,
+                    foreach_name: None,
+                    foreach: None,
+                    method: self.method.clone(),
+                    tags: self.tags.clone(),
+                    params: self.params.iter().map(|(k, v)| (k.clone(), replace_placeholders(v, h, vn.clone()))).collect(),
+                    items: self.items.iter().map(|i| i.clone().resolve_loop()).flatten().collect(),
+                    module: self.module.clone(),
+                    is_virtual: true,
+                }
+            ).collect();
+            // The first element is always the only "true" one
+            let loop_master = DeserItem {
+             is_virtual: false,
+             ..r.first().unwrap().clone()
+            };
+            if let Some(first) = r.get_mut(0) {
+              *first = loop_master;
+            }
+            r 
+        } else {
+            vec![self]
+        }
+    }
+
     // Can't use TryFrom as the implementation is recursive
     fn into_kind(self) -> Result<ItemKind> {
         // discriminating fields
@@ -443,6 +510,7 @@ impl DeserItem {
                 ))?,
                 info: None,
                 policy_mode_override: self.policy_mode_override,
+                generate_method_call_bundle: !self.is_virtual
             })),
             (true, false, _, false) => {
                 bail!("Method {} ({}) requires params", self.name, self.id)
@@ -461,6 +529,7 @@ impl DeserItem {
                     self.name, self.id
                 ))?,
                 policy_mode_override: self.policy_mode_override,
+                generate_method_call_bundle: !self.is_virtual
             })),
             (false, true, _, false) => {
                 bail!("Module {} ({}) requires params", self.name, self.id)
@@ -558,6 +627,8 @@ pub struct Module {
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub policy_mode_override: Option<PolicyMode>,
+    #[serde(default = "default_bool::<true>")]
+    pub generate_method_call_bundle: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -585,6 +656,8 @@ pub struct Method {
     #[serde(default)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub policy_mode_override: Option<PolicyMode>,
+    #[serde(default = "default_bool::<true>")]
+    pub generate_method_call_bundle: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]

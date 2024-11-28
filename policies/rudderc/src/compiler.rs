@@ -286,7 +286,11 @@ fn check_ids_unicity(technique: &Technique) -> Result<()> {
                 ids.extend(r.items.iter().flat_map(get_ids));
                 ids
             }
-            ItemKind::Method(r) => vec![r.id.clone()],
+            ItemKind::Method(r) => {
+                if r.generate_method_call_bundle {
+                    vec![r.id.clone()]
+                } else { vec![] }
+            },
             _ => todo!(),
         }
     }

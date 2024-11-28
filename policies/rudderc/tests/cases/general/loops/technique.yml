@@ -1,0 +1,20 @@
+---
+id: technique_with_loops
+name: Loops
+version: "0.1"
+description: "Short description"
+documentation: "Long documentation"
+items:
+  - name: "Install a package"
+    id: d86ce2e5-d5b6-45cc-87e8-c11cca71d907
+    condition: false
+    method: package_present
+    params:
+      name: "${plouf.name}"
+      version: "${plouf.version}"
+    foreach:
+      - name: "vim"
+        version: "latest"
+      - name: "htop"
+        version: "2.3.4"
+    foreach_name: "plouf"
