@@ -138,9 +138,10 @@ class AcceptNode extends Loggable {
       accept match {
         case f:     Failure  =>
           S.error(
-            <span>
-            {f.messageChain}
-          </span>
+            <div class="alert alert-danger">
+              <i class ="fa fa-warning"></i>
+              <strong>{f.messageChain}</strong>
+            </div>
           )
         case empty: EmptyBox =>
           val errorMsg = s"Add new node '$id.value' lead to Failure."
