@@ -13,8 +13,6 @@
 // TODO: add warnings when using instance-specific values (node properties, etc.)
 // TODO: specific parser for condition expressions
 
-use std::{cmp::Ordering, str::FromStr, sync::OnceLock};
-
 use anyhow::{bail, Error, Result};
 use nom::{
     branch::alt,
@@ -26,6 +24,7 @@ use nom::{
     Finish, IResult,
 };
 use rudder_commons::Target;
+use std::{cmp::Ordering, str::FromStr, sync::OnceLock};
 use tracing::warn;
 
 // from clap https://github.com/clap-rs/clap/blob/1f71fd9e992c2d39a187c6bd1f015bdfe77dbadf/clap_builder/src/parser/features/suggestions.rs#L11
@@ -341,9 +340,9 @@ fn complete_expression(s: &str) -> IResult<&str, Expression> {
 
 /// Parses valid expressions
 ///
-/// `in_var`: are we inside a var context or in normal text
+/// `in_var`: are we inside a var context or in normal text.
 fn expression(s: &str, in_var: bool) -> IResult<&str, Expression> {
-    // NOTE: parser used in many0 must not accept empty input
+    // NOTE: parser used in many0 must reject empty input
     let (s, r) = many0(alt((
         // different types of known variables
         node_properties,
@@ -367,14 +366,18 @@ fn expression(s: &str, in_var: bool) -> IResult<&str, Expression> {
     ))
 }
 
-// Reads a non-empty string outside any evaluation, accepts isolated []{}$ special chars, stops on ${
+// Reads a non-empty string outside any evaluation, accepts isolated `[]{}$` special chars, stops on `${` (but accept if in first position
+// as it means it was not parsed as a variable).
 fn out_string(s: &str) -> IResult<&str, Expression> {
-    map(
-        verify(alt((take_until("${"), take_while(|_| true))), |s: &str| {
-            !s.is_empty()
-        }),
-        |s: &str| Expression::Scalar(s.to_string()),
-    )(s)
+    let var_start = "${";
+
+    let (s, start) = alt((tag(var_start), tag("")))(s)?;
+    let (s, end) = verify(
+        alt((take_until(var_start), take_while(|_| true))),
+        |s: &str| !s.is_empty(),
+    )(s)?;
+
+    Ok((s, Expression::Scalar(format!("{start}{end}"))))
 }
 
 // Reads a non-empty string until beginning or end of variable
@@ -506,8 +509,8 @@ mod tests {
     fn it_reads_expression() {
         let out: Expression = "toto".parse().unwrap();
         assert_eq!(out, Expression::Scalar("toto".to_string()));
-        let out: Result<Expression, Error> = "${toto]".parse();
-        assert!(out.is_err());
+        let out: Expression = "${toto]".parse().unwrap();
+        assert_eq!(out, Expression::Scalar("${toto]".to_string()));
         let out: Expression = "${sys.host}".parse().unwrap();
         assert_eq!(
             out,
@@ -551,6 +554,8 @@ mod tests {
                 Expression::Scalar("password".to_string())
             ])
         );
+        let out: Expression = "${S[a]_}".parse().unwrap();
+        assert_eq!(out, Expression::Scalar("${S[a]_}".to_string()),);
     }
 
     #[test]

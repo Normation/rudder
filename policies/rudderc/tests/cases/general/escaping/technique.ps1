@@ -83,6 +83,32 @@ if(Get-Service "Zabbix agent") { write-output "exists" }
     $localContext.merge($methodContext)
     
 
+    $reportId=$reportIdBase + "a86ce2e5-d5b6-45cc-87e8-c11cca71d978"
+    $componentKey = "cache_prefix=`"zapache-$UID-${STATUS_URL//[^a-zA-Z0-9_-]/_}`" "
+    $reportParams = @{
+        ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
+        ComponentKey = $componentKey
+        ComponentName = "cache_prefix=`"zapache-$UID-${STATUS_URL//[^a-zA-Z0-9_-]/_}`" "
+        PolicyMode = $policyMode
+        ReportId = $reportId
+        DisableReporting = $false
+        TechniqueName = $techniqueName
+    }
+    
+    $methodParams = @{
+        Architecture = ""
+        Name = "cache_prefix=`"zapache-$UID-${STATUS_URL//[^a-zA-Z0-9_-]/_}`" "
+        Provider = ""
+        Version = @'
+plop
+'@
+        
+    }
+    $call = Package-Present @methodParams -PolicyMode $policyMode
+    $methodContext = Compute-Method-Call @reportParams -MethodCall $call
+    $localContext.merge($methodContext)
+    
+
 
     EndTechniqueCall -Name $techniqueName
 }
