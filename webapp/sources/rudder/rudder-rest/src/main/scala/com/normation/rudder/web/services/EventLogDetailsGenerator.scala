@@ -133,7 +133,10 @@ class EventLogDetailsGenerator(
 
     def nodeDesc(x: EventLog, actionName: NodeSeq) = {
       val id   = (x.details \\ "node" \ "id").text
-      val name = (x.details \\ "node" \ "hostname").text
+      val name = (x.details \\ "node" \ "hostname").text.strip() match {
+        case "" => id
+        case x  => x
+      }
       Text("Node ") ++ {
         if ((id.size < 1) || (actionName == Text(" deleted"))) Text(name)
         else <a href={nodeLink(NodeId(id))} onclick="noBubble(event);">{name}</a> ++ actionName
