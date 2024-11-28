@@ -46,6 +46,7 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.ReadOnlySoftwareDAOImpl
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.MachineInfo
+import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.rudder.tenants.TenantId
@@ -212,14 +213,9 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
   }
 
 //  org.slf4j.LoggerFactory
-//    .getLogger("inventory-processing")
+//    .getLogger("nodes")
 //    .asInstanceOf[ch.qos.logback.classic.Logger]
 //    .setLevel(ch.qos.logback.classic.Level.TRACE)
-
-  org.slf4j.LoggerFactory
-    .getLogger("nodes.details.write")
-    .asInstanceOf[ch.qos.logback.classic.Logger]
-    .setLevel(ch.qos.logback.classic.Level.TRACE)
 
   sequential
 
@@ -592,10 +588,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "root status can not be modified" >> {
       val res = (for {
         r <- factRepo.get(Constants.ROOT_POLICY_SERVER_ID).notOptional("root must be here")
-        _ <- factRepo.save(NodeFact.fromMinimal(r.modify(_.rudderSettings.status).setTo(PendingInventory)))(
-               testChangeContext,
-               SelectFacts.none
-             )
+        _ <- factRepo.save(r.modify(_.rudderSettings.status).setTo(PendingInventory))(testChangeContext)
       } yield ()).either.runNow
 
       res must beLeft
@@ -604,18 +597,37 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "Update of policy mode to default mode after it was set to audit/enforce should be default (#25866)" >> {
       val res = (for {
         node        <- factRepo.get(node7id).notOptional("node7 must be here")
-        _           <- factRepo.save(NodeFact.fromMinimal(node.modify(_.rudderSettings.policyMode).setTo(Some(PolicyMode.Audit))))(
-                         testChangeContext,
-                         SelectFacts.none
-                       )
-        _           <- factRepo.save(NodeFact.fromMinimal(node.modify(_.rudderSettings.policyMode).setTo(None)))(
-                         testChangeContext,
-                         SelectFacts.none
-                       )
+        _           <- factRepo.save(node.modify(_.rudderSettings.policyMode).setTo(Some(PolicyMode.Audit)))(testChangeContext)
+        _           <- factRepo.save(node.modify(_.rudderSettings.policyMode).setTo(None))(testChangeContext)
         updatedNode <- factRepo.get(node7id).notOptional("node7 must be here")
       } yield updatedNode.rudderSettings.policyMode).either.runNow
 
-      res must beRight(beNone)
+      (mockLdapFactStorage.testServer
+        .getEntry("nodeId=node7,ou=Nodes,cn=rudder-configuration")
+        .getAttribute("policyMode")
+        .getValue === """default""") and
+      (res must beRight(beNone))
+    }
+  }
+
+  "We must see change in state in the diff (#25704)" >> {
+    // node7 is "initializing" in ldap sample data
+    val res = (for {
+      node <- factRepo.get(node7id).notOptional("node7 must be here")
+      diff <- factRepo.save(node.modify(_.rudderSettings.state).setTo(NodeState.PreparingEOL))(testChangeContext)
+    } yield diff).either.runNow
+
+    (mockLdapFactStorage.testServer
+      .getEntry("nodeId=node7,ou=Nodes,cn=rudder-configuration")
+      .getAttribute("state")
+      .getValue === """preparing-eol""") and
+    (res must beRight) and {
+      res.forceGet.event match {
+        case NodeFactChangeEvent.Updated(oldNode, newNode, _) =>
+          (oldNode.rudderSettings.state === NodeState.Initializing) and (newNode.rudderSettings.state === NodeState.PreparingEOL)
+
+        case x => ko(s"bad change event, get ${x}")
+      }
     }
   }
 }
