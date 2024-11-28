@@ -7,16 +7,15 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, Context, Result};
-use flate2::read::GzDecoder;
 use reqwest::{
     blocking::{Client, Response},
     Proxy, StatusCode, Url,
 };
 use secrecy::ExposeSecret;
-use tar::Archive;
 use tempfile::tempdir;
 use tracing::{debug, info};
 
+use crate::license::Licenses;
 use crate::{
     config::{Configuration, Credentials},
     signature::{SignatureVerifier, VerificationSuccess},
@@ -138,7 +137,7 @@ impl Repository {
         let verified = self
             .verifier
             .verify_file(&tmp_plugin, &tmp_sign, &tmp_hash)?;
-        assert!(verified == VerificationSuccess::ValidSignatureAndHash);
+        assert_eq!(verified, VerificationSuccess::ValidSignatureAndHash);
         fs::copy(tmp_plugin, dest)?;
         Ok(())
     }
@@ -164,9 +163,9 @@ impl Repository {
         // Update the licenses
         if let Some(user) = self.get_username() {
             debug!("Updating licenses");
-            let license_folder = PathBuf::from(LICENSES_FOLDER);
+            let license_folder = Path::new(LICENSES_FOLDER);
             let archive_name = format!("{}-license.tar.gz", user);
-            let local_archive_path = &license_folder.clone().join(archive_name.clone());
+            let local_archive_path = &license_folder.join(&archive_name);
             if let Err(e) = self.download_unsafe(
                 &format!("licenses/{}/{}", user, archive_name),
                 local_archive_path,
@@ -176,9 +175,7 @@ impl Repository {
                     e
                 )
             }
-            // Decompress archive
-            let mut archive = Archive::new(GzDecoder::new(File::open(local_archive_path)?));
-            archive.unpack(license_folder)?;
+            Licenses::update_from_archive(local_archive_path, license_folder)?;
         } else {
             debug!("Not updating licenses as no configured credentials were found")
         }
