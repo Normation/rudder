@@ -34,7 +34,7 @@ where
 {
     struct V;
 
-    impl<'de2> Visitor<'de2> for V {
+    impl Visitor<'_> for V {
         type Value = Duration;
 
         fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {

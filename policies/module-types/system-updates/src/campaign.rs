@@ -118,7 +118,6 @@ impl FullSchedule {
 ///
 /// The returned outcome is not linked to the success of the update, but to the success of the
 /// process. The update itself can fail, but the process can be successful.
-
 pub fn do_schedule(
     p: &RunnerParameters,
     db: &mut PackageDatabase,
