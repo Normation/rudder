@@ -42,7 +42,9 @@ import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
+import com.normation.inventory.domain.Version as SVersion
 import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.inventory.ldap.core.ReadOnlySoftwareDAOImpl
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.MachineInfo
@@ -227,8 +229,6 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
   val node7id:   NodeId      = NodeId("node7")
   val machineId: MachineUuid = MachineUuid("machine3")
 
-  implicit val cc: ChangeContext = ChangeContext.newForRudder()
-
   // things that are empty on node7 because not defined
   def node7UndefinedElements(n: NodeFact): List[Chunk[Serializable]] = List(
     Chunk.fromIterable(n.swap),
@@ -256,6 +256,60 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
   implicit val testChangeContext: ChangeContext =
     ChangeContext(ModificationId("test-mod-id"), EventActor("test"), DateTime.now(), None, None, QueryContext.testQC.nodePerms)
   implicit val qc:                QueryContext  = QueryContext.todoQC
+
+  "basic change in node fact" should {
+    "saving core node fact must not kill software" in {
+
+      implicit val attrs = SelectFacts.all
+
+      val node7 = (for {
+        n   <- factRepo.get(node7id).notOptional("node 7 must be here")
+        _   <- factRepo.save(n)
+        all <- factRepo.slowGet(node7id).notOptional("still there")
+      } yield all).runNow
+
+      node7.software.size === 2
+    }
+
+    "changing keyStatus is possible" in {
+      implicit val attrs = SelectFacts.none
+
+      def changeKeyStatus(n: NodeFact) =
+        n.modify(_.rudderSettings.keyStatus).using(x => if (x == CertifiedKey) UndefinedKey else CertifiedKey)
+
+      // node1 keyStatus is undefined at first
+      val (nInit, nEnd) = (for {
+        n   <- factRepo.slowGet(NodeId("node1")).notOptional("node1 must be here")
+        i    = n.software.size
+        _   <- factRepo.save(changeKeyStatus(n))
+        all <- factRepo.slowGet(NodeId("node1")).notOptional("still there")
+      } yield (n, all)).runNow
+
+      (nInit.rudderSettings.keyStatus === UndefinedKey) and (nEnd.rudderSettings.keyStatus === CertifiedKey) and (mockLdapFactStorage.testServer
+        .getEntry("nodeId=node1,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
+        .getAttributeValue(LDAPConstants.A_KEY_STATUS) === "certified") and (changeKeyStatus(nInit) === nEnd)
+    }
+
+    "saving a software is actually saved, and nothing else change" in {
+      implicit val attrs = SelectFacts.softwareOnly
+
+      def addSoft(n: NodeFact) =
+        n.modify(_.software).using(l => l.appended(SoftwareFact("newSoftware", Some(new SVersion("1.0.42")))))
+
+      // node1 doesn't have software in base data
+      val (nInit, nEnd) = (for {
+        n   <- factRepo.slowGet(NodeId("node1")).notOptional("node 2 must be here")
+        i    = n.software.size
+        _   <- factRepo.save(addSoft(n))
+        all <- factRepo.slowGet(NodeId("node1")).notOptional("still there")
+      } yield (n, all)).runNow
+
+      (nInit.software.size === 0) and (nEnd.software.size === 1) and (mockLdapFactStorage.testServer
+        .getEntry("nodeId=node1,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
+        .getAttributeValues(LDAPConstants.A_SOFTWARE_DN)
+        .length === 1) and (addSoft(nInit) === nEnd)
+    }
+  }
 
   "query action" should {
 

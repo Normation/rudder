@@ -48,6 +48,7 @@ import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.MachineUuid
 import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.domain.PendingInventory
 import com.normation.inventory.domain.RemovedInventory
 import com.normation.inventory.domain.SecurityToken
@@ -175,6 +176,10 @@ class MockNodeFactFullInventoryRepositoryProxy(backend: NodeFactRepository)
     // if it does not yet, we use the given status BUT know that you should not
     // use that to save node in accepted status directly.
     backend.updateInventory(serverAndMachine, None)(ChangeContext.newForRudder()).unit
+  }
+
+  override def saveUserSetAttributes(node: NodeInventory): IOResult[Unit] = {
+    backend.updateInventory(FullInventory(node, None), None)(ChangeContext.newForRudder()).unit
   }
 
   override def delete(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Unit] = {

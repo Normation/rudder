@@ -1536,16 +1536,16 @@ class NodeApiService(
         .setToIfDefined(newKeyStatus)
     }
 
-    implicit val qc:    QueryContext = cc.toQuery
-    implicit val attrs: SelectFacts  = SelectFacts.none
+    implicit val qc: QueryContext = cc.toQuery
 
     for {
       nodeFact      <- nodeFactRepository.get(nodeId).notOptional(s"node with id '${nodeId.value}' was not found")
       newProperties <- CompareProperties.updateProperties(nodeFact.properties.toList, restNode.properties).toIO
       keyInfo        = getKeyInfo(restNode)
       updated        = updateNode(nodeFact, restNode, newProperties, keyInfo._1, keyInfo._2)
-      _             <- if (CoreNodeFact.same(updated, nodeFact)) ZIO.unit
-                       else nodeFactRepository.save(NodeFact.fromMinimal(updated)).unit
+
+      _ <- if (CoreNodeFact.same(updated, nodeFact)) ZIO.unit
+           else nodeFactRepository.save(updated).unit
     } yield {
       updated
     }

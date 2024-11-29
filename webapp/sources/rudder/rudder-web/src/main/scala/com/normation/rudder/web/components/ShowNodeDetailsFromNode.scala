@@ -127,7 +127,7 @@ class ShowNodeDetailsFromNode(
                    .toBox // we can't change the state of a missing node
       newNode  = oldNode.modify(_.rudderSettings.state).setTo(nodeState)
       result  <- nodeFactRepo
-                   .save(NodeFact.fromMinimal(newNode))(ChangeContext(modId, qr.actor, DateTime.now(), None, None, qr.nodePerms))
+                   .save(newNode)(ChangeContext(modId, qr.actor, DateTime.now(), None, None, qr.nodePerms))
                    .toBox
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
@@ -164,7 +164,7 @@ class ShowNodeDetailsFromNode(
     val cc          = ChangeContext(modId, CurrentUser.actor, DateTime.now(), None, None, CurrentUser.nodePerms)
 
     (for {
-      _ <- nodeFactRepo.save(NodeFact.fromMinimal(newNodeFact))(cc)
+      _ <- nodeFactRepo.save(newNodeFact)(cc)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
     }).toBox

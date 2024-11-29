@@ -460,6 +460,19 @@ class FullInventoryRepositoryImpl(
     } yield resServer ++ resMachine)
   }.chainError(s"Error when saving full inventory for node  with ID '${inventory.node.main.id.value}'")
 
+  // a minimal version of save only for attributes that can be changed by user (and not by inventory)
+  override def saveUserSetAttributes(node: NodeInventory): IOResult[Seq[LDIFChangeRecord]] = {
+    (for {
+      // check validity of standard fields
+      _         <- NodeIdRegex.checkNodeId(node.main.id.value).toIO
+      con       <- ldap
+      // if process are too many, we need to save them apart for perf reason
+      // Let say numProcessThreshold.
+      entry      = mapper.rootEntryFromNode(node)
+      resServer <- con.save(entry, removeMissingAttributes = false)
+    } yield resServer)
+  }.chainError(s"Error when saving minimal inventory for node with ID '${node.main.id.value}'").map(List(_))
+
   override def delete(id: NodeId, inventoryStatus: InventoryStatus): IOResult[Seq[LDIFChangeRecord]] = {
     for {
       con           <- ldap
