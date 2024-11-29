@@ -1039,6 +1039,8 @@ class EventLogDetailsGenerator(
                     mapComplexDiff(modDiff.modKeyStatus, <b>Key status</b>)(x => Text(x.value))
                   }{mapComplexDiff(modDiff.modKeyValue, <b>Key value</b>)(x => Text(x.key))}{reasonHtml}{
                     xmlParameters(event.id)
+                  }{
+                    mapComplexDiff(modDiff.modDocumentation, <b>Description</b>)(x => Text(x))
                   }
                   </div>
                 case e: EmptyBox =>

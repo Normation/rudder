@@ -1169,6 +1169,11 @@ class EventLogFactoryImpl(
           case None    => NodeSeq.Empty
           case Some(x) => SimpleDiff.toXml(<nodeState/>, x)(x => Text(x.name))
         }
+      }{
+        modifyDiff.modDocumentation match {
+          case None    => NodeSeq.Empty
+          case Some(x) => SimpleDiff.toXml(<description/>, x)(x => Text(x))
+        }
       }
       </node>)
     }
