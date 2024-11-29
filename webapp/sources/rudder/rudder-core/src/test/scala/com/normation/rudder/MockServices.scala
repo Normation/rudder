@@ -350,7 +350,6 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
 
     getModifiedFilesTtl = () => Full(30),
     getCfengineOutputsTtl = () => Full(7),
-    getSendMetrics = () => Full(None),
     getReportProtocolDefault = () => Full(AgentReportingHTTPS)
   )
 
