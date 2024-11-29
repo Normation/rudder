@@ -3269,6 +3269,7 @@ object RudderConfigInit {
         KEEP_DELETED_NODE_FACT_DURATION
       ),
       new CheckTableReportsExecutionTz(doobie),
+      new CheckMigrateCustomProperties(rwLdap, nodeFactRepository, acceptedNodesDitImpl),
       new CheckTechniqueLibraryReload(
         techniqueRepositoryImpl,
         uuidGen
