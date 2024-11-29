@@ -55,8 +55,8 @@ import zio.*
  * This migration check looks if there is still nodes with custom properties
  * in the ou=Accepted Inventories branch, and if so, it save back them so that
  * they are moved along with other properties.
- * Added in rudder 8.1.8 (https://issues.rudder.io/issues/25978)
- * Can be removed in Rudder 8.3
+ * Added in rudder 8.3 (https://issues.rudder.io/issues/25979)
+ * Can be removed in Rudder 9.2.
  */
 
 class CheckMigrateCustomProperties(

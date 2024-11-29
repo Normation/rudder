@@ -100,14 +100,12 @@ class TestMigrateCustomProperties extends Specification {
 
   def getNode1PropNamesAsSeenByLdap(): Seq[String] = {
     (for {
-      _ <- errors.effectUioUnit(println(s"****** ldap ********"))
       n <- mockLdapFactStorage.nodeFactStorage.getAccepted(NodeId("node1"))(SelectFacts.none).notOptional("node1 must be present")
     } yield n.properties.map(_.name)).runNow
   }
 
   def getNode1PropNamesAsSeenByRepo(): Chunk[String] = {
     (for {
-      _ <- errors.effectUioUnit(println(s"****** repos ********"))
       n <- factRepo.get(NodeId("node1"))(QueryContext.testQC).notOptional("node1 must be present")
     } yield n.properties.map(_.name)).runNow
   }
