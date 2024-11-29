@@ -687,7 +687,7 @@ class CoreNodeFactRepository(
                         // first we persist on cold storage, which is more likely to fail. Plus, for history reason, some
                         // mapping are not exactly isomorphic, and some normalization can happen - for ex, for missing machine.
                         s <- storage.save(updated)
-                        // then, we get the actual thing that was saved from the save even
+                        // then, we get the actual thing that was saved from the save event
                         up = s match {
                                case StorageChangeEventSave.Created(node, attrs)             =>
                                  node
