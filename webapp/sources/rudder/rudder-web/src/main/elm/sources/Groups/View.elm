@@ -1,7 +1,7 @@
 module Groups.View exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (checked, class, for, href, id, placeholder, style, title, type_, value)
+import Html.Attributes exposing (attribute, class, href, id, placeholder, style, title, type_, value)
 import Html.Events exposing (onClick, onInput)
 import NaturalOrdering as N
 import List
@@ -36,7 +36,18 @@ view model =
         [ i[class "jstree-icon jstree-ocl"][]
         , a[class ("jstree-anchor"++classDisabled {- ++classFocus -}), href (getGroupLink model.contextPath item.id.value), onClick (OpenGroupDetails item.id)]
           [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
-          , span [class "treeGroupName", title (buildTooltipContent item.name item.description)]
+          , span
+            ((
+              class "treeGroupName"
+            ) :: (
+              if String.isEmpty item.description
+              then []
+              else [
+                attribute "data-bs-toggle" "tooltip"
+                , attribute "data-bs-placement" "right"
+                , title (buildTooltipContent item.name item.description)
+              ]
+            ))
             [ text item.name
             , small [class "greyscala"] [text (" - " ++ if item.dynamic then "Dynamic" else "Static")]
             , badgeDisabled
