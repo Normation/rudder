@@ -118,7 +118,7 @@ object DefaultTenantService {
 
 /*
  *  _tenantsEnabled is accessed in a lot of hot path, we prefer not to encapsulate it into a Ref.
- * We still put its modification behind a eval.
+ * We still put its modification behind an eval.
  */
 class DefaultTenantService(private var _tenantsEnabled: Boolean, val tenantIds: Ref[Set[TenantId]]) extends TenantService {
 

@@ -48,6 +48,8 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.MachineInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.properties.GenericProperty.*
+import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
@@ -217,10 +219,10 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 //    .asInstanceOf[ch.qos.logback.classic.Logger]
 //    .setLevel(ch.qos.logback.classic.Level.TRACE)
 
-  org.slf4j.LoggerFactory
-    .getLogger("nodes.details.write")
-    .asInstanceOf[ch.qos.logback.classic.Logger]
-    .setLevel(ch.qos.logback.classic.Level.TRACE)
+//  org.slf4j.LoggerFactory
+//    .getLogger("nodes.details.write")
+//    .asInstanceOf[ch.qos.logback.classic.Logger]
+//    .setLevel(ch.qos.logback.classic.Level.TRACE)
 
   sequential
 
@@ -593,10 +595,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "root status can not be modified" >> {
       val res = (for {
         r <- factRepo.get(Constants.ROOT_POLICY_SERVER_ID).notOptional("root must be here")
-        _ <- factRepo.save(NodeFact.fromMinimal(r.modify(_.rudderSettings.status).setTo(PendingInventory)))(
-               testChangeContext,
-               SelectFacts.none
-             )
+        _ <- factRepo.save(r.modify(_.rudderSettings.status).setTo(PendingInventory))(testChangeContext)
       } yield ()).either.runNow
 
       res must beLeft
@@ -605,18 +604,37 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     "Update of policy mode to default mode after it was set to audit/enforce should be default (#25866)" >> {
       val res = (for {
         node        <- factRepo.get(node7id).notOptional("node7 must be here")
-        _           <- factRepo.save(NodeFact.fromMinimal(node.modify(_.rudderSettings.policyMode).setTo(Some(PolicyMode.Audit))))(
-                         testChangeContext,
-                         SelectFacts.none
-                       )
-        _           <- factRepo.save(NodeFact.fromMinimal(node.modify(_.rudderSettings.policyMode).setTo(None)))(
-                         testChangeContext,
-                         SelectFacts.none
-                       )
+        _           <- factRepo.save(node.modify(_.rudderSettings.policyMode).setTo(Some(PolicyMode.Audit)))(testChangeContext)
+        _           <- factRepo.save(node.modify(_.rudderSettings.policyMode).setTo(None))(testChangeContext)
         updatedNode <- factRepo.get(node7id).notOptional("node7 must be here")
       } yield updatedNode.rudderSettings.policyMode).either.runNow
 
-      res must beRight(beNone)
+      (mockLdapFactStorage.testServer
+        .getEntry("nodeId=node7,ou=Nodes,cn=rudder-configuration")
+        .getAttribute("policyMode")
+        .getValue === """default""") and
+      (res must beRight(beNone))
+    }
+  }
+
+  "We must see change in state in the diff (#25704)" >> {
+    // node7 is "initializing" in ldap sample data
+    val res = (for {
+      node <- factRepo.get(node7id).notOptional("node7 must be here")
+      diff <- factRepo.save(node.modify(_.rudderSettings.state).setTo(NodeState.PreparingEOL))(testChangeContext)
+    } yield diff).either.runNow
+
+    (mockLdapFactStorage.testServer
+      .getEntry("nodeId=node7,ou=Nodes,cn=rudder-configuration")
+      .getAttribute("state")
+      .getValue === """preparing-eol""") and
+    (res must beRight) and {
+      res.forceGet.event match {
+        case NodeFactChangeEvent.Updated(oldNode, newNode, _) =>
+          (oldNode.rudderSettings.state === NodeState.Initializing) and (newNode.rudderSettings.state === NodeState.PreparingEOL)
+
+        case x => ko(s"bad change event, get ${x}")
+      }
     }
 
     "the count of active nodes change if we disable one" >> {
@@ -663,5 +681,74 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       )
     }
 
+  }
+
+  "Inventory properties must be retrieved, migrated and not seen new each time (#25704)" >> {
+    val existingProp1 =
+      NodeProperty.apply("datacenter", "Paris".toConfigValue, None, Some(NodeProperty.customPropertyProvider))
+    val existingProp2 = {
+      NodeProperty.apply(
+        "from_inv",
+        Map("key1" -> "custom prop value", "key2" -> "some more json").toConfigValue,
+        None,
+        Some(NodeProperty.customPropertyProvider)
+      )
+    }
+    val newProp       =
+      NodeProperty.apply("new_inv", "inventory value".toConfigValue, None, Some(NodeProperty.customPropertyProvider))
+
+    // no provider in the json of custom properties
+    val beforeInv = mockLdapFactStorage.testServer
+      .getEntry("nodeId=node1,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
+      .getAttribute("customProperty")
+      .getValues === Array(
+      """{"name":"datacenter", "value":"Paris"}""",
+      """{"name":"from_inv", "value":{ "key1":"custom prop value", "key2":"some more json"}}"""
+    )
+
+    val beforeNode = mockLdapFactStorage.testServer
+      .getEntry("nodeId=node1,ou=Nodes,cn=rudder-configuration")
+      .getAttribute("serializedNodeProperty")
+      .getValues === Array("""{"name":"foo","value":"bar"}""")
+
+    val res = (for {
+      node <- factRepo.get(NodeId("node1")).notOptional("node1 must be here")
+      props = node.properties.appended(newProp)
+      // first time: change should be here
+      d1   <- factRepo.save(node.modify(_.properties).setTo(props))(testChangeContext)
+      // second time: should be noop
+      d2   <- factRepo.save(node.modify(_.properties).setTo(props))(testChangeContext)
+    } yield (d1, d2)).either.runNow
+
+    // after a new save, even only touching core node fact, custom props are removed
+    val afterInv = mockLdapFactStorage.testServer
+      .getEntry("nodeId=node1,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
+      .getAttribute("customProperty") === null
+
+    // here, we now have the provider info
+    val afterNode = mockLdapFactStorage.testServer
+      .getEntry("nodeId=node1,ou=Nodes,cn=rudder-configuration")
+      .getAttribute("serializedNodeProperty")
+      .getValues === Array(
+      """{"name":"foo","value":"bar"}""", // this one is a node property
+      existingProp1.toData,
+      existingProp2.toData,
+      """{"name":"new_inv","provider":"inventory","value":"inventory value"}"""
+    )
+
+    beforeInv and beforeNode and afterInv and afterNode and {
+      res.forceGet match {
+        case (
+              NodeFactChangeEventCC(NodeFactChangeEvent.Updated(oldNode, newNode, _), _),
+              secondChange
+            ) =>
+          (oldNode.properties.size === 1) and // old node is incorrectly reporting 1 because of the bug: it doesn't see custom props
+          (newNode.properties.size === 4) and
+          (newNode.properties.last === newProp) and
+          (secondChange.event must beAnInstanceOf[NodeFactChangeEvent.Noop])
+
+        case x => ko(s"bad change event, got: ${x._1.event}")
+      }
+    }
   }
 }

@@ -135,11 +135,9 @@ class LDAPEntityMapper(
       case _              =>
     }
 
-    // for node properties, we ALWAYS filter-out properties coming from inventory,
-    // because we don't want to store them there.
     entry.resetValuesTo(
       A_NODE_PROPERTY,
-      node.properties.collect { case p if (p.provider != Some(NodeProperty.customPropertyProvider)) => p.toData }*
+      node.properties.map(_.toData)*
     )
 
     node.nodeReportingConfiguration.heartbeatConfiguration match {

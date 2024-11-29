@@ -823,7 +823,8 @@ class InventoryMapper(
       root.resetValuesTo(A_TIMEZONE_NAME, timezone.name)
       root.resetValuesTo(A_TIMEZONE_OFFSET, timezone.offset)
     }
-    server.customProperties.foreach(cp => root.addValues(A_CUSTOM_PROPERTY, cp.toJson))
+    // custom properties are not saved here anymore
+    root.deleteAttribute(A_CUSTOM_PROPERTY)
     server.softwareUpdates.foreach { s =>
       import JsonSerializers.implicits.*
       root.addValues(A_SOFTWARE_UPDATE, s.toJson)

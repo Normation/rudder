@@ -685,9 +685,6 @@ class LdapNodeFactStorage(
   override def save(nodeFact: NodeFact)(implicit attrs: SelectFacts): IOResult[StorageChangeEventSave] = {
     nodeLibMutex.writeLock(for {
       con        <- ldap
-      _          <- con
-                      .save(nodeMapper.nodeToEntry(nodeFact.toNode))
-                      .chainError(s"Cannot save node with id '${nodeFact.id.value}' in LDAP")
       mergedSoft <- if (LdapNodeFactStorage.needsSoftware(attrs)) {
                       softwareSave.tryWith(nodeFact.software.map(_.toSoftware).toSet).map(Some(_))
                     } else None.succeed
@@ -710,6 +707,9 @@ class LdapNodeFactStorage(
                         nf.modify(_.software).setToIfDefined(optSoft)
                       }
                     )
+      _          <- con
+                      .save(nodeMapper.nodeToEntry(nodeFact.toNode))
+                      .chainError(s"Cannot save node with id '${nodeFact.id.value}' in LDAP")
       inv         = SelectFacts
                       .merge(nodeFact, optOld)(attrs)
                       .toFullInventory
@@ -849,8 +849,10 @@ class LdapNodeFactStorage(
         needSoftware: Boolean
     ): IOResult[Option[NodeFact]] = {
       // mostly copied from com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl # getBackendLdapNodeInfo
-      val ldapAttrs =
-        (if (needSoftware) Seq(A_SOFTWARE_DN) else Seq()) ++ NodeInfoService.nodeInfoAttributes :+ LDAPConstants.A_SOFTWARE_UPDATE
+      val ldapAttrs = {
+        (if (needSoftware) Seq(A_SOFTWARE_DN)
+         else Seq()) ++ NodeInfoService.nodeInfoAttributes :+ LDAPConstants.A_SOFTWARE_UPDATE :+ LDAPConstants.A_CUSTOM_PROPERTY
+      }
 
       con.get(inventoryDitService.getDit(status).NODES.NODE.dn(nodeId.value), ldapAttrs*).flatMap {
         case None      => // end of game, no node here
