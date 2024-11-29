@@ -685,9 +685,6 @@ class LdapNodeFactStorage(
   override def save(nodeFact: NodeFact)(implicit attrs: SelectFacts): IOResult[StorageChangeEventSave] = {
     nodeLibMutex.writeLock(for {
       con        <- ldap
-      _          <- con
-                      .save(nodeMapper.nodeToEntry(nodeFact.toNode))
-                      .chainError(s"Cannot save node with id '${nodeFact.id.value}' in LDAP")
       mergedSoft <- if (LdapNodeFactStorage.needsSoftware(attrs)) {
                       softwareSave.tryWith(nodeFact.software.map(_.toSoftware).toSet).map(Some(_))
                     } else None.succeed
@@ -710,6 +707,9 @@ class LdapNodeFactStorage(
                         nf.modify(_.software).setToIfDefined(optSoft)
                       }
                     )
+      _          <- con
+                      .save(nodeMapper.nodeToEntry(nodeFact.toNode))
+                      .chainError(s"Cannot save node with id '${nodeFact.id.value}' in LDAP")
       inv         = SelectFacts
                       .merge(nodeFact, optOld)(attrs)
                       .toFullInventory
