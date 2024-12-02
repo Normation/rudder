@@ -104,9 +104,12 @@ trait ReadOnlyFullInventoryRepository {
 }
 
 trait WriteOnlyFullInventoryRepository[R] {
-  def save(serverAndMachine: FullInventory): IOResult[R]
-  def delete(id:             NodeId, inventoryStatus: InventoryStatus): IOResult[R]
-  def move(id:               NodeId, from:            InventoryStatus, into: InventoryStatus): IOResult[R]
+  // Save the whole inventory. Missing attribute will be removed
+  def save(serverAndMachine:      FullInventory): IOResult[R]
+  // Save some minimal information. The exact list is linked to what user can change. Missing attributes will be kept
+  def saveUserSetAttributes(node: NodeInventory): IOResult[R]
+  def delete(id:                  NodeId, inventoryStatus: InventoryStatus): IOResult[R]
+  def move(id:                    NodeId, from:            InventoryStatus, into: InventoryStatus): IOResult[R]
 
   def moveNode(id: NodeId, from: InventoryStatus, into: InventoryStatus): IOResult[R]
 }

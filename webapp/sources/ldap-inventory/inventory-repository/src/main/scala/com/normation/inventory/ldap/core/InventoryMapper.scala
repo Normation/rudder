@@ -789,7 +789,7 @@ class InventoryMapper(
   def treeFromNode(server: NodeInventory): LDAPTree = {
     val dit  = ditService.getDit(server.main.status)
     // the root entry of the tree: the machine inventory
-    val root = createNodeModelFromServer(server)
+    val root = rootEntryFromNode(server)
 
     root.resetValuesTo(A_OS_FULL_NAME, server.main.osDetails.fullName)
     root.resetValuesTo(A_OS_VERSION, server.main.osDetails.version.value)
@@ -797,7 +797,6 @@ class InventoryMapper(
     root.resetValuesTo(A_OS_KERNEL_VERSION, server.main.osDetails.kernelVersion.value)
     root.resetValuesTo(A_ROOT_USER, server.main.rootUser)
     root.resetValuesTo(A_HOSTNAME, server.main.hostname)
-    root.resetValuesTo(A_KEY_STATUS, server.main.keyStatus.value)
     root.resetValuesTo(A_POLICY_SERVER_UUID, server.main.policyServerId.value)
     root.setOpt(server.ram, A_OS_RAM, (m: MemorySize) => m.size.toString)
     root.setOpt(server.swap, A_OS_SWAP, (m: MemorySize) => m.size.toString)
@@ -835,6 +834,15 @@ class InventoryMapper(
     server.fileSystems.foreach(x => tree.addChild(entryFromFileSystem(x, dit, server.main.id)))
     server.vms.foreach(x => tree.addChild(entryFromVMInfo(x, dit, server.main.id)))
     tree
+  }
+
+  // only things that can be changed by user.
+  def rootEntryFromNode(server: NodeInventory): LDAPEntry = {
+    // the root entry of the tree: the machine inventory
+    val root = createNodeModelFromServer(server)
+    root.resetValuesTo(A_KEY_STATUS, server.main.keyStatus.value)
+
+    root
   }
 
   // map process from node

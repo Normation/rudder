@@ -81,10 +81,8 @@ import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
@@ -800,7 +798,7 @@ class RestTestSetUp {
       (for {
         n <- mockNodes.nodeFactRepo.get(id).notOptional(s"Can not merge node: missing")
         n2 = CoreNodeFact.updateNode(n, mergeNodeSetup(n.toNode, setup))
-        _ <- mockNodes.nodeFactRepo.save(NodeFact.fromMinimal(n2))(testCC, SelectFacts.none)
+        _ <- mockNodes.nodeFactRepo.save(n2)(testCC)
       } yield {
         n.id
       }).mapError(err => CreationError.OnSaveInventory(err.fullMsg))

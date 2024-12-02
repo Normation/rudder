@@ -663,56 +663,63 @@ class CoreNodeFactRepository(
   )(implicit cc: ChangeContext, attrs: SelectFacts): IOResult[NodeFactChangeEventCC] = {
     ZIO.scoped(
       for {
-        _        <- lock.withLock
-        n        <- get(node.fold(_.id, _._1))(cc.toQuery)
-        nodeFact <- (node, n) match {
-                      // first case: we are saving a new node fact, tenant can be set
-                      case (Left(x), None)          => x.succeed
-                      // second case: updating a node fact, we need to keep existing tenant
-                      // we also keep status
-                      case (Left(x), Some(y))       =>
-                        x
-                          .modify(_.rudderSettings.security)
-                          .setTo(y.rudderSettings.security)
-                          .modify(_.rudderSettings.status)
-                          .setTo(y.rudderSettings.status)
-                          .succeed
-                      // second case: we are updating tenants
-                      case (Right((_, t)), Some(x)) => NodeFact.fromMinimal(x.modify(_.rudderSettings.security).setTo(t)).succeed
-                      case (Right((id, _)), None)   =>
-                        Inconsistency(s"Error: can not change tenant of missing node with Id '${id.value}'").fail
-                    }
-        es       <- tenantService.manageUpdate(n, nodeFact, cc) { updated =>
-                      for {
-                        // first we persist on cold storage, which is more likely to fail. Plus, for history reason, some
-                        // mapping are not exactly isomorphic, and some normalization can happen - for ex, for missing machine.
-                        s <- storage.save(updated)
-                        // then, we get the actual thing that was saved from the save event
-                        up = s match {
-                               case StorageChangeEventSave.Created(node, attrs)             =>
-                                 node
-                               case StorageChangeEventSave.Updated(oldNode, newNode, attrs) =>
-                                 newNode
-                               case StorageChangeEventSave.Noop(nodeId, attrs)              =>
-                                 updated
-                             }
-                        // then, we save that as the core node fact reference
-                        e <- nodeFact.rudderSettings.status match {
-                               case RemovedInventory  => // this case is ignored, we don't delete node based on status value
-                                 StorageChangeEventSave.Noop(up.id, attrs).succeed
-                               case PendingInventory  =>
-                                 saveOn(pendingNodes, up.toCore)
-                               case AcceptedInventory =>
-                                 saveOn(acceptedNodes, up.toCore)
-                             }
-                        // finally, merge both events and return the final change event and run call backs on it
-                        es = s.updateWith(e).toChangeEvent(up.id, up.rudderSettings.status, cc)
-                        _ <- NodeLoggerPure.Details.Write.trace(s"Saved node event: ${es.event.debugDiff}")
-                        _ <- runCallbacks(es)
-                      } yield es
-                    }
+        _                   <- lock.withLock
+        core                <- get(node.fold(_.id, _._1))(cc.toQuery)
+        pair                <- (node, core) match {
+                                 // first case: we are saving a new node fact, tenant can be set
+                                 // we keep attrs from request
+                                 case (Left(x), None)          => (x, attrs).succeed
+                                 // second case: updating a node fact, we need to keep existing tenant
+                                 // we also keep status
+                                 // we keep attrs from request
+                                 case (Left(x), Some(y))       =>
+                                   (
+                                     x
+                                       .modify(_.rudderSettings.security)
+                                       .setTo(y.rudderSettings.security)
+                                       .modify(_.rudderSettings.status)
+                                       .setTo(y.rudderSettings.status),
+                                     attrs
+                                   ).succeed
+                                 // third case: we are updating tenants and we don't have a node fact in the query (just nodeId)
+                                 // => SelectedFacts must be "none"
+                                 case (Right((_, t)), Some(x)) =>
+                                   (NodeFact.fromMinimal(x.modify(_.rudderSettings.security).setTo(t)), SelectFacts.none).succeed
+                                 case (Right((id, _)), None)   =>
+                                   Inconsistency(s"Error: can not change tenant of missing node with Id '${id.value}'").fail
+                               }
+        (nodeFact, selected) = pair
+        es                  <- tenantService.manageUpdate(core, nodeFact, cc) { updated =>
+                                 for {
+                                   // first we persist on cold storage, which is more likely to fail. Plus, for history reason, some
+                                   // mapping are not exactly isomorphic, and some normalization can happen - for ex, for missing machine.
+                                   s <- storage.save(updated)(selected)
+                                   // then, we get the actual thing that was saved from the save event
+                                   up = s match {
+                                          case StorageChangeEventSave.Created(node, _)             =>
+                                            node
+                                          case StorageChangeEventSave.Updated(oldNode, newNode, _) =>
+                                            newNode
+                                          case StorageChangeEventSave.Noop(nodeId, _)              =>
+                                            updated
+                                        }
+                                   // then, we save that as the core node fact reference
+                                   e <- nodeFact.rudderSettings.status match {
+                                          case RemovedInventory  => // this case is ignored, we don't delete node based on status value
+                                            StorageChangeEventSave.Noop(up.id, attrs).succeed
+                                          case PendingInventory  =>
+                                            saveOn(pendingNodes, up.toCore)
+                                          case AcceptedInventory =>
+                                            saveOn(acceptedNodes, up.toCore)
+                                        }
+                                   // finally, merge both events and return the final change event and run call backs on it
+                                   es = s.updateWith(e).toChangeEvent(up.id, up.rudderSettings.status, cc)
+                                   _ <- NodeLoggerPure.Details.Write.trace(s"Saved node event: ${es.event.debugDiff}")
+                                   _ <- runCallbacks(es)
+                                 } yield es
+                               }
         // update number of active nodes
-        _        <- updateEnabledCount()
+        _                   <- updateEnabledCount()
       } yield es
     )
   }
@@ -723,9 +730,7 @@ class CoreNodeFactRepository(
     internalSave(Right((nodeId, tag)))(cc, SelectFacts.none)
   }
 
-  override def save(
-      nodeFact: NodeFact
-  )(implicit cc: ChangeContext, attrs: SelectFacts = SelectFacts.all): IOResult[NodeFactChangeEventCC] = {
+  override def save(nodeFact: NodeFact)(implicit cc: ChangeContext, attrs: SelectFacts): IOResult[NodeFactChangeEventCC] = {
     ZIO.foreachDiscard(savePreChecks)(_(nodeFact)) *>
     internalSave(Left(nodeFact))
   }

@@ -78,11 +78,6 @@ import scala.reflect.ClassTag
 import zio.Chunk
 import zio.NonEmptyChunk
 
-/*
- * This class test the JsEngine. 6.0
- * It must works identically on Java 7 and Java 8.
- *
- */
 
 @RunWith(classOf[JUnitRunner])
 class TestMergeGroupProperties extends Specification {
