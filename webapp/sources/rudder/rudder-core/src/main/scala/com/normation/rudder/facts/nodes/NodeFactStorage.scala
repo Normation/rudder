@@ -59,6 +59,7 @@ import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
 import com.normation.rudder.domain.nodes.MachineInfo
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.facts.nodes.LdapNodeFactStorage.needsSoftware
 import com.normation.rudder.git.GitItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
@@ -852,8 +853,8 @@ class LdapNodeFactStorage(
       } yield {
         optInvS.map {
           case (inv, _) =>
-            val info = NodeInfo(
-              node,
+            val info       = NodeInfo(
+              node.modify(_.properties).using(p => inv.node.customProperties.map(NodeProperty.fromInventory(_)) ::: p),
               inv.node.main.hostname,
               inv.machine.map(m => MachineInfo(m.id, m.machineType, m.systemSerialNumber, m.manufacturer)),
               inv.node.main.osDetails,
@@ -867,7 +868,11 @@ class LdapNodeFactStorage(
               inv.node.ram,
               inv.node.timezone
             )
-            NodeFact.fromCompat(info, Right(inv), softs, None)
+            val softUpdate = inv.node.softwareUpdates match {
+              case Nil  => None
+              case list => Some(Chunk.fromIterable(list))
+            }
+            NodeFact.fromCompat(info, Right(inv), softs, softUpdate)
         }
       }
     }
