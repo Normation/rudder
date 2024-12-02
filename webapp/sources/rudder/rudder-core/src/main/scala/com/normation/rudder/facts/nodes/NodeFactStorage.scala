@@ -682,7 +682,19 @@ class LdapNodeFactStorage(
 
   // for save, we always store the full node. Since we don't know how to restrict attributes to save
   // for the inventory part (node part is always complete), we do retrieve then merge, avoiding software if possible
-  override def save(nodeFact: NodeFact)(implicit attrs: SelectFacts): IOResult[StorageChangeEventSave] = {
+  override def save(nodeFact: NodeFact)(implicit
+      attrs: SelectFacts
+  ): IOResult[StorageChangeEventSave] = {
+    /*
+     * Most change either target things in ou=Nodes (settings, policy mode, state, ...) OR inventory facts (ram, etc).
+     * - the first set is only modified without change in inventories, so when no attrs are selected.
+     *   => in that case, there is no use to retrieve inventories parts for generating the change event, they can't change
+     * - the second set is only modified for new inventories, so when all attrs are selected.
+     *   => in that case, we need to retrieve everything.
+     *
+     * But there is one exception: key status can be changed (reset) by user. So we need to check for that case, two.
+     */
+
     nodeLibMutex.writeLock(for {
       con        <- ldap
       mergedSoft <- if (LdapNodeFactStorage.needsSoftware(attrs)) {
@@ -696,7 +708,16 @@ class LdapNodeFactStorage(
                           _ <- ZIO.foreach(newSoft)(x => con.save(inventoryMapper.entryFromSoftware(x)))
                         } yield Some(newSoft.map(_.id) ++ merged.alreadySavedSoftware.map(_.id))
                     }
-      optOld     <- getNodeFact(nodeFact.id, nodeFact.rudderSettings.status, SelectFacts.noSoftware).map(
+      // here we can be more selective: if no inventory is needed, don't retrieve it.
+      // But as seen as we need a bit of inventory, we need to find it all, since repo delete missing bit -even
+      // for "onlySoftware", because we save software in inventory node, too.
+      // But we never need to actually fetch software, because we manage them on a side channel with newSoftIds
+      getAttrs    = if (attrs == SelectFacts.none) {
+                      SelectFacts.none
+                    } else {
+                      SelectFacts.noSoftware
+                    }
+      optOld     <- getNodeFact(nodeFact.id, nodeFact.rudderSettings.status, getAttrs).map(
                       _.map { nf =>
                         // add back software if needed
                         val optSoft = if (LdapNodeFactStorage.needsSoftware(attrs)) {
@@ -710,12 +731,21 @@ class LdapNodeFactStorage(
       _          <- con
                       .save(nodeMapper.nodeToEntry(nodeFact.toNode))
                       .chainError(s"Cannot save node with id '${nodeFact.id.value}' in LDAP")
+      // here, we have two cases:
+      // if there is attrs that needInventory or software, then we save everything.
+      // else if there is no attrs needing anything from inventory, we save only things that can be user changed
+      // Note: the merge is only on attrs and not getAttrs to keep attribute on optOld that where not queried in nodeFact
+      // in the merge.
       inv         = SelectFacts
                       .merge(nodeFact, optOld)(attrs)
                       .toFullInventory
                       .modify(_.node.softwareIds)
                       .setToIfDefined(newSoftIds)
-      _          <- fullInventoryRepository.save(inv)
+      _          <- if (attrs == SelectFacts.none) {
+                      fullInventoryRepository.saveUserSetAttributes(inv.node)
+                    } else {
+                      fullInventoryRepository.save(inv)
+                    }
     } yield {
       optOld match {
         case Some(old) =>
@@ -725,6 +755,7 @@ class LdapNodeFactStorage(
           StorageChangeEventSave.Created(nodeFact, attrs)
       }
     })
+
   }
 
   override def changeStatus(nodeId: NodeId, status: InventoryStatus): IOResult[StorageChangeEventStatus] = {
