@@ -137,17 +137,17 @@ pub fn run_inner(args: Args) -> Result<()> {
                         errors = true;
                         error!("Installation of licenses from {} failed: {e:?}", full_p);
                     }
-                }
+                } else {
+                    // Extract version numbers
+                    let (p, v) = match full_p.split_once(':') {
+                        None => (full_p.as_str(), None),
+                        Some((p, v)) => (p, Some(v)),
+                    };
 
-                // Extract version numbers
-                let (p, v) = match full_p.split_once(':') {
-                    None => (full_p.as_str(), None),
-                    Some((p, v)) => (p, Some(v)),
-                };
-
-                if let Err(e) = db.install(force, p, v, &repo, index.as_ref(), &mut webapp) {
-                    errors = true;
-                    error!("Installation of {} failed: {e:?}", short_name(p));
+                    if let Err(e) = db.install(force, p, v, &repo, index.as_ref(), &mut webapp) {
+                        errors = true;
+                        error!("Installation of {} failed: {e:?}", short_name(p));
+                    }
                 }
             }
             if errors {
