@@ -35,21 +35,25 @@
             TechniqueName = $techniqueName
         }
         
-        $methodParams = @{
-            Enforce = @'
+        $class = "true"
+        if ([Rudder.Datastate]::Evaluate($class)) {
+            $methodParams = @{
+                Enforce = @'
 true
 '@
-            Lines = @'
+                Lines = @'
 foobar
 '@
-            Path = @'
+                Path = @'
 /tmp/1
 '@
-            
+                
+            }
+            $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Audit)
+            Compute-Method-Call @reportParams -MethodCall $call
+        } else {
+            Rudder-Report-NA @reportParams
         }
-        $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Audit)
-        Compute-Method-Call @reportParams -MethodCall $call
-        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -83,21 +87,25 @@ foobar
             TechniqueName = $techniqueName
         }
         
-        $methodParams = @{
-            Enforce = @'
+        $class = "true"
+        if ([Rudder.Datastate]::Evaluate($class)) {
+            $methodParams = @{
+                Enforce = @'
 true
 '@
-            Lines = @'
+                Lines = @'
 foobar
 '@
-            Path = @'
+                Path = @'
 /tmp/1
 '@
-            
+                
+            }
+            $call = File-Content @methodParams -PolicyMode $policyMode
+            Compute-Method-Call @reportParams -MethodCall $call
+        } else {
+            Rudder-Report-NA @reportParams
         }
-        $call = File-Content @methodParams -PolicyMode $policyMode
-        Compute-Method-Call @reportParams -MethodCall $call
-        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -131,21 +139,25 @@ foobar
             TechniqueName = $techniqueName
         }
         
-        $methodParams = @{
-            Enforce = @'
+        $class = "true"
+        if ([Rudder.Datastate]::Evaluate($class)) {
+            $methodParams = @{
+                Enforce = @'
 true
 '@
-            Lines = @'
+                Lines = @'
 foobar
 '@
-            Path = @'
+                Path = @'
 /tmp/1
 '@
-            
+                
+            }
+            $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Enforce)
+            Compute-Method-Call @reportParams -MethodCall $call
+        } else {
+            Rudder-Report-NA @reportParams
         }
-        $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Enforce)
-        Compute-Method-Call @reportParams -MethodCall $call
-        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -179,21 +191,25 @@ foobar
             TechniqueName = $techniqueName
         }
         
-        $methodParams = @{
-            Enforce = @'
+        $class = "true"
+        if ([Rudder.Datastate]::Evaluate($class)) {
+            $methodParams = @{
+                Enforce = @'
 true
 '@
-            Lines = @'
+                Lines = @'
 foobar
 '@
-            Path = @'
+                Path = @'
 /tmp/1
 '@
-            
+                
+            }
+            $call = File-Content @methodParams -PolicyMode $policyMode
+            Compute-Method-Call @reportParams -MethodCall $call
+        } else {
+            Rudder-Report-NA @reportParams
         }
-        $call = File-Content @methodParams -PolicyMode $policyMode
-        Compute-Method-Call @reportParams -MethodCall $call
-        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -227,21 +243,25 @@ foobar
             TechniqueName = $techniqueName
         }
         
-        $methodParams = @{
-            Enforce = @'
+        $class = "true.true"
+        if ([Rudder.Datastate]::Evaluate($class)) {
+            $methodParams = @{
+                Enforce = @'
 true
 '@
-            Lines = @'
+                Lines = @'
 foobar
 '@
-            Path = @'
+                Path = @'
 /tmp/1
 '@
-            
+                
+            }
+            $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Audit)
+            Compute-Method-Call @reportParams -MethodCall $call
+        } else {
+            Rudder-Report-NA @reportParams
         }
-        $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Audit)
-        Compute-Method-Call @reportParams -MethodCall $call
-        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -275,21 +295,25 @@ foobar
             TechniqueName = $techniqueName
         }
         
-        $methodParams = @{
-            Enforce = @'
+        $class = "true.true"
+        if ([Rudder.Datastate]::Evaluate($class)) {
+            $methodParams = @{
+                Enforce = @'
 true
 '@
-            Lines = @'
+                Lines = @'
 foobar
 '@
-            Path = @'
+                Path = @'
 /tmp/1
 '@
-            
+                
+            }
+            $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Enforce)
+            Compute-Method-Call @reportParams -MethodCall $call
+        } else {
+            Rudder-Report-NA @reportParams
         }
-        $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Enforce)
-        Compute-Method-Call @reportParams -MethodCall $call
-        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -323,21 +347,25 @@ foobar
             TechniqueName = $techniqueName
         }
         
-        $methodParams = @{
-            Enforce = @'
+        $class = "true.true"
+        if ([Rudder.Datastate]::Evaluate($class)) {
+            $methodParams = @{
+                Enforce = @'
 true
 '@
-            Lines = @'
+                Lines = @'
 foobar
 '@
-            Path = @'
+                Path = @'
 /tmp/1
 '@
-            
+                
+            }
+            $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Audit)
+            Compute-Method-Call @reportParams -MethodCall $call
+        } else {
+            Rudder-Report-NA @reportParams
         }
-        $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Audit)
-        Compute-Method-Call @reportParams -MethodCall $call
-        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -371,21 +399,25 @@ foobar
             TechniqueName = $techniqueName
         }
         
-        $methodParams = @{
-            Enforce = @'
+        $class = "true.true"
+        if ([Rudder.Datastate]::Evaluate($class)) {
+            $methodParams = @{
+                Enforce = @'
 true
 '@
-            Lines = @'
+                Lines = @'
 foobar
 '@
-            Path = @'
+                Path = @'
 /tmp/1
 '@
-            
+                
+            }
+            $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Audit)
+            Compute-Method-Call @reportParams -MethodCall $call
+        } else {
+            Rudder-Report-NA @reportParams
         }
-        $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Audit)
-        Compute-Method-Call @reportParams -MethodCall $call
-        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -419,21 +451,25 @@ foobar
             TechniqueName = $techniqueName
         }
         
-        $methodParams = @{
-            Enforce = @'
+        $class = "true.true"
+        if ([Rudder.Datastate]::Evaluate($class)) {
+            $methodParams = @{
+                Enforce = @'
 true
 '@
-            Lines = @'
+                Lines = @'
 foobar
 '@
-            Path = @'
+                Path = @'
 /tmp/1
 '@
-            
+                
+            }
+            $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Enforce)
+            Compute-Method-Call @reportParams -MethodCall $call
+        } else {
+            Rudder-Report-NA @reportParams
         }
-        $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Enforce)
-        Compute-Method-Call @reportParams -MethodCall $call
-        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -467,21 +503,25 @@ foobar
             TechniqueName = $techniqueName
         }
         
-        $methodParams = @{
-            Enforce = @'
+        $class = "true.true"
+        if ([Rudder.Datastate]::Evaluate($class)) {
+            $methodParams = @{
+                Enforce = @'
 true
 '@
-            Lines = @'
+                Lines = @'
 foobar
 '@
-            Path = @'
+                Path = @'
 /tmp/1
 '@
-            
+                
+            }
+            $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Enforce)
+            Compute-Method-Call @reportParams -MethodCall $call
+        } else {
+            Rudder-Report-NA @reportParams
         }
-        $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Enforce)
-        Compute-Method-Call @reportParams -MethodCall $call
-        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -515,21 +555,25 @@ foobar
             TechniqueName = $techniqueName
         }
         
-        $methodParams = @{
-            Enforce = @'
+        $class = "(true.true).true"
+        if ([Rudder.Datastate]::Evaluate($class)) {
+            $methodParams = @{
+                Enforce = @'
 true
 '@
-            Lines = @'
+                Lines = @'
 foobar
 '@
-            Path = @'
+                Path = @'
 /tmp/1
 '@
-            
+                
+            }
+            $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Audit)
+            Compute-Method-Call @reportParams -MethodCall $call
+        } else {
+            Rudder-Report-NA @reportParams
         }
-        $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Audit)
-        Compute-Method-Call @reportParams -MethodCall $call
-        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -563,21 +607,25 @@ foobar
             TechniqueName = $techniqueName
         }
         
-        $methodParams = @{
-            Enforce = @'
+        $class = "true.true"
+        if ([Rudder.Datastate]::Evaluate($class)) {
+            $methodParams = @{
+                Enforce = @'
 true
 '@
-            Lines = @'
+                Lines = @'
 foobar
 '@
-            Path = @'
+                Path = @'
 /tmp/1
 '@
-            
+                
+            }
+            $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Enforce)
+            Compute-Method-Call @reportParams -MethodCall $call
+        } else {
+            Rudder-Report-NA @reportParams
         }
-        $call = File-Content @methodParams -PolicyMode ([Rudder.PolicyMode]::Enforce)
-        Compute-Method-Call @reportParams -MethodCall $call
-        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(

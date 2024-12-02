@@ -150,9 +150,11 @@ vars.host
             TechniqueName = $techniqueName
         }
         
-        $methodParams = @{
-            Architecture = ''
-            Name = ([Rudder.Datastate]::Render('{{' + @'
+        $class = "true"
+        if ([Rudder.Datastate]::Evaluate($class)) {
+            $methodParams = @{
+                Architecture = ''
+                Name = ([Rudder.Datastate]::Render('{{' + @'
 vars.sys.host
 '@ + '}}')) + @'
  . | / 
@@ -164,15 +166,17 @@ vars.host
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@
-            Provider = ''
-            Version = @'
+                Provider = ''
+                Version = @'
 if(Get-Service "Zabbix agent") { write-output "exists" }
 '@
-            
+                
+            }
+            $call = Package-Present @methodParams -PolicyMode $policyMode
+            Compute-Method-Call @reportParams -MethodCall $call
+        } else {
+            Rudder-Report-NA @reportParams
         }
-        $call = Package-Present @methodParams -PolicyMode $policyMode
-        Compute-Method-Call @reportParams -MethodCall $call
-        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(

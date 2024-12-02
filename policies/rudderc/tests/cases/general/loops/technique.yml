@@ -40,6 +40,7 @@ items:
               login: "${user.login}"
               group_name: "${group.name}"
       - name: "Deploy default conf files"
+        id: cfe2aabc-c16e-4c34-962f-f824f8ce48e6
         items:
           - name: "Deploy file ~/${file.path}"
             id: 20676b22-2de2-4029-a4e2-e0be2453e78e

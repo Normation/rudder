@@ -18,7 +18,7 @@ bundle agent test_windows(content) {
     "rudder_increment_guard" expression => "any";
 
   methods:
-    "index_${local_index}_0" usebundle => call_test_windows_d982a7e6_494a_40a5_aea1_7d9a185eed61("File content", "/some/path", "d982a7e6-494a-40a5-aea1-7d9a185eed61", @{args}, "${class_prefix}", "/some/path", "# Raw string
+    "index_${local_index}_0" usebundle => call_test_windows_d982a7e6_494a_40a5_aea1_7d9a185eed61("File content", "/some/path", "d982a7e6-494a-40a5-aea1-7d9a185eed61", @{args}, "${class_prefix}", "true", "/some/path", "# Raw string
 foo foobar
 # With parameter
 foo ${content} foobar
@@ -30,7 +30,7 @@ ${const.n}
 ${node.properties[name][key]}", "true");
 
 }
-bundle agent call_test_windows_d982a7e6_494a_40a5_aea1_7d9a185eed61(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+bundle agent call_test_windows_d982a7e6_494a_40a5_aea1_7d9a185eed61(c_name, c_key, report_id, args, class_prefix, method_call_condition, path, lines, enforce) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -43,6 +43,11 @@ bundle agent call_test_windows_d982a7e6_494a_40a5_aea1_7d9a185eed61(c_name, c_ke
 
   methods:
     "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
-    "index_${local_index}_1" usebundle => file_content("${path}", "${lines}", "${enforce}");
+    "index_${local_index}_1" usebundle => file_content("${path}", "${lines}", "${enforce}"),
+                                    if => "${method_call_condition}";
+    "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_file_content_${c_key}")),
+                                unless => "${method_call_condition}";
+    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'File content' with key parameter '${c_key}' since condition 'true' is not reached", "/some/path", canonify("${class_prefix}_file_content_${c_key}"), canonify("${class_prefix}_file_content_${c_key}"), @{args}),
+                                unless => "${method_call_condition}";
 
 }

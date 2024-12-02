@@ -50,7 +50,7 @@
           </REPORTKEYS>
         </SECTION>
       </SECTION>
-      <SECTION id="b6dc2677-faf9-48b4-95e0-bb0378f1ba5d" name="Deploy default conf files" reporting="weighted" component="true" multivalued="true">
+      <SECTION id="cfe2aabc-c16e-4c34-962f-f824f8ce48e6" name="Deploy default conf files" reporting="weighted" component="true" multivalued="true">
         <SECTION name="Deploy file ~/.vimrc" id="20676b22-2de2-4029-a4e2-e0be2453e78e" component="true" multivalued="true">
           <REPORTKEYS>
             <VALUE id="20676b22-2de2-4029-a4e2-e0be2453e78e">/home/bob/.vimrc</VALUE>
@@ -78,7 +78,7 @@
           </REPORTKEYS>
         </SECTION>
       </SECTION>
-      <SECTION id="b6dc2677-faf9-48b4-95e0-bb0378f1ba5d" name="Deploy default conf files" reporting="weighted" component="true" multivalued="true">
+      <SECTION id="cfe2aabc-c16e-4c34-962f-f824f8ce48e6" name="Deploy default conf files" reporting="weighted" component="true" multivalued="true">
         <SECTION name="Deploy file ~/.vimrc" id="20676b22-2de2-4029-a4e2-e0be2453e78e" component="true" multivalued="true">
           <REPORTKEYS>
             <VALUE id="20676b22-2de2-4029-a4e2-e0be2453e78e">/home/alice/.vimrc</VALUE>
