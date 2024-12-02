@@ -50,6 +50,8 @@ import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.MachineInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.properties.GenericProperty.*
+import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
@@ -215,7 +217,12 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
   }
 
 //  org.slf4j.LoggerFactory
-//    .getLogger("nodes")
+//    .getLogger("inventory-processing")
+//    .asInstanceOf[ch.qos.logback.classic.Logger]
+//    .setLevel(ch.qos.logback.classic.Level.TRACE)
+
+//  org.slf4j.LoggerFactory
+//    .getLogger("nodes.details.write")
 //    .asInstanceOf[ch.qos.logback.classic.Logger]
 //    .setLevel(ch.qos.logback.classic.Level.TRACE)
 
@@ -681,6 +688,66 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
           (oldNode.rudderSettings.state === NodeState.Initializing) and (newNode.rudderSettings.state === NodeState.PreparingEOL)
 
         case x => ko(s"bad change event, get ${x}")
+      }
+    }
+  }
+
+  "Inventory properties must be retrieved and not seen new each time (#25704)" >> {
+    val newProp =
+      NodeProperty.apply("new_inv", "inventory value".toConfigValue, None, Some(NodeProperty.customPropertyProvider))
+
+    // no provider in the json of custom properties
+    val beforeInv = mockLdapFactStorage.testServer
+      .getEntry("nodeId=node1,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
+      .getAttribute("customProperty")
+      .getValues === Array(
+      """{"name":"datacenter","value":"Paris"}""",
+      """{"name":"from_inv","value":{"key1":"custom prop value","key2":"some more json"}}"""
+    )
+
+    val beforeNode = mockLdapFactStorage.testServer
+      .getEntry("nodeId=node1,ou=Nodes,cn=rudder-configuration")
+      .getAttribute("serializedNodeProperty")
+      .getValues === Array("""{"name":"foo","value":"bar"}""")
+
+    implicit val attrs: SelectFacts = SelectFacts.all
+    val res = (for {
+      // we need full node fact because we should not be changing inventory prop like that
+      node <- factRepo.slowGet(NodeId("node1")).notOptional("node1 must be here")
+      props = node.properties.appended(newProp)
+      // first time: change should be here -
+      d1   <- factRepo.save(node.modify(_.properties).setTo(props))(testChangeContext)
+      // second time: should be noop
+      d2   <- factRepo.save(node.modify(_.properties).setTo(props))(testChangeContext)
+    } yield (d1, d2)).either.runNow
+
+    val afterInv = mockLdapFactStorage.testServer
+      .getEntry("nodeId=node1,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
+      .getAttribute("customProperty")
+      .getValues === Array(
+      """{"name":"datacenter","value":"Paris"}""",
+      """{"name":"from_inv","value":{"key1":"custom prop value","key2":"some more json"}}""",
+      """{"name":"new_inv","value":"inventory value"}"""
+    )
+
+    // here, we now have the provider info
+    val afterNode = mockLdapFactStorage.testServer
+      .getEntry("nodeId=node1,ou=Nodes,cn=rudder-configuration")
+      .getAttribute("serializedNodeProperty")
+      .getValues === Array("""{"name":"foo","value":"bar"}""")
+
+    beforeInv and beforeNode and afterInv and afterNode and {
+      res.forceGet match {
+        case (
+              NodeFactChangeEventCC(NodeFactChangeEvent.Updated(oldNode, newNode, _), _),
+              secondChange
+            ) =>
+          (oldNode.properties.size === 3) and // we really see all props, including custom ones
+          (newNode.properties.size === 4) and
+          (newNode.properties.last === newProp) and
+          (secondChange.event must beAnInstanceOf[NodeFactChangeEvent.Noop])
+
+        case x => ko(s"bad change event, got: ${x._1.event}")
       }
     }
   }
