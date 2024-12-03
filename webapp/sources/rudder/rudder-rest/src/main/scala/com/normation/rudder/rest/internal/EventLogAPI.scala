@@ -126,7 +126,7 @@ class EventLogAPI(
             None
           } else {
             val v = "%" + value + "%"
-            Some(fr" temp1.filter like ${v}")
+            Some(fr"(temp1.filter ilike ${v} OR temp1.eventtype ilike ${v})")
           }
         }
       }
