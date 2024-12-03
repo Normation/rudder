@@ -146,8 +146,13 @@ class AppConfigAuth extends ApplicationContextAware {
     // by default enable user REST token authentication for compatibility
     val defaultEnableRestToken = FeatureSwitch.Enabled
     val restTokenGlobalFeatureSwitch: FeatureSwitch = {
-      try { FeatureSwitch.parse(config.getString(s"rudder.auth.userRestToken")).getOrElse(defaultEnableRestToken) }
-      catch { case ex: ConfigException.Missing => defaultEnableRestToken }
+      try {
+        val value = FeatureSwitch.parse(config.getString(s"rudder.auth.userRestToken")).getOrElse(defaultEnableRestToken)
+        logger.info(
+          s"User access to REST API via token is configured to be ${value.name} when the api-authorizations plugin is active"
+        )
+        value
+      } catch { case ex: ConfigException.Missing => defaultEnableRestToken }
     }
 
     // prepare specific properties for each configuredAuthProviders - we need system properties for spring
@@ -172,7 +177,26 @@ class AppConfigAuth extends ApplicationContextAware {
           case FeatureSwitch.Disabled => FeatureSwitch.Disabled
           case FeatureSwitch.Enabled  =>
             try {
-              FeatureSwitch.parse(config.getString(s"rudder.auth.${x.name}.userRestToken")).getOrElse(defaultEnableRestToken)
+              val configKey   = s"rudder.auth.${x.name}.userRestToken"
+              val configValue = config.getString(configKey)
+              FeatureSwitch.parse(configValue) match {
+                case Left(value)  =>
+                  logger.warn(
+                    s"User access to REST API via token is configured to the default value ${defaultEnableRestToken.name}, the ${configKey} property is ignored, cause was : ${value.msg}"
+                  )
+                  defaultEnableRestToken
+                case Right(value) =>
+                  if (value != restTokenGlobalFeatureSwitch) {
+                    logger.info(
+                      s"User access to REST API via token for provider ${x.name} is configured to the value ${value.name}"
+                    )
+                  } else {
+                    logger.debug(
+                      s"User access to REST API via token for provider ${x.name} is the same as the global one : ${restTokenGlobalFeatureSwitch.name}"
+                    )
+                  }
+                  value
+              }
             } catch { case ex: ConfigException.Missing => defaultEnableRestToken }
         }
       }
@@ -186,7 +210,7 @@ class AppConfigAuth extends ApplicationContextAware {
           val registrations =
             Try(config.getString(baseProperty + ".registrations").split(",").map(_.trim).toList).getOrElse(List.empty)
           // when there are multiple registrations we should take the most prioritized configuration under the same provider
-          Some(x.name -> registrations.foldLeft(AuthBackendProviderProperties.empty) {
+          Some(x.name -> registrations.foldLeft(AuthBackendProviderProperties.default) {
             case (acc, reg) =>
               val rolesEnabled = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_ENABLED}"))
                 .getOrElse(false) // default value, same as in the auth backend plugin
@@ -561,8 +585,13 @@ object AuthBackendProviderProperties {
     }
   }
 
-  def empty: AuthBackendProviderProperties =
-    new AuthBackendProviderProperties(ProviderRoleExtension.None, restTokenFeatureSwitch = FeatureSwitch.Enabled)
+  /**
+    * The default properties the ones handled in the config parsing to be the default values: 
+    * - a provider can provide roles and roles are not overriden accross different providers
+    * - the rest API token feature for users is allowed
+    */
+  def default: AuthBackendProviderProperties =
+    new AuthBackendProviderProperties(ProviderRoleExtension.NoOverride, restTokenFeatureSwitch = FeatureSwitch.Enabled)
 }
 
 /**
@@ -650,22 +679,25 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
   // a map of properties registered for each backend
   private[this] var backendProperties = Map[String, AuthBackendProviderProperties]()
 
+  // add default providers into mutable variables
+  initializeDefaultProviders()
+
+  private def initializeDefaultProviders(): Unit = {
+    this.addProvider(defaultAuthBackendsProvider)
+    this.addProviderProperties(
+      defaultAuthBackendsProvider.authenticationBackends
+        .map(
+          _ -> AuthBackendProviderProperties.default
+        )
+        .toMap
+    )
+  }
+
   def addProvider(p: AuthBackendsProvider): Unit = {
     ApplicationLogger.info(s"Add backend providers '${p.name}'")
     backends = backends :+ p
     allowedToUseBackend = allowedToUseBackend ++ (p.authenticationBackends.map(name => (name, () => p.allowedToUseBackend(name))))
   }
-
-  // add default providers
-  this.addProvider(defaultAuthBackendsProvider)
-  this.addProviderProperties(
-    Map(
-      DefaultAuthBackendProvider.FILE -> AuthBackendProviderProperties(
-        ProviderRoleExtension.WithOverride,
-        restTokenFeatureSwitch = FeatureSwitch.Enabled
-      )
-    )
-  )
 
   /*
    * Add a spring configured name -> provider
