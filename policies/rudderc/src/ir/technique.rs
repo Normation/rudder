@@ -383,6 +383,28 @@ pub struct DeserItem {
     pub is_virtual: bool,
 }
 
+impl Default for DeserItem {
+    // Mostly used for tests
+    fn default() -> Self {
+        Self {
+            condition: Default::default(),
+            name: "My item".to_string(),
+            description: None,
+            documentation: None,
+            tags: None,
+            items: vec![],
+            id: Default::default(),
+            reporting: Default::default(),
+            params: Default::default(),
+            method: None,
+            module: None,
+            policy_mode_override: None,
+            foreach_name: None,
+            foreach: None,
+            is_virtual: false,
+        }
+    }
+}
 // Variant of Technique for first level of deserialization
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -403,19 +425,20 @@ pub struct DeserTechnique {
 }
 
 impl DeserTechnique {
-    pub fn to_technique(self) -> Result<Technique> {
-        let unflatten_loop_resolved_items : Result<Vec<Vec<DeserItem>>> = self
+    pub fn to_technique(self, resolve_loop: bool) -> Result<Technique> {
+        let preparsed_technique = if resolve_loop {
+            let unflatten_loop_resolved_items : Result<Vec<Vec<DeserItem>>> = self
                 .items
                 .into_iter()
                 .map(|i| i.resolve_loop(vec![], false))
                 .collect();
-        let binding = unflatten_loop_resolved_items.with_context(|| "Failed to resolve loops items")?;
-        let loop_resolved_items: Vec<DeserItem> = binding
-            .into_iter()
-            .flatten()
-            .collect();
-
-        let items: Result<Vec<ItemKind>> = loop_resolved_items
+            let binding = unflatten_loop_resolved_items.with_context(|| "Failed to resolve loops items")?;
+            binding
+                .into_iter()
+                .flatten()
+                .collect::<Vec<DeserItem>>()
+        } else { self.items };
+        let items: Result<Vec<ItemKind>> = preparsed_technique
             .into_iter()
             .map(|i| {
                 i.clone().into_kind()
@@ -693,6 +716,7 @@ pub struct Block {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub policy_mode_override: Option<PolicyMode>,
     #[serde(default = "default_bool::<true>")]
+    #[serde(skip_serializing)]
     pub generate_method_call_bundle: bool,
 }
 
@@ -719,6 +743,7 @@ pub struct Module {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub policy_mode_override: Option<PolicyMode>,
     #[serde(default = "default_bool::<true>")]
+    #[serde(skip_serializing)]
     pub generate_method_call_bundle: bool,
 }
 
@@ -748,6 +773,7 @@ pub struct Method {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub policy_mode_override: Option<PolicyMode>,
     #[serde(default = "default_bool::<true>")]
+    #[serde(skip_serializing)]
     pub generate_method_call_bundle: bool,
 }
 
@@ -865,23 +891,10 @@ mod tests {
 
     // DeserItem Tests
     #[test]
-    fn it_should_render_loop_variables_using_context() {
+    fn it_should_render_loop_variables_using_context_1() {
         let d = DeserItem {
-            condition: Default::default(),
-            name: "My ${item.key1} item".to_string(),
-            description: None,
-            documentation: None,
-            tags: None,
-            items: vec![],
-            id: Default::default(),
-            reporting: Default::default(),
-            params: Default::default(),
-            method: None,
-            module: None,
-            policy_mode_override: None,
-            foreach_name: None,
-            foreach: None,
-            is_virtual: false,
+            name: "My ${item.key1} item is ${plouf.key1}".to_string(),
+            ..DeserItem::default()
         };
         let context = vec![
             ForeachContext::new(
@@ -889,14 +902,105 @@ mod tests {
                 HashMap::from([
                     ("key1".to_string(), "templatized".to_string())
                 ])
+            ),
+            ForeachContext::new(
+                Some("plouf".to_string()),
+                HashMap::from([
+                    ("key1".to_string(), "this one".to_string()),
+                ])
             )
         ];
         assert_eq!(
             DeserItem {
-                name: "My templatized item".to_string(),
+                name: "My templatized item is this one".to_string(),
                 ..d.clone()
             },
             d.replace_using_context(context).unwrap()
         )
+    }
+    #[test]
+    fn it_should_not_render_nested_templates_as_the_replacement_is_done_node_by_node_without_recursion() {
+        let child = DeserItem {
+            name: "The nested item is not ${item.key1}".to_string(),
+            ..DeserItem::default()
+        };
+        let parent = DeserItem {
+            name: "My ${item.key1} item is ${plouf.key1}".to_string(),
+            documentation: Some("${item.${plouf.key2}} ${plouf.${plouf.key2}}".to_string()),
+            items: vec![child],
+            ..DeserItem::default()
+        };
+        let context = vec![
+            ForeachContext::new(
+                None,
+                HashMap::from([
+                    ("key1".to_string(), "templatized".to_string())
+                ])
+            ),
+            ForeachContext::new(
+                Some("plouf".to_string()),
+                HashMap::from([
+                    ("key1".to_string(), "this one".to_string()),
+                    ("key2".to_string(), "key1".to_string())
+                ])
+            )
+        ];
+        assert_eq!(
+            DeserItem {
+                name: "My templatized item is this one".to_string(),
+                documentation: Some("${item.key1} ${plouf.key1}".to_string()),
+                ..parent.clone()
+            },
+            parent.replace_using_context(context).unwrap()
+        )
+    }
+
+    #[test]
+    fn foreach_should_be_well_rendered() {
+        let simple_method = DeserItem {
+            id: Id::from_str("584f924e-a19b-448b-9c7e-9aafae7063c1").unwrap(),
+            method: Some("package_present".to_string()),
+            params: HashMap::from([
+                ("path".to_string(), "${item.root}/file.txt".to_string()),
+                ("lines".to_string(), "${item.lines}".to_string()),
+                ("enforce".to_string(), "true".to_string()),
+            ]),
+            foreach: Some(vec![
+                HashMap::from([
+                    ("root".to_string(), "/1".to_string()),
+                    ("lines".to_string(), "foo".to_string()),
+                ]),
+                HashMap::from([
+                    ("root".to_string(), "/2".to_string()),
+                    ("lines".to_string(), "bar".to_string()),
+                ])
+            ]),
+            ..DeserItem::default()
+        };
+        let expected = vec![
+            DeserItem {
+                id: Id::from_str("584f924e-a19b-448b-9c7e-9aafae7063c1").unwrap(),
+                method: Some("package_present".to_string()),
+                params: HashMap::from([
+                    ("path".to_string(), "/1/file.txt".to_string()),
+                    ("lines".to_string(), "foo".to_string()),
+                    ("enforce".to_string(), "true".to_string()),
+                ]),
+                is_virtual: false,
+                ..DeserItem::default()
+            },
+            DeserItem {
+                id: Id::from_str("584f924e-a19b-448b-9c7e-9aafae7063c1").unwrap(),
+                method: Some("package_present".to_string()),
+                params: HashMap::from([
+                    ("path".to_string(), "/2/file.txt".to_string()),
+                    ("lines".to_string(), "bar".to_string()),
+                    ("enforce".to_string(), "true".to_string()),
+                ]),
+                is_virtual: true,
+                ..DeserItem::default()
+            }
+        ];
+        assert_eq!(expected, simple_method.resolve_loop(vec![], false).unwrap());
     }
 }
