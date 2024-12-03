@@ -146,13 +146,15 @@ class AppConfigAuth extends ApplicationContextAware {
     // by default enable user REST token authentication for compatibility
     val defaultEnableRestToken = FeatureSwitch.Enabled
     val restTokenGlobalFeatureSwitch: FeatureSwitch = {
-      try {
-        val value = FeatureSwitch.parse(config.getString(s"rudder.auth.userRestToken")).getOrElse(defaultEnableRestToken)
-        logger.info(
-          s"User access to REST API via token is configured to be ${value.name} when the api-authorizations plugin is active"
-        )
-        value
-      } catch { case ex: ConfigException.Missing => defaultEnableRestToken }
+      val value = {
+        try {
+          FeatureSwitch.parse(config.getString(s"rudder.auth.userRestToken")).getOrElse(defaultEnableRestToken)
+        } catch { case _: ConfigException.Missing => defaultEnableRestToken }
+      }
+      logger.info(
+        s"User access to REST API via token is configured to be ${value.name} when the api-authorizations plugin is active"
+      )
+      value
     }
 
     // prepare specific properties for each configuredAuthProviders - we need system properties for spring
@@ -182,17 +184,17 @@ class AppConfigAuth extends ApplicationContextAware {
               FeatureSwitch.parse(configValue) match {
                 case Left(value)  =>
                   logger.warn(
-                    s"User access to REST API via token is configured to the default value ${defaultEnableRestToken.name}, the ${configKey} property is ignored, cause was : ${value.msg}"
+                    s"User access to REST API via token is configured to the be ${defaultEnableRestToken.name} by default, the ${configKey} property is ignored, cause was : ${value.msg}"
                   )
                   defaultEnableRestToken
                 case Right(value) =>
                   if (value != restTokenGlobalFeatureSwitch) {
                     logger.info(
-                      s"User access to REST API via token for provider ${x.name} is configured to the value ${value.name}"
+                      s"User access to REST API via token for provider ${x.name} is configured to be ${value.name}"
                     )
                   } else {
                     logger.debug(
-                      s"User access to REST API via token for provider ${x.name} is the same as the global one : ${restTokenGlobalFeatureSwitch.name}"
+                      s"User access to REST API via token for provider ${x.name} is ${restTokenGlobalFeatureSwitch.name} as the global one"
                     )
                   }
                   value
