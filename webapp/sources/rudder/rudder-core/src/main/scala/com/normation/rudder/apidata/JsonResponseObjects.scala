@@ -1914,7 +1914,111 @@ object JsonResponseObjects {
   }
 
   /**
-   * Representation of a group category with bare minimum group information
+   * Data container for the whole group category tree, provides the "groupCategories" dataContainer
+   */
+  final case class JRGroupCategoriesFull(groupCategories: JRFullGroupCategory)
+
+  /**
+   * Data container for the group category tree with minimal info, provides the "groupCategories" dataContainer
+   */
+  final case class JRGroupCategoriesMinimal(groupCategories: JRMinimalGroupCategory)
+
+  /**
+   * Representation of a group category with full group information
+   */
+  final case class JRFullGroupCategory(
+      id:                                     NodeGroupCategoryId,
+      name:                                   String,
+      description:                            String,
+      parent:                                 NodeGroupCategoryId,
+      @jsonField("categories") subCategories: List[JRFullGroupCategory],
+      groups:                                 List[JRGroup],
+      @jsonField("targets") targetInfos:      List[JRRuleTargetInfo]
+  )
+
+  object JRFullGroupCategory {
+    /*
+     * Somehow the chimney transformer derivation does not provide a way to pass the parent due to recursive type,
+     * so we have to make an inline transformer.
+     * Sort by ID, also in groups to keep diff easier
+     */
+    def fromCategory(
+        cat:    FullNodeGroupCategory,
+        parent: Option[NodeGroupCategoryId]
+    ): JRFullGroupCategory = {
+      cat
+        .into[JRFullGroupCategory]
+        .withFieldConst(
+          _.parent,
+          parent.getOrElse(cat.id)
+        )
+        .withFieldComputed(
+          _.subCategories,
+          cat => cat.subCategories.map(c => fromCategory(c, Some(cat.id))).sortBy(_.id.value)
+        )
+        .withFieldComputed(
+          _.groups,
+          cat => {
+            cat.ownGroups.values.toList.map(t => JRGroup.fromGroup(t.nodeGroup, cat.id, None)).sortBy(_.id)
+          }
+        )
+        .withFieldComputed(
+          _.targetInfos,
+          _.targetInfos.collect {
+            case t @ FullRuleTargetInfo(_: FullOtherTarget, _, _, _, _) => t.toTargetInfo.transformInto[JRRuleTargetInfo]
+          }
+        )
+        .transform
+    }
+  }
+
+  /**
+   * Representation of a group category with bare minimum group and subcategories ids list
+   */
+  final case class JRMinimalGroupCategory(
+      id:                                     NodeGroupCategoryId,
+      name:                                   String,
+      description:                            String,
+      parent:                                 NodeGroupCategoryId,
+      @jsonField("categories") subCategories: List[NodeGroupCategoryId],
+      groups:                                 List[NodeGroupId],
+      @jsonField("targets") targetInfos:      List[JRRuleTargetInfo]
+  )
+
+  object JRMinimalGroupCategory {
+    def fromCategory(
+        cat:    FullNodeGroupCategory,
+        parent: NodeGroupCategoryId
+    ): JRMinimalGroupCategory = {
+      cat
+        .into[JRMinimalGroupCategory]
+        .withFieldConst(
+          _.parent,
+          parent
+        )
+        .withFieldComputed(
+          _.subCategories,
+          _.subCategories.map(_.id).sortBy(_.value)
+        )
+        .withFieldComputed(
+          _.groups,
+          cat => {
+            cat.ownGroups.keys.toList.sortBy(_.serialize)
+          }
+        )
+        .withFieldComputed(
+          _.targetInfos,
+          _.targetInfos.collect {
+            case t @ FullRuleTargetInfo(_: FullOtherTarget, _, _, _, _) => t.toTargetInfo.transformInto[JRRuleTargetInfo]
+          }
+        )
+        .transform
+    }
+  }
+
+  /**
+   * Representation of a group category with minimal group information:
+   * it only contains information useful for display of a group within the hierarchy of groups.
    */
   final case class JRGroupCategoryInfo(
       id:                                     String,
@@ -2118,6 +2222,14 @@ trait RudderJsonEncoders {
   implicit val groupEncoder:                    JsonEncoder[JRGroup]                    = DeriveJsonEncoder.gen
   implicit val objectInheritedObjectProperties: JsonEncoder[JRGroupInheritedProperties] = DeriveJsonEncoder.gen
 
+  implicit val fullGroupCategoryEncoder:      JsonEncoder[JRFullGroupCategory]             =
+    DeriveJsonEncoder.gen[JRFullGroupCategory]
+  implicit val minimalGroupCategoryEncoder:   JsonEncoder[JRMinimalGroupCategory]          =
+    DeriveJsonEncoder.gen[JRMinimalGroupCategory]
+  implicit val groupCategoriesFullEncoder:    JsonEncoder[JRGroupCategoriesFull]           =
+    DeriveJsonEncoder.gen[JRGroupCategoriesFull]
+  implicit val groupCategoriesMinimalEncoder: JsonEncoder[JRGroupCategoriesMinimal]        =
+    DeriveJsonEncoder.gen[JRGroupCategoriesMinimal]
   implicit val groupInfoEncoder:              JsonEncoder[JRGroupCategoryInfo.JRGroupInfo] =
     DeriveJsonEncoder.gen[JRGroupCategoryInfo.JRGroupInfo]
   implicit lazy val groupCategoryInfoEncoder: JsonEncoder[JRGroupCategoryInfo]             = DeriveJsonEncoder.gen[JRGroupCategoryInfo]

@@ -89,7 +89,7 @@ trait JsonExtractorUtils[A[_]] {
   }
 
   /*
-   * Still used in apiaccount/eventlog/group API, tags
+   * Still used in apiaccount/eventlog API, tags
    */
   def extractJsonString[T](json: JValue, key: String, convertTo: String => Box[T] = boxedIdentity[String]): Box[A[T]] = {
     extractJson(json, key, convertTo, { case JString(value) => value })

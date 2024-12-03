@@ -67,6 +67,7 @@ import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.domain.queries.QueryReturnType.NodeReturnType
+import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.policies.PropertyParser
@@ -359,6 +360,57 @@ object JsonQueryObjects {
       _isEnabled:  Option[Boolean]
   )
 
+  final case class JQGroupCategory private[apidata] (
+      id:          Option[NodeGroupCategoryId] = None,
+      name:        Option[String] = None,
+      description: Option[String] = None,
+      parent:      Option[NodeGroupCategoryId] = None
+  ) {
+    def update(category: FullNodeGroupCategory): FullNodeGroupCategory = {
+      val updateId          = id.getOrElse(category.id)
+      val updateName        = name.getOrElse(category.name)
+      val updateDescription = description.getOrElse(category.description)
+      category.copy(
+        id = updateId,
+        name = updateName,
+        description = updateDescription
+      )
+    }
+
+    def create(defaultId: => NodeGroupCategoryId): PureResult[FullNodeGroupCategory] = {
+      name match {
+        case Some(name) =>
+          Right(
+            FullNodeGroupCategory(
+              id.getOrElse(defaultId),
+              name,
+              description.getOrElse(""),
+              Nil,
+              Nil
+            )
+          )
+        case None       =>
+          Left(Inconsistency("Could not create group Category, cause: name is not defined"))
+      }
+    }
+  }
+  object JQGroupCategory {
+    private val minimalNameSize = 3
+    // validation method for validating the name the group category
+    private[apidata] def validate(groupCategory: JQGroupCategory): Either[String, JQGroupCategory] = {
+      def validateName: Either[String, JQGroupCategory] = {
+        groupCategory.name match {
+          case None        => Right(groupCategory)
+          case Some(value) =>
+            if (value.size < minimalNameSize) {
+              Left(s"Group category name '${value}' must at least have a ${minimalNameSize} character size")
+            } else Right(groupCategory)
+        }
+      }
+      validateName
+    }
+  }
+
   final case class JQGroup(
       id:          Option[NodeGroupId] = None,
       displayName: Option[String] = None,
@@ -555,6 +607,8 @@ trait RudderJsonDecoders {
   implicit val groupPropertyDecoder:       JsonDecoder[JQGroupProperty]     = DeriveJsonDecoder.gen
   implicit val groupPropertyDecoder2:      JsonDecoder[GroupProperty]       = JsonDecoder[JQGroupProperty].map(_.toGroupProperty)
   implicit val nodeGroupIdDecoder:         JsonDecoder[NodeGroupId]         = JsonDecoder[String].mapOrFail(x => NodeGroupId.parse(x))
+  implicit val groupCategoryDecoder:       JsonDecoder[JQGroupCategory]     =
+    DeriveJsonDecoder.gen[JQGroupCategory].mapOrFail(JQGroupCategory.validate)
   implicit val groupDecoder:               JsonDecoder[JQGroup]             = DeriveJsonDecoder.gen
 
 }
@@ -661,6 +715,14 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
       parseJson[JQGroup](req)
     } else {
       extractGroupFromParams(req.params)
+    }
+  }
+
+  def extractGroupCategory(req: Req): PureResult[JQGroupCategory] = {
+    if (req.json_?) {
+      parseJson[JQGroupCategory](req)
+    } else {
+      extractGroupCategoryFromParams(req.params)
     }
   }
 
@@ -825,6 +887,29 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
         params.optGet("category").map(NodeGroupCategoryId.apply),
         source
       )
+    }
+  }
+
+  def extractGroupCategoryFromParams(params: Map[String, List[String]]): PureResult[JQGroupCategory] = {
+    for {
+      id            <- params.parse("id", JsonDecoder[NodeGroupCategoryId])
+      name          <- params.parse("name", JsonDecoder[String])
+      description   <- params.parse("description", JsonDecoder[String])
+      parent        <- params.parse("parent", JsonDecoder[NodeGroupCategoryId])
+      groupCategory <-
+        JQGroupCategory
+          .validate(
+            JQGroupCategory(
+              id,
+              name,
+              description,
+              parent
+            )
+          )
+          .left
+          .map(Inconsistency(_))
+    } yield {
+      groupCategory
     }
   }
 

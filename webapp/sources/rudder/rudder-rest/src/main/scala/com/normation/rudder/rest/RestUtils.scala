@@ -37,15 +37,10 @@
 
 package com.normation.rudder.rest
 
-import com.normation.box.*
 import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
-import com.normation.rudder.config.ReasonBehavior
 import com.normation.rudder.domain.logger.ApiLogger
-import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.users.UserService
-import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
@@ -200,24 +195,6 @@ object RestUtils {
     effectiveResponse(id, message, InternalError, action, prettify)
   }
 
-  def notValidVersionResponse(action: String)(implicit availableVersions: List[ApiVersion]): LiftResponse = {
-    val versions = "latest" :: availableVersions.map(_.value.toString)
-    toJsonError(
-      None,
-      JString(s"Version used does not exist, please use one of the following: ${versions.mkString("[ ", ", ", " ]")} ")
-    )(action, prettify = false)
-  }
-
-  def missingResponse(version: Int, action: String): LiftResponse = {
-    toJsonError(None, JString(s"Version ${version} exists for this API function, but it's implementation is missing"))(
-      action,
-      prettify = false
-    )
-  }
-
-  def unauthorized: LiftResponse =
-    effectiveResponse(None, JString("You are not authorized to access that API"), ForbiddenError, "", prettify = false)
-
   def response(
       restExtractor: RestExtractorService,
       dataName:      String,
@@ -232,44 +209,6 @@ object RestUtils {
         err.rootExceptionCause.foreach(ex => ApiLogger.ResponseError.info("Api error cause by exception: " + ex.getMessage))
         toJsonError(id, err.messageChain)
     }
-  }
-
-  type ActionType = (EventActor, ModificationId, Option[String]) => Box[JValue]
-  def actionResponse(restExtractor: RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id: Option[String])(
-      function:     Box[ActionType],
-      req:          Req,
-      errorMessage: String
-  )(implicit action: String, prettify: Boolean, reasonBehavior: ReasonBehavior, userService: UserService): LiftResponse = {
-    actionResponse2(restExtractor, dataName, uuidGen, id)(function, req, errorMessage)(
-      action,
-      prettify,
-      reasonBehavior,
-      RestUtils.getActor(req)
-    )
-  }
-  def actionResponse2(restExtractor: RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id: Option[String])(
-      function:     Box[ActionType],
-      req:          Req,
-      errorMessage: String
-  )(implicit action: String, prettify: Boolean, reasonBehavior: ReasonBehavior, actor: EventActor): LiftResponse = {
-
-    (for {
-      reason <- extractReason(req).toBox
-      modId   = ModificationId(uuidGen.newUuid)
-      result <- function.flatMap(_(actor, modId, reason))
-    } yield {
-      result
-    }) match {
-      case Full(result: JValue) =>
-        toJsonResponse(id, (dataName -> result))
-      case eb: EmptyBox =>
-        val message = (eb ?~! errorMessage).messageChain
-        toJsonError(id, message)
-    }
-  }
-
-  def notFoundResponse(id: Option[String], message: JValue)(implicit action: String, prettify: Boolean): LiftResponse = {
-    effectiveResponse(id, message, NotFoundError, action, prettify)
   }
 
 }

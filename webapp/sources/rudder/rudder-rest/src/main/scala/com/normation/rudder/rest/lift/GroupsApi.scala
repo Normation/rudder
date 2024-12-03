@@ -37,15 +37,12 @@
 
 package com.normation.rudder.rest.lift
 
-import com.normation.box.*
 import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
-import com.normation.rudder.apidata.FullDetails
 import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
-import com.normation.rudder.apidata.MinimalDetails
 import com.normation.rudder.apidata.RenderInheritedProperties
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
@@ -68,32 +65,28 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.rest.*
 import com.normation.rudder.rest.GroupApi as API
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.data.*
+import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.QueryProcessor
 import com.normation.rudder.services.workflows.*
 import com.normation.utils.StringUuidGenerator
-import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.json.*
 import org.joda.time.DateTime
 import zio.Chunk
 import zio.ZIO
 import zio.syntax.*
 
 class GroupsApi(
-    propertiesService:    NodePropertiesService,
-    restExtractorService: RestExtractorService,
-    zioJsonExtractor:     ZioJsonExtractor,
-    uuidGen:              StringUuidGenerator,
-    userPropertyService:  UserPropertyService,
-    service:              GroupApiService14
+    propertiesService:   NodePropertiesService,
+    zioJsonExtractor:    ZioJsonExtractor,
+    uuidGen:             StringUuidGenerator,
+    userPropertyService: UserPropertyService,
+    service:             GroupApiService14
 ) extends LiftApiModuleProvider[API] {
 
-  def reasonBehavior: ReasonBehavior = userPropertyService.reasonsFieldBehavior
+  implicit def reasonBehavior: ReasonBehavior = userPropertyService.reasonsFieldBehavior
 
   def schemas: ApiModuleProvider[API] = API
 
@@ -119,28 +112,6 @@ class GroupsApi(
     }
   }
 
-  import RestUtils.*
-  import net.liftweb.json.*
-
-  def response(function: Box[JValue], req: Req, errorMessage: String, id: Option[String])(implicit
-      action:   String,
-      prettify: Boolean
-  ): LiftResponse = {
-    RestUtils.response(restExtractorService, "groupCategories", id)(function, req, errorMessage)
-  }
-
-  def actionResponse(function: Box[ActionType], req: Req, errorMessage: String, id: Option[String], actor: EventActor)(implicit
-      action:   String,
-      prettify: Boolean
-  ): LiftResponse = {
-    RestUtils.actionResponse2(restExtractorService, "groupCategories", uuidGen, id)(function, req, errorMessage)(
-      action,
-      prettify,
-      reasonBehavior,
-      actor
-    )
-  }
-
   // group categories
   //
   //
@@ -149,9 +120,8 @@ class GroupsApi(
   //
 
   object List extends LiftApiModule0      {
-    val schema: API.ListGroups.type = API.ListGroups
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.ListGroups.type = API.ListGroups
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse        = {
       implicit val qc: QueryContext = authzToken.qc
       service.listGroups().toLiftResponseList(params, schema)
     }
@@ -273,7 +243,6 @@ class GroupsApi(
 
   object Reload extends LiftApiModuleString {
     val schema: API.ReloadGroup.type = API.ReloadGroup
-    val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -289,22 +258,21 @@ class GroupsApi(
 
   // group categories
   object GetTree        extends LiftApiModule0      {
-    val schema: API.GetGroupTree.type = API.GetGroupTree
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val action = schema.name
-      implicit val prettify: Boolean = params.prettify
-      response(
-        service.getCategoryTree(version),
-        req,
-        s"Could not fetch Group tree",
-        None
-      )
+    val schema:                                                                                                API.GetGroupTree.type = API.GetGroupTree
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse          = {
+      service
+        .getCategoryTree(version)
+        .map(JRGroupCategoriesFull(_))
+        .chainError("Could not fetch Group tree")
+        .toLiftResponseOne(
+          params,
+          schema,
+          _ => None
+        )
     }
   }
   object GetCategory    extends LiftApiModuleString {
     val schema: API.GetGroupCategoryDetails.type = API.GetGroupCategoryDetails
-    val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -313,19 +281,19 @@ class GroupsApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val action = schema.name
-      implicit val prettify: Boolean = params.prettify
-      response(
-        service.getCategoryDetails(NodeGroupCategoryId(id), version),
-        req,
-        s"Could not fetch Group category '${id}' details",
-        Some(id)
-      )
+      service
+        .getCategoryDetails(NodeGroupCategoryId(id))
+        .map(JRGroupCategoriesMinimal(_))
+        .chainError(s"Could not fetch Group category '${id}' details")
+        .toLiftResponseOne(
+          params,
+          schema,
+          _ => Some(id)
+        )
     }
   }
   object DeleteCategory extends LiftApiModuleString {
     val schema: API.DeleteGroupCategory.type = API.DeleteGroupCategory
-    val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -334,20 +302,22 @@ class GroupsApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val action = schema.name
-      implicit val prettify: Boolean = params.prettify
-      actionResponse(
-        Full(service.deleteCategory(NodeGroupCategoryId(id), version)),
-        req,
-        s"Could not delete Group category '${id}'",
-        Some(id),
-        authzToken.qc.actor
+      withChangeContext(req, authzToken) { implicit cc =>
+        service
+          .deleteCategory(NodeGroupCategoryId(id))
+          .map(JRGroupCategoriesMinimal(_))
+          .chainError(
+            s"Could not delete Group category '${id}'"
+          )
+      }.toLiftResponseOne(
+        params,
+        schema,
+        Some(id)
       )
     }
   }
   object UpdateCategory extends LiftApiModuleString {
     val schema: API.UpdateGroupCategory.type = API.UpdateGroupCategory
-    val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -356,64 +326,57 @@ class GroupsApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val action = schema.name
-      implicit val prettify: Boolean = params.prettify
-      val x = for {
-        restCategory <- {
-          if (req.json_?) {
-            for {
-              json <- req.json ?~! "No JSON data sent"
-              cat  <- restExtractor.extractGroupCategory(json)
-            } yield {
-              cat
-            }
-          } else {
-            restExtractor.extractGroupCategory(req.params)
-          }
-        }
-      } yield {
-        service.updateCategory(NodeGroupCategoryId(id), restCategory, version) _
-      }
-      actionResponse(
-        x,
-        req,
-        s"Could not update Group category '${id}'",
-        Some(id),
-        authzToken.qc.actor
+      withChangeContext(req, authzToken)(implicit cc => {
+        (for {
+          groupCategory        <- zioJsonExtractor.extractGroupCategory(req).toIO
+          updatedGroupCategory <- service.updateCategory(NodeGroupCategoryId(id), groupCategory)
+        } yield {
+          JRGroupCategoriesMinimal(updatedGroupCategory)
+        }).chainError(
+          s"Could not update Group category '${id}'"
+        )
+      }).toLiftResponseOne(
+        params,
+        schema,
+        Some(id)
       )
     }
   }
   object CreateCategory extends LiftApiModule0      {
-    val schema: API.CreateGroupCategory.type = API.CreateGroupCategory
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val action = schema.name
-      implicit val prettify: Boolean = params.prettify
-      val id = () => NodeGroupCategoryId(uuidGen.newUuid)
-      val x  = for {
-        restCategory <- {
-          if (req.json_?) {
-            for {
-              json <- req.json ?~! "No JSON data sent"
-              cat  <- restExtractor.extractGroupCategory(json)
-            } yield {
-              cat
-            }
-          } else {
-            restExtractor.extractGroupCategory(req.params)
-          }
-        }
-      } yield {
-        service.createCategory(id, restCategory, version) _
-      }
-      actionResponse(
-        x,
-        req,
-        s"Could not create group category",
-        None,
-        authzToken.qc.actor
+    val schema:                                                                                                API.CreateGroupCategory.type = API.CreateGroupCategory
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                 = {
+      withChangeContext(req, authzToken)(implicit cc => {
+        (for {
+          groupCategory    <- zioJsonExtractor.extractGroupCategory(req).toIO
+          newGroupCategory <- service.createCategory(NodeGroupCategoryId(uuidGen.newUuid), groupCategory)
+        } yield {
+          JRGroupCategoriesMinimal(newGroupCategory)
+        }).chainError(
+          s"Could not create group category"
+        )
+      }).toLiftResponseOne(
+        params,
+        schema,
+        None
       )
     }
+  }
+
+  // Extracts reason from the request and provide an (implicit ChangeContext)
+  private def withChangeContext[A](req: Req, authzToken: AuthzToken)(
+      block: ChangeContext => IOResult[A]
+  ): IOResult[A] = {
+    extractReason(req).toIO.flatMap(reason => {
+      val cc = ChangeContext(
+        ModificationId(uuidGen.newUuid),
+        authzToken.qc.actor,
+        new DateTime(),
+        reason,
+        None,
+        authzToken.qc.nodePerms
+      )
+      block(cc)
+    })
   }
 }
 
@@ -627,71 +590,64 @@ class GroupApiService14(
     }
   }
 
-  def getCategoryTree(apiVersion: ApiVersion): Box[JValue] = {
-    for {
-      root <- readGroup.getFullGroupLibrary().toBox
-    } yield {
-      restDataSerializer.serializeGroupCategory(root, root.id, FullDetails, apiVersion)
-    }
+  def getCategoryTree(apiVersion: ApiVersion): IOResult[JRFullGroupCategory] = {
+    readGroup.getFullGroupLibrary().map(JRFullGroupCategory.fromCategory(_, None))
   }
 
-  def getCategoryDetails(id: NodeGroupCategoryId, apiVersion: ApiVersion): Box[JValue] = {
+  def getCategoryDetails(id: NodeGroupCategoryId): IOResult[JRMinimalGroupCategory] = {
     for {
-      root     <- readGroup.getFullGroupLibrary().toBox
-      category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
-      parent   <- Box(root.parentCategories.get(id)) ?~! s"Cannot find Group category '${id.value}' parent"
+      root     <- readGroup.getFullGroupLibrary()
+      category <- root.allCategories.get(id).notOptional(s"Cannot find Group category '${id.value}'")
+      parent   <- root.parentCategories.get(id).notOptional(s"Cannot find Group category '${id.value}' parent")
     } yield {
-      restDataSerializer.serializeGroupCategory(category, parent.id, MinimalDetails, apiVersion)
+      JRMinimalGroupCategory.fromCategory(category, parent.id)
     }
   }
 
   def deleteCategory(
-      id:         NodeGroupCategoryId,
-      apiVersion: ApiVersion
-  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
+      id: NodeGroupCategoryId
+  )(implicit cc: ChangeContext): IOResult[JRMinimalGroupCategory] = {
     for {
-      root     <- readGroup.getFullGroupLibrary().toBox
-      category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
-      _        <- if (category.isSystem)
-                    Failure(s"Could not delete group category '${id.value}', cause is: system categories cannot be deleted.")
-                  else Full(())
-      parent   <- Box(root.parentCategories.get(id)) ?~! s"Cannot find Groupl category '${id.value}' parent"
-      _        <- writeGroup.delete(id, modId, actor, reason).toBox
+      root     <- readGroup.getFullGroupLibrary()
+      category <- root.allCategories.get(id).notOptional(s"Cannot find Group category '${id.value}'")
+      _        <- ZIO.when(category.isSystem) {
+                    Inconsistency(s"Could not delete group category '${id.value}', cause is: system categories cannot be deleted.").fail
+                  }
+      parent   <- root.parentCategories.get(id).notOptional(s"Cannot find Groupl category '${id.value}' parent")
+      _        <- writeGroup.delete(id, cc.modId, cc.actor, cc.message)
     } yield {
-      restDataSerializer.serializeGroupCategory(category, parent.id, MinimalDetails, apiVersion)
+      JRMinimalGroupCategory.fromCategory(category, parent.id)
     }
   }
 
   def updateCategory(
-      id:         NodeGroupCategoryId,
-      restData:   RestGroupCategory,
-      apiVersion: ApiVersion
-  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
+      id:       NodeGroupCategoryId,
+      restData: JQGroupCategory
+  )(implicit cc: ChangeContext): IOResult[JRMinimalGroupCategory] = {
     for {
-      root      <- readGroup.getFullGroupLibrary().toBox
-      category  <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
-      oldParent <- Box(root.parentCategories.get(id)) ?~! s"Cannot find Group category '${id.value}' parent"
+      root      <- readGroup.getFullGroupLibrary()
+      category  <- root.allCategories.get(id).notOptional(s"Cannot find Group category '${id.value}'")
+      oldParent <- root.parentCategories.get(id).notOptional(s"Cannot find Group category '${id.value}' parent")
       parent     = restData.parent.getOrElse(oldParent.id)
       update     = restData.update(category)
-      _         <- writeGroup.saveGroupCategory(update.toNodeGroupCategory, parent, modId, actor, reason).toBox
+      _         <- writeGroup.saveGroupCategory(update.toNodeGroupCategory, parent, cc.modId, cc.actor, cc.message)
     } yield {
-      restDataSerializer.serializeGroupCategory(update, parent, MinimalDetails, apiVersion)
+      JRMinimalGroupCategory.fromCategory(update, parent)
     }
   }
 
   // defaultId: the id to use if restDateDidn't provide one
   def createCategory(
-      defaultId:  () => NodeGroupCategoryId,
-      restData:   RestGroupCategory,
-      apiVersion: ApiVersion
-  )(actor: EventActor, modId: ModificationId, reason: Option[String]): Box[JValue] = {
+      defaultId: => NodeGroupCategoryId,
+      restData:  JQGroupCategory
+  )(implicit cc: ChangeContext): IOResult[JRMinimalGroupCategory] = {
     for {
-      update  <- restData.create(defaultId)
+      update  <- restData.create(defaultId).toIO
       category = update.toNodeGroupCategory
       parent   = restData.parent.getOrElse(NodeGroupCategoryId("GroupRoot"))
-      _       <- writeGroup.addGroupCategorytoCategory(category, parent, modId, actor, reason).toBox
+      _       <- writeGroup.addGroupCategorytoCategory(category, parent, cc.modId, cc.actor, cc.message)
     } yield {
-      restDataSerializer.serializeGroupCategory(update, parent, MinimalDetails, apiVersion)
+      JRMinimalGroupCategory.fromCategory(update, parent)
     }
   }
   /*

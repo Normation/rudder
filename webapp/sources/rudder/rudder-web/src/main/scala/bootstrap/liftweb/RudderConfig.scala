@@ -2106,7 +2106,6 @@ object RudderConfigInit {
         new ComplianceApi(restExtractorService, complianceAPIService, roDirectiveRepository),
         new GroupsApi(
           propertiesService,
-          restExtractorService,
           zioJsonExtractor,
           stringUuidGenerator,
           userPropertyService,

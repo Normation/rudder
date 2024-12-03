@@ -213,7 +213,7 @@ object ComplianceApi       extends Enum[ComplianceApi] with ApiModuleProvider[Co
 }
 
 sealed trait GroupApi extends EnumEntry with EndpointSchema with SortIndex    {
-  override def dataContainer: Some[String] = Some("groups")
+  override def dataContainer: Option[String] = Some("groups")
 }
 object GroupApi       extends Enum[GroupApi] with ApiModuleProvider[GroupApi] {
   // API v2
@@ -231,6 +231,7 @@ object GroupApi       extends Enum[GroupApi] with ApiModuleProvider[GroupApi] {
     val z: Int = implicitly[Line].value
     val description    = "List all group categories and group in a tree format"
     val (action, path) = GET / "groups" / "tree"
+    override def dataContainer: None.type = None
   }
   case object GroupDetails             extends GroupApi with GeneralApi with OneParam with StartsAtVersion2 with SortIndex  {
     val z: Int = implicitly[Line].value
@@ -271,25 +272,25 @@ object GroupApi       extends Enum[GroupApi] with ApiModuleProvider[GroupApi] {
     val z: Int = implicitly[Line].value
     val description    = "Get information about the given group category"
     val (action, path) = GET / "groups" / "categories" / "{id}"
-    override def dataContainer: Some[String] = Some("groupCategories")
+    override def dataContainer: None.type = None
   }
   case object DeleteGroupCategory extends GroupApi with GeneralApi with OneParam with StartsAtVersion6 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Delete given group category"
     val (action, path) = DELETE / "groups" / "categories" / "{id}"
-    override def dataContainer: Some[String] = Some("groupCategories")
+    override def dataContainer: None.type = None
   }
   case object UpdateGroupCategory extends GroupApi with GeneralApi with OneParam with StartsAtVersion6 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Update information for given group category"
     val (action, path) = POST / "groups" / "categories" / "{id}"
-    override def dataContainer: Some[String] = Some("groupCategories")
+    override def dataContainer: None.type = None
   }
   case object CreateGroupCategory extends GroupApi with GeneralApi with ZeroParam with StartsAtVersion6 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Create a new group category"
     val (action, path) = PUT / "groups" / "categories"
-    override def dataContainer: Some[String] = Some("groupCategories")
+    override def dataContainer: None.type = None
   }
 
   def endpoints: List[GroupApi] = values.toList.sortBy(_.z)
