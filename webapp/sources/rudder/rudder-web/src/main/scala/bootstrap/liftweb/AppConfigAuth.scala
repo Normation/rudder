@@ -152,7 +152,7 @@ class AppConfigAuth extends ApplicationContextAware {
         } catch { case _: ConfigException.Missing => defaultEnableRestToken }
       }
       logger.info(
-        s"User access to REST API via token is configured to be ${value.name} when the api-authorizations plugin is active"
+        s"User access to REST API via token is globally configured by default to be ${value.name} when the api-authorizations plugin is active"
       )
       value
     }
@@ -190,7 +190,7 @@ class AppConfigAuth extends ApplicationContextAware {
                 case Right(value) =>
                   if (value != restTokenGlobalFeatureSwitch) {
                     logger.info(
-                      s"User access to REST API via token for provider ${x.name} is configured to be ${value.name}"
+                      s"User access to REST API via token for provider ${x.name} is configured to be ${value.name}, overriding the global configuration"
                     )
                   } else {
                     logger.debug(
