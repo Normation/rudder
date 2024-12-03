@@ -89,7 +89,7 @@ impl Rpkg {
         if txz_name == PACKAGE_SCRIPTS_ARCHIVE {
             return PathBuf::from(PACKAGES_FOLDER).join(self.metadata.name.clone());
         }
-        return PathBuf::from(self.metadata.content.get(txz_name).unwrap().to_string());
+        PathBuf::from(self.metadata.content.get(txz_name).unwrap().to_string())
     }
 
     fn get_archive_installed_files(&self) -> Result<Vec<String>> {

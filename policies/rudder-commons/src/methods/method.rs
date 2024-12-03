@@ -130,7 +130,6 @@ impl Default for Parameter {
 }
 
 /// Parser
-
 impl FromStr for MethodInfo {
     type Err = Error;
 
