@@ -427,24 +427,22 @@ pub struct DeserTechnique {
 impl DeserTechnique {
     pub fn to_technique(self, resolve_loop: bool) -> Result<Technique> {
         let preparsed_technique = if resolve_loop {
-            let unflatten_loop_resolved_items : Result<Vec<Vec<DeserItem>>> = self
+            let unflatten_loop_resolved_items: Result<Vec<Vec<DeserItem>>> = self
                 .items
                 .into_iter()
                 .map(|i| i.resolve_loop(vec![], false))
                 .collect();
-            let binding = unflatten_loop_resolved_items.with_context(|| "Failed to resolve loops items")?;
-            binding
-                .into_iter()
-                .flatten()
-                .collect::<Vec<DeserItem>>()
-        } else { self.items };
+            let binding =
+                unflatten_loop_resolved_items.with_context(|| "Failed to resolve loops items")?;
+            binding.into_iter().flatten().collect::<Vec<DeserItem>>()
+        } else {
+            self.items
+        };
         let items: Result<Vec<ItemKind>> = preparsed_technique
             .into_iter()
-            .map(|i| {
-                i.clone().into_kind()
-            })
+            .map(|i| i.clone().into_kind())
             .collect();
-        let t = Ok(Technique {
+        Ok(Technique {
             format: self.format,
             id: self.id,
             name: self.name,
@@ -455,8 +453,7 @@ impl DeserTechnique {
             documentation: self.documentation,
             items: items?,
             params: self.params,
-        });
-        t
+        })
     }
 }
 
@@ -554,19 +551,25 @@ impl DeserItem {
                     let mut branch_context = parent_context.clone();
                     branch_context
                         .push(ForeachContext::new(self.foreach_name.clone(), b.to_owned()));
-                    let children= self
+                    let children = self
                         .items
                         .iter()
                         .map(|child| {
-                            child.clone().resolve_loop(
-                                branch_context.clone(),
-                                force_virtual || !is_first_item,
-                            ).with_context(|| format!("Failed to resolve item {} while resolving foreach fields", child.id))
-                        }).collect::<Result<Vec<Vec<DeserItem>>>>();
-                    let flatten_children = children?
-                        .into_iter()
-                        .flatten()
-                        .collect();
+                            child
+                                .clone()
+                                .resolve_loop(
+                                    branch_context.clone(),
+                                    force_virtual || !is_first_item,
+                                )
+                                .with_context(|| {
+                                    format!(
+                                        "Failed to resolve item {} while resolving foreach fields",
+                                        child.id
+                                    )
+                                })
+                        })
+                        .collect::<Result<Vec<Vec<DeserItem>>>>();
+                    let flatten_children = children?.into_iter().flatten().collect();
                     let item = DeserItem {
                         is_virtual: force_virtual || !is_first_item,
                         foreach_name: None,
@@ -579,7 +582,8 @@ impl DeserItem {
                 })
                 .collect()
         } else {
-            let raw_children: Result<Vec<Vec<DeserItem>>>= self.items
+            let raw_children: Result<Vec<Vec<DeserItem>>> = self
+                .items
                 .iter()
                 .map(|child| {
                     child
@@ -899,16 +903,12 @@ mod tests {
         let context = vec![
             ForeachContext::new(
                 None,
-                HashMap::from([
-                    ("key1".to_string(), "templatized".to_string())
-                ])
+                HashMap::from([("key1".to_string(), "templatized".to_string())]),
             ),
             ForeachContext::new(
                 Some("plouf".to_string()),
-                HashMap::from([
-                    ("key1".to_string(), "this one".to_string()),
-                ])
-            )
+                HashMap::from([("key1".to_string(), "this one".to_string())]),
+            ),
         ];
         assert_eq!(
             DeserItem {
@@ -919,7 +919,8 @@ mod tests {
         )
     }
     #[test]
-    fn it_should_not_render_nested_templates_as_the_replacement_is_done_node_by_node_without_recursion() {
+    fn it_should_not_render_nested_templates_as_the_replacement_is_done_node_by_node_without_recursion(
+    ) {
         let child = DeserItem {
             name: "The nested item is not ${item.key1}".to_string(),
             ..DeserItem::default()
@@ -933,17 +934,15 @@ mod tests {
         let context = vec![
             ForeachContext::new(
                 None,
-                HashMap::from([
-                    ("key1".to_string(), "templatized".to_string())
-                ])
+                HashMap::from([("key1".to_string(), "templatized".to_string())]),
             ),
             ForeachContext::new(
                 Some("plouf".to_string()),
                 HashMap::from([
                     ("key1".to_string(), "this one".to_string()),
-                    ("key2".to_string(), "key1".to_string())
-                ])
-            )
+                    ("key2".to_string(), "key1".to_string()),
+                ]),
+            ),
         ];
         assert_eq!(
             DeserItem {
@@ -973,7 +972,7 @@ mod tests {
                 HashMap::from([
                     ("root".to_string(), "/2".to_string()),
                     ("lines".to_string(), "bar".to_string()),
-                ])
+                ]),
             ]),
             ..DeserItem::default()
         };
@@ -999,7 +998,7 @@ mod tests {
                 ]),
                 is_virtual: true,
                 ..DeserItem::default()
-            }
+            },
         ];
         assert_eq!(expected, simple_method.resolve_loop(vec![], false).unwrap());
     }

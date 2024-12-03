@@ -51,7 +51,11 @@ pub fn is_exit_on_user_error() -> bool {
 /// Read technique and augment with data from libraries
 ///
 /// Don't return early on user error but display an error message
-pub fn read_technique(methods: &'static Methods, input: &str, resolve_loops: bool) -> Result<Technique> {
+pub fn read_technique(
+    methods: &'static Methods,
+    input: &str,
+    resolve_loops: bool,
+) -> Result<Technique> {
     // Deserialize into `Technique`
     // Here return early as we can't do much if parsing failed,
     // plus serde already displays as many errors as possible
