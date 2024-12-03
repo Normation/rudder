@@ -650,9 +650,9 @@ rudder.auth.userRestToken=enabled
 #
 # To disable access to the REST API using user-generated API token
 # via the api-authorizations plugin for users from a specific provider (declared in rudder.auth.provider),
-# you can use set this option to "disabled"
+# you can use uncomment this property. You can also set it to "enabled" (it is the default value).
 #
-rudder.auth.file.userRestToken=enabled
+#rudder.auth.oidc.userRestToken=disabled
 
 #
 # Inactivity timeout for user sessions
