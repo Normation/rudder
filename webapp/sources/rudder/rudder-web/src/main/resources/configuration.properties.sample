@@ -243,7 +243,16 @@ inventories.watcher.period.garbage.old=5 minutes
 # trying to add them. This can be important if Rudder was down for
 # a long time and inventories accumulated, no need to keep the older.
 #
-inventories.watcher.max.age.before.deletion=3 days
+inventories.watcher.max.age.before.deletion=2 days
+
+#
+# To prevent data corruption from server sending inventories with unexpected date,
+# either in the past (for example because an old inventory was blocked in some pipe
+# somewhere), or in the future (for example because server's clock is incorrectly set),
+# Rudder refuse inventories out of following range:
+#
+inventories.reject.maxAgeBeforeNow=2 days
+inventories.reject.maxAgeAfterNow=12 hours
 
 #
 # You may want to limit the number of inventory files parsed and save in parallel.
@@ -262,6 +271,7 @@ inventory.parse.parallelization=2
 # In that case, node's processes will appear to be empty in node details.
 # Boolean, default to "false" (ie: processes are parsed and displayed)
 inventory.parse.ignore.processes=false
+
 #
 # In some case, <PROCESSES> cause performance problems in rudder web-app
 # and they are used so you can't ignore them. In that case, Rudder may need to
@@ -269,15 +279,6 @@ inventory.parse.ignore.processes=false
 # above which one dedicated request will be done just for processes.
 inventory.threshold.processes.isolatedWrite=1000
 
-#
-# You can keep exhaustive information about LDAP base modification
-# happening in relation to inventory processing. It is mostly used
-# for debug.
-# You can enable that log by setting the following logger in
-# /opt/rudder/etc/logback.xml file to "trace" level (default "off"):
-# <logger name="trace.ldif.in.file" level="trace" />
-#
-ldif.tracelog.rootdir=/var/rudder/inventories/debug
 
 #
 # Automatic inventories cleaning
