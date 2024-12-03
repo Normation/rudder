@@ -404,6 +404,23 @@ pub struct DeserTechnique {
 
 impl DeserTechnique {
     pub fn to_technique(self) -> Result<Technique> {
+        let unflatten_loop_resolved_items : Result<Vec<Vec<DeserItem>>> = self
+                .items
+                .into_iter()
+                .map(|i| i.resolve_loop(vec![], false))
+                .collect();
+        let binding = unflatten_loop_resolved_items.with_context(|| "Failed to resolve loops items")?;
+        let loop_resolved_items: Vec<DeserItem> = binding
+            .into_iter()
+            .flatten()
+            .collect();
+
+        let items: Result<Vec<ItemKind>> = loop_resolved_items
+            .into_iter()
+            .map(|i| {
+                i.clone().into_kind()
+            })
+            .collect();
         let t = Ok(Technique {
             format: self.format,
             id: self.id,
@@ -413,16 +430,7 @@ impl DeserTechnique {
             category: self.category,
             description: self.description,
             documentation: self.documentation,
-            items: self
-                .items
-                .into_iter()
-                .flat_map(|i| {
-                    i.resolve_loop(vec![], false)
-                        .iter()
-                        .map(|j| j.clone().into_kind().unwrap())
-                        .collect::<Vec<ItemKind>>()
-                })
-                .collect(),
+            items: items?,
             params: self.params,
         });
         t
@@ -465,98 +473,103 @@ impl ForeachContext {
 }
 
 impl DeserItem {
+    fn replace_using_context(&self, context: Vec<ForeachContext>) -> Result<DeserItem> {
+        let name = context
+            .iter()
+            .fold(self.name.clone(), |acc, x| x.clone().expand(acc));
+        let condition =
+            Condition::from_str(
+                &context.clone()
+                    .into_iter()
+                    .fold(self.condition.to_string(), |acc, x| x.clone().expand(acc.to_string()))
+            ).with_context(|| format!("Failed to render the condition in item {} while resolving the foreach items, using context {:#?}", &self.id, context))?;
+        let documentation = self.documentation.as_ref().map(|d| {
+            context
+                .iter()
+                .fold(d.to_owned(), |acc, x| x.clone().expand(acc))
+        });
+        let description = self.description.as_ref().map(|d| {
+            context
+                .iter()
+                .fold(d.to_owned(), |acc, x| x.clone().expand(acc))
+        });
+
+        let params = self
+            .params
+            .clone()
+            .into_iter()
+            .map(|p| {
+                let value: String = context
+                    .iter()
+                    .fold(p.1.to_string(), |acc, x| x.clone().expand(acc));
+                (p.0, value)
+            })
+            .collect::<HashMap<String, String>>();
+        Ok(DeserItem {
+            condition,
+            name,
+            description,
+            documentation,
+            params,
+            ..self.clone()
+        })
+    }
     fn resolve_loop(
         self,
         parent_context: Vec<ForeachContext>,
         force_virtual: bool,
-    ) -> Vec<DeserItem> {
+    ) -> Result<Vec<DeserItem>> {
         // Replace every description, documentation, name, condition, params fields in the tree, using the given context.
-        fn replace_using_context(item: &DeserItem, context: Vec<ForeachContext>) -> DeserItem {
-            let name = context
-                .iter()
-                .fold(item.name.clone(), |acc, x| x.clone().expand(acc));
-            let condition = Condition::Expression(
-                context
-                    .iter()
-                    .fold(item.condition.to_string(), |acc, x| x.clone().expand(acc)),
-            );
-            let documentation = item.documentation.as_ref().map(|d| {
-                context
-                    .iter()
-                    .fold(d.to_owned(), |acc, x| x.clone().expand(acc))
-            });
-            let description = item.description.as_ref().map(|d| {
-                context
-                    .iter()
-                    .fold(d.to_owned(), |acc, x| x.clone().expand(acc))
-            });
-
-            let params = item
-                .params
-                .clone()
-                .into_iter()
-                .map(|p| {
-                    let value: String = context
-                        .iter()
-                        .fold(p.1.to_string(), |acc, x| x.clone().expand(acc));
-                    (p.0, value)
-                })
-                .collect::<HashMap<String, String>>();
-            DeserItem {
-                condition,
-                name,
-                description,
-                documentation,
-                params,
-                ..item.clone()
-            }
-        }
 
         // If is_virtual is set we are already on a fork
         // If not, tag the first iteration as the new master
         let mut is_first_item = true;
-        let branches = if let Some(ref cases) = self.foreach {
+        let branches: Result<Vec<DeserItem>> = if let Some(ref cases) = self.foreach {
             cases
                 .iter()
                 .map(|b| {
                     let mut branch_context = parent_context.clone();
                     branch_context
                         .push(ForeachContext::new(self.foreach_name.clone(), b.to_owned()));
-                    let children = self
+                    let children= self
                         .items
                         .iter()
-                        .flat_map(|child| {
+                        .map(|child| {
                             child.clone().resolve_loop(
                                 branch_context.clone(),
                                 force_virtual || !is_first_item,
-                            )
-                        })
+                            ).with_context(|| format!("Failed to resolve item {} while resolving foreach fields", child.id))
+                        }).collect::<Result<Vec<Vec<DeserItem>>>>();
+                    let flatten_children = children?
+                        .into_iter()
+                        .flatten()
                         .collect();
                     let item = DeserItem {
                         is_virtual: force_virtual || !is_first_item,
                         foreach_name: None,
                         foreach: None,
-                        items: children,
-                        ..replace_using_context(&self, branch_context)
+                        items: flatten_children,
+                        ..self.replace_using_context(branch_context)?
                     };
                     is_first_item = false;
-                    item
+                    Ok(item)
                 })
                 .collect()
         } else {
-            vec![DeserItem {
+            let raw_children: Result<Vec<Vec<DeserItem>>>= self.items
+                .iter()
+                .map(|child| {
+                    child
+                        .clone()
+                        .resolve_loop(parent_context.clone(), force_virtual)
+                })
+                .collect();
+            let children = raw_children?.into_iter().flatten().collect();
+            Ok(vec![DeserItem {
                 is_virtual: force_virtual || !is_first_item,
-                items: self
-                    .items
-                    .iter()
-                    .flat_map(|child| {
-                        child
-                            .clone()
-                            .resolve_loop(parent_context.clone(), force_virtual)
-                    })
-                    .collect(),
-                ..replace_using_context(&self, parent_context.clone())
-            }]
+                items: children,
+                ..self.replace_using_context(parent_context.clone())?
+            }])
         };
         branches
     }
@@ -827,11 +840,12 @@ pub enum LeafReportingMode {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::str::FromStr;
 
     use pretty_assertions::assert_eq;
 
-    use crate::ir::technique::{Id, Parameter};
+    use crate::ir::technique::{DeserItem, ForeachContext, Id, Parameter};
 
     #[test]
     fn it_parses_parameters() {
@@ -847,5 +861,42 @@ mod tests {
             default: None,
         };
         assert_eq!(p, reference);
+    }
+
+    // DeserItem Tests
+    #[test]
+    fn it_should_render_loop_variables_using_context() {
+        let d = DeserItem {
+            condition: Default::default(),
+            name: "My ${item.key1} item".to_string(),
+            description: None,
+            documentation: None,
+            tags: None,
+            items: vec![],
+            id: Default::default(),
+            reporting: Default::default(),
+            params: Default::default(),
+            method: None,
+            module: None,
+            policy_mode_override: None,
+            foreach_name: None,
+            foreach: None,
+            is_virtual: false,
+        };
+        let context = vec![
+            ForeachContext::new(
+                None,
+                HashMap::from([
+                    ("key1".to_string(), "templatized".to_string())
+                ])
+            )
+        ];
+        assert_eq!(
+            DeserItem {
+                name: "My templatized item".to_string(),
+                ..d.clone()
+            },
+            d.replace_using_context(context).unwrap()
+        )
     }
 }

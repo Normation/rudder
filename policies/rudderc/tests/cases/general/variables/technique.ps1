@@ -38,13 +38,11 @@
             TechniqueName = $techniqueName
         }
         
-        $class = "true"
-        if ([Rudder.Datastate]::Evaluate($class)) {
-            $methodParams = @{
-                Enforce = @'
+        $methodParams = @{
+            Enforce = @'
 true
 '@
-                Lines = @'
+            Lines = @'
 # Raw string
 foo foobar
 # With parameter
@@ -70,16 +68,14 @@ vars.const.n
 '@ + ([Rudder.Datastate]::Render('{{' + @'
 vars.node.properties.name.key
 '@ + '}}'))
-                Path = @'
+            Path = @'
 /some/path
 '@
-                
-            }
-            $call = File-Content @methodParams -PolicyMode $policyMode
-            Compute-Method-Call @reportParams -MethodCall $call
-        } else {
-            Rudder-Report-NA @reportParams
+            
         }
+        $call = File-Content @methodParams -PolicyMode $policyMode
+        Compute-Method-Call @reportParams -MethodCall $call
+        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(

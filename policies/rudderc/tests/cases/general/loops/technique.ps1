@@ -203,7 +203,7 @@ htop
             TechniqueName = $techniqueName
         }
         
-        $class = "(bob.true).true"
+        $class = "bob"
         if ([Rudder.Datastate]::Evaluate($class)) {
             $methodParams = @{
                 HashType = @'
@@ -255,7 +255,7 @@ sha256
             TechniqueName = $techniqueName
         }
         
-        $class = "(bob.true).true"
+        $class = "bob"
         if ([Rudder.Datastate]::Evaluate($class)) {
             $methodParams = @{
                 HashType = @'
@@ -373,7 +373,7 @@ sha256
             TechniqueName = $techniqueName
         }
         
-        $class = "(alice.true).true"
+        $class = "alice"
         if ([Rudder.Datastate]::Evaluate($class)) {
             $methodParams = @{
                 HashType = @'
@@ -425,7 +425,7 @@ sha256
             TechniqueName = $techniqueName
         }
         
-        $class = "(alice.true).true"
+        $class = "alice"
         if ([Rudder.Datastate]::Evaluate($class)) {
             $methodParams = @{
                 HashType = @'

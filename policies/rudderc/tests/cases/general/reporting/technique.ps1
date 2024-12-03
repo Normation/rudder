@@ -35,24 +35,20 @@
             TechniqueName = $techniqueName
         }
         
-        $class = "true"
-        if ([Rudder.Datastate]::Evaluate($class)) {
-            $methodParams = @{
-                Architecture = ''
-                Name = @'
+        $methodParams = @{
+            Architecture = ''
+            Name = @'
 htop
 '@
-                Provider = ''
-                Version = @'
+            Provider = ''
+            Version = @'
 
 '@
-                
-            }
-            $call = Package-Present @methodParams -PolicyMode $policyMode
-            Compute-Method-Call @reportParams -MethodCall $call
-        } else {
-            Rudder-Report-NA @reportParams
+            
         }
+        $call = Package-Present @methodParams -PolicyMode $policyMode
+        Compute-Method-Call @reportParams -MethodCall $call
+        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -137,24 +133,20 @@ htop
             TechniqueName = $techniqueName
         }
         
-        $class = "true.true"
-        if ([Rudder.Datastate]::Evaluate($class)) {
-            $methodParams = @{
-                Architecture = ''
-                Name = @'
+        $methodParams = @{
+            Architecture = ''
+            Name = @'
 ntp
 '@
-                Provider = ''
-                Version = @'
+            Provider = ''
+            Version = @'
 
 '@
-                
-            }
-            $call = Package-Present @methodParams -PolicyMode $policyMode
-            Compute-Method-Call @reportParams -MethodCall $call
-        } else {
-            Rudder-Report-NA @reportParams
+            
         }
+        $call = Package-Present @methodParams -PolicyMode $policyMode
+        Compute-Method-Call @reportParams -MethodCall $call
+        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -188,24 +180,20 @@ ntp
             TechniqueName = $techniqueName
         }
         
-        $class = "true.true"
-        if ([Rudder.Datastate]::Evaluate($class)) {
-            $methodParams = @{
-                Architecture = ''
-                Name = @'
+        $methodParams = @{
+            Architecture = ''
+            Name = @'
 ntp
 '@
-                Provider = ''
-                Version = @'
+            Provider = ''
+            Version = @'
 
 '@
-                
-            }
-            $call = Package-Present @methodParams -PolicyMode $policyMode
-            Compute-Method-Call @reportParams -MethodCall $call
-        } else {
-            Rudder-Report-NA @reportParams
+            
         }
+        $call = Package-Present @methodParams -PolicyMode $policyMode
+        Compute-Method-Call @reportParams -MethodCall $call
+        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -239,24 +227,20 @@ ntp
             TechniqueName = $techniqueName
         }
         
-        $class = "(true.true).true"
-        if ([Rudder.Datastate]::Evaluate($class)) {
-            $methodParams = @{
-                Architecture = ''
-                Name = @'
+        $methodParams = @{
+            Architecture = ''
+            Name = @'
 ntp
 '@
-                Provider = ''
-                Version = @'
+            Provider = ''
+            Version = @'
 
 '@
-                
-            }
-            $call = Package-Present @methodParams -PolicyMode $policyMode
-            Compute-Method-Call @reportParams -MethodCall $call
-        } else {
-            Rudder-Report-NA @reportParams
+            
         }
+        $call = Package-Present @methodParams -PolicyMode $policyMode
+        Compute-Method-Call @reportParams -MethodCall $call
+        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -290,24 +274,20 @@ ntp
             TechniqueName = $techniqueName
         }
         
-        $class = "(true.true).true"
-        if ([Rudder.Datastate]::Evaluate($class)) {
-            $methodParams = @{
-                Architecture = ''
-                Name = @'
+        $methodParams = @{
+            Architecture = ''
+            Name = @'
 ntp
 '@
-                Provider = ''
-                Version = @'
+            Provider = ''
+            Version = @'
 
 '@
-                
-            }
-            $call = Package-Present @methodParams -PolicyMode $policyMode
-            Compute-Method-Call @reportParams -MethodCall $call
-        } else {
-            Rudder-Report-NA @reportParams
+            
         }
+        $call = Package-Present @methodParams -PolicyMode $policyMode
+        Compute-Method-Call @reportParams -MethodCall $call
+        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -341,24 +321,20 @@ ntp
             TechniqueName = $techniqueName
         }
         
-        $class = "(true.true).true"
-        if ([Rudder.Datastate]::Evaluate($class)) {
-            $methodParams = @{
-                Architecture = ''
-                Name = @'
+        $methodParams = @{
+            Architecture = ''
+            Name = @'
 ntp
 '@
-                Provider = ''
-                Version = @'
+            Provider = ''
+            Version = @'
 
 '@
-                
-            }
-            $call = Package-Present @methodParams -PolicyMode $policyMode
-            Compute-Method-Call @reportParams -MethodCall $call
-        } else {
-            Rudder-Report-NA @reportParams
+            
         }
+        $call = Package-Present @methodParams -PolicyMode $policyMode
+        Compute-Method-Call @reportParams -MethodCall $call
+        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -392,24 +368,20 @@ ntp
             TechniqueName = $techniqueName
         }
         
-        $class = "(true.true).true"
-        if ([Rudder.Datastate]::Evaluate($class)) {
-            $methodParams = @{
-                Architecture = ''
-                Name = @'
+        $methodParams = @{
+            Architecture = ''
+            Name = @'
 ntp
 '@
-                Provider = ''
-                Version = @'
+            Provider = ''
+            Version = @'
 
 '@
-                
-            }
-            $call = Package-Present @methodParams -PolicyMode $policyMode
-            Compute-Method-Call @reportParams -MethodCall $call
-        } else {
-            Rudder-Report-NA @reportParams
+            
         }
+        $call = Package-Present @methodParams -PolicyMode $policyMode
+        Compute-Method-Call @reportParams -MethodCall $call
+        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -443,24 +415,20 @@ ntp
             TechniqueName = $techniqueName
         }
         
-        $class = "(true.true).true"
-        if ([Rudder.Datastate]::Evaluate($class)) {
-            $methodParams = @{
-                Architecture = ''
-                Name = @'
+        $methodParams = @{
+            Architecture = ''
+            Name = @'
 ntp
 '@
-                Provider = ''
-                Version = @'
+            Provider = ''
+            Version = @'
 
 '@
-                
-            }
-            $call = Package-Present @methodParams -PolicyMode $policyMode
-            Compute-Method-Call @reportParams -MethodCall $call
-        } else {
-            Rudder-Report-NA @reportParams
+            
         }
+        $call = Package-Present @methodParams -PolicyMode $policyMode
+        Compute-Method-Call @reportParams -MethodCall $call
+        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -494,24 +462,20 @@ ntp
             TechniqueName = $techniqueName
         }
         
-        $class = "(true.true).true"
-        if ([Rudder.Datastate]::Evaluate($class)) {
-            $methodParams = @{
-                Architecture = ''
-                Name = @'
+        $methodParams = @{
+            Architecture = ''
+            Name = @'
 ntp
 '@
-                Provider = ''
-                Version = @'
+            Provider = ''
+            Version = @'
 
 '@
-                
-            }
-            $call = Package-Present @methodParams -PolicyMode $policyMode
-            Compute-Method-Call @reportParams -MethodCall $call
-        } else {
-            Rudder-Report-NA @reportParams
+            
         }
+        $call = Package-Present @methodParams -PolicyMode $policyMode
+        Compute-Method-Call @reportParams -MethodCall $call
+        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
