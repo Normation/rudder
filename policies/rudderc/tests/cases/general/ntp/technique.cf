@@ -59,7 +59,7 @@ bundle agent call_ntp_technique_cf06e919_02b7_41a7_a03f_4239592f3c12(c_name, c_k
                                     if => "${method_call_condition}";
     "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_package_install_${c_key}")),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'Package install' with key parameter '${c_key}' since condition 'linux.fedora' is not reached", "/bin/true \"# ${node.inventory[os][fullName]}\"", canonify("${class_prefix}_package_install_${c_key}"), canonify("${class_prefix}_package_install_${c_key}"), @{args}),
+    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'Package install' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "/bin/true \"# ${node.inventory[os][fullName]}\"", canonify("${class_prefix}_package_install_${c_key}"), canonify("${class_prefix}_package_install_${c_key}"), @{args}),
                                 unless => "${method_call_condition}";
 
 }

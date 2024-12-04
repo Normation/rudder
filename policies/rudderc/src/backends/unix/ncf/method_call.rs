@@ -10,6 +10,7 @@
 use anyhow::{bail, Result};
 use rudder_commons::{canonify, methods::method::Agent};
 
+use crate::ir::technique::ForeachResolvedState;
 use crate::{
     backends::unix::{
         cfengine::{
@@ -105,7 +106,7 @@ pub fn method_call(
             pop_policy_mode,
             Some(Promise::usebundle("_classes_noop", Some(&report_component), vec![na_condition.clone()]).unless_condition(incall_condition.clone())),
             Some(Promise::usebundle("log_rudder", Some(&report_component), vec![
-                quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", &method_name, condition)),
+                quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", &method_name, incall_condition)),
                 quoted(&report_parameter),
                 na_condition.clone(),
                 na_condition,
@@ -185,14 +186,13 @@ pub fn method_call(
     method_parameters.append(&mut specific_parameters);
     Ok((
         bundle_call,
-        if m.generate_method_call_bundle {
-            Some(
+        match m.resolved_foreach_state {
+            Some(ForeachResolvedState::Virtual) => None,
+            _ => Some(
                 Bundle::agent(bundle_name)
                     .parameters(method_parameters)
                     .promise_group(bundle_content),
-            )
-        } else {
-            None
+            ),
         },
     ))
 }
