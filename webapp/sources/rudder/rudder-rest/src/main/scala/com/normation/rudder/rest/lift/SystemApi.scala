@@ -56,6 +56,7 @@ import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
+import com.normation.rudder.ncf.TechniqueCompilationStatusSyncService
 import com.normation.rudder.repository.ItemArchiveManager
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
@@ -662,15 +663,16 @@ class SystemApiService13(
 }
 
 class SystemApiService11(
-    updatePTLibService:   UpdateTechniqueLibrary,
-    debugScriptService:   DebugInfoService,
-    clearCacheService:    ClearCacheService,
-    asyncDeploymentAgent: AsyncDeploymentAgent,
-    uuidGen:              StringUuidGenerator,
-    updateDynamicGroups:  UpdateDynamicGroups,
-    itemArchiveManager:   ItemArchiveManager,
-    personIdentService:   PersonIdentService,
-    repo:                 GitRepositoryProvider
+    updatePTLibService:       UpdateTechniqueLibrary,
+    debugScriptService:       DebugInfoService,
+    clearCacheService:        ClearCacheService,
+    asyncDeploymentAgent:     AsyncDeploymentAgent,
+    uuidGen:                  StringUuidGenerator,
+    updateDynamicGroups:      UpdateDynamicGroups,
+    compilationStatusService: TechniqueCompilationStatusSyncService,
+    itemArchiveManager:       ItemArchiveManager,
+    personIdentService:       PersonIdentService,
+    repo:                     GitRepositoryProvider
 )(implicit userService: UserService)
     extends Loggable {
   import SystemApi.*
@@ -685,7 +687,9 @@ class SystemApiService11(
       getActor(req),
       Some("Technique library reloaded from REST API")
     ) match {
-      case Full(x) => Right(JField("techniques", "Started"))
+      case Full(_) =>
+        compilationStatusService.getUpdateAndSync().runNow
+        Right(JField("techniques", "Started"))
       case eb: EmptyBox =>
         val e = eb ?~! "An error occurred when updating the Technique library from file system"
         logger.error(e.messageChain)

@@ -215,15 +215,11 @@ class TechniqueCompilationErrorsActorSync(
    * Update the internal cache and build a Compilation status
    */
   private[ncf] def updateStatus(results: List[EditorTechniqueCompilationResult]): UIO[CompilationStatus] = {
-    val resultKeys = results.map(r => (r.id, r.version)).toSet
     errorBase.updateAndGet { m =>
-      // update results in batch and remove elements that no longer exist in the results
-      results.foldLeft(m.view.filterKeys(resultKeys.contains).toMap) {
-        case (current, EditorTechniqueCompilationResult(id, version, name, CompilationResult.Error(error))) =>
-          current + ((id, version) -> EditorTechniqueError(id, version, name, error))
-        case (current, EditorTechniqueCompilationResult(id, version, _, CompilationResult.Success))         =>
-          current - ((id, version))
-      }
+      results.collect {
+        case r @ EditorTechniqueCompilationResult(id, version, name, CompilationResult.Error(error)) =>
+          (getKey(r) -> EditorTechniqueError(id, version, name, error))
+      }.toMap
     }.map(m => getStatus(m.values))
   }
 
