@@ -40,6 +40,7 @@ package com.normation.rudder.web.comet
 import bootstrap.liftweb.FindCurrentUser
 import bootstrap.liftweb.RudderConfig
 import bootstrap.liftweb.RudderConfig.clearCacheService
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.batch.*
@@ -67,6 +68,8 @@ import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import scala.util.matching.Regex
 import scala.xml.*
+import zio.Chunk
+import zio.ZIO
 
 class AsyncDeployment extends CometActor with CometListener with Loggable {
   import AsyncDeployment.*
@@ -74,6 +77,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private val nodeFactRepo         = RudderConfig.nodeFactRepository
   private val nodeGroupRepo        = RudderConfig.roNodeGroupRepository
+  private val directiveRepo        = RudderConfig.roDirectiveRepository
   private val linkUtil             = RudderConfig.linkUtil
 
   // current states of the deployment
@@ -106,10 +110,31 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   override def lowPriority: PartialFunction[Any, Unit] = {
     case msg: AsyncDeploymentActorCreateUpdate =>
       deploymentStatus = msg.deploymentStatus
-      compilationStatus = msg.compilationStatus
+      receiveCompilationStatus(msg.compilationStatus)
       nodeProperties = msg.nodeProperties
       groupProperties = msg.groupProperties
       reRender()
+  }
+
+  /**
+   * When we receive a new compilation status, we adapt the status to be the one of only active techniques
+   */
+  private def receiveCompilationStatus(status: CompilationStatus): Unit = {
+    val filteredTechniqueErrors = status match {
+      case CompilationStatusAllSuccess                => Chunk.empty
+      case CompilationStatusErrors(techniquesInError) =>
+        // we want to filter out disabled techniques when displaying techniques in errors
+        ZIO
+          .foreach(techniquesInError)(t => {
+            directiveRepo
+              .getActiveTechnique(TechniqueName(t.id.value))
+              .map(_.map(_ -> t))
+          })
+          .map(_.collect { case Some((t, err)) if t.isEnabled => err })
+          .runNow
+    }
+
+    compilationStatus = CompilationStatus.fromErrors(filteredTechniqueErrors)
   }
 
   private def displayTime(label: String, time: DateTime): NodeSeq = {
