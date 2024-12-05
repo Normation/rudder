@@ -56,21 +56,19 @@ viewResult result =
 filterButton : Model -> Filter -> Html Msg
 filterButton model filter =
   let
-     name = case filter of
-       All -> "all"
-       FilterKind k -> kindName k
-     numbers =model.results |> case filter of
-       All ->  List.map (.header >> .numbers) >> List.sum
-       FilterKind k -> List.Extra.find (.header >> .type_ >> (==) k) >> Maybe.map (.header >> .numbers)  >> Maybe.withDefault 0
-     check = model.selectedFilter |>
-       case filter of
-           All -> List.isEmpty
-           FilterKind k -> List.member k
+    name = case filter of
+      All -> "all"
+      FilterKind k -> kindName k
+    numbers =model.results |> case filter of
+      All ->  List.map (.header >> .numbers) >> List.sum
+      FilterKind k -> List.Extra.find (.header >> .type_ >> (==) k) >> Maybe.map (.header >> .numbers)  >> Maybe.withDefault 0
+    check = model.selectedFilter |>
+      case filter of
+        All -> List.isEmpty
+        FilterKind k -> List.member k
   in
-
-
-    label [ for ("filter-" ++ name), class ("btn btn-default " ++ (if check then "active" else "")),  onClick (UpdateFilter filter)] [
-      input [ type_ "checkbox", id ("filter-" ++ name),  checked check ] []
+    button [ class ("btn btn-default " ++ (if check then "active" else "")), onClick (UpdateFilter filter)] [
+      input [ type_ "checkbox", checked check ] []
     , text (String.Extra.toSentenceCase name)
     , span [ class "badge pull-right" ] [
         case model.state of
