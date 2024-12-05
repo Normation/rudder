@@ -85,7 +85,7 @@ object PreInventoryParserCheckInventoryAge {
     logdate + timezone
   }
 
-  // try to parse the inventory date in format YYYY-MM-dd HH:mm:ss+oooo
+  // try to parse the inventory date in format YYYY-MM-dd HH:mm:ssZ
   // ex UTC: 2023-11-16 10:46:35+0000
   // ex Europe/Paris: 2023-11-16 11:46:12+0100
   def parseOffsetDateTime(date: String): PureResult[OffsetDateTime] = {
@@ -112,20 +112,20 @@ object PreInventoryParserCheckInventoryAge {
     }
   }
 
-  // check that date is in wundow between [now-maxPast, now+maxFuture]
+  // check that date is in window between [now-maxBeforeNow, now+maxAfterNow]
   def checkDate(date: OffsetDateTime, now: OffsetDateTime, maxBeforeNow: Duration, maxAfterNow: Duration): PureResult[Unit] = {
-    val oldest   = now.minus(maxBeforeNow)
-    val youngest = now.plus(maxAfterNow)
+    val pastLimit   = now.minus(maxBeforeNow)
+    val futureLimit = now.plus(maxAfterNow)
 
-    val tooOld    = Inconsistency(s"Inventory is too old, refusing (inventory date is before '${oldest.toString}')")
-    val tooFuture = Inconsistency(
-      s"Inventory is too far in the future, refusing (inventory date is before '${youngest.toString}')"
+    val beforePastLimit  = Inconsistency(s"Inventory is too old, refusing (inventory date is before '${pastLimit.toString}')")
+    val afterFutureLimit = Inconsistency(
+      s"Inventory is too far in the future, refusing (inventory date is before '${futureLimit.toString}')"
     )
 
-    (date.isBefore(oldest), date.isAfter(youngest)) match {
+    (date.isBefore(pastLimit), date.isAfter(futureLimit)) match {
       case (false, false) => Right(())
-      case (true, _)      => Left(tooOld)
-      case (_, true)      => Left(tooFuture)
+      case (true, _)      => Left(beforePastLimit)
+      case (_, true)      => Left(afterFutureLimit)
     }
   }
 }
