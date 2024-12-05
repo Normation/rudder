@@ -75,7 +75,15 @@ case class EditorTechniqueError(
 )
 
 sealed trait CompilationStatus
-case object CompilationStatusAllSuccess                                                    extends CompilationStatus
+object CompilationStatus {
+  def fromErrors(errors: Chunk[EditorTechniqueError]): CompilationStatus = {
+    NonEmptyChunk.fromChunk(errors) match {
+      case None        => CompilationStatusAllSuccess
+      case Some(value) => CompilationStatusErrors(value)
+    }
+  }
+}
+case object CompilationStatusAllSuccess extends CompilationStatus
 case class CompilationStatusErrors(techniquesInError: NonEmptyChunk[EditorTechniqueError]) extends CompilationStatus {
   def ++(other: CompilationStatusErrors): CompilationStatusErrors = CompilationStatusErrors(
     this.techniquesInError ++ other.techniquesInError
