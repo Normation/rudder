@@ -4,9 +4,11 @@
 use std::sync::Arc;
 
 use anyhow::Error;
+use bytesize::ByteSize;
 use tokio::sync::mpsc;
 use tracing::{debug, error, info, instrument, span, Instrument, Level};
 
+use crate::processing::ensure_file_size_limit;
 use crate::{
     configuration::main::InventoryOutputSelect,
     input::watch::*,
@@ -81,6 +83,20 @@ async fn serve(
                 file
             );
             continue;
+        }
+
+        match ensure_file_size_limit(
+            file.clone(),
+            job_config.cfg.processing.inventory.max_size,
+            job_config.cfg.processing.inventory.directory.clone(),
+        )
+        .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                error!("{:?}", e);
+                continue;
+            }
         }
 
         let queue_id = queue_id_from_file(&file);
