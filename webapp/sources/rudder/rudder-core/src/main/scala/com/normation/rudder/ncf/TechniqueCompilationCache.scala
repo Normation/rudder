@@ -43,6 +43,7 @@ import com.normation.rudder.batch.UpdateCompilationStatus
 import com.normation.rudder.domain.logger.StatusLoggerPure
 import net.liftweb.common.SimpleActor
 import zio.*
+import zio.syntax.*
 
 sealed trait CompilationResult
 object CompilationResult {
@@ -100,10 +101,13 @@ trait TechniqueCompilationStatusSyncService {
    */
   def syncOne(result: EditorTechniqueCompilationResult): IOResult[Unit]
 
-  /*
-   * The whole process that lookup for compilation status and update everything
+  def unsyncOne(id: (BundleName, Version)): IOResult[Unit]
+
+  /**
+   * The whole process that lookup for compilation status and update everything.
+   * @param results if none all results are looked up, if some only consider these ones
    */
-  def getUpdateAndSync(): IOResult[Unit]
+  def getUpdateAndSync(results: Option[List[EditorTechniqueCompilationResult]] = None): IOResult[Unit]
 }
 
 /**
@@ -159,35 +163,28 @@ class TechniqueCompilationErrorsActorSync(
 ) extends TechniqueCompilationStatusSyncService {
 
   /*
-   * Update the internal cache and build a Compilation status
-   */
-  private[ncf] def updateStatus(results: List[EditorTechniqueCompilationResult]): UIO[CompilationStatus] = {
-    errorBase.updateAndGet { m =>
-      results.foldLeft(m) {
-        case (current, EditorTechniqueCompilationResult(id, version, name, CompilationResult.Error(error))) =>
-          current + ((id, version) -> EditorTechniqueError(id, version, name, error))
-        case (current, EditorTechniqueCompilationResult(id, version, _, CompilationResult.Success))         =>
-          current - ((id, version))
-      }
-    }.map(m => getStatus(m.values))
-  }
-
-  /*
    * Given new editor technique compilation results, update current status and sync it with UI
    */
   def syncOne(result: EditorTechniqueCompilationResult): IOResult[Unit] = {
     for {
-      status <- updateStatus(List(result))
+      status <- updateOneStatus(result)
       _      <- syncStatusWithUi(status)
     } yield ()
+  }
+
+  /**
+     * Drop a value from the error base if it exists
+     */
+  def unsyncOne(id: (BundleName, Version)): IOResult[Unit] = {
+    errorBase.update(_ - id)
   }
 
   /*
    * The whole process that lookup for compilation status and update everything
    */
-  def getUpdateAndSync(): IOResult[Unit] = {
+  def getUpdateAndSync(results: Option[List[EditorTechniqueCompilationResult]]): IOResult[Unit] = {
     (for {
-      results <- reader.get()
+      results <- results.map(_.succeed).getOrElse(reader.get())
       status  <- updateStatus(results)
       _       <- syncStatusWithUi(status)
     } yield status).flatMap {
@@ -214,6 +211,41 @@ class TechniqueCompilationErrorsActorSync(
     }
   }
 
+  /*
+   * Update the internal cache and build a Compilation status
+   */
+  private[ncf] def updateStatus(results: List[EditorTechniqueCompilationResult]): UIO[CompilationStatus] = {
+    val resultKeys = results.map(r => (r.id, r.version)).toSet
+    errorBase.updateAndGet { m =>
+      // update results in batch and remove elements that no longer exist in the results
+      results.foldLeft(m.view.filterKeys(resultKeys.contains).toMap) {
+        case (current, EditorTechniqueCompilationResult(id, version, name, CompilationResult.Error(error))) =>
+          current + ((id, version) -> EditorTechniqueError(id, version, name, error))
+        case (current, EditorTechniqueCompilationResult(id, version, _, CompilationResult.Success))         =>
+          current - ((id, version))
+      }
+    }.map(m => getStatus(m.values))
+  }
+
+  /**
+    * Only take a single result to update the cached technique if it is there, else do nothing 
+    */
+  private[ncf] def updateOneStatus(result: EditorTechniqueCompilationResult): UIO[CompilationStatus] = {
+    // only replace when current one is an error, when present or absent we should set the value
+    val replacement: Option[EditorTechniqueError] => Option[EditorTechniqueError] = result match {
+      case EditorTechniqueCompilationResult(id, version, name, CompilationResult.Error(error)) =>
+        _ => Some(EditorTechniqueError(id, version, name, error))
+      case _                                                                                   =>
+        _ => None
+    }
+    errorBase
+      .updateAndGet(_.updatedWith(getKey(result))(replacement(_)))
+      .map(m => getStatus(m.values))
+  }
+
+  private def getKey(result: EditorTechniqueCompilationResult): (BundleName, Version) = {
+    result.id -> result.version
+  }
 }
 
 object TechniqueCompilationErrorsActorSync {

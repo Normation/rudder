@@ -46,6 +46,7 @@ import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.facts.nodes.QueryContext
@@ -84,6 +85,12 @@ trait TechniqueWriter {
       modId:     ModificationId,
       committer: EventActor
   ): IOResult[EditorTechnique]
+
+  def writeTechniques(
+      techniques: List[EditorTechnique],
+      modId:      ModificationId,
+      committer:  EventActor
+  ): IOResult[List[EditorTechnique]]
 }
 
 /**
@@ -106,7 +113,14 @@ class TechniqueWriterImpl(
       deleteDirective:  Boolean,
       modId:            ModificationId,
       committer:        QueryContext
-  ): IOResult[Unit] = deleteService.deleteTechnique(techniqueName, techniqueVersion, deleteDirective, modId, committer)
+  ): IOResult[Unit] = {
+    for {
+      _ <- deleteService.deleteTechnique(techniqueName, techniqueVersion, deleteDirective, modId, committer)
+      _ <- compilationStatusService.unsyncOne(
+             BundleName(techniqueName) -> new Version(techniqueVersion)
+           ) // to delete the status of the technique
+    } yield ()
+  }
 
   def writeTechniqueAndUpdateLib(
       technique: EditorTechnique,
@@ -114,8 +128,9 @@ class TechniqueWriterImpl(
       committer: EventActor
   ): IOResult[EditorTechnique] = {
     for {
-      updatedTechnique <- compileArchiveTechnique(technique, modId, committer)
-      libUpdate        <-
+      updated              <- compileArchiveTechnique(technique, modId, committer)
+      (updatedTechnique, _) = updated
+      libUpdate            <-
         techLibUpdate
           .update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}"))
           .toIO
@@ -130,17 +145,32 @@ class TechniqueWriterImpl(
       modId:     ModificationId,
       committer: EventActor
   ): IOResult[EditorTechnique] = {
-    compileArchiveTechnique(technique, modId, committer)
+    compileArchiveTechnique(technique, modId, committer).map { case (t, _) => t }
+  }
+
+  override def writeTechniques(
+      techniques: List[EditorTechnique],
+      modId:      ModificationId,
+      committer:  EventActor
+  ): IOResult[List[EditorTechnique]] = {
+    for {
+      updated                     <- ZIO.foreach(techniques)(compileArchiveTechnique(_, modId, committer, syncStatus = false))
+      (updatedTechniques, results) = updated.unzip
+      _                           <- compilationStatusService.getUpdateAndSync(Some(results))
+    } yield {
+      updatedTechniques
+    }
   }
 
   ///// utility methods /////
 
   // Write and commit all techniques files
   private def compileArchiveTechnique(
-      technique: EditorTechnique,
-      modId:     ModificationId,
-      committer: EventActor
-  ): IOResult[EditorTechnique] = {
+      technique:  EditorTechnique,
+      modId:      ModificationId,
+      committer:  EventActor,
+      syncStatus: Boolean = true // should update the compilation status ?
+  ): IOResult[(EditorTechnique, EditorTechniqueCompilationResult)] = {
     for {
       time_0                      <- currentTimeMillis
       _                           <- TechniqueWriterLoggerPure.debug(s"Writing technique '${technique.name}'")
@@ -150,33 +180,34 @@ class TechniqueWriterImpl(
                                      }
       techniqueWithResourceUpdated = technique.copy(resources = updateResources)
 
-      _        <- TechniqueWriterImpl.writeYaml(techniqueWithResourceUpdated)(baseConfigRepoPath)
-      time_1   <- currentTimeMillis
-      _        <-
+      _                <- TechniqueWriterImpl.writeYaml(techniqueWithResourceUpdated)(baseConfigRepoPath)
+      time_1           <- currentTimeMillis
+      _                <-
         TimingDebugLoggerPure.trace(s"writeTechnique: writing yaml for technique '${technique.name}' took ${time_1 - time_0}ms")
-      compiled <- compiler.compileTechnique(techniqueWithResourceUpdated)
-      _        <- compilationStatusService.syncOne(EditorTechniqueCompilationResult.from(techniqueWithResourceUpdated, compiled))
-      time_3   <- currentTimeMillis
-      id       <- TechniqueVersion.parse(technique.version.value).toIO.map(v => TechniqueId(TechniqueName(technique.id.value), v))
+      compiled         <- compiler.compileTechnique(techniqueWithResourceUpdated)
+      compilationResult = EditorTechniqueCompilationResult.from(techniqueWithResourceUpdated, compiled)
+      _                <- compilationStatusService.syncOne(compilationResult)
+      time_3           <- currentTimeMillis
+      id               <- TechniqueVersion.parse(technique.version.value).toIO.map(v => TechniqueId(TechniqueName(technique.id.value), v))
       // resources files are missing the the "resources/" prefix
-      resources = technique.resources.map(r => ResourceFile("resources/" + r.path, r.state))
-      _        <- archiver.saveTechnique(
-                    id,
-                    technique.category.split('/').toIndexedSeq,
-                    Chunk.fromIterable(resources),
-                    modId,
-                    committer,
-                    s"Committing technique ${technique.name}"
-                  )
-      time_4   <- currentTimeMillis
-      _        <- TimingDebugLoggerPure.trace(s"writeTechnique: committing technique '${technique.name}' took ${time_4 - time_3}ms")
-      _        <- TimingDebugLoggerPure.debug(s"writeTechnique: writing technique '${technique.name}' took ${time_4 - time_0}ms")
-      time_5   <- currentTimeMillis
-      _        <-
+      resources         = technique.resources.map(r => ResourceFile("resources/" + r.path, r.state))
+      _                <- archiver.saveTechnique(
+                            id,
+                            technique.category.split('/').toIndexedSeq,
+                            Chunk.fromIterable(resources),
+                            modId,
+                            committer,
+                            s"Committing technique ${technique.name}"
+                          )
+      time_4           <- currentTimeMillis
+      _                <- TimingDebugLoggerPure.trace(s"writeTechnique: committing technique '${technique.name}' took ${time_4 - time_3}ms")
+      _                <- TimingDebugLoggerPure.debug(s"writeTechnique: writing technique '${technique.name}' took ${time_4 - time_0}ms")
+      time_5           <- currentTimeMillis
+      _                <-
         TimingDebugLoggerPure.trace(s"writeTechnique: writing technique '${technique.name}' in cache took ${time_5 - time_4}ms")
 
     } yield {
-      techniqueWithResourceUpdated
+      (techniqueWithResourceUpdated, compilationResult)
     }
   }
 }
