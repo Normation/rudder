@@ -172,7 +172,7 @@ update msg model =
       let
         ui = model.ui
       in
-        ({model | ui = { ui | filters = tableFilters}}, Cmd.none)
+        ({model | ui = { ui | filters = tableFilters}}, initTooltips "")
 
     ShowMore id ->
       let
