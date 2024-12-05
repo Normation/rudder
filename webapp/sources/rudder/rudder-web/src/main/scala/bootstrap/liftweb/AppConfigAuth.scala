@@ -158,75 +158,86 @@ class AppConfigAuth extends ApplicationContextAware {
     }
 
     // prepare specific properties for each configuredAuthProviders - we need system properties for spring
-
     import scala.jdk.CollectionConverters.*
-    val providerProperties: Map[String, AuthBackendProviderProperties] = configuredAuthProviders.flatMap { x =>
-      try {
-        // try to load all the specific properties of that auth type
-        // so that they are available from Spring
-        // the config can have 0 specif entry => try/catch
-        config.getConfig(s"rudder.auth.${x.name}").entrySet.asScala.foreach {
-          case e =>
-            val fullKey = s"rudder.auth.${x.name}.${e.getKey}"
-            System.setProperty(fullKey, config.getString(fullKey))
+    // provider properties need to be set to global config before being overridden by specific config by provider
+    val globalProviderProperties: Map[String, AuthBackendProviderProperties] = configuredAuthProviders
+      .map(_.name)
+      .map(
+        _ ->
+        AuthBackendProviderProperties.default
+          // providerRoleExtension has no global config value
+          .copy(restTokenFeatureSwitch = restTokenGlobalFeatureSwitch)
+      )
+      .toMap
+    val providerProperties:       Map[String, AuthBackendProviderProperties] = {
+      globalProviderProperties ++ configuredAuthProviders.flatMap { x =>
+        try {
+          // try to load all the specific properties of that auth type
+          // so that they are available from Spring
+          // the config can have 0 specif entry => try/catch
+          config.getConfig(s"rudder.auth.${x.name}").entrySet.asScala.foreach {
+            case e =>
+              val fullKey = s"rudder.auth.${x.name}.${e.getKey}"
+              System.setProperty(fullKey, config.getString(fullKey))
+          }
+        } catch {
+          case _: ConfigException.Missing => logger.debug(s"Provider configuration missing : rudder.auth.${x.name}")
         }
-      } catch {
-        case ex: ConfigException.Missing => // does nothing - the beauty of imperative prog :(
-      }
-      val restTokenFeatureSwitch: FeatureSwitch                                   = {
-        // special feature switch depends on global one.
-        restTokenGlobalFeatureSwitch match {
-          case FeatureSwitch.Disabled => FeatureSwitch.Disabled
-          case FeatureSwitch.Enabled  =>
-            try {
-              val configKey   = s"rudder.auth.${x.name}.userRestToken"
-              val configValue = config.getString(configKey)
-              FeatureSwitch.parse(configValue) match {
-                case Left(value)  =>
-                  logger.warn(
-                    s"User access to REST API via token is configured to the be ${defaultEnableRestToken.name} by default, the ${configKey} property is ignored, cause was : ${value.msg}"
-                  )
-                  defaultEnableRestToken
-                case Right(value) =>
-                  if (value != restTokenGlobalFeatureSwitch) {
-                    logger.info(
-                      s"User access to REST API via token for provider ${x.name} is configured to be ${value.name}, overriding the global configuration"
+        val restTokenFeatureSwitch: FeatureSwitch                                   = {
+          // special feature switch depends on global one.
+          restTokenGlobalFeatureSwitch match {
+            case FeatureSwitch.Disabled => FeatureSwitch.Disabled
+            case FeatureSwitch.Enabled  =>
+              try {
+                val configKey   = s"rudder.auth.${x.name}.userRestToken"
+                val configValue = config.getString(configKey)
+                FeatureSwitch.parse(configValue) match {
+                  case Left(value)  =>
+                    logger.warn(
+                      s"User access to REST API via token is configured to the be ${defaultEnableRestToken.name} by default, the ${configKey} property is ignored, cause was : ${value.msg}"
                     )
-                  } else {
-                    logger.debug(
-                      s"User access to REST API via token for provider ${x.name} is ${restTokenGlobalFeatureSwitch.name} as the global one"
-                    )
-                  }
-                  value
-              }
-            } catch { case ex: ConfigException.Missing => defaultEnableRestToken }
+                    defaultEnableRestToken
+                  case Right(value) =>
+                    if (value != restTokenGlobalFeatureSwitch) {
+                      logger.info(
+                        s"User access to REST API via token for provider ${x.name} is configured to be ${value.name}, overriding the global configuration"
+                      )
+                    } else {
+                      logger.debug(
+                        s"User access to REST API via token for provider ${x.name} is ${restTokenGlobalFeatureSwitch.name} as the global one"
+                      )
+                    }
+                    value
+                }
+              } catch { case ex: ConfigException.Missing => defaultEnableRestToken }
+          }
         }
-      }
-      val properties:             Option[(String, AuthBackendProviderProperties)] = x.name match {
-        case "ldap"            =>
-          // roles for LDAP-provided users come directly from the file, so we can say they override the file roles
-          Some("ldap" -> AuthBackendProviderProperties(ProviderRoleExtension.WithOverride, restTokenFeatureSwitch))
-        case "oidc" | "oauth2" => {
-          val baseProperty  = "rudder.auth.oauth2.provider"
-          // we need to read under the registration key, under the base property
-          val registrations =
-            Try(config.getString(baseProperty + ".registrations").split(",").map(_.trim).toList).getOrElse(List.empty)
-          // when there are multiple registrations we should take the most prioritized configuration under the same provider
-          Some(x.name -> registrations.foldLeft(AuthBackendProviderProperties.default) {
-            case (acc, reg) =>
-              val rolesEnabled = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_ENABLED}"))
-                .getOrElse(false) // default value, same as in the auth backend plugin
-              val rolesOverride = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_OVERRIDE}"))
-                .getOrElse(false) // default value, same as in the auth backend plugin
-              acc.maxByPriority(
-                AuthBackendProviderProperties.fromConfig(x.name, rolesEnabled, rolesOverride, restTokenFeatureSwitch)
-              )
-          })
+        val properties:             Option[(String, AuthBackendProviderProperties)] = x.name match {
+          case "ldap"            =>
+            // roles for LDAP-provided users come directly from the file, so we can say they override the file roles
+            Some("ldap" -> AuthBackendProviderProperties(ProviderRoleExtension.WithOverride, restTokenFeatureSwitch))
+          case "oidc" | "oauth2" => {
+            val baseProperty  = "rudder.auth.oauth2.provider"
+            // we need to read under the registration key, under the base property
+            val registrations =
+              Try(config.getString(baseProperty + ".registrations").split(",").map(_.trim).toList).getOrElse(List.empty)
+            // when there are multiple registrations we should take the most prioritized configuration under the same provider
+            Some(x.name -> registrations.foldLeft(AuthBackendProviderProperties.default) {
+              case (acc, reg) =>
+                val rolesEnabled = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_ENABLED}"))
+                  .getOrElse(false) // default value, same as in the auth backend plugin
+                val rolesOverride = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_OVERRIDE}"))
+                  .getOrElse(false) // default value, same as in the auth backend plugin
+                acc.maxByPriority(
+                  AuthBackendProviderProperties.fromConfig(x.name, rolesEnabled, rolesOverride, restTokenFeatureSwitch)
+                )
+            })
+          }
+          case _                 => None // default providers or providers for which handling the properties is still unkown
         }
-        case _                 => None // default providers or providers for which handling the properties is still unkown
-      }
-      properties
-    }.toMap
+        properties
+      }.toMap
+    }
 
     // load additional beans from authentication dedicated resource files
 
