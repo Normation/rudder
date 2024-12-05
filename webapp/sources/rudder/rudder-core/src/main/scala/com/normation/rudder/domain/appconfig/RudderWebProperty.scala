@@ -37,11 +37,10 @@
 
 package com.normation.rudder.domain.appconfig
 
+import com.normation.errors.Inconsistency
+import com.normation.errors.PureResult
 import enumeratum.*
 import java.util.regex.Pattern
-import net.liftweb.common.Box
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
 
 final case class RudderWebPropertyName(value: String) extends AnyVal
 
@@ -70,18 +69,15 @@ object FeatureSwitch       extends Enum[FeatureSwitch] {
 
   val values: IndexedSeq[FeatureSwitch] = findValues
 
-  def parse(value: String): Box[FeatureSwitch] = {
+  def parse(value: String): PureResult[FeatureSwitch] = {
     value match {
-      case null | "" => Failure("An empty or null string can not be parsed as a feature switch status")
+      case null | "" => Left(Inconsistency("An empty or null string can not be parsed as a feature switch status"))
       case s         =>
-        s.trim.toLowerCase match {
-          case Enabled.name  => Full(Enabled)
-          case Disabled.name => Full(Disabled)
-          case _             =>
-            Failure(
-              s"Cannot parse the given value as a valid feature switch status: '${value}'. Authorised values are: '${values.map(_.name).mkString(", ")}'"
-            )
-        }
+        withNameInsensitiveEither(s.trim).left.map(err => {
+          Inconsistency(
+            s"Cannot parse the given value as a valid feature switch status: '${err.notFoundName}'. Authorised values are: '${err.enumValues.map(_.name).mkString(", ")}'"
+          )
+        })
     }
   }
 }
