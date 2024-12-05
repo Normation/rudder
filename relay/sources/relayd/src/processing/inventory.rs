@@ -4,7 +4,6 @@
 use std::sync::Arc;
 
 use anyhow::Error;
-use bytesize::ByteSize;
 use tokio::sync::mpsc;
 use tracing::{debug, error, info, instrument, span, Instrument, Level};
 

@@ -10,7 +10,7 @@ use anyhow::{bail, Error};
 use bytesize::ByteSize;
 use sha2::{Digest, Sha256};
 use tokio::fs::{remove_file, rename};
-use tracing::{debug, error};
+use tracing::debug;
 
 pub mod inventory;
 pub mod reporting;
