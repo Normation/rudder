@@ -118,7 +118,9 @@ object PreInventoryParserCheckInventoryAge {
     val youngest = now.plus(maxAfterNow)
 
     val tooOld    = Inconsistency(s"Inventory is too old, refusing (inventory date is before '${oldest.toString}')")
-    val tooFuture = Inconsistency(s"Inventory is too far in the future, refusing (inventory date is before '${oldest.toString}')")
+    val tooFuture = Inconsistency(
+      s"Inventory is too far in the future, refusing (inventory date is before '${youngest.toString}')"
+    )
 
     (date.isBefore(oldest), date.isAfter(youngest)) match {
       case (false, false) => Right(())

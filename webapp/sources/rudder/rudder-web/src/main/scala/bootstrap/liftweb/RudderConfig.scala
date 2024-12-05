@@ -856,14 +856,6 @@ object RudderParsedProperties {
     )
   }
 
-  val LDIF_TRACELOG_ROOT_DIR: String = {
-    try {
-      config.getString("ldif.tracelog.rootdir")
-    } catch {
-      case ex: ConfigException => "/var/rudder/inventories/debug"
-    }
-  }
-
   // don't parse some elements in inventories: processes
   val INVENTORIES_IGNORE_PROCESSES: Boolean = {
     try {
@@ -884,7 +876,7 @@ object RudderParsedProperties {
       )
     } catch {
       case ex: Exception =>
-        ApplicationLogger.error(
+        ApplicationLogger.info(
           s"Error when reading key: 'inventories.reject.maxAgeBeforeNow', defaulting to 2 days: ${ex.getMessage}"
         )
         2.days
@@ -902,7 +894,7 @@ object RudderParsedProperties {
       )
     } catch {
       case ex: Exception =>
-        ApplicationLogger.error(
+        ApplicationLogger.info(
           s"Error when reading key: 'inventories.reject.maxAgeAfterNow', defaulting to 12h: ${ex.getMessage}"
         )
         12.hours
