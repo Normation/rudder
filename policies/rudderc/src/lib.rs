@@ -7,13 +7,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::cli::{Command, MainArgs};
 use anyhow::bail;
 use anyhow::{anyhow, Context, Result};
 use rudder_cli::custom_panic_hook_ignore_sigpipe;
+use rudder_commons::ALL_TARGETS;
 use tracing::debug;
 use tracing::error;
-
-use crate::cli::{Command, MainArgs};
 
 pub mod backends;
 pub mod cli;
@@ -49,7 +49,7 @@ pub fn run(args: MainArgs) -> Result<()> {
 
     let input = Path::new(TECHNIQUE_SRC);
     let cwd = PathBuf::from(".");
-    let target = PathBuf::from(TARGET_DIR);
+    let target_dir = PathBuf::from(TARGET_DIR);
 
     #[cfg(feature = "embedded-lib")]
     fn check_libraries(parameters: Vec<PathBuf>) -> Result<Vec<PathBuf>> {
@@ -108,10 +108,15 @@ pub fn run(args: MainArgs) -> Result<()> {
                 .with_context(|| format!("Failed to create technique directory {}", name))?;
             action::init(&cwd.join(&name), Some(name))
         }
-        Command::Clean => action::clean(target.as_path()),
-        Command::Check { library } => {
+        Command::Clean => action::clean(target_dir.as_path()),
+        Command::Check { library, target } => {
             let library = check_libraries(library)?;
-            action::check(library.as_slice(), input)
+            let targets = if let Some(t) = target {
+                vec![t]
+            } else {
+                ALL_TARGETS.to_vec()
+            };
+            action::check(library.as_slice(), input, &targets)
         }
         Command::Build {
             library,
@@ -119,14 +124,20 @@ pub fn run(args: MainArgs) -> Result<()> {
             standalone,
             export,
             store_ids,
+            target,
         } => {
             let library = check_libraries(library)?;
-            let actual_output = output.unwrap_or(target);
+            let actual_output = output.unwrap_or(target_dir);
             if actual_output.exists()
                 && actual_output.canonicalize()? == input.canonicalize()?.parent().unwrap()
             {
                 bail!("Output directory cannot be the same as the input directory");
             }
+            let targets = if let Some(t) = target {
+                vec![t]
+            } else {
+                ALL_TARGETS.to_vec()
+            };
 
             action::build(
                 library.as_slice(),
@@ -134,6 +145,7 @@ pub fn run(args: MainArgs) -> Result<()> {
                 actual_output.as_path(),
                 standalone,
                 store_ids || export,
+                &targets,
             )?;
             if export {
                 action::export(&cwd, actual_output)?;
@@ -147,10 +159,17 @@ pub fn run(args: MainArgs) -> Result<()> {
             agent_verbose,
         } => {
             let library = check_libraries(library)?;
-            action::build(library.as_slice(), input, target.as_path(), true, false)?;
+            action::build(
+                library.as_slice(),
+                input,
+                target_dir.as_path(),
+                true,
+                false,
+                ALL_TARGETS,
+            )?;
             action::test(
                 input,
-                &target,
+                &target_dir,
                 Path::new(TESTS_DIR),
                 library.as_slice(),
                 agent,
@@ -166,7 +185,7 @@ pub fn run(args: MainArgs) -> Result<()> {
             stdout,
         } => {
             let library = check_libraries(library)?;
-            let actual_output = output.unwrap_or(target);
+            let actual_output = output.unwrap_or(target_dir);
             action::lib_doc(
                 library.as_slice(),
                 actual_output.as_path(),
@@ -188,7 +207,7 @@ pub mod action {
     };
 
     use anyhow::{bail, Context, Result};
-    use rudder_commons::{logs::ok_output, Target, ALL_TARGETS};
+    use rudder_commons::{logs::ok_output, Target};
     use walkdir::WalkDir;
     use zip::write::ZipWriter;
 
@@ -285,7 +304,7 @@ pub mod action {
     }
 
     /// Linter mode, check JSON schema compliance and ability to compile
-    pub fn check(libraries: &[PathBuf], input: &Path) -> Result<()> {
+    pub fn check(libraries: &[PathBuf], input: &Path, targets: &[Target]) -> Result<()> {
         // Compilation test
         let methods = read_methods(libraries)?;
         ok_output("Read", format!("{} methods", methods.len()));
@@ -293,7 +312,7 @@ pub mod action {
         let policy_str = read_to_string(input)
             .with_context(|| format!("Failed to read input from {}", input.display()))?;
         let policy = read_technique(methods, &policy_str)?;
-        for target in ALL_TARGETS {
+        for target in targets {
             compile(policy.clone(), *target, input, false)?;
         }
         //
@@ -414,6 +433,7 @@ pub mod action {
         output_dir: &Path,
         standalone: bool,
         store_ids: bool,
+        targets: &[Target],
     ) -> Result<()> {
         create_dir_all(output_dir).with_context(|| {
             format!("Failed to create target directory {}", output_dir.display())
@@ -437,7 +457,7 @@ pub mod action {
         }
 
         // Technique implementation
-        for target in ALL_TARGETS {
+        for target in targets {
             let policy_file =
                 output_dir.join(Path::new(TECHNIQUE).with_extension(target.extension()));
             let mut file = File::create(&policy_file).with_context(|| {
@@ -455,7 +475,7 @@ pub mod action {
                 metadata_file.display()
             )
         })?;
-        file.write_all(metadata(policy, input)?.as_bytes())?;
+        file.write_all(metadata(policy, input, targets)?.as_bytes())?;
         ok_output("Wrote", metadata_file.display());
 
         // Resources folder
