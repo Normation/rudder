@@ -366,8 +366,8 @@ class TechniqueApi(
                                             s"An error occurred while reading techniques when updating them: ${errors.map(_.msg).mkString("\n ->", "\n ->", "")}"
                                           )
                                         }
-        _                            <- ZIO.foreach(techniques)(t => techniqueWriter.writeTechnique(t, modId, authzToken.qc.actor))
-        json                         <- ZIO.foreach(techniques)(_.toJsonAST.toIO)
+        res                          <- techniqueWriter.writeTechniques(techniques, modId, authzToken.qc.actor)
+        json                         <- ZIO.foreach(res)(_.toJsonAST.toIO)
       } yield {
         json
       }
