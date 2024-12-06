@@ -47,16 +47,19 @@ pub const DEFAULT_AGENT_PATH: &str = "/opt/rudder/bin/";
 pub fn run(args: MainArgs) -> Result<()> {
     custom_panic_hook_ignore_sigpipe();
 
-    let input_yml = Path::new(TECHNIQUE).with_extension("yml");
-    let input_yaml = Path::new(TECHNIQUE).with_extension("yaml");
-    let input = if input_yml.exists() {
-        // Try .yml in priority.
-        input_yml.as_path()
-    } else if input_yaml.exists() {
-        input_yaml.as_path()
-    } else {
-        bail!("No input {} file provided", input_yml.display());
+    let maybe_input = YAML_EXTENSIONS
+        .iter()
+        .map(|e| Path::new(TECHNIQUE).with_extension(e)).find(|p| p.exists());
+    let input = match maybe_input {
+        Some(input) => input,
+        None => bail!(
+            "No input '{}.{}' file provided",
+            TECHNIQUE,
+            YAML_EXTENSIONS[0]
+        ),
     };
+    let input = input.as_path();
+
     let cwd = PathBuf::from(".");
     let target = PathBuf::from(TARGET_DIR);
 
@@ -215,7 +218,7 @@ pub mod action {
         frontends::read_methods,
         ir::Technique,
         test::TestCase,
-        METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TESTS_DIR,
+        METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TESTS_DIR, YAML_EXTENSIONS,
     };
 
     /// Create a technique skeleton
@@ -333,8 +336,13 @@ pub mod action {
         if test_dir.exists() {
             for entry in fs::read_dir(test_dir)? {
                 let e = entry?;
-                let name = e.file_name().into_string().unwrap();
-                if e.file_type()?.is_file() && name.ends_with(".yml") {
+                let path = e.path();
+                let extension = path
+                    .extension()
+                    .unwrap_or(Default::default())
+                    .to_str()
+                    .unwrap_or("");
+                if e.file_type()?.is_file() && YAML_EXTENSIONS.contains(&extension) {
                     if let Some(ref f) = filter {
                         // Filter by file name
                         if e.path().file_stem().unwrap().to_string_lossy().contains(f) {
