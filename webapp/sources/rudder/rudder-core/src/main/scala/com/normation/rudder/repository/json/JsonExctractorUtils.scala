@@ -89,7 +89,7 @@ trait JsonExtractorUtils[A[_]] {
   }
 
   /*
-   * Still used in apiaccount/eventlog API, tags
+   * Still used in apiaccount API, tags
    */
   def extractJsonString[T](json: JValue, key: String, convertTo: String => Box[T] = boxedIdentity[String]): Box[A[T]] = {
     extractJson(json, key, convertTo, { case JString(value) => value })
@@ -103,28 +103,7 @@ trait JsonExtractorUtils[A[_]] {
   }
 
   /*
-   * Still used in eventlog API
-   */
-  def extractJsonInt(json: JValue, key: String): Box[A[Int]] = {
-    extractJsonBigInt(json, key, i => Full(i.toInt))
-  }
-
-  /*
-   * Still used in eventlog API
-   */
-  def extractJsonBigInt[T](json: JValue, key: String, convertTo: BigInt => Box[T] = boxedIdentity[BigInt]): Box[A[T]] = {
-    extractJson(json, key, convertTo, { case JInt(value) => value })
-  }
-
-  /*
-   * Still used in eventlog API
-   */
-  def extractJsonObj[T](json: JValue, key: String, jsonValueFun: JObject => Box[T]): Box[A[T]] = {
-    extractJson(json, key, jsonValueFun, { case obj: JObject => obj })
-  }
-
-  /*
-   * Still used in tags, eventlog/apiaccount API
+   * Still used in tags, apiaccount API
    */
   def extractJsonArray[T](json: JValue, key: String)(convertTo: JValue => Box[T]):        Box[A[List[T]]] = {
     val trueJson =
@@ -141,7 +120,7 @@ trait JsonExtractorUtils[A[_]] {
     }
   }
   /*
-   * Still used in tags, eventlog/apiaccount API
+   * Still used in tags, apiaccount API
    */
   def extractJsonArray[T](json: JValue, keys: List[String])(convertTo: JValue => Box[T]): Box[A[List[T]]] = {
     keys.map(k => extractJsonArray(json, k)(convertTo)).reduce[Box[A[List[T]]]] {

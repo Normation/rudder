@@ -132,6 +132,7 @@ import java.nio.file.attribute.PosixFilePermission
 import java.security.Security
 import java.util.concurrent.TimeUnit
 import net.liftweb.common.*
+import net.liftweb.http.S
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
@@ -2198,7 +2199,8 @@ object RudderConfigInit {
         campaignApi,
         new HookApi(hookApiService),
         archiveApi,
-        new ScoreApiImpl(restExtractorService, scoreService)
+        new ScoreApiImpl(restExtractorService, scoreService),
+        eventLogApi
         // info api must be resolved latter, because else it misses plugin apis !
       )
 
@@ -2215,7 +2217,13 @@ object RudderConfigInit {
     // Internal APIs
     lazy val sharedFileApi     =
       new SharedFilesAPI(restExtractorService, userService, RUDDER_DIR_SHARED_FILES_FOLDER, RUDDER_GIT_ROOT_CONFIG_REPO)
-    lazy val eventLogApi       = new EventLogAPI(eventLogRepository, restExtractorService, eventLogDetailsGenerator, personIdentService)
+    lazy val eventLogApi       = {
+      new EventLogAPI(
+        new EventLogService(eventLogRepository, eventLogDetailsGenerator, personIdentService),
+        eventLogDetailsGenerator,
+        eventType => S ? ("rudder.log.eventType.names." + eventType.serialize)
+      )
+    }
     lazy val asyncWorkflowInfo = new AsyncWorkflowInfo
     lazy val configService: ReadConfigService with UpdateConfigService = {
       new GenericConfigService(

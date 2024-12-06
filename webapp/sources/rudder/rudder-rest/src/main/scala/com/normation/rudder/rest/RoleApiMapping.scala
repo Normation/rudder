@@ -111,7 +111,7 @@ object AuthorizationApiMapping {
         // Administration is Rudder setting
 
         case Administration.Read  =>
-          SettingsApi.GetAllSettings.x :: SettingsApi.GetSetting.x :: SystemApi.ArchivesDirectivesList.x ::
+          EventLogApi.GetEventLogs.x :: EventLogApi.GetEventLogDetails.x :: SettingsApi.GetAllSettings.x :: SettingsApi.GetSetting.x :: SystemApi.ArchivesDirectivesList.x ::
           SystemApi.ArchivesFullList.x :: SystemApi.ArchivesGroupsList.x :: SystemApi.ArchivesRulesList.x ::
           SystemApi.GetAllZipArchive.x :: SystemApi.GetDirectivesZipArchive.x :: SystemApi.GetGroupsZipArchive.x ::
           SystemApi.GetRulesZipArchive.x :: SystemApi.Info.x :: SystemApi.Status.x :: SystemApi.ArchivesParametersList.x ::
@@ -120,7 +120,7 @@ object AuthorizationApiMapping {
             _.x
           )
         case Administration.Write =>
-          PluginApi.UpdatePluginsSettings.x :: SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x ::
+          EventLogApi.RollbackEventLog.x :: PluginApi.UpdatePluginsSettings.x :: SettingsApi.ModifySettings.x :: SettingsApi.ModifySetting.x ::
           InventoryApi.FileWatcherRestart.x :: InventoryApi.FileWatcherStart.x :: InventoryApi.FileWatcherStop.x ::
           NodeApi.CreateNodes.x :: SystemApi.endpoints.map(_.x)
         case Administration.Edit  =>

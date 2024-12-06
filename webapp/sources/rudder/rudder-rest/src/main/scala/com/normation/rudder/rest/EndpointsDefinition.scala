@@ -212,6 +212,34 @@ object ComplianceApi       extends Enum[ComplianceApi] with ApiModuleProvider[Co
   def values = findValues
 }
 
+sealed trait EventLogApi extends EnumEntry with EndpointSchema with SortIndex {
+  override def dataContainer: Option[String] = None
+}
+
+object EventLogApi extends Enum[EventLogApi] with ApiModuleProvider[EventLogApi] {
+  case object GetEventLogs extends EventLogApi with InternalApi with ZeroParam with StartsAtVersion2 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get event logs based on filters"
+    val (action, path) = POST / "eventlog"
+  }
+
+  case object GetEventLogDetails extends EventLogApi with InternalApi with OneParam with StartsAtVersion2 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get details of a specific event log"
+    val (action, path) = GET / "eventlog" / "{id}" / "details"
+  }
+
+  case object RollbackEventLog extends EventLogApi with InternalApi with OneParam with StartsAtVersion2 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Rollback a specific event log"
+    val (action, path) = GET / "eventlog" / "{id}" / "details" / "rollback"
+  }
+
+  def endpoints: List[EventLogApi] = values.toList.sortBy(_.z)
+
+  def values = findValues
+}
+
 sealed trait GroupApi extends EnumEntry with EndpointSchema with SortIndex    {
   override def dataContainer: Option[String] = Some("groups")
 }

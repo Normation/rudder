@@ -47,6 +47,7 @@ import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
+import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.FullInventory
@@ -61,6 +62,7 @@ import com.normation.rudder.batch.PolicyGenerationTrigger.AllGeneration
 import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.config.StatelessUserPropertyService
 import com.normation.rudder.domain.appconfig.FeatureSwitch
+import com.normation.rudder.domain.eventlog.ModifyNodeGroup
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.DirectiveId
@@ -102,6 +104,8 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.rest.data.Creation
 import com.normation.rudder.rest.data.Creation.CreationError
 import com.normation.rudder.rest.data.NodeSetup
+import com.normation.rudder.rest.internal.EventLogAPI
+import com.normation.rudder.rest.internal.EventLogService
 import com.normation.rudder.rest.internal.GroupInternalApiService
 import com.normation.rudder.rest.internal.GroupsInternalApi
 import com.normation.rudder.rest.internal.RestQuicksearch
@@ -113,6 +117,7 @@ import com.normation.rudder.rest.v1.RestStatus
 import com.normation.rudder.rule.category.RuleCategoryService
 import com.normation.rudder.services.ClearCacheService
 import com.normation.rudder.services.eventlog.EventLogDeploymentService
+import com.normation.rudder.services.eventlog.EventLogDetailsServiceImpl
 import com.normation.rudder.services.eventlog.EventLogFactory
 import com.normation.rudder.services.healthcheck.CheckCoreNumber
 import com.normation.rudder.services.healthcheck.CheckFileDescriptorLimit
@@ -120,6 +125,7 @@ import com.normation.rudder.services.healthcheck.CheckFreeSpace
 import com.normation.rudder.services.healthcheck.HealthcheckNotificationService
 import com.normation.rudder.services.healthcheck.HealthcheckService
 import com.normation.rudder.services.marshalling.DeploymentStatusSerialisation
+import com.normation.rudder.services.modification.ModificationService
 import com.normation.rudder.services.policies.DependencyAndDeletionServiceImpl
 import com.normation.rudder.services.policies.FindDependencies
 import com.normation.rudder.services.policies.InterpolationContext
@@ -147,6 +153,7 @@ import com.normation.rudder.web.model.DirectiveField
 import com.normation.rudder.web.model.LinkUtil
 import com.normation.rudder.web.services.DirectiveEditorServiceImpl
 import com.normation.rudder.web.services.DirectiveFieldFactory
+import com.normation.rudder.web.services.EventLogDetailsGenerator
 import com.normation.rudder.web.services.Section2FieldService
 import com.normation.rudder.web.services.Translator
 import com.normation.utils.StringUuidGeneratorImpl
@@ -254,6 +261,13 @@ class RestTestSetUp {
     null // not able to search techniques
   )
 
+  val linkUtil = new LinkUtil(
+    mockRules.ruleRepo,
+    mockNodeGroups.groupsRepo,
+    mockDirectives.directiveRepo,
+    mockNodes.nodeFactRepo
+  )
+
   object dynGroupService extends DynGroupService {
     override def getAllDynGroups(): Box[Seq[NodeGroup]] = {
       mockNodeGroups.groupsRepo
@@ -271,18 +285,30 @@ class RestTestSetUp {
   val deploymentStatusSerialisation: DeploymentStatusSerialisation = new DeploymentStatusSerialisation {
     override def serialise(deploymentStatus: CurrentDeploymentStatus): Elem = <test/>
   }
+  val fakeModifyNodeGroupEventLog = new ModifyNodeGroup(
+    EventLogDetails(
+      id = Some(42),
+      modificationId = None,
+      principal = EventActor("test"),
+      creationDate = DateTime.parse("2024-12-04T15:30:10"),
+      details = <test/>,
+      reason = None
+    )
+  )
   val eventLogRepo:                  EventLogRepository            = new EventLogRepository {
     override def saveEventLog(modId: ModificationId, eventLog: EventLog): IOResult[EventLog] = eventLog.succeed
 
-    override def eventLogFactory: EventLogFactory = ???
+    override def eventLogFactory:           EventLogFactory    = ???
     override def getEventLogByCriteria(
         criteria:       Option[Fragment],
         limit:          Option[Int],
         orderBy:        List[Fragment],
         extendedFilter: Option[Fragment]
-    ): IOResult[Seq[EventLog]] = ???
-    override def getEventLogById(id: Long): IOResult[EventLog] = ???
-    override def getEventLogCount(criteria:       Option[Fragment], extendedFilter: Option[Fragment]): IOResult[Long] = ???
+    ): IOResult[Seq[EventLog]] = List(fakeModifyNodeGroupEventLog).succeed
+    override def getEventLogById(id: Long): IOResult[EventLog] = {
+      fakeModifyNodeGroupEventLog.succeed
+    }
+    override def getEventLogCount(criteria: Option[Fragment], extendedFilter: Option[Fragment]): IOResult[Long] = 0L.succeed
     override def getEventLogByChangeRequest(
         changeRequest:   ChangeRequestId,
         xpath:           String,
@@ -290,7 +316,9 @@ class RestTestSetUp {
         orderBy:         Option[String],
         eventTypeFilter: List[EventLogFilter]
     ): IOResult[Vector[EventLog]] = ???
-    override def getEventLogWithChangeRequest(id: Int): IOResult[Option[(EventLog, Option[ChangeRequestId])]] = ???
+    override def getEventLogWithChangeRequest(id: Int): IOResult[Option[(EventLog, Option[ChangeRequestId])]] = {
+      ZIO.none
+    }
     override def getLastEventByChangeRequest(
         xpath:           String,
         eventTypeFilter: List[EventLogFilter]
@@ -317,10 +345,27 @@ class RestTestSetUp {
     ): IOResult[EventLog] = ZIO.succeed(null)
 
   }
-  val eventLogger:                   EventLogDeploymentService     = new EventLogDeploymentService(eventLogRepo, null) {
+  val eventLogDetailsService = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null, null)
+  val modificationService = new ModificationService(null, null, null, null) {
+    override def restoreToEventLog(
+        eventLog:         EventLog,
+        commiter:         PersonIdent,
+        rollbackedEvents: Seq[EventLog],
+        target:           EventLog
+    ): Box[GitCommitId] = Full(fakeGitCommitId)
+  }
+  val eventLogDetailGenerator: EventLogDetailsGenerator = new EventLogDetailsGenerator(
+    eventLogDetailsService,
+    mockNodeGroups.groupsRepo,
+    mockRules.ruleCategoryRepo,
+    modificationService,
+    linkUtil,
+    null
+  )
+  val eventLogger:      EventLogDeploymentService = new EventLogDeploymentService(eventLogRepo, null) {
     override def getLastDeployement(): Box[CurrentDeploymentStatus] = Full(NoStatus)
   }
-  val policyGeneration:              PromiseGenerationService      = new PromiseGenerationService {
+  val policyGeneration: PromiseGenerationService  = new PromiseGenerationService {
     override def deploy():       Box[Set[NodeId]]                   = Full(Set())
     override def getNodeFacts(): Box[MapView[NodeId, CoreNodeFact]] = ???
     override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = ???
@@ -422,7 +467,7 @@ class RestTestSetUp {
     ): Box[Unit] = ???
     override def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = ???
   }
-  val bootGuard:                     Promise[Nothing, Unit]        = (for {
+  val bootGuard:        Promise[Nothing, Unit]    = (for {
     p <- Promise.make[Nothing, Unit]
     _ <- p.succeed(())
   } yield p).runNow
@@ -654,6 +699,13 @@ class RestTestSetUp {
     fakeHcNotifService,
     restDataSerializer,
     null
+  )
+
+  val eventLogService = new EventLogService(eventLogRepo, eventLogDetailGenerator, fakePersonIndentService)
+  val eventLogApi     = new EventLogAPI(
+    eventLogService,
+    eventLogDetailGenerator,
+    _.serialize
   )
 
   val ruleCategoryService = new RuleCategoryService()
@@ -946,7 +998,8 @@ class RestTestSetUp {
       () => mockUserManagement.providerRoleExtension,
       () => mockUserManagement.authBackendProviders
     ),
-    infoApi
+    infoApi,
+    eventLogApi
   )
 
   val apiVersions: List[ApiVersion] = {
@@ -966,12 +1019,7 @@ class RestTestSetUp {
     new RestQuicksearch(
       quickSearchService,
       userService,
-      new LinkUtil(
-        mockRules.ruleRepo,
-        mockNodeGroups.groupsRepo,
-        mockDirectives.directiveRepo,
-        mockNodes.nodeFactRepo
-      )
+      linkUtil
     )
   )
 
@@ -1095,11 +1143,26 @@ class RestTest(liftRules: LiftRules) {
     mockReq
   }
 
+  // String-based API alternative to lift-json
+  private def mockJsonRequest(path: String, method: String, data: String) = {
+    val mockReq = mockRequest(path, method)
+    mockReq.body_=(data, "application/json")
+    mockReq
+  }
+
   def jsonPUT(path: String, json: JValue): MockHttpServletRequest = {
     mockJsonRequest(path, "PUT", json)
   }
 
+  def jsonPUT(path: String, json: String): MockHttpServletRequest = {
+    mockJsonRequest(path, "PUT", json)
+  }
+
   def jsonPOST(path: String, json: JValue): MockHttpServletRequest = {
+    mockJsonRequest(path, "POST", json)
+  }
+
+  def jsonPOST(path: String, json: String): MockHttpServletRequest = {
     mockJsonRequest(path, "POST", json)
   }
 
@@ -1140,6 +1203,12 @@ class RestTest(liftRules: LiftRules) {
     execRequestResponse(jsonPUT(path, json))(tests)
   }
   def testPOSTResponse[T](path: String, json: JValue)(tests: Box[LiftResponse] => MatchResult[T]): MatchResult[T] = {
+    execRequestResponse(jsonPOST(path, json))(tests)
+  }
+  def testPUTResponse[T](path: String, json: String)(tests: Box[LiftResponse] => MatchResult[T]):  MatchResult[T] = {
+    execRequestResponse(jsonPUT(path, json))(tests)
+  }
+  def testPOSTResponse[T](path: String, json: String)(tests: Box[LiftResponse] => MatchResult[T]): MatchResult[T] = {
     execRequestResponse(jsonPOST(path, json))(tests)
   }
   def testBinaryPOSTResponse[T](

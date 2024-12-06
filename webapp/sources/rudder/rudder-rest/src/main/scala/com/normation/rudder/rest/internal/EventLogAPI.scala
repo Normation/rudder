@@ -36,255 +36,298 @@
  */
 
 package com.normation.rudder.rest.internal
-import cats.syntax.all.*
-import com.normation.box.*
+
+import cats.data.NonEmptyList
+import com.normation.errors.*
 import com.normation.eventlog.*
+import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.domain.logger.EventLogsLoggerPure
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.EventLogRepository
-import com.normation.rudder.repository.json.DataExtractor.CompleteJson
-import com.normation.rudder.rest.OldInternalApiAuthz
-import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.RestUtils.*
+import com.normation.rudder.rest.ApiModuleProvider
+import com.normation.rudder.rest.ApiPath
+import com.normation.rudder.rest.AuthzToken
+import com.normation.rudder.rest.EventLogApi
+import com.normation.rudder.rest.RudderJsonRequest.*
+import com.normation.rudder.rest.RudderJsonResponse
+import com.normation.rudder.rest.data.RestEventLog
+import com.normation.rudder.rest.data.RestEventLogDetails
+import com.normation.rudder.rest.data.RestEventLogError
+import com.normation.rudder.rest.data.RestEventLogFilter
+import com.normation.rudder.rest.data.RestEventLogFilter.Direction.Asc
+import com.normation.rudder.rest.data.RestEventLogFilter.Direction.Desc
+import com.normation.rudder.rest.data.RestEventLogRollback
+import com.normation.rudder.rest.data.RestEventLogRollback.Action.After
+import com.normation.rudder.rest.data.RestEventLogRollback.Action.Before
+import com.normation.rudder.rest.data.RestEventLogSuccess
+import com.normation.rudder.rest.implicits.*
+import com.normation.rudder.rest.lift.DefaultParams
+import com.normation.rudder.rest.lift.LiftApiModule
+import com.normation.rudder.rest.lift.LiftApiModule0
+import com.normation.rudder.rest.lift.LiftApiModuleProvider
+import com.normation.rudder.rest.lift.LiftApiModuleString
 import com.normation.rudder.services.user.PersonIdentService
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.services.*
-import com.normation.utils.DateFormaterService
+import com.normation.zio.UnsafeRun
 import doobie.*
 import doobie.implicits.*
-import doobie.implicits.javasql.*
-import net.liftweb.common.*
-import net.liftweb.http.JsonResponse
+import doobie.postgres.implicits.*
+import doobie.util.fragments
+import io.scalaland.chimney.syntax.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import net.liftweb.http.S
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.JsonAST
-import net.liftweb.json.JsonDSL.*
-import net.liftweb.json.JValue
-import net.liftweb.util.Helpers.tryo
-import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
+import zio.ZIO
+import zio.syntax.*
 
 class EventLogAPI(
-    repos:              EventLogRepository,
-    restExtractor:      RestExtractorService,
+    service:            EventLogService,
     eventLogDetail:     EventLogDetailsGenerator,
-    personIdentService: PersonIdentService
-) extends RestHelper with Loggable {
-  implicit class ToSqlTimestamp(d: DateTime) {
-    def toSql = new java.sql.Timestamp(d.getMillis)
-  }
+    translateEventType: EventLogType => String
+) extends LiftApiModuleProvider[EventLogApi] {
+  import EventLogService.*
 
-  def serialize(event: EventLog): JValue = {
-    import net.liftweb.json.JsonDSL.*
+  implicit val translateEventLogType: EventLogType => String   = translateEventType
+  implicit val eventLogDetailsGen:    EventLogDetailsGenerator = eventLogDetail
 
-    (("id"           -> event.id)
-    ~ ("date"        -> DateFormaterService.getDisplayDate(event.creationDate))
-    ~ ("actor"       -> event.principal.name)
-    ~ ("type"        -> S.?("rudder.log.eventType.names." + event.eventType.serialize))
-    ~ ("description" -> eventLogDetail.displayDescription(event).toString)
-    ~ ("hasDetails"  -> (if (event.details != <entry></entry>) true else false)))
-  }
+  override def schemas: ApiModuleProvider[EventLogApi] = EventLogApi
 
-  def errorFormatter(errorMessage: String):                                                     JsonAST.JObject = {
-    (("draw"             -> 0)
-    ~ ("recordsTotal"    -> 0)
-    ~ ("recordsFiltered" -> 0)
-    ~ ("data"            -> "")
-    ~ ("error"           -> errorMessage))
-  }
-  def responseFormater(draw: Int, totalRecord: Long, totalFiltered: Long, logs: Seq[EventLog]): JValue          = {
-    (("draw"             -> draw)
-    ~ ("recordsTotal"    -> totalRecord)
-    ~ ("recordsFiltered" -> totalFiltered)
-    ~ ("data"            -> logs.map(serialize)))
-  }
-
-  def getEventLogBySlice(
-      start:    Int,
-      criteria: Option[Fragment],
-      optLimit: Option[Int],
-      orderBy:  List[Fragment],
-      filter:   Option[Fragment]
-  ): Box[Seq[EventLog]] = {
-    val c = criteria.getOrElse(Fragment.const(" 1 = 1 ")) ++ fr" order by ${orderBy.intercalate(fr",")} offset ${start}"
-    repos
-      .getEventLogByCriteria(Some(c), optLimit, Nil, filter)
-      .toBox match {
-      case Full(events) => Full(events)
-      case eb: EmptyBox =>
-        eb ?~! s"Error when trying fetch eventlogs from database for page ${(start / optLimit.getOrElse(1)) + 1}"
+  override def getLiftEndpoints(): List[LiftApiModule] = {
+    EventLogApi.endpoints.map {
+      case EventLogApi.GetEventLogs       => GetEventLogs
+      case EventLogApi.GetEventLogDetails => GetEventLogDetails
+      case EventLogApi.RollbackEventLog   => RollbackEventLog
     }
   }
 
-  def requestDispatch: PartialFunction[Req, () => Box[LiftResponse]] = {
-    case Post(Nil, req) =>
-      def extractFilterOpt(json: JValue) = {
-        for {
-          value <- CompleteJson.extractJsonString(json, "value")
-        } yield {
-          if (value == "") {
-            None
-          } else {
-            val v = "%" + value + "%"
-            Some(fr"(temp1.filter ilike ${v} OR temp1.eventtype ilike ${v})")
+  object GetEventLogs extends LiftApiModule0 {
+    val schema: EventLogApi.GetEventLogs.type = EventLogApi.GetEventLogs
+
+    def process0(
+        version:    ApiVersion,
+        path:       ApiPath,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      implicit val prettify: Boolean = params.prettify
+
+      (for {
+        restFilter <- req.fromJson[RestEventLogFilter].toIO
+        res        <- service.getEventLogSlice(restFilter)
+      } yield {
+        (restFilter.draw, res)
+      }).chainError("Error when fetching event logs")
+        .either
+        .runNow
+        .fold(
+          err => RudderJsonResponse.generic.internalError(RestEventLogError(err.fullMsg)),
+          {
+            case (draw, EventLogSlice(events, totalRecord, totalFilter)) =>
+              RudderJsonResponse.LiftJsonResponse(
+                RestEventLogSuccess(draw, totalRecord, totalFilter, events.map(_.transformInto[RestEventLog])),
+                params.prettify,
+                200
+              )
           }
-        }
-      }
-
-      def extractDateTimeOpt(i: String) = {
-        val format = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
-
-        if (i == "") {
-          Full(None)
-        } else {
-          tryo(Some(DateTime.parse(i, format)))
-        }
-      }
-
-      implicit val prettify: Boolean = restExtractor
-        .extractBoolean("prettify")(req)(identity)
-        .getOrElse(Some(false))
-        .getOrElse(
-          false
         )
-      implicit val action:   String  = "eventFilterDetails"
-      OldInternalApiAuthz.withWriteAdmin((for {
-        json   <- req.json
-        draw   <- CompleteJson.extractJsonInt(json, "draw")
-        start  <- CompleteJson.extractJsonInt(json, "start")
-        length <- CompleteJson.extractJsonInt(json, "length")
-
-        filter       <- CompleteJson.extractJsonObj(json, "search", extractFilterOpt)
-        optStartDate <- CompleteJson.extractJsonString(json, "startDate", extractDateTimeOpt)
-        optEndDate   <- CompleteJson.extractJsonString(json, "endDate", extractDateTimeOpt)
-
-        order <- CompleteJson.extractJsonArray(json, "order") { json =>
-                   for {
-                     colId <- CompleteJson.extractJsonInt(json, "column")
-                     col   <- colId match {
-
-                                case 0 => Full("id")
-                                case 1 => Full("creationdate")
-                                case 2 => Full("principal")
-                                case 3 => Full("eventtype")
-                                case _ => Failure("not a valid column")
-
-                              }
-                     dir   <- CompleteJson.extractJsonString(json, "dir")
-                     order <- dir.toLowerCase match {
-                                case "desc" => Full("DESC")
-                                case "asc"  => Full("ASC")
-                                case x      => Failure(s"not a valid sorting order: ${x}")
-                              }
-                   } yield {
-                     Fragment.const(s"${col} ${order}")
-                   }
-                 }
-
-        dateCriteria = (optStartDate, optEndDate) match {
-                         case (None, None)                                        => None
-                         case (Some(start_), None)                                => Some(fr" creationDate >= ${start_.toSql}")
-                         case (None, Some(end_))                                  => Some(fr" creationDate <= ${end_.toSql}")
-                         case (Some(start_), Some(end_)) if end_.isBefore(start_) =>
-                           Some(
-                             fr" creationDate >= ${end_.toSql} and creationDate <= ${start_.toSql}"
-                           )
-                         case (Some(start_), Some(end_))                          =>
-                           Some(
-                             fr" creationDate >= ${start_.toSql} and creationDate <= ${end_.toSql}"
-                           )
-                       }
-
-        (criteria, from) = (filter, dateCriteria) match {
-                             case (None, res)              => (res, None)
-                             case (Some(value), None)      =>
-                               (
-                                 Some(value),
-                                 Some(
-                                   fr" from ( select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, UNNEST(xpath('string(//entry)',data))::text as filter from eventlog) as temp1 "
-                                 )
-                               )
-                             case (Some(value), Some(res)) =>
-                               (
-                                 Some(fr"${value} and ${res}"),
-                                 Some(
-                                   fr" from ( select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, UNNEST(xpath('string(//entry)',data))::text as filter from eventlog) as temp1 "
-                                 )
-                               )
-                           }
-
-        events      <- getEventLogBySlice(start, criteria, Some(length), order, from)
-        totalRecord <- repos.getEventLogCount(None).toBox
-        totalFilter <- repos.getEventLogCount(criteria, from).toBox
-      } yield {
-        responseFormater(draw, totalRecord, totalFilter, events)
-      }) match {
-        case Full(resp) =>
-          JsonResponse(resp)
-        case eb: EmptyBox =>
-          val fail = eb ?~! "Error when fetching event logs"
-          logger.error(fail.messageChain)
-          JsonResponse(errorFormatter(fail.msg), 500) // we don't want to let the user know about SQL error
-      })
-
-    case Get(id :: "details" :: Nil, req) =>
-      implicit val prettify: Boolean =
-        restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
-      implicit val action:   String  = "eventDetails"
-      OldInternalApiAuthz.withReadAdmin((for {
-        realId     <- Box.tryo(id.toLong)
-        event      <- repos.getEventLogById(realId).toBox
-        crId        = event.id.flatMap(repos.getEventLogWithChangeRequest(_).toBox match {
-                        case Full(Some((_, crId))) => crId
-                        case _                     => None
-                      })
-        htmlDetails = eventLogDetail.displayDetails(event, crId)(CurrentUser.queryContext)
-      } yield {
-        val response = {
-          (("id"           -> id)
-          ~ ("content"     -> htmlDetails.toString())
-          ~ ("canRollback" -> event.canRollBack))
-        }
-        toJsonResponse(None, response)
-      }) match {
-        case Full(resp) => resp
-        case eb: EmptyBox =>
-          val fail = eb ?~! s"Error when getting event log with id '${id}' details"
-          logger.error(fail.messageChain)
-          toJsonError(None, fail.msg) // we don't want to let the user know about SQL error
-      })
-
-    case Get(id :: "details" :: "rollback" :: Nil, req) =>
-      implicit val prettify: Boolean =
-        restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
-      implicit val action:   String  = "eventRollback"
-
-      OldInternalApiAuthz.withReadAdmin((for {
-        reqParam     <- req.params.get("action") match {
-                          case Some(actions) if (actions.size == 1) => Full(actions.head)
-                          case Some(actions)                        =>
-                            Failure(s"Only one action is excepted, ${actions.size} found in request : ${actions.mkString(",")}")
-                          case None                                 => Failure("Empty action")
-                        }
-        rollbackReq  <- if (reqParam == "after") Full(eventLogDetail.RollbackTo)
-                        else if (reqParam == "before") Full(eventLogDetail.RollbackBefore)
-                        else Failure(s"Unknown rollback's action : ${reqParam}")
-        idLong       <- Box.tryo(id.toLong)
-        event        <- repos.getEventLogById(idLong).toBox
-        committer    <- personIdentService.getPersonIdentOrDefault(CurrentUser.actor.name).toBox
-        rollbackExec <- rollbackReq.action(event, committer, Seq(event), event)
-      } yield {
-        val r = {
-          (("action" -> reqParam)
-          ~ ("id"    -> id))
-        }
-        toJsonResponse(None, r)
-      }) match {
-        case Full(resp) => resp
-        case eb: EmptyBox =>
-          val fail = eb ?~! s"Error when performing eventlog's rollback with id '${id}'"
-          toJsonError(None, fail.messageChain)
-      })
+    }
   }
-  serve("secure" / "api" / "eventlog" prefix requestDispatch)
+
+  object GetEventLogDetails extends LiftApiModuleString {
+    val schema: EventLogApi.GetEventLogDetails.type = EventLogApi.GetEventLogDetails
+
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
+      (
+        for {
+          evId    <- id.toLongOption.notOptional("event log ID is not a long integer : " + id)
+          details <- service.getEventLogDetails(evId)
+        } yield {
+          details
+        }
+      ).chainError(s"Error when getting event log with id '${id}' details")
+        .toLiftResponseOne(
+          params,
+          schema,
+          None
+        )
+    }
+  }
+  object RollbackEventLog   extends LiftApiModuleString {
+    val schema: EventLogApi.RollbackEventLog.type = EventLogApi.RollbackEventLog
+
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        id:         String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
+      (for {
+        evId    <- id.toLongOption.notOptional("event log ID is not a long integer : " + id)
+        action  <- req.params.get("action") match {
+                     case Some(action :: Nil) =>
+                       RestEventLogRollback.Action
+                         .withNameInsensitiveOption(action)
+                         .notOptional(s"Unknown rollback's action : ${action}")
+                     case Some(actions)       =>
+                       Inconsistency(
+                         s"Only one action is excepted, ${actions.size} found in request : ${actions.mkString(",")}"
+                       ).fail
+                     case None                => Inconsistency("Empty action").fail
+                   }
+        details <- service.rollback(evId, action)
+      } yield {
+        RestEventLogRollback(action, id)
+      }).chainError(s"Error when performing eventlog's rollback with id '${id}'")
+        .toLiftResponseOne(
+          params,
+          schema,
+          None
+        )
+    }
+  }
+
+}
+
+class EventLogService(
+    repo:                    EventLogRepository,
+    eventLogDetailGenerator: EventLogDetailsGenerator,
+    personIdentService:      PersonIdentService
+) {
+  import EventLogService.*
+
+  def getEventLogSlice(
+      restFilter: RestEventLogFilter
+  ): IOResult[EventLogSlice] = {
+    import restFilter.*
+
+    val dateCriteria =
+      fragments.andOpt(startDate.map(start => fr"creationDate >= ${start}"), endDate.map(end => fr"creationDate <= ${end}"))
+
+    val (criteria, from) = (search.flatMap(_.toFragment), dateCriteria) match {
+      case (None, res)              => (res, None)
+      case (Some(value), None)      =>
+        (
+          Some(value),
+          Some(
+            fr"from ( select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, UNNEST(xpath('string(//entry)',data))::text as filter from eventlog) as temp1"
+          )
+        )
+      case (Some(value), Some(res)) =>
+        (
+          Some(fragments.and(value, res)),
+          Some(
+            fr"from ( select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data, UNNEST(xpath('string(//entry)',data))::text as filter from eventlog) as temp1"
+          )
+        )
+    }
+    val orderBy          = NonEmptyList
+      .fromList(order.map(_.toFragment).toList)
+      .map(fragments.comma(_))
+      .map(fr"order by" ++ _)
+      .getOrElse(Fragment.empty)
+    val offset           = fr"offset ${start}"
+    val queryCriteria    = Some(
+      // as full criteria the "where" needs a condition
+      // we also need the orderBy here because it should come before the offset
+      criteria.getOrElse(fr"1=1") ++ orderBy ++ offset
+    )
+
+    (for {
+      events      <-
+        repo
+          .getEventLogByCriteria(queryCriteria, Some(length), Nil, from)
+          .chainError(s"Error when trying fetch eventlogs from database for page ${(start / length) + 1}")
+      totalRecord <- repo.getEventLogCount(None)
+      totalFilter <- repo.getEventLogCount(criteria, from)
+    } yield {
+      EventLogSlice(events, totalRecord, totalFilter)
+    }).catchSystemErrors
+  }
+
+  def getEventLogDetails(id: Long)(implicit qc: QueryContext): IOResult[RestEventLogDetails] = {
+
+    (for {
+      event      <- repo.getEventLogById(id)
+      crId       <- ZIO.foreach(event.id)(repo.getEventLogWithChangeRequest(_).notOptional("").map(_._2).catchAll(_ => None.succeed))
+      htmlDetails = eventLogDetailGenerator.displayDetails(event, crId.flatten)
+    } yield {
+      RestEventLogDetails(
+        id.toString,
+        htmlDetails,
+        event.canRollBack
+      )
+    }).catchSystemErrors
+  }
+
+  def rollback(id: Long, action: RestEventLogRollback.Action)(implicit qc: QueryContext): IOResult[Unit] = {
+    (for {
+      event      <- repo.getEventLogById(id).catchSystemErrors
+      rollbackReq = action match {
+                      case After  => eventLogDetailGenerator.RollbackTo
+                      case Before => eventLogDetailGenerator.RollbackBefore
+                    }
+      committer  <- personIdentService.getPersonIdentOrDefault(qc.actor.name)
+      _          <- rollbackReq.action(event, committer, Seq(event), event).toIO
+    } yield ())
+  }
+
+}
+
+object EventLogService {
+  final case class EventLogSlice(events: Seq[EventLog], totalRecord: Long, totalFilter: Long)
+
+  /**
+   * Syntax to avoid exposing database query errors in the API response,
+   * since we don't want to let the user know about SQL error.
+   * 
+   * There is no strong guarantee that this catches all system errors, 
+   * especially since errors can be chained !
+   */
+  implicit private class IOResultSystemError[A](io: IOResult[A]) {
+    def catchSystemErrors: IOResult[A] = io.catchSome {
+      case err: SystemError =>
+        EventLogsLoggerPure.error(err.fullMsg) *>
+        Inconsistency("A database error occured").fail
+
+      // in case user had called chainError once on a database call
+      case Chained(msg, err: SystemError) =>
+        EventLogsLoggerPure.error(err.fullMsg) *>
+        Inconsistency(msg).fail
+    }
+  }
+
+  /**
+   * Syntax for converting rest filters objects to fragment, as only the service knows about the table and column names.
+   * Some day we would have a repo that expose queries and test the resulting query with type-checking
+   */
+  implicit class SearchOps(search: RestEventLogFilter.Search) {
+    def toFragment: Option[Fragment] = {
+      if (search.value.isEmpty) {
+        None
+      } else {
+        val v = "%" + search.value + "%"
+        Some(fr"(temp1.filter ilike ${v} OR temp1.eventtype ilike ${v})")
+      }
+    }
+  }
+
+  implicit class OrderOps(order: RestEventLogFilter.Order) {
+    // fragment needs to be with constant known column names
+    def toFragment: Fragment = Fragment.const(order.column.entryName) ++ directionFragment
+    private def directionFragment = order.dir match {
+      case Desc => fr"DESC"
+      case Asc  => fr"ASC"
+    }
+  }
 }

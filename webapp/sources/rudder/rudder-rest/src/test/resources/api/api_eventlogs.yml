@@ -1,0 +1,288 @@
+description: Get event logs with valid filters
+method: POST
+url: /secure/api/eventlog
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "draw": 5,
+    "columns": [
+      {
+        "data": "id",
+        "name": "",
+        "searchable": true,
+        "orderable": true,
+        "search": {
+          "value": "",
+          "regex": false
+        }
+      },
+      {
+        "data": "date",
+        "name": "",
+        "searchable": true,
+        "orderable": true,
+        "search": {
+          "value": "",
+          "regex": false
+        }
+      },
+      {
+        "data": "actor",
+        "name": "",
+        "searchable": true,
+        "orderable": true,
+        "search": {
+          "value": "",
+          "regex": false
+        }
+      },
+      {
+        "data": "type",
+        "name": "",
+        "searchable": true,
+        "orderable": true,
+        "search": {
+          "value": "",
+          "regex": false
+        }
+      },
+      {
+        "data": "description",
+        "name": "",
+        "searchable": true,
+        "orderable": false,
+        "search": {
+          "value": "",
+          "regex": false
+        }
+      }
+    ],
+    "order": [
+      {
+        "column": 0,
+        "dir": "desc"
+      }
+    ],
+    "start": 0,
+    "length": 25,
+    "search": {
+      "value": "",
+      "regex": false
+    },
+    "startDate": "2024-12-04 15:31:15",
+    "endDate": "2024-12-04 15:30:54"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "draw" : 5,
+      "recordsTotal" : 0,
+      "recordsFiltered" : 0,
+      "data" : [
+        {
+          "id" : 42,
+          "date" : "2024-12-04 15:30:10+0100",
+          "actor" : "test",
+          "type" : "NodeGroupModified",
+          "description" : "Group ",
+          "hasDetails" : true
+        }
+      ]
+    }
+---
+description: Get event logs with invalid column value
+method: POST
+url: /secure/api/eventlog
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "draw": 5,
+    "columns": [
+      {
+        "data": "id",
+        "name": "",
+        "searchable": true,
+        "orderable": true,
+        "search": {
+          "value": "",
+          "regex": false
+        }
+      }
+    ],
+    "order": [
+      {
+        "column": -1,
+        "dir": "desc"
+      }
+    ],
+    "start": 0,
+    "length": 25,
+    "search": {
+      "value": "",
+      "regex": false
+    },
+    "startDate": "2024-12-04 15:31:15",
+    "endDate": "2024-12-04 15:30:54"
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "draw" : 0,
+      "recordsTotal" : 0,
+      "recordsFiltered" : 0,
+      "data" : "",
+      "error" : "Error when fetching event logs; cause was: Unexpected: .order[0].column(Not a valid column id : -1, columns are 0=id,1=creationdate,2=principal,3=eventtype)"
+    }
+---
+description: Get event logs with invalid direction value
+method: POST
+url: /secure/api/eventlog
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "draw": 5,
+    "columns": [
+      {
+        "data": "id",
+        "name": "",
+        "searchable": true,
+        "orderable": true,
+        "search": {
+          "value": "",
+          "regex": false
+        }
+      }
+    ],
+    "order": [
+      {
+        "column": 1,
+        "dir": "d"
+      }
+    ],
+    "start": 0,
+    "length": 25,
+    "search": {
+      "value": "",
+      "regex": false
+    },
+    "startDate": "2024-12-04 15:31:15",
+    "endDate": "2024-12-04 15:30:54"
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "draw" : 0,
+      "recordsTotal" : 0,
+      "recordsFiltered" : 0,
+      "data" : "",
+      "error" : "Error when fetching event logs; cause was: Unexpected: .order[0].dir(not a valid sorting order: d)"
+    }
+---
+description: Get event logs with missing order direction
+method: POST
+url: /secure/api/eventlog
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "draw": 5,
+    "columns": [
+      {
+        "data": "id",
+        "name": "",
+        "searchable": true,
+        "orderable": true,
+        "search": {
+          "value": "",
+          "regex": false
+        }
+      }
+    ],
+    "order": [
+      {
+        "column": 1
+      }
+    ],
+    "start": 0,
+    "length": 25,
+    "search": {
+      "value": "",
+      "regex": false
+    },
+    "startDate": "2024-12-04 15:31:15",
+    "endDate": "2024-12-04 15:30:54"
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "draw" : 0,
+      "recordsTotal" : 0,
+      "recordsFiltered" : 0,
+      "data" : "",
+      "error" : "Error when fetching event logs; cause was: Unexpected: .order[0].dir(missing)"
+    }
+---
+description: Get details of a specific event log
+method: GET
+url: /secure/api/eventlog/1/details
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getEventLogDetails",
+      "result" : "success",
+      "data" : {
+        "id" : "1",
+        "content" : "<div class=\"py-2 flex-fill\">\n        \n          <div class=\"evloglmargin\">\n            <h5>Details for that node were not in a recognized format.\n              Raw data are displayed next:</h5><button id=\"showParameters42\" class=\"btn btn-default showParameters\">\n              <b class=\"action\">Show</b>\n              raw technical details\n            </button><pre id=\"showParametersInfo42\" style=\"display:none;\" class=\"technical-details\">&lt;test/&gt;\n</pre>\n          </div>\n        \n      </div>",
+        "canRollback" : true
+      }
+    }
+---
+description: Rollback a specific event log after
+method: GET
+url: /secure/api/eventlog/1/details/rollback?action=after
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "rollbackEventLog",
+      "result" : "success",
+      "data" : {
+        "action" : "after",
+        "id" : "1"
+      }
+    }
+---
+description: Rollback a specific event log with multiple action
+method: GET
+url: /secure/api/eventlog/1/details/rollback?action=some&action=other
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "rollbackEventLog",
+      "result" : "error",
+      "errorDetails" : "Error when performing eventlog's rollback with id '1'; cause was: Inconsistency: Only one action is excepted, 2 found in request : some,other"
+    }
+
+
+---
+description: Rollback a specific event log with invalid action
+method: GET
+url: /secure/api/eventlog/1/details/rollback?action=unknown
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "rollbackEventLog",
+      "result" : "error",
+      "errorDetails" : "Error when performing eventlog's rollback with id '1'; cause was: Inconsistency: Unknown rollback's action : unknown"
+    }
+

@@ -191,7 +191,7 @@ final case class RestExtractorService(
   }
 
   /*
-   * Still used in technique/eventlog/apiaccounts API
+   * Still used in technique/apiaccounts API
    */
   def extractBoolean[T](key: String)(req: Req)(fun: Boolean => T): Box[Option[T]] = {
     req.json match {
