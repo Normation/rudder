@@ -173,10 +173,16 @@ class TechniqueCompilationErrorsActorSync(
   }
 
   /**
-     * Drop a value from the error base if it exists
+     * Drop a value from the error base if it exists, sync the status to forget the specified one
      */
   def unsyncOne(id: (BundleName, Version)): IOResult[Unit] = {
-    errorBase.update(_ - id)
+    for {
+      base  <-
+        errorBase.updateAndGet(_ - id)
+      status = getStatus(base.values)
+
+      _ <- syncStatusWithUi(status)
+    } yield ()
   }
 
   /*
