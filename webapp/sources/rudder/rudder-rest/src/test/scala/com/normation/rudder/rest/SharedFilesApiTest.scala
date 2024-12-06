@@ -80,6 +80,12 @@ class SharedFilesApiTest extends Specification with JsonSpecMatcher {
     res.toString() must beEqualTo(tmp.toString() + "/file2")
   }
 
+  "sanitize a split path" >> {
+    val tail = "/dir" :: ".." :: "file2" :: Nil
+    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail))
+    res.toString() must beEqualTo(tmp.toString() + "/file2")
+  }
+
   "sanitize non-existing valid path" >> {
     val tail = "/file42"
     val res  = ZioRuntime.unsafeRun(sanitizePath(tail, tmp))
@@ -89,6 +95,12 @@ class SharedFilesApiTest extends Specification with JsonSpecMatcher {
   "sanitize does prevent for traversal" >> {
     val tail = "/../../.."
     val res  = ZioRuntime.unsafeRun(sanitizePath(tail, tmp).isFailure)
+    res must beTrue
+  }
+
+  "sanitize also prevents a split path" >> {
+    val tail = ".." :: ".." :: ".." :: Nil
+    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail).isFailure)
     res must beTrue
   }
 
