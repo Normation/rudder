@@ -276,5 +276,12 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
         newErrorStatus
       )
     }
+
+    "unsync one" in {
+      (writeCache.unsyncOne(newError.id -> newError.version) *>
+      msgLock.withPermit(
+        (mockActor hasReceivedMessage_? UpdateCompilationStatus(CompilationStatusAllSuccess)).succeed
+      )).runNow.aka("actor received message") must beTrue and (mockActor.messageCount must beEqualTo(2))
+    }
   }
 }
