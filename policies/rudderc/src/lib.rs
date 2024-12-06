@@ -49,7 +49,8 @@ pub fn run(args: MainArgs) -> Result<()> {
 
     let maybe_input = YAML_EXTENSIONS
         .iter()
-        .map(|e| Path::new(TECHNIQUE).with_extension(e)).find(|p| p.exists());
+        .map(|e| Path::new(TECHNIQUE).with_extension(e))
+        .find(|p| p.exists());
     let input = match maybe_input {
         Some(input) => input,
         None => bail!(
