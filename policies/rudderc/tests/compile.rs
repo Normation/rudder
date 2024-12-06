@@ -31,7 +31,7 @@ pub fn init_logs() {
 const TEST_METHODS: &str = "tests/lib/common/30_generic_methods";
 
 /// Compiles all files in `cases/general`. Files ending in `.fail.yml` are expected to fail.
-#[test_resources("tests/cases/general/*/technique.yml")]
+#[test_resources("tests/cases/general/*/technique.y*ml")]
 fn compile(filename: &str) {
     init_logs();
     let input = read_to_string(filename).unwrap();

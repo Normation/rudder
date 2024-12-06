@@ -24,8 +24,9 @@ pub mod test;
 
 pub const TARGET_DIR: &str = "target";
 pub const TESTS_DIR: &str = "tests";
+/// Name of the technique files. The extension indicates the format.
 pub const TECHNIQUE: &str = "technique";
-pub const TECHNIQUE_SRC: &str = "technique.yml";
+pub const YAML_EXTENSIONS: &[&str] = &["yml", "yaml"];
 pub const METADATA_FILE: &str = "metadata.xml";
 pub const RESOURCES_DIR: &str = "resources";
 
@@ -46,7 +47,16 @@ pub const DEFAULT_AGENT_PATH: &str = "/opt/rudder/bin/";
 pub fn run(args: MainArgs) -> Result<()> {
     custom_panic_hook_ignore_sigpipe();
 
-    let input = Path::new(TECHNIQUE_SRC);
+    let input_yml = Path::new(TECHNIQUE).with_extension("yml");
+    let input_yaml = Path::new(TECHNIQUE).with_extension("yaml");
+    let input = if input_yml.exists() {
+        // Try .yml in priority.
+        input_yml.as_path()
+    } else if input_yaml.exists() {
+        input_yaml.as_path()
+    } else {
+        bail!("No input {} file provided", input_yml.display());
+    };
     let cwd = PathBuf::from(".");
     let target = PathBuf::from(TARGET_DIR);
 
@@ -79,7 +89,7 @@ pub fn run(args: MainArgs) -> Result<()> {
 
     if let Some(cwd) = args.directory {
         // Support being passed the technique.yml file directly
-        let actual_cwd = if cwd.ends_with(TECHNIQUE_SRC) {
+        let actual_cwd = if cwd.ends_with(TECHNIQUE) {
             let parent = cwd
                 .parent()
                 .ok_or_else(|| anyhow!("Could not open {} technique directory", cwd.display()))?;
@@ -205,7 +215,7 @@ pub mod action {
         frontends::read_methods,
         ir::Technique,
         test::TestCase,
-        METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TECHNIQUE_SRC, TESTS_DIR,
+        METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TESTS_DIR,
     };
 
     /// Create a technique skeleton
@@ -215,7 +225,7 @@ pub mod action {
             technique.name = n;
         }
         let t = serde_yaml::to_string(&technique)?;
-        let tech_path = output.join(TECHNIQUE_SRC);
+        let tech_path = output.join(TECHNIQUE);
         let mut file = File::create(tech_path.as_path())
             .with_context(|| format!("Failed to create technique file {}", tech_path.display()))?;
         file.write_all(t.as_bytes())?;
@@ -495,7 +505,7 @@ pub mod action {
     pub fn export(src: &Path, dir: PathBuf) -> Result<()> {
         // We don't need to parse everything, let's just extract what we need
         // We use the technique with ids
-        let technique_src = src.join(TECHNIQUE_SRC).with_extension("ids.yml");
+        let technique_src = src.join(TECHNIQUE).with_extension("ids.yml");
         let yml: serde_yaml::Value =
             serde_yaml::from_str(&read_to_string(&technique_src).context(format!(
                 "Could not read source technique {}",
@@ -520,7 +530,7 @@ pub mod action {
         let zip_dir = format!("archive/techniques/{category}/{id}/{version}");
 
         // Technique
-        zip.start_file(format!("{}/{}", zip_dir, TECHNIQUE_SRC), options.clone())?;
+        zip.start_file(format!("{}/{}", zip_dir, TECHNIQUE), options.clone())?;
         let mut buffer = Vec::new();
         let mut f = File::open(&technique_src).context(format!(
             "Opening technique source {}",
