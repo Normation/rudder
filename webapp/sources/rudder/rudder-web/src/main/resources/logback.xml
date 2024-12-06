@@ -57,6 +57,15 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
    -->
 
 
+  <!--
+    Those properties defines the directory into which log using an appender will be written.
+    It can be overwritten when the application is launched with the
+    Java system property syntax: java -DWEBAPP_DIR="/some/other/directory/"
+  -->
+  <property name="WEBAPP_DIR" value="/var/log/rudder/webapp" />
+  <property name="APILOG_DIR" value="${WEBAPP_DIR}/api" />
+  <property name="REPORT_DIR" value="/var/log/rudder/compliance" />
+
 
   <!--
     Appender configuration - where&how to write logs in SLF4J speaking.
@@ -75,23 +84,37 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
     You should not have to modify that.
   -->
-  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-    <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-      <Pattern>%d{[yyyy-MM-dd HH:mm:ssZ]} %-5level %logger - %msg%n%ex{full}</Pattern>
-    </encoder>
-  </appender>
+  
+  
+  <if condition='property("run.mode").equalsIgnoreCase("production")'>
+    <then>
+      <appender name="STDOUT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${WEBAPP_DIR}/webapp.log</file>
+        <append>true</append>
 
-  <!--
-    Those properties defines the directory into which log using OPSLOG and
-    REPORTLOG appender will be writen.
-    It can be overwritten when the application is launched with the
-    Java system property syntax: java -DOPSLOG_DIR="/some/other/directory/"
-  -->
-  <property name="APILOG_DIR" value="/var/log/rudder/api" />
+        ```
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+          <fileNamePattern>${WEBAPP_DIR}/webapp-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+          <maxHistory>30</maxHistory>
+        </rollingPolicy>
 
-  <property name="OPSLOG_DIR" value="/var/log/rudder/core" />
+        <encoder>
+          <pattern>%d{[yyyy-MM-dd HH:mm:ssZ]} %-5level %logger - %msg%n%ex{full}</pattern>
+        </encoder>
 
-  <property name="REPORT_DIR" value="/var/log/rudder/compliance" />
+        ```
+
+      </appender>
+
+    </then>
+    <else>
+      <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+          <Pattern>%d{[yyyy-MM-dd HH:mm:ssZ]} %-5level %logger - %msg%n%ex{full}</Pattern>
+        </encoder>
+      </appender>
+    </else>
+  </if>
 
 
   <!--
@@ -102,7 +125,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <append>true</append>
 
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>${OPSLOG_DIR}/api-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+      <fileNamePattern>${APILOG_DIR}/api-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
       <maxHistory>30</maxHistory>
     </rollingPolicy>
 
@@ -111,26 +134,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </encoder>
   </appender>
 
-  <!--
-    A file log appender for exploitation logs about reports, outputing in a file
-    The message format will be looking like syslog message:
-    Jun 27 13:02:53 orchestrateur-3 rudder[report]: [warn] here come the message
-
-    'report' is expected to be the ops logger name.
-   -->
-  <appender name="OPSLOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <file>${OPSLOG_DIR}/rudder-webapp.log</file>
-    <append>true</append>
-
-    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>${OPSLOG_DIR}/rudder-webapp-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
-      <maxHistory>30</maxHistory>
-    </rollingPolicy>
-
-    <encoder>
-      <pattern>%d{MMM dd HH:mm:ss} ${HOSTNAME} rudder[%logger]: [%level] %msg%n</pattern>
-    </encoder>
-  </appender>
 
   <!--
     A file log appender for exploitation logs about failure reports.
@@ -290,14 +293,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       This logger allows to log information about policy generation
   -->
   <logger name="policy.generation" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger>
   <!--
       This logger allows to log information about expected reports in policy generation
   -->
   <logger name="policy.generation.expected_reports" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger>
   <!--
@@ -308,17 +309,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
   <logger name="org.eclipse.jetty" level="info" />
   <logger name="policy.generation.timing.buildNodeConfig" level="info" />
-
-
-  <!--
-    For the following logger where "OPSLOG" is defined, will get the logs in both the
-    webapp logs and file config in OPSLOG (by default, /var/log/rudder/core/rudder-webapp.log
-
-    You can comment out the line "<appender-ref ref="STDOUT" />" in each
-    of them to have logs only in OPSLOG (respectivelly, you can comment
-    <appender-ref ref="OPSLOG" /> to only have in rudder-webapp.log)
-  -->
-
+  
   <!--
     Startup
     =======
@@ -327,8 +318,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     Set to debug or trace to have information.
   -->
   <logger name="bootstrap" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
-    <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
     <appender-ref ref="STDOUT" />
   </logger>
 
@@ -341,7 +330,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     Set to debug or trace to have information.
   -->
   <logger name="debug_timing" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger>
 
@@ -366,7 +354,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     Trace level is quite verbose.
   -->
   <logger name="explain_compliance" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger>
 
@@ -377,7 +364,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   -->
   <!--
   <logger name="explain_compliance.root" level="trace" additivity="false">
-    <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger>
   -->
@@ -391,8 +377,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     At trace, you get them all.
   -->
   <logger name="sql" level="off" additivity="false">
-    <appender-ref ref="OPSLOG" />
-    <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
     <appender-ref ref="STDOUT" />
   </logger>
 
@@ -410,7 +394,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     the appropriate comment for them in the current file.
   -->
   <logger name="application" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger>
 
@@ -427,7 +410,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     This logger is in charge of all scheduled jobs and batches
   -->
   <logger name="scheduled.job" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger>
 
@@ -437,7 +419,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     Log information about migration processus, for example in case of internal data format updates
   -->
   <logger name="migration" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger>
 
@@ -446,7 +427,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     You most likelly don't want more information on that.
   -->
   <logger name="historization" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger>
 
@@ -461,7 +441,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       This logger allows to log information about reports, especially DB cleaning operation
   -->
   <logger name="report" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger>
 
@@ -474,7 +453,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     Logs about change requests and validation workflows
   -->
   <logger name="changeRequest" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger>
 
@@ -508,8 +486,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     is a lot of nodes implied). Trace add system information (like environment variables).
   -->
   <logger name="hooks" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
-    <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
     <appender-ref ref="STDOUT" />
   </logger>
 
