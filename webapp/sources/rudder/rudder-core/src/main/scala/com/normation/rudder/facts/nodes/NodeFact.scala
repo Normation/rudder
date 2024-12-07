@@ -234,7 +234,7 @@ object MinimalNodeFactInterface {
     }
 
     eq(_.id) &&
-    eq(_.description) &&
+    eq(_.documentation) &&
     eq(_.fqdn) &&
     eq(_.os) &&
     eq(_.machine) &&
@@ -257,7 +257,7 @@ object MinimalNodeFactInterface {
   def toNode(node: MinimalNodeFactInterface): Node = Node(
     node.id,
     node.fqdn,
-    "", // description
+    node.documentation.getOrElse(""),
     node.rudderSettings.state,
     isSystem(node),
     isSystem((node)),
@@ -704,7 +704,7 @@ object NodeFact {
       case _ =>
         NodeFact(
           a.id,
-          a.description,
+          a.documentation,
           a.fqdn,
           a.os,
           a.machine,
@@ -843,7 +843,7 @@ object NodeFact {
   def updateNode(node: NodeFact, n: Node): NodeFact = {
     import com.softwaremill.quicklens.*
     node
-      .modify(_.description)
+      .modify(_.documentation)
       .setTo(Some(n.description))
       .modify(_.rudderSettings.state)
       .setTo(n.state)
@@ -871,7 +871,7 @@ object NodeFact {
     val pad     = "\n * "
     val ignored = new StringBuilder().append(pad).append("ignored: ")
     val sb      = new StringBuilder(s"""id:${diff(n1.id.value, n2.id.value)}
-                                  | * description:${diff(n1.description, n2.description)}
+                                  | * description:${diff(n1.documentation, n2.documentation)}
                                   | * fqdn:${diff(n1.fqdn, n2.fqdn)}
                                   | * os:${diff(n1.os, n2.os)}
                                   | * machine:${diff(n1.machine, n2.machine)}
@@ -915,7 +915,7 @@ object NodeFact {
 
 trait MinimalNodeFactInterface {
   def id:                NodeId
-  def description:       Option[String]
+  def documentation:     Option[String]
   def fqdn:              String
   def os:                OsDetails
   def machine:           MachineInfo
@@ -995,7 +995,7 @@ trait MinimalNodeFactInterface {
  */
 final case class CoreNodeFact(
     id:                NodeId,
-    description:       Option[String],
+    documentation:     Option[String],
     @jsonField("hostname")
     fqdn:              String,
     os:                OsDetails,
@@ -1018,8 +1018,8 @@ object CoreNodeFact {
   def updateNode(node: CoreNodeFact, n: Node): CoreNodeFact = {
     import com.softwaremill.quicklens.*
     node
-      .modify(_.description)
-      .setTo(Some(n.description))
+      .modify(_.documentation)
+      .setTo(if (n.description.isBlank) None else Some(n.description))
       .modify(_.rudderSettings.state)
       .setTo(n.state)
       .modify(_.rudderSettings.kind)
@@ -1040,7 +1040,7 @@ object CoreNodeFact {
       case _ =>
         CoreNodeFact(
           a.id,
-          a.description,
+          a.documentation,
           a.fqdn,
           a.os,
           a.machine,
@@ -1398,7 +1398,7 @@ object SelectFacts {
 
 final case class NodeFact(
     id:                NodeId,
-    description:       Option[String],
+    documentation:     Option[String],
     @jsonField("hostname")
     fqdn:              String,
     os:                OsDetails,
@@ -1461,7 +1461,7 @@ final case class NodeFact(
     val pad     = "\n * "
     val ignored = new StringBuilder().append(pad).append("ignored: ")
     val sb      = new StringBuilder(s"""id:${this.id.value}
-                                  | * description:${this.description}
+                                  | * documentation:${this.documentation}
                                   | * fqdn:${this.fqdn}
                                   | * os:${this.os}
                                   | * machine:${this.machine}

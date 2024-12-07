@@ -139,14 +139,15 @@ object NodeState extends Enum[NodeState] {
  * For now, other simple properties are not handle.
  */
 final case class ModifyNodeDiff(
-    id:            NodeId,
-    modHeartbeat:  Option[SimpleDiff[Option[HeartbeatConfiguration]]],
-    modAgentRun:   Option[SimpleDiff[Option[AgentRunInterval]]],
-    modProperties: Option[SimpleDiff[List[NodeProperty]]],
-    modPolicyMode: Option[SimpleDiff[Option[PolicyMode]]],
-    modKeyValue:   Option[SimpleDiff[SecurityToken]],
-    modKeyStatus:  Option[SimpleDiff[KeyStatus]],
-    modNodeState:  Option[SimpleDiff[NodeState]]
+    id:               NodeId,
+    modHeartbeat:     Option[SimpleDiff[Option[HeartbeatConfiguration]]],
+    modAgentRun:      Option[SimpleDiff[Option[AgentRunInterval]]],
+    modProperties:    Option[SimpleDiff[List[NodeProperty]]],
+    modPolicyMode:    Option[SimpleDiff[Option[PolicyMode]]],
+    modKeyValue:      Option[SimpleDiff[SecurityToken]],
+    modKeyStatus:     Option[SimpleDiff[KeyStatus]],
+    modNodeState:     Option[SimpleDiff[NodeState]],
+    modDocumentation: Option[SimpleDiff[String]]
 )
 
 object ModifyNodeDiff {
@@ -197,7 +198,10 @@ object ModifyNodeDiff {
 
     val state = if (oldNode.state == newNode.state) None else Some(SimpleDiff(oldNode.state, newNode.state))
 
-    ModifyNodeDiff(newNode.id, heartbeat, agentRun, properties, policyMode, keyValue, keyStatus, state)
+    val documentation =
+      if (oldNode.description == newNode.description) None else Some(SimpleDiff(oldNode.description, newNode.description))
+
+    ModifyNodeDiff(newNode.id, heartbeat, agentRun, properties, policyMode, keyValue, keyStatus, state, documentation)
   }
 
   def keyInfo(
@@ -220,6 +224,6 @@ object ModifyNodeDiff {
       case Some(s) => if (s == oldStatus) None else Some(SimpleDiff(oldStatus, s))
     }
 
-    ModifyNodeDiff(nodeId, None, None, None, None, keyInfo, keyStatus, None)
+    ModifyNodeDiff(nodeId, None, None, None, None, keyInfo, keyStatus, None, None)
   }
 }

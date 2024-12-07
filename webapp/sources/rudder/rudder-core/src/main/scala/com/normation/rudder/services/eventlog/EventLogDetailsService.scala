@@ -1071,32 +1071,33 @@ class EventLogDetailsServiceImpl(
 
   def getModifyNodeDetails(xml: NodeSeq): Box[ModifyNodeDiff] = {
     for {
-      entry        <- getEntryContent(xml)
-      node         <- (entry \ "node").headOption ?~! ("Entry type is not node : " + entry.toString())
-      fileFormatOk <- TestFileFormat(node)
-      changeTypeOk <- {
+      entry         <- getEntryContent(xml)
+      node          <- (entry \ "node").headOption ?~! ("Entry type is not node : " + entry.toString())
+      fileFormatOk  <- TestFileFormat(node)
+      changeTypeOk  <- {
         if (node.attribute("changeType").map(_.text) == Some("modify")) Full("OK")
         else Failure(s"'Node modification' entry does not have attribute 'changeType' with value 'modify', entry is: ${entry}")
       }
-      id           <- (node \ "id").headOption.map(x => NodeId(x.text)) ?~! ("Missing element 'id' in entry type Node: " + entry.toString())
-      policyMode   <- getFromTo[Option[PolicyMode]]((node \ "policyMode").headOption, x => PolicyMode.parseDefault(x.text).toBox)
-      agentRun     <- getFromTo[Option[AgentRunInterval]]((node \ "agentRun").headOption, x => extractAgentRun(xml)(x))
-      heartbeat    <-
+      id            <- (node \ "id").headOption.map(x => NodeId(x.text)) ?~! ("Missing element 'id' in entry type Node: " + entry.toString())
+      policyMode    <- getFromTo[Option[PolicyMode]]((node \ "policyMode").headOption, x => PolicyMode.parseDefault(x.text).toBox)
+      agentRun      <- getFromTo[Option[AgentRunInterval]]((node \ "agentRun").headOption, x => extractAgentRun(xml)(x))
+      heartbeat     <-
         getFromTo[Option[HeartbeatConfiguration]]((node \ "heartbeat").headOption, x => extractHeartbeatConfiguration(xml)(x))
-      properties   <-
+      properties    <-
         getFromTo[List[NodeProperty]]((node \ "properties").headOption, x => extractNodeProperties(xml)(x).map(_.toList))
-      agentKey     <- getFromTo[SecurityToken](
-                        (node \ "agentKey").headOption,
-                        { x =>
-                          val s = x.text;
-                          if (s.contains("BEGIN CERTIFICATE")) Full(Certificate(s)) else Failure(s"Unrecognized security token")
-                        }
-                      )
-      keyStatus    <- getFromTo[KeyStatus](
-                        (node \ "keyStatus").headOption,
-                        x => KeyStatus.apply(x.text).map(Full(_)).getOrElse(Failure(s"Unrecognized agent key status '${x.text}'"))
-                      )
-      nodeState    <- getFromTo[NodeState]((node \ "nodeState").headOption, x => NodeState.parse(x.text).toBox)
+      agentKey      <- getFromTo[SecurityToken](
+                         (node \ "agentKey").headOption,
+                         { x =>
+                           val s = x.text;
+                           if (s.contains("BEGIN CERTIFICATE")) Full(Certificate(s)) else Failure(s"Unrecognized security token")
+                         }
+                       )
+      keyStatus     <- getFromTo[KeyStatus](
+                         (node \ "keyStatus").headOption,
+                         x => KeyStatus.apply(x.text).map(Full(_)).getOrElse(Failure(s"Unrecognized agent key status '${x.text}'"))
+                       )
+      nodeState     <- getFromTo[NodeState]((node \ "nodeState").headOption, x => NodeState.parse(x.text).toBox)
+      documentation <- getFromTo[String]((node \ "documentation").headOption, x => Full(x.text))
     } yield {
       ModifyNodeDiff(
         id,
@@ -1106,7 +1107,8 @@ class EventLogDetailsServiceImpl(
         policyMode,
         agentKey,
         keyStatus,
-        nodeState
+        nodeState,
+        documentation
       )
     }
   }

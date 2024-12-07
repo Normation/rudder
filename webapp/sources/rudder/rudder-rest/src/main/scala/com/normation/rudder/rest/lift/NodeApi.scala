@@ -1266,15 +1266,21 @@ class NodeApiService(
   def updateRestNode(nodeId: NodeId, update: JQUpdateNode)(implicit cc: ChangeContext): IOResult[CoreNodeFact] = {
 
     def updateNode(
-        node:          CoreNodeFact,
-        update:        JQUpdateNode,
-        newProperties: List[NodeProperty],
-        newKey:        Option[SecurityToken],
-        newKeyStatus:  Option[KeyStatus]
+        node:             CoreNodeFact,
+        update:           JQUpdateNode,
+        newProperties:    List[NodeProperty],
+        newKey:           Option[SecurityToken],
+        newKeyStatus:     Option[KeyStatus],
+        newDocumentation: Option[String]
     ): CoreNodeFact = {
       import com.softwaremill.quicklens.*
 
       val propNames: Set[String] = newProperties.map(_.name).toSet
+      val documentation = newDocumentation match {
+        case Some("") => Some(None)
+        case Some(x)  => Some(Some(x))
+        case None     => None
+      }
 
       node
         .modify(_.properties)
@@ -1291,6 +1297,8 @@ class NodeApiService(
         .setToIfDefined(newKey)
         .modify(_.rudderSettings.keyStatus)
         .setToIfDefined(newKeyStatus)
+        .modify(_.documentation)
+        .setToIfDefined(documentation)
     }
 
     implicit val qc: QueryContext = cc.toQuery
@@ -1298,7 +1306,7 @@ class NodeApiService(
     for {
       nodeFact      <- nodeFactRepository.get(nodeId).notOptional(s"node with id '${nodeId.value}' was not found")
       newProperties <- CompareProperties.updateProperties(nodeFact.properties.toList, update.properties).toIO
-      updated        = updateNode(nodeFact, update, newProperties, update.keyInfo._1, update.keyInfo._2)
+      updated        = updateNode(nodeFact, update, newProperties, update.keyInfo._1, update.keyInfo._2, update.documentation)
       _             <- if (CoreNodeFact.same(updated, nodeFact)) ZIO.unit
                        else nodeFactRepository.save(updated).unit
     } yield {

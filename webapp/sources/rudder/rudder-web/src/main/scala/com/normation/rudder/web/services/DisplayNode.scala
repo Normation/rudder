@@ -634,6 +634,12 @@ object DisplayNode extends Loggable {
     }
           </div>
         </div>
+        <div class="rudder-info">
+          <h3>Documentation</h3>
+          <div class="markdown" id="nodeDocumentation">
+          </div>
+          {Script(OnLoad(JsRaw(s"generateMarkdown(${Str(nodeFact.documentation.getOrElse("")).toJsCmd}, '#nodeDocumentation')")))}
+        </div>
       </div>
       <div class="rudder-info">
         <h3>Rudder information</h3>
