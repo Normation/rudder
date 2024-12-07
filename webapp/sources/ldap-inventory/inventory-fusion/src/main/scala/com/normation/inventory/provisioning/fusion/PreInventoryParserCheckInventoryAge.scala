@@ -119,7 +119,7 @@ object PreInventoryParserCheckInventoryAge {
 
     val beforePastLimit  = Inconsistency(s"Inventory is too old, refusing (inventory date is before '${pastLimit.toString}')")
     val afterFutureLimit = Inconsistency(
-      s"Inventory is too far in the future, refusing (inventory date is before '${futureLimit.toString}')"
+      s"Inventory is too far in the future, refusing (inventory date is after '${futureLimit.toString}')"
     )
 
     (date.isBefore(pastLimit), date.isAfter(futureLimit)) match {
