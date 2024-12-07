@@ -47,7 +47,6 @@ import com.normation.rudder.api.ApiAuthorization as ApiAuthz
 import com.normation.rudder.api.ApiAuthorizationKind
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.config.UserPropertyService
-import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
@@ -76,31 +75,6 @@ final case class RestExtractorService(
 ) extends Loggable {
 
   import com.normation.rudder.repository.json.DataExtractor.OptionnalJson.*
-  /*
-   * Params Extractors
-   */
-
-  private def extractOneValue[T](params: Map[String, List[String]], key: String)(
-      to: (String) => Box[T] = ((value: String) => Full(value))
-  ) = {
-    params.get(key) match {
-      case None               => Full(None)
-      case Some(value :: Nil) => to(value).map(Some(_))
-      case _                  => Failure(s"updateRule should contain only one value for $key")
-    }
-  }
-
-  private def toMinimalSizeString(minimalSize: Int)(value: String): Box[String] = {
-    if (value.size >= minimalSize) {
-      Full(value)
-    } else {
-      Failure(s"$value must be at least have a ${minimalSize} character size")
-    }
-  }
-
-  private def toNodeGroupCategoryId(value: String): Box[NodeGroupCategoryId] = {
-    Full(NodeGroupCategoryId(value))
-  }
 
   private def toApiAccountId(value: String): Box[ApiAccountId] = {
     Full(ApiAccountId(value))
@@ -108,21 +82,6 @@ final case class RestExtractorService(
 
   private def toApiAccountName(value: String): Box[ApiAccountName] = {
     Full(ApiAccountName(value))
-  }
-
-  /*
-   * Still used in group API
-   */
-  def extractGroupCategory(params: Map[String, List[String]]): Box[RestGroupCategory] = {
-
-    for {
-      id          <- extractOneValue(params, "id")(toNodeGroupCategoryId)
-      name        <- extractOneValue(params, "name")(toMinimalSizeString(3))
-      description <- extractOneValue(params, "description")()
-      parent      <- extractOneValue(params, "parent")(toNodeGroupCategoryId)
-    } yield {
-      RestGroupCategory(id, name, description, parent)
-    }
   }
 
   /*
@@ -154,17 +113,6 @@ final case class RestExtractorService(
           Some(level)
         }
 
-    }
-  }
-
-  def extractGroupCategory(json: JValue): Box[RestGroupCategory] = {
-    for {
-      id          <- extractJsonString(json, "id", toNodeGroupCategoryId)
-      name        <- extractJsonString(json, "name", toMinimalSizeString(3))
-      description <- extractJsonString(json, "description")
-      parent      <- extractJsonString(json, "parent", toNodeGroupCategoryId)
-    } yield {
-      RestGroupCategory(id, name, description, parent)
     }
   }
 

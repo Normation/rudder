@@ -918,7 +918,6 @@ class RestTestSetUp {
     ),
     new GroupsApi(
       mockNodeGroups.propService,
-      restExtractorService,
       zioJsonExtractor,
       uuidGen,
       userPropertyService,
