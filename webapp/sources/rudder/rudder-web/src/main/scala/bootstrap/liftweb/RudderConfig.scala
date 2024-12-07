@@ -859,24 +859,53 @@ object RudderParsedProperties {
     )
   }
 
-  val LDIF_TRACELOG_ROOT_DIR: String = {
-    try {
-      config.getString("ldif.tracelog.rootdir")
-    } catch {
-      case ex: ConfigException => "/var/rudder/inventories/debug"
-    }
-  }
-
   // don't parse some elements in inventories: processes
-  val INVENTORIES_IGNORE_PROCESSES:                   Boolean = {
+  val INVENTORIES_IGNORE_PROCESSES: Boolean = {
     try {
       config.getBoolean("inventory.parse.ignore.processes")
     } catch {
       case ex: ConfigException => false
     }
   }
+
+  val INVENTORIES_MAX_BEFORE_NOW: Duration = {
+    try {
+      Duration.fromScala(
+        scala.concurrent.duration.Duration.apply(
+          config.getString(
+            "inventories.reject.maxAgeBeforeNow"
+          )
+        )
+      )
+    } catch {
+      case ex: Exception =>
+        ApplicationLogger.info(
+          s"Error when reading key: 'inventories.reject.maxAgeBeforeNow', defaulting to 2 days: ${ex.getMessage}"
+        )
+        2.days
+    }
+  }
+
+  val INVENTORIES_MAX_AFTER_NOW: Duration = {
+    try {
+      Duration.fromScala(
+        scala.concurrent.duration.Duration.apply(
+          config.getString(
+            "inventories.reject.maxAgeAfterNow"
+          )
+        )
+      )
+    } catch {
+      case ex: Exception =>
+        ApplicationLogger.info(
+          s"Error when reading key: 'inventories.reject.maxAgeAfterNow', defaulting to 12h: ${ex.getMessage}"
+        )
+        12.hours
+    }
+  }
+
   // the limit above which processes need an individual LDAP write request
-  val INVENTORIES_THRESHOLD_PROCESSES_ISOLATED_WRITE: Int     = {
+  val INVENTORIES_THRESHOLD_PROCESSES_ISOLATED_WRITE: Int = {
     try {
       config.getInt("inventory.threshold.processes.isolatedWrite")
     } catch {
@@ -1878,7 +1907,8 @@ object RudderConfigInit {
       new DefaultInventoryParser(
         fusionReportParser,
         Seq(
-          new PreInventoryParserCheckConsistency
+          new PreInventoryParserCheckConsistency,
+          new PreInventoryParserCheckInventoryAge(INVENTORIES_MAX_BEFORE_NOW, INVENTORIES_MAX_AFTER_NOW)
         )
       )
     }

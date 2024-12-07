@@ -58,8 +58,8 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
 
   /**
    * There is a list of variables that MUST be set at that point:
-   * - an id for the node (it is ok that it may be change latter on the process, for ex. for unusal changes)
-   * - an hostname
+   * - an id for the node (it is ok that it may be change later on the process, for ex. for unusual changes)
+   * - a hostname
    * - an admin (root user on the node)
    * - a policy server id
    * - an OS name
@@ -85,7 +85,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
     ZIO.foldLeft(checks)(inventory)((currentInventory, check) => check(currentInventory))
   }
 
-  // Utilitary method to get only once the RUDDER and the AGENT
+  // Utility method to get only once the RUDDER and the AGENT
   private def getInTags(xml: NodeSeq, tag: String): NodeSeq = {
     xml \\ tag
   }
@@ -200,7 +200,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
 
   /**
    * Kernel version: either
-   * - non empty OPERATINGSYSTEM > KERNEL_VERSION
+   * - non-empty OPERATINGSYSTEM > KERNEL_VERSION
    * or
    * - (on AIX and non empty HARDWARE > OSVERSION )
    * Other cases are failure (missing required info)
