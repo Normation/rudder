@@ -12,6 +12,7 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, Context, Error};
+use bytesize::ByteSize;
 use secrecy::SecretString;
 use serde::{
     de::{Deserializer, Error as SerdeError, Unexpected, Visitor},
@@ -316,6 +317,8 @@ pub struct InventoryConfig {
     pub catchup: CatchupConfig,
     #[serde(default)]
     pub cleanup: CleanupConfig,
+    #[serde_inline_default(ByteSize::mib(5))]
+    pub max_size: ByteSize,
 }
 
 impl Default for InventoryConfig {
@@ -350,6 +353,8 @@ pub struct ReportingConfig {
     pub cleanup: CleanupConfig,
     #[serde(default)]
     pub skip_event_types: HashSet<String>,
+    #[serde_inline_default(ByteSize::mib(1))]
+    pub max_size: ByteSize,
 }
 
 impl Default for ReportingConfig {
@@ -427,6 +432,8 @@ pub struct SharedFiles {
     pub path: PathBuf,
     #[serde(default)]
     pub cleanup: SharedFilesCleanupConfig,
+    #[serde_inline_default(ByteSize::mib(50))]
+    pub max_size: ByteSize,
 }
 
 impl Default for SharedFiles {
@@ -539,7 +546,7 @@ pub struct RsyncConfig {
     #[serde_inline_default("localhost:5310".into())]
     listen: String,
 
-    // False to allow non authenticated clients
+    // False to allow non-authenticated clients
     #[serde_inline_default(true)]
     authentication: bool,
 }
@@ -614,6 +621,7 @@ mod tests {
                         frequency: Duration::from_secs(3600),
                         retention: Duration::from_secs(3600 * 24 * 7),
                     },
+                    max_size: ByteSize::mib(5),
                 },
                 reporting: ReportingConfig {
                     directory: PathBuf::from("/var/rudder/reports/"),
@@ -627,6 +635,7 @@ mod tests {
                         retention: Duration::from_secs(3600 * 24 * 7),
                     },
                     skip_event_types: HashSet::new(),
+                    max_size: ByteSize::mib(1),
                 },
             },
             output: OutputConfig {
@@ -655,6 +664,7 @@ mod tests {
                 cleanup: SharedFilesCleanupConfig {
                     frequency: Duration::from_secs(600),
                 },
+                max_size: ByteSize::mib(50),
             },
             shared_folder: SharedFolder {
                 path: PathBuf::from("/var/rudder/configuration-repository/shared-files/"),
@@ -720,6 +730,7 @@ mod tests {
                         frequency: Duration::from_secs(10),
                         retention: Duration::from_secs(10),
                     },
+                    max_size: ByteSize::mib(150),
                 },
                 reporting: ReportingConfig {
                     directory: PathBuf::from("target/tmp/reporting/"),
@@ -733,6 +744,7 @@ mod tests {
                         retention: Duration::from_secs(30 * 60 + 20),
                     },
                     skip_event_types: HashSet::new(),
+                    max_size: ByteSize::gib(1),
                 },
             },
             output: OutputConfig {
@@ -763,6 +775,7 @@ mod tests {
                 cleanup: SharedFilesCleanupConfig {
                     frequency: Duration::from_secs(43),
                 },
+                max_size: ByteSize::kib(42),
             },
             shared_folder: SharedFolder {
                 path: PathBuf::from("tests/api_shared_folder"),
