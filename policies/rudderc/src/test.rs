@@ -92,12 +92,12 @@ pub struct TestCase {
     pub policy_mode: PolicyMode,
     /// Test setup steps
     #[serde(default)]
-    setup: Vec<Step>,
+    pub setup: Vec<Step>,
     /// Check test after
-    check: Vec<Step>,
+    pub check: Vec<Step>,
     /// Cleanup steps
     #[serde(default)]
-    cleanup: Vec<Step>,
+    pub cleanup: Vec<Step>,
 }
 
 impl TestCase {
