@@ -2,6 +2,7 @@ module Accounts exposing (..)
 
 import Accounts.ApiCalls exposing (..)
 import Accounts.DataTypes as TenantMode exposing (..)
+import Accounts.DataTypes as Token exposing (..)
 import Accounts.DatePickerUtils exposing (..)
 import Accounts.Init exposing (..)
 import Accounts.JsonDecoder exposing (decodeErrorDetails)
@@ -87,7 +88,7 @@ update msg model =
                 editAccount =
                     case modalState of
                         NewAccount ->
-                            Just (Account "" "" "" "rw" "" True "" "" "" True (Just expDate) Nothing TenantMode.AllAccess Nothing)
+                            Just (Account "" "" "" "rw" "" True "" Token.Hashed "" True (Just expDate) Nothing TenantMode.AllAccess Nothing)
 
                         EditAccount a ->
                             Just a
@@ -162,7 +163,7 @@ update msg model =
                 (modalState, action) =
                     case ui.modalState of
                         NewAccount ->
-                            ( CopyToken account.token
+                            ( CopyToken (exposeToken account.token)
                             , "created"
                             )
 
@@ -192,7 +193,7 @@ update msg model =
                             )
 
                         Regenerate ->
-                            ( CopyToken account.token
+                            ( CopyToken (exposeToken account.token)
                             , "regenerated token of"
                             )
 
