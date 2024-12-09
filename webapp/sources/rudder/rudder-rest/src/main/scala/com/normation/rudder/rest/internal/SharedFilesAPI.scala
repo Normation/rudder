@@ -70,6 +70,7 @@ import net.liftweb.json.JsonAST.JValue
 import org.apache.commons.fileupload.FileUploadBase.SizeLimitExceededException
 import org.joda.time.DateTime
 import org.joda.time.Instant
+import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 import zio.ZIO
@@ -82,9 +83,19 @@ object SharedFilesAPI {
   val MAX_FILE_SIZE: Int = 8388608
 
   def sanitizePath(path: String, baseFolder: File): IOResult[File] = {
+    sanitizePath(baseFolder, List(path))
+  }
+
+  def sanitizePath(baseFolder: File, path: List[String]): IOResult[File] = {
+    @tailrec def recPath(file: File, children: List[String]): File = {
+      children match {
+        case Nil           => file
+        case child :: next => recPath(file / child.dropWhile(_.equals('/')), next)
+      }
+    }
     IOResult.attemptZIO {
       // Actually canonifies the path
-      val filePath = baseFolder / path.dropWhile(_.equals('/'))
+      val filePath = recPath(baseFolder, path)
       // We also want to resolve symlinks before checking, let's resort to Java's `toRealPath`
       val realPath = if (filePath.exists()) {
         File(filePath.toJava.toPath.toRealPath())
@@ -517,14 +528,16 @@ class SharedFilesAPI(
       def apply(req: Req):       () => Box[LiftResponse] = {
         req.path.partPath match {
           case "draft" :: techniqueId :: techniqueVersion :: _ =>
-            val path = File(s"${configRepoPath}/workspace/${techniqueId}/${techniqueVersion}/resources")
-            path.createIfNotExists(true, true)
+            val path =
+              sanitizePath(File(configRepoPath), "workspace" :: techniqueId :: techniqueVersion :: "resources" :: Nil).runNow
+            path.createIfNotExists(asDirectory = true, createParents = true)
             val pf   = requestDispatch(path)
             pf.apply(req.withNewPath(req.path.drop(3)))
           case techniqueId :: techniqueVersion :: categories   =>
-            val path = File(
-              s"${configRepoPath}/techniques/${categories.mkString("/")}/${techniqueId}/${techniqueVersion}/resources"
-            )
+            val path = sanitizePath(
+              File(configRepoPath),
+              ("techniques" :: categories) :+ techniqueId :+ techniqueVersion :+ "resources"
+            ).runNow
             path.createIfNotExists(true, true)
             val pf   = requestDispatch(path)
             pf.apply(req.withNewPath(req.path.drop(req.path.partPath.size)))
