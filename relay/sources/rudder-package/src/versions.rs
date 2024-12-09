@@ -156,13 +156,24 @@ impl FromStr for RudderVersion {
         // For old Rudder versions, we don't have the patch version. Assume it is 0.
         let re_old = Regex::new(r"^(?<major>\d+)\.(?<minor>\d+)(?<spec>.*)$")?;
 
-        let (major, minor, patch, spec): (u32, u32, u32, String) = if let Some(c) = re.captures(raw) {
-            (c["major"].parse()?, c["minor"].parse()?, c["patch"].parse()?, c["spec"].to_string())
-        } else { if let Some(c) = re_old.captures(raw) {
-            (c["major"].parse()?, c["minor"].parse()?, 0, c["spec"].to_string())
+        let (major, minor, patch, spec): (u32, u32, u32, String) = if let Some(c) = re.captures(raw)
+        {
+            (
+                c["major"].parse()?,
+                c["minor"].parse()?,
+                c["patch"].parse()?,
+                c["spec"].to_string(),
+            )
+        } else if let Some(c) = re_old.captures(raw) {
+            (
+                c["major"].parse()?,
+                c["minor"].parse()?,
+                0,
+                c["spec"].to_string(),
+            )
         } else {
             bail!("Unparsable Rudder version '{}'", raw)
-        }};
+        };
 
         // spec contains the version type, plus the nightly tag if relevant.
         let (raw_mode, nightly) = if spec.contains("~git") {
