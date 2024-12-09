@@ -226,7 +226,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   }
 
   lazy val dummyScoreManager: ScoreServiceManager = new ScoreServiceManager(
-    new ScoreServiceImpl(new DummyGlobalScoreRepository(), new DummyScoreRepository())
+    new ScoreServiceImpl(new DummyGlobalScoreRepository(), new DummyScoreRepository(), nodeFactRepo)
   )
 
   lazy val updateRuns: ReportsExecutionService = {

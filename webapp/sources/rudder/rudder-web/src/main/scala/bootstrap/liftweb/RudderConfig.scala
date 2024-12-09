@@ -3190,7 +3190,7 @@ object RudderConfigInit {
 
     lazy val globalScoreRepository = new GlobalScoreRepositoryImpl(doobie)
     lazy val scoreRepository       = new ScoreRepositoryImpl(doobie)
-    lazy val scoreService          = new ScoreServiceImpl(globalScoreRepository, scoreRepository)
+    lazy val scoreService          = new ScoreServiceImpl(globalScoreRepository, scoreRepository, nodeFactRepository)
     lazy val scoreServiceManager: ScoreServiceManager = new ScoreServiceManager(scoreService)
 
     deferredEffects.append(scoreService.init())
