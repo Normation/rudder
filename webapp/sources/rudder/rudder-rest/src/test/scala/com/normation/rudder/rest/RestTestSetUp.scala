@@ -634,9 +634,10 @@ class RestTestSetUp {
     }
   }
   val techniqueCompilationStatusService: TechniqueCompilationStatusSyncService = new TechniqueCompilationStatusSyncService {
-    def syncOne(result:           EditorTechniqueCompilationResult):                      IOResult[Unit] = ().succeed
-    def unsyncOne(id:             (BundleName, Version)):                                 IOResult[Unit] = ().succeed
-    def getUpdateAndSync(results: Option[List[EditorTechniqueCompilationResult]] = None): IOResult[Unit] = ().succeed
+    def syncOne(result:                       EditorTechniqueCompilationResult):                      IOResult[Unit] = ().succeed
+    def syncTechniqueActiveStatus(bundleName: BundleName):                                            IOResult[Unit] = ().succeed
+    def unsyncOne(id:                         (BundleName, Version)):                                 IOResult[Unit] = ().succeed
+    def getUpdateAndSync(results:             Option[List[EditorTechniqueCompilationResult]] = None): IOResult[Unit] = ().succeed
   }
 
   val apiService11           = new SystemApiService11(
