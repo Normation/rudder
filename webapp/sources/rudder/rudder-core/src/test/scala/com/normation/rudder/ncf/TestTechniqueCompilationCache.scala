@@ -105,6 +105,14 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
 
   }
 
+  private val readTechniqueActiveStatus: ReadEditorTechniqueActiveStatus = new ReadEditorTechniqueActiveStatus {
+    override def getActiveStatus(id: BundleName): IOResult[Option[TechniqueActiveStatus]]          = Some(
+      TechniqueActiveStatus.Enabled
+    ).succeed
+    override def getActiveStatuses():             IOResult[Map[BundleName, TechniqueActiveStatus]] =
+      techniques.map(_.id -> TechniqueActiveStatus.Enabled).toMap.succeed
+  }
+
   // the SUT
   private val compilationStatusService: ReadEditorTechniqueCompilationResult = new TechniqueCompilationStatusService(
     editorTechniqueReader,
@@ -150,7 +158,8 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
       )
       .runNow
   }
-  private val writeCache = TechniqueCompilationErrorsActorSync.make(mockActor, compilationStatusService).runNow
+  private val writeCache =
+    TechniqueCompilationErrorsActorSync.make(mockActor, compilationStatusService, readTechniqueActiveStatus).runNow
 
   // create output test files for each technique
   override def beforeAll(): Unit = {
@@ -172,12 +181,14 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
         EditorTechniqueError(
           technique1.id,
           technique1.version,
+          TechniqueActiveStatus.Enabled,
           technique1.name,
           "tech1 error"
         ),
         EditorTechniqueError(
           technique3.id,
           technique3.version,
+          TechniqueActiveStatus.Enabled,
           technique3.name,
           "tech3 error"
         )
@@ -197,7 +208,9 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
 
   "Error repository" should {
     "Correctly build the status" in {
-      writeCache.updateStatus(expectedListOfOutputs).runNow must beEqualTo(expectedCompilationStatus)
+      writeCache.updateStatus(expectedListOfOutputs.map(_ -> TechniqueActiveStatus.Enabled)).runNow must beEqualTo(
+        expectedCompilationStatus
+      )
     }
 
     val newError       = {
@@ -213,6 +226,7 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
         EditorTechniqueError(
           newError.id,
           newError.version,
+          TechniqueActiveStatus.Enabled,
           newError.name,
           "new tech error"
         )
@@ -234,18 +248,20 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
           CompilationResult.Error("new tech3 error")
         )
       }
-      writeCache.updateOneStatus(updatedResult).runNow must beEqualTo(
+      writeCache.updateOneStatus(updatedResult, TechniqueActiveStatus.Enabled).runNow must beEqualTo(
         CompilationStatusErrors(
           NonEmptyChunk(
             EditorTechniqueError(
               technique1.id,
               technique1.version,
+              TechniqueActiveStatus.Enabled,
               technique1.name,
               "tech1 error"
             ),
             EditorTechniqueError(
               technique3.id,
               technique3.version,
+              TechniqueActiveStatus.Enabled,
               technique3.name,
               "new tech3 error"
             )
@@ -257,12 +273,13 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
     "update with an technique in success" in {
       val success =
         EditorTechniqueCompilationResult(technique1.id, technique1.version, technique1.name, CompilationResult.Success)
-      writeCache.updateOneStatus(success).runNow must beEqualTo(
+      writeCache.updateOneStatus(success, TechniqueActiveStatus.Enabled).runNow must beEqualTo(
         CompilationStatusErrors(
           NonEmptyChunk(
             EditorTechniqueError(
               technique3.id,
               technique3.version,
+              TechniqueActiveStatus.Enabled,
               technique3.name,
               "new tech3 error"
             )
@@ -272,16 +289,33 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
     }
 
     "delete no longer existing techniques, keep only new one" in {
-      writeCache.updateStatus(List(newError)).runNow must beEqualTo(
+      writeCache.updateStatus(List(newError -> TechniqueActiveStatus.Enabled)).runNow must beEqualTo(
         newErrorStatus
       )
+    }
+
+    "update a technique with disabled status" in {
+      writeCache.updateOneStatus(newError, TechniqueActiveStatus.Disabled).runNow must beEqualTo(
+        CompilationStatusErrors(
+          newErrorStatus.techniquesInError.map(_.copy(status = TechniqueActiveStatus.Disabled))
+        )
+      )
+    }
+
+    "sync technique active status" in {
+      // bring the status back to Enabled
+      (writeCache.syncTechniqueActiveStatus(newError.id) *>
+      msgLock.withPermit(
+        (mockActor hasReceivedMessage_? UpdateCompilationStatus(newErrorStatus)).succeed
+      )).runNow.aka("actor received message") must beTrue and (mockActor.messageCount must beEqualTo(2))
     }
 
     "unsync one" in {
       (writeCache.unsyncOne(newError.id -> newError.version) *>
       msgLock.withPermit(
         (mockActor hasReceivedMessage_? UpdateCompilationStatus(CompilationStatusAllSuccess)).succeed
-      )).runNow.aka("actor received message") must beTrue and (mockActor.messageCount must beEqualTo(2))
+      )).runNow.aka("actor received message") must beTrue and (mockActor.messageCount must beEqualTo(3))
     }
+
   }
 }
