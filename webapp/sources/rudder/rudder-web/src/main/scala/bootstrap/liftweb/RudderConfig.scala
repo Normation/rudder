@@ -1872,6 +1872,7 @@ object RudderConfigInit {
       asyncDeploymentAgent,
       uuidGen,
       updateDynamicGroups,
+      techniqueCompilationCache,
       itemArchiveManager,
       personIdentService,
       gitConfigRepo
@@ -1919,8 +1920,15 @@ object RudderConfigInit {
       techniqueCompiler
     )
 
-    lazy val techniqueCompilationCache: TechniqueCompilationStatusSyncService =
-      TechniqueCompilationErrorsActorSync.make(asyncDeploymentAgent, techniqueCompilationStatusService).runNow
+    lazy val techniqueStatusReaderService: ReadEditorTechniqueActiveStatus = new TechniqueActiveStatusService(
+      roDirectiveRepository
+    )
+
+    lazy val techniqueCompilationCache: TechniqueCompilationStatusSyncService = {
+      TechniqueCompilationErrorsActorSync
+        .make(asyncDeploymentAgent, techniqueCompilationStatusService, techniqueStatusReaderService)
+        .runNow
+    }
 
     lazy val ncfTechniqueWriter: TechniqueWriter = new TechniqueWriterImpl(
       techniqueArchiver,

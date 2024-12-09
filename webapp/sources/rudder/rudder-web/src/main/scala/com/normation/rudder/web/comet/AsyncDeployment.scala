@@ -106,9 +106,10 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   override def lowPriority: PartialFunction[Any, Unit] = {
     case msg: AsyncDeploymentActorCreateUpdate =>
       deploymentStatus = msg.deploymentStatus
-      compilationStatus = msg.compilationStatus
       nodeProperties = msg.nodeProperties
       groupProperties = msg.groupProperties
+      // we want to completely ignore rendering of disabled techniques, so we can directly adapt the received message
+      compilationStatus = CompilationStatus.ignoreDisabledTechniques(msg.compilationStatus)
       reRender()
   }
 
