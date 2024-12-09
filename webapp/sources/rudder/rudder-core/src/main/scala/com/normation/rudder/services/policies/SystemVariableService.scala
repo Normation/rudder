@@ -141,7 +141,6 @@ class SystemVariableServiceImpl(
 
     getModifiedFilesTtl:      () => Box[Int],
     getCfengineOutputsTtl:    () => Box[Int],
-    getSendMetrics:           () => Box[Option[SendMetrics]],
     getReportProtocolDefault: () => Box[AgentReportingProtocol]
 ) extends SystemVariableService with Loggable {
 
@@ -188,15 +187,8 @@ class SystemVariableServiceImpl(
 
     val varServerVersion = systemVariableSpecService.get("SERVER_VERSION").toVariable(Seq(serverVersion))
 
-    import SendMetrics.*
-    val sendMetricsValue = getSendMetrics().getOrElse(None) match {
-      case None                  => "no"
-      case Some(NoMetrics)       => "no"
-      case Some(MinimalMetrics)  => "minimal"
-      case Some(CompleteMetrics) => "complete"
-    }
-
-    val varSendMetrics = systemVariableSpecService.get("SEND_METRICS").toVariable(Seq(sendMetricsValue))
+    // always disable send metrics - see https://issues.rudder.io/issues/25982
+    val varSendMetrics = systemVariableSpecService.get("SEND_METRICS").toVariable(Seq("no"))
 
     logger.trace("Global system variables done")
     val vars = {
@@ -225,7 +217,7 @@ class SystemVariableServiceImpl(
   // for this method to work properly
 
   // The global system variables are computed before (in the method up there), and
-  // can be overriden by some node specific parameters (especially, the schedule for
+  // can be overridden by some node specific parameters (especially, the schedule for
   // policy servers)
   def getSystemVariables(
       nodeInfo:              CoreNodeFact,

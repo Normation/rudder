@@ -2894,7 +2894,6 @@ object RudderConfigInit {
       () => configService.relay_server_syncsharedfiles().toBox,
       () => configService.cfengine_modified_files_ttl().toBox,
       () => configService.cfengine_outputs_ttl().toBox,
-      () => configService.send_server_metrics().toBox,
       () => configService.rudder_report_protocol_default().toBox
     )
     lazy val rudderCf3PromisesFileWriterService = new PolicyWriterServiceImpl(
