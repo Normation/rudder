@@ -26,6 +26,7 @@ use nom::{
     Finish, IResult,
 };
 use rudder_commons::Target;
+use serde_yaml_ng::Value;
 use tracing::{debug, warn};
 
 use super::technique;
@@ -54,12 +55,12 @@ where
 
 /// Known vars, for now no distinction between OSes
 ///
-/// Allows checking for incorrect expressions.
-pub fn known_vars() -> &'static serde_yaml::Value {
-    static KNOWN_VAR: OnceLock<serde_yaml::Value> = OnceLock::new();
+/// Allows checking for incorrect expressions.s
+pub fn known_vars() -> &'static serde_yaml_ng::Value {
+    static KNOWN_VAR: OnceLock<serde_yaml_ng::Value> = OnceLock::new();
     KNOWN_VAR.get_or_init(|| {
         let str = include_str!("../../libs/vars.yml");
-        serde_yaml::from_str(str).unwrap()
+        serde_yaml_ng::from_str(str).unwrap()
     })
 }
 
@@ -748,6 +749,28 @@ mod tests {
             Expression::NodeProperty(vec![
                 Expression::NodeProperty(vec![Expression::Scalar("inner".to_string())]),
                 Expression::Scalar("tutu".to_string()),
+            ])
+        );
+    }
+
+    #[test]
+    fn it_reads_generic_var() {
+        let (_, out) = generic_var("${plouf}").unwrap();
+        assert_eq!(
+            out,
+            Expression::GenericVar(vec![Expression::Scalar("plouf".to_string())])
+        );
+        let (_, out) = generic_var("${bundle.plouf}").unwrap();
+        assert_eq!(
+            out,
+            Expression::GenericVar(vec![Expression::Scalar("bundle.plouf".to_string())])
+        );
+        let (_, out) = generic_var("${bundle.plouf[key]}").unwrap();
+        assert_eq!(
+            out,
+            Expression::GenericVar(vec![
+                Expression::Scalar("bundle.plouf".to_string()),
+                Expression::Scalar("key".to_string())
             ])
         );
     }

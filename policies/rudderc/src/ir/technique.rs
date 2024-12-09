@@ -11,7 +11,7 @@ use std::{
 use anyhow::{bail, Context, Error, Result};
 use rudder_commons::{methods::method::MethodInfo, PolicyMode, RegexConstraint, Select};
 use serde::{de, Deserialize, Deserializer, Serialize};
-use serde_yaml::Value;
+use serde_yaml_ng::Value;
 use uuid::Uuid;
 
 use crate::ir::condition::Condition;

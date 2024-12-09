@@ -6,7 +6,7 @@ use std::{fmt, str::FromStr};
 use anyhow::{bail, Error};
 use rudder_commons::is_canonified;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-use serde_yaml::Value;
+use serde_yaml_ng::Value;
 
 /// Valid condition
 ///

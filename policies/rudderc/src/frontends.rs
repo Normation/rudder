@@ -4,7 +4,6 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use format_serde_error::SerdeError;
 use rudder_commons::methods::{self, Methods};
 use tracing::{error, trace};
 
@@ -24,7 +23,7 @@ pub fn read(input: &str) -> Result<Technique> {
     //   not permitting with an untagged enum.
     // * A second manual conversion to get the precise type.
     let policy: DeserTechnique =
-        serde_yaml::from_str(input).map_err(|err| SerdeError::new(input.to_string(), err))?;
+        serde_yaml_ng::from_str(input)?;
     let policy = policy.to_technique()?;
 
     trace!("Parsed input:\n{:#?}", policy);

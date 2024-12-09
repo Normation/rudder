@@ -74,7 +74,7 @@ pub fn read_technique(methods: &'static Methods, input: &str) -> Result<Techniqu
     compiler.add_resource(schema_url, schema).unwrap();
     let sch_index = compiler.compile(schema_url, &mut schemas).unwrap();
     // then load technique file
-    let instance: Value = serde_yaml::from_str(input)?;
+    let instance: Value = serde_yaml_ng::from_str(input)?;
     // ... and validate
     let result = schemas.validate(&instance, sch_index);
     if let Err(error) = result {
