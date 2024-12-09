@@ -22,8 +22,7 @@ pub fn read(input: &str) -> Result<Technique> {
     // * A first pass using serde and more general "Deser*" structs, on order to get proper error messages
     //   not permitting with an untagged enum.
     // * A second manual conversion to get the precise type.
-    let policy: DeserTechnique =
-        serde_yaml_ng::from_str(input)?;
+    let policy: DeserTechnique = serde_yaml_ng::from_str(input)?;
     let policy = policy.to_technique()?;
 
     trace!("Parsed input:\n{:#?}", policy);

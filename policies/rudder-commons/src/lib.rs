@@ -149,7 +149,9 @@ impl ParameterFormat {
     pub fn validate(&self, s: &str) -> Result<()> {
         match self {
             ParameterFormat::Json => serde_json::from_str::<serde_json::Value>(s).map(|_| ())?,
-            ParameterFormat::Yaml => serde_yaml_ng::from_str::<serde_yaml_ng::Value>(s).map(|_| ())?,
+            ParameterFormat::Yaml => {
+                serde_yaml_ng::from_str::<serde_yaml_ng::Value>(s).map(|_| ())?
+            }
         }
         Ok(())
     }
