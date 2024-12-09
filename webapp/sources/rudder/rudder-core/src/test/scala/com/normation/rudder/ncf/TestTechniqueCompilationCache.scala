@@ -181,12 +181,14 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
         EditorTechniqueError(
           technique1.id,
           technique1.version,
+          TechniqueActiveStatus.Enabled,
           technique1.name,
           "tech1 error"
         ),
         EditorTechniqueError(
           technique3.id,
           technique3.version,
+          TechniqueActiveStatus.Enabled,
           technique3.name,
           "tech3 error"
         )
@@ -224,6 +226,7 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
         EditorTechniqueError(
           newError.id,
           newError.version,
+          TechniqueActiveStatus.Enabled,
           newError.name,
           "new tech error"
         )
@@ -251,12 +254,14 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
             EditorTechniqueError(
               technique1.id,
               technique1.version,
+              TechniqueActiveStatus.Enabled,
               technique1.name,
               "tech1 error"
             ),
             EditorTechniqueError(
               technique3.id,
               technique3.version,
+              TechniqueActiveStatus.Enabled,
               technique3.name,
               "new tech3 error"
             )
@@ -274,6 +279,7 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
             EditorTechniqueError(
               technique3.id,
               technique3.version,
+              TechniqueActiveStatus.Enabled,
               technique3.name,
               "new tech3 error"
             )
@@ -288,6 +294,14 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
       )
     }
 
+    "update  a technique with disabled status" in {
+      writeCache.updateOneStatus(newError, TechniqueActiveStatus.Disabled).runNow must beEqualTo(
+        CompilationStatusErrors(
+          newErrorStatus.techniquesInError.map(_.copy(status = TechniqueActiveStatus.Disabled))
+        )
+      )
+    }
+
     "unsync one" in {
       (writeCache.unsyncOne(newError.id -> newError.version) *>
       msgLock.withPermit(
@@ -295,10 +309,5 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
       )).runNow.aka("actor received message") must beTrue and (mockActor.messageCount must beEqualTo(2))
     }
 
-    "update (remove) a technique with disabled status" in {
-      val addEnabled  = writeCache.updateOneStatus(newError, TechniqueActiveStatus.Enabled).runNow
-      val addDisabled = writeCache.updateOneStatus(newError, TechniqueActiveStatus.Disabled).runNow
-      (addEnabled must beAnInstanceOf[CompilationStatusErrors]) and (addDisabled must beEqualTo(CompilationStatusAllSuccess))
-    }
   }
 }

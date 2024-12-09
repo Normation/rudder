@@ -75,12 +75,30 @@ object EditorTechniqueCompilationResult {
 case class EditorTechniqueError(
     id:           BundleName,
     version:      Version,
+    status:       TechniqueActiveStatus,
     name:         String,
     errorMessage: String
 )
 
 sealed trait CompilationStatus
-case object CompilationStatusAllSuccess                                                    extends CompilationStatus
+object CompilationStatus {
+  def fromErrors(errors: Chunk[EditorTechniqueError]): CompilationStatus = {
+    NonEmptyChunk.fromChunk(errors) match {
+      case None        => CompilationStatusAllSuccess
+      case Some(value) => CompilationStatusErrors(value)
+    }
+  }
+
+  def ignoreDisabledTechniques(status: CompilationStatus): CompilationStatus = {
+    status match {
+      case CompilationStatusErrors(techniquesInError) =>
+        fromErrors(techniquesInError.collect { case e @ EditorTechniqueError(_, _, TechniqueActiveStatus.Enabled, _, _) => e })
+      case CompilationStatusAllSuccess                =>
+        CompilationStatusAllSuccess
+    }
+  }
+}
+case object CompilationStatusAllSuccess extends CompilationStatus
 case class CompilationStatusErrors(techniquesInError: NonEmptyChunk[EditorTechniqueError]) extends CompilationStatus {
   def ++(other: CompilationStatusErrors): CompilationStatusErrors = CompilationStatusErrors(
     this.techniquesInError ++ other.techniquesInError
@@ -286,9 +304,9 @@ class TechniqueCompilationErrorsActorSync(
       results.collect {
         case (
               r @ EditorTechniqueCompilationResult(id, version, name, CompilationResult.Error(error)),
-              TechniqueActiveStatus.Enabled
+              activeStatus
             ) =>
-          (getKey(r) -> EditorTechniqueError(id, version, name, error))
+          (getKey(r) -> EditorTechniqueError(id, version, activeStatus, name, error))
       }.toMap
     }.map(m => getStatus(m.values))
   }
@@ -302,10 +320,9 @@ class TechniqueCompilationErrorsActorSync(
   ): UIO[CompilationStatus] = {
     // only replace when current one is an error, when present or absent we should set the value
     val replacement: Option[EditorTechniqueError] => Option[EditorTechniqueError] = result match {
-      case EditorTechniqueCompilationResult(id, version, name, CompilationResult.Error(error))
-          if activeStatus == TechniqueActiveStatus.Enabled =>
-        _ => Some(EditorTechniqueError(id, version, name, error))
-      case _ =>
+      case EditorTechniqueCompilationResult(id, version, name, CompilationResult.Error(error)) =>
+        _ => Some(EditorTechniqueError(id, version, activeStatus, name, error))
+      case _                                                                                   =>
         _ => None
     }
     errorBase
