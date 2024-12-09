@@ -243,15 +243,14 @@ displayNodePropertyRow model =
             let
               pTitle = case pr of
                 "inherited" -> "<h4 class='tags-tooltip-title'>Inherited</h4> <div class='tooltip-inner-content'>This property is inherited " ++ (Maybe.withDefault "" p.hierarchy) ++ "</div>."
-                "overridden" -> "<h4 class='tags-tooltip-title'>Overridden</h4> <div>This property is overridden on this object and was inherited " ++ (Maybe.withDefault "" p.hierarchy) ++ "</div>."
+                "overridden" -> "<h4 class='tags-tooltip-title'>Overridden</h4> <div class='tooltip-inner-content'>This property is overridden on this object and was inherited " ++ (Maybe.withDefault "" p.hierarchy) ++ "</div>."
                 _ -> "<h4 class='tags-tooltip-title'>" ++ pr ++ "</h4> <div class='tooltip-inner-content'>This property is managed by its provider ‘<b>" ++ pr ++ "</b>’ and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration.</div>"
             in
               (span
               [ class "rudder-label label-provider label-sm bs-tooltip"
               , attribute "data-bs-toggle" "tooltip"
               , attribute "data-bs-placement" "right"
-              , attribute "data-bs-html" "true"
-              , attribute "data-bs-container" "body"
+              , attribute "data-bs-trigger" "click"
               , title pTitle
               ] [ text pr ]
               , pr == "overridden" || pr == "inherited"

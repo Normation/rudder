@@ -305,7 +305,7 @@ update msg model =
       let
         ui = model.ui
       in
-        ({model | ui = { ui | filtersOnProperty = tableFilters}}, Cmd.none)
+        ({model | ui = { ui | filtersOnProperty = tableFilters}}, initTooltips "")
 
     UpdateTableFiltersUsage tableFilters ->
       let
@@ -317,7 +317,7 @@ update msg model =
         ui = model.ui
         showMore = if List.member id ui.showMore then List.Extra.remove id ui.showMore else id :: ui.showMore
       in
-        ({model | ui = { ui | showMore = showMore}}, Cmd.none)
+        ({model | ui = { ui | showMore = showMore}}, initTooltips "")
 
     ClosePopup callback ->
       let
