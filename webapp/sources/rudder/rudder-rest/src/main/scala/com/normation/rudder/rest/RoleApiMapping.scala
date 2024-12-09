@@ -224,7 +224,7 @@ object AuthorizationApiMapping {
           TechniqueApi.UpdateTechnique.x :: SystemApi.PoliciesUpdate.x :: SystemApi.PoliciesRegenerate.x ::
           TechniqueApi.UpdateTechniques.x :: TechniqueApi.UpdateMethods.x :: Nil
 
-        case UserAccount.Read  => UserApi.GetApiToken.x :: Nil
+        case UserAccount.Read  => UserApi.GetApiToken.x :: UserApi.GetTokenFeatureStatus.x :: Nil
         case UserAccount.Write => UserApi.CreateApiToken.x :: UserApi.DeleteApiToken.x :: Nil
         case UserAccount.Edit  => UserApi.UpdateApiToken.x :: Nil
 
