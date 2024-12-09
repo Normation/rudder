@@ -216,27 +216,23 @@ object JsonResponseObjects {
   )
 
   final case class JRUpdateNode(
-      id:         NodeId,
-      properties: Chunk[JRProperty], // sorted by name
-      policyMode: Option[PolicyMode],
-      state:      NodeState
+      id:            NodeId,
+      properties:    Chunk[JRProperty], // sorted by name
+      policyMode:    Option[PolicyMode],
+      state:         NodeState,
+      documentation: Option[String]
   )
   object JRUpdateNode       {
     implicit val transformer: Transformer[CoreNodeFact, JRUpdateNode] = {
       Transformer
         .define[CoreNodeFact, JRUpdateNode]
-        .withFieldComputed(
-          _.state,
-          _.rudderSettings.state
-        )
-        .withFieldComputed(
-          _.policyMode,
-          _.rudderSettings.policyMode
-        )
+        .withFieldComputed(_.state, _.rudderSettings.state)
+        .withFieldComputed(_.policyMode, _.rudderSettings.policyMode)
         .withFieldComputed(
           _.properties,
           _.properties.sortBy(_.name).map(JRProperty.fromNodeProp).transformInto[Chunk[JRProperty]]
         )
+        .withFieldComputed(_.documentation, _.documentation)
         .buildTransformer
     }
   }
