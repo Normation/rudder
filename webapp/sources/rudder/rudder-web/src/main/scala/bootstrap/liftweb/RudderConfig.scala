@@ -1857,7 +1857,6 @@ object RudderConfigInit {
     lazy val techniqueArchiver = new TechniqueArchiverImpl(
       gitConfigRepo,
       prettyPrinter,
-      gitModificationRepository,
       personIdentService,
       techniqueParser,
       techniqueCompiler,
