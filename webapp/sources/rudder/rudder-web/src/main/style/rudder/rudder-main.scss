@@ -543,87 +543,101 @@ pre.json-beautify code.elmsh {
 #groupTree ul.jstree-container-ul>li>ul>li>a .tooltip{
   left:0 !important;
 }
+
+// TOOLTIP
 .tooltip{
   z-index:9999;
-}
-.tooltip > .tooltip-inner {
-  background-color: #fff;
-  padding: 0px !important;
-  text-align: left !important;
-  width: 360px;
-  max-width: 360px;
-  font-size: 12px;
-  box-shadow: 0px 0px 5px rgba(0, 0, 0, .12);
-  border-radius: 0px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-}
-.tooltip > .tooltip-inner > ul > li {
-  margin-bottom: 4px;
-}
-.tooltip > .tooltip-inner > ul {
-  margin-bottom: 0;
-}
-.tooltip.top > .tooltip-arrow{
-  border-top-color: #ccc;
-}
-.tooltip.bottom > .tooltip-arrow{
-  border-bottom-color: #ccc;
-}
-.tooltip.right > .tooltip-arrow{
-  border-right-color: #ccc;
+
+  & > .tooltip-inner {
+    background-color: #fff;
+    padding: 0px !important;
+    text-align: left !important;
+    width: auto;
+    max-width: 460px;
+    font-size: 12px;
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, .12);
+    border-radius: 0px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+
+    & > div {
+      padding: 0 8px;
+    }
+    .tooltip-content{
+      padding: 0px 10px 10px 10px;
+      p {
+        padding:0;
+        margin-bottom: 5px;
+      }
+      i b{
+        color:#041922;
+        background: none;
+        -webkit-background-clip: initial;
+        -webkit-text-fill-color: initial;
+      }
+      ul{
+        padding-left: 0;
+      }
+      & > ul:last-child,
+      & > p:last-child{
+        margin-bottom : 0;
+      }
+    }
+    & > .tooltip-inner-content{
+      max-height: 400px;
+      overflow: auto;
+
+      pre{
+        width: 100%;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+      }
+
+      & > :last-child{
+        margin-bottom: 0;
+      }
+    }
+    & > ul {
+      margin-bottom: 0;
+      & > li {
+        margin-bottom: 4px;
+      }
+    }
+    h4{
+      background-color: #fff;
+      font-weight: 600;
+      border-bottom: 1px solid #d6deef;
+      padding: 5px;
+      font-size: 14px;
+      margin: 10px 8px;
+    }
+    i.empty {
+      color: #738195;
+    }
+    .small{
+      color: #738195;
+      margin-left: 4px;
+    }
+    label{
+      margin-right: 4px;
+    }
+  }
+  &.top > .tooltip-arrow{
+    border-top-color: #ccc;
+  }
+  &.bottom > .tooltip-arrow{
+    border-bottom-color: #ccc;
+  }
+  &.right > .tooltip-arrow{
+    border-right-color: #ccc;
+  }
+  &.in {
+    opacity: 1;
+    filter: alpha(opacity=100);
+  }
 }
 
-.tooltip > .tooltip-inner h4{
-  background-color: #fff;
-  font-weight: 600;
-  border-bottom: 1px solid #d6deef;
-  padding: 5px;
-  font-size: 14px;
-  margin: 10px 8px;
-}
-.tooltip > .tooltip-inner > div {
-  padding: 0 8px;
-}
-.tooltip > .tooltip-inner i.empty {
-  color: #738195;
-}
-.tooltip > .tooltip-inner .small{
-  color: #738195;
-  margin-left: 4px;
-}
-.tooltip > .tooltip-inner label{
-  margin-right: 4px;
-}
-form .tooltip-content p {
-  padding:0;
-}
-.tooltip > .tooltip-inner .tooltip-content{
-  padding: 0px 10px 10px 10px;
-}
-.tooltip > .tooltip-inner .tooltip-content i b{
-  color:#041922;
-  background: none;
-  -webkit-background-clip: initial;
-  -webkit-text-fill-color: initial;
-}
-.tooltip > .tooltip-inner .tooltip-content p{
-  margin-bottom: 5px;
-}
-.tooltip > .tooltip-inner .tooltip-content > ul{
-  padding-left: 0;
-}
-.tooltip > .tooltip-inner .tooltip-content > ul:last-child,
-.tooltip > .tooltip-inner .tooltip-content > p:last-child{
-  margin-bottom : 0;
-}
-.tooltip.in {
-  opacity: 1;
-  filter: alpha(opacity=100);
-}
-.tooltip .tooltip-inner-content > ul:last-child {
-  margin-bottom: 0;
-}
+// LABEL
 .content-wrapper .rudder-label{
   cursor: help;
   display: inline-block;
@@ -634,6 +648,10 @@ form .tooltip-content p {
   border-radius: 3px;
   min-width: 78px;
   background-color: #738195;
+
+  &[data-bs-trigger=click] {
+    cursor: pointer !important;
+  }
 }
 
 .text-align-center{
@@ -663,7 +681,6 @@ form .tooltip-content p {
 }
 
 .label-provider, .dataTable .rudder-label.label-sm.label-provider {
-  background-color: #999;
   padding:0 5px !important;
   margin-top:4px;
   margin-left: 6px;

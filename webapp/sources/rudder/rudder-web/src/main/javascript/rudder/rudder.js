@@ -373,7 +373,17 @@ $(document).ready(function() {
     }
   } );
   sidebarControl();
+  // Init tooltips
   initBsTooltips();
+
+  // Hide any open tooltips when the anywhere else in the body is clicked
+  $('body').on('click', function (e) {
+      $('[data-bs-toggle=tooltip]').each(function () {
+          if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.tooltip').has(e.target).length === 0) {
+              $(this).tooltip('hide');
+          }
+      });
+  });
 });
 
 function checkMigrationButton(currentVersion,selectId) {
@@ -864,12 +874,22 @@ function logout(cb){
 function initBsTooltips(){
   var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
   return tooltipTriggerList.map(function (tooltipTriggerEl) {
-    return new bootstrap.Tooltip(tooltipTriggerEl,{container : "body", html : true, trigger : 'hover'});
+    let dataTrigger = $(tooltipTriggerEl).attr('data-bs-trigger');
+    let trigger = dataTrigger === undefined ? 'hover' : dataTrigger;
+    return new bootstrap.Tooltip(tooltipTriggerEl,{container : "body", html : true, trigger : trigger});
   });
 }
 function removeBsTooltips(){
   document.querySelectorAll(".tooltip").forEach(e => e.remove());
 }
+$('body').on('click', function (e) {
+    $('[data-bs-toggle=tooltip]').each(function () {
+        // hide any open tooltips when the anywhere else in the body is clicked
+        if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.tooltip').has(e.target).length === 0) {
+            $(this).tooltip('hide');
+        }
+    });
+});
 function initBsModal(modalName){
   var selector = document.querySelector('#' + modalName);
   var modal    = bootstrap.Modal.getInstance(selector);
