@@ -214,7 +214,7 @@ pub mod action {
         if let Some(n) = name {
             technique.name = n;
         }
-        let t = serde_yaml::to_string(&technique)?;
+        let t = serde_yaml_ng::to_string(&technique)?;
         let tech_path = output.join(TECHNIQUE_SRC);
         let mut file = File::create(tech_path.as_path())
             .with_context(|| format!("Failed to create technique file {}", tech_path.display()))?;
@@ -346,7 +346,7 @@ pub mod action {
                 .into_owned();
             ok_output("Testing", case_path.to_string_lossy());
             let yaml = read_to_string(&case_path)?;
-            let case: TestCase = serde_yaml::from_str(&yaml)?;
+            let case: TestCase = serde_yaml_ng::from_str(&yaml)?;
             // Run test setup
             case.setup(test_dir, target_dir)?;
             // Run the technique
@@ -437,7 +437,7 @@ pub mod action {
             let src_file = input.with_extension("ids.yml");
             let mut file = File::create(&src_file)
                 .with_context(|| format!("Failed to create output file {}", src_file.display()))?;
-            file.write_all(serde_yaml::to_string(&policy)?.as_bytes())?;
+            file.write_all(serde_yaml_ng::to_string(&policy)?.as_bytes())?;
             ok_output("Wrote", src_file.display());
         }
 
@@ -496,8 +496,8 @@ pub mod action {
         // We don't need to parse everything, let's just extract what we need
         // We use the technique with ids
         let technique_src = src.join(TECHNIQUE_SRC).with_extension("ids.yml");
-        let yml: serde_yaml::Value =
-            serde_yaml::from_str(&read_to_string(&technique_src).context(format!(
+        let yml: serde_yaml_ng::Value =
+            serde_yaml_ng::from_str(&read_to_string(&technique_src).context(format!(
                 "Could not read source technique {}",
                 technique_src.display()
             ))?)?;

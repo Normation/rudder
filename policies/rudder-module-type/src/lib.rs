@@ -33,7 +33,7 @@ pub struct ModuleTypeMetadata {
 impl ModuleTypeMetadata {
     /// Load metadata from yaml content
     pub fn from_metadata(metadata: &'static str) -> Result<Self> {
-        let parsed: Self = serde_yaml::from_str(metadata)?;
+        let parsed: Self = serde_yaml_ng::from_str(metadata)?;
         Ok(ModuleTypeMetadata {
             metadata: Some(metadata.to_string()),
             ..parsed
