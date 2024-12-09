@@ -26,7 +26,6 @@ use nom::{
     Finish, IResult,
 };
 use rudder_commons::Target;
-use serde_yaml_ng::Value;
 use tracing::{debug, warn};
 
 use super::technique;
