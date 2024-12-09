@@ -53,8 +53,13 @@ $rudder-txt-light     : #36474E;
 $rudder-txt-link      : #1295C2;
 
 // --- BACKGROUNDS
-$rudder-bg-gray : #F8F9FC;
+$rudder-bg-light-gray : #F8F9FC;
+$rudder-bg-gray       : #EEF1F9;
+$rudder-bg-dark-gray  : #E1E5EB;
 
 // --- BORDERS
 $rudder-border-color-default : #D6DEEF;
 $rudder-border-color-danger  : #AC2925;
+
+// --- BOX-SHADOWS
+$rudder-box-shadow-color: #DCE3EF;
