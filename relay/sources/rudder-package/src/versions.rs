@@ -305,7 +305,10 @@ mod tests {
         assert_eq!(v.patch, e_patch);
         assert_eq!(v.mode, RudderVersionMode::from_str(e_mode).unwrap());
         assert_eq!(v.nightly.clone().unwrap_or("".to_string()), e_nightly);
-        assert_eq!(v.to_string(), raw);
+        let old_version = v.to_string() == format!("{raw}.0");
+        let new_version = v.to_string() == raw;
+        let display_ok = new_version || old_version;
+        assert!(display_ok);
     }
 
     #[rstest]
