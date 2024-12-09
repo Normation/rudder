@@ -37,10 +37,14 @@
 
 package com.normation.rudder.ncf
 
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.Version
 import com.normation.rudder.batch.UpdateCompilationStatus
 import com.normation.rudder.domain.logger.StatusLoggerPure
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.rudder.repository.FullActiveTechnique
+import com.normation.rudder.repository.RoDirectiveRepository
 import net.liftweb.common.SimpleActor
 import zio.*
 import zio.syntax.*
@@ -89,6 +93,23 @@ case class CompilationStatusErrors(techniquesInError: NonEmptyChunk[EditorTechni
 trait ReadEditorTechniqueCompilationResult {
 
   def get(): IOResult[List[EditorTechniqueCompilationResult]]
+
+}
+
+sealed trait TechniqueActiveStatus
+object TechniqueActiveStatus {
+  case object Enabled  extends TechniqueActiveStatus
+  case object Disabled extends TechniqueActiveStatus
+}
+
+/**
+  * Get attribute from the configuration techniques
+  */
+trait ReadEditorTechniqueActiveStatus {
+
+  def getActiveStatus(id: BundleName): IOResult[Option[TechniqueActiveStatus]]
+
+  def getActiveStatuses(): IOResult[Map[BundleName, TechniqueActiveStatus]]
 
 }
 
@@ -147,6 +168,35 @@ class TechniqueCompilationStatusService(
 }
 
 /**
+  * Service to gather the technique attributes using the directive reposistory which knows about active techniques,
+  * and their status
+  */
+class TechniqueActiveStatusService(directiveRepo: RoDirectiveRepository) extends ReadEditorTechniqueActiveStatus {
+
+  override def getActiveStatus(id: BundleName): IOResult[Option[TechniqueActiveStatus]]          = {
+    directiveRepo.getActiveTechnique(TechniqueName(id.value)).map(_.map(techniqueActiveStatus(_)))
+  }
+  override def getActiveStatuses():             IOResult[Map[BundleName, TechniqueActiveStatus]] = {
+    directiveRepo.getFullDirectiveLibrary().map(_.activeTechniques.map(t => techniqueId(t) -> techniqueActiveStatus(t)).toMap)
+  }
+
+  private def techniqueId(technique: FullActiveTechnique): BundleName = BundleName(technique.techniqueName.value)
+
+  private def techniqueActiveStatus(technique: ActiveTechnique):     TechniqueActiveStatus = {
+    technique.isEnabled match {
+      case true  => TechniqueActiveStatus.Enabled
+      case false => TechniqueActiveStatus.Disabled
+    }
+  }
+  private def techniqueActiveStatus(technique: FullActiveTechnique): TechniqueActiveStatus = {
+    technique.isEnabled match {
+      case true  => TechniqueActiveStatus.Enabled
+      case false => TechniqueActiveStatus.Disabled
+    }
+  }
+}
+
+/**
   * Technique compilation output needs to be saved in a cache (frequent reads, we don't want to get files on the FS every time).
   *
   * This cache is a simple in-memory one which only saves errors,
@@ -157,9 +207,10 @@ class TechniqueCompilationStatusService(
   * when technique library is reloaded
   */
 class TechniqueCompilationErrorsActorSync(
-    actor:     SimpleActor[UpdateCompilationStatus],
-    reader:    ReadEditorTechniqueCompilationResult,
-    errorBase: Ref[Map[(BundleName, Version), EditorTechniqueError]]
+    actor:            SimpleActor[UpdateCompilationStatus],
+    reader:           ReadEditorTechniqueCompilationResult,
+    attributesReader: ReadEditorTechniqueActiveStatus,
+    errorBase:        Ref[Map[(BundleName, Version), EditorTechniqueError]]
 ) extends TechniqueCompilationStatusSyncService {
 
   /*
@@ -167,8 +218,12 @@ class TechniqueCompilationErrorsActorSync(
    */
   def syncOne(result: EditorTechniqueCompilationResult): IOResult[Unit] = {
     for {
-      status <- updateOneStatus(result)
-      _      <- syncStatusWithUi(status)
+      activeStatus <-
+        attributesReader
+          .getActiveStatus(result.id)
+          .map(_.getOrElse(TechniqueActiveStatus.Disabled)) // not found technique should mean that it is disabled/deleted
+      status       <- updateOneStatus(result, activeStatus)
+      _            <- syncStatusWithUi(status)
     } yield ()
   }
 
@@ -186,13 +241,17 @@ class TechniqueCompilationErrorsActorSync(
   }
 
   /*
-   * The whole process that lookup for compilation status and update everything
+   * The whole process that lookup for compilation status and update everything.
+   * Sync always looks up for the latest status of techniques to filter out disabled ones.
    */
   def getUpdateAndSync(results: Option[List[EditorTechniqueCompilationResult]]): IOResult[Unit] = {
     (for {
-      results <- results.map(_.succeed).getOrElse(reader.get())
-      status  <- updateStatus(results)
-      _       <- syncStatusWithUi(status)
+      res            <- results.map(_.succeed).getOrElse(reader.get())
+      activeStatuses <- attributesReader.getActiveStatuses()
+      // ones without status are filtered out (if they are in error, they are ignored)
+      resWithStatus   = res.flatMap(r => activeStatuses.get(r.id).map(r -> _))
+      status         <- updateStatus(resWithStatus)
+      _              <- syncStatusWithUi(status)
     } yield status).flatMap {
       case CompilationStatusAllSuccess => StatusLoggerPure.Techniques.info("All techniques have success compilation result")
       case e: CompilationStatusErrors =>
@@ -220,10 +279,15 @@ class TechniqueCompilationErrorsActorSync(
   /*
    * Update the internal cache and build a Compilation status
    */
-  private[ncf] def updateStatus(results: List[EditorTechniqueCompilationResult]): UIO[CompilationStatus] = {
+  private[ncf] def updateStatus(
+      results: List[(EditorTechniqueCompilationResult, TechniqueActiveStatus)]
+  ): UIO[CompilationStatus] = {
     errorBase.updateAndGet { m =>
       results.collect {
-        case r @ EditorTechniqueCompilationResult(id, version, name, CompilationResult.Error(error)) =>
+        case (
+              r @ EditorTechniqueCompilationResult(id, version, name, CompilationResult.Error(error)),
+              TechniqueActiveStatus.Enabled
+            ) =>
           (getKey(r) -> EditorTechniqueError(id, version, name, error))
       }.toMap
     }.map(m => getStatus(m.values))
@@ -232,12 +296,16 @@ class TechniqueCompilationErrorsActorSync(
   /**
     * Only take a single result to update the cached technique if it is there, else do nothing 
     */
-  private[ncf] def updateOneStatus(result: EditorTechniqueCompilationResult): UIO[CompilationStatus] = {
+  private[ncf] def updateOneStatus(
+      result:       EditorTechniqueCompilationResult,
+      activeStatus: TechniqueActiveStatus
+  ): UIO[CompilationStatus] = {
     // only replace when current one is an error, when present or absent we should set the value
     val replacement: Option[EditorTechniqueError] => Option[EditorTechniqueError] = result match {
-      case EditorTechniqueCompilationResult(id, version, name, CompilationResult.Error(error)) =>
+      case EditorTechniqueCompilationResult(id, version, name, CompilationResult.Error(error))
+          if activeStatus == TechniqueActiveStatus.Enabled =>
         _ => Some(EditorTechniqueError(id, version, name, error))
-      case _                                                                                   =>
+      case _ =>
         _ => None
     }
     errorBase
@@ -252,11 +320,12 @@ class TechniqueCompilationErrorsActorSync(
 
 object TechniqueCompilationErrorsActorSync {
   def make(
-      actor:  SimpleActor[UpdateCompilationStatus],
-      reader: ReadEditorTechniqueCompilationResult
+      actor:            SimpleActor[UpdateCompilationStatus],
+      reader:           ReadEditorTechniqueCompilationResult,
+      attributesReader: ReadEditorTechniqueActiveStatus
   ): UIO[TechniqueCompilationErrorsActorSync] = {
     Ref
       .make(Map.empty[(BundleName, Version), EditorTechniqueError])
-      .map(new TechniqueCompilationErrorsActorSync(actor, reader, _))
+      .map(new TechniqueCompilationErrorsActorSync(actor, reader, attributesReader, _))
   }
 }
