@@ -46,6 +46,7 @@ import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.internal.SharedFilesAPI.sanitizePath
 import com.normation.rudder.users.UserService
+import com.normation.utils.FileUtils.*
 import com.normation.zio.*
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -81,35 +82,6 @@ object SharedFilesAPI {
   // LiftRules.maxMimeSize and LiftRules.maxMimeFileSize are the configured values,
   // set to 8MB (default value of LiftRules.maxMimeSize)
   val MAX_FILE_SIZE: Int = 8388608
-
-  def sanitizePath(path: String, baseFolder: File): IOResult[File] = {
-    sanitizePath(baseFolder, List(path))
-  }
-
-  def sanitizePath(baseFolder: File, path: List[String]): IOResult[File] = {
-    @tailrec def recPath(file: File, children: List[String]): File = {
-      children match {
-        case Nil           => file
-        case child :: next => recPath(file / child.dropWhile(_.equals('/')), next)
-      }
-    }
-    IOResult.attemptZIO {
-      // Actually canonifies the path
-      val filePath = recPath(baseFolder, path)
-      // We also want to resolve symlinks before checking, let's resort to Java's `toRealPath`
-      val realPath = if (filePath.exists()) {
-        File(filePath.toJava.toPath.toRealPath())
-      } else {
-        filePath
-      }
-      // `false` means we allow access to the base directory itself
-      if (baseFolder.contains(realPath, strict = false)) {
-        realPath.succeed
-      } else {
-        Unexpected(s"Unauthorized access to file ${filePath.name} (real path: ${realPath})").fail
-      }
-    }
-  }
 }
 
 class SharedFilesAPI(
@@ -122,7 +94,7 @@ class SharedFilesAPI(
   private def checkPathAndContinue(path: String, baseFolder: File)(
       fun: File => IOResult[LiftResponse]
   ): IOResult[LiftResponse] = {
-    sanitizePath(path, baseFolder).flatMap(fun)
+    sanitizePath(baseFolder, path).flatMap(fun)
   }
 
   def serialize(file: File):                           IOResult[JValue]       = {
