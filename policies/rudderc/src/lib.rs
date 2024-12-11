@@ -24,8 +24,9 @@ pub mod test;
 
 pub const TARGET_DIR: &str = "target";
 pub const TESTS_DIR: &str = "tests";
+/// Name of the technique files. The extension indicates the format.
 pub const TECHNIQUE: &str = "technique";
-pub const TECHNIQUE_SRC: &str = "technique.yml";
+pub const YAML_EXTENSIONS: &[&str] = &["yml", "yaml"];
 pub const METADATA_FILE: &str = "metadata.xml";
 pub const RESOURCES_DIR: &str = "resources";
 
@@ -37,6 +38,21 @@ pub const DEFAULT_AGENT_PATH: &str = "C:\\Program Files\\Rudder";
 #[cfg(unix)]
 pub const DEFAULT_AGENT_PATH: &str = "/opt/rudder/bin/";
 
+fn find_input() -> Result<PathBuf> {
+    let maybe_input = YAML_EXTENSIONS
+        .iter()
+        .map(|e| Path::new(TECHNIQUE).with_extension(e))
+        .find(|p| p.exists());
+    match maybe_input {
+        Some(input) => Ok(input.to_path_buf()),
+        None => bail!(
+            "No input '{}.{}' file provided",
+            TECHNIQUE,
+            YAML_EXTENSIONS[0]
+        ),
+    }
+}
+
 /// Main entry point for rudderc
 ///
 /// # Error management
@@ -46,7 +62,6 @@ pub const DEFAULT_AGENT_PATH: &str = "/opt/rudder/bin/";
 pub fn run(args: MainArgs) -> Result<()> {
     custom_panic_hook_ignore_sigpipe();
 
-    let input = Path::new(TECHNIQUE_SRC);
     let cwd = PathBuf::from(".");
     let target = PathBuf::from(TARGET_DIR);
 
@@ -79,7 +94,7 @@ pub fn run(args: MainArgs) -> Result<()> {
 
     if let Some(cwd) = args.directory {
         // Support being passed the technique.yml file directly
-        let actual_cwd = if cwd.ends_with(TECHNIQUE_SRC) {
+        let actual_cwd = if cwd.ends_with(TECHNIQUE) {
             let parent = cwd
                 .parent()
                 .ok_or_else(|| anyhow!("Could not open {} technique directory", cwd.display()))?;
@@ -116,7 +131,8 @@ pub fn run(args: MainArgs) -> Result<()> {
         Command::Clean => action::clean(target.as_path()),
         Command::Check { library } => {
             let library = check_libraries(library)?;
-            action::check(library.as_slice(), input)
+            let input = find_input()?;
+            action::check(library.as_slice(), input.as_path())
         }
         Command::Build {
             library,
@@ -126,6 +142,7 @@ pub fn run(args: MainArgs) -> Result<()> {
             store_ids,
         } => {
             let library = check_libraries(library)?;
+            let input = find_input()?;
             let actual_output = output.unwrap_or(target);
             if actual_output.exists()
                 && actual_output.canonicalize()? == input.canonicalize()?.parent().unwrap()
@@ -135,7 +152,7 @@ pub fn run(args: MainArgs) -> Result<()> {
 
             action::build(
                 library.as_slice(),
-                input,
+                input.as_path(),
                 actual_output.as_path(),
                 standalone,
                 store_ids || export,
@@ -152,6 +169,8 @@ pub fn run(args: MainArgs) -> Result<()> {
             agent_verbose,
         } => {
             let library = check_libraries(library)?;
+            let input = find_input()?;
+            let input = input.as_path();
             action::build(library.as_slice(), input, target.as_path(), true, false)?;
             action::test(
                 input,
@@ -205,7 +224,7 @@ pub mod action {
         frontends::read_methods,
         ir::Technique,
         test::TestCase,
-        METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TECHNIQUE_SRC, TESTS_DIR,
+        METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TESTS_DIR, YAML_EXTENSIONS,
     };
 
     /// Create a technique skeleton
@@ -215,7 +234,7 @@ pub mod action {
             technique.name = n;
         }
         let t = serde_yaml::to_string(&technique)?;
-        let tech_path = output.join(TECHNIQUE_SRC);
+        let tech_path = output.join(TECHNIQUE);
         let mut file = File::create(tech_path.as_path())
             .with_context(|| format!("Failed to create technique file {}", tech_path.display()))?;
         file.write_all(t.as_bytes())?;
@@ -323,8 +342,13 @@ pub mod action {
         if test_dir.exists() {
             for entry in fs::read_dir(test_dir)? {
                 let e = entry?;
-                let name = e.file_name().into_string().unwrap();
-                if e.file_type()?.is_file() && name.ends_with(".yml") {
+                let path = e.path();
+                let extension = path
+                    .extension()
+                    .unwrap_or(Default::default())
+                    .to_str()
+                    .unwrap_or("");
+                if e.file_type()?.is_file() && YAML_EXTENSIONS.contains(&extension) {
                     if let Some(ref f) = filter {
                         // Filter by file name
                         if e.path().file_stem().unwrap().to_string_lossy().contains(f) {
@@ -495,7 +519,7 @@ pub mod action {
     pub fn export(src: &Path, dir: PathBuf) -> Result<()> {
         // We don't need to parse everything, let's just extract what we need
         // We use the technique with ids
-        let technique_src = src.join(TECHNIQUE_SRC).with_extension("ids.yml");
+        let technique_src = src.join(TECHNIQUE).with_extension("ids.yml");
         let yml: serde_yaml::Value =
             serde_yaml::from_str(&read_to_string(&technique_src).context(format!(
                 "Could not read source technique {}",
@@ -520,7 +544,7 @@ pub mod action {
         let zip_dir = format!("archive/techniques/{category}/{id}/{version}");
 
         // Technique
-        zip.start_file(format!("{}/{}", zip_dir, TECHNIQUE_SRC), options.clone())?;
+        zip.start_file(format!("{}/{}", zip_dir, TECHNIQUE), options.clone())?;
         let mut buffer = Vec::new();
         let mut f = File::open(&technique_src).context(format!(
             "Opening technique source {}",
