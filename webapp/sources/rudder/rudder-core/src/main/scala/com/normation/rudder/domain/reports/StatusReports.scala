@@ -44,10 +44,14 @@ import com.normation.rudder.domain.policies.*
 import com.softwaremill.quicklens.*
 import enumeratum.Enum
 import enumeratum.EnumEntry
+import io.scalaland.chimney.*
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 import scala.collection.MapView
-import zio.Chunk
+import zio.*
+import zio.json.*
+import zio.json.ast.Json.*
 
 /**
  * That file contains all the kind of status reports for:
@@ -574,105 +578,210 @@ object MessageStatusReport {
 
 }
 
+/*
+ * This is the serialization for API.
+ * We are again redefining roughly the same objects.
+ */
+// not sure why it doesn't see that they are used
 object NodeStatusReportSerialization {
 
-  import net.liftweb.json.*
-  import net.liftweb.json.JsonDSL.*
+  private object InternalDataStructures {
 
-  def jsonRunInfo(runInfo: RunAnalysis): JValue = {
-    (("type"              -> runInfo.kind.entryName)
-    ~ ("expectedConfigId" -> runInfo.expectedConfigId.map(_.value))
-    ~ ("runConfigId"      -> runInfo.lastRunConfigId.map(_.value)))
-  }
-
-  def jsonStatusInfo(statusInfo: RunComplianceInfo): JValue = {
-    (
-      ("status"  -> (statusInfo match {
-        case RunComplianceInfo.OK => "success"
-        case _                    => "error"
-      })) ~ (
-        "errors" -> (statusInfo match {
-          case RunComplianceInfo.OK                              => None
-          case RunComplianceInfo.PolicyModeInconsistency(errors) =>
-            Some(errors.map {
-              case RunComplianceInfo.PolicyModeError.TechniqueMixedMode(msg)       =>
-                ("policyModeError" -> ("message" -> msg)): JObject
-              case RunComplianceInfo.PolicyModeError.AgentAbortMessage(cause, msg) =>
-                ("policyModeInconsistency" -> (("cause" -> cause) ~ ("message" -> msg))): JObject
-            })
-        })
-      )
+    case class ApiRunInfo(
+        `type`:           String,
+        expectedConfigId: Option[String],
+        runConfigId:      Option[String]
     )
-  }
-
-  implicit class RunComplianceInfoToJs(val x: (RunAnalysis, RunComplianceInfo)) extends AnyVal {
-    def toJValue: JObject = {
-      (
-        ("run"      -> jsonRunInfo(x._1))
-        ~ ("status" -> jsonStatusInfo(x._2))
-      )
+    implicit lazy val encoderApiRunInfo:          JsonEncoder[ApiRunInfo]                       = DeriveJsonEncoder.gen
+    implicit lazy val transformRunAnalysis:       Transformer[RunAnalysis, ApiRunInfo]          = {
+      Transformer
+        .define[RunAnalysis, ApiRunInfo]
+        .withFieldComputed(_.`type`, _.kind.entryName)
+        .withFieldComputed(_.expectedConfigId, _.expectedConfigId.map(_.value))
+        .withFieldComputed(_.runConfigId, _.lastRunConfigId.map(_.value))
+        .buildTransformer
     }
 
-    def toJson:        String = prettyRender(toJValue)
-    def toCompactJson: String = compactRender(toJValue)
-  }
+    case class ApiStatusInfo(
+        status: String,
+        errors: Option[List[Obj]]
+    )
+    implicit lazy val encoderApiStatusInfo:       JsonEncoder[ApiStatusInfo]                    = DeriveJsonEncoder.gen
+    implicit lazy val transformRunComplianceInfo: Transformer[RunComplianceInfo, ApiStatusInfo] = {
+      Transformer
+        .define[RunComplianceInfo, ApiStatusInfo]
+        .withFieldComputed(
+          _.status,
+          {
+            case RunComplianceInfo.OK => "success"
+            case _                    => "error"
+          }
+        )
+        .withFieldComputed(
+          _.errors,
+          {
+            case RunComplianceInfo.OK                              => None
+            case RunComplianceInfo.PolicyModeInconsistency(errors) =>
+              Some(errors.map {
+                case RunComplianceInfo.PolicyModeError.TechniqueMixedMode(msg)       =>
+                  Obj(("policyModeError", Obj("message" -> Str(msg))))
+                case RunComplianceInfo.PolicyModeError.AgentAbortMessage(cause, msg) =>
+                  Obj(("policyModeInconsistency", Obj(("cause", Str(cause)), ("message", Str(msg)))))
+              })
+          }
+        )
+        .buildTransformer
+    }
 
+    case class ApiInfo(
+        run:    ApiRunInfo,
+        status: ApiStatusInfo
+    )
+
+    implicit lazy val encoderApiInfo:   JsonEncoder[ApiInfo]                                   = DeriveJsonEncoder.gen
+    implicit lazy val transformApiInfo: Transformer[(RunAnalysis, RunComplianceInfo), ApiInfo] = {
+      Transformer
+        .define[(RunAnalysis, RunComplianceInfo), ApiInfo]
+        .withFieldRenamed(_._1, _.run)
+        .withFieldRenamed(_._2, _.status)
+        .buildTransformer
+    }
+
+    case class ApiComponentValue(
+        componentName: String,
+        compliance:    ComplianceSerializable,
+        numberReports: Int,
+        value:         List[ApiValue]
+    )
+
+    // here, I'm not sure that we want compliance or
+    // compliance percents. Having a normalized value
+    // seems far better for queries in the future.
+    // but in that case, we should also keep the total
+    // number of events to be able to rebuild raw data
+
+    // always map compliance field from ComplianceLevel to ComplianceSerializable automatically
+    implicit lazy val transformComplianceLevel: Transformer[ComplianceLevel, ComplianceSerializable] = {
+      case c: ComplianceLevel => c.computePercent().transformInto[ComplianceSerializable]
+    }
+
+    implicit lazy val encoderApiComponentValue:   JsonEncoder[ApiComponentValue]                    = DeriveJsonEncoder.gen
+    implicit lazy val transformValueStatusReport: Transformer[ValueStatusReport, ApiComponentValue] = {
+      Transformer
+        .define[ValueStatusReport, ApiComponentValue]
+        .withFieldComputed(_.numberReports, _.compliance.total)
+        .withFieldComputed(_.value, _.componentValues.map(_.transformInto[ApiValue]))
+        .buildTransformer
+    }
+
+    case class ApiValue(
+        value:         String,
+        compliance:    ComplianceSerializable,
+        numberReports: Int,
+        unexpanded:    String,
+        messages:      List[ApiMessage]
+    )
+
+    implicit lazy val encoderApiValue: JsonEncoder[ApiValue] = DeriveJsonEncoder.gen
+
+    implicit lazy val transformValue: Transformer[ComponentValueStatusReport, ApiValue] = {
+      Transformer
+        .define[ComponentValueStatusReport, ApiValue]
+        .withFieldComputed(_.value, _.componentValue)
+        .withFieldComputed(_.numberReports, _.compliance.total)
+        .withFieldComputed(_.unexpanded, _.expectedComponentValue)
+        .buildTransformer
+    }
+
+    case class ApiMessage(
+        message: Option[String],
+        `type`:  String
+    )
+
+    implicit lazy val encoderApiMessage:            JsonEncoder[ApiMessage]                      = DeriveJsonEncoder.gen
+    implicit lazy val transformMessageStatusReport: Transformer[MessageStatusReport, ApiMessage] = {
+      Transformer
+        .define[MessageStatusReport, ApiMessage]
+        .withFieldComputed(_.`type`, _.reportType.severity)
+        .buildTransformer
+    }
+
+    case class ApiComponentBlock(
+        value:          String,
+        compliance:     ComplianceSerializable,
+        numberReports:  Int,
+        subComponents:  List[Either[ApiComponentValue, ApiComponentBlock]],
+        reportingLogic: String
+    )
+
+    implicit lazy val encoderApiComponentBlock: JsonEncoder[ApiComponentBlock]                                                   = DeriveJsonEncoder.gen
+    implicit lazy val transformComponent:       Transformer[ComponentStatusReport, Either[ApiComponentValue, ApiComponentBlock]] = {
+      case b: BlockStatusReport => Right(b.transformInto[ApiComponentBlock])
+      case v: ValueStatusReport => Left(v.transformInto[ApiComponentValue])
+    }
+
+    implicit lazy val transformBlockStatusReport: Transformer[BlockStatusReport, ApiComponentBlock] = {
+      Transformer
+        .define[BlockStatusReport, ApiComponentBlock]
+        .withFieldComputed(_.value, _.componentName)
+        .withFieldComputed(_.numberReports, _.compliance.total)
+        .withFieldComputed(_.reportingLogic, _.reportingLogic.value)
+        .enableMethodAccessors
+        .buildTransformer
+    }
+
+    case class ApiDirective(
+        directiveId:   String,
+        compliance:    ComplianceSerializable,
+        numberReports: Int,
+        components:    List[Either[ApiComponentValue, ApiComponentBlock]]
+    )
+
+    implicit lazy val encoderApiDirective:            JsonEncoder[ApiDirective]                        = DeriveJsonEncoder.gen
+    implicit lazy val transformDirectiveStatusReport: Transformer[DirectiveStatusReport, ApiDirective] = {
+      Transformer
+        .define[DirectiveStatusReport, ApiDirective]
+        .withFieldComputed(_.directiveId, _.directiveId.serialize)
+        .withFieldComputed(_.numberReports, _.compliance.total)
+        .buildTransformer
+    }
+
+    case class ApiRule(
+        ruleId:        String,
+        compliance:    ComplianceSerializable,
+        numberReports: Int,
+        directives:    List[ApiDirective]
+    )
+
+    implicit lazy val encoderApiRule: JsonEncoder[ApiRule]                       = DeriveJsonEncoder.gen
+    implicit lazy val transformRule:  Transformer[RuleNodeStatusReport, ApiRule] = {
+      Transformer
+        .define[RuleNodeStatusReport, ApiRule]
+        .withFieldComputed(_.ruleId, _.ruleId.serialize)
+        .withFieldComputed(_.numberReports, _.compliance.total)
+        .withFieldComputed(_.directives, _.directives.toList.sortBy(_._1.serialize).map(_._2.transformInto[ApiDirective]))
+        .buildTransformer
+    }
+
+    case class ApiAggregated(rules: List[ApiRule])
+
+    implicit lazy val encoderApiAggregated:            JsonEncoder[ApiAggregated]                         = DeriveJsonEncoder.gen
+    implicit lazy val transformAggregatedStatusReport: Transformer[AggregatedStatusReport, ApiAggregated] = {
+      case a: AggregatedStatusReport => ApiAggregated(a.reports.toList.map(_.transformInto[ApiRule]))
+    }
+  }
+  import InternalDataStructures.*
+
+  // entry point for Doobie
+  def runToJson(p: (RunAnalysis, RunComplianceInfo)): String = p.transformInto[ApiInfo].toJson
+
+  // entry point for Doobie
+  def ruleNodeStatusReportToJson(r: Set[RuleNodeStatusReport]) = r.toList.map(_.transformInto[ApiRule]).toJson
+
+  // main external entry point
   implicit class AggregatedStatusReportToJs(val x: AggregatedStatusReport) extends AnyVal {
-    def toJValue:      JValue = x.reports.toJValue
-    def toJson:        String = prettyRender(toJValue)
-    def toCompactJson: String = compactRender(toJValue)
-  }
-
-  implicit class SetRuleNodeStatusReportToJs(reports: Set[RuleNodeStatusReport]) {
-    import ComplianceLevelSerialisation.*
-
-    def componentValueToJson(c: ComponentStatusReport): JValue = {
-      c match {
-        case c: ValueStatusReport =>
-          (("componentName"  -> c.componentName)
-          ~ ("compliance"    -> c.compliance.computePercent().toJson)
-          ~ ("numberReports" -> c.compliance.total)
-          ~ ("values"        -> c.componentValues.map { v =>
-            (("value"          -> v.componentValue)
-            ~ ("compliance"    -> v.compliance.computePercent().toJson)
-            ~ ("numberReports" -> v.compliance.total)
-            ~ ("unexpanded"    -> v.expectedComponentValue)
-            ~ ("messages"      -> v.messages.map { m =>
-              (("message" -> m.message)
-              ~ ("type"   -> m.reportType.severity))
-            }))
-          }))
-        case c: BlockStatusReport =>
-          (("componentName"   -> c.componentName)
-          ~ ("compliance"     -> c.compliance.computePercent().toJson)
-          ~ ("numberReports"  -> c.compliance.total)
-          ~ ("subComponents"  -> c.subComponents.map(componentValueToJson))
-          ~ ("reportingLogic" -> c.reportingLogic.toString))
-      }
-    }
-    def toJValue:                                       JValue = {
-
-      // here, I'm not sure that we want compliance or
-      // compliance percents. Having a normalized value
-      // seems far better for queries in the futur.
-      // but in that case, we should also keep the total
-      // number of events to be able to rebuild raw data
-
-      "rules" -> reports.map { r =>
-        (("ruleId"         -> r.ruleId.serialize)
-        ~ ("compliance"    -> r.compliance.computePercent().toJson)
-        ~ ("numberReports" -> r.compliance.total)
-        ~ ("directives"    -> r.directives.values.map { d =>
-          (("directiveId"    -> d.directiveId.serialize)
-          ~ ("compliance"    -> d.compliance.computePercent().toJson)
-          ~ ("numberReports" -> d.compliance.total)
-          ~ ("components"    -> d.components.map(componentValueToJson)))
-        }))
-      }
-    }
-
-    def toJson:        String = prettyRender(toJValue)
-    def toCompactJson: String = compactRender(toJValue)
+    def toPrettyJson:  String = x.transformInto[ApiAggregated].toJsonPretty
+    def toCompactJson: String = x.transformInto[ApiAggregated].toJson
   }
 }
 

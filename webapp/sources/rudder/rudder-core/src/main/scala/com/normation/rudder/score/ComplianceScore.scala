@@ -43,6 +43,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.ComplianceSerializable
 import com.normation.rudder.score.ComplianceScore.scoreId
 import com.normation.rudder.score.ScoreValue.*
+import io.scalaland.chimney.syntax.TransformerOps
 import zio.*
 import zio.json.*
 import zio.syntax.*
@@ -52,20 +53,19 @@ object ComplianceScore {
 }
 
 object ComplianceScoreEventHandler extends ScoreEventHandler {
-  implicit val compliancePercentEncoder: JsonEncoder[ComplianceSerializable]     = DeriveJsonEncoder.gen
-  def handle(event: ScoreEvent):         PureResult[List[(NodeId, List[Score])]] = {
+  def handle(event: ScoreEvent): PureResult[List[(NodeId, List[Score])]] = {
 
     event match {
       case ComplianceScoreEvent(n, percent) =>
-        val p = ComplianceSerializable.fromPercent(percent)
+        val p = percent.transformInto[ComplianceSerializable]
         (for {
           json <- p.toJsonAST
         } yield {
           val score = {
-            if (p == ComplianceSerializable(None, None, None, None, None, None, None, None, None, None, None, None, None, None)) {
+            if (p == ComplianceSerializable.empty) {
               Score(scoreId, NoScore, "No rules applied on this node", json)
             } else {
-              import ComplianceScore.scoreId
+              import com.normation.rudder.score.ComplianceScore.scoreId
               if (percent.compliance >= 95) {
                 Score(scoreId, A, "Compliance is over 95%", json)
               } else if (percent.compliance >= 80) {

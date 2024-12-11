@@ -61,14 +61,8 @@ import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
-import net.liftweb.http.js.JE.AnonFunc
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.JArray
-import net.liftweb.json.JField
-import net.liftweb.json.JObject
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonParser
-import net.liftweb.json.JString
+import net.liftweb.json.*
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.Interval
@@ -741,8 +735,7 @@ object RuleGrid {
     val t5 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: callback: ${t5 - t4}ms")
 
-    val tags          = JsObj(line.rule.tags.map(tag => (tag.name.value, Str(tag.value.value))).toList*).toJsCmd
-    val tagsDisplayed = JsonTagSerialisation.serializeTags(line.rule.tags)
+    val tags = JsObj(line.rule.tags.map(tag => (tag.name.value, Str(tag.value.value))).toList*).toJsCmd
     RuleLine(
       line.rule.name,
       line.rule.id,
@@ -757,7 +750,7 @@ object RuleGrid {
       line.policyMode,
       line.policyModeExplanation,
       tags,
-      tagsDisplayed
+      line.rule.tags
     )
   }
 
@@ -793,11 +786,20 @@ final case class RuleLine(
     policyMode:       String,
     explanation:      String,
     tags:             String,
-    tagsDisplayed:    JValue
+    tagsDisplayed:    Tags
 ) extends JsTableLine {
 
+  private def serializeTags(tags: Tags): JValue = {
+    // sort all the tags by name
+    import net.liftweb.json.JsonDSL.*
+    val m: JValue = JArray(
+      tags.tags.toList.sortBy(_.name.value).map(t => ("key", t.name.value) ~ ("value", t.value.value))
+    )
+    m
+  }
+
   /* Would love to have a reflexive way to generate that map ...  */
-  override def json(freshName: () => String): js.JsObj = {
+  override def json(freshName: () => String): JsObj = {
 
     val reasonField = reasons.map(r => ("reasons" -> escapeHTML(r)))
 
@@ -818,7 +820,7 @@ final case class RuleLine(
       ("policyMode", policyMode),
       ("explanation", explanation),
       ("tags", tags),
-      ("tagsDisplayed", tagsDisplayed)
+      ("tagsDisplayed", serializeTags(tagsDisplayed))
     )
 
     base +* JsObj(optFields*)

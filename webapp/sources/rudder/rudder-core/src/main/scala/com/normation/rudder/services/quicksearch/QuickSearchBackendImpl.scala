@@ -49,6 +49,7 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.policies.Tag
 import com.normation.rudder.domain.policies.TagName
+import com.normation.rudder.domain.policies.Tags as TAGS
 import com.normation.rudder.domain.policies.TagValue
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.facts.nodes.CoreNodeFact
@@ -61,13 +62,12 @@ import com.normation.rudder.ncf.MethodBlock
 import com.normation.rudder.ncf.MethodCall
 import com.normation.rudder.ncf.MethodElem
 import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.unboundid.ldap.sdk.Attribute
 import com.unboundid.ldap.sdk.Filter
 import java.util.regex.Pattern
-import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import scala.util.control.NonFatal
+import zio.json.*
 import zio.syntax.*
 
 /**
@@ -617,12 +617,10 @@ object QSLdapBackend {
     def transform(pattern: Pattern, value: String): Option[String] = {
 
       def parseTag(value: String, matcher: Tag => Boolean, transform: Tag => String) = {
-        import net.liftweb.json.parse
         try {
-          val json = parse(value)
-          CompleteJson.extractTags(json) match {
-            case Full(tags) => tags.tags.collectFirst { case t if matcher(t) => transform(t) }
-            case _          => None
+          value.fromJson[TAGS] match {
+            case Right(tags) => tags.tags.collectFirst { case t if matcher(t) => transform(t) }
+            case _           => None
           }
         } catch {
           case NonFatal(ex) => None

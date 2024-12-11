@@ -57,6 +57,7 @@ import doobie.util.log.ExecFailure
 import doobie.util.log.LogEvent
 import doobie.util.log.ProcessingFailure
 import doobie.util.transactor
+import io.scalaland.chimney.syntax.*
 import java.sql.SQLXML
 import javax.sql.DataSource
 import net.liftweb.common.*
@@ -279,15 +280,16 @@ object Doobie {
     }
   }
 
+  /*
+   * The 4 following ones are used in udder-core/src/main/scala/com/normation/rudder/repository/jdbc/ComplianceRepository.scala
+   */
   implicit val CompliancePercentWrite: Write[CompliancePercent] = {
-    import ComplianceLevelSerialisation.*
-    import net.liftweb.json.*
-    Write[String].contramap(x => compactRender(x.toJson))
+    Write[String].contramap(x => x.transformInto[ComplianceSerializable].toJson)
   }
 
   implicit val ComplianceRunInfoComposite: Write[(RunAnalysis, RunComplianceInfo)] = {
     import NodeStatusReportSerialization.*
-    Write[String].contramap(_.toCompactJson)
+    Write[String].contramap(runToJson)
   }
 
   implicit val AggregatedStatusReportComposite: Write[AggregatedStatusReport] = {
@@ -297,7 +299,7 @@ object Doobie {
 
   implicit val SetRuleNodeStatusReportComposite: Write[Set[RuleNodeStatusReport]] = {
     import NodeStatusReportSerialization.*
-    Write[String].contramap(_.toCompactJson)
+    Write[String].contramap(ruleNodeStatusReportToJson)
   }
 
   import doobie.enumerated.JdbcType.SqlXml
