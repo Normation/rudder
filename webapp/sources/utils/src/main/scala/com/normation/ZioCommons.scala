@@ -173,6 +173,11 @@ object errors {
   // a generic error to tell "there is some (business logic related) Inconsistency"
   final case class Inconsistency(msg: String) extends RudderError
 
+  // a specialised subtype of error to indicate that the error is caused by security concern
+  trait SecurityError extends RudderError {
+    override def fullMsg: String = s"SecurityError: ${msg}"
+  }
+
   trait BaseChainError[E <: RudderError] extends RudderError {
     def cause: E
     def hint:  String

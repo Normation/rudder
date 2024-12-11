@@ -37,6 +37,9 @@
 package com.normation.utils
 
 import better.files.File
+import better.files.File.root
+import com.normation.errors.SecurityError
+import com.normation.utils.FileUtils.*
 import com.normation.zio.ZioRuntime
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
@@ -46,7 +49,7 @@ import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class FileUtilsTest extends Specification {
-  import FileUtils.*
+  import FileError.*
 
   // Setup temporary test files
   val tmp:      File = File(s"/tmp/rudder-test-shared-files/${DateTime.now.toString(ISODateTimeFormat.dateTime())}")
@@ -87,19 +90,19 @@ class FileUtilsTest extends Specification {
   "sanitize does prevent for traversal" >> {
     val tail = "/../../.."
     val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail))
-    res must beLeft(beAnInstanceOf[FileAccessError.OutsideBaseDir])
+    (res must beLeft(beAnInstanceOf[SecurityError])) and (res must beLeft(OutsideBaseDir(None, root)))
   }
 
   "sanitize also prevents a split path" >> {
     val tail = ".." :: ".." :: ".." :: Nil
     val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail))
-    res must beLeft(beAnInstanceOf[FileAccessError.OutsideBaseDir])
+    (res must beLeft(beAnInstanceOf[SecurityError])) and (res must beLeft(OutsideBaseDir(None, root)))
   }
 
   "sanitize does not follow symlinks" >> {
     val tail = "/symlink1"
     val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail))
-    res must beLeft(beAnInstanceOf[FileAccessError.OutsideBaseDir])
+    (res must beLeft(beAnInstanceOf[SecurityError])) and (res must beLeft(OutsideBaseDir(Some("symlink1"), root / "etc")))
   }
 
 }

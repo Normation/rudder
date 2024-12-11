@@ -39,24 +39,37 @@ package com.normation.utils
 
 import better.files.File
 import com.normation.errors.IOResult
-import com.normation.errors.RudderError
+import com.normation.errors.SecurityError
 import scala.annotation.tailrec
+import zio.ZIO
+import zio.syntax.*
 
 object FileUtils {
 
-  sealed trait FileAccessError extends RudderError
-  object FileAccessError {
-    case class OutsideBaseDir(filePath: File, realPath: File) extends FileAccessError {
-      def msg: String = s"Unauthorized access to file ${filePath.name} (real path: ${realPath})"
+  /**
+    * Our representation of error related to file handling and I/O
+    */
+  sealed trait FileError
+
+  object FileError {
+
+    /**
+      * Subcase of error for the logic of handling a file, which should be within a contained path to avoid path traversal.
+      * It is an important security error.
+      */
+    case class OutsideBaseDir(filename: Option[String], realPath: File) extends FileError with SecurityError {
+      override def msg: String = s"Unauthorized access to file ${filename.getOrElse("without name")} (real path: ${realPath})"
     }
+
   }
 
-  def sanitizePath(baseFolder: File, child: String): IOResult[Either[FileAccessError, File]] = {
+  import FileError.*
+
+  def sanitizePath(baseFolder: File, child: String): IOResult[Either[OutsideBaseDir, File]] = {
     sanitizePath(baseFolder, List(child))
   }
 
-  def sanitizePath(baseFolder: File, path: List[String]): IOResult[Either[FileAccessError, File]] = {
-    import FileAccessError.*
+  def sanitizePath(baseFolder: File, path: List[String]): IOResult[Either[OutsideBaseDir, File]] = {
 
     @tailrec def recPath(file: File, children: List[String]): File = {
       // Actually canonifies the path
@@ -67,17 +80,18 @@ object FileUtils {
           recPath(file / child.dropWhile(_.equals('/')), next)
       }
     }
+
     val filePath = recPath(baseFolder, path)
     // We also want to resolve symlinks before checking, let's resort to Java's `toRealPath`
     for {
       fileExists <- IOResult.attempt(filePath.exists())
       realPath    = if (fileExists) File(filePath.toJava.toPath.toRealPath()) else filePath
+      withinBase <-
+        ZIO.whenZIO(IOResult.attempt(baseFolder.contains(realPath, strict = false))) { // `false` means we allow access to the base directory itself
+          realPath.succeed
+        }
     } yield {
-      if (baseFolder.contains(realPath, strict = false)) { // `false` means we allow access to the base directory itself
-        Right(realPath)
-      } else {
-        Left(OutsideBaseDir(filePath, realPath))
-      }
+      withinBase.toRight(OutsideBaseDir(filePath.nameOption, realPath))
     }
   }
 }
