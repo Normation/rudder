@@ -38,6 +38,21 @@ pub const DEFAULT_AGENT_PATH: &str = "C:\\Program Files\\Rudder";
 #[cfg(unix)]
 pub const DEFAULT_AGENT_PATH: &str = "/opt/rudder/bin/";
 
+fn find_input() -> Result<PathBuf> {
+    let maybe_input = YAML_EXTENSIONS
+        .iter()
+        .map(|e| Path::new(TECHNIQUE).with_extension(e))
+        .find(|p| p.exists());
+    match maybe_input {
+        Some(input) => Ok(input.to_path_buf()),
+        None => bail!(
+            "No input '{}.{}' file provided",
+            TECHNIQUE,
+            YAML_EXTENSIONS[0]
+        ),
+    }
+}
+
 /// Main entry point for rudderc
 ///
 /// # Error management
@@ -46,19 +61,6 @@ pub const DEFAULT_AGENT_PATH: &str = "/opt/rudder/bin/";
 /// be displayed.
 pub fn run(args: MainArgs) -> Result<()> {
     custom_panic_hook_ignore_sigpipe();
-
-    let maybe_input = YAML_EXTENSIONS
-        .iter()
-        .map(|e| Path::new(TECHNIQUE).with_extension(e)).find(|p| p.exists());
-    let input = match maybe_input {
-        Some(input) => input,
-        None => bail!(
-            "No input '{}.{}' file provided",
-            TECHNIQUE,
-            YAML_EXTENSIONS[0]
-        ),
-    };
-    let input = input.as_path();
 
     let cwd = PathBuf::from(".");
     let target = PathBuf::from(TARGET_DIR);
@@ -129,7 +131,8 @@ pub fn run(args: MainArgs) -> Result<()> {
         Command::Clean => action::clean(target.as_path()),
         Command::Check { library } => {
             let library = check_libraries(library)?;
-            action::check(library.as_slice(), input)
+            let input = find_input()?;
+            action::check(library.as_slice(), input.as_path())
         }
         Command::Build {
             library,
@@ -139,6 +142,7 @@ pub fn run(args: MainArgs) -> Result<()> {
             store_ids,
         } => {
             let library = check_libraries(library)?;
+            let input = find_input()?;
             let actual_output = output.unwrap_or(target);
             if actual_output.exists()
                 && actual_output.canonicalize()? == input.canonicalize()?.parent().unwrap()
@@ -148,7 +152,7 @@ pub fn run(args: MainArgs) -> Result<()> {
 
             action::build(
                 library.as_slice(),
-                input,
+                input.as_path(),
                 actual_output.as_path(),
                 standalone,
                 store_ids || export,
@@ -165,6 +169,8 @@ pub fn run(args: MainArgs) -> Result<()> {
             agent_verbose,
         } => {
             let library = check_libraries(library)?;
+            let input = find_input()?;
+            let input = input.as_path();
             action::build(library.as_slice(), input, target.as_path(), true, false)?;
             action::test(
                 input,
