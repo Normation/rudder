@@ -44,7 +44,6 @@ import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.internal.SharedFilesAPI.sanitizePath
 import com.normation.rudder.users.UserService
 import com.normation.utils.FileUtils.*
 import com.normation.zio.*
@@ -71,7 +70,6 @@ import net.liftweb.json.JsonAST.JValue
 import org.apache.commons.fileupload.FileUploadBase.SizeLimitExceededException
 import org.joda.time.DateTime
 import org.joda.time.Instant
-import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 import zio.ZIO
@@ -94,7 +92,7 @@ class SharedFilesAPI(
   private def checkPathAndContinue(path: String, baseFolder: File)(
       fun: File => IOResult[LiftResponse]
   ): IOResult[LiftResponse] = {
-    sanitizePath(baseFolder, path).flatMap(fun)
+    sanitizePath(baseFolder, path).flatMap(_.toIO).flatMap(fun)
   }
 
   def serialize(file: File):                           IOResult[JValue]       = {
@@ -307,17 +305,23 @@ class SharedFilesAPI(
                 uploadedFiles match {
                   case Nil         => errorResponse(s"Missing file to copy to ${dest}")
                   case file :: Nil =>
-                    sanitizePath(dest.replaceFirst("/", "") + '/' + file.fileName, basePath).map { path =>
-                      for {
-                        in  <- file.fileStream.autoClosed
-                        out <- path.newOutputStream.autoClosed
-                      } yield {
-                        in.pipeTo(out)
-                      }
-                    }.either.runNow match {
-                      case Left(err) => errorResponse(err.fullMsg)
-                      case Right(_)  => basicSuccessResponse
-                    }
+                    sanitizePath(basePath, dest.replaceFirst("/", "") + '/' + file.fileName)
+                      .flatMap(_.toIO)
+                      .flatMap(path => {
+                        IOResult
+                          .attempt(s"Could not copy uploaded file to destination ${dest}")(for {
+                            in  <- file.fileStream.autoClosed
+                            out <- path.newOutputStream.autoClosed
+                          } yield {
+                            in.pipeTo(out)
+                          })
+                          .either
+                          .map {
+                            case Left(err) => errorResponse(err.fullMsg)
+                            case Right(_)  => basicSuccessResponse
+                          }
+                      })
+                      .runNow
                   case several     =>
                     errorResponse(
                       s"This API only support one uploaded file to copy to ${dest}, but ${several.size} were provided"
@@ -500,8 +504,11 @@ class SharedFilesAPI(
       def apply(req: Req):       () => Box[LiftResponse] = {
         req.path.partPath match {
           case "draft" :: techniqueId :: techniqueVersion :: _ =>
-            val path =
-              sanitizePath(File(configRepoPath), "workspace" :: techniqueId :: techniqueVersion :: "resources" :: Nil).runNow
+            val path = {
+              sanitizePath(File(configRepoPath), "workspace" :: techniqueId :: techniqueVersion :: "resources" :: Nil)
+                .flatMap(_.toIO)
+                .runNow
+            }
             path.createIfNotExists(asDirectory = true, createParents = true)
             val pf   = requestDispatch(path)
             pf.apply(req.withNewPath(req.path.drop(3)))
@@ -509,7 +516,7 @@ class SharedFilesAPI(
             val path = sanitizePath(
               File(configRepoPath),
               ("techniques" :: categories) :+ techniqueId :+ techniqueVersion :+ "resources"
-            ).runNow
+            ).flatMap(_.toIO).runNow
             path.createIfNotExists(true, true)
             val pf   = requestDispatch(path)
             pf.apply(req.withNewPath(req.path.drop(req.path.partPath.size)))
