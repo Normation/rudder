@@ -37,15 +37,10 @@
 
 package com.normation.rudder.rest
 
-import better.files.*
 import com.normation.JsonSpecMatcher
 import com.normation.rudder.rest.internal.SharedFilesAPI
-import com.normation.rudder.rest.internal.SharedFilesAPI.*
-import com.normation.zio.ZioRuntime
 import net.liftweb.common.Full
 import net.liftweb.http.JsonResponse
-import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.*
 import org.specs2.mutable.*
 import org.specs2.runner.*
