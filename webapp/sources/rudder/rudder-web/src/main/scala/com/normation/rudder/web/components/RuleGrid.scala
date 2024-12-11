@@ -66,7 +66,6 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.JArray
 import net.liftweb.json.JField
 import net.liftweb.json.JObject
-import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonParser
 import net.liftweb.json.JString
 import net.liftweb.util.Helpers.*
@@ -741,8 +740,7 @@ object RuleGrid {
     val t5 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: callback: ${t5 - t4}ms")
 
-    val tags          = JsObj(line.rule.tags.map(tag => (tag.name.value, Str(tag.value.value))).toList*).toJsCmd
-    val tagsDisplayed = JsonTagSerialisation.serializeTags(line.rule.tags)
+    val tags = JsObj(line.rule.tags.map(tag => (tag.name.value, Str(tag.value.value))).toList*).toJsCmd
     RuleLine(
       line.rule.name,
       line.rule.id,
@@ -757,7 +755,7 @@ object RuleGrid {
       line.policyMode,
       line.policyModeExplanation,
       tags,
-      tagsDisplayed
+      line.rule.tags
     )
   }
 
@@ -793,7 +791,7 @@ final case class RuleLine(
     policyMode:       String,
     explanation:      String,
     tags:             String,
-    tagsDisplayed:    JValue
+    tagsDisplayed:    Tags
 ) extends JsTableLine {
 
   /* Would love to have a reflexive way to generate that map ...  */
@@ -818,7 +816,7 @@ final case class RuleLine(
       ("policyMode", policyMode),
       ("explanation", explanation),
       ("tags", tags),
-      ("tagsDisplayed", tagsDisplayed)
+      ("tagsDisplayed", JsonTagSerialisation.serializeTags(tagsDisplayed))
     )
 
     base +* JsObj(optFields*)

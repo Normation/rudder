@@ -68,6 +68,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import scala.collection.MapView
 import scala.xml.*
+import zio.json.*
 
 case class ScoreChart(scoreValue: ScoreValue, value: Int, noScoreLegend: Option[String]) {
   import com.normation.rudder.score.ScoreValue.*
@@ -322,7 +323,7 @@ class HomePage extends StatefulSnippet {
           import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.*
           (bar.copy(pending = 0).toJsArray, value)
         case None               =>
-          (JsArray(Nil), -1L)
+          (ast.Json.Arr(), -1L)
       }
 
       val n4 = System.currentTimeMillis
@@ -330,7 +331,7 @@ class HomePage extends StatefulSnippet {
 
       Script(OnLoad(JsRaw(s"""
         homePage(
-            ${complianceBar.toJsCmd}
+            ${complianceBar.toJson}
           , ${globalCompliance}
           , ${data.toJsCmd}
           , ${pendingNodes.toJsCmd}

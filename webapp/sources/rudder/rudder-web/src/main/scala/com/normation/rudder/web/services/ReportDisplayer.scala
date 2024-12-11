@@ -66,6 +66,7 @@ import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
+import zio.json.*
 
 /**
  * Display the last reports of a server
@@ -136,6 +137,7 @@ class ReportDisplayer(
       addOverridden:      Boolean,
       defaultRunInterval: Int
   ): AnonFunc = {
+    implicit val next: ProvideNextName = LiftProvideNextName
     def refreshData: Box[JsCmd] = {
       for {
         report <- getReports(node.id)
@@ -145,7 +147,7 @@ class ReportDisplayer(
         import net.liftweb.util.Helpers.encJs
         val intro = encJs(displayIntro(report, node.rudderSettings, defaultRunInterval).toString)
         JsRaw(
-          s"""refreshTable("${tableId}",${data}); $$("#node-compliance-intro").replaceWith(${intro})"""
+          s"""refreshTable("${tableId}",${data.toJson}); $$("#node-compliance-intro").replaceWith(${intro})"""
         ) // JsRaw ok, escaped
       }
     }
@@ -577,7 +579,7 @@ class ReportDisplayer(
       nodeId:        NodeId,
       reportStatus:  NodeStatusReport,
       addOverridden: Boolean
-  ): Box[JsTableData[RuleComplianceLine]] = {
+  ): Box[RuleComplianceLines] = {
     for {
       directiveLib <- directiveRepository.getFullDirectiveLibrary().toBox
       allNodeInfos <- nodeFactRepo.getAll()(CurrentUser.queryContext).toBox
