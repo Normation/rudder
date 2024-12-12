@@ -634,17 +634,10 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         currentDirectiveSettingForm.set(eb)
     }
 
-    val json = directiveId.rev match {
-      case GitVersion.DEFAULT_REV => s"""{"directiveId":"${StringEscapeUtils.escapeEcmaScript(directiveId.uid.value)}"}"""
-      case r                      =>
-        s"""{"directiveId":"${StringEscapeUtils.escapeEcmaScript(directiveId.uid.value)}", "rev":"${StringEscapeUtils
-            .escapeEcmaScript(r.value)}"}"""
-    }
     SetHtml(html_techniqueDetails, NodeSeq.Empty) &
     Replace(htmlId_policyConf, showDirectiveDetails()) &
     JsRaw(s"""
         removeBsTooltips();
-        this.window.location.hash = "#" + JSON.stringify(${json})
         sessionStorage.removeItem('tags-${StringEscapeUtils.escapeEcmaScript(directiveId.uid.value)}');
       """.stripMargin) &
     After(TimeSpan(0), JsRaw("""removeBsTooltips();initBsTooltips();"""))
@@ -745,7 +738,16 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   //////////////// display trees ////////////////////////
 
   private def onClickDirective(cat: FullActiveTechniqueCategory, at: FullActiveTechnique, directive: Directive): JsCmd = {
-    updateDirectiveForm(Left(directive), None)
+    // since https://issues.rudder.io/issues/25046, we need to only change windows hash location, else it creates
+    // duplicate request, see: https://issues.rudder.io/issues/26002
+    // See `parseJsArg` above, especially the `window.addEventListener('hashchange'` part
+    val json = directive.id.rev match {
+      case GitVersion.DEFAULT_REV => s"""{"directiveId":"${StringEscapeUtils.escapeEcmaScript(directive.id.uid.value)}"}"""
+      case r                      =>
+        s"""{"directiveId":"${StringEscapeUtils.escapeEcmaScript(directive.id.uid.value)}", "rev":"${StringEscapeUtils
+            .escapeEcmaScript(r.value)}"}"""
+    }
+    JsRaw(s"""this.window.location.hash = "#" + JSON.stringify(${json})""".stripMargin)
   }
 
   private def onClickActiveTechnique(cat: FullActiveTechniqueCategory, fullActiveTechnique: FullActiveTechnique): JsCmd = {
