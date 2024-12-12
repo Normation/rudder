@@ -44,111 +44,74 @@ import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.xmlparsers.VariableSpecParser
 import com.normation.errors
-import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
+import com.normation.errors.RudderError
 import com.normation.errors.effectUioUnit
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.rudder.db.DB
-import com.normation.rudder.git.GitCommitId
-import com.normation.rudder.git.GitConfigItemRepository
+import com.normation.rudder.git.GitItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.ncf.EditorTechnique
 import com.normation.rudder.ncf.TechniqueCompilationOutput
 import com.normation.rudder.ncf.TechniqueCompiler
 import com.normation.rudder.ncf.TechniqueCompilerApp
-import com.normation.rudder.repository.GitModificationRepository
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
+import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.repository.xml.TechniqueArchiverImpl
-import com.normation.rudder.repository.xml.XmlArchiverUtils
 import com.normation.rudder.services.user.TrivialPersonIdentService
-import com.normation.zio.*
-import net.liftweb.common.Loggable
-import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.revwalk.RevWalk
-import org.joda.time.DateTime
-import org.junit.runner.RunWith
-import org.specs2.mutable.Specification
-import org.specs2.runner.JUnitRunner
-import org.specs2.specification.AfterAll
-import scala.annotation.nowarn
-import scala.util.Random
-import zio.{System as _, *}
-import zio.syntax.*
+import org.eclipse.jgit.treewalk.TreeWalk
+import zio.Chunk
+import zio.System
+import zio.ZIO
+import zio.ZLayer
+import zio.syntax.ToZio
+import zio.test.*
+import zio.test.Assertion.*
 
-/**
- * Details of tests executed in each instances of
- * the test.
- * To see values for gitRoot, ptLib, etc, see at the end
- * of that file.
- */
-@nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
-@RunWith(classOf[JUnitRunner])
-class JGitRepositoryTest extends Specification with Loggable with AfterAll {
+object JGitRepositoryTest extends ZIOSpecDefault {
+  def spec: Spec[Any, RudderError] = suite("JGitRepositoryTest")(GitItemRepositoryTest.spec, TechniqueArchiverTest.spec)
+}
 
-  val gitRoot: File = File("/tmp/test-jgit-" + DateTime.now().toString())
+object GitItemRepositoryTest {
+  def spec: Spec[Any, RudderError] = suite("GitItemRepository")(
+    // to assess the usefulness of semaphore, you can remove `gitRepo.semaphore.withPermit`
+    // in `commitAddFile` to check that you get the JGitInternalException.
+    // More advanced tests may be needed to handle more complex cases of concurrent access,
+    // see: https://issues.rudder.io/issues/19910
+    test("should not throw JGitInternalError on concurrent write") {
 
-  // Set sequential execution
-  sequential
+      def addFileToRepositoryAndCommit(i: Int)(gitRoot: TempDir, archive: GitItemRepository) = for {
+        name <- zio.Random.nextString(8).map(s => i.toString + "_" + s)
+        file  = gitRoot.path / name
+        _    <- IOResult.attempt(file.write("something in " + name))
+        actor = new PersonIdent("test", "test@test.com")
+        _    <- archive.commitAddFile(actor, name, "add " + name)
+      } yield name
 
-  /**
-   * Add a switch to be able to see tmp files (not clean temps) with
-   * -Dtests.clean.tmp=false
-   */
-  override def afterAll(): Unit = {
-    if (java.lang.System.getProperty("tests.clean.tmp") != "false") {
-      logger.info("Deleting directory " + gitRoot.pathAsString)
-      FileUtils.deleteDirectory(gitRoot.toJava)
+      for {
+        gitRoot               <- ZIO.service[TempDir]
+        gitRepositoryProvider <- ZIO.service[GitRepositoryProvider]
+        archive               <- ZIO.service[GitItemRepository]
+        files                 <- ZIO.foreachPar((1 to 50))(i => addFileToRepositoryAndCommit(i)(gitRoot, archive)).withParallelism(16)
+        created               <- readElementsAt(gitRepositoryProvider.db, "refs/heads/master")
+      } yield assert(created)(hasSameElements(files))
+
+    }.provide(TempDir.layer, Layers.gitRepositoryProvider, gitItemRepositoryLayer)
+  )
+
+  private val gitItemRepositoryLayer = {
+    ZLayer {
+      for {
+        repository <- ZIO.service[GitRepositoryProvider]
+      } yield new GitItemRepository(gitRepo = repository, relativePath = "")
     }
   }
-
-  gitRoot.createDirectories()
-
-  val repo:            GitRepositoryProviderImpl = GitRepositoryProviderImpl.make(gitRoot.pathAsString).runNow
-  val prettyPrinter:   RudderPrettyPrinter       = new RudderPrettyPrinter(Int.MaxValue, 2)
-  val modRepo:         GitModificationRepository = new GitModificationRepository {
-    override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
-    override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] =
-      DB.GitCommitJoin(commit, modId).succeed
-  }
-  val personIdent:     TrivialPersonIdentService = new TrivialPersonIdentService()
-  val techniqueParser: TechniqueParser           = {
-    val varParser = new VariableSpecParser
-    new TechniqueParser(varParser, new SectionSpecParser(varParser), new SystemVariableSpecServiceImpl())
-  }
-  val techniqueCompiler = new TechniqueCompiler {
-    override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
-      TechniqueCompilationOutput(TechniqueCompilerApp.Rudderc, 0, Chunk.empty, "", "", "").succeed
-    }
-
-    override def getCompilationOutputFile(technique: EditorTechnique): File = File("compilation-config.yml")
-
-    override def getCompilationConfigFile(technique: EditorTechnique): File = File("compilation-output.yml")
-  }
-
-  // for test, we use as a group owner whatever git root directory has
-  val currentUserName: String = repo.rootDirectory.groupName
-
-  val archive: GitConfigItemRepository with XmlArchiverUtils = new GitConfigItemRepository with XmlArchiverUtils {
-    override val gitRepo:      GitRepositoryProvider = repo
-    override def relativePath: String                = ""
-    override def xmlPrettyPrinter = prettyPrinter
-    override def encoding:                  String                    = "UTF-8"
-    override def gitModificationRepository: GitModificationRepository = modRepo
-
-    override def groupOwner: String = currentUserName
-  }
-
-  val techniqueArchive: TechniqueArchiverImpl =
-    new TechniqueArchiverImpl(repo, prettyPrinter, modRepo, personIdent, techniqueParser, techniqueCompiler, currentUserName)
 
   // listing files at a commit is complicated
-
-  import org.eclipse.jgit.treewalk.TreeWalk
-
   def readElementsAt(repository: Repository, commit: String): ZIO[Any, errors.SystemError, List[String]] = {
     val ref = repository.findRef(commit)
 
@@ -161,7 +124,7 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
         for {
           commit <- IOResult.attempt(walk.parseCommit(ref.getObjectId))
           tree   <- IOResult.attempt(commit.getTree)
-          res    <- ZIO.scoped(treeWalkM.flatMap { treeWalk =>
+          res    <- ZIO.scoped[Any](treeWalkM.flatMap { treeWalk =>
                       treeWalk.setRecursive(true) // ok, can't throw exception
 
                       IOResult.attempt(treeWalk.addTree(tree)) *>
@@ -172,83 +135,149 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
     )
   }
 
-  "The test lib" should {
-    "not throw JGitInternalError on concurrent write" in {
+}
 
-      // to assess the usefulness of semaphore, you can remove `gitRepo.semaphore.withPermit`
-      // in `commitAddFile` to check that you get the JGitInternalException.
-      // More advanced tests may be needed to handle more complex cases of concurrent access,
-      // see: https://issues.rudder.io/issues/19910
+object TechniqueArchiverTest {
 
-      val actor = new PersonIdent("test", "test@test.com")
+  def prettyPrinter: RudderPrettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
 
-      def getName(length: Int) = {
-        if (length < 1) Inconsistency("Length must be positive").fail
-        else {
-          IOResult.attempt("")(Random.alphanumeric.take(length).toList.mkString(""))
-        }
-      }
-      def add(i: Int)          = (for {
-        name <- getName(8).map(s => i.toString + "_" + s)
-        file  = gitRoot / name
-        f    <- IOResult.attempt(file.write("something in " + name))
-        _    <- archive.commitAddFileWithModId(ModificationId(name), actor, name, "add " + name)
-      } yield (name))
+  val category = TechniqueCategoryMetadata("My new category", "A new category", isSystem = false)
+  val catPath  = List("systemSettings", "myNewCategory")
+  val modId    = ModificationId("add-technique-cat")
 
-      logger.debug(s"Commiting files in: " + gitRoot.pathAsString)
-      val files = ZIO.foreachPar(1 to 50)(i => add(i)).withParallelism(16).runNow
+  case class GroupOwner(value: String)
 
-      val created = readElementsAt(repo.db, "refs/heads/master").runNow
-      created must containTheSameElementsAs(files)
+  // for test, we use as a group owner whatever git root directory has
+  def currentUserName(repo: GitRepositoryProvider): GroupOwner = GroupOwner(repo.rootDirectory.groupName)
 
-    }
-
-    "save a category" should {
-
-      val category = TechniqueCategoryMetadata("My new category", "A new category", isSystem = false)
-      val catPath  = List("systemSettings", "myNewCategory")
-
-      val modId = new ModificationId("add-technique-cat")
-
-      "create a new file and commit if the category does not exist" in {
-
-        techniqueArchive
-          .saveTechniqueCategory(
-            catPath,
-            category,
-            modId,
-            EventActor("test"),
-            s"test: commit add category ${catPath.mkString("/")}"
-          )
-          .runNow
-
-        val catFile = repo.rootDirectory / "techniques" / "systemSettings" / "myNewCategory" / "category.xml"
-
-        val xml = catFile.contentAsString
-
-        val lastCommitMsg = repo.git.log().setMaxCount(1).call().iterator().next().getFullMessage
-
+  def spec: Spec[Any, RudderError] = suite("TechniqueArchiver.saveTechniqueCategory")(
+    test("should create a new file and commit if the category does not exist") {
+      for {
+        gitRepositoryProvider <- ZIO.service[GitRepositoryProvider]
+        techniqueArchive      <- ZIO.service[TechniqueArchiver]
+        _                     <- techniqueArchive
+                                   .saveTechniqueCategory(
+                                     catPath,
+                                     category,
+                                     modId,
+                                     EventActor("test"),
+                                     s"test: commit add category ${catPath.mkString("/")}"
+                                   )
+        catFile                = gitRepositoryProvider.rootDirectory / "techniques" / "systemSettings" / "myNewCategory" / "category.xml"
+        xml                    = catFile.contentAsString
+        lastCommitMsg          = gitRepositoryProvider.git.log().setMaxCount(1).call().iterator().next().getFullMessage
+      } yield {
         // note: no <system>false</system> ; it's only written when true
-        (xml ===
-        """<xml>
-          |  <name>My new category</name>
-          |  <description>A new category</description>
-          |</xml>""".stripMargin) and (
-          lastCommitMsg === "test: commit add category systemSettings/myNewCategory"
-        )
-
+        assert(xml)(
+          equalTo(
+            """<xml>
+              |  <name>My new category</name>
+              |  <description>A new category</description>
+              |</xml>""".stripMargin
+          )
+        ) &&
+        assert(lastCommitMsg)(equalTo("test: commit add category systemSettings/myNewCategory"))
       }
-
-      "does nothing when the category already exsits" in {
-        techniqueArchive.saveTechniqueCategory(catPath, category, modId, EventActor("test"), s"test: commit again").runNow
-        val lastCommitMsg = repo.git.log().setMaxCount(1).call().iterator().next().getFullMessage
-
-        // last commit must be the old one
-        lastCommitMsg === "test: commit add category systemSettings/myNewCategory"
-
-      }
+    },
+    test("should do nothing when the category already exists") {
+      for {
+        gitRepositoryProvider <- ZIO.service[GitRepositoryProvider]
+        techniqueArchive      <- ZIO.service[TechniqueArchiver]
+        _                     <- techniqueArchive
+                                   .saveTechniqueCategory(
+                                     catPath,
+                                     category,
+                                     modId,
+                                     EventActor("test"),
+                                     s"test: commit add category ${catPath.mkString("/")}"
+                                   )
+        _                     <- techniqueArchive.saveTechniqueCategory(catPath, category, modId, EventActor("test"), s"test: commit again")
+        lastCommitMsg          = gitRepositoryProvider.git.log().setMaxCount(1).call().iterator().next().getFullMessage
+      } yield assert(lastCommitMsg)(equalTo("test: commit add category systemSettings/myNewCategory"))
     }
+  ).provide(
+    TempDir.layer,
+    techniqueParserLayer,
+    stubbedTechniqueCompilerLayer,
+    Layers.gitRepositoryProvider,
+    ZLayer.succeed(new TrivialPersonIdentService()),
+    currentUserNameLayer,
+    techniqueArchiverLayer
+  )
 
+  private val techniqueParserLayer = ZLayer.succeed {
+    val varParser = new VariableSpecParser
+    new TechniqueParser(varParser, new SectionSpecParser(varParser), new SystemVariableSpecServiceImpl())
+  }
+
+  private val stubbedTechniqueCompilerLayer = ZLayer.succeed {
+    new TechniqueCompiler {
+      override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
+        TechniqueCompilationOutput(TechniqueCompilerApp.Rudderc, 0, Chunk.empty, "", "", "").succeed
+      }
+
+      override def getCompilationOutputFile(technique: EditorTechnique): File = File("compilation-config.yml")
+
+      override def getCompilationConfigFile(technique: EditorTechnique): File = File("compilation-output.yml")
+    }
+  }
+
+  private val currentUserNameLayer = ZLayer {
+    for {
+      repo <- ZIO.service[GitRepositoryProvider]
+    } yield currentUserName(repo)
+  }
+
+  private val techniqueArchiverLayer = ZLayer {
+    for {
+      techniqueParse        <- ZIO.service[TechniqueParser]
+      techniqueCompiler     <- ZIO.service[TechniqueCompiler]
+      gitRepositoryProvider <- ZIO.service[GitRepositoryProvider]
+      personIdentservice    <- ZIO.service[TrivialPersonIdentService]
+      groupOwner            <- ZIO.service[GroupOwner]
+    } yield new TechniqueArchiverImpl(
+      gitRepo = gitRepositoryProvider,
+      xmlPrettyPrinter = prettyPrinter,
+      personIdentservice = personIdentservice,
+      techniqueParser = techniqueParse,
+      techniqueCompiler = techniqueCompiler,
+      groupOwner = groupOwner.value
+    )
+
+  }
+
+}
+
+case class TempDir(path: File)
+
+object TempDir {
+
+  /**
+   * Add a switch to be able to see tmp files (not clean temps) with
+   * -Dtests.clean.tmp=false
+   */
+  val layer: ZLayer[Any, Nothing, TempDir] = ZLayer.scoped {
+    for {
+      keepFiles <- System.property("tests.clean.tmp").map(_.contains("false")).orDie
+      tempDir   <- ZIO
+                     .attemptBlockingIO(File.newTemporaryDirectory(prefix = "test-jgit-"))
+                     .withFinalizer { dir =>
+                       (ZIO.logInfo(s"Deleting directory ${dir.path}") *>
+                       ZIO.attemptBlocking(dir.delete(swallowIOExceptions = true)))
+                         .unless(keepFiles)
+                         .orDie
+                     }
+                     .orDie
+    } yield TempDir(tempDir)
+  }
+}
+
+object Layers {
+  private[services] val gitRepositoryProvider = ZLayer {
+    for {
+      gitRoot <- ZIO.service[TempDir]
+      result  <- GitRepositoryProviderImpl.make(gitRoot.path.pathAsString)
+    } yield result
   }
 
 }
