@@ -1274,6 +1274,7 @@ object RudderConfig extends Loggable {
   val updateDynamicGroups:                 UpdateDynamicGroups                        = rci.updateDynamicGroups
   val updateDynamicGroupsService:          DynGroupUpdaterService                     = rci.updateDynamicGroupsService
   val updateTechniqueLibrary:              UpdateTechniqueLibrary                     = rci.updateTechniqueLibrary
+  val techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService      = rci.techniqueCompilationStatusService
   val userPropertyService:                 UserPropertyService                        = rci.userPropertyService
   val userRepository:                      UserRepository                             = rci.userRepository
   val userService:                         UserService                                = rci.userService
@@ -1460,7 +1461,8 @@ case class RudderServiceApi(
     computeNodeStatusReportService:      ComputeNodeStatusReportService & HasNodeStatusReportUpdateHook,
     scoreRepository:                     ScoreRepository,
     propertiesRepository:                PropertiesRepository,
-    propertiesService:                   NodePropertiesService
+    propertiesService:                   NodePropertiesService,
+    techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService
 )
 
 /*
@@ -1872,6 +1874,7 @@ object RudderConfigInit {
       asyncDeploymentAgent,
       uuidGen,
       updateDynamicGroups,
+      techniqueCompilationCache,
       itemArchiveManager,
       personIdentService,
       gitConfigRepo
@@ -1919,8 +1922,15 @@ object RudderConfigInit {
       techniqueCompiler
     )
 
-    lazy val techniqueCompilationCache: TechniqueCompilationStatusSyncService =
-      TechniqueCompilationErrorsActorSync.make(asyncDeploymentAgent, techniqueCompilationStatusService).runNow
+    lazy val techniqueStatusReaderService: ReadEditorTechniqueActiveStatus = new TechniqueActiveStatusService(
+      roDirectiveRepository
+    )
+
+    lazy val techniqueCompilationCache: TechniqueCompilationStatusSyncService = {
+      TechniqueCompilationErrorsActorSync
+        .make(asyncDeploymentAgent, techniqueCompilationStatusService, techniqueStatusReaderService)
+        .runNow
+    }
 
     lazy val ncfTechniqueWriter: TechniqueWriter = new TechniqueWriterImpl(
       techniqueArchiver,
@@ -3835,7 +3845,8 @@ object RudderConfigInit {
       computeNodeStatusReportService,
       scoreRepository,
       propertiesRepository,
-      propertiesService
+      propertiesService,
+      techniqueCompilationCache
     )
 
     // start init effects

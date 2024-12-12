@@ -105,6 +105,14 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
 
   }
 
+  private val readTechniqueActiveStatus: ReadEditorTechniqueActiveStatus = new ReadEditorTechniqueActiveStatus {
+    override def getActiveStatus(id: BundleName): IOResult[Option[TechniqueActiveStatus]]          = Some(
+      TechniqueActiveStatus.Enabled
+    ).succeed
+    override def getActiveStatuses():             IOResult[Map[BundleName, TechniqueActiveStatus]] =
+      techniques.map(_.id -> TechniqueActiveStatus.Enabled).toMap.succeed
+  }
+
   // the SUT
   private val compilationStatusService: ReadEditorTechniqueCompilationResult = new TechniqueCompilationStatusService(
     editorTechniqueReader,
@@ -150,7 +158,8 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
       )
       .runNow
   }
-  private val writeCache = TechniqueCompilationErrorsActorSync.make(mockActor, compilationStatusService).runNow
+  private val writeCache =
+    TechniqueCompilationErrorsActorSync.make(mockActor, compilationStatusService, readTechniqueActiveStatus).runNow
 
   // create output test files for each technique
   override def beforeAll(): Unit = {
@@ -172,12 +181,14 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
         EditorTechniqueError(
           technique1.id,
           technique1.version,
+          TechniqueActiveStatus.Enabled,
           technique1.name,
           "tech1 error"
         ),
         EditorTechniqueError(
           technique3.id,
           technique3.version,
+          TechniqueActiveStatus.Enabled,
           technique3.name,
           "tech3 error"
         )
@@ -197,32 +208,114 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
 
   "Error repository" should {
     "Correctly build the status" in {
-      writeCache.updateStatus(expectedListOfOutputs).runNow must beEqualTo(expectedCompilationStatus)
+      writeCache.updateStatus(expectedListOfOutputs.map(_ -> TechniqueActiveStatus.Enabled)).runNow must beEqualTo(
+        expectedCompilationStatus
+      )
     }
 
-    "sync with UI" in {
-      val newError       = {
-        EditorTechniqueCompilationResult(
-          BundleName("new tech"),
-          technique1.version,
-          "new tech",
-          CompilationResult.Error("new tech error")
-        )
-      }
-      val expectedStatus = CompilationStatusErrors(
-        NonEmptyChunk(
-          EditorTechniqueError(
-            newError.id,
-            newError.version,
-            newError.name,
-            "new tech error"
-          )
+    val newError       = {
+      EditorTechniqueCompilationResult(
+        BundleName("new tech"),
+        technique1.version,
+        "new tech",
+        CompilationResult.Error("new tech error")
+      )
+    }
+    val newErrorStatus = CompilationStatusErrors(
+      NonEmptyChunk(
+        EditorTechniqueError(
+          newError.id,
+          newError.version,
+          TechniqueActiveStatus.Enabled,
+          newError.name,
+          "new tech error"
         )
       )
+    )
+    "sync with UI" in {
       (writeCache.syncOne(newError) *> // println(mockActor.messages.head).succeed *>
       msgLock.withPermit(
-        (mockActor hasReceivedMessage_? UpdateCompilationStatus(expectedCompilationStatus ++ expectedStatus)).succeed
-      )).runNow must beTrue and (mockActor.messageCount must beEqualTo(1))
+        (mockActor hasReceivedMessage_? UpdateCompilationStatus(expectedCompilationStatus ++ newErrorStatus)).succeed
+      )).runNow.aka("actor received message") must beTrue and (mockActor.messageCount must beEqualTo(1))
     }
+
+    "update an existing technique in error" in {
+      val updatedResult = {
+        EditorTechniqueCompilationResult(
+          technique3.id,
+          technique3.version,
+          technique3.name,
+          CompilationResult.Error("new tech3 error")
+        )
+      }
+      writeCache.updateOneStatus(updatedResult, TechniqueActiveStatus.Enabled).runNow must beEqualTo(
+        CompilationStatusErrors(
+          NonEmptyChunk(
+            EditorTechniqueError(
+              technique1.id,
+              technique1.version,
+              TechniqueActiveStatus.Enabled,
+              technique1.name,
+              "tech1 error"
+            ),
+            EditorTechniqueError(
+              technique3.id,
+              technique3.version,
+              TechniqueActiveStatus.Enabled,
+              technique3.name,
+              "new tech3 error"
+            )
+          )
+        ) ++ newErrorStatus
+      )
+    }
+
+    "update with an technique in success" in {
+      val success =
+        EditorTechniqueCompilationResult(technique1.id, technique1.version, technique1.name, CompilationResult.Success)
+      writeCache.updateOneStatus(success, TechniqueActiveStatus.Enabled).runNow must beEqualTo(
+        CompilationStatusErrors(
+          NonEmptyChunk(
+            EditorTechniqueError(
+              technique3.id,
+              technique3.version,
+              TechniqueActiveStatus.Enabled,
+              technique3.name,
+              "new tech3 error"
+            )
+          )
+        ) ++ newErrorStatus
+      )
+    }
+
+    "delete no longer existing techniques, keep only new one" in {
+      writeCache.updateStatus(List(newError -> TechniqueActiveStatus.Enabled)).runNow must beEqualTo(
+        newErrorStatus
+      )
+    }
+
+    "update a technique with disabled status" in {
+      writeCache.updateOneStatus(newError, TechniqueActiveStatus.Disabled).runNow must beEqualTo(
+        CompilationStatusErrors(
+          newErrorStatus.techniquesInError.map(_.copy(status = TechniqueActiveStatus.Disabled))
+        )
+      )
+    }
+
+    "sync technique active status" in {
+      // bring the status back to Enabled
+      (writeCache.syncTechniqueActiveStatus(newError.id) *>
+      msgLock.withPermit(
+        (mockActor hasReceivedMessage_? UpdateCompilationStatus(newErrorStatus)).succeed
+      )).runNow.aka("actor received message") must beTrue and (mockActor.messageCount must beEqualTo(2))
+    }
+
+    "unsync one" in {
+      (writeCache.unsyncOne(newError.id -> newError.version) *>
+      msgLock.withPermit(
+        (mockActor hasReceivedMessage_? UpdateCompilationStatus(CompilationStatusAllSuccess)).succeed
+      )).runNow.aka("actor received message") must beTrue and (mockActor.messageCount must beEqualTo(3))
+    }
+
   }
 }

@@ -51,6 +51,7 @@ import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.Version
 import com.normation.rudder.*
 import com.normation.rudder.api.ApiAuthorization as ApiAuthz
 import com.normation.rudder.api.ApiVersion
@@ -87,8 +88,11 @@ import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
 import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.ncf.BundleName
+import com.normation.rudder.ncf.EditorTechniqueCompilationResult
 import com.normation.rudder.ncf.EditorTechniqueReader
 import com.normation.rudder.ncf.ResourceFileService
+import com.normation.rudder.ncf.TechniqueCompilationStatusSyncService
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.reports.AgentRunInterval
@@ -612,7 +616,7 @@ class RestTestSetUp {
     override def launch(): ZIO[Any, Nothing, DebugInfoScriptResult] = DebugInfoScriptResult("test", new Array[Byte](42)).succeed
   }
 
-  val fakeUpdateDynamicGroups: UpdateDynamicGroups = {
+  val fakeUpdateDynamicGroups:           UpdateDynamicGroups                   = {
     new UpdateDynamicGroups(
       dynGroupService,
       dynGroupUpdaterService,
@@ -629,6 +633,12 @@ class RestTestSetUp {
       override def startManualUpdate: Unit = ()
     }
   }
+  val techniqueCompilationStatusService: TechniqueCompilationStatusSyncService = new TechniqueCompilationStatusSyncService {
+    def syncOne(result:                       EditorTechniqueCompilationResult):                      IOResult[Unit] = ().succeed
+    def syncTechniqueActiveStatus(bundleName: BundleName):                                            IOResult[Unit] = ().succeed
+    def unsyncOne(id:                         (BundleName, Version)):                                 IOResult[Unit] = ().succeed
+    def getUpdateAndSync(results:             Option[List[EditorTechniqueCompilationResult]] = None): IOResult[Unit] = ().succeed
+  }
 
   val apiService11           = new SystemApiService11(
     fakeUpdatePTLibService,
@@ -637,6 +647,7 @@ class RestTestSetUp {
     asyncDeploymentAgent,
     uuidGen,
     fakeUpdateDynamicGroups,
+    techniqueCompilationStatusService,
     fakeItemArchiveManager,
     fakePersonIndentService,
     mockGitRepo.gitRepo
