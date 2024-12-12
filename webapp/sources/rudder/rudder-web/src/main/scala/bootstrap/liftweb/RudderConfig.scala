@@ -1872,6 +1872,7 @@ object RudderConfigInit {
       asyncDeploymentAgent,
       uuidGen,
       updateDynamicGroups,
+      techniqueCompilationCache,
       itemArchiveManager,
       personIdentService,
       gitConfigRepo
