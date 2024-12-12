@@ -250,7 +250,7 @@ informationTab model details =
                           ][]
                     in
                       li[]
-                      [ a[href (model.contextPath ++ "/secure/plugins/changes/changeRequest/" ++ (String.fromInt cr.id))]
+                      [ a[href (model.contextPath ++ "/secure/configurationManager/changes/changeRequest/" ++ (String.fromInt cr.id))]
                         [ statusBadge
                         , text cr.name
                         , tooltip

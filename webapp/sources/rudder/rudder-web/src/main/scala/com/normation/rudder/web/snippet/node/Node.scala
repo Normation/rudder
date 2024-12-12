@@ -48,7 +48,7 @@ import net.liftweb.http.StatefulSnippet
 /**
  * Snippet that handle the "node details" (/node/uuid) page.
  */
-class NodeDetails extends StatefulSnippet with Loggable {
+class Node extends StatefulSnippet with Loggable {
 
   private val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
 
@@ -63,7 +63,7 @@ class NodeDetails extends StatefulSnippet with Loggable {
   var dispatch: DispatchIt = {
     case "details" =>
       S.param("nodeId") match {
-        case eb: EmptyBox =>
+        case _: EmptyBox =>
           _ => <p>No node ID was given in URL. How did you get there?</p>
         case Full(nodeId) =>
           val displayMode = (S.param("displayCompliance"), S.param("systemStatus")) match {
@@ -71,7 +71,7 @@ class NodeDetails extends StatefulSnippet with Loggable {
             case (_, Full("true")) => ShowNodeDetailsFromNode.System
             case (_, _)            => ShowNodeDetailsFromNode.Summary
           }
-          _ => new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary).display(false, displayMode)
+          _ => new ShowNodeDetailsFromNode(NodeId(nodeId), groupLibrary).display(false, displayMode)
       }
   }
 }

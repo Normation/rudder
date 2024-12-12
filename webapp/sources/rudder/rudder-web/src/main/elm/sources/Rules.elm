@@ -394,7 +394,7 @@ update msg model =
                     Just id ->
                       let
                         message = "Change request #"++ id ++" successfully created."
-                        linkUrl = model.contextPath ++ "/secure/plugins/changes/changeRequest/" ++ id
+                        linkUrl = model.contextPath ++ "/secure/configurationManager/changes/changeRequest/" ++ id
                         linkTxt = "See details of change request #" ++ id
                         encodeToastInfo =
                           object

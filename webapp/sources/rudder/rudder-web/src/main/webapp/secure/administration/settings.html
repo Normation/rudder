@@ -1,0 +1,43 @@
+<lift:surround with="common-layout" at="content">
+  <head>
+      <title>Settings</title>
+  </head>
+
+  <div data-lift="administration.Settings.body">
+  <div class="rudder-template">
+    <div class="one-col">
+      <div class="main-header">
+        <div class="header-title">
+          <h1>
+            <span>Settings</span>
+          </h1>
+        </div>
+        <div class="main-navbar">
+          <ul id="settingsTabMenu" class="nav nav-underline">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#generalSettingsTab" type="button" role="tab" aria-controls="generalSettingsTab" aria-selected="true">
+                General settings
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="one-col-main">
+          <div class="template-main">
+            <div class="main-container">
+              <div class="main-details">
+                <div id="settingsTabContent" class="tab-content" style="padding-bottom:120px">
+                  <div id="generalSettingsTab" class="tab-pane active">
+                    <div class="lift:administration.Settings.mainTabContent"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+</lift:surround>

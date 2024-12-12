@@ -1,7 +1,7 @@
-<lift:surround with="common-layout" at="content">
+<xml:group>
+  <component-body>
 
 <head>
-  <title>Rudder - General settings</title>
   <style>
     .template-sidebar.sidebar-left{
       box-shadow : none !important;
@@ -27,13 +27,6 @@
 
 <div class="rudder-template">
   <div class="one-col">
-    <div class="main-header">
-      <div class="header-title">
-        <h1>
-          <span>General settings</span>
-        </h1>
-      </div>
-    </div>
     <div class="one-col-main">
 
       <div class="template-sidebar sidebar-left">
@@ -283,7 +276,7 @@
                   <div class="explanation-text">
                     <p>
                       If enabled, prompt users to enter a message explaining the reason for each configuration change they make.<br/>
-                      These messages will be stored in each <a href="/secure/utilities/eventLogs" target="_blank">Event log</a> and as the commit message for the underlying git repository in
+                      These messages will be stored in each <a href="/secure/configurationManager/history" target="_blank">Event log</a> and as the commit message for the underlying git repository in
                       <i><strong><span id="configurationRepoPath"></span></strong></i>
                     </p>
                   </div>
@@ -651,4 +644,5 @@
 <script>
   buildScrollSpyNav();
 </script>
-</lift:surround>
+  </component-body>
+</xml:group>

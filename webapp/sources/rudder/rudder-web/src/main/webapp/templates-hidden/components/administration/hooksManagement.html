@@ -1,7 +1,8 @@
-<lift:surround with="common-layout" at="content">
+<xml:group>
+  <component-body>
+
     <div id="hooks-main">
         <head_merge>
-            <title>Hooks</title>
             <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-hooks.js"></script>
             <link rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-hooks.css" />
         </head_merge>
@@ -35,4 +36,6 @@
         copy(str);
       });
     </script>
-</lift:surround>
+
+  </component-body>
+</xml:group>

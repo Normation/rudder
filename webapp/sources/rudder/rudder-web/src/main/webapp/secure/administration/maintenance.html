@@ -1,0 +1,75 @@
+<lift:surround with="common-layout" at="content">
+  <head>
+      <title>Maintenance</title>
+  </head>
+
+  <div data-lift="administration.Maintenance.body">
+  <div class="rudder-template">
+    <div class="one-col">
+      <div class="main-header">
+        <div class="header-title">
+          <h1>
+            <span>Maintenance</span>
+          </h1>
+        </div>
+        <div class="main-navbar">
+          <ul id="maintenanceTabMenu" class="nav nav-underline">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#healthChecksTab" type="button" role="tab" aria-controls="healthChecksTab" aria-selected="true">
+                Health checks
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#reportsDatabase" type="button" role="tab" aria-controls="reportsDatabase">
+                Reports database
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#policyBackup" type="button" role="tab" aria-controls="policyBackup">
+                Policy backup
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#hooks" type="button" role="tab" aria-controls="hooks">
+                Hooks
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#techniqueTree" type="button" role="tab" aria-controls="techniqueTree">
+                Technique Tree
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="one-col-main">
+          <div class="template-main">
+            <div class="main-container">
+              <div class="main-details">
+                <div id="maintenanceTabContent" class="tab-content">
+                  <div id="healthChecksTab" class="tab-pane active">
+                    <div class="lift:administration.Maintenance.healthCheckTab"></div>
+                  </div>
+                  <div id="reportsDatabase" class="tab-pane">
+                    <div class="lift:administration.Maintenance.reportsDatabaseTab"></div>
+                  </div>
+                  <div id="policyBackup" class="tab-pane">
+                    <div class="lift:administration.Maintenance.policyBackupTab"></div>
+                  </div>
+                  <div id="hooks" class="tab-pane">
+                    <div class="lift:administration.Maintenance.hooksTab"></div>
+                  </div>
+                  <div id="techniqueTree" class="tab-pane">
+                    <div class="lift:administration.Maintenance.techniqueTreeTab"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+</lift:surround>

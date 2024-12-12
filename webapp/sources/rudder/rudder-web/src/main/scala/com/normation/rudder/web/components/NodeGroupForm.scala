@@ -434,7 +434,7 @@ class NodeGroupForm(
   private def systemGroupDeleteButton(group: NodeGroup) = {
     // cve-groups category has another delete button in the CVE UI
     if (rootCategory.categoryByGroupId.get(group.id).exists(_.value == "cve-groups")) { // button is a link with a tooltip
-      val href           = s"/secure/security/cveManagement/cve/${StringEscapeUtils.escapeHtml4(group.id.uid.value)}"
+      val href           = s"/secure/patch/cveManagement/cve/${StringEscapeUtils.escapeHtml4(group.id.uid.value)}"
       val tooltipContent =
         "<h4 class='tags-tooltip-title'>CVE group not deletable from here</h4><div class='tooltip-inner-content'>This group can only be deleted from the CVE details page from where it has been created.</div>"
       <a class="btn btn-default btn-icon" href={

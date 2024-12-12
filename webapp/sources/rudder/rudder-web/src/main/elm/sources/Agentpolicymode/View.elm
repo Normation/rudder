@@ -56,7 +56,7 @@ view model =
       NodeForm _ ->
         p[]
         [ text "By default all nodes and all directives operate in the global mode defined in "
-        , a [href (model.contextPath ++ "/secure/administration/policyServerManagement")][text "Settings"]
+        , a [href (model.contextPath ++ "/secure/administration/settings")][text "Settings"]
         , text " which is currently "
         , b [][text (policyModeStr model.globalPolicyMode)]
         , text "."
@@ -114,7 +114,7 @@ view model =
         else
           div [class "alert alert-warning"]
           [ text "Current global settings do not allow this mode to be overridden on a per-node basis. You may change this in "
-          , a [href (model.contextPath ++ "/secure/administration/policyServerManagement#agentPolicyMode")] [text "Settings"]
+          , a [href (model.contextPath ++ "/secure/administration/settings#agentPolicyMode")] [text "Settings"]
           , text ", or contact your Rudder administrator about this."
           ]
   in

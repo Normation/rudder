@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2011 Normation SAS
+ * Copyright 2024 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,44 +35,54 @@
  *************************************************************************************
  */
 
-package com.normation.rudder.web.snippet
+package com.normation.rudder.web.snippet.administration
 
-//lift std import
-import com.normation.rudder.AuthorizationType
-import com.normation.rudder.users.CurrentUser
-import net.liftweb.http.*
+import com.normation.plugins.DefaultExtendableSnippet
+import com.normation.rudder.web.ChooseTemplate
+import net.liftweb.http.DispatchSnippet
+import net.liftweb.util.CssSel
+import net.liftweb.util.Helpers.*
 import scala.xml.*
 
-/**
- * Manage redirection for index pages
- */
-class Index {
+class Settings extends DispatchSnippet with DefaultExtendableSnippet[Settings] {
+  private def settingsTabContent(xml: NodeSeq) =
+    ChooseTemplate("templates-hidden" :: "components" :: "administration" :: "policyServerManagement" :: Nil, "component-body")
 
-  def administration(xhtml: NodeSeq): NodeSeq = {
-    if (CurrentUser.checkRights(AuthorizationType.Administration.Read)) {
-      S.redirectTo("policyServerManagement")
-    } else {
-      if (CurrentUser.checkRights(AuthorizationType.Technique.Read)) {
-        S.redirectTo("techniqueLibraryManagement")
-      } else {
-        S.redirectTo("/secure/index")
-      }
-    }
+  override def mainDispatch: Map[String, NodeSeq => NodeSeq] = {
+    Map(
+      "body"           -> identity,
+      "mainTabContent" -> settingsTabContent
+    )
   }
+}
 
-  def nodeManager(xhtml: NodeSeq):          NodeSeq = {
-    S.redirectTo("nodes")
-  }
-  def configurationManager(xhtml: NodeSeq): NodeSeq = {
-    S.redirectTo("ruleManagement")
-  }
+object Settings {
 
-  def plugins(xhtml: NodeSeq): NodeSeq = {
-    S.redirectTo("pluginInformation")
+  /*
+   * Create a new tab (the clickable header part).
+   * The id must not contain the `#`
+   */
+  def tabMenu(tabId: String, name: String) = {
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target={
+      "#" + tabId
+    } type="button" role="tab" aria-controls={tabId}>{name}</button>
+    </li>
   }
 
-  def access(xhtml: NodeSeq): NodeSeq = {
-    S.redirectTo("userManagement")
+  // an utility method that provides the correct cssSel to add a menu item
+  def addTabMenu(tabId: String, name: String): CssSel = {
+    "#settingsTabMenu *+" #> Settings.tabMenu(tabId, name)
   }
+
+  def tabContent(tabId: String, content: NodeSeq): Elem = {
+    <div id={tabId} class="tab-pane">{content}</div>
+  }
+
+  def addTabContent(tabId: String, content: NodeSeq): CssSel =
+    "#settingsTabContent *+" #> Settings.tabContent(tabId, content)
+
+  def addTab(tabId: String, name: String, content: NodeSeq): CssSel =
+    Settings.addTabMenu(tabId, name) & Settings.addTabContent(tabId, content)
 
 }

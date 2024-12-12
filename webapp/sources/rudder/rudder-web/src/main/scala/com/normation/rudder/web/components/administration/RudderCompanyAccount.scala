@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2011-2013 Normation SAS
+ * Copyright 2024 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,19 +35,22 @@
  *************************************************************************************
  */
 
-package com.normation.rudder.web.snippet.node
+package com.normation.rudder.web.components.administration
 
-import bootstrap.liftweb.RudderConfig
-import net.liftweb.common.*
-import net.liftweb.http.*
+import com.normation.plugins.SnippetExtensionPoint
+import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.snippet.administration.Settings
+import scala.reflect.ClassTag
 import scala.xml.NodeSeq
-class Nodes extends StatefulSnippet with Loggable {
-  val srvGrid = RudderConfig.srvGrid
 
-  val dispatch: DispatchIt = { case "table" => table _ }
+class RudderCompanyAccount()(implicit val ttag: ClassTag[Settings]) extends SnippetExtensionPoint[Settings] {
+  private val tabId = "companyAccountTab"
 
-  def table(html: NodeSeq): NodeSeq = {
-    srvGrid.displayAndInit(None, "nodes")
-  }
+  private def template: NodeSeq =
+    ChooseTemplate("templates-hidden" :: "components" :: "administration" :: "setup" :: Nil, "component-body")
+
+  override def compose(snippet: Settings): Map[String, NodeSeq => NodeSeq] = Map(
+    "body" -> Settings.addTab(tabId, "Rudder Account", template)
+  )
 
 }

@@ -97,7 +97,7 @@ class PluginExpirationInfo extends DispatchSnippet with Loggable {
       data-bs-placement="bottom"
       title={tooltipContent}
       >
-        <a href="/secure/plugins/pluginInformation"><span class="fa fa-puzzle-piece"></span></a>
+        <a href="/secure/administration/plugins"><span class="fa fa-puzzle-piece"></span></a>
       </li>
     }
     if (warnings.licenseError.nonEmpty || warnings.licenseExpired.nonEmpty) {

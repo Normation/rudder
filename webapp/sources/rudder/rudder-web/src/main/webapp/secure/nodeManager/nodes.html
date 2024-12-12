@@ -25,17 +25,57 @@
             <span>Nodes</span>
           </h1>
         </div>
+        <div class="main-navbar">
+          <ul class="nav nav-underline">
+            <li class="nav-item">
+              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#node_list" type="button" role="tab" aria-controls="node_list" aria-selected="true">List</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#node_search" type="button" role="tab" aria-controls="node_search" aria-selected="true">Search</button>
+            </li>
+          </ul>
+        </div>
       </div>
-      <div class="one-col-main">
-        <div class="template-main">
-          <div class="main-container">
-            <div class="main-details table-container">
-              <div data-lift="node.Nodes.table"></div>
+      <div id="nodes_tab">
+        <div class="one-col-main">
+          <div class="template-main">
+            <div class="main-container">
+              <div class="main-details">
+                <div class="main-container">
+                  <div class="main-details">
+                    <div class="tab-content">
+                      <div id="node_list" class="tab-pane active">
+                        <div class="table-container">
+                          <div data-lift="node.Nodes.table"></div>
+                        </div>
+                      </div>
+                      <div id="node_search" class="tab-pane">
+                          <div data-lift="node.SearchNodes.head"></div>
+                          <div id="query-search-content">
+                          <div class="inner-portlet-content">
+                            <div id="SearchNodes">
+                              <div data-lift="node.SearchNodes.showQuery"></div>
+                            </div>
+                            <lift:authz role="group_write">
+                              <div data-lift="node.SearchNodes.createGroup"></div>
+                            </lift:authz>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-  <div data-lift="node.Nodes.loadData"></div>
+  <div id="createGroupPopup" class="modal fade" tabindex="-1">
+    <lift:ignore>
+      This div gets the content of the createCategoryOrGroup injected within
+    </lift:ignore>
+    <div id="createGroupContainer"></div>
+  </div>
 </lift:surround>

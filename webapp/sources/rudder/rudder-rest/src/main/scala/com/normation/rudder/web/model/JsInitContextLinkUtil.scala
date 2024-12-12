@@ -130,7 +130,7 @@ class LinkUtil(
     RedirectTo(baseGlobalParameterLink(name))
 
   def baseChangeRequestLink(id: ChangeRequestId): String =
-    s"/secure/plugins/changes/changeRequest/${id.value}"
+    s"/secure/configurationManager/changes/changeRequest/${id.value}"
 
   def changeRequestLink(id: ChangeRequestId): String =
     s"${S.contextPath}${baseChangeRequestLink(id)}"
