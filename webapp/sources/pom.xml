@@ -434,6 +434,7 @@ limitations under the License.
     <lift-version>4.0.0-M1</lift-version>
     <slf4j-version>2.0.16</slf4j-version>
     <logback-version>1.5.12</logback-version>
+    <janino-version>3.1.12</janino-version>
     <jodatime-version>2.13.0</jodatime-version>
     <jodaconvert-version>3.0.1</jodaconvert-version>
     <commons-io-version>2.17.0</commons-io-version>
@@ -849,6 +850,11 @@ limitations under the License.
         <version>${logback-version}</version>
       </dependency>
       <dependency>
+        <groupId>org.codehaus.janino</groupId>
+        <artifactId>janino</artifactId>
+        <version>${janino-version}</version>
+      </dependency>
+      <dependency>
         <groupId>com.github.pathikrit</groupId>
         <artifactId>better-files_${scala-binary-version}</artifactId>
         <version>${better-files-version}</version>
@@ -1005,6 +1011,11 @@ limitations under the License.
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
       <version>${logback-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.janino</groupId>
+      <artifactId>janino</artifactId>
+      <version>${janino-version}</version>
     </dependency>
   </dependencies>
 
