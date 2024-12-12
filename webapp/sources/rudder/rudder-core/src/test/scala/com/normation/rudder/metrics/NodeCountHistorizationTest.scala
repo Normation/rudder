@@ -100,12 +100,12 @@ class NodeCountHistorizationTest extends Specification with BeforeAfter {
     val t2    = 1000L.millis          // go to 2020-03-20 3:49:37
     val prog  = {
       for {
-        refMetrics <- Ref.make(FrequentNodeMetrics(1, 2, 3, 4, 5))
+        refMetrics <- Ref.make(FrequentNodeMetrics(1, 2, 3, 4, 5, 6))
         _          <- ZIO.sleep(t1).fork
         _          <- TestClock.adjust(t1)
         service    <- makeService(rootDir, refMetrics)
         commit     <- service.fetchDataAndLog("initialize logs")
-        _          <- refMetrics.set(FrequentNodeMetrics(35, 46, 57, 68, 79))
+        _          <- refMetrics.set(FrequentNodeMetrics(35, 46, 57, 68, 79, 3))
         _          <- ZIO.sleep(t2).fork
         _          <- TestClock.adjust(t2)
         commit     <- service.fetchDataAndLog("A second one")
@@ -117,8 +117,8 @@ class NodeCountHistorizationTest extends Specification with BeforeAfter {
     val lines = File(rootDir, "nodes-2020-03").lines(StandardCharsets.UTF_8).toVector
 
     (lines.size must beEqualTo(3)) and (
-      (lines(1) must beEqualTo(""""2020-03-20T03:49:36Z";"1";"2";"3";"4";"5"""")) and
-      (lines(2) must beEqualTo(""""2020-03-20T03:49:37Z";"35";"46";"57";"68";"79""""))
+      (lines(1) must beEqualTo(""""2020-03-20T03:49:36Z";"1";"2";"3";"4";"5";"6"""")) and
+      (lines(2) must beEqualTo(""""2020-03-20T03:49:37Z";"35";"46";"57";"68";"79";"3""""))
     )
   }
 

@@ -1,0 +1,70 @@
+---
+description: Get system info for Rudder prior to Rudder 8.3 (API V20)
+method: GET
+url: /api/20/system/info
+response:
+  code: 200
+  content: >-
+    {
+      "action":"info",
+      "result":"success",
+      "data":{
+        "rudder" : {
+          "major-version" : "8.3",
+          "full-version" : "8.3.0",
+          "build-time" : "2025-01-05T21:53:20+01:00"
+        }
+      }
+    }
+---
+description: Get system info for Rudder 8.3 (API V21)
+method: GET
+url: /api/latest/system/info
+response:
+  code: 200
+  content: >-
+    {
+      "action":"info",
+      "result":"success",
+      "data":{
+        "rudder" : {
+          "version" : "8.3.0",
+          "buildTime" : "2025-01-05T21:53:20+01:00",
+          "instanceId" : "c2180fd6-36e1-41d9-ad27-b71ff49eef68",
+          "relays" : [
+            {
+              "uuid" : "ac189019-6f8d-47ca-9f3a-ad66c338ce50",
+              "hostname" : "relay0.rudder.io",
+              "managedNodes" : 342
+            }
+          ]
+        },
+        "system" : {
+          "os" : {
+            "name" : "Rocky Linux release 8.10 (Green Obsidian)",
+            "version" : "8.10"
+          },
+          "jvm" : {
+            "version" : "21.0.32",
+            "cmd" : "java -Dblablabla rudder"
+          }
+        },
+        "nodes" : {
+            "total" : 233,
+            "audit" : 144,
+            "enforce" : 178,
+            "mixed" : 42,
+            "enabled" : 207,
+            "disabled" : 26
+          },
+          "plugins" : [
+            {
+              "id" : "rudder-plugin-auth-backends",
+              "name" : "authentication backends",
+              "version" : "8.3.0-2.4.1",
+              "abiVersion" : "8.3.0-2.4.1"
+            }
+          ]
+        }
+      }
+    }

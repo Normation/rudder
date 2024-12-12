@@ -42,6 +42,7 @@ import bootstrap.liftweb.checks.action.*
 import bootstrap.liftweb.checks.consistency.*
 import bootstrap.liftweb.checks.migration.*
 import bootstrap.liftweb.checks.onetimeinit.*
+import bootstrap.liftweb.metrics.SystemInfoServiceImpl
 import com.normation.appconfig.*
 import com.normation.box.*
 import com.normation.cfclerk.services.*
@@ -852,17 +853,13 @@ object RudderParsedProperties {
 
   // properties from version.properties file,
   val (
-    rudderMajorVersion,
     rudderFullVersion,
-    currentYear,
     builtTimestamp
   ) = {
     val p = new java.util.Properties
     p.load(this.getClass.getClassLoader.getResourceAsStream("version.properties"))
     (
-      p.getProperty("rudder-major-version"),
       p.getProperty("rudder-full-version"),
-      p.getProperty("current-year"),
       p.getProperty("build-timestamp")
     )
   }
@@ -1333,6 +1330,7 @@ object RudderConfig extends Loggable {
   val woRuleRepository:                    WoRuleRepository                           = rci.woRuleRepository
   val workflowEventLogService:             WorkflowEventLogService                    = rci.workflowEventLogService
   val workflowLevelService:                DefaultWorkflowLevel                       = rci.workflowLevelService
+  val systemInfoService:                   SystemInfoService                          = rci.systemInfoService
 
   /**
    * A method to call to force initialisation of all object and services.
@@ -1508,7 +1506,8 @@ case class RudderServiceApi(
     propertiesRepository:                PropertiesRepository,
     propertiesService:                   NodePropertiesService,
     techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService,
-    instanceIdService:                   InstanceIdService
+    instanceIdService:                   InstanceIdService,
+    systemInfoService:                   SystemInfoService
 )
 
 /*
@@ -1846,6 +1845,13 @@ object RudderConfigInit {
     )
 
     lazy val hookApiService = new HookApiService(HOOKS_D, HOOKS_IGNORE_SUFFIXES)
+
+    lazy val systemInfoService: SystemInfoService = new SystemInfoServiceImpl(
+      getNodeMetrics,
+      nodeFactRepository,
+      instanceIdService,
+      policyServerManagementService
+    )
 
     lazy val systemApiService11 = new SystemApiService11(
       updateTechniqueLibrary,
@@ -2245,9 +2251,7 @@ object RudderConfigInit {
           restExtractorService,
           systemApiService11,
           systemApiService13,
-          rudderMajorVersion,
-          rudderFullVersion,
-          builtTimestamp
+          systemInfoService
         ),
         new UserManagementApiImpl(
           userRepository,
@@ -3561,11 +3565,14 @@ object RudderConfigInit {
 
     // aggregate information about node count
     // don't forget to start-it once out of the zone which lead to dead-lock (ie: in Lift boot)
+    lazy val getNodeMetrics: FetchDataService =
+      new FetchDataServiceImpl(nodeFactRepository, reportingService)
+
     lazy val historizeNodeCountBatch = for {
       gitLogger <- CommitLogServiceImpl.make(METRICS_NODES_DIRECTORY_GIT_ROOT)
       writer    <- WriteNodeCSV.make(METRICS_NODES_DIRECTORY_GIT_ROOT, ';', "yyyy-MM")
       service    = new HistorizeNodeCountService(
-                     new FetchDataServiceImpl(RudderConfig.nodeFactRepository, RudderConfig.reportingService),
+                     getNodeMetrics,
                      writer,
                      gitLogger,
                      DateTimeZone.UTC // never change log line
@@ -3813,7 +3820,8 @@ object RudderConfigInit {
       propertiesRepository,
       propertiesService,
       techniqueCompilationCache,
-      instanceIdService
+      instanceIdService,
+      systemInfoService
     )
 
     // start init effects

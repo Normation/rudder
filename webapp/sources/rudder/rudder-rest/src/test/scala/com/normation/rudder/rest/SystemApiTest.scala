@@ -74,27 +74,6 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
     }
   }
 
-  "Testing system API info" should {
-    "match the response defined below" in {
-
-      implicit val action   = "getSystemInfo"
-      implicit val prettify = false
-
-      val response = toJsonResponse(
-        None,
-        ("rudder"           -> (
-          ("major-version"  -> "5.0")
-          ~ ("full-version" -> "5.0.0")
-          ~ ("build-time"   -> "some time")
-        ))
-      )
-
-      restTest.testGET("/api/latest/system/info") { req =>
-        restTestSetUp.rudderApi.getLiftRestApi().apply(req).apply() must beEqualTo(Full(response))
-      }
-    }
-  }
-
   "Testing system API status" should {
     "match the response defined below" in {
 

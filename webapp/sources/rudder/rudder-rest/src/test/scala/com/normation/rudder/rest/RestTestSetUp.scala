@@ -51,7 +51,12 @@ import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.FullInventory
+import com.normation.inventory.domain.Linux
 import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.RockyLinux
+import com.normation.inventory.domain.Version as IVersion
+import com.normation.plugins.JsonPluginDetails
+import com.normation.plugins.PluginSystemStatus
 import com.normation.rudder.*
 import com.normation.rudder.api.ApiAuthorization as ApiAuthz
 import com.normation.rudder.api.ApiVersion
@@ -90,6 +95,13 @@ import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
 import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.metrics.FrequentNodeMetrics
+import com.normation.rudder.metrics.JvmInfo
+import com.normation.rudder.metrics.PrivateSystemInfo
+import com.normation.rudder.metrics.PublicSystemInfo
+import com.normation.rudder.metrics.RelayInfo
+import com.normation.rudder.metrics.SystemInfo
+import com.normation.rudder.metrics.SystemInfoService
 import com.normation.rudder.ncf.EditorTechniqueReader
 import com.normation.rudder.ncf.ResourceFileService
 import com.normation.rudder.ncf.TechniqueSerializer
@@ -141,6 +153,7 @@ import com.normation.rudder.services.queries.DynGroupUpdaterServiceImpl
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.servers.DeleteMode
+import com.normation.rudder.services.servers.InstanceId
 import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
 import com.normation.rudder.services.user.PersonIdentService
@@ -781,7 +794,46 @@ class RestTestSetUp {
     null
   )
 
-  val systemApi = new SystemApi(restExtractorService, apiService11, apiService13, "5.0", "5.0.0", "some time")
+  object TestSystemInfoService extends SystemInfoService {
+    private val pub = PublicSystemInfo(
+      "8.3",
+      "8.3.0",
+      "2025-01-05T21:53:20+01:00",
+      Linux(
+        RockyLinux,
+        "Rocky Linux release 8.10 (Green Obsidian)",
+        new IVersion("8.10"),
+        None,
+        new IVersion("4.18.0-513.9.1.el8_9.x86_64")
+      ),
+      JvmInfo("openjdk", "21.0.32", "java -Dblablabla rudder"),
+      FrequentNodeMetrics(555, 233, 144, 178, 42, 26)
+    )
+
+    private val priv = PrivateSystemInfo(
+      InstanceId("c2180fd6-36e1-41d9-ad27-b71ff49eef68"),
+      List(RelayInfo(NodeId("ac189019-6f8d-47ca-9f3a-ad66c338ce50"), "relay0.rudder.io", 342)),
+      None,
+      List(
+        JsonPluginDetails(
+          "rudder-plugin-auth-backends",
+          "authentication backends",
+          "auth-backends",
+          "Add new authentication backends",
+          "8.3.0-2.4.1",
+          PluginSystemStatus.Enabled,
+          None,
+          None
+        )
+      )
+    )
+
+    override def getPublicInfo():  IOResult[PublicSystemInfo]  = pub.succeed
+    override def getPrivateInfo(): IOResult[PrivateSystemInfo] = priv.succeed
+    override def getAll():         IOResult[SystemInfo]        = SystemInfo(priv, pub).succeed
+  }
+
+  val systemApi = new SystemApi(restExtractorService, apiService11, apiService13, TestSystemInfoService)
   val authzToken:       AuthzToken = AuthzToken(userService.getCurrentUser.queryContext)
   val systemStatusPath: String     = "api" + systemApi.Status.schema.path
 

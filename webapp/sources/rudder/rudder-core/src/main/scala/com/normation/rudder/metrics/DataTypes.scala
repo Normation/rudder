@@ -37,6 +37,12 @@
 
 package com.normation.rudder.metrics
 
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.OsDetails
+import com.normation.plugins.JsonGlobalPluginLimits
+import com.normation.plugins.JsonPluginDetails
+import com.normation.rudder.services.servers.InstanceId
+
 /**
  * Information about commit:
  * - commit name,
@@ -51,25 +57,24 @@ final case class CommitInformation(name: String, email: Option[String], sign: Bo
 
 /**
  * Base information to retrieve for frequent log historisation about nodes.
- * These information are typically written every 10~20 min, so they shouldn't be slow
+ * This information is typically written every 10~20 min, so they shouldn't be slow
  * to fetch and short to write (no node configuration here!)
  * As a rule of thumb, every 10 min means: 6/h, 144/d, 4320/M, 52560/y
  */
 final case class FrequentNodeMetrics(
-    pending:   Int,
-    accepted:  Int,
-    modeAudit: Int, // node with at least one audit
-
-    modeEnforce: Int, // node with at least one enforce (excepting system directivces)
-
-    modeMixed: Int
+    pending:     Int,
+    accepted:    Int,
+    modeAudit:   Int, // node with at least one audit
+    modeEnforce: Int, // node with at least one enforce (excepting system directives)
+    modeMixed:   Int,
+    disabled:    Int  // node with state = disabled
 )
 
 /**
  * Utility methods about `FrequentNodeMetrics` data to format them correctly in CSV
  */
 object FrequentNodeMetrics {
-  val csvHeaderNames: List[String] = List("Date", "Pending", "Accepted", "Audit Mode", "Enforce Mode", "Mixed Mode")
+  val csvHeaderNames: List[String] = List("Date", "Pending", "Accepted", "Audit Mode", "Enforce Mode", "Mixed Mode", "Disabled")
 
   // add double quotes to a string
   private def q(s: String) = '"'.toString + s + '"'.toString
@@ -94,3 +99,32 @@ object Mode {
   case object Mixed   extends Mode
   case object None    extends Mode // error, pending, no answer...
 }
+
+/*
+ * We have two levels of system information:
+ * - public information that can be shared without possibility of identifying the server/user. Things like rudder version, etc
+ * - private information that can lead to user/server identification. Typically, license info, instance ID, etc.
+ */
+
+case class JvmInfo(name: String, version: String, cmd: String)
+
+case class PublicSystemInfo(
+    rudderMajorVersion: String,
+    rudderVersion:      String,
+    buildTime:          String,
+    os:                 OsDetails,
+    jvm:                JvmInfo,
+    nodes:              FrequentNodeMetrics
+)
+
+case class RelayInfo(id: NodeId, hostname: String, managedNodes: Int)
+
+case class PrivateSystemInfo(
+    instanceId:   InstanceId,
+    relays:       List[RelayInfo],
+    globalLimits: Option[JsonGlobalPluginLimits],
+    // plugins should be sorted by id
+    plugins:      Seq[JsonPluginDetails]
+)
+
+case class SystemInfo(priv: PrivateSystemInfo, public: PublicSystemInfo)

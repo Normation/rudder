@@ -244,7 +244,7 @@ object PluginsInfo {
     }
   }
 
-  def plugins = _plugins
+  def plugins: Map[PluginName, RudderPluginDef] = _plugins
 
   def pluginInfos: JsonPluginsDetails = {
     JsonPluginsDetails.buildDetails(_plugins.values.toList.sortBy(_.name.value).map(_.toJsonPluginDetails))
@@ -825,6 +825,8 @@ class Boot extends Loggable {
         Menu("920-maintenance", <span>Maintenance</span>) / "secure" / "administration" / "maintenance"
           >> needPerms(Authz.Administration.Read),
         Menu("950-plugins", <span>Plugins</span>) / "secure" / "administration" / "pluginInformation"
+          >> needPerms(Authz.Administration.Read),
+        Menu("990-about", <span>About</span>) / "secure" / "administration" / "about"
           >> needPerms(Authz.Administration.Read)
       )
     }

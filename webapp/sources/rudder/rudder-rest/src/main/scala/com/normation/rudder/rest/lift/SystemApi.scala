@@ -56,6 +56,7 @@ import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
+import com.normation.rudder.metrics.SystemInfoService
 import com.normation.rudder.repository.ItemArchiveManager
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
@@ -68,6 +69,9 @@ import com.normation.rudder.rest.RestUtils.getActor
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.SystemApi as API
+import com.normation.rudder.rest.data.*
+import com.normation.rudder.rest.data.SystemInfoJson.*
+import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.services.ClearCacheService
 import com.normation.rudder.services.healthcheck.HealthcheckNotificationService
 import com.normation.rudder.services.healthcheck.HealthcheckService
@@ -97,9 +101,7 @@ class SystemApi(
     restExtractorService: RestExtractorService,
     apiv11service:        SystemApiService11,
     apiv13service:        SystemApiService13,
-    rudderMajorVersion:   String,
-    rudderFullVerion:     String,
-    rudderBuildTimestamp: String
+    systemInfoService:    SystemInfoService
 ) extends LiftApiModuleProvider[API] {
 
   def schemas: ApiModuleProvider[API] = API
@@ -152,20 +154,20 @@ class SystemApi(
 
   object Info extends LiftApiModule0 {
     val schema: API.Info.type = API.Info
-    val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val prettify = params.prettify
-      implicit val action   = "getSystemInfo"
 
-      toJsonResponse(
-        None,
-        ("rudder"           -> (
-          ("major-version"  -> rudderMajorVersion)
-          ~ ("full-version" -> rudderFullVerion)
-          ~ ("build-time"   -> rudderBuildTimestamp)
-        ))
-      )
+      systemInfoService
+        .getAll()
+        .map { i =>
+          // at version 21, in Rudder 8.3 we introduce about page with more info
+          (if (version.value < 21) {
+             AboutInfoJsonV20(AboutRudderInfoJsonV20.transformSystemInfo.transform(i))
+           } else {
+             SystemInfoJson.transformSystemInfo.transform(i)
+           }): SystemInfoJson
+        }
+        .toLiftResponseOne(params, schema, None)
     }
   }
 
