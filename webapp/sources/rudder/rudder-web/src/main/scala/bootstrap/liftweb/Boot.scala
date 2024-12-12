@@ -857,10 +857,14 @@ class Boot extends Loggable {
         "secure" / "administration" / "hooksManagement"
         >> LocGroup("administrationGroup")
         >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Administration.Read)),
-        Menu("760-userManagement", <span>User management</span>) /
+        Menu("770-userManagement", <span>User management</span>) /
         "secure" / "administration" / "userManagement"
         >> LocGroup("administrationGroup")
-        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Administration.Write))
+        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Administration.Write)),
+        Menu("780-about", <span>About</span>) /
+        "secure" / "administration" / "about"
+        >> LocGroup("administrationGroup")
+        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Administration.Read))
       )
     }
 
