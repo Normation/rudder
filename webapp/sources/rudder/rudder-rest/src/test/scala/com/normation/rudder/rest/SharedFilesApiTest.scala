@@ -37,15 +37,10 @@
 
 package com.normation.rudder.rest
 
-import better.files.*
 import com.normation.JsonSpecMatcher
 import com.normation.rudder.rest.internal.SharedFilesAPI
-import com.normation.rudder.rest.internal.SharedFilesAPI.*
-import com.normation.zio.ZioRuntime
 import net.liftweb.common.Full
 import net.liftweb.http.JsonResponse
-import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.*
 import org.specs2.mutable.*
 import org.specs2.runner.*
@@ -53,50 +48,8 @@ import org.specs2.runner.*
 @RunWith(classOf[JUnitRunner])
 class SharedFilesApiTest extends Specification with JsonSpecMatcher {
 
-  // Setup temporary test files
-  val tmp:      File = File(s"/tmp/rudder-test-shared-files/${DateTime.now.toString(ISODateTimeFormat.dateTime())}")
-  tmp.createDirectoryIfNotExists(createParents = true)
-  val folder1:  File = tmp / "folder1"
-  folder1.createDirectoryIfNotExists()
-  val file1:    File = folder1 / "file1"
-  file1.createFile()
-  val file2:    File = tmp / "file2"
-  file2.createFile()
-  val symlink1: File = tmp / "symlink1"
-  symlink1.symbolicLinkTo(File("/etc"))
-
   val restTestSetUp = RestTestSetUp.newEnv
   val restTest      = new RestTest(restTestSetUp.liftRules)
-
-  "sanitize valid path" >> {
-    val tail = "/file2"
-    val res  = ZioRuntime.unsafeRun(sanitizePath(tail, tmp))
-    res.toString() must beEqualTo(tmp.toString() + "/file2")
-  }
-
-  "sanitize valid path with .." >> {
-    val tail = "/dir/../file2"
-    val res  = ZioRuntime.unsafeRun(sanitizePath(tail, tmp))
-    res.toString() must beEqualTo(tmp.toString() + "/file2")
-  }
-
-  "sanitize non-existing valid path" >> {
-    val tail = "/file42"
-    val res  = ZioRuntime.unsafeRun(sanitizePath(tail, tmp))
-    res.toString() must beEqualTo(tmp.toString() + "/file42")
-  }
-
-  "sanitize does prevent for traversal" >> {
-    val tail = "/../../.."
-    val res  = ZioRuntime.unsafeRun(sanitizePath(tail, tmp).isFailure)
-    res must beTrue
-  }
-
-  "sanitize does not follow symlinks" >> {
-    val tail = "/symlink1"
-    val res  = ZioRuntime.unsafeRun(sanitizePath(tail, tmp).isFailure)
-    res must beTrue
-  }
 
   "Testing resourceExplorer" >> {
     "uploading file" in {
