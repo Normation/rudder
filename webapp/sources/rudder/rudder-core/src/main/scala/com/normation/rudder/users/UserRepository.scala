@@ -673,18 +673,10 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
       authenticatorName: String,
       date:              DateTime
   ): IOResult[Unit] = {
-    val session   = {
-      sql"""insert into usersessions (sessionid, userid, creationdate, authmethod, permissions, authz, tenants)
-            values (${sessionId}, ${userId}, ${date}, ${authenticatorName}, ${permissions.sorted}, ${authz.sorted}, ${tenants})"""
-    }
-    val lastLogin = {
-      sql"""update users set lastlogin = ${date} where id = ${userId}"""
-    }
-
     transactIOResult(s"Error when saving session '${sessionId.value}' info for user '${userId}'")(xa => {
       (for {
-        _ <- lastLogin.update.run
-        _ <- session.update.run
+        _ <- lastLoginUpdate(userId, date)
+        _ <- sessionUpdate(userId, permissions, authz, tenants, sessionId, authenticatorName, date)
                .onUniqueViolation(
                  ApplicativeError[ConnectionIO, Throwable].raiseError(
                    new IllegalArgumentException(s"User session for ${userId} has already been saved")
@@ -849,6 +841,26 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
     }
   }
 
+  private[users] def sessionUpdate(
+      userId:            String,
+      permissions:       List[String],
+      authz:             List[String],
+      tenants:           String,
+      sessionId:         SessionId,
+      authenticatorName: String,
+      date:              DateTime
+  ): ConnectionIO[Int] = {
+    sql"""insert into usersessions (sessionid, userid, creationdate, authmethod, permissions, authz, tenants)
+        values (${sessionId}, ${userId}, ${date}, ${authenticatorName}, ${permissions.sorted}, ${authz.sorted}, ${tenants})""".update.run
+  }
+
+  private[users] def lastLoginUpdate(
+      userId: String,
+      date:   DateTime
+  ): ConnectionIO[Int] = {
+    sql"""update users set lastlogin = ${date} where id = ${userId}""".update.run
+  }
+
   // predicate used as condition for selecting users for both delete/disable and purge
   private[users] def predicateUser(userIds: List[String]): Option[Fragment] = userIds match {
     case Nil    => None
@@ -876,12 +888,7 @@ class JdbcUserRepository(doobie: Doobie) extends UserRepository {
       excludeFromOrigin: List[String],
       andSelectFragment: Option[Fragment] // refined selection
   ): ConnectionIO[List[(String, List[StatusHistory])]] = {
-    val selectUsers = (predicateUser(userIds), predicateLogDate(notLoggedSince)) match {
-      case (Some(a), Some(b)) => Some(Fragments.or(a, b))
-      case (Some(a), None)    => Some(a)
-      case (None, Some(b))    => Some(b)
-      case (None, None)       => None
-    }
+    val selectUsers = Fragments.andOpt(predicateUser(userIds), predicateLogDate(notLoggedSince))
 
     if (selectUsers.isEmpty && defaultToNone) {
       connectionUnit.map(_ => Nil)
