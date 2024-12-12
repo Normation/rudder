@@ -44,8 +44,8 @@ import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestExtractorService
-import com.normation.rudder.rest.internal.SharedFilesAPI.sanitizePath
 import com.normation.rudder.users.UserService
+import com.normation.utils.FileUtils.*
 import com.normation.zio.*
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -80,25 +80,6 @@ object SharedFilesAPI {
   // LiftRules.maxMimeSize and LiftRules.maxMimeFileSize are the configured values,
   // set to 8MB (default value of LiftRules.maxMimeSize)
   val MAX_FILE_SIZE: Int = 8388608
-
-  def sanitizePath(path: String, baseFolder: File): IOResult[File] = {
-    IOResult.attemptZIO {
-      // Actually canonifies the path
-      val filePath = baseFolder / path.dropWhile(_.equals('/'))
-      // We also want to resolve symlinks before checking, let's resort to Java's `toRealPath`
-      val realPath = if (filePath.exists()) {
-        File(filePath.toJava.toPath.toRealPath())
-      } else {
-        filePath
-      }
-      // `false` means we allow access to the base directory itself
-      if (baseFolder.contains(realPath, strict = false)) {
-        realPath.succeed
-      } else {
-        Unexpected(s"Unauthorized access to file ${filePath.name} (real path: ${realPath})").fail
-      }
-    }
-  }
 }
 
 class SharedFilesAPI(
@@ -111,7 +92,7 @@ class SharedFilesAPI(
   private def checkPathAndContinue(path: String, baseFolder: File)(
       fun: File => IOResult[LiftResponse]
   ): IOResult[LiftResponse] = {
-    sanitizePath(path, baseFolder).flatMap(fun)
+    sanitizePath(baseFolder, path).flatMap(_.toIO).flatMap(fun)
   }
 
   def serialize(file: File):                           IOResult[JValue]       = {
@@ -324,17 +305,23 @@ class SharedFilesAPI(
                 uploadedFiles match {
                   case Nil         => errorResponse(s"Missing file to copy to ${dest}")
                   case file :: Nil =>
-                    sanitizePath(dest.replaceFirst("/", "") + '/' + file.fileName, basePath).map { path =>
-                      for {
-                        in  <- file.fileStream.autoClosed
-                        out <- path.newOutputStream.autoClosed
-                      } yield {
-                        in.pipeTo(out)
-                      }
-                    }.either.runNow match {
-                      case Left(err) => errorResponse(err.fullMsg)
-                      case Right(_)  => basicSuccessResponse
-                    }
+                    sanitizePath(basePath, dest.replaceFirst("/", "") + '/' + file.fileName)
+                      .flatMap(_.toIO)
+                      .flatMap(path => {
+                        IOResult
+                          .attempt(s"Could not copy uploaded file to destination ${dest}")(for {
+                            in  <- file.fileStream.autoClosed
+                            out <- path.newOutputStream.autoClosed
+                          } yield {
+                            in.pipeTo(out)
+                          })
+                          .either
+                          .map {
+                            case Left(err) => errorResponse(err.fullMsg)
+                            case Right(_)  => basicSuccessResponse
+                          }
+                      })
+                      .runNow
                   case several     =>
                     errorResponse(
                       s"This API only support one uploaded file to copy to ${dest}, but ${several.size} were provided"
@@ -517,14 +504,19 @@ class SharedFilesAPI(
       def apply(req: Req):       () => Box[LiftResponse] = {
         req.path.partPath match {
           case "draft" :: techniqueId :: techniqueVersion :: _ =>
-            val path = File(s"${configRepoPath}/workspace/${techniqueId}/${techniqueVersion}/resources")
-            path.createIfNotExists(true, true)
+            val path = {
+              sanitizePath(File(configRepoPath), "workspace" :: techniqueId :: techniqueVersion :: "resources" :: Nil)
+                .flatMap(_.toIO)
+                .runNow
+            }
+            path.createIfNotExists(asDirectory = true, createParents = true)
             val pf   = requestDispatch(path)
             pf.apply(req.withNewPath(req.path.drop(3)))
           case techniqueId :: techniqueVersion :: categories   =>
-            val path = File(
-              s"${configRepoPath}/techniques/${categories.mkString("/")}/${techniqueId}/${techniqueVersion}/resources"
-            )
+            val path = sanitizePath(
+              File(configRepoPath),
+              ("techniques" :: categories) :+ techniqueId :+ techniqueVersion :+ "resources"
+            ).flatMap(_.toIO).runNow
             path.createIfNotExists(true, true)
             val pf   = requestDispatch(path)
             pf.apply(req.withNewPath(req.path.drop(req.path.partPath.size)))
