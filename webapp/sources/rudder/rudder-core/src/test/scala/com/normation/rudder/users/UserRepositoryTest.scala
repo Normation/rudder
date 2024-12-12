@@ -1,11 +1,51 @@
+/*
+ *************************************************************************************
+ * Copyright 2024 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+ *
+ *************************************************************************************
+ */
+
 package com.normation.rudder.users
 
+import cats.syntax.apply.*
 import com.normation.errors
 import com.normation.eventlog.EventActor
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.db.Doobie
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
+import doobie.syntax.connectionio.*
+import doobie.syntax.string.*
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
@@ -13,6 +53,7 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import scala.annotation.nowarn
+import zio.interop.catz.*
 import zio.json.ast.Json
 
 @RunWith(classOf[JUnitRunner])
@@ -188,20 +229,98 @@ class UserRepositoryUtilsTest extends Specification {
 @RunWith(classOf[JUnitRunner])
 class InMemoryUserRepositoryTest extends UserRepositoryTest {
   override def doobie: Doobie = null
+
+  lazy val repo: InMemoryUserRepository = InMemoryUserRepository.make().runNow
 }
 
 // this one use postgres and will run only with -Dtest.postgres="true"
 @RunWith(classOf[JUnitRunner])
 class JdbcUserRepositoryTest extends UserRepositoryTest with DBCommon {
+  import doobie.*
+
   override def doJdbcTest = doDatabaseConnection
 
   // format: off
   org.slf4j.LoggerFactory.getLogger("sql").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
   org.slf4j.LoggerFactory.getLogger("application.user").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
   // format: on
-
   override def afterAll(): Unit = {
     cleanDb()
+  }
+
+  if (!doJdbcTest) skipAll
+  lazy val repo: JdbcUserRepository = new JdbcUserRepository(doobie)
+
+  // Running some queries must return some results (after the tests in the supertrait).
+  "select query" >> {
+    val trace = EventTrace(actor, dateInit)
+    val users = List("user1", "user2")
+    "with empty criteria defaulting to None" in {
+      // reset all users to known ones
+      (repo.setExistingUsers(AUTH_PLUGIN_NAME_LOCAL, users, trace) *> repo
+        .purge(List.empty, None, List.empty, trace)).runNow
+
+      transactRunEither(repo.select(Nil, None, defaultToNone = true, Nil, None).transact(_)) must beRight(
+        containTheSameElementsAs(Nil)
+      )
+    }
+    "with empty criteria defaulting to all" in {
+      transactRunEither(repo.select(Nil, None, defaultToNone = false, Nil, None).transact(_)).map(_.map(_._1)) must beRight(
+        containTheSameElementsAs(users)
+      )
+    }
+
+    "with users criteria" in {
+      transactRunEither(repo.select(List("user1"), None, defaultToNone = true, Nil, None).transact(_))
+        .map(_.map(_._1)) must beRight(
+        containTheSameElementsAs(List("user1"))
+      )
+    }
+
+    "with notLoggedInSince criteria defaulting to creation date" in {
+      // a date in the future allows to select users created with dateInit
+      val notLoggedInSince = dateInit.plusMinutes(1)
+      transactRunEither(repo.select(users, Some(notLoggedInSince), defaultToNone = true, Nil, None).transact(_))
+        .map(_.map(_._1)) must beRight(
+        containTheSameElementsAs(users)
+      )
+    }
+
+    "with notLoggedInSince criteria using lastLogin" in {
+      val notLoggedInSince = dateInit.plusMinutes(1)
+      // lastLogin of user2 being after other dates allows filtering inactive users : user1
+      val lastLogin        = dateInit.plusMonths(1)
+      transactRunEither(
+        (repo.lastLoginUpdate("user2", lastLogin) *> repo.select(users, Some(notLoggedInSince), defaultToNone = true, Nil, None))
+          .transact(_)
+      ).map(_.map(_._1)) must beRight(
+        containTheSameElementsAs(List("user1"))
+      )
+    }
+
+    "with excluded origin" in {
+      transactRunEither(
+        repo.select(users, None, defaultToNone = true, excludeFromOrigin = List(AUTH_PLUGIN_NAME_LOCAL), None).transact(_)
+      ).map(_.map(_._1)) must beRight(
+        containTheSameElementsAs(Nil)
+      )
+    }
+
+    "with additional selection" in {
+      transactRunEither(
+        repo
+          .select(
+            users,
+            Some(dateInit.plusYears(1)),
+            defaultToNone = true,
+            excludeFromOrigin = List(AUTH_PLUGIN_NAME_REMOTE),
+            Some(fr"id like 'user%'")
+          )
+          .transact(_)
+      ).map(_.map(_._1)) must beRight(
+        containTheSameElementsAs(users)
+      )
+    }
   }
 }
 
@@ -230,11 +349,7 @@ trait UserRepositoryTest extends Specification with Loggable {
   val AUTH_PLUGIN_NAME_LOCAL  = "test-file"
   val AUTH_PLUGIN_NAME_REMOTE = "test-oidc"
 
-  lazy val repo: UserRepository = if (doJdbcTest && doobie != null) {
-    new JdbcUserRepository(doobie)
-  } else {
-    InMemoryUserRepository.make().runNow
-  }
+  def repo: UserRepository
 
   val actor:    EventActor = EventActor("test")
   val dateInit: DateTime   = DateTime.parse("2023-09-01T01:01:01Z")
