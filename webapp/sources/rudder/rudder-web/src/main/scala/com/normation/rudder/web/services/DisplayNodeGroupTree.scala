@@ -50,7 +50,6 @@ import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common.Loggable
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
-import net.liftweb.util.Helpers
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
 
@@ -154,12 +153,10 @@ object DisplayNodeGroupTree extends Loggable {
 
         val editButton = {
           if (!targetActions.isEmpty && !targetInfo.isSystem) {
-            val tooltipId = Helpers.nextFuncName
-            <span class="treeActions">
-              <span class="fa fa-pencil" tooltipid={tooltipId} title=""
+            <span class="treeActions ms-2">
+              <span class="fa fa-pencil"
                 onclick={linkUtil.redirectToGroupLink(NodeGroupId(NodeGroupUid(groupId))).toJsCmd}
               ></span>
-              <div class="tooltipContent" id={tooltipId}><div>Configure this group.</div></div>
             </span>
           } else {
             NodeSeq.Empty
