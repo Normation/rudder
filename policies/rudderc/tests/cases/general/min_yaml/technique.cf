@@ -4,19 +4,36 @@
 bundle agent min {
 
   vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
+
     "args"              slist => {};
     "report_param"      string => join("_", args);
     "full_class_prefix" string => canonify("min_${report_param}");
     "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
+  classes:
+    "rudder_increment_guard" expression => "any";
+
   methods:
-    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => call_min_d86ce2e5_d5b6_45cc_87e8_c11cca71d907("Package present", "htop", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907", @{args}, "${class_prefix}", "htop", "2.3.4", "", "");
+    "index_${local_index}_0" usebundle => call_min_d86ce2e5_d5b6_45cc_87e8_c11cca71d907("Package present", "htop", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907", @{args}, "${class_prefix}", "htop", "2.3.4", "", "");
 
 }
 bundle agent call_min_d86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_key, report_id, args, class_prefix, name, version, architecture, provider) {
 
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
   methods:
-    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
-    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => package_present("${name}", "${version}", "${architecture}", "${provider}");
+    "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
+    "index_${local_index}_1" usebundle => package_present("${name}", "${version}", "${architecture}", "${provider}");
 
 }

@@ -17,7 +17,7 @@ use crate::{
 };
 
 /// Rudder technique represented in YAML file
-pub fn read(input: &str) -> Result<Technique> {
+pub fn read(input: &str, resolve_loops: bool) -> Result<Technique> {
     // Here we do the parsing in two steps:
     //
     // * A first pass using serde and more general "Deser*" structs, on order to get proper error messages
@@ -25,7 +25,7 @@ pub fn read(input: &str) -> Result<Technique> {
     // * A second manual conversion to get the precise type.
     let policy: DeserTechnique =
         serde_yaml::from_str(input).map_err(|err| SerdeError::new(input.to_string(), err))?;
-    let policy = policy.to_technique()?;
+    let policy = policy.to_technique(resolve_loops)?;
 
     trace!("Parsed input:\n{:#?}", policy);
 

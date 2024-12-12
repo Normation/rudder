@@ -49,8 +49,7 @@ bundle agent call_escaping_a86ce2e5_d5b6_45cc_87e8_c11cca71d966(c_name, c_key, r
                                     if => "${method_call_condition}";
     "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_package_present_${c_key}")),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'Package present' with key parameter '${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3
-	' since condition '${my_cond}.debian|${sys.${plouf}}' is not reached", "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3
+    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'Package present' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3
 	", canonify("${class_prefix}_package_present_${c_key}"), canonify("${class_prefix}_package_present_${c_key}"), @{args}),
                                 unless => "${method_call_condition}";
 

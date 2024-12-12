@@ -316,7 +316,7 @@ pub mod action {
 
         let policy_str = read_to_string(input)
             .with_context(|| format!("Failed to read input from {}", input.display()))?;
-        let policy = read_technique(methods, &policy_str)?;
+        let policy = read_technique(methods, &policy_str, true)?;
         for target in ALL_TARGETS {
             compile(policy.clone(), *target, input, false)?;
         }
@@ -404,7 +404,7 @@ pub mod action {
                     let policy_str = read_to_string(technique_src).with_context(|| {
                         format!("Failed to read input from {}", technique_src.display())
                     })?;
-                    let policy = read_technique(methods, &policy_str)?;
+                    let policy = read_technique(methods, &policy_str, true)?;
 
                     win_agent(
                         target_dir,
@@ -455,13 +455,14 @@ pub mod action {
         create_dir_all(output_dir)?;
 
         // Read technique, only do it once
-        let policy = read_technique(methods, &policy_str)?;
+        let policy = read_technique(methods, &policy_str, true)?;
 
         if store_ids {
+            let policy_without_resolving_loops = read_technique(methods, &policy_str, false)?;
             let src_file = input.with_extension("ids.yml");
             let mut file = File::create(&src_file)
                 .with_context(|| format!("Failed to create output file {}", src_file.display()))?;
-            file.write_all(serde_yaml::to_string(&policy)?.as_bytes())?;
+            file.write_all(serde_yaml::to_string(&policy_without_resolving_loops)?.as_bytes())?;
             ok_output("Wrote", src_file.display());
         }
 
