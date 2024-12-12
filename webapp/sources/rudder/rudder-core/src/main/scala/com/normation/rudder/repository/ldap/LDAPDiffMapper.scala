@@ -596,7 +596,7 @@ class LDAPDiffMapper(
                                 }
                               case A_API_TOKEN                   =>
                                 nonNull(diff, mod.getOptValueDefault("")) { (d, value) =>
-                                  d.copy(modToken = Some(SimpleDiff(oldAccount.token.value, value)))
+                                  d.copy(modToken = Some(SimpleDiff(oldAccount.token.exposeHash().getOrElse(""), value)))
                                 }
                               case A_DESCRIPTION                 =>
                                 nonNull(diff, mod.getOptValueDefault("")) { (d, value) =>
