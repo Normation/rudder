@@ -740,6 +740,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private def onClickDirective(cat: FullActiveTechniqueCategory, at: FullActiveTechnique, directive: Directive): JsCmd = {
     // since https://issues.rudder.io/issues/25046, we need to only change windows hash location, else it creates
     // duplicate request, see: https://issues.rudder.io/issues/26002
+    // See `parseJsArg` above, especially the `window.addEventListener('hashchange'` part
     val json = directive.id.rev match {
       case GitVersion.DEFAULT_REV => s"""{"directiveId":"${StringEscapeUtils.escapeEcmaScript(directive.id.uid.value)}"}"""
       case r                      =>
