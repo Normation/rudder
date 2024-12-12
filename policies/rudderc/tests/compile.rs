@@ -46,13 +46,13 @@ fn compile(filename: &str) {
 
 /// Lint the given file
 fn lint_file(source: &Path) {
-    let result = action::check(&[PathBuf::from(TEST_METHODS)], source);
+    let result = action::check(&[PathBuf::from(TEST_METHODS)], source, ALL_TARGETS);
     result.expect("Test check failed");
 }
 
 /// Compile the metadata.xml
 fn compile_metadata(methods: &'static Methods, input: &str, source: &Path) {
-    let result = read_technique(methods, input).and_then(|p| metadata(p, source));
+    let result = read_technique(methods, input).and_then(|p| metadata(p, source, ALL_TARGETS));
     let output = result.expect("Test compilation failed");
     let ref_file = source.parent().unwrap().join("metadata.xml");
     // Update ref files
