@@ -188,7 +188,12 @@ pub fn method_call(
         bundle_call,
         match m.resolved_foreach_state {
             Some(ForeachResolvedState::Virtual) => None,
-            _ => Some(
+            Some(ForeachResolvedState::Main) => Some(
+                Bundle::agent(bundle_name)
+                    .parameters(method_parameters)
+                    .promise_group(bundle_content),
+            ),
+            None => Some(
                 Bundle::agent(bundle_name)
                     .parameters(method_parameters)
                     .promise_group(bundle_content),

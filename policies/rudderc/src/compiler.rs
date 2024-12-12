@@ -289,7 +289,12 @@ fn check_ids_unicity(technique: &Technique) -> Result<()> {
         match r {
             ItemKind::Block(r) => match r.resolved_foreach_state {
                 Some(ForeachResolvedState::Virtual) => vec![],
-                _ => {
+                Some(ForeachResolvedState::Main) => {
+                    let mut ids = vec![r.id.clone()];
+                    ids.extend(r.items.iter().flat_map(get_ids));
+                    ids
+                }
+                None => {
                     let mut ids = vec![r.id.clone()];
                     ids.extend(r.items.iter().flat_map(get_ids));
                     ids
@@ -297,7 +302,8 @@ fn check_ids_unicity(technique: &Technique) -> Result<()> {
             },
             ItemKind::Method(r) => match r.resolved_foreach_state {
                 Some(ForeachResolvedState::Virtual) => vec![],
-                _ => vec![r.id.clone()],
+                Some(ForeachResolvedState::Main) => vec![r.id.clone()],
+                None => vec![r.id.clone()],
             },
             _ => todo!(),
         }

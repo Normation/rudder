@@ -122,7 +122,7 @@ Blocks contains:
       * `worst-case-weighted-one`: Select the worst status from all methods, and use it as the block compliance, with a weight of 1.
   * `id` (required with `focus` mode): ID of the method to focus reporting on.
 * `foreach` (optional): List of dictionary, repeat the block for each items in the list and each time, replace every occurrence of `${item.x}` in the subitems, condition by the corresponding value in the dictionary.
-* `foreach_name` (optional): Name of the local iterator variable to use if a `foreach` loop is used. Default to `item`.
+* `foreach_name` (optional): Name of the local iterator variable to use if a `foreach` loop is used. Defaults to `item`.
 
 <div class="warning">
 Setting <code class="hljs">policy_mode_override</code> to <code class="hljs">enforce</code> will <strong>bypass the audit mode</strong>, so it must only be used
@@ -302,7 +302,7 @@ items:
 ## Resources
 
 Files can be attached to a technique, they will automatically be deployed in the policies when used on a node.
-The absolute path of the folder containing the resource files is accessible from within a technique using the variable `${}`.
+The absolute path of the folder containing the resource files is accessible from within a technique using the variable `${resources_dir}`.
 
 To add resources to a YAML technique, put the files under a `resources` folder in the technique directory.
 In the example below, the `file1.txt` will be available from within the technique using `${resources_dir}/file1.txt`.
