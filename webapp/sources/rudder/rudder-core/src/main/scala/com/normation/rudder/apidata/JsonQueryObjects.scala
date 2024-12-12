@@ -271,13 +271,13 @@ object JsonQueryObjects {
   }
 
   final case class JQStringQuery(
-      returnType:  Option[QueryReturnType],
+      select:      Option[QueryReturnType],
       composition: Option[String],
       transform:   Option[String],
       where:       Option[List[StringCriterionLine]]
   ) {
     def toQueryString: StringQuery =
-      StringQuery(returnType.getOrElse(NodeReturnType), composition, transform, where.getOrElse(Nil))
+      StringQuery(select.getOrElse(NodeReturnType), composition, transform, where.getOrElse(Nil))
   }
 
   final case class GroupPatch(
@@ -418,7 +418,8 @@ trait RudderJsonDecoders {
   // Rest group
   implicit val nodeGroupCategoryIdDecoder:      JsonDecoder[NodeGroupCategoryId] = JsonDecoder[String].map(NodeGroupCategoryId.apply)
   implicit val queryStringCriterionLineDecoder: JsonDecoder[StringCriterionLine] = DeriveJsonDecoder.gen
-  implicit val queryReturnTypeDecoder:          JsonDecoder[QueryReturnType]     = DeriveJsonDecoder.gen
+  implicit val queryReturnTypeDecoder:          JsonDecoder[QueryReturnType]     =
+    JsonDecoder[String].mapOrFail(QueryReturnType.apply(_).left.map(_.fullMsg))
   implicit val queryDecoder:                    JsonDecoder[StringQuery]         = DeriveJsonDecoder.gen[JQStringQuery].map(_.toQueryString)
   implicit val groupPropertyDecoder:            JsonDecoder[JQGroupProperty]     = DeriveJsonDecoder.gen
   implicit val groupPropertyDecoder2:           JsonDecoder[GroupProperty]       = JsonDecoder[JQGroupProperty].map(_.toGroupProperty)
