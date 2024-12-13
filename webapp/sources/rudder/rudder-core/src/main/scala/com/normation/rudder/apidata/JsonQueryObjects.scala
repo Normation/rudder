@@ -328,13 +328,13 @@ object JsonQueryObjects {
   }
 
   final case class JQStringQuery(
-      @jsonAliases("select") returnType: Option[QueryReturnType],
-      composition:                       Option[String],
-      transform:                         Option[String],
-      where:                             Option[List[StringCriterionLine]]
+      select:      Option[QueryReturnType],
+      composition: Option[String],
+      transform:   Option[String],
+      where:       Option[List[StringCriterionLine]]
   ) {
     def toQueryString: StringQuery =
-      StringQuery(returnType.getOrElse(NodeReturnType), composition, transform, where.getOrElse(Nil))
+      StringQuery(select.getOrElse(NodeReturnType), composition, transform, where.getOrElse(Nil))
   }
 
   final case class GroupPatch(
