@@ -586,8 +586,7 @@ class Boot extends Loggable {
       SecurityRules(
         https = hsts,
         content = Some(csp),
-        // Allow frames from same domain, used by external-node-info and openscap plugins
-        frameRestrictions = Some(FrameRestrictions.SameOrigin),
+        frameRestrictions = Some(FrameRestrictions.Deny),
         // OtherModes = not(DevMode) = Prod, enforce and log
         enforceInOtherModes = true,
         logInOtherModes = true,
