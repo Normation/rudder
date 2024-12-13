@@ -1236,6 +1236,12 @@ sealed trait UserApi extends EnumEntry with EndpointSchema with InternalApi with
   override def dataContainer: Option[String] = None
 }
 object UserApi       extends Enum[UserApi] with ApiModuleProvider[UserApi]                 {
+  case object GetTokenFeatureStatus extends UserApi with ZeroParam with StartsAtVersion10 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get the feature switch configuration for the user API token from the provider config"
+    val (action, path) = GET / "user" / "api" / "token" / "status"
+  }
+
   case object GetApiToken    extends UserApi with ZeroParam with StartsAtVersion10 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Get information about user personal UserApi token"

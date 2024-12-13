@@ -67,8 +67,6 @@ import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.services.workflows.WorkflowUpdate
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
 import scala.concurrent.duration.Duration
 import zio.*
 import zio.syntax.*
@@ -541,10 +539,14 @@ class GenericConfigService(
    * A feature switch is defaulted to Disabled is parsing fails.
    */
   implicit private def toFeatureSwitch(p: RudderWebProperty): FeatureSwitch = FeatureSwitch.parse(p.value) match {
-    case Full(status) => status
-    case eb: EmptyBox =>
-      val e = eb ?~! s"Error when trying to parse property '${p.name.value}' with value '${p.value}' into a feature switch status"
-      logEffect.warn(e.messageChain)
+    case Right(status) => status
+    case Left(err)     =>
+      logEffect.warn(
+        Chained(
+          s"Error when trying to parse property '${p.name.value}' with value '${p.value}' into a feature switch status",
+          err
+        ).fullMsg
+      )
       FeatureSwitch.Disabled
   }
 
