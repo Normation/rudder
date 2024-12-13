@@ -1106,6 +1106,78 @@ response:
       }
     }
 ---
+description: Update a node group query
+method: POST
+url: /api/latest/groups/00000000-cb9d-4f7b-abda-ca38c5d643ea
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "00000000-cb9d-4f7b-abda-ca38c5d643ea",
+    "query": {
+      "select": "nodeAndPolicyServer",
+      "composition": "and",
+      "transform": "invert",
+      "where":[
+        {
+          "objectType": "node",
+          "attribute": "nodeId",
+          "comparator": "eq",
+          "value": "11111111-cb9d-4f7b-abda-ca38c5d643ea"
+        }
+      ]
+    }
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateGroup",
+      "id":"00000000-cb9d-4f7b-abda-ca38c5d643ea",
+      "result":"success",
+      "data":{
+        "groups":[
+          {
+            "id":"00000000-cb9d-4f7b-abda-ca38c5d643ea",
+            "displayName":"clone from api of debian group",
+            "description":"Some long description",
+            "category":"GroupRoot",
+            "query": {
+              "select": "nodeAndPolicyServer",
+              "composition": "and",
+              "transform": "invert",
+              "where":[
+                {
+                  "objectType": "node",
+                  "attribute": "nodeId",
+                  "comparator": "eq",
+                  "value": "11111111-cb9d-4f7b-abda-ca38c5d643ea"
+                }
+              ]
+            },
+            "nodeIds":[],
+            "dynamic":true,
+            "enabled":true,
+            "groupClass":[
+              "group_00000000_cb9d_4f7b_abda_ca38c5d643ea",
+              "group_clone_from_api_of_debian_group"
+            ],
+            "properties":[
+              {
+                "name":"os",
+                "value":{
+                  "name":"debian",
+                  "nickname":"Buster"
+                }
+              }
+            ],
+            "target":"group:00000000-cb9d-4f7b-abda-ca38c5d643ea",
+            "system":false
+          }
+        ]
+      }
+    }
+---
 description: Move a node group to a new category
 method: POST
 url: /api/latest/groups/3fa29229-1a4b-4fd6-9edd-af114289fc9a
