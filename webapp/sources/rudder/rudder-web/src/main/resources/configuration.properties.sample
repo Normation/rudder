@@ -643,6 +643,20 @@ rudder.users.cleanup.sessions.purgeAfter=30 days
 rudder.auth.provider=file
 
 #
+# To disable access to the REST API using user-generated API token
+# via the api-authorizations plugin, you can use change this option to "disabled"
+#
+rudder.auth.userRestToken=enabled
+
+#
+# To disable access to the REST API using user-generated API token
+# via the api-authorizations plugin for users from a specific provider (declared in rudder.auth.provider),
+# you can use uncomment this property. You can also set it to "enabled"
+# (the default value is the one for rudder.auth.userRestToken).
+#
+#rudder.auth.oidc.userRestToken=disabled
+
+#
 # Inactivity timeout for user sessions
 #
 # The default value is 30 minutes.
