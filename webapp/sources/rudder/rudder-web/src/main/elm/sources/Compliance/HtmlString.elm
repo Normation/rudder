@@ -17,11 +17,9 @@ buildComplianceBar filters complianceDetails =
         let
           --Hide the compliance text if the value is too small (less than 3%)
           realPercent = compliance.value / (sumPercent filteredCompliance) * 100
-          realRounded = Basics.floor realPercent
-          complianceTxt = if realRounded < 3 then "" else String.fromInt (realRounded) ++ "%"
         in
           div [class ("progress-bar progress-bar-" ++ className), attribute "data-bs-toggle" "tooltip", attribute "data-bs-placement" "top", title (buildTooltipContent "Compliance" compliance.details), style "flex" (fromFloat realPercent)]
-          [ text complianceTxt ]
+          [ ]
       else
         text ""
 
