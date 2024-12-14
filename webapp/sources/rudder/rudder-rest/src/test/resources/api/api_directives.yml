@@ -293,6 +293,24 @@ response:
             ]
           },
           {
+            "id" : "directive-techniqueWithBlocks",
+            "displayName" : "25. Testing blocks",
+            "shortDescription" : "a short \"description' with quotes",
+            "longDescription" : "a documentation *with markdown*",
+            "techniqueName" : "technique_with_blocks",
+            "techniqueVersion" : "1.0",
+            "parameters":{"section":{"name":"sections","sections":[]}},
+            "priority" : 5,
+            "enabled" : true,
+            "system" : false,
+            "policyMode" : "audit",
+            "tags" : [
+              {
+                "aTagName" : "the tagName value"
+              }
+            ]
+          },
+          {
             "id":"directive1",
             "displayName":"10. Clock Configuration",
             "shortDescription":"",
@@ -2054,7 +2072,26 @@ response:
                   {
                     "id": "technique_with_blocks",
                     "name": "technique with blocks",
-                    "directives": []
+                    "directives": [
+                      {
+                        "id" : "directive-techniqueWithBlocks",
+                        "displayName" : "25. Testing blocks",
+                        "shortDescription" : "a short \"description' with quotes",
+                        "longDescription" : "a documentation *with markdown*",
+                        "techniqueName" : "technique_with_blocks",
+                        "techniqueVersion" : "1.0",
+                        "parameters" : { "section" : { "name" : "sections", "sections" : [] } },
+                        "priority" : 5,
+                        "enabled" : true,
+                        "system" : false,
+                        "policyMode" : "audit",
+                        "tags" : [
+                          {
+                            "aTagName" : "the tagName value"
+                          }
+                        ]
+                      }
+                    ]
                   },
                   {
                     "id": "test_import_export_archive",

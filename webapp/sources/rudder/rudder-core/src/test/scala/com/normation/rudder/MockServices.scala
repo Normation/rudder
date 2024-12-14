@@ -69,6 +69,7 @@ import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.domain.policies.PolicyMode.Audit
 import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.properties.GenericProperty.StringToConfigValue
 import com.normation.rudder.domain.properties.Visibility.Hidden
@@ -584,8 +585,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
     /*
      * Test override order of generic-variable-definition.
      * We want to have to directive, directive1 and directive2.
-     * directive1 is the default value and must be overriden by value in directive 2, which means that directive2 value must be
-     * define after directive 1 value in generated "genericVariableDefinition.cf".
+     * directive1 is the default value and must be overridden by value in directive 2, which means that directive2 value must be
+     * defined after directive 1 value in generated "genericVariableDefinition.cf".
      * The semantic to achieve that is to use Priority: directive 1 has a higher (ie smaller int number) priority than directive 2.
      *
      * To be sure that we don't use rule/directive name order, we will make directive 2 sort name come before directive 1 sort name.
@@ -623,6 +624,27 @@ class MockDirectives(mockTechniques: MockTechniques) {
       10
     )
 
+    /*
+     * a directive for testing blocks
+     */
+    val DIRECTIVE_TECHNIQUE_WITH_BLOCKS = "directive-technique_with_blocks"
+    val techniqueWithBlocksTechnique: Technique =
+      techniqueRepos.unsafeGet(TechniqueId(TechniqueName("technique_with_blocks"), TV("1.0")))
+    val techniqueWithBlocksDirective: Directive = Directive(
+      DirectiveId(DirectiveUid("directive-techniqueWithBlocks"), GitVersion.DEFAULT_REV),
+      TV("1.0"),
+      Map(
+        ("path", Seq("/tmp/root2")),
+        ("command", Seq("/bin/true #root1"))
+      ),
+      "25. Testing blocks",
+      """a short "description' with quotes""",
+      Some(Audit),
+      "a documentation *with markdown*",
+      _isEnabled = true,
+      tags = Tags.fromMaps(List(Map("aTagName" -> "the tagName value")))
+    )
+
     val all = Map(
       (commonTechnique, commonDirective :: Nil),
       (inventoryTechnique, inventoryDirective :: Nil),
@@ -640,7 +662,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       (ncf1Technique, ncf1Directive :: Nil),
       (pkgTechnique, pkgDirective :: Nil),
       (archiveTechnique, archiveDirective :: Nil),
-      (rpmTechnique, rpmDirective :: Nil)
+      (rpmTechnique, rpmDirective :: Nil),
+      (techniqueWithBlocksTechnique, techniqueWithBlocksDirective :: Nil)
     )
   }
 

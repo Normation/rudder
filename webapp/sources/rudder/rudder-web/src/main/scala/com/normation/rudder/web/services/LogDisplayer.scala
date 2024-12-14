@@ -172,21 +172,41 @@ class LogDisplayer(
     """) // JsRaw ok, escaped
   }
 
+  def refreshData(nodeId: NodeId, reports: => Seq[Reports], tableId: String): JsCmd = {
+    def getDirectiveName(directiveId: DirectiveId): Box[String] = {
+      configRepository
+        .getDirective(directiveId)
+        .map(_.map(_.directive.name).getOrElse(directiveId.serialize))
+        .toBox
+    }
+
+    def getRuleName(ruleId: RuleId): Box[String] = {
+      ruleRepository.get(ruleId).map(x => x.name).toBox
+    }
+
+    val data = LogDisplayer.getReportsLineForNode(reports, getDirectiveName, getRuleName)
+
+    OnLoad(JsRaw(s"""refreshTable("${StringEscapeUtils.escapeEcmaScript(tableId)}",${data.toJson.toJsCmd});"""))
+  }
+}
+
+object LogDisplayer {
+
   /**
    * find all reports for node passed as parameter and transform them into table data
    */
-  def getReportsLineForNode(nodeId: NodeId, reports: Seq[Reports]): JsTableData[ReportLine] = {
+  def getReportsLineForNode(
+      reports:       Seq[Reports],
+      directiveName: DirectiveId => Box[String],
+      ruleName:      RuleId => Box[String]
+  ): JsTableData[ReportLine] = {
     val directiveMap = mutable.Map[DirectiveId, String]()
     val ruleMap      = mutable.Map[RuleId, String]()
 
     def getDirectiveName(directiveId: DirectiveId): String = {
       directiveMap.getOrElse(
         directiveId, {
-          val result = configRepository
-            .getDirective(directiveId)
-            .map(_.map(_.directive.name).getOrElse(directiveId.serialize))
-            .toBox
-            .openOr(directiveId.serialize)
+          val result = directiveName(directiveId).openOr(directiveId.serialize)
           directiveMap += (directiveId -> result)
           result
         }
@@ -194,12 +214,13 @@ class LogDisplayer(
     }
 
     def getRuleName(ruleId: RuleId): String = {
-      ruleMap
-        .get(ruleId)
-        .getOrElse({
-          val result = ruleRepository.get(ruleId).map(x => x.name).toBox.openOr(ruleId.serialize); ruleMap += (ruleId -> result);
+      ruleMap.getOrElse(
+        ruleId, {
+          val result = ruleName(ruleId).openOr(ruleId.serialize)
+          ruleMap += (ruleId -> result)
           result
-        })
+        }
+      )
     }
 
     val lines = {
@@ -211,8 +232,11 @@ class LogDisplayer(
 
         val directiveName = getDirectiveName(report.directiveId)
 
-        val value = if (DEFAULT_COMPONENT_KEY == report.keyValue) "-" else report.keyValue
-
+        val value = if (DEFAULT_COMPONENT_KEY == report.keyValue) {
+          "-"
+        } else {
+          report.keyValue
+        }
         ReportLine(
           report.executionDate,
           report.executionTimestamp,
@@ -227,15 +251,8 @@ class LogDisplayer(
     }
 
     JsTableData(lines.toList)
-
   }
 
-  def refreshData(nodeId: NodeId, reports: => Seq[Reports], tableId: String): JsCmd = {
-
-    val data = getReportsLineForNode(nodeId, reports).json.toJsCmd
-
-    OnLoad(JsRaw(s"""refreshTable("${StringEscapeUtils.escapeEcmaScript(tableId)}",${data});"""))
-  }
 }
 
 /*
@@ -267,8 +284,8 @@ final case class ReportLine(
       case Nil          => (severity, severity)
     }
   }
-  override val json:  JsObj            = {
 
+  def json(freshName: () => String): js.JsObj = {
     JsObj(
       ("executionDate", DateFormaterService.getDisplayDate(executionDate)),
       ("runDate", DateFormaterService.getDisplayDate(runDate)),
@@ -280,6 +297,5 @@ final case class ReportLine(
       ("value", escapeHTML(value)),
       ("message", escapeHTML(message))
     )
-
   }
 }

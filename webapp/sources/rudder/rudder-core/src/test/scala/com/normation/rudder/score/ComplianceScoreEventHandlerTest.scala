@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2014 Normation SAS
+ * Copyright 2024 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,38 +35,54 @@
  *************************************************************************************
  */
 
-package com.normation.rudder.web.services
+package com.normation.rudder.score
 
-import com.normation.rudder.domain.reports.ComplianceLevel
-import net.liftweb.common.Loggable
-import net.liftweb.http.js.JE.JsArray
-import net.liftweb.http.js.JsExp
-import net.liftweb.http.js.JsObj
-import net.liftweb.util.Helpers.*
-import org.apache.commons.text.StringEscapeUtils
-
-/*
- * That class represent a Line in a DataTable.
- */
-trait JsTableLine extends Loggable {
-
-  def json(freshName: () => String): JsObj
-
-  // this is needed because DataTable doesn't escape HTML element when using table.rows.add
-  def escapeHTML(s: String): JsExp = JsExp.strToJsExp(StringEscapeUtils.escapeHtml4(s))
-
-  import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.*
-  def jsCompliance(compliance: ComplianceLevel) = compliance.toJsArray
-
-}
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.reports.CompliancePercent
+import com.normation.rudder.domain.reports.CompliancePrecision
+import org.junit.runner.RunWith
+import org.specs2.mutable.*
+import org.specs2.runner.JUnitRunner
+import zio.json.*
+import zio.json.ast.*
 
 /*
- * That class a set of Data to use in datatable
- * It should be used as data parameter when creating datatable in javascript
+ * Test the cache behaviour
  */
-final case class JsTableData[T <: JsTableLine](lines: List[T]) {
+@RunWith(classOf[JUnitRunner])
+class ComplianceScoreEventHandlerTest extends Specification {
 
-  def json(freshName: () => String): JsArray = JsArray(lines.map(_.json(freshName)))
+  implicit class ForceGet[A](either: Either[String, A]) {
+    def forceGet = {
+      either match {
+        case Left(err)    => throw new IllegalArgumentException(s"should be ok in tests: ${err}")
+        case Right(value) => value
+      }
+    }
+  }
 
-  def toJson: JsArray = json(() => nextFuncName)
+  s"check that the serializations is consistent since it's an API" >> {
+
+    val n1    = NodeId("node1")
+    val event = ComplianceScoreEvent(
+      n1,
+      CompliancePercent(pending = 17, success = 33, repaired = 21, error = 14, 0, 0, noAnswer = 25, 0, 0, 0, 0, 0, 0, 0)(
+        CompliancePrecision.Level2
+      )
+    )
+
+    val result = {
+      """{
+        |"applying":17.0,
+        |"successAlreadyOK":33.0,
+        |"successRepaired":21.0,
+        |"error":14.0,
+        |"noReport":25.0
+        |}""".stripMargin.fromJson[Json].forceGet
+    }
+
+    ComplianceScoreEventHandler.handle(event) must beEqualTo(
+      Right(List((n1, List(Score(ComplianceScore.scoreId, ScoreValue.C, "Compliance is between 50% and 80%", result)))))
+    )
+  }
 }

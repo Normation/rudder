@@ -322,7 +322,7 @@ trait RudderPluginDef {
   /**
    * A list of config files to get properties from.
    * If some properties are defined in different config files,
-   * the will be overriden (the last in the sequence win).
+   * the will be overridden (the last in the sequence win).
    */
   def configFiles: Seq[ConfigResource]
 

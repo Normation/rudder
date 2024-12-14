@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2014 Normation SAS
+ * Copyright 2024 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,38 +35,31 @@
  *************************************************************************************
  */
 
-package com.normation.rudder.web.services
+package com.normation.utils
 
-import com.normation.rudder.domain.reports.ComplianceLevel
-import net.liftweb.common.Loggable
-import net.liftweb.http.js.JE.JsArray
-import net.liftweb.http.js.JsExp
-import net.liftweb.http.js.JsObj
-import net.liftweb.util.Helpers.*
-import org.apache.commons.text.StringEscapeUtils
+import enumeratum.*
 
-/*
- * That class represent a Line in a DataTable.
+/**
+ * A simple "status" object, with two values: enabled and disabled.
+ * By default, it's serialized to string for clarity.
+ * It is isomorphic to boolean with `true` (resp. `false`) meaning `enabled` (resp. `disabled`)
  */
-trait JsTableLine extends Loggable {
-
-  def json(freshName: () => String): JsObj
-
-  // this is needed because DataTable doesn't escape HTML element when using table.rows.add
-  def escapeHTML(s: String): JsExp = JsExp.strToJsExp(StringEscapeUtils.escapeHtml4(s))
-
-  import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.*
-  def jsCompliance(compliance: ComplianceLevel) = compliance.toJsArray
-
+sealed abstract class SimpleStatus(override val entryName: String) extends EnumEntry {
+  def asBool: Boolean
 }
 
-/*
- * That class a set of Data to use in datatable
- * It should be used as data parameter when creating datatable in javascript
- */
-final case class JsTableData[T <: JsTableLine](lines: List[T]) {
+object SimpleStatus extends Enum[SimpleStatus] {
+  case object Enabled  extends SimpleStatus("enabled")  { override def asBool: Boolean = true  }
+  case object Disabled extends SimpleStatus("disabled") { override def asBool: Boolean = false }
 
-  def json(freshName: () => String): JsArray = JsArray(lines.map(_.json(freshName)))
+  def values: IndexedSeq[SimpleStatus] = findValues
 
-  def toJson: JsArray = json(() => nextFuncName)
+  def parse(s: String): Either[String, SimpleStatus] = {
+    withNameInsensitiveOption(s)
+      .toRight(
+        s"Value '${s}' is not recognized as SimpleStatus. Accepted values are: '${values.map(_.entryName).mkString("', '")}'"
+      )
+  }
+
+  def fromBool(b: Boolean): SimpleStatus = if (b) Enabled else Disabled
 }

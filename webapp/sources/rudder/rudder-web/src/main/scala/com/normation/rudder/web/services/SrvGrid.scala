@@ -39,23 +39,13 @@ package com.normation.rudder.web.services
 
 import com.normation.appconfig.ReadConfigService
 import com.normation.box.*
-import com.normation.inventory.domain.PhysicalMachineType
-import com.normation.inventory.domain.UnknownMachineType
-import com.normation.inventory.domain.VirtualMachineType
-import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.PolicyModeOverrides.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.score.ScoreService
-import com.normation.utils.DateFormaterService
-import com.normation.utils.Utils.isEmpty
 import com.normation.zio.*
 import net.liftweb.common.*
 import net.liftweb.http.*
-import net.liftweb.http.SHtml.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
@@ -63,13 +53,9 @@ import org.apache.commons.text.StringEscapeUtils
 import org.slf4j
 import org.slf4j.LoggerFactory
 import scala.xml.*
-import zio.*
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
- *
- * @author Nicolas CHARLES
- *
  */
 object SrvGrid {
   val logger: slf4j.Logger = LoggerFactory.getLogger(classOf[SrvGrid])
@@ -135,32 +121,6 @@ class SrvGrid(
     ) & (additionalJs.getOrElse(Noop)) // JsRaw ok, escaped
   }
 
-  def getTableData(
-      nodes:    Seq[NodeInfo],
-      callback: Option[(String, Boolean) => JsCmd]
-  ): JsTableData[NodeLine] = {
-
-    val lines = (for {
-      now         <- currentTimeMillis
-      lastReports <- roAgentRunsRepository.getNodesLastRun(nodes.map(_.id).toSet)
-      after       <- currentTimeMillis
-      _           <- ZIO.when(TimingDebugLoggerPure.logEffect.isDebugEnabled()) {
-                       TimingDebugLoggerPure.debug(s"Get all last run date time: ${after - now} ms")
-                     }
-      globalMode  <- configService.rudder_global_policy_mode()
-    } yield {
-      nodes.map(node => NodeLine(node, lastReports.get(node.id), callback, globalMode))
-    }).either.runNow match {
-      case Left(err)    =>
-        val msg = s"Error when trying to get nodes info: ${err.fullMsg}"
-        logger.error(msg)
-        Nil
-      case Right(lines) => lines.toList
-    }
-
-    JsTableData(lines)
-  }
-
   def refreshData(
       refreshNodes: () => Option[Seq[CoreNodeFact]],
       callback:     Option[(String, Boolean) => JsCmd],
@@ -193,94 +153,4 @@ class SrvGrid(
     <table id={tableId} cellspacing="0"/>
   }
 
-}
-
-/*
- *   Javascript object containing all data to create a line in the DataTable
- *   { "name" : Node hostname [String]
- *   , "id" : Node id [String]
- *   , "machineType" : Node machine type [String]
- *   , "os" : Node OS name, version and service pack [String]
- *   , "lastReport" : Last report received about that node [ String ]
- *   , "callBack" : Callback on Node, if absend replaced by a link to nodeId [ Function ]
- *   }
- */
-final case class NodeLine(
-    node:       NodeInfo,
-    lastReport: Box[Option[AgentRunWithNodeConfig]],
-    callback:   Option[(String, Boolean) => JsCmd],
-    globalMode: GlobalPolicyMode
-) extends JsTableLine {
-
-  val (policyMode, explanation) = {
-    (globalMode.overridable, node.policyMode) match {
-      case (Always, Some(mode)) =>
-        (mode, "<p>This mode is an override applied to this node. You can change it in the <i><b>node's settings</b></i>.</p>")
-      case (Always, None)       =>
-        val expl =
-          """<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p><p>You can also override it on this node in the <i><b>node's settings</b></i>.</p>"""
-        (globalMode.mode, expl)
-      case (Unoverridable, _)   =>
-        (globalMode.mode, "<p>This mode is the globally defined default. You can change it in <i><b>Settings</b></i>.</p>")
-    }
-  }
-
-  val optCallback: Option[(String, AnonFunc)] = {
-    callback.map(cb => {
-      (
-        "callback",
-        AnonFunc(
-          "displayCompliance",
-          ajaxCall(
-            JsVar("displayCompliance"),
-            s => {
-              val displayCompliance = s.toBoolean
-              cb(node.id.value, displayCompliance)
-            }
-          )
-        )
-      )
-    })
-  }
-  val hostname:    String                     = {
-    if (isEmpty(node.hostname)) {
-      s"(Missing name)  ${node.id.value}"
-    } else {
-      node.hostname
-    }
-  }
-
-  val lastReportValue: String = {
-    lastReport match {
-      case Full(exec) =>
-        exec.map(report => DateFormaterService.getDisplayDate(report.agentRunId.date)).getOrElse("Never")
-      case eb: EmptyBox =>
-        "Error While fetching node executions"
-    }
-  }
-
-  val baseFields: JsObj = {
-    JsObj(
-      ("name"            -> escapeHTML(hostname)),
-      ("state"           -> escapeHTML(node.state.name)),
-      ("id"              -> escapeHTML(node.id.value)),
-      ("machineType"     ->
-      (node.machine.map {
-        _.machineType match {
-          case _: VirtualMachineType => "Virtual"
-          case PhysicalMachineType => "Physical"
-          case UnknownMachineType  => "Unknown"
-        }
-      }.getOrElse("No Machine Inventory"): String)),
-      ("os"              -> escapeHTML(
-        S.?(s"os.name.${node.osDetails.os.name}") ++ " " ++ node.osDetails.version.value ++ " " ++ (node.osDetails.servicePack
-          .getOrElse(""): String)
-      )),
-      ("agentPolicyMode" -> policyMode.toString),
-      ("explanation"     -> explanation.toString),
-      ("lastReport"      -> lastReportValue)
-    )
-  }
-
-  val json: JsObj = baseFields +* JsObj(optCallback.toSeq*)
 }

@@ -74,7 +74,7 @@ class MigrateChangeValidationEnforceSchema(
     sql"alter table $table alter column $column set not null".update
   }
 
-  // we need the table fragment to be the class method that can be overriden (e.g. for tests)
+  // we need the table fragment to be the class method that can be overridden (e.g. for tests)
   private def transactMigration(table: String, tableFragment: Fragment, column: String)(implicit
       xa: Transactor[Task]
   ): Task[Unit] = {

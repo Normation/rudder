@@ -1553,15 +1553,15 @@ class ComplianceAPIService(
   ): IOResult[MapView[RuleId, List[T]]] = {
     // make a map of directive overrides for each rule, to add to the directives of a rule
     val directiveOverridesByRules = initialRuleObjects.keys.map { ruleId =>
-      val overridenDirectives = ComplianceOverrides
-        .getOverridenDirective(
+      val overriddenDirectives = ComplianceOverrides
+        .getOverriddenDirective(
           ReportingServiceUtils.buildRuleStatusReport(ruleId, reports).overrides,
           directives
         )
-      ruleId -> overridenDirectives
+      ruleId -> overriddenDirectives
     }.toMap
 
-    // we need to fetch info for rules pulled from overriden directives of our rules
+    // we need to fetch info for rules pulled from overridden directives of our rules
 
     ZIO
       .foreach(

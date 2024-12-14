@@ -160,10 +160,10 @@ trait InventoryJsonEncodersHumanized { self: InventoryCommonJsonEncoders with In
   }
   import PrivateHumanizedEncoders.*
 
-  // Bios needs to be overriden with the humanized Datetime encoder
+  // Bios needs to be overridden with the humanized Datetime encoder
   implicit override val encoderBios: JsonEncoder[Bios] = DeriveJsonEncoder.gen[Bios]
 
-  // any datastructure depending on an encoder of MemorySize will need to be overriden
+  // any datastructure depending on an encoder of MemorySize will need to be overridden
   implicit override val encoderMemorySize: JsonEncoder[MemorySize] = JsonEncoder[Long].contramap(MemorySize.sizeMb)
 
   implicit override val encoderFileSystem: JsonEncoder[FileSystem] = DeriveJsonEncoder.gen[FileSystem]

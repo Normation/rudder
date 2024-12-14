@@ -244,7 +244,7 @@ final case class SkippedDetails(
     overridingRuleName: String
 )
 final case class DirectiveComplianceOverride(
-    overridenRuleId:  RuleId,
+    overriddenRuleId: RuleId,
     directiveId:      DirectiveId,
     directiveName:    String,
     overridingRuleId: RuleId
@@ -274,16 +274,16 @@ final case class DirectiveComplianceOverride(
 }
 
 object ComplianceOverrides {
-  def getOverridenDirective(
+  def getOverriddenDirective(
       overrides:  List[OverriddenPolicy],
       directives: Map[DirectiveId, (FullActiveTechnique, Directive)]
   ): List[DirectiveComplianceOverride] = {
     val overridesData = for {
       over               <- overrides
-      (_, overridenDir)  <- directives.get(over.policy.directiveId)
+      (_, overriddenDir) <- directives.get(over.policy.directiveId)
       (_, overridingDir) <- directives.get(over.overriddenBy.directiveId)
     } yield {
-      DirectiveComplianceOverride(over.policy.ruleId, over.policy.directiveId, overridenDir.name, over.overriddenBy.ruleId)
+      DirectiveComplianceOverride(over.policy.ruleId, over.policy.directiveId, overriddenDir.name, over.overriddenBy.ruleId)
 
     }
     overridesData.toList

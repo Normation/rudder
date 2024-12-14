@@ -612,8 +612,8 @@ object AuthBackendProviderProperties {
   }
 
   /**
-    * The default properties the ones handled in the config parsing to be the default values: 
-    * - a provider can provide roles and roles are not overriden accross different providers
+    * The default properties the ones handled in the config parsing to be the default values:
+    * - a provider can provide roles and roles are not overridden accross different providers
     * - the rest API token feature for users is allowed
     */
   def default: AuthBackendProviderProperties =

@@ -97,8 +97,8 @@ class PolicyModeTest extends Specification with Loggable {
      * Here we are testing the truth table for:
      * - global: audit, overidable
      * - node  : enforce, overiable
-     * - { d1 , d2 } in { audit, enforne, not overriden }
-     * (so when not overriden, the detault is enforce)
+     * - { d1 , d2 } in { audit, enforne, not overridden }
+     * (so when not overridden, the detault is enforce)
      */
 
     def mode(d1: Option[PolicyMode], d2: Option[PolicyMode]) = {

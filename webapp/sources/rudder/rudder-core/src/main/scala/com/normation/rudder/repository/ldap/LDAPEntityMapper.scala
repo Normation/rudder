@@ -366,7 +366,7 @@ class LDAPEntityMapper(
   */
   def overrideProperties(nodeId: NodeId, existing: Seq[NodeProperty], inventory: List[NodeProperty]): List[NodeProperty] = {
     val customProperties = inventory.map(x => (x.name, x)).toMap
-    val overriden        = existing.map { current =>
+    val overridden       = existing.map { current =>
       customProperties.get(current.name) match {
         case None         => current
         case Some(custom) =>
@@ -386,9 +386,9 @@ class LDAPEntityMapper(
     }
 
     // now, filter remaining inventory properties (ie the one not already processed)
-    val alreadyDone = overriden.map(_.name).toSet
+    val alreadyDone = overridden.map(_.name).toSet
 
-    (overriden ++ inventory.filter(x => !alreadyDone.contains(x.name))).toList
+    (overridden ++ inventory.filter(x => !alreadyDone.contains(x.name))).toList
   }
 
   /**

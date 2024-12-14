@@ -24,50 +24,22 @@ response:
                 "id" : "r1",
                 "name" : "R1",
                 "compliance" : 100.0,
-                "policyMode" : "enforce",
+                "policyMode" : "default",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
                 "directives" : [
                   {
-                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "id" : "directive-techniqueWithBlocks",
+                    "name" : "25. Testing blocks",
                     "compliance" : 100.0,
-                    "policyMode" : "default",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
                     "components" : [
                       {
-                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n2",
-                        "compliance" : 100.0,
-                        "complianceDetails" : {
-                          "successAlreadyOK" : 100.0
-                        },
-                        "nodes" : [
-                          {
-                            "id" : "n2",
-                            "name" : "node1.localhost",
-                            "compliance" : 100.0,
-                            "policyMode" : "enforce",
-                            "complianceDetails" : {
-                              "successAlreadyOK" : 100.0
-                            },
-                            "values" : [
-                              {
-                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n2",
-                                "reports" : [
-                                  {
-                                    "status" : "successAlreadyOK"
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n1",
+                        "name" : "directive-techniqueWithBlocks-component-r1-n1",
                         "compliance" : 100.0,
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
@@ -83,7 +55,35 @@ response:
                             },
                             "values" : [
                               {
-                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n1",
+                                "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "name" : "directive-techniqueWithBlocks-component-r1-n2",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "n2",
+                            "name" : "node1.localhost",
+                            "compliance" : 100.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-techniqueWithBlocks-component-value-r1-n2",
                                 "reports" : [
                                   {
                                     "status" : "successAlreadyOK"
@@ -244,29 +244,29 @@ response:
                     "id" : "r1",
                     "name" : "R1",
                     "compliance" : 100.0,
-                    "policyMode" : "enforce",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
                     "directives" : [
                       {
-                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "id" : "directive-techniqueWithBlocks",
+                        "name" : "25. Testing blocks",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
                         "components" : [
                           {
-                            "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n1",
+                            "name" : "directive-techniqueWithBlocks-component-r1-n1",
                             "compliance" : 100.0,
                             "complianceDetails" : {
                               "successAlreadyOK" : 100.0
                             },
                             "values" : [
                               {
-                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n1",
+                                "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
                                 "reports" : [
                                   {
                                     "status" : "successAlreadyOK"
@@ -374,29 +374,29 @@ response:
                     "id" : "r1",
                     "name" : "R1",
                     "compliance" : 100.0,
-                    "policyMode" : "enforce",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
                     "directives" : [
                       {
-                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "id" : "directive-techniqueWithBlocks",
+                        "name" : "25. Testing blocks",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
                         "components" : [
                           {
-                            "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n2",
+                            "name" : "directive-techniqueWithBlocks-component-r1-n2",
                             "compliance" : 100.0,
                             "complianceDetails" : {
                               "successAlreadyOK" : 100.0
                             },
                             "values" : [
                               {
-                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n2",
+                                "value" : "directive-techniqueWithBlocks-component-value-r1-n2",
                                 "reports" : [
                                   {
                                     "status" : "successAlreadyOK"
@@ -470,61 +470,34 @@ response:
           {
             "id" : "g1",
             "name" : "G1",
-            "compliance" : 100.0,
+            "compliance" : 60.0,
             "mode" : "full-compliance",
             "complianceDetails" : {
-              "successAlreadyOK" : 66.67,
-              "successRepaired" : 33.33
+              "successAlreadyOK" : 40.0,
+              "error" : 40.0,
+              "successRepaired" : 20.0
             },
             "rules" : [
               {
                 "id" : "r1",
                 "name" : "R1",
                 "compliance" : 100.0,
-                "policyMode" : "enforce",
+                "policyMode" : "default",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
                 "directives" : [
                   {
-                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "id" : "directive-techniqueWithBlocks",
+                    "name" : "25. Testing blocks",
                     "compliance" : 100.0,
-                    "policyMode" : "default",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
                     "components" : [
                       {
-                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n2",
-                        "compliance" : 100.0,
-                        "complianceDetails" : {
-                          "successAlreadyOK" : 100.0
-                        },
-                        "nodes" : [
-                          {
-                            "id" : "n2",
-                            "name" : "node1.localhost",
-                            "compliance" : 100.0,
-                            "policyMode" : "enforce",
-                            "complianceDetails" : {
-                              "successAlreadyOK" : 100.0
-                            },
-                            "values" : [
-                              {
-                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n2",
-                                "reports" : [
-                                  {
-                                    "status" : "successAlreadyOK"
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      },
-                      {
-                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n1",
+                        "name" : "directive-techniqueWithBlocks-component-r1-n1",
                         "compliance" : 100.0,
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
@@ -540,7 +513,35 @@ response:
                             },
                             "values" : [
                               {
-                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n1",
+                                "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "name" : "directive-techniqueWithBlocks-component-r1-n2",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "n2",
+                            "name" : "node1.localhost",
+                            "compliance" : 100.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-techniqueWithBlocks-component-value-r1-n2",
                                 "reports" : [
                                   {
                                     "status" : "successAlreadyOK"
@@ -604,6 +605,84 @@ response:
                     ]
                   }
                 ]
+              },
+              {
+                "id" : "r3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive2",
+                    "name" : "directive2",
+                    "compliance" : 0.0,
+                    "policyMode" : "default",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive2-component-r3-n1",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "n1",
+                            "name" : "node1.localhost",
+                            "compliance" : 0.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "error" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive2-component-value-r3-n1",
+                                "reports" : [
+                                  {
+                                    "status" : "error"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "name" : "directive2-component-r3-n2",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "n2",
+                            "name" : "node1.localhost",
+                            "compliance" : 0.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "error" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive2-component-value-r3-n2",
+                                "reports" : [
+                                  {
+                                    "status" : "error"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ],
             "nodes" : [
@@ -611,40 +690,41 @@ response:
                 "id" : "n1",
                 "name" : "node1.localhost",
                 "mode" : "full-compliance",
-                "compliance" : 100.0,
+                "compliance" : 66.66,
                 "policyMode" : "enforce",
                 "complianceDetails" : {
-                  "successAlreadyOK" : 50.0,
-                  "successRepaired" : 50.0
+                  "successAlreadyOK" : 33.33,
+                  "error" : 33.34,
+                  "successRepaired" : 33.33
                 },
                 "rules" : [
                   {
                     "id" : "r1",
                     "name" : "R1",
                     "compliance" : 100.0,
-                    "policyMode" : "enforce",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
                     "directives" : [
                       {
-                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "id" : "directive-techniqueWithBlocks",
+                        "name" : "25. Testing blocks",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
                         "components" : [
                           {
-                            "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n1",
+                            "name" : "directive-techniqueWithBlocks-component-r1-n1",
                             "compliance" : 100.0,
                             "complianceDetails" : {
                               "successAlreadyOK" : 100.0
                             },
                             "values" : [
                               {
-                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n1",
+                                "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
                                 "reports" : [
                                   {
                                     "status" : "successAlreadyOK"
@@ -695,6 +775,45 @@ response:
                         ]
                       }
                     ]
+                  },
+                  {
+                    "id" : "r3",
+                    "name" : "R3",
+                    "compliance" : 0.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "directive2",
+                        "name" : "directive2",
+                        "compliance" : 0.0,
+                        "policyMode" : "default",
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "directive2-component-r3-n1",
+                            "compliance" : 0.0,
+                            "complianceDetails" : {
+                              "error" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive2-component-value-r3-n1",
+                                "reports" : [
+                                  {
+                                    "status" : "error"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
                   }
                 ]
               },
@@ -702,39 +821,40 @@ response:
                 "id" : "n2",
                 "name" : "node1.localhost",
                 "mode" : "full-compliance",
-                "compliance" : 100.0,
+                "compliance" : 50.0,
                 "policyMode" : "enforce",
                 "complianceDetails" : {
-                  "successAlreadyOK" : 100.0
+                  "successAlreadyOK" : 50.0,
+                  "error" : 50.0
                 },
                 "rules" : [
                   {
                     "id" : "r1",
                     "name" : "R1",
                     "compliance" : 100.0,
-                    "policyMode" : "enforce",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
                     "directives" : [
                       {
-                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "id" : "directive-techniqueWithBlocks",
+                        "name" : "25. Testing blocks",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
                         "components" : [
                           {
-                            "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n2",
+                            "name" : "directive-techniqueWithBlocks-component-r1-n2",
                             "compliance" : 100.0,
                             "complianceDetails" : {
                               "successAlreadyOK" : 100.0
                             },
                             "values" : [
                               {
-                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n2",
+                                "value" : "directive-techniqueWithBlocks-component-value-r1-n2",
                                 "reports" : [
                                   {
                                     "status" : "successAlreadyOK"
@@ -746,9 +866,48 @@ response:
                         ]
                       }
                     ]
+                  },
+                  {
+                    "id" : "r3",
+                    "name" : "R3",
+                    "compliance" : 0.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "directive2",
+                        "name" : "directive2",
+                        "compliance" : 0.0,
+                        "policyMode" : "default",
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "directive2-component-r3-n2",
+                            "compliance" : 0.0,
+                            "complianceDetails" : {
+                              "error" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive2-component-value-r3-n2",
+                                "reports" : [
+                                  {
+                                    "status" : "error"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
                   }
                 ]
-              }    
+              }
             ]
           }
         ]
@@ -781,22 +940,22 @@ response:
                 "id" : "r1",
                 "name" : "R1",
                 "compliance" : 100.0,
-                "policyMode" : "enforce",
+                "policyMode" : "default",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
                 "directives" : [
                   {
-                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "id" : "directive-techniqueWithBlocks",
+                    "name" : "25. Testing blocks",
                     "compliance" : 100.0,
-                    "policyMode" : "default",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
                     "components" : [
                       {
-                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n1",
+                        "name" : "directive-techniqueWithBlocks-component-r1-n1",
                         "compliance" : 100.0,
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
@@ -812,7 +971,7 @@ response:
                             },
                             "values" : [
                               {
-                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n1",
+                                "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
                                 "reports" : [
                                   {
                                     "status" : "successAlreadyOK"
@@ -945,29 +1104,29 @@ response:
                     "id" : "r1",
                     "name" : "R1",
                     "compliance" : 100.0,
-                    "policyMode" : "enforce",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
                     "directives" : [
                       {
-                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "id" : "directive-techniqueWithBlocks",
+                        "name" : "25. Testing blocks",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
                         "components" : [
                           {
-                            "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n1",
+                            "name" : "directive-techniqueWithBlocks-component-r1-n1",
                             "compliance" : 100.0,
                             "complianceDetails" : {
                               "successAlreadyOK" : 100.0
                             },
                             "values" : [
                               {
-                                "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n1",
+                                "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
                                 "reports" : [
                                   {
                                     "status" : "successAlreadyOK"
