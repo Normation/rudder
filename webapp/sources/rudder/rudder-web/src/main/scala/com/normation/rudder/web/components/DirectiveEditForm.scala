@@ -581,7 +581,7 @@ class DirectiveEditForm(
       </div>
     case Unoverridable =>
       <p>
-        Currrent global settings do not allow this mode to be overriden on a per-directive bases. You may change this in <b>Settings</b>,
+        Currrent global settings do not allow this mode to be overridden on a per-directive bases. You may change this in <b>Settings</b>,
         or contact your Rudder administrator about this.
       </p>
   }

@@ -90,18 +90,18 @@ class ReportDisplayer(
    * addOverridden decides if we need to add overridden policies (policy tab), or not (system tab)
    */
   def asyncDisplay(
-      node:         CoreNodeFact,
-      tabId:        String,
-      containerId:  String,
-      tableId:      String,
-      getReports:   NodeId => Box[NodeStatusReport],
-      addOverriden: Boolean,
-      onlySystem:   Boolean
+      node:          CoreNodeFact,
+      tabId:         String,
+      containerId:   String,
+      tableId:       String,
+      getReports:    NodeId => Box[NodeStatusReport],
+      addOverridden: Boolean,
+      onlySystem:    Boolean
   ): NodeSeq = {
     val i        = configService.agent_run_interval().option.runNow.getOrElse(10)
     val callback = {
       SHtml.ajaxInvoke(() =>
-        SetHtml(containerId, displayReports(node, getReports, tabId, tableId, containerId, addOverriden, onlySystem, i))
+        SetHtml(containerId, displayReports(node, getReports, tabId, tableId, containerId, addOverridden, onlySystem, i))
       )
     }
     Script(OnLoad(JsRaw(s"""
@@ -133,19 +133,19 @@ class ReportDisplayer(
       node:               CoreNodeFact,
       tableId:            String,
       getReports:         NodeId => Box[NodeStatusReport],
-      addOverriden:       Boolean,
+      addOverridden:      Boolean,
       defaultRunInterval: Int
   ): AnonFunc = {
     def refreshData: Box[JsCmd] = {
       for {
         report <- getReports(node.id)
-        data   <- getComplianceData(node.id, report, addOverriden)
+        data   <- getComplianceData(node.id, report, addOverridden)
         runDate: Option[DateTime] = getRunDate(report.runInfo)
       } yield {
         import net.liftweb.util.Helpers.encJs
         val intro = encJs(displayIntro(report, node.rudderSettings, defaultRunInterval).toString)
         JsRaw(
-          s"""refreshTable("${tableId}",${data.json.toJsCmd}); $$("#node-compliance-intro").replaceWith(${intro})"""
+          s"""refreshTable("${tableId}",${data}); $$("#node-compliance-intro").replaceWith(${intro})"""
         ) // JsRaw ok, escaped
       }
     }
@@ -387,7 +387,7 @@ class ReportDisplayer(
       tabId:              String,
       tableId:            String,
       containerId:        String,
-      addOverriden:       Boolean,
+      addOverridden:      Boolean,
       onlySystem:         Boolean,
       defaultRunInterval: Int
   ): NodeSeq = {
@@ -417,7 +417,7 @@ class ReportDisplayer(
                         if (node.rudderAgent.agentType == AgentType.CfeCommunity) {
                           <div id="triggerAgent">
             <button id="triggerBtn" class="btn btn-primary btn-trigger"  onclick={
-                            s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, addOverriden, defaultRunInterval).toJsCmd});"
+                            s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, addOverridden, defaultRunInterval).toJsCmd});"
                           }>
               <span>Trigger agent</span>
               &nbsp;
@@ -574,9 +574,9 @@ class ReportDisplayer(
   // this method cannot return an IOResult, as it uses S.
   // Only check for base compliance.
   private def getComplianceData(
-      nodeId:       NodeId,
-      reportStatus: NodeStatusReport,
-      addOverriden: Boolean
+      nodeId:        NodeId,
+      reportStatus:  NodeStatusReport,
+      addOverridden: Boolean
   ): Box[JsTableData[RuleComplianceLine]] = {
     for {
       directiveLib <- directiveRepository.getFullDirectiveLibrary().toBox
@@ -592,7 +592,7 @@ class ReportDisplayer(
         directiveLib,
         rules,
         globalMode,
-        addOverriden
+        addOverridden
       )
     }
   }

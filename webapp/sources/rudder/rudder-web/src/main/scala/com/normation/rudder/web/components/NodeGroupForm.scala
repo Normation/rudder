@@ -474,7 +474,7 @@ class NodeGroupForm(
       <div class="info">
         <h4>Property inheritance and overriding in hierarchy</h4>
         <p>When a group is a subgroup of another one, it inherit all its properties. If it defines
-        a property with the same name than a parent, then that property value is overriden and
+        a property with the same name than a parent, then that property value is overridden and
         the subgroup value is used. A node can also define a property with the same name, and in
         that case its value will override any group's value for that property name.</p>
       </div>

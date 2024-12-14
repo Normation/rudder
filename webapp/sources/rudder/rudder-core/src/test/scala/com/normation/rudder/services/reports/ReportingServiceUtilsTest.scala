@@ -88,7 +88,7 @@ class ReportingServiceUtilsTest extends Specification {
     OverriddenPolicy(
       PolicyId(overridden, directive, TechniqueVersionHelper("1.0")), // this one is
 
-      PolicyId(overrider, directive, TechniqueVersionHelper("1.0")) // overriden by that one
+      PolicyId(overrider, directive, TechniqueVersionHelper("1.0")) // overridden by that one
     )
   }
   // a case where two directive from the same unique technique are on two rules
@@ -154,7 +154,7 @@ class ReportingServiceUtilsTest extends Specification {
   }
 
   /*
-   * rule1/dir1 on node1 is overriden (and node has nothing) => skipped
+   * rule1/dir1 on node1 is overridden (and node has nothing) => skipped
    */
   "only overridden leads to skip" in {
     val reports = List(
@@ -235,7 +235,7 @@ class ReportingServiceUtilsTest extends Specification {
    * - 3 rules: rule1 has dir2, dir3 (skipped),  rule2 has all 3 (so dir1 ok, other skipped), rule3 has all 3 (skipped)
    * There is no duplication of reports.
    */
-  "a rule not overridden on all nodes is not written overriden" in {
+  "a rule not overridden on all nodes is not written overridden" in {
     val reports = List(
       NodeStatusReportInternal
         .buildWith(
