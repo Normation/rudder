@@ -8,7 +8,7 @@ use std::{
 };
 
 use anyhow::{bail, Context, Result};
-use augeas::Flags;
+use raugeas::Flags;
 use rudder_module_type::cfengine::called_from_agent;
 use rudder_module_type::{
     backup::Backup, parameters::Parameters, rudder_debug, run_module, CheckApplyResult,
@@ -59,7 +59,7 @@ pub struct AugeasParameters {
 }
 
 struct Augeas {
-    inner: augeas::Augeas,
+    inner: raugeas::Augeas,
 }
 
 impl Augeas {
@@ -77,7 +77,7 @@ impl Augeas {
         // As we only load the module once, it will only be done once per run and
         // allows autoloading of lenses on paths.
         let flags = Flags::NO_LOAD;
-        let inner = augeas::Augeas::init(None, RUDDER_LENS_LIB, flags)?;
+        let inner = raugeas::Augeas::init(None, RUDDER_LENS_LIB, flags)?;
 
         let version = inner.version()?;
         rudder_debug!("Using augeas version: {}", version);
