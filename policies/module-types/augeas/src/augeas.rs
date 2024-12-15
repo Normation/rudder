@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::{AugeasParameters, RUDDER_LENS_LIB};
-use raugeas::{Flags, SaveMode};
+use crate::AugeasParameters;
+use raugeas::{CommandsNumber, Flags, SaveMode};
 use rudder_module_type::{rudder_debug, CheckApplyResult, Outcome, PolicyMode};
 use std::env;
 
@@ -27,28 +27,74 @@ impl Augeas {
         p: AugeasParameters,
         policy_mode: PolicyMode,
     ) -> CheckApplyResult {
-        // Don't load the tree but load the lenses
-        // TODO decide if we want to load the lenses or not
-        let mut flags = Flags::NO_LOAD;
+        let mut flags = Flags::NONE;
+
+        if let Some(l) = p.lens.as_ref() {
+            rudder_debug!("Using lens: {l}, skipping autoloading");
+            flags.insert(Flags::NO_MODULE_AUTOLOAD);
+        } else {
+            // We never want to load the whole tree.
+            rudder_debug!("Autoloading lenses");
+            flags.insert(Flags::NO_LOAD);
+        }
+
         if p.type_check_lenses {
             rudder_debug!("Type checking lenses");
             flags.insert(Flags::TYPE_CHECK);
         }
-        let root = p.root.as_deref();
 
-        let mut load_paths = p.load_lens_paths.clone();
-        load_paths.push(RUDDER_LENS_LIB.to_string());
+        let mut aug = raugeas::Augeas::init(p.root.as_deref(), &p.load_paths(), flags)?;
 
-        let mut aug = raugeas::Augeas::init(root, &load_paths.join(":"), flags)?;
-
+        // Show version for debugging purposes.
         let version = aug.version()?;
-        rudder_debug!("Using augeas version: {}", version);
+        rudder_debug!("Augeas version: {}", version);
 
-        let _a = aug.srun(&p.commands.join("\n"))?;
+        //////////////////////////////////
+        // Start with the special unsafe mode
+        //////////////////////////////////
+
+        // FIXME: find a way to use policy mode, at least by default.
+        if !p.commands.is_empty() {
+            assert_eq!(policy_mode, PolicyMode::Enforce);
+            rudder_debug!("Running commands: {:?}", p.commands);
+            let (num, out) = aug.srun(&p.commands.join("\n"))?;
+            let summary = match num {
+                CommandsNumber::Success(n) => format!("{n} success"),
+                CommandsNumber::Quit => "has quit".to_string(),
+            };
+            rudder_debug!("{summary}, output: {out}");
+            return Ok(Outcome::repaired(summary));
+        }
+
+        //////////////////////////////////
+        // Now in "normal" mode
+        //////////////////////////////////
+
+        let path = p.path.clone().unwrap();
+
+        if let Some(l) = p.lens() {
+            // If we have a lens, we need to load it and load the file.
+            aug.set(&format!("/augeas/load/${l}/lens"), &l.to_string())?;
+            aug.set(&format!("/augeas/load/${l}/incl"), &path.to_string())?;
+            aug.load()?;
+        } else {
+            // Else load it with the detected lens.
+            // FIXME handle errors.
+            aug.load_file(&path.to_string())?;
+        }
+
+        if !p.changes.is_empty() {
+            rudder_debug!("Running changes: {:?}", p.changes);
+            todo!()
+        }
+        if !p.checks.is_empty() {
+            rudder_debug!("Running checks: {:?}", p.checks);
+            todo!()
+        }
+
         match policy_mode {
             PolicyMode::Enforce => {
-                aug.set_save_mode(SaveMode::Overwrite)?;
-                aug.save()?;
+                aug.set_save_mode(SaveMode::Backup)?;
             }
             PolicyMode::Audit => {
                 aug.set_save_mode(SaveMode::Noop)?;
@@ -56,7 +102,11 @@ impl Augeas {
         }
         aug.save()?;
 
-        Ok(Outcome::repaired("".to_string()))
+        // Get info about changes
+
+        // make backups
+
+        todo!()
     }
 }
 
@@ -71,15 +121,6 @@ mod tests {
             commands,
             ..Default::default()
         }
-    }
-
-    #[test]
-    fn it_does_nothing() {
-        let augeas = Augeas::new().unwrap();
-        let r = augeas
-            .handle_check_apply(arguments(vec![]), PolicyMode::Enforce)
-            .unwrap();
-        assert_eq!(r, Outcome::repaired("".to_string()));
     }
 
     #[test]
@@ -101,7 +142,7 @@ mod tests {
                 PolicyMode::Enforce,
             )
             .unwrap();
-        assert_eq!(r, Outcome::repaired("".to_string()));
+        assert_eq!(r, Outcome::repaired("5 success".to_string()));
 
         let content = read_to_string(&f).unwrap();
         assert_eq!(content.trim(), "hello world");
