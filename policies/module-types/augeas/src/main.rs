@@ -26,9 +26,15 @@ pub struct AugeasParameters {
     // or
     // lens + file
 
-    // incl ??
     // force ?? FIXME: check why, force l'écriture même sans changement détectés
-    changes: Vec<String>,
+    /// Raw commands to run.
+    ///
+    /// Should be used with care, as it can lead to override any configuration, including
+    /// making changes in audit mode.
+    ///
+    /// When passed, all other parameters need to be empty.
+    commands: Vec<String>,
+    // changes
     // same syntax as only if?
     audits: Vec<String>,
     // only_if
@@ -37,6 +43,7 @@ pub struct AugeasParameters {
     context: Option<String>,
     /// Output file path
     #[serde(default)]
+    // = incl
     path: Option<String>,
     /// Augeas root
     ///

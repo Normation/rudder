@@ -6,10 +6,7 @@ use raugeas::{Flags, SaveMode};
 use rudder_module_type::{rudder_debug, CheckApplyResult, Outcome, PolicyMode};
 use std::env;
 
-pub struct Augeas {
-    // FIXME decide if we want to keep the inner or not
-    //inner: raugeas::Augeas,
-}
+pub struct Augeas {}
 
 impl Augeas {
     pub(crate) fn new() -> anyhow::Result<Self> {
@@ -47,7 +44,7 @@ impl Augeas {
         let version = aug.version()?;
         rudder_debug!("Using augeas version: {}", version);
 
-        let _a = aug.srun(&p.changes.join("\n"))?;
+        let _a = aug.srun(&p.commands.join("\n"))?;
         match policy_mode {
             PolicyMode::Enforce => {
                 aug.set_save_mode(SaveMode::Overwrite)?;
@@ -69,9 +66,9 @@ mod tests {
     use std::fs::read_to_string;
     use tempfile::tempdir;
 
-    fn arguments(changes: Vec<String>) -> AugeasParameters {
+    fn arguments(commands: Vec<String>) -> AugeasParameters {
         AugeasParameters {
-            changes,
+            commands,
             ..Default::default()
         }
     }
@@ -104,7 +101,6 @@ mod tests {
                 PolicyMode::Enforce,
             )
             .unwrap();
-
         assert_eq!(r, Outcome::repaired("".to_string()));
 
         let content = read_to_string(&f).unwrap();
