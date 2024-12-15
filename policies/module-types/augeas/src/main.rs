@@ -6,7 +6,7 @@ mod check;
 mod parameters;
 
 use crate::parameters::AugeasParameters;
-use anyhow::Result;
+use anyhow::{bail, Result};
 use augeas::Augeas;
 use rudder_module_type::cfengine::called_from_agent;
 use rudder_module_type::{
@@ -27,16 +27,14 @@ impl ModuleType0 for Augeas {
     }
 
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
-        // Parse as parameters type
         let parameters: AugeasParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))?;
-        parameters.validate()?;
-        Ok(())
+        parameters.validate(None)
     }
 
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
-        assert!(self.validate(parameters).is_ok());
         let p: AugeasParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
+        p.validate(Some(mode))?;
 
         self.handle_check_apply(p, mode)
     }
@@ -48,6 +46,6 @@ fn main() -> Result<(), anyhow::Error> {
     if called_from_agent() {
         run_module(promise_type)
     } else {
-        unimplemented!("Only agent mode is supported, use 'augtool' for manual testing")
+        bail!("Only agent mode is supported, use 'augtool' for manual testing")
     }
 }

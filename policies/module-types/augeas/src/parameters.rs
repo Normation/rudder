@@ -3,6 +3,7 @@
 
 use crate::RUDDER_LENS_LIB;
 use anyhow::{anyhow, Result};
+use rudder_module_type::PolicyMode;
 use serde::{Deserialize, Serialize};
 use serde_inline_default::serde_inline_default;
 use std::iter;
@@ -94,18 +95,37 @@ impl AugeasParameters {
         }
     }
 
-    pub fn validate(&self) -> Result<()> {
+    pub fn validate(&self, policy_mode: Option<PolicyMode>) -> Result<()> {
         if !self.commands.is_empty() {
+            if let Some(p) = policy_mode {
+                if p != PolicyMode::Enforce {
+                    return Err(anyhow!("`commands` can only be used in enforce mode"));
+                }
+            }
+
             if !self.changes.is_empty() {
                 return Err(anyhow!("Cannot use both `commands` and `changes`"));
             }
             if !self.checks.is_empty() {
                 return Err(anyhow!("Cannot use both `commands` and `checks`"));
             }
+            if self.path.is_some() {
+                return Err(anyhow!("Cannot use both `commands` and `path`"));
+            }
+            if self.lens.is_some() {
+                return Err(anyhow!("Cannot use both `commands` and `lens`"));
+            }
         }
 
         if !self.changes.is_empty() && !self.checks.is_empty() {
             return Err(anyhow!("Cannot use both `changes` and `checks`"));
+        }
+        if self.changes.is_empty() && self.checks.is_empty() {
+            return Err(anyhow!("One of `changes` or `checks` must be used"));
+        }
+
+        if self.path.is_none() {
+            return Err(anyhow!("`path` is required when not in `commands` mode"));
         }
 
         Ok(())

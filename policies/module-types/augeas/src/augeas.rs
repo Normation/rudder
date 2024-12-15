@@ -53,9 +53,12 @@ impl Augeas {
         // Start with the special unsafe mode
         //////////////////////////////////
 
-        // FIXME: find a way to use policy mode, at least by default.
         if !p.commands.is_empty() {
+            // Only allowed in "enforce" mode.
+            // Makes little sense for audit mode, and risks making changes.
+            // Already validated but make sure.
             assert_eq!(policy_mode, PolicyMode::Enforce);
+
             rudder_debug!("Running commands: {:?}", p.commands);
             let (num, out) = aug.srun(&p.commands.join("\n"))?;
             let summary = match num {
@@ -67,7 +70,11 @@ impl Augeas {
         }
 
         //////////////////////////////////
-        // Now in "normal" mode
+        // Now in "normal" mode:
+        //
+        // * We only work on one file.
+        // * We handle backups, diffs, precise reporting.
+        // * We guarantee that the policy mode is respected.
         //////////////////////////////////
 
         let path = p.path.clone().unwrap();
