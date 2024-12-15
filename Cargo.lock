@@ -3306,6 +3306,7 @@ dependencies = [
  "rudder_commons_test",
  "rudder_module_type",
  "serde",
+ "serde-inline-default",
  "serde_json",
  "tempfile",
 ]

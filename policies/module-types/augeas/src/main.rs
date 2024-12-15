@@ -1,89 +1,69 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use std::{
-    env, fs,
-    fs::read_to_string,
-    path::{Path, PathBuf},
-};
+mod augeas;
+mod check;
 
-use anyhow::{bail, Context, Result};
-use raugeas::Flags;
+use anyhow::Result;
+use augeas::Augeas;
 use rudder_module_type::cfengine::called_from_agent;
 use rudder_module_type::{
-    backup::Backup, parameters::Parameters, rudder_debug, run_module, CheckApplyResult,
-    ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
+    parameters::Parameters, run_module, CheckApplyResult, ModuleType0, ModuleTypeMetadata,
+    PolicyMode, ValidateResult,
 };
 use serde::{Deserialize, Serialize};
+use serde_inline_default::serde_inline_default;
 use serde_json::Value;
 
 pub const RUDDER_LENS_LIB: &str = "/var/rudder/lib/lenses";
 
 // load_path are global to the augeas instance, so we can't set them per call.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[serde_inline_default]
 pub struct AugeasParameters {
     // Two modes : context + commands
     // or
     // lens + file
 
-    /*
-        changes
-        context
-        force ?? FIXME: check why
-        incl
-        lens
-        load_path
-        name
-        onlyif
-        provider
-        root
-        show_diff
-        type_check
-
-    */
+    // incl ??
+    // force ?? FIXME: check why, force l'écriture même sans changement détectés
+    changes: Vec<String>,
+    // same syntax as only if?
+    audits: Vec<String>,
+    // only_if
+    condition: Vec<String>,
+    /// Prefix to add.
+    context: Option<String>,
     /// Output file path
-    path: PathBuf,
-    /// Source template path
-    #[serde(skip_serializing_if = "Option::is_none")]
-    template_path: Option<PathBuf>,
-    /// Inlined source template
-    #[serde(skip_serializing_if = "Option::is_none")]
-    template_src: Option<String>,
+    #[serde(default)]
+    path: Option<String>,
+    /// Augeas root
+    ///
+    /// The root of the filesystem to use for augeas.
+    ///
+    /// WARNING: Should not be used in most cases.
+    #[serde(default)]
+    root: Option<String>,
+    /// Show the diff.
+    ///
+    /// Enabled by default. Disable for files containing secrets.
+    #[serde_inline_default(true)]
+    show_diff: bool,
 
-    /// A lens to use
+    /// Additional load paths for lenses.
+    ///
+    /// `/var/rudder/lib/lenses` is always added.
+    load_lens_paths: Vec<String>,
+
+    /// A lens to use.
     #[serde(skip_serializing_if = "Option::is_none")]
     lens: Option<String>,
-    #[serde(default)]
+    /// Force augeas to type-check the lenses.
+    ///
+    /// This is slow and should only be used for debugging.
+    #[serde_inline_default(false)]
     type_check_lenses: bool,
-}
-
-struct Augeas {
-    inner: raugeas::Augeas,
-}
-
-impl Augeas {
-    fn new() -> Result<Self> {
-        // Cleanup the environment first to avoid any interference.
-        //
-        // SAFETY: Safe as the module is single threaded.
-        unsafe {
-            env::remove_var("AUGEAS_ROOT");
-            env::remove_var("AUGEAS_LENS_LIB");
-            env::remove_var("AUGEAS_DEBUG");
-        }
-
-        // Don't load the tree but load the lenses
-        // As we only load the module once, it will only be done once per run and
-        // allows autoloading of lenses on paths.
-        let flags = Flags::NO_LOAD;
-        let inner = raugeas::Augeas::init(None, RUDDER_LENS_LIB, flags)?;
-
-        let version = inner.version()?;
-        rudder_debug!("Using augeas version: {}", version);
-
-        Ok(Augeas { inner })
-    }
 }
 
 impl ModuleType0 for Augeas {
@@ -97,19 +77,8 @@ impl ModuleType0 for Augeas {
 
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
         // Parse as parameters type
-        let parameters: AugeasParameters =
+        let _parameters: AugeasParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))?;
-
-        match (
-            parameters.template_path.is_some(),
-            parameters.template_src.is_some(),
-        ) {
-            (true, true) => bail!("Only one of 'template_path' and 'template_src' can be provided"),
-            (false, false) => {
-                bail!("Need one of 'template_path' and 'template_src'")
-            }
-            _ => (),
-        }
 
         Ok(())
     }
@@ -118,7 +87,7 @@ impl ModuleType0 for Augeas {
         assert!(self.validate(parameters).is_ok());
         let p: AugeasParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
 
-        Ok(Outcome::Success(None))
+        self.handle_check_apply(p, mode)
     }
 }
 
@@ -128,6 +97,6 @@ fn main() -> Result<(), anyhow::Error> {
     if called_from_agent() {
         run_module(promise_type)
     } else {
-        unimplemented!("Only CFEngine mode is supported")
+        unimplemented!("Only agent mode is supported, use 'augtool' for manual testing")
     }
 }
