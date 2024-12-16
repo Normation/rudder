@@ -3,6 +3,7 @@
 
 mod augeas;
 mod check;
+mod dsl;
 mod parameters;
 
 use crate::parameters::AugeasParameters;
