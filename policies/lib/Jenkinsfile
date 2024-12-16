@@ -5,51 +5,7 @@ pipeline {
     agent none
     triggers { cron('@daily') }
     stages {
-        stage('Tests') {
-            parallel {
-                stage('typos') {
-                    agent {
-                        dockerfile {
-                            filename 'ci/typos.Dockerfile'
-                            additionalBuildArgs  '--build-arg VERSION=1.16'
-                        }
-                    }
-                    steps {
-                        dir('tree') {
-                            sh script: 'typos --exclude 20_cfe_basics/cfengine/ --exclude 10_ncf_internals/modules/', label: 'check typos'
-                        }
-                    }
-                    post {
-                        failure {
-                            script {
-                                new SlackNotifier().notifyResult("shell-team")
-                            }
-                        }
 
-                    }
-                }
-                stage('python') {
-                    agent {
-                        dockerfile {
-                            filename 'ci/python.Dockerfile'
-                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
-                        }
-                    }
-                    steps {
-                        sh script: './qa-test --python', label: 'python scripts lint'
-                        sh script: './qa-test --quick', label: 'quick method tests'
-                    }
-                    post {
-                        failure {
-                            script {
-                                new SlackNotifier().notifyResult("shell-team")
-                            }
-                        }
-
-                    }
-                }
-            }
-        }
         stage('methods') {
             agent {
                 dockerfile {

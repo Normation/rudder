@@ -1,14 +1,5 @@
 # Policies library / ncf
 
-This project is part of Rudder, see [the main repository](https://github.com/Normation/rudder)
-for more information.
- 
-## License
-
-This sub-project is licensed under GPLv3 license, 
-see the provided "LICENSE" file or 
-http://www.gnu.org/licenses/gpl-3.0.txt
-
 ## Usage
 
 This project is part of Rudder, and as such is bundled with every Rudder server.
