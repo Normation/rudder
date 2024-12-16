@@ -2,7 +2,7 @@
 
 set -e
 GIT_ROOT="$(git rev-parse --show-toplevel)"
-NCF_TREE=$GIT_ROOT/tree
+NCF_TREE=$GIT_ROOT/policies/lib/tree
 
 # Check that all generic_methods bundles that start with _ do not have any promises aside from "meta-promises"
 

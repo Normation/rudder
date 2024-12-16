@@ -2,7 +2,7 @@
 
 set -e
 GIT_ROOT="$(git rev-parse --show-toplevel)"
-NCF_TREE=$GIT_ROOT/tree
+NCF_TREE=$GIT_ROOT/policies/lib/tree
 
 # NBSP breaks scripts and cfengine code, they should never appear
 

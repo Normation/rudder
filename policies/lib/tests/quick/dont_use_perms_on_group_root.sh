@@ -19,11 +19,11 @@
 #####################################################################################
 set -e
 GIT_ROOT="$(git rev-parse --show-toplevel)"
-NCF_TREE=$GIT_ROOT/tree
+NCF_TREE=$GIT_ROOT/policies/lib/tree
 
 # Check that no tests use the group "root" for perms - this works on Linux but not on most UNIXes
 
-FILES_TO_CHECK=`find "${GIT_ROOT}/tests/" -name "*.cf"`
+FILES_TO_CHECK=`find "${GIT_ROOT}/policies/lib/tests/" -name "*.cf"`
 ERRORS=0
 for f in $FILES_TO_CHECK
 do

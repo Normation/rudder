@@ -2,12 +2,12 @@
 
 set -e
 GIT_ROOT="$(git rev-parse --show-toplevel)"
-NCF_TREE=$GIT_ROOT/tree
+NCF_TREE=$GIT_ROOT/policies/lib/tree
 
 # All tests written in shell should use "set -e". This test checks those tests.
 # (It is thus somewhat a meta test test.)
 
-ALL_SHELL_TESTS=`find "${GIT_ROOT}/tests/quick" -name "*.sh"`
+ALL_SHELL_TESTS=`find "${GIT_ROOT}/policies/lib/tests/quick" -name "*.sh"`
 
 ERRORS=0
 for file in ${ALL_SHELL_TESTS}
