@@ -13,7 +13,7 @@ FIND_ARGS="-type f -not -wholename */.git/* -not -wholename */api/flask/* -not -
 while read line
 do
   export FIND_ARGS="${FIND_ARGS} -not -wholename */${line}"
-done < $NCF_ROOT/../.gitignore
+done < $NCF_TREE/../.gitignore
 
 ALL_TESTS=`find ${NCF_ROOT}/.. ${FIND_ARGS}`
 
