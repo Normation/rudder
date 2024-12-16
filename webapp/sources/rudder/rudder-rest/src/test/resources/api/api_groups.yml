@@ -1917,20 +1917,15 @@ response:
               "description" : "Some long description",
               "category" : "GroupRoot",
               "query" : {
-                "select" : "node",
+                "select" : "nodeAndPolicyServer",
                 "composition" : "and",
+                "transform" : "invert",
                 "where" : [
                   {
                     "objectType" : "node",
-                    "attribute" : "osName",
+                    "attribute" : "nodeId",
                     "comparator" : "eq",
-                    "value" : "Debian"
-                  },
-                  {
-                    "objectType" : "node",
-                    "attribute" : "osVersion",
-                    "comparator" : "regex",
-                    "value" : "10\\..*"
+                    "value" : "11111111-cb9d-4f7b-abda-ca38c5d643ea"
                   }
                 ]
               },
