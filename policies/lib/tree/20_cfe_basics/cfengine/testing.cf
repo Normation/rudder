@@ -1,0 +1,283 @@
+# Test reporting bodies
+
+# TAP specification at
+# http://testanything.org/tap-specification.html
+
+@if minimum_version(3.9)
+
+bundle agent testing_ok_if(classname, message, error, trace, format)
+# @brief Report outcome for test on `classname` in format `format` with optional `error` and `trace`
+# @param classname The class name
+# @param message The test message
+# @param error The error to report, if the class is not defined
+# @param trace The error trace detail to report, if the class is not defined
+# @param format TAP (immediate output) or jUnit or anything else for delayed TAP
+#
+# **See also:** `testing_junit_report`, `testing_tap_report`, `testing_ok`, `testing_todo`, and `testing_skip`
+{
+  vars:
+      "next_testing_$(classname)" int => length(classesmatching("testing_.*", "testing_(passed|failed|skipped|todo)"));
+      "next_testing_$(classname)_failed" int => length(classesmatching("testing_.*", "testing_(passed|failed|skipped|todo)"));
+
+  classes:
+      "tap" expression => strcmp('tap', string_downcase($(format)));
+      "testing_$(classname)" expression => $(classname), scope => "namespace", meta => { "testing_passed", "error=$(error)", "trace=$(trace)", "message=$(message)" };
+      "testing_$(classname)_failed" not => $(classname), scope => "namespace", meta => { "testing_failed", "error=$(error)", "trace=$(trace)", "message=$(message)" };
+
+  reports:
+    inform_mode::
+      "$(this.bundle): adding testing report for class $(classname) at position $(next_testing_$(classname))";
+
+    "tap.testing_$(classname)"::
+      "$(const.n)ok $(message)";
+    "tap.testing_$(classname)_failed"::
+      "$(const.n)not ok $(message)";
+}
+
+bundle agent testing_ok(classname, message, format)
+# @brief Report expected success in format `format` for `classname` and its test
+# @param classname The class name
+# @param message The test message
+# @param format TAP (immediate output) or jUnit or anything else for delayed TAP
+#
+# This bundle calls `testing_ok_if` expecting `classname` to be defined and thus the
+# test to be a success; the error and trace reflect that.
+#
+# **See also:** `testing_junit_report`, `testing_tap_report`, `testing_ok_if`, `testing_todo`, and `testing_skip`
+{
+  methods:
+      "" usebundle => testing_ok_if($(classname), $(message), "unexpected error for $(classname)", "no error trace available", $(format));
+}
+
+bundle agent testing_skip(classname, message, format)
+# @brief Report skipped `classname` in format `format`
+# @param classname The class name
+# @param message The test message
+# @param format TAP (immediate output) or jUnit or anything else for delayed TAP
+#
+# This bundle reports that `classname` was skipped regardless of whether it's
+# defined.
+#
+# **See also:** `testing_junit_report`, `testing_tap_report`, `testing_ok_if`, `testing_todo`, and `testing_ok`
+{
+  vars:
+      "next_testing_$(classname)" int => length(classesmatching("testing_.*", "testing_(passed|failed|skipped|todo)"));
+
+  classes:
+      "tap" expression => strcmp('tap', string_downcase($(format)));
+      "testing_$(classname)" scope => "namespace", meta => { "testing_skipped", "message=$(message)" };
+
+  reports:
+    inform_mode::
+      "$(this.bundle): adding testing skip report for class $(classname) at position $(next_testing_$(classname))";
+    tap::
+      "$(const.n)ok # SKIP $(message)";
+}
+
+bundle agent testing_todo(classname, message, format)
+# @brief Report TODO `classname` in format `format`
+# @param classname The class name
+# @param message The test message
+# @param format TAP (immediate output) or jUnit or anything else for delayed TAP
+#
+# This bundle reports that `classname` was skipped regardless of whether it's
+# defined.
+#
+# **See also:** `testing_junit_report`, `testing_tap_report`, `testing_ok_if`, `testing_skip`, and `testing_ok`
+{
+  vars:
+      "next_testing_$(classname)" int => length(classesmatching("testing_.*", "testing_(passed|failed|skipped|todo)"));
+
+  classes:
+      "tap" expression => strcmp('tap', string_downcase($(format)));
+      "testing_$(classname)" scope => "namespace", meta => { "testing_todo", "message=$(message)" };
+
+  reports:
+    inform_mode::
+      "$(this.bundle): adding testing TODO report for class $(classname) at position $(next_testing_$(classname))";
+    tap::
+      "$(const.n)ok # TODO $(message)";
+}
+
+bundle agent testing_tap_report(outfile)
+# @brief Report all test messages in TAP format to `outfile`
+# @param outfile A text file with the final TAP report or empty `` for STDOUT report
+#
+# Note that the TAP format ignores error messages, trace messages, and class names.
+#
+# **See also:** `testing_junit_report`, `testing_tap_report`, `testing_ok_if`, `testing_todo`, `testing_skip`, `testing_tap_bailout`, and `testing_ok`
+{
+  methods:
+      "" usebundle => testing_generic_report('TAP', $(outfile));
+}
+
+bundle agent testing_junit_report(outfile)
+# @brief Report all test knowledge in jUnit format to `outfile`
+# @param outfile A XML file with the final jUnit report or empty `` for STDOUT report
+#
+# **See also:** `testing_tap_report`, `testing_ok_if`, `testing_todo`, `testing_skip`, and `testing_ok`
+{
+  methods:
+      "" usebundle => testing_generic_report('jUnit', $(outfile));
+}
+
+bundle agent testing_generic_report(format, outfile)
+# @brief Report all test knowledge in jUnit format to `outfile`
+# @param format The output format, either `jUnit` or `TAP` (case is ignored)
+# @param outfile A file with the final report or empty for STDOUT
+#
+# Note that jUnit output to STDOUT will most likely be truncated due to the 4K
+# limitation on string lengths.
+#
+# **See also:** `testing_tap_report`, `testing_ok_if`, `testing_todo`, `testing_skip`, and `testing_ok`
+{
+  classes:
+      "junit" expression => strcmp('junit', string_downcase($(format)));
+      "tap" expression => strcmp('tap', string_downcase($(format)));
+      "stdout" expression => strcmp('', $(outfile));
+      "tofile" not => strcmp('', $(outfile));
+
+  vars:
+      "failed" slist => classesmatching("testing_.*", testing_failed);
+      "passed" slist => classesmatching("testing_.*", testing_passed);
+      "skipped" slist => classesmatching("testing_.*", testing_skipped);
+      "todo" slist => classesmatching("testing_.*", testing_todo);
+
+      "count_passed" int => length(passed);
+      "count_skipped" int => length(skipped);
+      "count_todo" int => length(todo);
+      "count_failed" int => length(failed);
+      "count_total" string => format("%d", sum('[$(count_failed), $(count_passed), $(count_skipped), $(count_todo)]'));
+
+      "timestamp" string => strftime("localtime", "%FT%T", now());
+
+      "tests_passed" data => '[]';
+      "tests_passed"
+        data => mergedata(tests_passed,
+                         format('[{ "testcase": "%s", "test_offset": %d, "test_message": "%s", "tap_message": "ok %s" }]',
+                                regex_replace($(passed), "^testing_", "", "T"),
+                                "$(testing_ok_if.next_$(passed))",
+                                regex_replace(join(",", grep("^message=.*", getclassmetatags($(passed)))), "^message=", "", "T"),
+                                regex_replace(join(",", grep("^message=.*", getclassmetatags($(passed)))), "^message=", "", "T")));
+
+      "tests_failed" data => '[]';
+      "tests_failed"
+        data => mergedata(tests_failed,
+                         format('[{ "testcase": "%s", "fail_message": "%s", "trace_message": "%s", "test_offset": %d, "test_message": "%s", "tap_message": "not ok %s" }]',
+                                regex_replace($(failed), "^testing_", "", "T"),
+                                regex_replace(join(",", grep("^error=.*", getclassmetatags($(failed)))), "^error=", "", "T"),
+                                regex_replace(join(",", grep("^trace=.*", getclassmetatags($(failed)))), "^trace=", "", "T"),
+                                "$(testing_ok_if.next_$(failed))",
+                                regex_replace(join(",", grep("^message=.*", getclassmetatags($(failed)))), "^message=", "", "T"),
+                                regex_replace(join(",", grep("^message=.*", getclassmetatags($(failed)))), "^message=", "", "T")));
+
+      "tests_skipped" data => '[]';
+      "tests_skipped"
+        data => mergedata(tests_skipped,
+                         format('[{ "testcase": "%s", "test_offset": %d, "test_message": "%s", "tap_message": "ok # SKIP %s" }]',
+                                regex_replace($(skipped), "^testing_", "", "T"),
+                                "$(testing_skip.next_$(skipped))",
+                                regex_replace(join(",", grep("^message=.*", getclassmetatags($(skipped)))), "^message=", "", "T"),
+                                regex_replace(join(",", grep("^message=.*", getclassmetatags($(skipped)))), "^message=", "", "T")));
+
+      "tests_todo" data => '[]';
+      "tests_todo"
+        data => mergedata(tests_todo,
+                         format('[{ "testcase": "%s", "test_offset": %d, "test_message": "%s", "tap_message": "ok # TODO %s" }]',
+                                regex_replace($(todo), "^testing_", "", "T"),
+                                "$(testing_todo.next_$(todo))",
+                                regex_replace(join(",", grep("^message=.*", getclassmetatags($(todo)))), "^message=", "", "T"),
+                                regex_replace(join(",", grep("^message=.*", getclassmetatags($(todo)))), "^message=", "", "T")));
+
+    inform_mode::
+      "out" string => format("counts = %d/%d/%d/%d/%d failed = %S, passed = %S, skipped = %S, todo = %S, failed = %S; tests = %S+%S+%S+%S", $(count_total), $(count_passed), $(count_skipped), $(count_todo), $(count_failed), failed, passed, skipped, todo, failed, tests_passed, tests_skipped, tests_todo, tests_failed);
+
+    junit.stdout::
+      "junit_out" string => string_mustache(readfile("$(this.promise_dirname)/templates/junit.mustache", 4k), bundlestate("testing_generic_report"));
+
+    tap::
+      "tap_tests" data => mergedata(tests_passed, tests_failed, tests_skipped, tests_todo);
+
+      "tap_results" data => mapdata("json_pipe", "$(def.jq) 'sort_by(.test_offset) | .[] | [(.test_offset|tostring), .tap_message ] | join(\" \") '", tap_tests);
+
+    tap.inform_mode::
+      "tap_tests_info" string => format("%S", tap_tests);
+      "tap_results_info" string => format("%S", tap_results);
+
+  files:
+    junit.tofile::
+      "$(outfile)"
+        create => "true",
+        template_data => bundlestate("testing_generic_report"),
+        template_method => "mustache",
+        edit_template => "$(this.promise_dirname)/templates/junit.mustache";
+
+    tap.tofile::
+      "$(outfile)"
+        create => "true",
+        template_data => bundlestate("testing_generic_report"),
+        template_method => "mustache",
+        edit_template => "$(this.promise_dirname)/templates/tap.mustache";
+
+  reports:
+    junit.stdout::
+      "$(const.n)$(junit_out)";
+
+    tap.stdout::
+      "$(const.n)1..$(count_total)" ;
+
+    inform_mode::
+      "$(this.bundle): report summary: $(out)";
+    tap.inform_mode::
+      "$(this.bundle): TAP report summary: $(tap_tests_info)";
+      "$(this.bundle): TAP report results summary: $(tap_results_info)";
+}
+
+bundle agent testing_tap_bailout(reason)
+# @brief Bail out in TAP format **immediately**
+# @param reason the bailout reason
+#
+# **See also:** `testing_tap_report`, `testing_ok_if`, `testing_todo`, `testing_skip`, and `testing_ok`
+{
+  reports:
+      "$(const.n)Bail out! $(reason)";
+}
+
+bundle agent testing_usage_example
+# @brief Simple demo of testing_junit_report and testing_tap_report testing.cf usage
+#
+# You can run it like this: `cf-agent -K ./testing.cf -b testing_usage_example`
+# Or for extra debugging, you can run it like this: `cf-agent -KI ./testing.cf -b testing_usage_example`
+#
+# You can either use `tap` as the `format` parameter for any testing bundle, in
+# which case you get immediate TAP output, OR you can use anything else, in
+# which case you can still get TAP output but at the end.
+#
+# So your use cases are:
+#
+# * format=jUnit, then testing_junit_report(''): all jUnit to STDOUT, output at end
+# * format=TAP, then testing_tap_report(''): all TAP to STDOUT, immediate output
+# * format=delayed_TAP, then testing_tap_report(MYFILE): all TAP to MYFILE, output at end
+# * format=jUnit, then testing_jUnit_report(MYFILE): all jUnit to MYFILE, output at end
+{
+  classes:
+      "reported_class" scope => "namespace";
+
+  methods:
+      "" usebundle => testing_ok("reported_class", "ok message", "TAP");
+      "" usebundle => testing_ok_if("missing_class", "missing message", "error1", "error trace 1", "TAP");
+      "" usebundle => testing_ok_if("missing_class2", "missing message2", "error2", "error trace 2", "TAP");
+      "" usebundle => testing_skip("skipped_class", "we skipped this", "TAP");
+      "" usebundle => testing_todo("todo_class", "we need to do this", "TAP");
+
+      # output the reports to some files
+      # "" usebundle => testing_junit_report("/var/cfengine/outputs/junit.xml");
+      # "" usebundle => testing_tap_report("/var/cfengine/outputs/tap.txt");
+
+      # output the reports to STDOUT
+      "" usebundle => testing_junit_report('');
+      "" usebundle => testing_tap_report('');
+}
+#
+@endif
+#

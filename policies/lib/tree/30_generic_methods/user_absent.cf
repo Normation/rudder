@@ -1,0 +1,47 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name User absent
+# @description Remove a user
+# @documentation This method ensures that a user does not exist on the system.
+#
+# @parameter login User login
+# 
+# @class_prefix user_absent
+# @class_parameter login
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent user_absent(login)
+{
+  vars:
+      "old_class_prefix"  string => canonify("user_absent_${login}");
+      "args"               slist => { "${login}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("user_absent_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  users:
+      "${login}"  policy      => "absent",
+                  classes     => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+      "report"
+        usebundle => _log_v3("User ${login} absent", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
+        ifvarclass => "${old_class_prefix}_reached|${class_prefix}_reached";
+
+}

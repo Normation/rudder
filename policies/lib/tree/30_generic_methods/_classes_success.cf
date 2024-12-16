@@ -1,0 +1,53 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Classes success definition
+# @description Defines success classes based on a prefix
+#
+# @parameter destination_prefix      The prefix of the success class to defined
+#
+# @class_prefix 
+# @class_parameter 
+# @agent_support = ["cfengine-community"]
+
+bundle agent _classes_success(destination_prefix)
+{
+  vars:
+    !pass1::
+      "prefix" slist => { "promise_kept" };
+      "suffix" slist => { "ok", "reached", "kept", "not_repaired" };
+
+    pass1.!pass2.destination_exists::
+      "${prefix}_local"
+        string     => "${prefix}_${destination_prefix}",
+        classes    => always("${prefix}_${destination_prefix}");
+
+      "local_${suffix}"
+        string     => "${destination_prefix}_${suffix}",
+        classes    => always("${destination_prefix}_${suffix}");
+
+  classes:
+      # this line will not be evaluated by cfengine if destination_prefix contains a variable that does not exist
+      # and it will always be evaluated to true otherwise
+      "destination_defined" expression => strcmp("${destination_prefix}", "${destination_prefix}");
+      "destination_not_empty"      not => strcmp("${destination_prefix}", "");
+      "destination_exists"         and => { "destination_defined", "destination_not_empty" };
+
+      "pass2"               expression => "pass1";
+      "pass1"               expression => "any";
+}

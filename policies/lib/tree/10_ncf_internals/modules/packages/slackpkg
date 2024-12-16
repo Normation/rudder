@@ -1,0 +1,188 @@
+#!/bin/sh
+
+CMD="$1"
+
+DEFARCH=$(uname -m)
+REPO=''
+INPUTLIST=''
+
+fatal() {
+    echo "ErrorMessage=$*"
+    exit 1
+}
+
+parse_line() {
+    INPUTP="$1"
+
+    KEYWORD=$(echo "${INPUTP}" | sed -e 's/=.*$//')
+    VALUE=$(echo "${INPUTP}" | sed -e 's/^.*=//')
+
+    unset INPUTP
+}
+
+read_options() {
+    while read -r INPUT ; do
+        if [ -n "${INPUT}" ] ; then
+            parse_line "${INPUT}"
+            case "${KEYWORD}" in
+                File|Name)
+                    VER=''
+                    ARCH=''
+                    if [ "${KEYWORD}" = 'File' ] ; then
+                        PKG="${VALUE}"
+                    else
+                        NAM="${VALUE}"
+                    fi
+                    ;;
+                Version)
+                    VER="${VALUE}"
+                    ;;
+                Architecture)
+                    ARCH=${VALUE:=${DEFARCH}}
+                    ;;
+                options*)
+                    if [ -n "${repository}" ] ; then
+                        REPO="-r ${repository}"
+                    fi
+                    continue
+                    ;;
+                PackageType*)
+                    TYP="${VALUE}"
+                    ;;
+                *)
+                    fatal "Invalid input: '${KEYWORD}'."
+                    ;;
+            esac
+            if [ -n "${KEYWORD}" ] && [ -n "${VALUE}" ] ; then
+                if [ -n "${INPUTLIST}" ] ; then
+                    INPUTLIST="${INPUTLIST} ${KEYWORD}=${VALUE}"
+                else
+                    INPUTLIST="${KEYWORD}=${VALUE}"
+                fi
+            fi
+        fi
+    done
+}
+
+process_inputs() {
+    CMD="$1" ; shift
+    OPTIONS="$*"
+
+    for OPT in ${OPTIONS} ; do
+        eval `parse_line ${OPT}`
+        case "${KEYWORD}" in
+            File*)
+                if [ "${CMD}" = 'file-install' ] ; then
+                    PKG="${PKG} ${VALUE}"
+                else
+                    fatal "Bad Input: '${OPT}' (should be Name=...)."
+                fi
+                VER=''
+                ;;
+            Name*)
+                if [ "${CMD}" != 'file-install' ] ; then
+                    PKG="${PKG} ${VALUE}"
+                else
+                    fatal "Bad Input: '${OPT}' (should be File=...)"
+                fi
+                VER=''
+                ;;
+            Version*)
+                PKG="${PKG}-${VALUE}"
+                ;;
+            Architecture*)
+                if [ -n "${VALUE}" ] &&
+                       [ "${VALUE}" != "${DEFARCH}" ] ; then
+                    fatal "Bad Input: Architecture ${VALUE} does not match ${DEFARCH}."
+                fi
+                ;;
+            PackageType*)
+                TYP="${VALUE}"
+                ;;
+            *)
+                fatal "Invalid input: '${INPUT}'."
+                ;;
+        esac
+    done
+}
+
+get_package_data() {
+    if [ -n "${NAM}" ] && [ -z "${PKG}" ] ; then
+        PKG="${NAM}"
+    fi
+    if [ -n "${PKG}" ] ; then
+        case "${PKG}" in
+            /*|./*) # File Path.  It's a file
+                TYP='file'
+                if [ ! -e "${PKG}" ] ; then
+                    fatal "No such file: '${PKG}'."
+                fi
+                ;;
+            http://*|ftp://|file://) # URL, it's a file.
+                TYP='file'
+                ;;
+            *)
+                TYP='repo'
+                ;;
+        esac
+        echo "PackageType=${TYP}"
+        if [ "${TYP}" = 'repo' ] ; then
+            if [ -z "`echo ${PKGVER} | grep -E '^[0-9]'`" ] ; then
+                if [ "${PKGNAM}" != "${PKGVER}" ] ;  then
+                    PKGNAM="${PKGNAM}-${PKGVER}"
+                fi
+                PKGVER=''
+            fi
+            # Returning version for PackageType=repo is not advised
+            # https://docs.cfengine.com/latest/reference-standard-library-package_modules.html
+            # if [ -n "${PKGVER}" ] ; then
+            #     echo "Version=${PKGVER}"
+            # fi
+            echo "Name="${PKG}
+        else
+          echo "Name="$(echo ${PKG} |sed -e 's/-[0-9].*$//' -e 's/[^/]+\(.*$\)/\1/' -e 's/.*\///')
+          echo ${PKG} |sed -e 's/.*\///' -e 's/.*-\([_a-z0-9.?]\+\)-\(.*\)-.*/Version=\1\'$'\nArchitecture=\\2/'
+        fi
+    fi
+}
+
+if [ "${CMD}" = 'supports-api-version' ] ; then
+    echo '1'
+    exit 0
+else
+    read_options
+fi
+
+case "${CMD}" in
+    get-package-data)
+        get_package_data
+        ;;
+    list-installed)
+        ls -1 /var/log/packages/ |sed -e 's/\([^ ]\+\)-\([_a-zA-Z0-9.?]\+\)-\(.*\)-/Name=\1\'$'\nVersion=\\2\\nArchitecture=\\3/'
+        ;;
+    list-updates-local|list-updates)
+        slackpkg -dialog=off -batch=on upgrade-all | sed -r 's!^(.+)-(.+)-(i[0-9]86|noarch|x86_64|x86|fw|npmjs)-(.*)$!Name=\1\nVersion=\2\nArchitecture=\3!g' | grep -vE "Total\ package|Do\ you\ wish\ to|Looking\ for|Checking\ local|^$"
+        ;;
+    repo-install|file-install|remove)
+        process_inputs "${CMD}" "${INPUTLIST}"
+        case "${CMD}" in
+            repo-install)
+                slackpkg -dialog=off -batch=on -default_answer=yes install ${PKG} 2>/dev/null >/dev/null
+                ;;
+            file-install)
+                installpkg ${PKG} 2>/dev/null >/dev/null
+                ;;
+            remove)
+                slackpkg -dialog=off -batch=on -default_answer=yes remove ${PKG} 2>/dev/null >/dev/null
+                ;;
+        esac
+        RC=$?
+        if [ ${RC} -ne 0 ] ; then
+            fatal "Package manager error"
+            exit $RC
+        fi
+        ;;
+    *)
+        fatal "Command '${CMD}' is either not valid or not implemented."
+        ;;
+esac

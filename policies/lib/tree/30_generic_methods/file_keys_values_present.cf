@@ -1,0 +1,105 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File keys-values present
+# @description Ensure that the file contains all pairs of "key separator value", with arbitrary separator between each key and its value
+# @documentation This method ensures key-value pairs are present in a file.
+# 
+# #### Usage
+#
+# This method will iterate over the key-value pairs in the dict, and:
+#
+# * If the key is not defined in the destination, add the *key* + *separator* + *value* line.
+# * If the key is already present in the file, replace the *key* + *separator* + anything by *key* + *separator* + *value*
+#
+# This method always ignores spaces and tabs when replacing (which means for example that `key = value` will match the `=` separator).
+#
+# Keys are considered unique (to allow replacing the value), so you should use [file_ensure_lines_present](#_file_ensure_lines_present)
+# if you want to have multiple lines with the same key.
+#
+# #### Example
+#
+# If you have an initial file (`/etc/myfile.conf`) containing:
+#
+# ```
+# key1 = something
+# key3 = value3
+# ```
+#
+# To define key-value pairs, use the [variable_dict](#_variable_dict) or
+# [variable_dict_from_file](#_variable_dict_from_file) methods.
+#
+# For example, if you use the following content (stored in `/tmp/data.json`):
+#
+# ```json
+# {
+#    "key1": "value1",
+#    "key2": "value2"
+# }
+# ```
+#
+# With the following policy:
+#
+# ```
+# # Define the `content` variable in the `configuration` prefix from the json file
+# variable_dict_from_file("configuration", "content", "/tmp/data.json")
+# # Enforce the presence of the key-value pairs
+# file_ensure_keys_values("/etc/myfile.conf", "configuration.content", " = ")
+#
+# ```
+#
+# The destination file (`/etc/myfile.conf`) will contain:
+#
+# ```
+# key1 = value1
+# key3 = value3
+# key2 = value2
+# ```
+#
+# @parameter path File name to edit (absolute path on the target node)
+# @parameter keys Name of the dict structure (without "${}") containing the keys (keys of the dict), and values to define (values of the dict)
+# @parameter separator Separator between key and value, for example "=" or " " (without the quotes)
+# @parameter_constraint separator "allow_whitespace_string" : true 
+#
+#
+# @parameter_rename file path
+# @class_prefix file_keys_values_present
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_keys_values_present(path, keys, separator)
+{
+  vars:
+      "old_class_prefix" string => canonify("file_keys_values_present_${path}");
+      "args"              slist => { "${path}", "${keys}", "${separator}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_keys_values_present_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  files:
+      "${path}"
+        create        => "true",
+        edit_line     => ncf_maintain_keys_values("${keys}", "${separator}"),
+        edit_defaults => ncf_empty_select("false"),
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
+      "report"   usebundle => _log_v3("Ensure lines in format key${separator}values into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

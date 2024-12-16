@@ -25,6 +25,38 @@ pipeline {
     stages {
         stage('Tests') {
             parallel {
+                stage('python-lib') {
+                    agent {
+                        dockerfile {
+                            filename 'ci/python.Dockerfile'
+                                additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
+                        }
+                    }
+                    steps {
+                        script {
+                            running.add("Tests - policies/lib")
+                        }
+                        dir("policies/lib") {
+                            sh script: 'avocado run --disable-sysinfo tests/quick', label: 'quick method tests'
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                failedBuild = true
+                                errors.add("Tests - python-lib")
+                                slackResponse = updateSlack(errors, running, slackResponse, version, changeUrl)
+                                slackSend(channel: slackResponse.threadId, message: "Error during python-lib test - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                running.remove("Tests - python-lib")
+                                cleanWs(deleteDirs: true, notFailBuild: true)
+                            }
+                        }
+                    }
+                }
                 stage('relayd-man') {
                     agent {
                         dockerfile {

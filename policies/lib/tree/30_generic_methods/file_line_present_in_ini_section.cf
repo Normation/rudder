@@ -1,0 +1,68 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File line in INI section
+# @description Ensure that a line is present in a section in a specific location. The objective of this method is to handle INI-style files.
+#
+# @parameter path File name to edit (absolute path on the target node)
+# @parameter section Name of the INI-style section under which lines should be added (not including the [] brackets)
+# @parameter line Line to ensure is present inside the section
+#
+#
+# @parameter_rename file path
+# @class_prefix file_line_present_in_ini_section
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_line_present_in_ini_section(path, section, line)
+{
+  vars:
+      "old_class_prefix"       string => canonify("file_line_present_in_ini_section_${path}");
+      "args"                    slist => { "${path}", "${section}", "${line}" };
+      "report_param"           string => join("_", args);
+      "full_class_prefix"      string => canonify("file_line_present_in_ini_section_${report_param}");
+      "class_prefix"           string => string_head("${full_class_prefix}", "1000");
+      "section_and_blank_line" string => "[${section}]
+";
+
+  classes:
+      # Check if the section exist: if not, a class will be raised to add it with a blank line.
+      "section_absent"  not => regline("^\[${section}\]$","${path}");
+
+  files:
+      # If the section is not present in the file, firstly it will be added
+      # with a blank line in order to be caught for the lines to add after it.
+      "${path}"
+        create        => "true",
+        edit_line     => ncf_insert_block("${section_and_blank_line}"),
+        edit_defaults => ncf_empty_select("false"),
+        ifvarclass    => "section_absent",
+        comment       => "Add section to file with a blank line";
+
+      # Add the missing lines after the section.
+      "${path}"
+        create        => "true",
+        edit_line     => ensure_line_in_ini_section("${section}", "${line}"),
+        edit_defaults => ncf_empty_select("false"),
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
+      "report"   usebundle => _log_v3("Insert line(s) into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

@@ -1,0 +1,84 @@
+# Processes bodies
+
+body process_select exclude_procs(x)
+# @brief Select all processes excluding those matching `x`
+# @param x Regular expression matching the command/cmd field
+# of the processes that should be excluded
+{
+      command => "$(x)";
+      process_result => "!command";
+}
+
+##
+
+body process_select days_older_than(d)
+# @brief Select all processes that are older than `d` days
+# @param d Days that processes need to be old to be selected
+{
+      stime_range    => irange(ago(0,0,"$(d)",0,0,0),now);
+      process_result => "!stime";
+}
+
+##
+
+body process_select by_owner(u)
+# @brief Select processes owned by user `u`
+# @param u The name of the user
+#
+# Matches processes against the given username and the given username's uid
+# in case only uid is visible in process list.
+{
+      process_owner => { "$(u)", canonify(getuid("$(u)")) };
+      process_result => "process_owner";
+}
+
+body process_select by_pid(pid)
+# @brief Select a process matching the given PID
+# @param pid PID of the process to be matched
+{
+      pid => irange("$(pid)","$(pid)");
+      process_result => "pid";
+}
+
+##
+
+body process_count any_count(cl)
+# @brief Define class `cl` if the process is running
+# @param cl Name of the class to be defined
+{
+      match_range => "0,0";
+      out_of_range_define => { "$(cl)" };
+}
+
+##
+
+body process_count check_range(name,lower,upper)
+# @brief Define a class if the number of processes is not
+# within the specified range.
+# @param name The name part of the class `$(name)_out_of_range`
+# @param lower The lower bound of the range
+# @param upper The upper bound of the range
+{
+      match_range => irange("$(lower)","$(upper)");
+      out_of_range_define => { "$(name)_out_of_range" };
+}
+
+bundle agent process_kill(name)
+# @brief Kill a process by name (can be a regular expression)
+# @param name the regular expression or string
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "kill" usebundle => process_kill("badprocess");
+# ```
+{
+  processes:
+    !windows::
+      # Signals are presented as an ordered list to the process.
+      "$(name)" signals => { "term", "kill" };
+    windows::
+      # On Windows, only the kill signal is supported, which terminates the process.
+      "$(name)" signals => { "kill" };
+}

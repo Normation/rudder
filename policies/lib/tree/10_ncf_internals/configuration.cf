@@ -1,0 +1,48 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# Global Config
+#   The variables will be usable in the context configuration.variablename
+bundle common configuration
+{
+  vars:
+      "fatal" string => "[FATAL]";
+      "error" string => "[ERROR]";
+      "info"  string => "[INFO]";
+      "debug" string => "[DEBUG]";
+      "trace" string => "[TRACE]";
+
+      "enabled_abort_handlers" slist => { "_abort_default", "abort_rudder" };
+      "flag_file"             string => "/var/rudder/agent-data/flags.json";
+
+  classes:
+      # Define verbosity classes according to classes
+      # defined by the agent after verbosity options (-I, -v, -d)
+      "info"  expression => "inform_mode",
+                   scope => "namespace";
+      "debug" expression => "verbose_mode",
+                   scope => "namespace";
+      "trace" expression => "debug_mode",
+                   scope => "namespace";
+
+      # Make log level incremental
+      "debug" expression => "trace",
+                   scope => "namespace";
+      "info"  expression => "debug",
+                   scope => "namespace";
+}

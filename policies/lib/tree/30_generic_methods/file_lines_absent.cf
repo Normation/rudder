@@ -1,0 +1,64 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File lines absent
+# @description Ensure that a line is absent in a specific location
+# @documentation Edit the file, and ensure it does not contain the defined line. Regular expression can be used for both the file name and the lines absent.
+#
+# @parameter path File name to edit (absolute path on the target node)
+# @parameter lines Line(s) to remove in the file
+#
+#
+# @parameter_rename file path
+# @class_prefix file_lines_absent
+# @class_parameter path
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent file_lines_absent(path, lines)
+{
+  vars:
+      "old_class_prefix"  string => canonify("file_lines_absent_${path}");
+      "args"               slist => { "${path}", "${lines}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_lines_absent_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+      "file_exists"   expression => fileexists("${path}");
+
+  files:
+    file_exists::
+      "${path}"
+        create        => "false",
+        edit_line     => delete_lines_matching("${lines}"),
+        edit_defaults => ncf_empty_select("false"),
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+    file_exists::
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
+      "report"   usebundle => _log_v3("Ensure line(s) '${lines}' absent from ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+ 
+    !file_exists::
+      "success"  usebundle => _classes_success("${class_prefix}");
+      "success"  usebundle => _classes_success("${old_class_prefix}");
+      "report"   usebundle => _log_v3("File ${path} does not exist - line(s) not present", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+
+}

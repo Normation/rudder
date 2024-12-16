@@ -1,0 +1,117 @@
+#!/bin/sh -e
+
+command=$1
+
+while read -r line; do
+  export INPUT_$line
+done
+
+get_package_data() {
+  name="${INPUT_File?File must be given to get-package-data}"
+  echo PackageType=repo
+  echo Name=$name
+}
+
+list_installed() {
+  # Example pkg output:
+  # sudo-1.8.14p3
+  # Name           : sudo
+  # Version        : 1.8.14p3
+  # Installed on   : Sun Aug 16 05:36:05 UTC 2015
+  # Origin         : security/sudo
+  # Architecture   : freebsd:10:x86:64
+  #
+  # After rewrite:
+  # Name=sudo
+  # Version=1.8.14p3
+  # Architecture=none
+  pkg info -f -a | egrep '^(Name|Version|Architecture)' | sed -e 's/[ ]*:[ ]*/=/' -e 's/^Architecture=.*/Architecture=none/'
+}
+
+repo_install() {
+  name="${INPUT_Name?Name must be given to repo-install}"
+  version="${INPUT_Version}"
+
+  export BATCH=1
+  PORT_PATH=$(whereis -sq "$name")
+
+  if [ -z "$PORT_PATH" ]
+  then
+    echo "ErrorMessage=Could not install $name, port does not exist"
+    exit 0
+  fi
+
+  cd "$PORT_PATH"
+
+  if [ -n "$version" ]
+  then
+    available=$(make -V PKGVERSION)
+    if [ "$available" != "$version" ]
+    then
+      echo "ErrorMessage=Could not install $name $version, available version was $available"
+      exit 0
+    fi
+  fi
+
+  make deinstall reinstall >&2
+}
+
+update_ports_tree() {
+  portsnap --interactive fetch update >&2
+}
+
+list_updates_local() {
+  # Example pkg output:
+  # ca_root_nss-3.19.3                 <   needs updating (index has 3.20)
+  #
+  # After sed:
+  # Name=ca_root_nss
+  # Version=3.20
+  # Architecture=none
+  pkg version -v -l "<" | sed -e 's/\([^ ]*\)-[^-]* .* \(.*\))/Name=\1\
+Version=\2\
+Architecture=none/'
+}
+
+remove() {
+  name="${INPUT_Name?Name must be given to remove}"
+  export BATCH=1
+
+  PORT_PATH=$(whereis -sq "$name")
+
+  if [ -z "$PORT_PATH" ]
+  then
+    echo "ErrorMessage=Could not remove $name, port does not exist"
+    exit 0
+  fi
+
+  cd "$PORT_PATH"
+  make deinstall >&2
+}
+
+case $command in
+  supports-api-version)
+    echo 1
+  ;;
+  get-package-data)
+    get_package_data
+  ;;
+  list-installed)
+    list_installed
+  ;;
+  repo-install)
+    repo_install
+  ;;
+  list-updates)
+    update_ports_tree
+    list_updates_local
+  ;;
+  list-updates-local)
+    list_updates_local
+  ;;
+  remove)
+    remove
+  ;;
+  *)
+    echo "ErrorMessage=Invalid operation"
+esac

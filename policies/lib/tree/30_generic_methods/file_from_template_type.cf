@@ -1,0 +1,163 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File from template with type
+# @description Build a file from a template
+# @documentation These methods write a file based on a provided template and the
+# data available to the agent.
+# 
+# #### Usage
+#
+# To use these methods (`file_from_template_*`), you need to have:
+#
+# * a template file
+# * data to fill this template
+#
+# The template file should be somewhere on the local file system, so
+# if you want to use a file shared from the policy server, you need to copy 
+# it first (using [file_copy_from_remote_source](#_file_copy_from_remote_source)).
+#
+# It is common to use a specific folder to store those templates after copy,
+# for example in `${sys.workdir}/tmp/templates/`.
+#
+# The data that will be used while expanding the template is the data available in
+# the agent at the time of expansion. That means:
+#
+# * Agent's system variables (`${sys.*}`, ...) and conditions (`linux`, ...)
+# * data defined during execution (result conditions of generic methods, ...)
+# * conditions based on `condition_` generic methods
+# * data defined in ncf using `variable_*` generic methods, which allow for example
+#   to load data from local json or yaml files.
+#
+# #### Template types
+#
+# ncf currently supports three templating languages:
+#
+# * *mustache* templates, which are documented in [file_from_template_mustache](#_file_from_template_mustache)
+# * *jinja2* templates, which are documented in [file_from_template_jinja2](#_file_from_template_jinja2)
+# * CFEngine templates, which are a legacy implementation that is here for compatibility,
+# and should not be used for new templates.
+#
+# #### Example
+#
+# Here is a complete example of templating usage:
+#
+# The (basic) template file, present on the server in `/PATH_TO_MY_FILE/ntp.conf.mustache`
+# (for syntax reference, see [file_from_template_mustache](#_file_from_template_mustache)):
+#
+# ```mustache
+# {{#classes.linux}}
+# server {{{vars.configuration.ntp.hostname}}}
+# {{/classes.linux}}
+# {{^classes.linux}}
+# server hardcoded.server.example
+# {{/classes.linux}}
+#
+# ```
+#
+# And on your local node in `/tmp/ntp.json`, the following json file:
+#
+# ```json
+# { "hostname": "my.hostname.example" }
+# ```
+#
+# And the following policy:
+#
+# ```
+# # Copy the file from the policy server
+# file_copy_from_remote_source("/PATH_TO_MY_FILE/ntp.conf.mustache", "${sys.workdir}/tmp/templates/ntp.conf.mustache")
+# # Define the `ntp` variable in the `configuration` prefix from the json file
+# variable_dict_from_file("configuration", "ntp", "/tmp/ntp.json")
+# # Expand your template
+# file_from_template_type("${sys.workdir}/tmp/templates/ntp.conf.mustache", "/etc/ntp.conf", "mustache")
+# # or
+# # file_from_template_mustache("${sys.workdir}/tmp/templates/ntp.conf.mustache", "/etc/ntp.conf")
+# ```
+#
+# The destination file will contain the expanded content, for example on a Linux node:
+#
+# ```
+# server my.hostname.example
+# ```
+#
+#
+# @parameter source_template Source file containing a template to be expanded (absolute path on the target node)
+# @parameter path            Destination file (absolute path on the target node)
+# @parameter template_type   Template type (cfengine, jinja2 or mustache)
+#
+#
+# @parameter_rename destination path
+# @class_prefix file_from_template
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_from_template_type(source_template, path, template_type)
+{
+  vars:
+      "old_class_prefix"  string => canonify("file_from_template_${path}");
+
+      "args"               slist => { "${source_template}", "${path}", "${template_type}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_from_template_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      # Only used in the jinja2 case
+      "full_inner_class_prefix" string => canonify("file_from_template_${source_template}_${path}");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+
+      # allow to avoid resolving the jinja2 bundle when not using jinja2, because of the special requirements
+      "jinja2_bundle_name" string => "file_from_template_jinja2";
+
+  classes:
+      "template_exists" expression => fileexists("${source_template}");
+      "is_jinja2"       expression => strcmp("${template_type}", "jinja2");
+
+      "should_report"   expression => "${report_data.should_report}";
+
+  files:
+    "${path}"
+      create          => "true",
+      edit_template   => "${source_template}",
+      template_method => "${template_type}",
+      edit_defaults   => ncf_empty_select("true"),
+      ifvarclass      => "!is_jinja2.template_exists",
+      classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+      "disable_reporting_${class_prefix}"     usebundle => disable_reporting;
+    is_jinja2.template_exists::
+      "template" usebundle => ${jinja2_bundle_name}("${source_template}", "${path}");
+
+    any::
+      "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
+
+    !template_exists::
+      "template_absent" usebundle => _classes_failure("${old_class_prefix}");
+      "template_absent" usebundle => _classes_failure("${class_prefix}");
+
+    is_jinja2.template_exists::
+      "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+      "report" usebundle => _log_v3("Build file ${path} from ${template_type} template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    !(is_jinja2.template_exists)::
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
+      "report"   usebundle => _log_v3("Build file ${path} from ${template_type} type template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+}

@@ -1,0 +1,70 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Service stopped
+# @description Ensure that a service is stopped using the appropriate method
+#
+# @parameter name Service
+# 
+#
+# @parameter_rename service_name name
+# @class_prefix service_stopped
+# @class_parameter name
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent service_stopped(name)
+{
+  vars:
+      "class_prefix" string => "service_stopped_${name}";
+
+  classes:
+    pass2::
+      "needs_stop" expression => "${report_data.method_id}_ncf_services_check_kept";
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass1.!pass2::
+      "${report_data.method_id}_${name}" usebundle => _classes_cancel("${report_data.method_id}");
+      "${report_data.method_id}_${name}" usebundle => _classes_cancel("${report_data.method_id}_ncf_services_check");
+    pass2.!pass3::
+      # Get service status
+      "${report_data.method_id}_${name}" usebundle => call_method("ncf_services_check");
+      "${report_data.method_id}_${name}" usebundle => ncf_services("${name}", "is-active");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes("${report_data.method_id}_ncf_services_check");
+      "${report_data.method_id}_${name}" usebundle => call_method_end("ncf_services_check");
+    pass3.needs_stop::
+      # If service is running, stop it
+      "${report_data.method_id}_${name}" usebundle => call_method("ncf_services_stop");
+      "${report_data.method_id}_${name}" usebundle => ncf_services("${name}", "stop");
+      # Use stop result as method result
+      "${report_data.method_id}_${name}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes("${report_data.report_id}");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}_${name}" usebundle => call_method_end("ncf_services_stop");
+    pass3.!needs_stop::
+      # Define success classes is check_running was not kept
+      "${report_data.method_id}_${name}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}_${name}" usebundle => _classes_success("${report_data.report_id}");
+      "${report_data.method_id}_${name}" usebundle => _classes_success("${report_data.method_id}");
+    pass3::
+      # Report
+      "${report_data.method_id}_${name}" usebundle => log_rudder_v4("${name}", "Ensure that service ${name} is stopped", "");
+}

@@ -1,0 +1,55 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Package remove
+# @description Remove a package
+# @deprecated Use [package_absent](#_package_absent) instead.
+# @documentation *Example*:
+# ```
+# methods:
+#     "any" usebundle => package_remove("htop");
+# ```
+#
+# @parameter name        Name of the package to remove
+#
+#
+# @parameter_rename package_name name
+# @class_prefix package_remove
+# @class_parameter name
+# @agent_support = ["cfengine-community"]
+
+bundle agent package_remove(name)
+{
+  vars:
+      "canonified_name"         string => canonify("${name}");
+      "old_class_prefix"        string => "package_remove_${canonified_name}";
+      "args"                    slist => { "${name}" };
+
+      "report_param"            string => join("_", args);
+      "full_class_prefix"       string => canonify("package_remove_${report_param}");
+      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
+
+  packages:
+      "${name}"
+                        package_policy  => "delete",
+                        package_method  => generic,
+                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+      "placeholder"        usebundle => _log_v3("Remove package ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

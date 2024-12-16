@@ -1,0 +1,46 @@
+#####################################################################################
+# Copyright 2022 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Rudder inventory trigger
+# @description Trigger an inventory on the agent
+# @action
+# @documentation
+#
+# Trigger a Rudder inventory. This will not run the inventory
+# immediately but next time the agent runs.
+#
+# @parameter id     Id of the reporting for this method (internal identifier, needs to be unique for each use of the method)
+#
+# @class_prefix rudder_inventory_trigger
+# @class_parameter id
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent rudder_inventory_trigger(id)
+{
+  vars:
+      "flag_file"    string => "${g.rudder_base}/etc/force_inventory";
+      "class_prefix" string => canonify("rudder_inventory_trigger_${id}");
+
+  files:
+      "${flag_file}"
+        create        => "true",
+        classes       => classes_generic_two("${report_data.report_id}", "${class_prefix}");
+
+  methods:
+      "${report_data.method_id}" usebundle => log_rudder_v4("${id}", "Trigger an inventory", "");
+}

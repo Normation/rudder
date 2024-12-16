@@ -1,0 +1,699 @@
+# Paths bundle (used by other bodies)
+
+bundle common paths
+# @brief Defines an array `path` with common paths to standard binaries and
+# directories as well as classes for defined and existing paths.
+#
+# If the current platform knows that binary XYZ should be present,
+# `_stdlib_has_path_XYZ` is defined. Furthermore, if XYZ is actually present
+# (i.e. the binary exists) in the expected location, `_stdlib_path_exists_XYZ` is
+# defined.
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent no_carriage_returns(filename)
+# {
+# commands:
+#   _stdlib_path_exists_sed::
+#      "$(paths.sed)" -> { "CFE-3216" }
+#        args => "-i 's/^M//' $(filename)",
+#        comment => "Preferred reference style";
+#
+#      "$(paths[sed])"
+#        args => "-i 's/^M//' $(filename)",
+#        comment => "Alternate array reference style";
+# }
+# ```
+#
+# The paths bundle can be extended with custom paths by tagging *classic array* variables with `paths.cf`.
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent extended_paths_example
+# {
+#   meta:
+#       "tags" slist => { "autorun" };
+#
+#   vars:
+#       # NOTE: the key will be canonified when it's pulled in to the paths bundle.
+#       "path[orange]" string => "/bin/true", meta => { "paths.cf" };
+#       "path[true-blue]" string => "/bin/true", meta => { "paths.cf" };
+#       "foo[bar]" string => "/bin/true", meta => { "paths.cf" };
+#
+#     this_context_isnt_defined_so_no_path::
+#       "path[red]" string => "/bin/true", meta => { "paths.cf" };
+#
+#   reports:
+#     _stdlib_path_exists_orange::
+#       "path paths.orange == $(paths.orange)";
+#       "path paths.path[orange] == $(paths.path[orange])";
+#
+#     _stdlib_path_exists_bar::
+#       "path paths.bar == $(paths.bar)";
+#       "path paths.path[bar] == $(paths.path[bar])";
+#
+#     _stdlib_path_exists_true_blue::
+#       "path paths.true_blue == $(paths.true_blue)";
+#       "path paths.path[true_blue] == $(paths.path[true_blue])";
+#
+#     _stdlib_path_exists_red::
+#       "path paths.red == $(paths.red)";
+#       "path paths.path[red] == $(paths.path[red])";
+#
+#     !_stdlib_path_exists_red::
+#       "path paths.red was not found";
+#       "path paths.path[red] was not found";
+# }
+# ```
+#
+# Additionally several path entries are present to aid in policy sharing between
+# unix systems and Android Termux environments.
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent track_sshd_config
+# {
+#   files:
+#     "$(paths.etc_path)/sshd/sshd_config"
+#       changes => detect_all_change;
+# }
+# ```
+#
+# In case of termux, `paths.etc_path` will be `/data/data/com.termux/files/usr/etc`.
+#
+# **History:**
+#
+# - Ability to extend paths by tagging classic array variables added 3.17.0 (works with binary version 3.11.0 and greater)
+{
+  vars:
+
+      #
+      # Common full pathname of commands for OS
+      #
+
+    enterprise.(am_policy_hub|policy_server)::
+      "path[git]"
+        string => "$(sys.workdir)/bin/git",
+        comment => "CFEngine Enterprise Hub ships with its own git which is used internally";
+
+    !(enterprise.(am_policy_hub|policy_server))::
+      "path[git]"      string => "/usr/bin/git";
+
+    !(freebsd|darwin|smartos)::
+      "path[npm]"      string => "/usr/bin/npm";
+      "path[pip]"      string => "/usr/bin/pip";
+      "path[virtualenv]" string => "/usr/bin/virtualenv";
+
+    !(freebsd|darwin)::
+      "path[getfacl]"  string => "/usr/bin/getfacl";
+      "path[setfacl]"  string => "/usr/bin/setfacl";
+
+    freebsd|darwin::
+      "path[npm]"      string => "/usr/local/bin/npm";
+      "path[pip]"      string => "/usr/local/bin/pip";
+      "path[virtualenv]" string => "/usr/local/bin/virtualenv";
+      "path[automount]" string => "/usr/sbin/automount";
+
+    _have_bin_env::
+      "path[env]"      string => "/bin/env";
+    !_have_bin_env::
+      "path[env]"      string => "/usr/bin/env";
+
+    _have_bin_systemctl::
+      "path[systemctl]"      string => "/bin/systemctl";
+    !_have_bin_systemctl::
+      "path[systemctl]"      string => "/usr/bin/systemctl";
+
+    _have_bin_journalctl::
+      "path[journalctl]"     string => "/bin/journalctl";
+    !_have_bin_journalctl::
+      "path[journalctl]"     string => "/usr/bin/journalctl";
+
+    _have_bin_timedatectl::
+      "path[timedatectl]"    string => "/bin/timedatectl";
+    !_have_bin_timedatectl::
+      "path[timedatectl]"    string => "/usr/bin/timedatectl";
+
+    linux::
+      "path[date]"          string => "/usr/bin/date";
+      "path[lsattr]"        string => "/usr/bin/lsattr";
+      "path[lsmod]"         string => "/sbin/lsmod";
+      "path[tar]"           string => "/bin/tar";
+      "path[true]"          string => "/bin/true";
+      "path[false]"         string => "/bin/false";
+      "path[pgrep]"         string => "/usr/bin/pgrep";
+      "path[getent]"        string => "/usr/bin/getent";
+      "path[mailx]"         string => "/usr/bin/mailx";
+      "path[prelink]"       string => "/usr/sbin/prelink";
+      "path[ssh]"           string => "/usr/bin/ssh";
+
+    aix::
+
+      "path[awk]"      string => "/usr/bin/awk";
+      "path[bc]"       string => "/usr/bin/bc";
+      "path[cat]"      string => "/bin/cat";
+      "path[cksum]"    string => "/usr/bin/cksum";
+      "path[crontabs]" string => "/var/spool/cron/crontabs";
+      "path[cut]"      string => "/usr/bin/cut";
+      "path[dc]"       string => "/usr/bin/dc";
+      "path[df]"       string => "/usr/bin/df";
+      "path[diff]"     string => "/usr/bin/diff";
+      "path[dig]"      string => "/usr/bin/dig";
+      "path[echo]"     string => "/usr/bin/echo";
+      "path[egrep]"    string => "/usr/bin/egrep";
+      "path[find]"     string => "/usr/bin/find";
+      "path[grep]"     string => "/usr/bin/grep";
+      "path[ls]"       string => "/usr/bin/ls";
+      "path[netstat]"  string => "/usr/bin/netstat";
+      "path[oslevel]"  string => "/usr/bin/oslevel";
+      "path[ping]"     string => "/usr/bin/ping";
+      "path[perl]"     string => "/usr/bin/perl";
+      "path[printf]"   string => "/usr/bin/printf";
+      "path[sed]"      string => "/usr/bin/sed";
+      "path[sort]"     string => "/usr/bin/sort";
+      "path[tr]"       string => "/usr/bin/tr";
+      "path[yum]"      string => "/usr/bin/yum";
+
+    archlinux::
+
+      "path[awk]"               string => "/usr/bin/awk";
+      "path[bc]"                string => "/usr/bin/bc";
+      "path[cat]"               string => "/usr/bin/cat";
+      "path[cksum]"             string => "/usr/bin/cksum";
+      "path[crontab]"           string => "/usr/bin/crontab";
+      "path[cut]"               string => "/usr/bin/cut";
+      "path[dc]"                string => "/usr/bin/dc";
+      "path[df]"                string => "/usr/bin/df";
+      "path[diff]"              string => "/usr/bin/diff";
+      "path[dig]"               string => "/usr/bin/dig";
+      "path[dmidecode]"         string => "/usr/bin/dmidecode";
+      "path[echo]"              string => "/usr/bin/echo";
+      "path[egrep]"             string => "/usr/bin/egrep";
+      "path[ethtool]"           string => "/usr/bin/ethtool";
+      "path[find]"              string => "/usr/bin/find";
+      "path[free]"              string => "/usr/bin/free";
+      "path[grep]"              string => "/usr/bin/grep";
+      "path[hostname]"          string => "/usr/bin/hostname";
+      "path[init]"              string => "/usr/bin/init";
+      "path[iptables]"          string => "/usr/bin/iptables";
+      "path[iptables_save]"     string => "/usr/bin/iptables-save";
+      "path[iptables_restore]"  string => "/usr/bin/iptables-restore";
+      "path[ls]"                string => "/usr/bin/ls";
+      "path[lsof]"              string => "/usr/bin/lsof";
+      "path[netstat]"           string => "/usr/bin/netstat";
+      "path[ping]"              string => "/usr/bin/ping";
+      "path[perl]"              string => "/usr/bin/perl";
+      "path[printf]"            string => "/usr/bin/printf";
+      "path[sed]"               string => "/usr/bin/sed";
+      "path[sort]"              string => "/usr/bin/sort";
+      "path[test]"              string => "/usr/bin/test";
+      "path[top]"               string => "/usr/bin/top";
+      "path[tr]"                string => "/usr/bin/tr";
+      #
+      "path[pacman]"            string => "/usr/bin/pacman";
+      "path[yaourt]"            string => "/usr/bin/yaourt";
+      "path[useradd]"           string => "/usr/bin/useradd";
+      "path[groupadd]"          string => "/usr/bin/groupadd";
+      "path[ip]"                string => "/usr/bin/ip";
+      "path[ifconfig]"          string => "/usr/bin/ifconfig";
+      "path[journalctl]"        string => "/usr/bin/journalctl";
+      "path[netctl]"            string => "/usr/bin/netctl";
+
+    coreos::
+
+      "path[awk]"      string => "/usr/bin/awk";
+      "path[cat]"      string => "/usr/bin/cat";
+      "path[cksum]"    string => "/usr/bin/cksum";
+      "path[curl]"     string => "/usr/bin/curl";
+      "path[cut]"      string => "/usr/bin/cut";
+      "path[diff]"     string => "/usr/bin/diff";
+      "path[dig]"      string => "/usr/bin/dig";
+      "path[echo]"     string => "/usr/bin/echo";
+      "path[ip]"       string => "/usr/bin/ip";
+      "path[lsof]"     string => "/usr/bin/lsof";
+      "path[netstat]"  string => "/usr/bin/netstat";
+      "path[ping]"     string => "/usr/bin/ping";
+      "path[printf]"   string => "/usr/bin/printf";
+      "path[sed]"      string => "/usr/bin/sed";
+      "path[sort]"     string => "/usr/bin/sort";
+      "path[test]"     string => "/usr/bin/test";
+      "path[wget]"     string => "/usr/bin/wget";
+
+    freebsd|netbsd|openbsd::
+
+      "path[awk]"      string => "/usr/bin/awk";
+      "path[bc]"       string => "/usr/bin/bc";
+      "path[cat]"      string => "/bin/cat";
+      "path[crontabs]" string => "/var/cron/tabs";
+      "path[cut]"      string => "/usr/bin/cut";
+      "path[dc]"       string => "/usr/bin/dc";
+      "path[df]"       string => "/bin/df";
+      "path[diff]"     string => "/usr/bin/diff";
+      "path[dig]"      string => "/usr/bin/dig";
+      "path[echo]"     string => "/bin/echo";
+      "path[egrep]"    string => "/usr/bin/egrep";
+      "path[find]"     string => "/usr/bin/find";
+      "path[grep]"     string => "/usr/bin/grep";
+      "path[ls]"       string => "/bin/ls";
+      "path[netstat]"  string => "/usr/bin/netstat";
+      "path[perl]"     string => "/usr/bin/perl";
+      "path[printf]"   string => "/usr/bin/printf";
+      "path[sed]"      string => "/usr/bin/sed";
+      "path[sort]"     string => "/usr/bin/sort";
+      "path[tr]"       string => "/usr/bin/tr";
+
+    freebsd.!(freebsd_9_3|freebsd_10|freebsd_11)|netbsd|openbsd::
+
+      "path[ping]"     string => "/usr/bin/ping";
+
+    freebsd_9_3|freebsd_10|freebsd_11::
+
+      "path[ping]"     string => "/sbin/ping";
+
+    freebsd|netbsd::
+
+      "path[cksum]"    string => "/usr/bin/cksum";
+      "path[realpath]" string => "/bin/realpath";
+
+    freebsd::
+
+      "path[bhyvectl]" string => "/usr/sbin/bhyvectl";
+      "path[getfacl]"  string => "/bin/getfacl";
+      "path[setfacl]"  string => "/bin/setfacl";
+      "path[dtrace]"   string => "/usr/sbin/dtrace";
+      "path[service]"  string => "/usr/sbin/service";
+      "path[zpool]"    string => "/sbin/zpool";
+      "path[zfs]"      string => "/sbin/zfs";
+
+    openbsd::
+
+      "path[cksum]"    string => "/bin/cksum";
+
+    smartos::
+      "path[npm]"      string => "/opt/local/bin/npm";
+      "path[pip]"      string => "/opt/local/bin/pip";
+
+    solaris::
+
+      "path[bc]"       string => "/usr/bin/bc";
+      "path[cat]"      string => "/usr/bin/cat";
+      "path[cksum]"    string => "/usr/bin/cksum";
+      "path[crontab]"  string => "/usr/bin/crontab";
+      "path[crontabs]" string => "/var/spool/cron/crontabs";
+      "path[curl]"     string => "/usr/bin/curl";
+      "path[cut]"      string => "/usr/bin/cut";
+      "path[dc]"       string => "/usr/bin/dc";
+      "path[diff]"     string => "/usr/bin/diff";
+      "path[dig]"      string => "/usr/sbin/dig";
+      "path[echo]"     string => "/usr/bin/echo";
+      "path[netstat]"  string => "/usr/bin/netstat";
+      "path[ping]"     string => "/usr/bin/ping";
+      "path[perl]"     string => "/usr/bin/perl";
+      "path[printf]"   string => "/usr/bin/printf";
+      "path[wget]"     string => "/usr/bin/wget";
+      #
+      "path[svcs]"     string => "/usr/bin/svcs";
+      "path[svcadm]"   string => "/usr/sbin/svcadm";
+      "path[svccfg]"   string => "/usr/sbin/svccfg";
+      "path[svcprop]"  string => "/usr/bin/svcprop";
+      "path[netadm]"   string => "/usr/sbin/netadm";
+      "path[dladm]"    string => "/usr/sbin/dladm";
+      "path[ipadm]"    string => "/usr/sbin/ipadm";
+      "path[pkg]"      string => "/usr/bin/pkg";
+      "path[pkginfo]"  string => "/usr/bin/pkginfo";
+      "path[pkgadd]"   string => "/usr/sbin/pkgadd";
+      "path[pkgrm]"    string => "/usr/sbin/pkgrm";
+      "path[zoneadm]"  string => "/usr/sbin/zoneadm";
+      "path[zonecfg]"  string => "/usr/sbin/zonecfg";
+
+    solaris.(mpf_stdlib_use_posix_utils.!disable_mpf_stdlib_use_posix_utils)::
+      "path[awk]"      string => "/usr/xpg4/bin/awk";
+      "path[df]"       string => "/usr/xpg4/bin/df";
+      "path[egrep]"    string => "/usr/xpg4/bin/egrep";
+      "path[find]"     string => "/usr/xpg4/bin/find";
+      "path[grep]"     string => "/usr/xpg4/bin/grep";
+      "path[ls]"       string => "/usr/xpg4/bin/ls";
+      "path[sed]"      string => "/usr/xpg4/bin/sed";
+      "path[sort]"     string => "/usr/xpg4/bin/sort";
+      "path[tr]"       string => "/usr/xpg4/bin/tr";
+
+    solaris.!(mpf_stdlib_use_posix_utils.!disable_mpf_stdlib_use_posix_utils)::
+      "path[awk]"      string => "/usr/bin/awk";
+      "path[df]"       string => "/usr/bin/df";
+      "path[egrep]"    string => "/usr/bin/egrep";
+      "path[find]"     string => "/usr/bin/find";
+      "path[grep]"     string => "/usr/bin/grep";
+      "path[ls]"       string => "/usr/bin/ls";
+      "path[sed]"      string => "/usr/bin/sed";
+      "path[sort]"     string => "/usr/bin/sort";
+      "path[tr]"       string => "/usr/bin/tr";
+
+    redhat::
+
+      "path[awk]"           string => "/bin/awk";
+      "path[bc]"            string => "/usr/bin/bc";
+      "path[cat]"           string => "/bin/cat";
+      "path[cksum]"         string => "/usr/bin/cksum";
+      "path[createrepo]"    string => "/usr/bin/createrepo";
+      "path[crontab]"       string => "/usr/bin/crontab";
+      "path[crontabs]"      string => "/var/spool/cron";
+      "path[curl]"          string => "/usr/bin/curl";
+      "path[cut]"           string => "/bin/cut";
+      "path[dc]"            string => "/usr/bin/dc";
+      "path[df]"            string => "/bin/df";
+      "path[diff]"          string => "/usr/bin/diff";
+      "path[dig]"           string => "/usr/bin/dig";
+      "path[domainname]"    string => "/bin/domainname";
+      "path[echo]"          string => "/bin/echo";
+      "path[egrep]"         string => "/bin/egrep";
+      "path[ethtool]"       string => "/usr/sbin/ethtool";
+      "path[find]"          string => "/usr/bin/find";
+      "path[free]"          string => "/usr/bin/free";
+      "path[getenforce]"    string => "/usr/sbin/getenforce";
+      "path[grep]"          string => "/bin/grep";
+      "path[hostname]"      string => "/bin/hostname";
+      "path[init]"          string => "/sbin/init";
+      "path[iptables]"      string => "/sbin/iptables";
+      "path[iptables_save]" string => "/sbin/iptables-save";
+      "path[ls]"            string => "/bin/ls";
+      "path[lsof]"          string => "/usr/sbin/lsof";
+      "path[netstat]"       string => "/bin/netstat";
+      "path[nologin]"       string => "/sbin/nologin";
+      "path[ping]"          string => "/usr/bin/ping";
+      "path[perl]"          string => "/usr/bin/perl";
+      "path[printf]"        string => "/usr/bin/printf";
+      "path[restorecon]"    string => "/sbin/restorecon";
+      "path[sed]"           string => "/bin/sed";
+      "path[semanage]"      string => "/usr/sbin/semanage";
+      "path[sort]"          string => "/bin/sort";
+      "path[test]"          string => "/usr/bin/test";
+      "path[tr]"            string => "/usr/bin/tr";
+      "path[wc]"            string => "/usr/bin/wc";
+      "path[wget]"          string => "/usr/bin/wget";
+      "path[realpath]"      string => "/usr/bin/realpath";
+
+      #
+      "path[chkconfig]" string => "/sbin/chkconfig";
+      "path[groupadd]"  string => "/usr/sbin/groupadd";
+      "path[groupdel]"  string => "/usr/sbin/groupdel";
+      "path[ifconfig]"  string => "/sbin/ifconfig";
+      "path[ip]"        string => "/sbin/ip";
+      "path[rpm]"       string => "/bin/rpm";
+      "path[service]"   string => "/sbin/service";
+      "path[svc]"       string => "/sbin/service";
+      "path[useradd]"   string => "/usr/sbin/useradd";
+      "path[userdel]"   string => "/usr/sbin/userdel";
+      "path[usermod]"   string => "/usr/sbin/usermod";
+      "path[yum]"       string => "/usr/bin/yum";
+
+    darwin::
+      "path[awk]"           string => "/usr/bin/awk";
+      "path[bc]"            string => "/usr/bin/bc";
+      "path[cat]"           string => "/bin/cat";
+      "path[cksum]"         string => "/usr/bin/cksum";
+      "path[createrepo]"    string => "/usr/bin/createrepo";
+      "path[crontab]"       string => "/usr/bin/crontab";
+      "path[crontabs]"      string => "/usr/lib/cron/tabs";
+      "path[cut]"           string => "/usr/bin/cut";
+      "path[dc]"            string => "/usr/bin/dc";
+      "path[df]"            string => "/bin/df";
+      "path[diff]"          string => "/usr/bin/diff";
+      "path[dig]"           string => "/usr/bin/dig";
+      "path[domainname]"    string => "/bin/domainname";
+      "path[dscl]"          string => "/usr/bin/dscl";
+      "path[echo]"          string => "/bin/echo";
+      "path[egrep]"         string => "/usr/bin/egrep";
+      "path[find]"          string => "/usr/bin/find";
+      "path[grep]"          string => "/usr/bin/grep";
+      "path[hostname]"      string => "/bin/hostname";
+      "path[ls]"            string => "/bin/ls";
+      "path[lsof]"          string => "/usr/sbin/lsof";
+      "path[netstat]"       string => "/usr/sbin/netstat";
+      "path[ping]"          string => "/sbin/ping";
+      "path[perl]"          string => "/usr/bin/perl";
+      "path[printf]"        string => "/usr/bin/printf";
+      "path[sed]"           string => "/usr/bin/sed";
+      "path[sort]"          string => "/usr/bin/sort";
+      "path[test]"          string => "/bin/test";
+      "path[tr]"            string => "/usr/bin/tr";
+
+      #
+      "path[brew]"           string => "/usr/local/bin/brew";
+      "path[sudo]"           string => "/usr/bin/sudo";
+
+    debian::
+
+      "path[awk]"           string => "/usr/bin/awk";
+      "path[bc]"            string => "/usr/bin/bc";
+      "path[cat]"           string => "/bin/cat";
+      "path[chkconfig]"     string => "/sbin/chkconfig";
+      "path[cksum]"         string => "/usr/bin/cksum";
+      "path[createrepo]"    string => "/usr/bin/createrepo";
+      "path[crontab]"       string => "/usr/bin/crontab";
+      "path[crontabs]"      string => "/var/spool/cron/crontabs";
+      "path[curl]"          string => "/usr/bin/curl";
+      "path[cut]"           string => "/usr/bin/cut";
+      "path[dc]"            string => "/usr/bin/dc";
+      "path[df]"            string => "/bin/df";
+      "path[diff]"          string => "/usr/bin/diff";
+      "path[dig]"           string => "/usr/bin/dig";
+      "path[dmidecode]"     string => "/usr/sbin/dmidecode";
+      "path[domainname]"    string => "/bin/domainname";
+      "path[echo]"          string => "/bin/echo";
+      "path[egrep]"         string => "/bin/egrep";
+      "path[ethtool]"       string => "/sbin/ethtool";
+      "path[find]"          string => "/usr/bin/find";
+      "path[free]"          string => "/usr/bin/free";
+      "path[getenforce]"    string => "/usr/sbin/getenforce";
+      "path[grep]"          string => "/bin/grep";
+      "path[hostname]"      string => "/bin/hostname";
+      "path[init]"          string => "/sbin/init";
+      "path[iptables]"      string => "/sbin/iptables";
+      "path[iptables_save]" string => "/sbin/iptables-save";
+      "path[ls]"            string => "/bin/ls";
+      "path[lsof]"          string => "/usr/bin/lsof";
+      "path[netstat]"       string => "/bin/netstat";
+      "path[nologin]"       string => "/usr/sbin/nologin";
+      "path[ping]"          string => "/bin/ping";
+      "path[perl]"          string => "/usr/bin/perl";
+      "path[printf]"        string => "/usr/bin/printf";
+      "path[restorecon]"    string => "/sbin/restorecon";
+      "path[sed]"           string => "/bin/sed";
+      "path[semanage]"      string => "/usr/sbin/semanage";
+      "path[sort]"          string => "/usr/bin/sort";
+      "path[test]"          string => "/usr/bin/test";
+      "path[tr]"            string => "/usr/bin/tr";
+      "path[wc]"            string => "/usr/bin/wc";
+      "path[wget]"          string => "/usr/bin/wget";
+      "path[realpath]"      string => "/usr/bin/realpath";
+
+      #
+      "path[apt_cache]"           string => "/usr/bin/apt-cache";
+      "path[apt_config]"          string => "/usr/bin/apt-config";
+      "path[apt_get]"             string => "/usr/bin/apt-get";
+      "path[apt_key]"             string => "/usr/bin/apt-key";
+      "path[aptitude]"            string => "/usr/bin/aptitude";
+      "path[dpkg]"                string => "/usr/bin/dpkg";
+      "path[dpkg_divert]"         string => "/usr/bin/dpkg-divert";
+      "path[groupadd]"            string => "/usr/sbin/groupadd";
+      "path[groupdel]"            string => "/usr/sbin/groupdel";
+      "path[groupmod]"            string => "/usr/sbin/groupmod";
+      "path[ifconfig]"            string => "/sbin/ifconfig";
+      "path[ip]"                  string => "/sbin/ip";
+      "path[service]"             string => "/usr/sbin/service";
+      "path[svc]"                 string => "/usr/sbin/service";
+      "path[update_alternatives]" string => "/usr/bin/update-alternatives";
+      "path[update_rc_d]"         string => "/usr/sbin/update-rc.d";
+      "path[useradd]"             string => "/usr/sbin/useradd";
+      "path[userdel]"             string => "/usr/sbin/userdel";
+      "path[usermod]"             string => "/usr/sbin/usermod";
+
+    archlinux||darwin::
+
+      "path[sysctl]"        string => "/usr/bin/sysctl";
+
+    !(archlinux||darwin)::
+
+      "path[sysctl]"        string => "/sbin/sysctl";
+
+    !(suse|sles)::
+      "path[logger]"        string => "/usr/bin/logger";
+
+    opensuse::
+      "path[ls]"        string => "/usr/bin/ls";
+      "path[lsof]"      string => "/usr/bin/lsof";
+      "path[awk]"       string => "/usr/bin/awk";
+      "path[cat]"       string => "/usr/bin/cat";
+      "path[cksum]"     string => "/usr/bin/cksum";
+      "path[crontab]"   string => "/usr/bin/crontab";
+      "path[curl]"      string => "/usr/bin/curl";
+      "path[cut]"       string => "/usr/bin/cut";
+      "path[df]"        string => "/usr/bin/df";
+      "path[diff]"      string => "/usr/bin/diff";
+      "path[dig]"       string => "/usr/bin/dig";
+      "path[dmidecode]" string => "/usr/sbin/dmidecode";
+      "path[echo]"      string => "/usr/bin/echo";
+      "path[egrep]"     string => "/usr/bin/egrep";
+      "path[ethtool]"   string => "/usr/sbin/ethtool";
+      "path[find]"      string => "/usr/bin/find";
+      "path[free]"      string => "/usr/bin/free";
+      "path[grep]"      string => "/usr/bin/grep";
+      "path[hostname]"  string => "/usr/bin/hostname";
+      "path[init]"      string => "/sbin/init";
+      "path[iptables]"  string => "/usr/sbin/iptables";
+      "path[ls]"        string => "/usr/bin/ls";
+      "path[lsof]"      string => "/usr/bin/lsof";
+      "path[nologin]"   string => "/sbin/nologin";
+      "path[ping]"      string => "/usr/bin/ping";
+      "path[perl]"      string => "/usr/bin/perl";
+      "path[printf]"    string => "/usr/bin/printf";
+      "path[sed]"       string => "/usr/bin/sed";
+      "path[sort]"      string => "/usr/bin/sort";
+      "path[test]"      string => "/usr/bin/test";
+      "path[tr]"        string => "/usr/bin/tr";
+      "path[logger]"    string => "/usr/bin/logger";
+      "path[wget]"      string => "/usr/bin/wget";
+      "path[chkconfig]" string => "/sbin/chkconfig";
+      "path[groupadd]"  string => "/usr/sbin/groupadd";
+      "path[groupdel]"  string => "/usr/sbin/groupdel";
+      "path[groupmod]"  string => "/usr/sbin/groupmod";
+      "path[ip]"        string => "/sbin/ip";
+      "path[rpm]"       string => "/usr/bin/rpm";
+      "path[service]"   string => "/sbin/service";
+      "path[useradd]"   string => "/usr/sbin/useradd";
+      "path[userdel]"   string => "/usr/sbin/userdel";
+      "path[usermod]"   string => "/usr/sbin/usermod";
+      "path[zypper]"    string => "/usr/bin/zypper";
+
+    suse|sles::
+
+      "path[awk]"           string => "/usr/bin/awk";
+      "path[bc]"            string => "/usr/bin/bc";
+      "path[cat]"           string => "/bin/cat";
+      "path[cksum]"         string => "/usr/bin/cksum";
+      "path[createrepo]"    string => "/usr/bin/createrepo";
+      "path[crontab]"       string => "/usr/bin/crontab";
+      "path[crontabs]"      string => "/var/spool/cron/tabs";
+      "path[curl]"          string => "/usr/bin/curl";
+      "path[cut]"           string => "/usr/bin/cut";
+      "path[dc]"            string => "/usr/bin/dc";
+      "path[df]"            string => "/bin/df";
+      "path[diff]"          string => "/usr/bin/diff";
+      "path[dig]"           string => "/usr/bin/dig";
+      "path[dmidecode]"     string => "/usr/sbin/dmidecode";
+      "path[domainname]"    string => "/bin/domainname";
+      "path[echo]"          string => "/bin/echo";
+      "path[egrep]"         string => "/usr/bin/egrep";
+      "path[ethtool]"       string => "/usr/sbin/ethtool";
+      "path[find]"          string => "/usr/bin/find";
+      "path[free]"          string => "/usr/bin/free";
+      "path[grep]"          string => "/usr/bin/grep";
+      "path[hostname]"      string => "/bin/hostname";
+      "path[init]"          string => "/sbin/init";
+      "path[iptables]"      string => "/usr/sbin/iptables";
+      "path[iptables_save]" string => "/usr/sbin/iptables-save";
+      "path[ls]"            string => "/bin/ls";
+      "path[lsof]"          string => "/usr/bin/lsof";
+      "path[netstat]"       string => "/bin/netstat";
+      "path[nologin]"       string => "/sbin/nologin";
+      "path[ping]"          string => "/bin/ping";
+      "path[perl]"          string => "/usr/bin/perl";
+      "path[printf]"        string => "/usr/bin/printf";
+      "path[sed]"           string => "/bin/sed";
+      "path[sort]"          string => "/usr/bin/sort";
+      "path[test]"          string => "/usr/bin/test";
+      "path[tr]"            string => "/usr/bin/tr";
+      "path[logger]"        string => "/bin/logger";
+      "path[wget]"          string => "/usr/bin/wget";
+
+      #
+      "path[chkconfig]"     string => "/sbin/chkconfig";
+      "path[groupadd]"      string => "/usr/sbin/groupadd";
+      "path[groupdel]"      string => "/usr/sbin/groupdel";
+      "path[groupmod]"      string => "/usr/sbin/groupmod";
+      "path[ifconfig]"      string => "/sbin/ifconfig";
+      "path[ip]"            string => "/sbin/ip";
+      "path[rpm]"           string => "/bin/rpm";
+      "path[service]"       string => "/sbin/service";
+      "path[useradd]"       string => "/usr/sbin/useradd";
+      "path[userdel]"       string => "/usr/sbin/userdel";
+      "path[usermod]"       string => "/usr/sbin/usermod";
+      "path[zypper]"        string => "/usr/bin/zypper";
+
+    linux|solaris::
+
+      "path[shadow]"       string => "/etc/shadow";
+
+    freebsd|openbsd|netbsd|darwin::
+
+      "path[shadow]"       string => "/etc/master.passwd";
+
+      "path[mailx]"        string => "/usr/bin/mailx";
+
+    aix::
+
+      "path[shadow]"       string => "/etc/security/passwd";
+
+    termux::
+      "path[tar]"           string => "/usr/bin/tar";
+      "path[true]"          string => "/usr/bin/true";
+      "path[false]"         string => "/usr/bin/false";
+      "path[cat]"           string => "/usr/bin/cat";
+      "path[sysctl]"        string => "/usr/bin/sysctl";
+      "path[env]"           string => "/usr/bin/env";
+
+      # now, mangle the values by prepending the TERMUX_PREFIX
+      "files_path" string => "/data/data/com.termux/files";
+      "etc_path" string => "$(files_path)/usr/etc";
+      "tmp_path" string => "$(files_path)/usr/tmp";
+      "bin_path" string => "$(files_path)/usr/bin";
+      "var_path" string => "$(files_path)/usr/var";
+      "tmp_paths" slist => getindices("path");
+      "tmp_path[$(tmp_paths)]" string => "$(files_path)$(path[$(tmp_paths)])";
+      "path[$(tmp_paths)]" string => "$(tmp_path[$(tmp_paths)])";
+
+    !(termux|windows)::
+      # reasonable defaults for unix systems to allow for writing
+      # more portable paths between termux and other systems
+      "etc_path" string => "/etc";
+      "tmp_path" string => "/tmp";
+      "bin_path" string => "/bin";
+      "var_path" string => "/var";
+
+    any::
+@if minimum_version(3.11.0)
+      # Pull in variables tagged with `paths.cf`
+      "_extended_path_data" -> { "CFE-3426" }
+        data => variablesmatching_as_data( ".*", "paths.cf" );
+      "_i" -> { "CFE-3426" }
+        slist => getindices( _extended_path_data );
+      "path[$(with)]" -> { "CFE-3426" }
+        string => "$(_extended_path_data[$(_i)])",
+        with => canonify( regex_replace( $(_i), ".*\[(.*)\]", "$1", "") );
+@endif
+
+      "all_paths"     slist => getindices("path");
+      "$(all_paths)" string => "$(path[$(all_paths)])";
+
+  classes:
+      "_have_bin_env" expression => fileexists("/bin/env");
+      "_have_bin_systemctl" expression => fileexists("/bin/systemctl");
+      "_have_bin_timedatectl" expression => fileexists("/bin/timedatectl");
+      "_have_bin_journalctl"  expression => fileexists("/bin/journalctl");
+      "_have_python"                  or => {
+                                                returnszero("command -v python >/dev/null 2>/dev/null", "useshell"),
+                                                returnszero("command -v python3 >/dev/null 2>/dev/null", "useshell"),
+                                                returnszero("command -v python2 >/dev/null 2>/dev/null", "useshell")
+                                            };
+
+      "_stdlib_has_path_$(all_paths)"
+      expression => isvariable("$(all_paths)"),
+      comment    => "It's useful to know if a given path is defined";
+
+      "_stdlib_path_exists_$(all_paths)"
+      expression => fileexists("$(path[$(all_paths)])"),
+      comment    => "It's useful to know if $(all_paths) exists on the filesystem as defined";
+}

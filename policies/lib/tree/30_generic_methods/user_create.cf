@@ -1,0 +1,61 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name User create
+# @description Create a user
+# @deprecated Please split into calls to other user_* methods:
+# [user_present](#_user_present) [user_fullname](#_user_fullname) [user_home](#_user_home)
+# [user_primary_group](#_user_primary_group) [user_shell](#_user_shell) and [user_locked](#_user_locked)
+# @documentation This method does not create the user's home directory.
+#
+# @parameter login       User login
+# @parameter description User description
+# @parameter home        User's home directory
+# @parameter group       User's primary group
+# @parameter shell       User's shell
+# @parameter locked      Is the user locked ? true or false
+# 
+# @class_prefix user_create
+# @class_parameter login
+# @agent_support = ["cfengine-community"]
+
+bundle agent user_create(login, description, home, group, shell, locked)
+{
+  vars:
+      "old_class_prefix"  string => canonify("user_create_${login}");
+      "args"               slist => { "${login}", "${description}", "${home}", "${group}", "${shell}", "${locked}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("user_create_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      "policy"              string => ifelse(strcmp("true", "${locked}"), "locked", "present");
+
+  users:
+      "${login}"  policy        => "${policy}",
+                  description   => "${description}",
+                  home_dir      => "${home}",
+                  group_primary => "${group}",
+                  shell         => "${shell}",
+                  classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+      "report"
+        usebundle => _log_v3("User ${login} create", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
+        ifvarclass => "${old_class_prefix}_reached|${class_prefix}_reached";
+
+}

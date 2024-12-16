@@ -1,0 +1,158 @@
+# Event handling bundles and bodies
+
+@if minimum_version(3.9)
+
+bundle agent event_register(prefix, type, name, persistence, metadata)
+# @brief Register a `event_$(prefix)_$(type)_$(name)` class with meta=`metadata`
+# @param prefix The prefix (usually the issuing bundle name)
+# @param type The event type
+# @param name The event name
+# @param persistence the time, in minutes, the class should persist on disk (unless collected)
+# @param metadata A slist with the event metadata
+#
+# This bundle creates a class that conforms to the ad-hoc event protocol defined
+# herein.
+#
+# **See also:** `event_handle`
+{
+  vars:
+      "e" string => "event_$(prefix)_$(type)_$(name)";
+      "metadata_string" string => format("%S", metadata);
+
+  classes:
+      "$(e)" scope => "namespace",
+        persistence => $(persistence),
+        meta => { "event", "prefix=$(prefix)", "type=$(type)", "name=$(name)", @(metadata) };
+
+  reports:
+    inform_mode::
+      "$(this.bundle): creating event $(e) persistent for $(persistence) minutes with metadata $(metadata_string)";
+}
+
+body classes event_cancel_events(events)
+# @brief Cancel any `events`
+# @param events A slist of events to cancel
+{
+        cancel_notkept => { @(events) };
+        cancel_kept => { @(events) };
+        cancel_repaired => { @(events) };
+}
+
+bundle agent event_handle(prefix, type)
+# @brief Handle all the events matching `prefix` and `type` through delegation
+# @param prefix A prefix for the event, can be `.*` for all
+# @param type A type for the event, can be `.*` for all
+#
+# This bundle looks for all the event classes matching `prefix` and `type`, then
+# for all the bundles that have declared they can handle that prefix and type,
+# and then passes the corresponding event classes to each bundle.
+#
+# **See also:** `event_register`
+{
+  vars:
+      "events_prefix" slist => classesmatching("event_.*", "prefix=$(prefix)");
+      "events_type" slist => classesmatching("event_.*", "type=$(type)");
+      "events" slist => intersection(events_prefix, events_type);
+      "events_string" string => format("%S", events);
+
+      "handlers_prefix" slist => bundlesmatching("default:event_.*", format("event_prefix=(%s|ALL)", escape($(prefix))));
+      "handlers_type" slist => bundlesmatching("default:event_.*", format("event_type=(%s|ALL)", escape($(type))));
+      "handlers" slist => intersection(handlers_prefix, handlers_type);
+      "handlers_string" string => format("%S", handlers);
+
+  methods:
+      "" usebundle => $(handlers)(@(events)),
+        classes => event_cancel_events(@(events));
+
+  reports:
+    inform_mode::
+      "$(this.bundle): with prefix $(prefix) and type $(type) found events $(events_string)";
+      "$(this.bundle): with prefix $(prefix) and type $(type) found handlers $(handlers_string)";
+}
+
+bundle agent event_debug_handler(events)
+# @brief Debug all the events matching the meta tags `event_prefix` and `event_type`
+# @param events The list of events, passed from `event_handle`
+#
+# This is an event handler that just prints out all the events it finds. To be
+# registered as a handler, it must have the `meta tags` indicated below.
+#
+# **See also:** `event_handle`, `event_register`
+{
+  meta:
+      "tags" slist => { "event_handler", "event_prefix=.*", "event_type=.*" };
+
+  vars:
+      "events_string" string => format("%S", events);
+      "tags_string" string => format("%S", "$(this.bundle)_meta.tags");
+
+  reports:
+    inform_mode::
+      "$(this.bundle): with tags $(tags_string) got events $(events_string)";
+}
+
+bundle agent event_install_handler(events)
+# @brief Handle all the install events matching the meta tags `event_prefix` and `event_type`
+# @param events The list of events, passed from `event_handle`
+#
+# This is an event handler that just prints out all the install events it finds.
+# To be registered as a handler, it must have the `meta tags` indicated below.
+# The subtlety in `event_prefix=ALL` is that we want to match only
+# `event_handle(ANYTHING, "install")` but not `event_handle(".*", ANYTHING)`. If
+# you're confused, just remember: debug handlers use `event_prefix=.*` and
+# everything else uses `event_prefix=ALL`.
+#
+# **See also:** `event_handle`, `event_register`
+{
+  meta:
+      "tags" slist => { "event_handler", "event_prefix=ALL", "event_type=install" };
+
+  vars:
+      "events_string" string => format("%S", events);
+      "tags_string" string => format("%S", "$(this.bundle)_meta.tags");
+
+  reports:
+    inform_mode::
+      "$(this.bundle): with tags $(tags_string) got events $(events_string)";
+}
+
+bundle agent event_usage_example
+# @brief Simple demo of event_register and event_handle usage
+#
+# You can run it like this: `cf-agent -K ./event.cf -b event_usage_example`
+# Or for extra debugging, you can run it like this: `cf-agent -KI ./event.cf -b event_usage_example`
+#
+# **See also:** `event_handle`, `event_register`
+#
+# Expected output with `-KI`:
+#
+# ```
+# R: event_register: creating event event_event_usage_example_restart_apache persistent for 1440 minutes with metadata {  }
+# R: event_register: creating event event_event_usage_example_install_php persistent for 2880 minutes with metadata {  }
+# R: event_install_handler: with tags { "event_handler", "event_prefix=ALL", "event_type=install" } got events { "event_event_usage_example_install_php" }
+# R: event_handle: with prefix event_usage_example and type install found events { "event_event_usage_example_install_php" }
+# R: event_handle: with prefix event_usage_example and type install found handlers { "default:event_install_handler" }
+# R: event_debug_handler: with tags { "event_handler", "event_prefix=.*", "event_type=.*" } got events { "event_event_usage_example_restart_apache", "event_event_usage_example_install_php" }
+# R: event_handle: with prefix .* and type .* found events { "event_event_usage_example_restart_apache", "event_event_usage_example_install_php" }
+# R: event_handle: with prefix .* and type .* found handlers { "default:event_debug_handler" }
+# ```
+{
+  vars:
+      "empty" slist => {};
+
+  methods:
+      # register a restart event named "apache" with persistence = 1 day
+      "" usebundle => event_register($(this.bundle), "restart", "apache", 1440, @(empty)); # 1 day
+      # register an install event named "php" with persistence = 2 days
+      "" usebundle => event_register($(this.bundle), "install", "php", 2880, @(empty));
+
+      # the following can be run immediately, or up to 2 days later to collect
+      # the install event above
+      "" usebundle => event_handle($(this.bundle), "install");
+
+      # the following can be run immediately, or up to 1 day later to collect
+      # the restart event above
+      "" usebundle => event_handle(".*", ".*");
+}
+
+@endif

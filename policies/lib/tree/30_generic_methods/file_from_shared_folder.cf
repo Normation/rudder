@@ -1,0 +1,73 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File copy from Rudder shared folder
+# @description Ensure that a file or directory is copied from the Rudder shared folder.
+# @documentation Ensure that a file or directory is copied from the Rudder shared folder.
+# The Rudder shared folder is located on the Rudder server under `/var/rudder/configuration-repository/shared-files`.
+# Every file/folder in the shared folder will be available for every managed node.
+# This method will download and update the destination file from a source taken from this shared folder.
+# A file in the shared folder will be updated on the node side at agent run.
+#
+#
+# @parameter source      Source file (path, relative to /var/rudder/configuration-repository/shared-files)
+# @parameter path        Destination file (absolute path on the target node)
+# @parameter hash_type   Hash algorithm used to check if file is updated (sha256, sha512). Only used on Windows, ignored on Unix. default is sha256
+# # keep md5 and sha1 to support old generic methods, also add a default so you don't have to enter a value on linux, md5/sha1 should go to default
+# @parameter_constraint hash_type "select" : [ "", "sha256", "sha512", "md5", "sha1" ]
+# @parameter_constraint hash_type "allow_empty_string" : true
+#
+#
+# @parameter_rename destination path
+# @class_prefix file_from_shared_folder
+# @class_parameter path
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent file_from_shared_folder(source, path, hash_type)
+{
+  vars:
+      "canonified_path"         string => canonify("${path}");
+
+      "old_class_prefix"        string => "file_from_shared_folder_${canonified_path}";
+
+      "args"                     slist => { "/var/rudder/configuration-repository/shared-files/${source}", "${path}", "${hash_type}" };
+      "inner_args"               slist => { "/var/rudder/configuration-repository/shared-files/${source}", "${path}" };
+      "report_param"            string => join("_", args);
+      "inner_report_param"      string => join("_", inner_args);
+      "full_class_prefix"       string => canonify("file_from_shared_folder_${report_param}");
+      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
+
+      "full_inner_class_prefix" string => canonify("file_copy_from_remote_source_${inner_report_param}_inf");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
+  methods:
+      "disable_reporting_${class_prefix}"
+                               usebundle => disable_reporting;
+      "copy without recursion" usebundle => file_copy_from_remote_source_recursion("/var/rudder/configuration-repository/shared-files/${source}", "${path}", "inf");
+      "reenable_reporting_${class_prefix}"
+                               usebundle => enable_reporting,
+                              ifvarclass => "should_report";
+      "class copy"             usebundle => _classes_copy("file_copy_from_remote_source_${canonified_path}", "${old_class_prefix}");
+      "new result classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+
+
+      "report"                 usebundle => _log_v3("Copying ${path} from ${source}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

@@ -1,0 +1,69 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File absent
+# @description Remove a file if it exists
+#
+# @parameter path     File to remove (absolute path on the path node)
+#
+#
+# @parameter_rename target path
+# @class_prefix file_absent
+# @class_parameter path
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent file_absent(path)
+{
+  vars:
+      "old_class_prefix"  string => canonify("file_absent_${path}");
+      "args"               slist => { "${path}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_absent_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+      #need to ensure if it's a folder or a file
+      "is_folder"  expression => isdir("${path}");
+
+  files:
+    !is_folder::
+      "${path}"
+        delete        => tidy,
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+    !is_folder::
+      "success_if_nothing" usebundle => _classes_success("${old_class_prefix}"),
+                          ifvarclass => "!${old_class_prefix}_reached";
+
+      "success_if_nothing" usebundle => _classes_success("${class_prefix}"),
+                          ifvarclass => "!${class_prefix}_reached";
+
+      "report"             usebundle => _log_v3("Remove file ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    is_folder::
+      "error"              usebundle => _classes_failure("${old_class_prefix}"),
+                          ifvarclass => "!${class_prefix}_reached";
+
+      "error"              usebundle => _classes_failure("${class_prefix}"),
+                          ifvarclass => "!${class_prefix}_reached";
+
+      "report"             usebundle => _log_v3("${path} is a directory, and cannot be removed as a file", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+
+}

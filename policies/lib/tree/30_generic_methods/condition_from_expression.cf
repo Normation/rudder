@@ -1,0 +1,96 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Condition from expression
+# @description Create a new condition
+# @documentation
+# This method evaluates an expression, and produces a `${condition}_true`
+# or a `${condition}_false` condition depending on the result of the
+# expression evaluation:
+#
+# * This method always result with a *success* outcome status
+# * If the evaluation results in a "defined" state, this will define a
+#    `${condition}_true` condition,
+# * If the evaluation results in an "undefined" state, this will produce a
+#    `${condition}_false` condition.
+#
+#
+# Calling this method with a condition expression transforms a complex expression into a single condition.
+#
+# The created condition is global to the agent.
+#
+# ##### Example
+#
+# If you want to check if a condition evaluates to true, like checking that you
+# are on Monday, 2am, on RedHat systems, you can use the following policy
+#
+# ```
+# condition_from_expression("backup_time", "Monday.redhat.Hr02")
+# ```
+#
+# The method will define:
+# * In any case:
+#      * `condition_from_expression_backup_time_kept`
+#      * `condition_from_expression_backup_time_reached`
+# * And:
+#     * `backup_time_true` if the system is a RedHat like system, on Monday, at 2am.
+#     * `backup_time_false` if the system not a RedHat like system, or it's not Monday, or it's not 2am
+#     * no extra condition if the expression is invalid (cannot be parsed)
+#
+# ##### Notes:
+#
+# Rudder will automatically "canonify" the given **Condition prefix** at execution time,
+# which means that all non `[a-zA-Z0-9_]` characters will be replaced by an underscore.
+#
+# @parameter condition            The condition prefix
+# @parameter expression The expression evaluated to create the condition (use 'any' to always evaluate to true)
+# 
+#
+# @parameter_rename condition_prefix condition
+# @parameter_rename condition_expression expression
+# @class_prefix condition_from_expression
+# @class_parameter condition
+# @agent_support = ["cfengine-community"]
+
+bundle agent condition_from_expression(condition, expression)
+{
+  vars:
+      "old_class_prefix"  string => canonify("condition_from_expression_${condition}");
+      "args"               slist => { "${condition}", "${expression}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("condition_from_expression_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+      "${condition}_true"  expression => "${expression}",
+                                       scope => "namespace";
+
+      "${condition}_false" expression => "!(${expression})",
+                                       scope => "namespace";
+
+  methods:
+      "success" usebundle => _classes_success("${old_class_prefix}");
+      "success" usebundle => _classes_success("${class_prefix}");
+
+      "report"  usebundle => _log_v3("Create the condition ${condition}_{true,false} with ${expression}", "${condition}", "${old_class_prefix}", "${class_prefix}", @{args});
+  reports:
+    "Condition ${condition}_true defined"
+      if => "${condition}_true";
+    "Condition ${condition}_false defined"
+      if => "${condition}_false";
+}

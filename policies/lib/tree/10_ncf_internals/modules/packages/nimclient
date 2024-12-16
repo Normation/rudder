@@ -1,0 +1,191 @@
+#!/bin/sh
+
+## Licensed under:
+## MIT Public License
+## http://www.opensource.org/licenses/MIT
+
+## Copyright (c) 2015, Nick Anderson <nick@cmdln.org>
+
+## nim package module for cfengine
+##  - Based on work done in pkgsrc module
+## Installs packages using nimclient
+##  - Probably need to implement caching layer for nimclient, it can be slow
+##    and always requires remote connection
+## Removes packages using installp
+
+export PATH=/opt/local/bin:/opt/local/sbin:$PATH
+
+LEVEL=0
+
+fatal () {
+    echo "ErrorMessage=$@"
+    exit 2
+}
+
+warn () {
+    [ $LEVEL -gt 0 ] && echo "[TRACE]: $*" >&2
+}
+
+supports_api_version () {
+    echo 1
+}
+
+repo_install () {
+    # nimclient needs to know which lpp_source to install from.
+    # If lpp_source is provied its a fatal error
+    if [ -z "$lpp_source" ]; then
+        fatal "Error installing '${Name}': No lpp_source defined."
+    fi
+    nimclient_install_package
+}
+
+file_install () {
+    # Must query the File to get the Name
+    # installp -d ${File} ${Name}
+    fatal "Error: File based installs not supported by nimclient"
+}
+
+remove () {
+    # This function should make sure the specified package gets removed
+    remove_package
+}
+
+list_installed () {
+    # This function should return the packages that are currently installed
+    # NAME=
+    # VERSION=
+    # ARCHITECTURE=
+    list_installed_packages | /usr/bin/grep -v "\s*#" | /usr/bin/awk -F':' '{print "Name=" $1 "\nVersion=" $3 "\nArchitecture=PPC"}'
+}
+
+list_updates () {
+    # This function should hit the network
+    # This function should return the list of package updates that are available
+    # NAME=
+    # VERSION=
+    # ARCHITECTURE=
+    # If you can't get a list of updates available, then you can't use
+    # version=latest and mission portal won't report updates available. If
+    # there is no valid cached list, AND it is unable to get a list it should
+    # return nothing
+    # if it is able to get a valid listing it should update the local cache and return that
+    # - expects the cache is kept up to date with the installed state
+    # - if you hve an update and you set the version to latest, and it installs
+    #   that package that package should be removed from the cache
+    # - If you don't then mission portal may show that there are updates
+    #   available that are actually already installed (until the cache gets
+    #   refreshed)
+
+    # Since we don't yet know how to determine which packages have updates
+    # available we simply return true.
+    /usr/bin/true
+}
+
+list_updates_local () {
+    # This function should return the cached list of package updates availabel
+    # IF there is no cache then it should return nothing
+    # This function should avoid hitting the network for listing
+    # returns same info as list_updates
+    # CFEngine determines which one to call based on if_elapsed
+
+    # see if showres can do offline listing, see if we can know which filesets are considered updates
+    # - only list the latest update
+    /usr/bin/true
+}
+
+get_package_data () {
+    # NIM is only a REPO type install
+    # - Could add file based install for bff or rpm packages
+
+    #if echo "${File}" | grep '^/' >/dev/null; then
+        # If there's a / in $File then we'll expec this to be a 'file' install.
+        # First we need to figure out if the package matches .bff or .rpm
+        #  - If not fail
+        #    - fatal "Unsupported Package Type"
+        # Next we need to query the package for the base name and version
+        # Finally spit out the stuff
+        # echo "PackageType=file"
+        # echo NAME=
+        # echo VERSION=
+        # echo ARCHITECUTE=
+        #echo "Name=$(echo "$File" | sed 's/.*\///g')"
+    #else
+        # If $File does not contain /, it must be in an existing remote repo
+        echo "PackageType=repo"
+        echo "Name=${File}"
+}
+
+parse_pkg_data () {
+    # Emit package name and version, and arch based on output from nimclient
+    # showres. If file based install support is added then this will need to be
+    # improved to handle that case.
+    name=$(echo $1 | awk -F':' '{ print $2}')
+    version=$(echo $1 | awk -F':' '{ print $3 }')
+
+    echo "Name=$name"
+    echo "Version=$version"
+    # ARCH is useless on AIX?
+    echo "Architecture=PPC"
+}
+
+# Cfengine passes data on STDIN. Absorb that and convert to shell variables.
+while IFS= read -r line; do
+  eval "$line"
+  # options can be passed multiple times so we need to avoid clobbering
+  # previous instances. Plus, what we really want to eval is the value of
+  # each option so that we can have a variable for each value.
+  # For example options => { "lpp_source=aix7783" }
+  #   comes through the protocol as options=lpp_source=aix7783
+  #   and here we define lpp_source=aix7783
+  if [ -n "$options" ]; then
+    eval "$options"
+  fi
+done
+
+# Set up mock environment if necessary
+# This is not well developed as I don't have continuous access to aix and nim
+# nor am I an expert
+CFENGINE_TEST_NIMCLIENT_MOCK=false
+if [ -n "$CFENGINE_TEST_NIMCLIENT_MOCK"  = "true" ]; then
+    list_installed_packages() {
+        cat ../../tests/unit/mock_lslpp_Lc
+     }
+    nimclient_showres() {
+        # This lists the AVAILABLE packages in the nim repo
+        cat ../../tests/unit/mock_nimclient_showres
+    }
+    nimclient_install_package() {
+        # Ugh, not sure what this should do to mock. I think that nimclient
+        # return codes kind of suck, might need to parse the output?
+        echo nimclient -o cust -a lpp_source=${lpp_source} -a filesets=\"${Name}\" >&2
+    }
+    remove_package() {
+        echo installp -u "${Name}" >&2
+    }
+else
+    list_installed_packages() {
+        lslpp -Lc
+    }
+    nimclient_showres() {
+        /usr/sbin/nimclient -o showres -a resource=${lpp_source} -a installp_flags=L
+    }
+    nimclient_install_package() {
+        /usr/sbin/nimclient -o cust -a lpp_source=${lpp_source} -a filesets=\"${Name}\" 1>&2
+    }
+    remove_package() {
+        installp -u "${Name}" 1>&2
+    }
+fi
+
+
+case "$1" in
+    supports-api-version) supports_api_version;;
+    repo-install) repo_install;;
+    file-install) file_install;;
+    remove) remove;;
+    list-installed) list_installed;;
+    list-updates) list_updates;;
+    list-updates-local) list_updates_local;;
+    get-package-data) get_package_data;;
+    *) fatal "Invalid operation";;
+esac
