@@ -1,0 +1,58 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Symlink present
+# @description Create a symlink at a destination path and pointing to a source target except if a file or directory already exists.
+#
+# @parameter source      Source file (absolute path on the target node)
+# @parameter path Destination file (absolute path on the target node)
+#
+#
+# @parameter_rename destination path
+# @class_prefix file_symlink_present
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_symlink_present(source, path)
+{
+  vars:
+      "old_class_prefix"  string => canonify("file_symlink_present_${path}");
+
+      "args"               slist => { "${source}", "${path}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_symlink_present_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      "full_inner_class_prefix" string => canonify("file_symlink_present_${report_param}_false");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
+  methods:
+      "disable_reporting_${class_prefix}"
+                               usebundle => disable_reporting;
+      "create without enforce" usebundle => file_symlink_present_option("${source}", "${path}", "false");
+      "reenable_reporting_${class_prefix}"
+                               usebundle => enable_reporting,
+                              ifvarclass => "should_report";
+      "new result classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+
+      "report"                 usebundle => _log_v3("Symlink ${path} targeting ${source} (without overwrite)", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

@@ -1,0 +1,71 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Package state with options
+# @description Enforce the state of a package with options
+# @documentation See [package_state](#_package_state) for documentation.
+# 
+# @parameter name Name of the package, or path to a local package if state is present
+# @parameter version Version of the package, can be "latest" for latest version or "any" for any version (defaults to "any")
+# @parameter_constraint version "allow_empty_string" : true
+# @parameter architecture Architecture of the package, can be an architecture name  or "default" (defaults to "default")
+# @parameter_constraint architecture "allow_empty_string" : true
+# @parameter provider Package provider to use, can be "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips", "nimclient", "snap" or "default" for system default package manager (defaults to "default")
+# @parameter_constraint provider "allow_empty_string" : true
+# @parameter_constraint provider "select" : [ "", "default", "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips", "nimclient", "snap" ]
+# @parameter state State of the package, can be "present" or "absent" (defaults to "present")
+# @parameter_constraint state "allow_empty_string" : true
+# @parameter_constraint state "select" : [ "", "present", "absent" ]
+# @parameter options Options no pass to the package manager (defaults to empty)
+# @parameter_constraint options "allow_empty_string" : true
+# 
+# @class_prefix package_state_options
+# @class_parameter name
+# @agent_support = ["cfengine-community"]
+
+bundle agent package_state_options(name, version, architecture, provider, state, options)
+{
+  vars:
+      "class_prefix"           string => "package_state_options_${name}";
+      "args"                   slist  => { "${name}", "${version}", "${architecture}", "${provider}", "${state}", "${options}" };
+      "report_param"           string => join("_", args);
+      "canonify_class_prefix"  string => canonify("package_state_options_${report_param}");
+      "full_class_prefix"      string => string_head("${canonify_class_prefix}", "1000");
+    !pass1::
+      "clean_classes"          string => "",
+                              classes => cancel_classes("${report_data.report_id}");
+  defaults:
+      "state"                 string => "present", if_match_regex => "";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("ncf_package");
+      "${report_data.method_id}" usebundle => ncf_package("${name}", "${version}", "${architecture}", "${provider}", "${state}", "${options}");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      # For compatibility with previous version of the generic method
+      "${report_data.method_id}" usebundle => call_method_classes("${full_class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("ncf_package");
+
+      "${report_data.method_id}" usebundle => log_rudder_v4( "${name}", "${ncf_package.message}", "");
+}

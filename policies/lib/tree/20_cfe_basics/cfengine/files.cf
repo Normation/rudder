@@ -1,0 +1,2518 @@
+# Files bodies
+
+bundle common files_common
+# @brief Enumerate policy files used by this policy file for inclusion to inputs
+{
+  vars:
+      "inputs" slist => { "$(this.promise_dirname)/common.cf" };
+}
+
+body file control
+# @brief Include policy files used by this policy file as part of inputs
+{
+      inputs => { @(files_common.inputs) };
+}
+
+###################################################
+# edit_line bundles
+###################################################
+
+bundle edit_line insert_before_if_no_line(before, string)
+# @brief Insert `string` before `before` if `string` is not found in the file
+# @param before The regular expression matching the line which `string` will be
+# inserted before
+# @param string The string to be prepended
+#
+{
+  insert_lines:
+      "$(string)"
+        location => before($(before)),
+        comment => "Prepend a line to the file if it doesn't already exist";
+}
+
+##
+
+bundle edit_line insert_file(templatefile)
+# @brief Reads the lines from `templatefile` and inserts those into the
+# file being edited.
+# @param templatefile The name of the file from which to import lines.
+{
+  insert_lines:
+
+      "$(templatefile)"
+      comment => "Insert the template file into the file being edited",
+      insert_type => "file";
+}
+
+##
+
+bundle edit_line lines_present(lines)
+# @brief Ensure `lines` are present in the file. Lines that do not exist are appended to the file
+# @param lines List or string that should be present in the file
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example
+# {
+#  vars:
+#    "nameservers" slist => { "8.8.8.8", "8.8.4.4" };
+#
+#  files:
+#      "/etc/resolv.conf" edit_line => lines_present( @(nameservers) );
+#      "/etc/ssh/sshd_config" edit_line => lines_present( "PermitRootLogin no" );
+# }
+# ```
+{
+  insert_lines:
+
+      "$(lines)"
+        comment => "Append lines if they don't exist";
+}
+
+bundle edit_line insert_lines(lines)
+# @brief Alias for `lines_present`
+# @param lines List or string that should be present in the file
+{
+  insert_lines:
+
+      "$(lines)"
+        comment => "Append lines if they don't exist";
+}
+
+bundle edit_line append_if_no_line(lines)
+# @brief Alias for `lines_present`
+# @param lines List or string that should be present in the file
+{
+  insert_lines:
+
+      "$(lines)"
+        comment => "Append lines if they don't exist";
+}
+
+bundle edit_line append_if_no_lines(lines)
+# @brief Alias for `lines_present`
+# @param lines List or string that should be present in the file
+{
+  insert_lines:
+
+      "$(lines)"
+        comment => "Append lines if they don't exist";
+}
+
+##
+
+bundle edit_line comment_lines_matching(regex,comment)
+# @brief Comment lines in the file that matching an [anchored] regex
+# @param regex Anchored regex that the entire line needs to match
+# @param comment A string that is prepended to matching lines
+{
+  replace_patterns:
+
+      "^($(regex))$"
+
+      replace_with => comment("$(comment)"),
+      comment => "Search and replace string";
+}
+
+##
+
+bundle edit_line contains_literal_string(string)
+# @brief Ensure the literal string is present in the promised file
+# @description If the string is not found in the file it is inserted according
+# to CFEngine defaults.
+# @param string The string (potentially multiline) to ensure exists in the
+# promised file.
+{
+
+   insert_lines:
+     "$(string)"
+       insert_type => "preserve_block",
+       expand_scalars => "false",
+       whitespace_policy => { "exact_match" };
+}
+
+##
+
+bundle edit_line uncomment_lines_matching(regex,comment)
+# @brief Uncomment lines of the file where the regex matches
+# the entire text after the comment string
+# @param regex The regex that lines need to match after `comment`
+# @param comment The prefix of the line that is removed
+{
+  replace_patterns:
+
+      "^$(comment)\s?($(regex))$"
+
+      replace_with => uncomment,
+      comment => "Uncomment lines matching a regular expression";
+}
+
+##
+
+bundle edit_line comment_lines_containing(regex,comment)
+# @brief Comment lines of the file matching a regex
+# @param regex A regex that a part of the line needs to match
+# @param comment A string that is prepended to matching lines
+{
+  replace_patterns:
+
+      "^((?!$(comment)).*$(regex).*)$"
+
+      replace_with => comment("$(comment)"),
+      comment => "Comment out lines in a file";
+}
+
+##
+
+bundle edit_line uncomment_lines_containing(regex,comment)
+# @brief Uncomment lines of the file where the regex matches
+# parts of the text after the comment string
+# @param regex The regex that lines need to match after `comment`
+# @param comment The prefix of the line that is removed
+{
+  replace_patterns:
+
+      "^$(comment)\s?(.*$(regex).*)$"
+
+      replace_with => uncomment,
+      comment => "Uncomment a line containing a fragment";
+}
+
+##
+
+bundle edit_line delete_lines_matching(regex)
+# @brief Delete lines matching a regular expression
+# @param regex The regular expression that the lines need to match
+{
+  delete_lines:
+
+      "$(regex)"
+
+      comment => "Delete lines matching regular expressions";
+}
+
+##
+
+bundle edit_line warn_lines_matching(regex)
+# @brief Warn about lines matching a regular expression
+# @param regex The regular expression that the lines need to match
+{
+  delete_lines:
+
+      "$(regex)"
+
+      comment => "Warn about lines in a file",
+      action => warn_only;
+}
+
+##
+
+bundle edit_line prepend_if_no_line(string)
+# @brief Prepend `string` if it doesn't exist in the file
+# @param string The string to be prepended
+#
+# **See also:** [`insert_lines`][insert_lines] in
+# [`edit_line`][bundle edit_line]
+{
+  insert_lines:
+      "$(string)"
+      location => start,
+      comment => "Prepend a line to the file if it doesn't already exist";
+}
+
+##
+
+bundle edit_line replace_line_end(start,end)
+# @brief Give lines starting with `start` the ending given in `end`
+#
+# Whitespaces will be left unmodified. For example,
+# `replace_line_end("ftp", "2121/tcp")` would replace
+#
+# `"ftp             21/tcp"`
+#
+# with
+#
+# `"ftp             2121/tcp"`
+#
+# @param start The string lines have to start with
+# @param end The string lines should end with
+{
+  field_edits:
+
+      "\s*$(start)\s.*"
+      comment => "Replace lines with $(this.start) and $(this.end)",
+      edit_field => line("(^|\s)$(start)\s*", "2", "$(end)","set");
+}
+
+bundle edit_line replace_uncommented_substrings( _comment, _find, _replace )
+# @brief Replace all occurrences of `_find` with `_replace` on lines that do not follow a `_comment`
+# @param _comment Sequence of characters, each indicating the start of a comment.
+# @param _find String matching substring to replace
+# @param _replace String to substitute `_find` with
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example_replace_uncommented_substrings
+# {
+#   files:
+#     "/tmp/file.txt"
+#       edit_line => replace_uncommented_substrings( "#", "ME", "YOU");
+# }
+# ```
+#
+# **Notes:**
+#
+# * Only single character comments are supported as `_comment` is used in the PCRE character group (`[^...]`).
+# * `-` in `_comment` is interpreted as a range unless it's used as the first or last character. For example, setting `_comment` to `0-9` means any digit starts a comment.
+#
+# **History:**
+#
+# * Introduced 3.17.0, 3.15.3
+{
+  vars:
+      "_reg_match_uncommented_lines_containing_find"
+        string => "^([^$(_comment)]*)\Q$(_find)\E(.*$)";
+
+  replace_patterns:
+    "$(_reg_match_uncommented_lines_containing_find)"
+      replace_with => text_between_match1_and_match2( $(_replace) );
+}
+
+##
+
+bundle edit_line append_to_line_end(start,end)
+# @brief Append `end` to any lines beginning with `start`
+#
+# `end` will be appended to all lines starting with `start` and not
+# already ending with `end`.  Whitespaces will be left unmodified.
+#
+# For example, `append_to_line_end("kernel", "vga=791")` would replace
+# `kernel /boot/vmlinuz root=/dev/sda7`
+#
+# with
+#
+# `kernel /boot/vmlinuz root=/dev/sda7 vga=791`
+#
+# **WARNING**: Be careful not to have multiple promises matching the same line, which would result in the line growing indefinitely.
+#
+# @param start pattern to match lines of interest
+# @param end string to append to matched lines
+#
+# **Example:**
+#
+# ```cf3
+#  files:
+#      "/tmp/boot-options" edit_line => append_to_line_end("kernel", "vga=791");
+# ```
+#
+{
+  field_edits:
+
+      "\s*$(start)\s.*"
+      comment => "Append lines with $(this.start) and $(this.end)",
+      edit_field => line("(^|\s)$(start)\s*", "2", "$(end)","append");
+}
+
+##
+
+bundle edit_line regex_replace(find,replace)
+# @brief Find exactly a regular expression and replace exactly the match with a string.
+# You can think of this like a PCRE powered sed.
+# @param find The regular expression
+# @param replace The replacement string
+{
+  replace_patterns:
+
+      "$(find)"
+      replace_with => value("$(replace)"),
+      comment => "Search and replace string";
+}
+
+##
+
+bundle edit_line resolvconf(search,list)
+# @brief Adds search domains and name servers to the system
+# resolver configuration.
+#
+# Use this bundle to modify `resolv.conf`. Existing entries for
+# `search` and `nameserver` are replaced.
+#
+# @param search The search domains with space
+# @param list An slist of nameserver addresses
+{
+  delete_lines:
+
+      "search.*"     comment => "Reset search lines from resolver";
+      "nameserver.*" comment => "Reset nameservers in resolver";
+
+  insert_lines:
+
+      "search $(search)"    comment => "Add search domains to resolver";
+      "nameserver $(list)"  comment => "Add name servers to resolver";
+}
+
+##
+
+bundle edit_line resolvconf_o(search,list,options)
+# @brief Adds search domains, name servers and options to the system
+# resolver configuration.
+#
+# Use this bundle to modify `resolv.conf`. Existing entries for
+# `search`, `nameserver` and `options` are replaced.
+#
+# @param search The search domains with space
+# @param list An slist of nameserver addresses
+# @param options is an slist of variables to modify the resolver
+
+{
+  delete_lines:
+
+      "search.*"     comment => "Reset search lines from resolver";
+      "nameserver.*" comment => "Reset nameservers in resolver";
+      "options.*"    comment => "Reset options in resolver";
+
+  insert_lines:
+
+      "search $(search)"    comment => "Add search domains to resolver";
+      "nameserver $(list)"  comment => "Add name servers to resolver";
+      "options $(options)"  comment => "Add options to resolver";
+}
+
+##
+
+bundle edit_line manage_variable_values_ini(tab, sectionName)
+# @brief Sets the RHS of configuration items in the file of the form
+# `LHS=RHS`
+#
+# If the line is commented out with `#`, it gets uncommented first.
+# Adds a new line if none exists.
+# Removes any variable value pairs not defined for the ini section.
+#
+# @param tab An associative array containing `tab[sectionName][LHS]="RHS"`.
+# The value is not changed when the `RHS` is "dontchange"
+# @param sectionName The section in the file within which values should be
+# modified
+#
+# **See also:** `set_variable_values_ini()`
+{
+  vars:
+      "index" slist => getindices("$(tab)[$(sectionName)]");
+
+      # Be careful if the index string contains funny chars
+      "cindex[$(index)]" string => canonify("$(index)");
+
+  classes:
+      "edit_$(cindex[$(index)])"     not => strcmp("$($(tab)[$(sectionName)][$(index)])","dontchange"),
+      comment => "Create conditions to make changes";
+
+  field_edits:
+
+      # If the line is there, but commented out, first uncomment it
+      "#+\s*$(index)\s*=.*"
+      select_region => INI_section(escape("$(manage_variable_values_ini.sectionName)")),
+      edit_field => col("=","1","$(index)","set"),
+      ifvarclass => "edit_$(cindex[$(index)])";
+
+      # match a line starting like the key something
+      "$(index)\s*=.*"
+      edit_field => col("=","2","$($(tab)[$(sectionName)][$(index)])","set"),
+      select_region => INI_section(escape("$(manage_variable_values_ini.sectionName)")),
+      classes => results("bundle", "manage_variable_values_ini_not_$(cindex[$(index)])"),
+      ifvarclass => "edit_$(cindex[$(index)])";
+
+  delete_lines:
+      ".*"
+      select_region => INI_section(escape("$(manage_variable_values_ini.sectionName)")),
+      comment       => "Remove all entries in the region so there are no extra entries";
+
+  insert_lines:
+      "[$(sectionName)]"
+      location => start,
+      comment => "Insert lines";
+
+      "$(index)=$($(tab)[$(sectionName)][$(index)])"
+      select_region => INI_section(escape("$(manage_variable_values_ini.sectionName)")),
+        ifvarclass => "!(manage_variable_values_ini_not_$(cindex[$(index)])_kept|manage_variable_values_ini_not_$(cindex[$(index)])_repaired).edit_$(cindex[$(index)])";
+
+}
+
+##
+
+bundle edit_line set_variable_values_ini(tab, sectionName)
+# @brief Sets the RHS of configuration items in the file of the form
+# `LHS=RHS`
+#
+# If the line is commented out with `#`, it gets uncommented first.
+# Adds a new line if none exists.
+#
+# It does support = in value
+#
+# @param tab An associative array containing `tab[sectionName][LHS]="RHS"`.
+# The value is not changed when the `RHS` is "dontchange"
+# @param sectionName The section in the file within which values should be
+# modified
+#
+# **See also:** `manage_variable_values_ini()`
+{
+  vars:
+      "index" slist => getindices("$(tab)[$(sectionName)]");
+
+      # Be careful if the index string contains funny chars
+      "cindex[$(index)]" string => canonify("$(index)");
+
+      # Escape the value (had a problem with special characters and regex's)
+      "ctab[$(index)]" string => escape("$($(tab)[$(sectionName)][$(index)])");
+
+
+  classes:
+      "edit_$(cindex[$(index)])"     not => strcmp("$($(tab)[$(sectionName)][$(index)])","dontchange"),
+      comment => "Create conditions to make changes";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  insert_lines:
+      "[$(sectionName)]"
+      location => start,
+      comment => "Insert lines";
+
+    pass2::
+      "$(index)=$($(tab)[$(sectionName)][$(index)])"
+      select_region => INI_section(escape("$(set_variable_values_ini.sectionName)")),
+        ifvarclass => "edit_$(cindex[$(index)])";
+
+
+  replace_patterns:
+      # If the line is commented out, uncomment and replace with
+      # the correct value
+      "^\s*#\s*($(index)\s*=\s*.*)$"
+        comment => "If we find a commented entry we uncomment it",
+       select_region => INI_section(escape("$(set_variable_values_ini.sectionName)")),
+        replace_with => value("$(index)=$($(tab)[$(sectionName)][$(index)])"),
+          ifvarclass => "edit_$(cindex[$(index)]).!set_variable_values_ini_not_$(cindex[$(index)])_reached";
+
+      # If the line is there with the wrong value, replace with
+      # the correct value
+      "^\s*($(index)\s*=\s*(?!$(ctab[$(index)])$).*)$"
+           comment => "Correct the value $(index)",
+      replace_with => value("$(index)=$($(tab)[$(sectionName)][$(index)])"),
+     select_region => INI_section(escape("$(set_variable_values_ini.sectionName)")),
+           classes => results("bundle", "set_variable_values_ini_not_$(cindex[$(index)])"),
+        ifvarclass => "edit_$(cindex[$(index)])";
+
+}
+
+bundle edit_line insert_ini_section(name, config)
+# @brief Inserts a INI section with content
+#
+# ```
+# # given an array "barray"
+# files:
+#     "myfile.ini" edit_line => insert_ini_section("foo", "barray");
+# ```
+#
+# Inserts a section in an INI file with the given configuration
+# key-values from the array `config`.
+#
+# @param name the name of the INI section
+# @param config The fully-qualified name of an associative array containing `v[LHS]="rhs"`
+{
+  vars:
+      # TODO: refactor once 3.7.x is EOL
+      "indices" slist => getindices($(config));
+      "k" slist => sort("indices", lex);
+
+  insert_lines:
+      "[$(name)]"
+      location => start,
+      comment => "Insert an ini section with values if not present";
+
+      "$(k)=$($(config)[$(k)])"
+      location => after("[$(name)]");
+}
+
+
+bundle edit_line set_quoted_values(v)
+# @brief Sets the RHS of variables in shell-like files of the form:
+#
+# ```
+#      LHS="RHS"
+# ```
+#
+# Adds a new line if no LHS exists, and replaces RHS values if one does exist.
+# If the line is commented out with #, it gets uncommented first.
+#
+# @param v The fully-qualified name of an associative array containing `v[LHS]="rhs"`
+#
+# **Example:**
+#
+# ```cf3
+#     vars:
+#        "stuff[lhs-1]" string => "rhs1";
+#        "stuff[lhs-2]" string => "rhs2";
+#
+#     files:
+#        "myfile"
+#          edit_line => set_quoted_values(stuff)
+# ```
+#
+# **See also:** `set_variable_values()`
+{
+  meta:
+      "tags"
+      slist =>
+      {
+        "deprecated=3.6.0",
+        "deprecation-reason=Generic reimplementation",
+        "replaced-by=set_line_based"
+      };
+
+  vars:
+      "index" slist => getindices("$(v)");
+      # Be careful if the index string contains funny chars
+
+      "cindex[$(index)]" string => canonify("$(index)");
+
+  field_edits:
+      # If the line is there, but commented out, first uncomment it
+      "#+\s*$(index)\s*=.*"
+      edit_field => col("=","1","$(index)","set");
+
+      # match a line starting like the key = something
+      "\s*$(index)\s*=.*"
+      edit_field => col("=","2",'"$($(v)[$(index)])"',"set"),
+      classes    => results("bundle", "$(cindex[$(index)])_in_file"),
+      comment    => "Match a line starting like key = something";
+
+  insert_lines:
+      '$(index)="$($(v)[$(index)])"'
+      comment    => "Insert a variable definition",
+        if => "!($(cindex[$(index)])_in_file_kept|$(cindex[$(index)])_in_file_repaired)";
+}
+
+##
+
+bundle edit_line set_variable_values(v)
+# @brief Sets the RHS of variables in files of the form:
+#
+# ```
+#      LHS=RHS
+# ```
+#
+# Adds a new line if no LHS exists, and replaces RHS values if one does exist.
+# If the line is commented out with #, it gets uncommented first.
+#
+# @param v The fully-qualified name of an associative array containing `v[LHS]="rhs"`
+#
+# **Example:**
+#
+# ```cf3
+#     vars:
+#        "stuff[lhs-1]" string => "rhs1";
+#        "stuff[lhs-2]" string => "rhs2";
+#
+#     files:
+#        "myfile"
+#          edit_line => set_variable_values(stuff)
+# ```
+#
+# **See also:** `set_quoted_values()`
+{
+  meta:
+      "tags"
+      slist =>
+      {
+        "deprecated=3.6.0",
+        "deprecation-reason=Generic reimplementation",
+        "replaced-by=set_line_based"
+      };
+
+  vars:
+
+      "index" slist => getindices("$(v)");
+
+      # Be careful if the index string contains funny chars
+
+      "cindex[$(index)]" string => canonify("$(index)");
+      "cv"               string => canonify("$(v)");
+
+  field_edits:
+
+      # match a line starting like the key = something
+
+      "\s*$(index)\s*=.*"
+
+      edit_field => col("\s*$(index)\s*=","2","$($(v)[$(index)])","set"),
+      classes => results("bundle", "$(cv)_$(cindex[$(index)])_in_file"),
+      comment => "Match a line starting like key = something";
+
+  insert_lines:
+
+      "$(index)=$($(v)[$(index)])"
+
+      comment => "Insert a variable definition",
+        if => "!($(cv)_$(cindex[$(index)])_in_file_kept|$(cv)_$(cindex[$(index)])_in_file_repaired)";
+}
+
+bundle edit_line set_config_values(v)
+# @brief Sets the RHS of configuration items in the file of the form:
+#
+# ```
+#   LHS RHS
+# ```
+#
+# If the line is commented out with `#`, it gets uncommented first.
+#
+# Adds a new line if none exists.
+#
+# @param v The fully-qualified name of an associative array containing `v[LHS]="rhs"`
+{
+  meta:
+      "tags"
+      slist =>
+      {
+        "deprecated=3.6.0",
+        "deprecation-reason=Generic reimplementation",
+        "replaced-by=set_line_based"
+      };
+
+  vars:
+      "index" slist => getindices("$(v)");
+
+      # Be careful if the index string contains funny chars
+      "cindex[$(index)]" string => canonify("$(index)");
+
+      # Escape the value (had a problem with special characters and regex's)
+      "ev[$(index)]" string => escape("$($(v)[$(index)])");
+
+      # Do we have more than one line commented out?
+      "index_comment_matches_$(cindex[$(index)])"
+        int => countlinesmatching("^\s*#\s*($(index)\s+.*|$(index))$","$(edit.filename)");
+
+
+  classes:
+      # Check to see if this line exists
+      "line_exists_$(cindex[$(index)])"
+        expression => regline("^\s*($(index)\s.*|$(index))$","$(edit.filename)"),
+        scope => "bundle";
+
+      # if there's more than one comment, just add new (don't know who to use)
+      "multiple_comments_$(cindex[$(index)])"
+        expression => isgreaterthan("$(index_comment_matches_$(cindex[$(index)]))","1"),
+        scope => "bundle";
+
+  replace_patterns:
+      # If the line is commented out, uncomment and replace with
+      # the correct value
+      "^\s*#\s*($(index)\s+.*|$(index))$"
+        comment => "If we find a single commented entry we can uncomment it to
+                    keep the settings near any inline documentation. If there
+                    are multiple comments, then we don't try to replace them and
+                    instead will later append the new value after the first
+                    commented occurrence of $(index).",
+        handle => "set_config_values_replace_commented_line",
+        replace_with => value("$(index) $($(v)[$(index)])"),
+                  if => "!line_exists_$(cindex[$(index)]).!replace_attempted_$(cindex[$(index)])_reached.!multiple_comments_$(cindex[$(index)])",
+             classes => results("bundle", "uncommented_$(cindex[$(index)])");
+
+      # If the line is there with the wrong value, replace with
+      # the correct value
+      "^\s*($(index)\s+(?!$(ev[$(index)])$).*|$(index))$"
+           comment => "Correct the value $(index)",
+      replace_with => value("$(index) $($(v)[$(index)])"),
+           classes => results("bundle", "replace_attempted_$(cindex[$(index)])");
+
+  insert_lines:
+      # If the line doesn't exist, or there is more than one occurrence
+      # of the LHS commented out, insert a new line and try to place it
+      # after the commented LHS (keep new line with old comments)
+      "$(index) $($(v)[$(index)])"
+         comment => "Insert the value, marker exists $(index)",
+        location => after("^\s*#\s*($(index)\s+.*|$(index))$"),
+              if => "replace_attempted_$(cindex[$(index)])_reached.multiple_comments_$(cindex[$(index)])";
+
+      # If the line doesn't exist and there are no occurrences
+      # of the LHS commented out, insert a new line at the eof
+      "$(index) $($(v)[$(index)])"
+         comment => "Insert the value, marker doesn't exist $(index)",
+              if => "replace_attempted_$(cindex[$(index)])_reached.!multiple_comments_$(cindex[$(index)])";
+
+}
+
+bundle edit_line set_line_based(v, sep, bp, kp, cp)
+# @brief Sets the RHS of configuration items in the file of the form:
+#
+# ```
+#   LHS$(sep)RHS
+# ```
+#
+# Example usage for `x=y` lines (e.g. rsyncd.conf):
+#
+# ```cf3
+# "myfile"
+# edit_line => set_line_based("test.config", "=", "\s*=\s*", ".*", "\s*#\s*");
+# ```
+#
+# Example usage for `x y` lines (e.g. sshd_config):
+#
+# ```cf3
+# "myfile"
+# edit_line => set_line_based("test.config", " ", "\s+", ".*", "\s*#\s*");
+# ```
+#
+# If the line is commented out with `$(cp)`, it gets uncommented first.
+#
+# Adds a new line if none exists or if more than one commented-out
+# possible matches exist.
+#
+#
+# **Note:** If the data structure being used for the first parameter is in the current bundle, you can use `$(this.bundle).variable`.
+#
+# Originally `set_config_values` by Ed King.
+#
+# @param v The fully-qualified name (`bundlename.variable`) of an associative array containing `v[LHS]="rhs"`
+# @param sep The separator to insert, e.g. ` ` for space-separated
+# @param bp The key-value separation regex, e.g. `\s+` for space-separated
+# @param kp The keys to select from v, use `.*` for all
+# @param cp The comment pattern from line-start, e.g. `\s*#\s*`
+{
+  meta:
+      "tags"
+      slist =>
+      {
+        "replaces=set_config_values",
+        "replaces=set_config_values_matching",
+        "replaces=set_variable_values",
+        "replaces=set_quoted_values",
+        "replaces=maintain_key_values",
+      };
+
+  vars:
+      "vkeys" slist => getindices("$(v)");
+      "i" slist => grep($(kp), vkeys);
+
+      # Be careful if the index string contains funny chars
+      "ci[$(i)]" string => canonify("$(i)");
+
+      # Escape the value (had a problem with special characters and regex's)
+      "ev[$(i)]" string => escape("$($(v)[$(i)])");
+
+      # Do we have more than one line commented out?
+      "comment_matches_$(ci[$(i)])"
+      int => countlinesmatching("^$(cp)($(i)$(bp).*|$(i))$",
+                                $(edit.filename));
+
+
+  classes:
+      # 3.21.0 and greater know about a file being emptied before editing and
+      # skip this check since it does not make sense.
+@if minimum_version(3.21)
+      # Check to see if this line exists
+      "exists_$(ci[$(i)])"
+      expression => regline("^\s*($(i)$(bp).*|$(i))$",
+                            $(edit.filename)),
+      unless => strcmp( "true", $(edit.empty_before_use) );
+@endif
+
+@if minimum_version(3.18)
+    !(cfengine_3_18_0|cfengine_3_18_1|cfengine_3_18_2)::
+      "exists_$(ci[$(i)])"
+        expression => regline("^\s*($(i)$(bp).*|$(i))$",
+                              $(edit.filename)),
+        unless => strcmp( "true", $(edit.empty_before_use) );
+@endif
+
+    (cfengine_3_15|cfengine_3_16|cfengine_3_17|cfengine_3_18_0|cfengine_3_18_1|cfengine_3_18_2|cfengine_3_19|cfengine_3_20)::
+      # Version 3.15.0 does not know about the before_version macro, so we keep the same behavior
+      # TODO Remove after 3.21 is no longer supported. (3.15.0 was supported when 3.21 was released)
+      # Check to see if this line exists
+      "exists_$(ci[$(i)])"
+        expression => regline("^\s*($(i)$(bp).*|$(i))$",
+                              $(edit.filename));
+
+    any::
+
+      # if there's more than one comment, just add new (don't know who to use)
+      "multiple_comments_$(ci[$(i)])"
+      expression => isgreaterthan("$(comment_matches_$(ci[$(i)]))",
+                                  "1");
+
+
+  replace_patterns:
+      # If the line is commented out, uncomment and replace with
+      # the correct value
+      "^$(cp)($(i)$(bp).*|$(i))$"
+             comment => "Uncommented the value '$(i)'",
+        replace_with => value("$(i)$(sep)$($(v)[$(i)])"),
+                  if => "!exists_$(ci[$(i)]).!replace_attempted_$(ci[$(i)])_reached.!multiple_comments_$(ci[$(i)])",
+             classes => results("bundle", "uncommented_$(ci[$(i)])");
+
+      # If the line is there with the wrong value, replace with
+      # the correct value
+      "^\s*($(i)$(bp)(?!$(ev[$(i)])$).*|$(i))$"
+           comment => "Correct the value '$(i)'",
+      replace_with => value("$(i)$(sep)$($(v)[$(i)])"),
+           classes => results("bundle", "replace_attempted_$(ci[$(i)])");
+
+  insert_lines:
+      # If the line doesn't exist, or there is more than one occurrence
+      # of the LHS commented out, insert a new line and try to place it
+      # after the commented LHS (keep new line with old comments)
+      "$(i)$(sep)$($(v)[$(i)])"
+         comment => "Insert the value, marker '$(i)' exists",
+        location => after("^$(cp)($(i)$(bp).*|$(i))$"),
+              if => "replace_attempted_$(ci[$(i)])_reached.multiple_comments_$(ci[$(i)])";
+
+      # If the line doesn't exist and there are no occurrences
+      # of the LHS commented out, insert a new line at the eof
+      "$(i)$(sep)$($(v)[$(i)])"
+         comment => "Insert the value, marker '$(i)' doesn't exist",
+              if => "replace_attempted_$(ci[$(i)])_reached.!multiple_comments_$(ci[$(i)]).!exists_$(ci[$(i)])";
+
+  reports:
+    verbose_mode|EXTRA::
+      "$(this.bundle): Line for '$(i)' exists" if => "exists_$(ci[$(i)])";
+      "$(this.bundle): Line for '$(i)' does not exist" if => "!exists_$(ci[$(i)])";
+}
+
+bundle edit_line set_config_values_matching(v,pat)
+# @brief Sets the RHS of configuration items in the file of the form
+#
+# ```
+#   LHS RHS
+# ```
+#
+# If the line is commented out with `#`, it gets uncommented first.
+# Adds a new line if none exists.
+#
+# @param v the fully-qualified name of an associative array containing v[LHS]="rhs"
+# @param pat Only elements of `v` that match the regex `pat` are use
+{
+  meta:
+      "tags"
+      slist =>
+      {
+        "deprecated=3.6.0",
+        "deprecation-reason=Generic reimplementation",
+        "replaced-by=set_line_based"
+      };
+
+  vars:
+      "allparams" slist => getindices("$(v)");
+      "index"     slist => grep("$(pat)", "allparams");
+
+      # Be careful if the index string contains funny chars
+      "cindex[$(index)]" string => canonify("$(index)");
+
+  replace_patterns:
+      # If the line is there, maybe commented out, uncomment and replace with
+      # the correct value
+      "^\s*($(index)\s+(?!$($(v)[$(index)])).*|# ?$(index)\s+.*)$"
+      comment => "Correct the value",
+      replace_with => value("$(index) $($(v)[$(index)])"),
+      classes => results("bundle", "replace_attempted_$(cindex[$(index)])");
+
+  insert_lines:
+      "$(index) $($(v)[$(index)])"
+      if => "replace_attempted_$(cindex[$(index)])_reached";
+
+}
+
+##
+
+bundle edit_line maintain_key_values(v,sep)
+# @brief Sets the RHS of configuration items with an giving separator
+#
+# Contributed by David Lee
+{
+  meta:
+      "tags"
+      slist =>
+      {
+        "deprecated=3.6.0",
+        "deprecation-reason=Generic reimplementation",
+        "replaced-by=set_line_based"
+      };
+
+  vars:
+      "index" slist => getindices("$(v)");
+      # Be careful if the index string contains funny chars
+      "cindex[$(index)]" string => canonify("$(index)");
+      # Matching pattern for line (basically key-and-separator)
+      "keypat[$(index)]" string => "\s*$(index)\s*$(sep)\s*";
+
+      # Values may contain regexps. Escape them for replace_pattern matching.
+      "ve[$(index)]" string => escape("$($(v)[$(index)])");
+
+  classes:
+      "$(cindex[$(index)])_key_in_file"
+      comment => "Dynamic Class created if patterns matching",
+      expression => regline("^$(keypat[$(index)]).*", "$(edit.filename)");
+
+  replace_patterns:
+      # For convergence need to use negative lookahead on value:
+      # "key sep (?!value).*"
+      "^($(keypat[$(index)]))(?!$(ve[$(index)])$).*"
+      comment => "Replace definition of $(index)",
+      replace_with => value("$(match.1)$($(v)[$(index)])");
+
+  insert_lines:
+      "$(index)$(sep)$($(v)[$(index)])"
+      comment => "Insert definition of $(index)",
+      if => "!$(cindex[$(index)])_key_in_file";
+}
+
+##
+
+bundle edit_line append_users_starting(v)
+# @brief For adding to `/etc/passwd` or `etc/shadow`
+# @param v An array `v[username] string => "line..."`
+#
+# **Note:** To manage local users with CFEngine 3.6 and later,
+# consider making `users` promises instead of modifying system files.
+{
+  vars:
+
+      "index"        slist => getindices("$(v)");
+
+  classes:
+
+      "add_$(index)"     not => userexists("$(index)"),
+      comment => "Class created if user does not exist";
+
+  insert_lines:
+
+      "$($(v)[$(index)])"
+
+      comment => "Append users into a password file format",
+      if => "add_$(index)";
+}
+
+##
+
+bundle edit_line append_groups_starting(v)
+# @brief For adding groups to `/etc/group`
+# @param v An array `v[groupname] string => "line..."`
+#
+# **Note:** To manage local users with CFEngine 3.6 and later,
+# consider making `users` promises instead of modifying system files.
+{
+  vars:
+
+      "index"        slist => getindices("$(v)");
+
+  classes:
+
+      "add_$(index)"     not => groupexists("$(index)"),
+      comment => "Class created if group does not exist";
+
+  insert_lines:
+
+      "$($(v)[$(index)])"
+
+      comment => "Append users into a group file format",
+      if => "add_$(index)";
+
+}
+
+##
+
+bundle edit_line set_colon_field(key,field,val)
+# @brief Set the value of field number `field` of the line whose
+# first field is `key` to the value `val`, in a colon-separated file.
+# @param key The value the first field has to match
+# @param field The field to be modified
+# @param val The new value of `field`
+{
+  field_edits:
+
+      "$(key):.*"
+
+      comment => "Edit a colon-separated file, using the first field as a key",
+      edit_field => col(":","$(field)","$(val)","set");
+}
+
+##
+
+bundle edit_line set_user_field(user,field,val)
+# @brief Set the value of field number "field" in a `:-field`
+# formatted file like `/etc/passwd`
+# @param user The user to be modified
+# @param field The field that should be modified
+# @param val The value for `field`
+#
+# **Note:** To manage local users with CFEngine 3.6 and later,
+# consider making `users` promises instead of modifying system files.
+{
+  field_edits:
+
+      "$(user):.*"
+
+      comment => "Edit a user attribute in the password file",
+      edit_field => col(":","$(field)","$(val)","set");
+}
+
+##
+
+bundle edit_line append_user_field(group,field,allusers)
+# @brief For adding users to to a file like `/etc/group`
+# at field position `field`, comma separated subfields
+# @param group The group to be modified
+# @param field The field where users should be added
+# @param allusers The list of users to add to `field`
+#
+# **Note:** To manage local users with CFEngine 3.6 and later,
+# consider making `users` promises instead of modifying system files.
+{
+  vars:
+
+      "val" slist => { @(allusers) };
+
+  field_edits:
+
+      "$(group):.*"
+
+      comment => "Append users into a password file format",
+      edit_field => col(":","$(field)","$(val)","alphanum");
+}
+
+##
+
+bundle edit_line expand_template(templatefile)
+# @brief Read in the named text file and expand `$(var)` inside the file
+# @param templatefile The name of the file
+{
+  insert_lines:
+
+      "$(templatefile)"
+
+      insert_type => "file",
+      comment => "Expand variables in the template file",
+      expand_scalars => "true";
+}
+
+bundle edit_line replace_or_add(pattern,line)
+# @brief Replace a pattern in a file with a single line.
+#
+# If the pattern is not found, add the line to the file.
+#
+# @param pattern The pattern that should be replaced
+# The pattern must match the whole line (it is automatically
+# anchored to the start and end of the line) to avoid
+# ambiguity.
+# @param line The line with which to replace matches of `pattern`
+{
+  vars:
+      "cline" string => canonify("$(line)");
+      "eline" string => escape("$(line)");
+
+  replace_patterns:
+      "^(?!$(eline)$)$(pattern)$"
+      comment => "Replace a pattern here",
+      replace_with => value("$(line)"),
+      classes => results("bundle", "replace_$(cline)");
+
+  insert_lines:
+      "$(line)"
+      if => "replace_$(cline)_reached";
+}
+
+bundle edit_line converge(marker, lines)
+# @brief Converge `lines` marked with `marker`
+#
+# Any content marked with `marker` is removed, then `lines` are
+# inserted.  Every `line` should contain `marker`.
+#
+# @param marker The marker (not a regular expression; will be escaped)
+# @param lines The lines to insert; all must contain `marker`
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent pam_d_su_include
+# #@brief Ensure /etc/pam.d/su has includes configured properly
+# {
+#   files:
+#     ubuntu::
+#       "/etc/pam.d/su"
+#         edit_line => converge( "@include", "@include common-auth
+# @include common-account
+# @include common-session");
+# }
+# ```
+#
+# **History:**
+#
+# * Introduced in 3.6.0
+{
+  vars:
+      "regex" string => escape($(marker));
+
+  delete_lines:
+      ".*$(regex).*" comment => "Delete lines matching the marker";
+  insert_lines:
+      "$(lines)" comment => "Insert the given lines";
+}
+
+bundle edit_line converge_prepend(marker, lines)
+# @brief Converge `lines` marked with `marker` to start of content
+#
+# Any content marked with `marker` is removed, then `lines` are
+# inserted at *start* of content.  Every `line` should contain `marker`.
+#
+# @param marker The marker (not a regular expression; will be escaped)
+# @param lines The lines to insert; all must contain `marker`
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent pam_d_su_session
+# #@brief Ensure /etc/pam.d/su has session configured properly
+# {
+#   files:
+#     ubuntu::
+#       "/etc/pam.d/su"
+#         edit_line => converge_prepend( "session", "session       required   pam_env.so readenv=1 envfile=/etc/default/locale
+# session    optional   pam_mail.so nopen
+# session    required   pam_limits.so" );
+# }
+# ```
+#
+# **History:**
+#
+# * Introduced in 3.17.0, 3.15.3, 3.12.6
+{
+  vars:
+      "regex" string => escape($(marker));
+
+  delete_lines:
+      ".*$(regex).*" comment => "Delete lines matching the marker";
+  insert_lines:
+      "$(lines)" location => start, comment => "Insert the given lines";
+}
+
+
+bundle edit_line fstab_option_editor(method, mount, option)
+# @brief Add or remove `/etc/fstab` options for a mount
+#
+# This bundle edits the options field of a mount.  The `method` is a
+# `field_operation` which can be `append`, `prepend`, `set`, `delete`,
+# or `alphanum`.  The option is OS-specific.
+#
+# @param method `field_operation` to apply
+# @param mount the mount point
+# @param option the option to add or remove
+#
+# **Example:**
+#
+# ```cf3
+#  files:
+#      "/etc/fstab" edit_line => fstab_option_editor("delete", "/", "acl");
+#      "/etc/fstab" edit_line => fstab_option_editor("append", "/", "acl");
+# ```
+{
+   field_edits:
+      "(?!#)\S+\s+$(mount)\s.+"
+      edit_field => fstab_options($(option), $(method));
+}
+
+##-------------------------------------------------------
+## editing bodies
+##-------------------------------------------------------
+
+body edit_field fstab_options(newval, method)
+# @brief Edit the options field in a fstab format
+# @param newval the new option
+# @param method `field_operation` to apply
+#
+# This body edits the options field in the fstab file format.  The
+# `method` is a `field_operation` which can be `append`, `prepend`,
+# `set`, `delete`, or `alphanum`.  The `newval` option is OS-specific.
+#
+# **Example:**
+#
+# ```cf3
+#   # from the `fstab_options_editor`
+#   field_edits:
+#      "(?!#)\S+\s+$(mount)\s.+"
+#      edit_field => fstab_options($(option), $(method));
+# ```
+{
+      field_separator => "\s+";
+      select_field    => "4";
+      value_separator  => ",";
+      field_value     => "$(newval)";
+      field_operation => "$(method)";
+}
+
+body edit_field quoted_var(newval,method)
+# @brief Edit the quoted value of the matching line
+# @param newval The new value
+# @param method The method by which to edit the field
+{
+      field_separator => "\"";
+      select_field    => "2";
+      value_separator  => " ";
+      field_value     => "$(newval)";
+      field_operation => "$(method)";
+      extend_fields => "false";
+      allow_blank_fields => "true";
+}
+
+##
+
+body edit_field col(split,col,newval,method)
+# @brief Edit tabluar data with comma-separated sub-values
+# @param split The separator that defines columns
+# @param col The (1-based) index of the value to change
+# @param newval The new value
+# @param method The method by which to edit the field
+{
+      field_separator    => "$(split)";
+      select_field       => "$(col)";
+      value_separator    => ",";
+      field_value        => "$(newval)";
+      field_operation    => "$(method)";
+      extend_fields      => "true";
+      allow_blank_fields => "true";
+}
+
+##
+
+body edit_field line(split,col,newval,method)
+# @brief Edit tabular data with space-separated sub-values
+# @param split The separator that defines columns
+# @param col The (1-based) index of the value to change
+# @param newval The new value
+# @param method The method by which to edit the field
+{
+      field_separator    => "$(split)";
+      select_field       => "$(col)";
+      value_separator    => " ";
+      field_value        => "$(newval)";
+      field_operation    => "$(method)";
+      extend_fields      => "true";
+      allow_blank_fields => "true";
+}
+
+##
+
+body replace_with text_between_match1_and_match2( _text )
+# @brief Replace matched line with substituted string
+# @param _text String to substitute between first and second match
+{
+        replace_value => "$(match.1)$(_text)$(match.2)";
+        occurrences => "all";
+}
+
+body replace_with value(x)
+# @brief Replace matching lines
+# @param x The replacement string
+{
+      replace_value => "$(x)";
+      occurrences => "all";
+}
+
+##
+
+body select_region INI_section(x)
+# @brief Restrict the `edit_line` promise to the lines in section `[x]`
+# @param x The name of the section in an INI-like configuration file
+{
+      select_start => "\[$(x)\]\s*";
+      select_end => "\[.*\]\s*";
+
+@if minimum_version(3.10)
+      select_end_match_eof => "true";
+@endif
+}
+
+##-------------------------------------------------------
+## edit_defaults
+##-------------------------------------------------------
+
+body edit_defaults std_defs
+# @brief Standard definitions for `edit_defaults`
+# Don't empty the file before editing starts and don't make a backup.
+{
+      empty_file_before_editing => "false";
+      edit_backup => "false";
+      #max_file_size => "300000";
+}
+
+##
+
+body edit_defaults empty
+# @brief Empty the file before editing
+#
+# No backup is made
+{
+      empty_file_before_editing => "true";
+      edit_backup => "false";
+      #max_file_size => "300000";
+}
+
+##
+
+body edit_defaults no_backup
+# @brief Don't make a backup of the file before editing
+{
+      edit_backup => "false";
+}
+
+##
+
+body edit_defaults backup_timestamp
+# @brief Make a timestamped backup of the file before editing
+{
+      empty_file_before_editing => "false";
+      edit_backup => "timestamp";
+      #max_file_size => "300000";
+}
+
+##-------------------------------------------------------
+## location
+##-------------------------------------------------------
+
+body location start
+# @brief Editing occurs before the matched line
+{
+      before_after => "before";
+}
+
+##
+
+body location after(str)
+# @brief Editing occurs after the line matching `str`
+# @param str Regular expression matching the file line location
+{
+      before_after => "after";
+      select_line_matching => "$(str)";
+}
+
+##
+
+body location before(str)
+# @brief Editing occurs before the line matching `str`
+# @param str Regular expression matching the file line location
+{
+      before_after => "before";
+      select_line_matching => "$(str)";
+}
+
+##-------------------------------------------------------
+## replace_with
+##-------------------------------------------------------
+
+##
+
+body replace_with comment(c)
+# @brief Comment all lines matching the pattern by preprending `c`
+# @param c The prefix that comments out lines
+{
+      replace_value => "$(c) $(match.1)";
+      occurrences => "all";
+}
+
+##
+
+body replace_with uncomment
+# @brief Uncomment all lines matching the pattern by removing
+# anything outside the matching string
+{
+      replace_value => "$(match.1)";
+      occurrences => "all";
+}
+
+##-------------------------------------------------------
+## copy_from
+##-------------------------------------------------------
+
+body copy_from secure_cp(from,server)
+# @brief Download a file from a remote server over an encrypted channel
+#
+# Only copy the file if it is different from the local copy, and verify
+# that the copy is correct.
+#
+# @param from The location of the file on the remote server
+# @param server The hostname or IP of the server from which to download
+{
+      source      => "$(from)";
+      servers     => { "$(server)" };
+      compare     => "digest";
+      encrypt     => "true";
+      verify      => "true";
+}
+
+##
+
+body copy_from remote_cp(from,server)
+# @brief Download a file from a remote server.
+#
+# @param from The location of the file on the remote server
+# @param server The hostname or IP of the server from which to download
+{
+      servers     => { "$(server)" };
+      source      => "$(from)";
+      compare     => "mtime";
+}
+
+##
+
+body copy_from remote_dcp(from,server)
+# @brief Download a file from a remote server if it is different from the local copy.
+#
+# @param from The location of the file on the remote server
+# @param server The hostname or IP of the server from which to download
+#
+# **See Also:** `local_dcp()`
+{
+      servers     => { "$(server)" };
+      source      => "$(from)";
+      compare     => "digest";
+}
+
+##
+
+body copy_from local_cp(from)
+# @brief Copy a file if the modification time or creation time of the source
+# file is newer (the default comparison mechanism).
+# @param from The path to the source file.
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example
+# {
+#   files:
+#       "/tmp/file.bak"
+#         copy_from => local_cp("/tmp/file");
+# }
+# ```
+#
+# **See Also:** `local_dcp()`
+{
+      source      => "$(from)";
+}
+
+##
+
+body copy_from local_dcp(from)
+# @brief Copy a local file if the hash on the source file differs.
+# @param from The path to the source file.
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example
+# {
+#   files:
+#       "/tmp/file.bak"
+#       copy_from => local_dcp("/tmp/file");
+# }
+# ```
+#
+# **See Also:** `local_cp()`, `remote_dcp()`
+{
+      source      => "$(from)";
+      compare     => "digest";
+}
+
+##
+
+body copy_from perms_cp(from)
+# @brief Copy a local file and preserve file permissions on the local copy.
+#
+# @param from The path to the source file.
+{
+      source      => "$(from)";
+      preserve    => "true";
+}
+
+body copy_from perms_dcp(from)
+# @brief Copy a local file if it is different from the existing copy and
+# preserve file permissions on the local copy.
+#
+# @param from The path to the source file.
+{
+      source      => "$(from)";
+      preserve    => "true";
+      compare     => "digest";
+}
+
+body copy_from backup_local_cp(from)
+# @brief Copy a local file and  keep a backup of old versions.
+#
+# @param from The path to the source file.
+{
+      source      => "$(from)";
+      copy_backup => "timestamp";
+}
+
+##
+
+body copy_from seed_cp(from)
+# @brief Copy a local file if the file does not already exist, i.e. seed the
+# placement
+# @param from The path to the source file.
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent home_dir_init
+# {
+#   files:
+#       "/home/mark.burgess/."
+#       copy_from => seed_cp("/etc/skel"),
+#       depth_search => recurse(inf),
+#       file_select => all,
+#       comment => "We want to be sure that the home directory has files that are
+#                   present in the skeleton.";
+# }
+# ```
+{
+      source      => "$(from)";
+      compare     => "exists";
+}
+
+##
+
+body copy_from sync_cp(from,server)
+# @brief Synchronize a file with a remote server.
+#
+# * If the file does not exist on the remote server then it should be purged.
+# * Allow types to change (directories to files and vice versa).
+# * The mode of the remote file should be preserved.
+# * Files are compared using the default comparison (mtime or ctime).
+#
+# @param from The location of the file on the remote server
+# @param server The hostname or IP of the server from which to download
+#
+# **Example**:
+#
+# ```cf3
+# files:
+#   "/tmp/masterfiles/."
+#     copy_from => sync_cp( "/var/cfengine/masterfiles", $(sys.policy_server) ),
+#     depth_search => recurse(inf),
+#     file_select => all,
+#     comment => "Mirror masterfiles from the hub to a temporary directory";
+# ```
+#
+# **See Also:** `dir_sync()`, `copyfrom_sync()`
+{
+      servers     => { "$(server)" };
+      source      => "$(from)";
+      purge       => "true";
+      preserve    => "true";
+      type_check  => "false";
+}
+
+##
+
+body copy_from no_backup_cp(from)
+# @brief Copy a local file and don't make any backup of the previous version
+#
+# @param from The path to the source file.
+{
+      source      => "$(from)";
+      copy_backup => "false";
+}
+
+##
+
+body copy_from no_backup_dcp(from)
+# @brief Copy a local file if contents have changed, and don't make any backup
+# of the previous version
+#
+# @param from The path to the source file.
+{
+      source      => "$(from)";
+      copy_backup => "false";
+      compare     => "digest";
+}
+
+##
+
+body copy_from no_backup_rcp(from,server)
+# @brief Download a file if it's newer than the local copy, and don't make any
+# backup of the previous version
+#
+# @param from The location of the file on the remote server
+# @param server The hostname or IP of the server from which to download
+{
+      servers     => { "$(server)" };
+      source      => "$(from)";
+      compare     => "mtime";
+      copy_backup => "false";
+}
+
+##-------------------------------------------------------
+## link_from
+##-------------------------------------------------------
+
+body link_from ln_s(x)
+# @brief Create a symbolink link to `x`
+# The link is created even if the source of the link does not exist.
+# @param x The source of the link
+{
+      link_type => "symlink";
+      source => "$(x)";
+      when_no_source => "force";
+}
+
+##
+
+body link_from linkchildren(tofile)
+# @brief Create a symbolink link to `tofile`
+# If the promiser is a directory, children are linked to the source, unless
+# entries with identical names already exist.
+# The link is created even if the source of the link does not exist.
+#
+# @param tofile The source of the link
+{
+      source        => "$(tofile)";
+      link_type     => "symlink";
+      when_no_source  => "force";
+      link_children => "true";
+      when_linking_children => "if_no_such_file"; # "override_file";
+}
+
+body link_from linkfrom(source, type)
+# @brief Make any kind of link to a file
+# @param source link to this
+# @param type the link's type (`symlink` or `hardlink`)
+{
+      source => $(source);
+      link_type => $(type);
+}
+
+##-------------------------------------------------------
+## perms
+##-------------------------------------------------------
+
+body perms m(mode)
+# @brief Set the file mode
+# @param mode The new mode
+{
+      mode   => "$(mode)";
+      rxdirs => "true";
+}
+
+##
+
+body perms mo(mode,user)
+# @brief Set the file's mode and owners
+# @param mode The new mode
+# @param user The username of the new owner
+{
+      owners => { "$(user)" };
+      mode   => "$(mode)";
+      rxdirs => "true";
+}
+
+##
+
+body perms mog(mode,user,group)
+# @brief Set the file's mode, owner and group
+# @param mode The new mode
+# @param user The username of the new owner
+# @param group The group name
+{
+      owners => { "$(user)" };
+      groups => { "$(group)" };
+      mode   => "$(mode)";
+      rxdirs => "true";
+}
+
+##
+
+body perms og(u,g)
+# @brief Set the file's owner and group
+# @param u The username of the new owner
+# @param g The group name
+{
+      owners => { "$(u)" };
+      groups => { "$(g)" };
+	  rxdirs => "true";
+}
+
+##
+
+body perms owner(user)
+# @brief Set the file's owner
+# @param user The username of the new owner
+{
+      owners => { "$(user)" };
+	  rxdirs => "true";
+}
+
+body perms system_owned(mode)
+# @brief Set the file owner and group to the system default
+# @param mode the access permission in octal format
+#
+# **Example:**
+#
+# ```cf3
+# files:
+#     "/etc/passwd" perms => system_owned("0644");
+# ```
+{
+      mode   => "$(mode)";
+      owners => { "root" };
+	  rxdirs => "true";
+
+#+begin_ENT-951
+# Remove after 3.20 is not supported
+        rxdirs => "true";
+@if minimum_version(3.20)
+        rxdirs => "false";
+@endif
+#+end
+
+    freebsd|openbsd|netbsd|darwin::
+      groups => { "wheel" };
+
+    linux::
+      groups => { "root" };
+
+    solaris::
+      groups => { "sys" };
+
+    aix::
+      groups => { "system" };
+}
+
+##-------------------------------------------------------
+## ACLS (extended Unix perms)
+##-------------------------------------------------------
+
+body acl access_generic(acl)
+# @brief Set the `aces` of the access control as specified
+#
+# Default/inherited ACLs are left unchanged. This body is
+# applicable for both files and directories on all platforms.
+#
+# @param acl The aces to be set
+{
+      acl_method => "overwrite";
+      aces => { "@(acl)" };
+
+    windows::
+      acl_type => "ntfs";
+
+    !windows::
+      acl_type => "posix";
+}
+
+##
+
+body acl ntfs(acl)
+# @brief Set the `aces` on NTFS file systems, and overwrite
+# existing ACLs.
+#
+# This body requires CFEngine Enterprise.
+#
+# @param acl The aces to be set
+{
+      acl_type => "ntfs";
+      acl_method => "overwrite";
+      aces => { "@(acl)" };
+}
+
+##
+
+body acl strict
+# @brief Limit file access via ACLs to users with administrator privileges,
+# overwriting existing ACLs.
+#
+# **Note:** May need to take ownership of file/dir to be sure no-one else is
+# allowed access.
+{
+      acl_method => "overwrite";
+
+    windows::
+      aces => { "user:Administrator:rwx" };
+    !windows::
+      aces => { "user:root:rwx" };
+}
+
+##-------------------------------------------------------
+## depth_search
+##-------------------------------------------------------
+
+body depth_search recurse(d)
+# @brief Search files and direcories recursively, up to the specified depth
+# Directories on different devices are excluded.
+#
+# @param d The maximum search depth
+{
+      depth => "$(d)";
+      xdev  => "true";
+}
+
+##
+
+body depth_search recurse_ignore(d,list)
+# @brief Search files and directories recursively,
+# but don't recurse into the specified directories
+#
+# @param d The maximum search depth
+# @param list The list of directories to be excluded
+{
+      depth => "$(d)";
+      exclude_dirs => { @(list) };
+}
+
+##
+
+body depth_search include_base
+# @brief Search files and directories recursively,
+# starting from the base directory.
+{
+      include_basedir => "true";
+}
+
+body depth_search recurse_with_base(d)
+# @brief Search files and directories recursively up to the specified
+# depth, starting from the base directory excluding directories on
+# other devices.
+#
+# @param d The maximum search depth
+{
+      depth => "$(d)";
+      xdev  => "true";
+      include_basedir => "true";
+}
+
+##-------------------------------------------------------
+## delete
+##-------------------------------------------------------
+
+body delete tidy
+# @brief Delete the file and remove empty directories
+# and links to directories
+{
+      dirlinks => "delete";
+      rmdirs   => "true";
+}
+
+##-------------------------------------------------------
+## rename
+##-------------------------------------------------------
+
+body rename disable
+# @brief Disable the file
+{
+      disable => "true";
+}
+
+##
+
+body rename rotate(level)
+# @brief Rotate and store up to `level` backups of the file
+# @param level The number of backups to store
+{
+      rotate => "$(level)";
+}
+
+##
+
+body rename to(file)
+# @brief Rename the file to `file`
+# @param file The new name of the file
+{
+      newname => "$(file)";
+}
+
+##-------------------------------------------------------
+## file_select
+##-------------------------------------------------------
+
+body file_select name_age(name,days)
+# @brief Select files that have a matching `name` and have not been modified for at least `days`
+# @param name A regex that matches the file name
+# @param days Number of days
+{
+      leaf_name   => { "$(name)" };
+      mtime       => irange(0,ago(0,0,"$(days)",0,0,0));
+      file_result => "mtime.leaf_name";
+}
+
+##
+
+body file_select days_old(days)
+# @brief Select files that have not been modified for at least `days`
+# @param days Number of days
+{
+      mtime       => irange(0,ago(0,0,"$(days)",0,0,0));
+      file_result => "mtime";
+}
+
+##
+
+body file_select size_range(from,to)
+# @brief Select files that have a size within the specified range
+# @param from The lower bound of the allowed file size
+# @param to The upper bound of the allowed file size
+{
+      search_size => irange("$(from)","$(to)");
+      file_result => "size";
+}
+
+##
+
+body file_select bigger_than(size)
+# @brief Select files that are above a given size
+# @param size The number of bytes files have
+{
+      search_size => irange("0","$(size)");
+      file_result => "!size";
+}
+
+##
+
+body file_select exclude(name)
+# @brief Select all files except those that match `name`
+# @param name A regular expression
+{
+      leaf_name  => { "$(name)"};
+      file_result => "!leaf_name";
+}
+
+##
+
+body file_select not_dir
+# @brief Select all files that are not directories
+{
+      file_types => { "dir" };
+      file_result => "!file_types";
+}
+
+body file_select plain
+# @brief Select plain, regular files
+{
+      file_types  => { "plain" };
+      file_result => "file_types";
+}
+
+body file_select dirs
+# @brief Select directories
+{
+      file_types  => { "dir" };
+      file_result => "file_types";
+}
+
+##
+
+body file_select by_name(names)
+# @brief Select files that match `names`
+# @param names A regular expression
+{
+      leaf_name  => { @(names)};
+      file_result => "leaf_name";
+}
+
+##
+
+body file_select ex_list(names)
+# @brief Select all files except those that match `names`
+# @param names A list of regular expressions
+{
+      leaf_name  => { @(names) };
+      file_result => "!leaf_name";
+}
+
+##
+
+body file_select all
+# @brief Select all file system entries
+{
+      leaf_name => { ".*" };
+      file_result => "leaf_name";
+}
+
+##
+
+body file_select older_than(years, months, days, hours, minutes, seconds)
+# @brief Select files older than the date-time specified
+# @param years Number of years
+# @param months Number of months
+# @param days Number of days
+# @param hours Number of hours
+# @param minutes Number of minutes
+# @param seconds Number of seconds
+#
+# Generic older_than selection body, aimed to have a common definition handy
+# for every case possible.
+{
+      mtime       => irange(0,ago("$(years)","$(months)","$(days)","$(hours)","$(minutes)","$(seconds)"));
+      file_result => "mtime";
+}
+
+##
+
+body file_select filetype_older_than(filetype, days)
+# @brief Select files of specified type older than specified number of days
+#
+# @param filetype File type to select
+# @param days Number of days
+#
+# This body only takes a single filetype, see `filetypes_older_than()`
+# if you want to select more than one type of file.
+{
+      file_types => { "$(filetype)" };
+      mtime      => irange(0,ago(0,0,"$(days)",0,0,0));
+      file_result => "file_types.mtime";
+}
+
+##
+
+body file_select filetypes_older_than(filetypes, days)
+# @brief Select files of specified types older than specified number of days
+#
+# This body only takes a list of filetypes
+#
+# @param filetypes A list of file types
+# @param days Number of days
+#
+# **See also:** `filetype_older_than()`
+{
+      file_types => { @(filetypes) };
+      mtime      => irange(0,ago(0,0,"$(days)",0,0,0));
+      file_result => "file_types.mtime";
+}
+
+body file_select symlinked_to(target)
+# @brief Select symlinks that point to $(target)
+# @param target The file the symlink should point to in order to be selected
+{
+  file_types  => { "symlink" };
+  issymlinkto => { "$(target)" };
+  file_result => "issymlinkto";
+}
+
+##-------------------------------------------------------
+## changes
+##-------------------------------------------------------
+
+body changes detect_all_change
+# @brief Detect all file changes using the best hash method
+#
+# This is fierce, and will cost disk cycles
+#
+{
+      hash           => "best";
+      report_changes => "all";
+      update_hashes  => "yes";
+}
+
+##
+
+body changes detect_all_change_using(hash)
+# @brief Detect all file changes using a given hash method
+#
+# Detect all changes using a configurable hashing algorithm
+# for times when you care about both content and file stats e.g. mtime
+#
+# @param hash supported hashing algorithm (md5, sha1, sha224, sha256, sha384, sha512, best)
+{
+      hash           => "$(hash)";
+      report_changes => "all";
+      update_hashes  => "yes";
+}
+
+##
+
+body changes detect_content
+# @brief Detect file content changes using md5
+#
+# This is a cheaper alternative
+{
+      hash           => "md5";
+      report_changes => "content";
+      update_hashes  => "yes";
+}
+
+##
+
+body changes detect_content_using(hash)
+# @brief Detect file content changes using a given hash algorithm.
+#
+# For times when you only care about content, not file stats e.g. mtime
+# @param hash - supported hashing algorithm (md5, sha1, sha224, sha256, sha384,
+#   sha512, best)
+{
+      hash           => "$(hash)";
+      report_changes => "content";
+      update_hashes  => "yes";
+}
+
+##
+
+body changes noupdate
+# @brief Detect content changes in (small) files that should never change
+{
+      hash           => "sha256";
+      report_changes => "content";
+      update_hashes  => "no";
+}
+
+##
+
+body changes diff
+# @brief Detect file content changes using sha256
+# and report the diff to CFEngine Enterprise
+{
+      hash           => "sha256";
+      report_changes => "content";
+      report_diffs   => "true";
+      update_hashes  => "yes";
+}
+
+##
+
+body changes all_changes
+# @brief Detect all file changes using sha256
+# and report the diff to CFEngine Enterprise
+{
+      hash           => "sha256";
+      report_changes => "all";
+      report_diffs   => "true";
+      update_hashes  => "yes";
+}
+
+##
+
+body changes diff_noupdate
+# @brief Detect content changes in (small) files
+# and report the diff to CFEngine Enterprise
+{
+      hash           => "sha256";
+      report_changes => "content";
+      report_diffs   => "true";
+      update_hashes  => "no";
+}
+
+# template bundles
+
+bundle agent file_mustache(mustache_file, json_file, target_file)
+# @brief Make a file from a Mustache template and a JSON file
+# @param mustache_file the file with the Mustache template
+# @param json_file a file with JSON data
+# @param target_file the target file to write
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "m" usebundle => file_mustache("x.mustache", "y.json", "z.txt");
+# ```
+{
+  files:
+      "$(target_file)"
+      create => "true",
+      edit_template => $(mustache_file),
+      template_data => readjson($(json_file), "100k"),
+      template_method => "mustache";
+}
+
+bundle agent file_mustache_jsonstring(mustache_file, json_string, target_file)
+# @brief Make a file from a Mustache template and a JSON string
+# @param mustache_file the file with the Mustache template
+# @param json_string a string with JSON data
+# @param target_file the target file to write
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "m" usebundle => file_mustache_jsonstring("x.mustache", '{ "x": "y" }', "z.txt");
+# ```
+{
+  files:
+      "$(target_file)"
+      create => "true",
+      edit_template => $(mustache_file),
+      template_data => parsejson($(json_string)),
+      template_method => "mustache";
+}
+
+bundle agent file_tidy(file)
+# @brief Remove a file
+# @param file to remove
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "" usebundle => file_tidy("/tmp/z.txt");
+# ```
+{
+  files:
+      "$(file)" delete => tidy;
+
+  reports:
+    "DEBUG|DEBUG_$(this.bundle)"::
+      "DEBUG $(this.bundle): deleting $(file) with delete => tidy";
+}
+
+bundle agent dir_sync(from, to)
+# @brief Synchronize a directory entire, deleting unknown files
+# @param from source directory
+# @param to destination directory
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "" usebundle => dir_sync("/tmp", "/var/tmp");
+# ```
+{
+  files:
+      "$(to)/."
+      create => "true",
+      depth_search => recurse("inf"),
+      copy_from => copyfrom_sync($(from));
+
+  reports:
+    "DEBUG|DEBUG_$(this.bundle)"::
+      "DEBUG $(this.bundle): copying directory $(from) to $(to)";
+}
+
+bundle agent file_copy(from, to)
+# @brief Copy a file
+# @param from source file
+# @param to destination file
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "" usebundle => file_copy("/tmp/z.txt", "/var/tmp/y.txt");
+# ```
+{
+  files:
+      "$(to)"
+      copy_from => copyfrom_sync($(from));
+
+  reports:
+    "DEBUG|DEBUG_$(this.bundle)"::
+      "DEBUG $(this.bundle): copying file $(from) to $(to)";
+}
+
+body copy_from copyfrom_sync(f)
+# @brief Copy a directory or file with digest checksums, preserving attributes and purging leftovers
+# @param f the file or directory
+{
+      source => "$(f)";
+      purge => "true";
+      preserve => "true";
+      type_check => "false";
+      compare => "digest";
+}
+
+bundle agent file_make(file, str)
+# @brief Make a file from a string
+# @param file target
+# @param str the string data
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "" usebundle => file_make("/tmp/z.txt", "Some text
+# and some more text here");
+# ```
+{
+  vars:
+      "len" int => string_length($(str));
+    summarize::
+      "summary" string => format("%s...%s",
+                                string_head($(str), 18),
+                                string_tail($(str), 18));
+  classes:
+      "summarize" expression => isgreaterthan($(len), 40);
+
+  files:
+      "$(file)"
+      create => "true",
+      edit_line => insert_lines($(str)),
+      edit_defaults => empty;
+
+  reports:
+    "DEBUG|DEBUG_$(this.bundle)"::
+      "DEBUG $(this.bundle): creating $(file) with contents '$(str)'"
+      if => "!summarize";
+
+      "DEBUG $(this.bundle): creating $(file) with contents '$(summary)'"
+      if => "summarize";
+}
+
+bundle agent file_make_mog(file, str, mode, owner, group)
+# @brief Make a file from a string with mode, owner, group
+# @param file target
+# @param str the string data
+# @param mode the file permissions in octal
+# @param owner the file owner as a name or UID
+# @param group the file group as a name or GID
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "" usebundle => file_make_mog("/tmp/z.txt", "Some text
+# and some more text here", "0644", "root", "root");
+# ```
+{
+  vars:
+      "len" int => string_length($(str));
+    summarize::
+      "summary" string => format("%s...%s",
+                                string_head($(str), 18),
+                                string_tail($(str), 18));
+  classes:
+      "summarize" expression => isgreaterthan($(len), 40);
+
+  files:
+      "$(file)"
+      create => "true",
+      edit_line => insert_lines($(str)),
+      perms => mog($(mode), $(owner), $(group)),
+      edit_defaults => empty;
+
+  reports:
+    "DEBUG|DEBUG_$(this.bundle)"::
+      "DEBUG $(this.bundle): creating $(file) with contents '$(str)', mode '$(mode)', owner '$(owner)' and group '$(group)'"
+      if => "!summarize";
+
+      "DEBUG $(this.bundle): creating $(file) with contents '$(summary)', mode '$(mode)', owner '$(owner)' and group '$(group)'"
+      if => "summarize";
+}
+
+bundle agent file_make_mustache(file, template, data)
+# @brief Make a file from a mustache template
+# @param file Target file to render
+# @param template Path to mustache template
+# @param data Data container to use
+#
+# **Example:**
+#
+# ```cf3
+# vars:
+#   "state" data => datastate();
+#
+# methods:
+#      "" usebundle => file_make_mustache( "/tmp/z.txt", "/tmp/z.mustache", @(state) );
+# ```
+{
+  files:
+      "$(file)"
+        create => "true",
+        edit_template => "$(template)",
+        template_method => "mustache",
+        template_data => @(data);
+
+  reports:
+      "DEBUG|DEBUG_$(this.bundle)"::
+      "DEBUG $(this.bundle): rendering $(file) with template '$(template)'";
+}
+
+bundle agent file_make_mustache_with_perms(file, template, data, mode, owner, group)
+# @brief Make a file from a mustache template
+# @param file Target file to render
+# @param template Path to mustache template
+# @param data Data container to use
+# @param mode File permissions
+# @param owner Target file owner
+# @param group Target file group
+#
+# **Example:**
+#
+# ```cf3
+# vars:
+#   "state" data => datastate();
+#
+# methods:
+#      "" usebundle => file_make_mustache( "/tmp/z.txt", "/tmp/z.mustache", @(state),
+#                                          600, "root", "root" );
+# ```
+{
+  files:
+      "$(file)"
+        create => "true",
+        edit_template => "$(template)",
+        template_method => "mustache",
+        perms => mog( $(mode), $(owner), $(group) ),
+        template_data => @(data);
+
+  reports:
+      "DEBUG|DEBUG_$(this.bundle)"::
+      "DEBUG $(this.bundle): rendering $(file) with template '$(template)'";
+}
+
+bundle agent file_empty(file)
+# @brief Make an empty file
+# @param file target
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "" usebundle => file_empty("/tmp/z.txt");
+# ```
+{
+  files:
+      "$(file)"
+      create => "true",
+      edit_defaults => empty;
+
+  reports:
+    "DEBUG|DEBUG_$(this.bundle)"::
+      "DEBUG $(this.bundle): creating empty $(file) with 0 size";
+}
+
+bundle agent file_hardlink(target, link)
+# @brief Make a hard link to a file
+# @param target of link
+# @param link the hard link's location
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "" usebundle => file_hardlink("/tmp/z.txt", "/tmp/z.link");
+# ```
+{
+  files:
+      "$(link)"
+      move_obstructions => "true",
+      link_from => linkfrom($(target), "hardlink");
+
+  reports:
+    "DEBUG|DEBUG_$(this.bundle)"::
+      "DEBUG $(this.bundle): $(link) will be a hard link to $(target)";
+}
+
+bundle agent file_link(target, link)
+# @brief Make a symlink to a file
+# @param target of symlink
+# @param link the symlink's location
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "" usebundle => file_link("/tmp/z.txt", "/tmp/z.link");
+# ```
+{
+  files:
+      "$(link)"
+      move_obstructions => "true",
+      link_from => linkfrom($(target), "symlink");
+
+  reports:
+    "DEBUG|DEBUG_$(this.bundle)"::
+      "DEBUG $(this.bundle): $(link) will be a symlink to $(target)";
+}

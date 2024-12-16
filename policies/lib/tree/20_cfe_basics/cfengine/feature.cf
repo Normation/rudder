@@ -1,0 +1,87 @@
+bundle agent feature
+# @brief Finds feature_set_X and feature_unset_X classes and sets/unsets X persistently
+#
+# Finds all classes named `feature_unset_X` and clear class X.
+#
+# Finds all classes named `feature_set_DURATION_X` and sets class X
+# persistently for DURATION.  DURATION can be any digits followed by
+# `k`, `m`, or `g`.
+#
+# In inform mode (`-I`) it will report what it does.
+#
+# **Example:**
+# Set class `xyz` for 10 minutes, class `qpr` for 100 minutes, and
+# `ijk` for 90m minutes.  Unset class `abc`.
+# `cf-agent -I -f ./feature.cf -b feature -Dfeature_set_10_xyz,feature_set_100_qpr,feature_set_90m_ijk,feature_unset_abc`
+{
+  classes:
+      "parsed_$(on)" expression => regextract("feature_set_([0-9]+[kmgKMG]?)_(.*)",
+                                              $(on),
+                                              "extract_$(on)");
+
+      "parsed_$(off)" expression => regextract("feature_unset_(.*)",
+                                               $(off),
+                                               "extract_$(off)");
+
+      "$(extract_$(on)[2])" expression => "parsed_$(on)",
+      persistence => "$(extract_$(on)[1])";
+
+  vars:
+      "on" slist => classesmatching("feature_set_.*");
+      "off" slist => classesmatching("feature_unset_.*");
+
+      "_$(off)" string => "off", classes => feature_cancel("$(extract_$(off)[1])");
+
+  reports:
+    "DEBUG|DEBUG_$(this.bundle)"::
+      "DEBUG $(this.bundle): $(on) => SET class '$(extract_$(on)[2]) for '$(extract_$(on)[1])'"
+      if => "parsed_$(on)";
+
+      "DEBUG $(this.bundle): $(off) => UNSET class '$(extract_$(off)[1])'"
+      if => "parsed_$(off)";
+
+      "DEBUG $(this.bundle): have $(extract_$(on)[2])" if => "$(extract_$(on)[2])";
+      "DEBUG $(this.bundle): have no $(extract_$(on)[2])" if => "!$(extract_$(on)[2])";
+
+      "DEBUG $(this.bundle): have $(extract_$(off)[1])" if => "$(extract_$(off)[1])";
+      "DEBUG $(this.bundle): have no $(extract_$(off)[1])" if => "!$(extract_$(off)[1])";
+}
+
+bundle agent feature_test
+# @brief Finds feature_set_X and feature_unset_X classes and reports X
+#
+# Note that this bundle is intended to be used exactly like `feature`
+# and just show what's defined or undefined.
+#
+# **Example:**
+# Check classes `xyz`, `qpr`, `ijk`, and `abc`.
+# `cf-agent -I -f ./feature.cf -b feature_test -Dfeature_set_10_xyz,feature_set_100_qpr,feature_set_90m_ijk,feature_unset_abc`
+{
+  classes:
+      "parsed_$(on)" expression => regextract("feature_set_([0-9]+[kmgKMG]?)_(.*)",
+                                              $(on),
+                                              "extract_$(on)");
+
+      "parsed_$(off)" expression => regextract("feature_unset_(.*)",
+                                               $(off),
+                                               "extract_$(off)");
+
+  vars:
+      "on" slist => classesmatching("feature_set_.*");
+      "off" slist => classesmatching("feature_unset_.*");
+
+  reports:
+      "$(this.bundle): have $(extract_$(on)[2])" if => "$(extract_$(on)[2])";
+      "$(this.bundle): have no $(extract_$(on)[2])" if => "!$(extract_$(on)[2])";
+
+      "$(this.bundle): have $(extract_$(off)[1])" if => "$(extract_$(off)[1])";
+      "$(this.bundle): have no $(extract_$(off)[1])" if => "!$(extract_$(off)[1])";
+}
+
+body classes feature_cancel(x)
+# @brief Undefine class `x` when promise is kept or repaired
+# Used internally by bundle `feature`
+{
+      cancel_kept => { "$(x)" };
+      cancel_repaired => { "$(x)" };
+}

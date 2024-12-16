@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite tests="{{count_total}}" failures="{{count_failed}}" timestamp="{{timestamp}}">
+
+{{#tests_passed}}
+  <testcase name="{{testcase}}">{{test_message}}</testcase>
+{{/tests_passed}}
+
+{{#tests_failed}}
+  <testcase name="{{testcase}}">
+    <failure message="{{fail_message}}">{{test_message}}{{trace_message}}</failure>
+  </testcase>
+{{/tests_failed}}
+
+{{#tests_skipped}}
+  <testcase name="{{testcase}}">
+    <skipped>{{test_message}}</skipped>
+  </testcase>
+{{/tests_skipped}}
+
+{{#tests_todo}}
+  <testcase name="{{testcase}}">
+    <skipped>{{test_message}}</skipped>
+  </testcase>
+{{/tests_todo}}
+
+</testsuite>
+
+<!-- not implemented (yet):
+1) errors: <error message="my error message">my crash report</error>
+2) STDOUT: <system-out>my STDOUT dump</system-out>
+3) STDERR: <system-err>my STDERR dump</system-err>
+ -->

@@ -1,0 +1,35 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Classes copy
+# @description Copy a class prefix to another one, to switch the context from a bundle to another
+# @documentation This bundle will define a condition ${destination_prefix}_{kept,repaired,not_ok,ok,reached}
+# based on ${source_prefix}_{kept,repaired,not_ok,ok,reached}
+#
+# @parameter source_prefix      The prefix of the source class to copy
+# @parameter destination_prefix The prefix of the destination class to copy
+#
+# @class_prefix
+# @class_parameter
+# @agent_support = ["cfengine-community"]
+
+bundle agent _classes_copy(source_prefix, destination_prefix)
+{
+  methods:
+    "copy" usebundle => ncf_classes_copy("${source_prefix}", "${destination_prefix}");
+}

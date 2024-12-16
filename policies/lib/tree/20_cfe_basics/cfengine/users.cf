@@ -1,0 +1,25 @@
+# Users bodies
+
+body password plaintext_password(text)
+# @brief Sets the plaintext password for the user to `text`
+# @param text the plain text version of the password
+#
+# **Note:** Don't use that unless you really have no choice
+#
+# **See also:** `hashed_password()`
+{
+    format => "plaintext";
+    data => $(text);
+}
+
+body password hashed_password(hash)
+# @brief Sets the hashed password for the user to `hash`
+# @param hash the hashed representation of the password
+#
+# The hashing method is up to the platform.
+#
+# **See also:** `plaintext_password()`
+{
+    format => "hash";
+    data => $(hash);
+}

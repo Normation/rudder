@@ -1,0 +1,63 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+# Copyright 2016 Janos Mattyasovszky
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File check if symlink
+# @description Checks if a file exists and is a symlink
+# @documentation This bundle will define a condition `file_check_symlink_${path}_{ok, reached, kept}` if the
+# file is a symlink, or `file_check_symlink_${path}_{not_ok, reached, not_kept, failed}` if
+# the file is not a symlink or does not exist
+#
+# @parameter path File name (absolute path on the target node)
+#
+# 
+# @parameter_rename file_name path
+# @class_prefix file_check_symlink
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_check_symlink(path)
+{
+  vars:
+      "old_class_prefix"  string => canonify("file_check_symlink_${path}");
+      "args"               slist => { "${path}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_check_symlink_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+      "file_exists_and_is_symlink"  
+        expression => islink("${path}");
+
+  methods:
+    file_exists_and_is_symlink::
+      "file_exists_and_is_symlink"
+        usebundle => _classes_success("${old_class_prefix}");
+      "file_exists_and_is_symlink"
+        usebundle => _classes_success("${class_prefix}");
+
+    !file_exists_and_is_symlink::
+      "file_dont_exists_or_is_not_a_symlink"
+        usebundle => _classes_failure("${old_class_prefix}");
+      "file_dont_exists_or_is_not_a_symlink"
+        usebundle => _classes_failure("${class_prefix}");
+
+    any::
+      "report"
+        usebundle => _log_v3("Check if ${path} is a symlink", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

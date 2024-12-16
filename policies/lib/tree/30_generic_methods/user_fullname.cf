@@ -1,0 +1,63 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name User fullname
+# @description Define the fullname of the user, user must already exists.
+# @documentation This method does not create the user.
+#
+# @parameter login User's login
+# @parameter fullname User's fullname
+# 
+# @class_prefix user_fullname
+# @class_parameter login
+# @agent_support = ["cfengine-community"]
+
+bundle agent user_fullname(login, fullname)
+{
+  vars:
+      "old_class_prefix"  string => canonify("user_fullname_${login}");
+      "args"               slist => { "${login}", "${fullname}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("user_fullname_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      
+  classes:
+      "user_exists"     expression => userexists("${login}");
+      "args_defined"    expression => "user_exists";
+
+  users:
+      "${login}"  policy        => "present",
+                  description   => "${fullname}",
+                  classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+                  ifvarclass    => "args_defined";
+
+  methods:
+    !args_defined::
+      "error" usebundle => _classes_failure("${old_class_prefix}");
+      "error" usebundle => _classes_failure("${class_prefix}");
+
+      "report_error"
+        usebundle => _log_v3("User ${login} does not exist. Setting user ${login} fullname set to ${fullname}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    args_defined::
+      "report_success"
+        usebundle => _log_v3("User ${login} fullname set to ${fullname}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
+          ifvarclass => "${old_class_prefix}_reached|${class_prefix}_reached";
+
+}
+

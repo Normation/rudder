@@ -1,0 +1,50 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Service check disabled at boot
+# @description Check if a service is set to not start at boot using the appropriate method
+#
+# @parameter name  Service name (as recognized by systemd, init.d, etc...)
+# @deprecated Use [service_disabled](#_service_disabled) with policy_mode_override set to audit instead
+# 
+#
+# @parameter_rename service_name name
+# @class_prefix service_check_disabled_at_boot
+# @class_parameter name
+# @agent_support = ["cfengine-community"]
+# This bundle will define a condition service_check_disabled_at_boot_${name}_{kept,ok,not_ok,failed,reached}
+
+bundle agent service_check_disabled_at_boot(name)
+{
+  vars:
+      "class_prefix" string => "service_check_disabled_at_boot_${name}";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("ncf_services");
+      "${report_data.method_id}" usebundle => ncf_services("${name}", "is-enabled");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("ncf_services");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Check if service ${name} is disabled at boot", "");
+}

@@ -1,0 +1,57 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Directory check exists
+# @description Checks if a directory exists
+# @documentation This bundle will define a condition `directory_check_exists_${path}_{ok, reached, kept}` if the
+# directory exists, or `directory_check_exists_${path}_{not_ok, reached, not_kept, failed}` if
+# the directory doesn't exists
+#
+# @deprecated Use [directory_present](#_directory_present) with policy_mode_override set to audit instead
+# @parameter path     Full path of the directory to check
+# 
+#
+# @parameter_rename directory_name path
+# @class_prefix directory_check_exists
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent directory_check_exists(path)
+{
+  vars:
+      "old_class_prefix" string => canonify("directory_check_exists_${path}");
+      "args"               slist => { "${path}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("directory_check_exists_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+      "directory_exists" expression => isdir("${path}");
+
+  methods:
+    directory_exists::
+      "directory_exists"        usebundle => _classes_success("${old_class_prefix}");
+      "directory_exists"        usebundle => _classes_success("${class_prefix}");       
+
+    !directory_exists::
+      "directory_doesnt_exists" usebundle => _classes_failure("${old_class_prefix}");
+      "directory_doesnt_exists" usebundle => _classes_failure("${class_prefix}");
+
+    any::
+      "report"                  usebundle => _log_v3("Check if directory ${path} exists", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

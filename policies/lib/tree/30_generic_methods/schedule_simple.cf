@@ -1,0 +1,108 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Schedule Simple
+# @description Trigger a repaired outcome when a job should be run
+# @documentation This method compute the expected time for running the job, based on the parameters and splayed uing system ids, and define a conditions based on this computation:
+#
+#  * `schedule_simple_${job_id}_kept` if the job should not be run now
+#  * `schedule_simple_${job_id}_repaired` if the job should be run
+#  * `schedule_simple_${job_id}_error` if their is an inconsistency in the method parameters
+#
+# #### Example
+#
+# If you want to run a job, at every hour and half-hour (0:00 and 0:30),
+# with no spread across system, with an agent running with default schedule
+# of 5 minutes, and making sure that the job is run (if the agent couldn't
+# run it, then at the next agent execution the job should be run), you will
+# call the method with the following parameters:
+#
+# ```
+# schedule_simple("job_schedule_id", "5", "0", "0",  "0", "0", "0",  "30", "0", "0", "catchup")
+# ```
+#
+# During each run right after o'clock and half-hour, this method will define the condition
+# schedule_simple_job_schedule_id_repaired, that you can use as a condition for a generic
+# method `command_execution`
+#
+#
+#
+# @parameter job_id                A string to identify this job
+# @parameter agent_periodicity     Agent run interval (in minutes)
+# @parameter max_execution_delay_minutes  On how many minutes you want to spread the job
+# @parameter max_execution_delay_hours    On how many hours you want to spread the job
+# @parameter start_on_minutes      At which minute should be the first run
+# @parameter start_on_hours        At which hour should be the first run
+# @parameter start_on_day_of_week  At which day of week should be the first run
+# @parameter periodicity_minutes   Desired job run interval (in minutes)
+# @parameter periodicity_hours     Desired job run interval (in hours)
+# @parameter periodicity_days      Desired job run interval (in days)
+# @parameter mode                  "nodups": avoid duplicate runs in the same period / "catchup": avoid duplicates and one or more run have been missed, run once before next period / "stateless": no check is done on past runs
+# 
+# @class_prefix schedule_simple
+# @class_parameter job_id
+# @agent_support = ["cfengine-community"]
+
+bundle agent schedule_simple(job_id, agent_periodicity,
+                             max_execution_delay_minutes, max_execution_delay_hours,
+                             start_on_minutes, start_on_hours, start_on_day_of_week,
+                             periodicity_minutes, periodicity_hours, periodicity_days, mode)
+
+{
+  vars:
+    any::
+      "canonified_job_id" string => canonify("${job_id}");
+      "old_class_prefix"  string => "schedule_simple_${canonified_job_id}";
+
+      "args"               slist => { "${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}",
+                                      "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
+                                      "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "${mode}" };
+
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("schedule_simple_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
+  methods:
+      "disable_reporting_${class_prefix}"     usebundle => disable_reporting;
+
+      "simple scheduler" usebundle => schedule_simple_generic("${canonified_job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}", 
+                                                              "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
+                                                              "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "${mode}");
+
+      "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
+                             ifvarclass => "should_report";
+      "kept"     usebundle => _classes_success("${old_class_prefix}"),
+                 ifvarclass => "!job_${canonified_job_id}_run.!job_${canonified_job_id}_error";
+      "kept"     usebundle => _classes_success("${class_prefix}"),
+                 ifvarclass => "!job_${canonified_job_id}_run.!job_${canonified_job_id}_error";
+      "repaired" usebundle => _classes_repaired("${old_class_prefix}"),
+                 ifvarclass => "job_${canonified_job_id}_run";
+      "repaired" usebundle => _classes_repaired("${class_prefix}"),
+                 ifvarclass => "job_${canonified_job_id}_run";
+      "error"    usebundle => _classes_failure("${old_class_prefix}"),
+                 ifvarclass => "job_${canonified_job_id}_error";
+      "error"    usebundle => _classes_failure("${class_prefix}"),
+                 ifvarclass => "job_${canonified_job_id}_error";
+
+      "report"    usebundle => _log_v3("Scheduling ${job_id}", "${job_id}", "${old_class_prefix}", "${class_prefix}", @{args});
+}
+

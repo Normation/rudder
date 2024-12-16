@@ -1,0 +1,64 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name HTTP request check status with headers
+# @description Checks status of an HTTP URL
+# @action We don't know when HTTP methods cause side effect, this can be an action or not depending on your server behaviour
+# @documentation Perform a HTTP request on the URL, method and headers provided and check that the response has the expected status code (ie 200, 404, 503, etc)
+#
+# @parameter method Method to call the URL (GET, POST, PUT, DELETE)
+# @parameter url URL to query
+# @parameter expected_status Expected status code of the HTTP response
+# @parameter headers Headers to include in the HTTP request (as a string, without ')
+# @parameter_constraint headers "allow_empty_string" : true
+#
+# @class_prefix http_request_check_status_headers
+# @class_parameter url
+# @agent_support = ["cfengine-community"]
+
+bundle agent http_request_check_status_headers(method, url, expected_status, headers)
+{
+  vars:
+      "old_class_prefix" string => canonify("http_request_check_status_headers_${url}");
+      "args"              slist => { "${method}", "${url}", "${expected_status}", "${headers}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("http_request_check_status_headers_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+    any::
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass2::
+      "report" usebundle => _log_v3("Performing a HTTP ${method} request on ${url}, expecting status ${expected_status}", "${url}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    !_ncf_path_exists_curl::
+      "force_failure_class_old"   usebundle => _classes_failure("${old_class_prefix}");
+      "force_failure_class"       usebundle => _classes_failure("${class_prefix}");
+      "report"                    usebundle => _log_v3("Unable to perform a HTTP ${method} on ${url}: curl is not installed", "${url}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+  commands:
+      "${ncf_paths.path[curl]}"
+        args => "-I -L -s -o /dev/null -w \"%{http_code}\" ${url} -X ${method} -H '${headers}' | ${paths.path[grep]} -q ${expected_status}",
+        contain => in_shell,
+        # We don't define repaired class, as we only query and expect, so using 999 to avoid using this feature
+        classes => classes_generic_return_single_code_two("${old_class_prefix}", "${class_prefix}", "0", "999", "1");
+
+}

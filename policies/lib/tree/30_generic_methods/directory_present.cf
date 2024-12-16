@@ -1,0 +1,47 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Directory present
+# @description Create a directory if it doesn't exist
+# @documentation Create a directory if it doesn't exist.
+#
+# @parameter path Full path of directory to create (trailing '/' is optional)
+#
+#
+# @parameter_rename target path
+# @class_prefix directory_present
+# @class_parameter path
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent directory_present(path)
+{
+  vars:
+      "old_class_prefix"  string => canonify("directory_present_${path}");
+      "args"               slist => { "${path}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("directory_present_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  files:
+    "${path}/."
+      create        => "true",
+      classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+    "report"             usebundle => _log_v3("Create directory ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

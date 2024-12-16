@@ -1,0 +1,193 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Package install version compare (update optional)
+# @description Install a package or verify if it is installed in a specific version, or higher or lower version than a version specified, optionally test update or not (Debian-, Red Hat- or SUSE-like systems only)
+# @deprecated Use [package_present](#_package_present) instead.
+# @documentation *Example*:
+# ```
+# methods:
+#     "any" usebundle => package_install_version_cmp_update("postgresql", ">=", "9.1", "verify", "false");
+# ```
+#
+# @parameter name                Name of the package to install or verify
+# @parameter version_comparator  Comparator between installed version and defined version, can be ==,<=,>=,<,>,!=
+# @parameter package_version     The version of the package to verify (can be "latest" for latest version)
+# @parameter action              Action to perform, can be add, verify (defaults to verify)
+# @parameter update_policy       While verifying packages, check against latest version ("true") or just installed ("false")
+# @parameter_constraint version_comparator  "select" : [ "==", "<=", ">=", "<", ">" , "!=" ]
+#
+#
+# @parameter_rename package_name name
+# @class_prefix package_install
+# @class_parameter name
+# @agent_support = ["cfengine-community"]
+
+bundle agent package_install_version_cmp_update(name, version_comparator, package_version, action, update_policy)
+{
+  vars:
+      "canonified_name"         string => canonify("${name}");
+      "old_class_prefix"        string => "package_install_${canonified_name}";
+
+    # don't rewrite the class prefix based on defaults
+    !pass1::
+      "args"                     slist => { "${name}", "${version_comparator}", "${package_version}", "${action}", "${update_policy}" };
+      "report_param"            string => join("_", args);
+      "full_class_prefix"       string => canonify("package_install_${report_param}");
+      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
+
+  defaults:
+      "action" string => "fix", if_match_regex => "add";
+      "action" string => "warn", if_match_regex => "verify|";
+      "update_policy" slist => {"add", "update"}, if_match_regex => "true";
+      "update_policy" string => "add",            if_match_regex => "false";
+
+  classes:
+      "local_package" expression => regcmp("(http:|file:)?/.*", "${name}");
+      "version_not_specified" expression => strcmp("latest", "${package_version}");
+      "immediate" expression => strcmp("immediate", "${action}");
+      "warn" expression => strcmp("warn", "${action}");
+
+      "update"    expression => strcmp("update", "${update_policy}");
+
+      "pass1" expression => "any";
+
+  packages:
+
+    ## Debian support ##
+    !version_not_specified.local_package.debian::
+      "${name}"
+                        package_policy  => "${update_policy}",
+                        package_version => "${package_version}",
+                        package_select  => "${version_comparator}",
+                        package_method  => debian_local_install,
+                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+                        action          => policy("${action}");
+
+
+    !version_not_specified.!local_package.debian::
+      "${name}"
+                        package_policy  => "${update_policy}",
+                        package_version => "${package_version}",
+                        package_select  => "${version_comparator}",
+                        package_method  => apt_get_version,
+                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+                        action          => policy("${action}");
+
+
+    version_not_specified.local_package.debian::
+      "${name}"
+                        package_policy => "${update_policy}",
+                        package_method => debian_local_install,
+                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+                        action         => policy("${action}");
+
+    version_not_specified.!local_package.debian::
+      "${name}"
+                        package_policy => "${update_policy}",
+                        package_method => apt_get,
+                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+                        action         => policy("${action}");
+
+    ## RedHat support ##
+    !version_not_specified.local_package.redhat::
+      "${name}"
+                        package_policy  => "${update_policy}",
+                        package_version => "${package_version}",
+                        package_select  => "${version_comparator}",
+                        package_method  => redhat_local_install,
+                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+                        action          => policy("${action}");
+
+    !version_not_specified.!local_package.redhat::
+      "${name}"
+                        package_policy  => "${update_policy}",
+                        package_version => "${package_version}",
+                        package_select  => "${version_comparator}",
+                        package_method  => yum_rpm,
+                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+                        action          => policy("${action}");
+
+
+    version_not_specified.local_package.redhat::
+      "${name}"
+                        package_policy => "${update_policy}",
+                        package_method => redhat_local_install,
+                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+                        action         => policy("${action}");
+
+
+    version_not_specified.!local_package.redhat::
+      "${name}"
+                        package_policy => "${update_policy}",
+                        package_method => yum_rpm_no_version,
+                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+                        action         => policy("${action}");
+
+    ## SUSE support ##
+    !version_not_specified.local_package.SuSE::
+      "${name}"
+                        package_policy  => "${update_policy}",
+                        package_version => "${package_version}",
+                        package_select  => "${version_comparator}",
+                        package_method  => ncf_generic_version,
+                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+                        action          => policy("${action}");
+
+    !version_not_specified.!local_package.SuSE::
+      "${name}"
+                        package_policy  => "${update_policy}",
+                        package_version => "${package_version}",
+                        package_select  => "${version_comparator}",
+                        package_method  => ncf_generic_version,
+                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+                        action          => policy("${action}");
+
+
+    version_not_specified.local_package.SuSE::
+      "${name}"
+                        package_policy => "${update_policy}",
+                        package_method => ncf_generic,
+                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+                        action         => policy("${action}");
+
+
+    version_not_specified.!local_package.SuSE::
+      "${name}"
+                        package_policy => "${update_policy}",
+                        package_method => ncf_generic,
+                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
+                        action         => policy("${action}");
+
+  methods:
+    (debian|redhat|SuSE).immediate.!update::
+      "Reports" usebundle => _log_v3("Install package ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+    (debian|redhat|SuSE).immediate.update::
+      "Reports" usebundle => _log_v3("Install or update package ${name} in version ${package_version}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+    (debian|redhat|SuSE).!immediate.!version_not_specified::
+      "Reports" usebundle => _log_v3("Verify that package ${name} is installed in version ${package_version}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+    (debian|redhat|SuSE).!immediate.version_not_specified.update::
+      "Reports" usebundle => _log_v3("Verify that package ${name} is installed and up-to-date", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+    (debian|redhat|SuSE).!immediate.version_not_specified.!update::
+      "Reports" usebundle => _log_v3("Verify that package ${name} is installed", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    !(debian|redhat|SuSE)::
+      "force failure class" usebundle => _classes_failure("${class_prefix}");
+      "force failure class" usebundle => _classes_failure("${old_class_prefix}");
+      "report failure"      usebundle => _log_v3("Install or update package ${name} - systems other than Debian-, Red Hat- and SuSE-like are not currently supported", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

@@ -1,0 +1,106 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Service action
+# @description Trigger an action on a service using the appropriate tool
+# @action is-* commands are not actions, but all other commands are
+#
+# @documentation The `service_*` methods manage the services running on the system.
+#
+# #### Parameters
+#
+# ##### Service name
+#
+# The name of the service is the name understood by the service manager, except for the
+# `is-active-process` action, where it is the regex to match against the running processes list.
+#
+# ##### Action
+#
+# The action is the name of an action to run on the given service.
+# The following actions can be used:
+#
+# * `start`
+# * `stop`
+# * `restart`
+# * `reload` (or `refresh`)
+# * `is-active` (or `status`)
+# * `is-active-process` (in this case, the "service" parameter is the regex to match against process list)
+# * `enable`
+# * `disable`
+# * `is-enabled`
+#
+# Other actions may also be used, depending on the selected service manager.
+#
+# #### Implementation
+#
+# These methods will detect the method to use according to the platform. You can run the methods with an `info`
+# verbosity level to see which service manager will be used for a given action.
+#
+# WARNING: Due to compatibility issues when mixing calls to systemctl and service/init.d,
+# when an init script exists, we will not use systemctl compatibility layer but directly service/init.d.
+#
+# The supported service managers are:
+#
+# * systemd (any unknown action will be passed directly)
+# * upstart
+# * smf (for Solaris)
+# * service command (for non-boot actions, any unknown action will be passed directly)
+# * /etc/init.d scripts (for non-boot actions, any unknown action will be passed directly)
+# * SRC (for AIX) (for non-boot actions)
+# * chkconfig (for boot actions)
+# * update-rc.d (for boot actions)
+# * chitab (for boot actions)
+# * links in /etc/rcX.d (for boot actions)
+# * Windows services
+#
+# #### Examples
+#
+# ```
+# # To restart the apache2 service
+# service_action("apache2", "restart");
+# service_restart("apache2");
+# ```
+#
+# @parameter name Name of the service
+# @parameter action Action to trigger on the service (start, stop, restart, reload, ...)
+#
+# 
+# @parameter_rename service_name name
+# @class_prefix service_action
+# @class_parameter name
+# @agent_support = ["cfengine-community"]
+
+bundle agent service_action(name, action)
+{
+  vars:
+      "class_prefix" string => "service_action_${name}";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("ncf_services");
+      "${report_data.method_id}" usebundle => ncf_services("${name}", "${action}");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("ncf_services");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Run action ${action} on service ${name}", "");
+}

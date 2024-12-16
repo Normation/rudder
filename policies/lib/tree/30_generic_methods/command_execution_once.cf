@@ -1,0 +1,137 @@
+#####################################################################################
+# Copyright 2018 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Command execution once
+# @description Execute a command only once on a node
+# @action
+# @documentation
+#
+# This method is useful for specific commands that should only be executed once per node.
+#
+# If you can spot a condition for the command execution by testing the state of its target,
+# it is better to use the `condition_from_command` method to test the state coupled with
+# the `command_execution_result` method to run the command if necessary.
+#
+# In case of reinstallation or factory-reset of the Rudder agent, this method 
+# will no longer detect if a command has already been executed.
+#
+# ##### The method will:
+#
+# **Define** the `command_execution_once_${command}_kept` condition and do nothing if
+# a `command_execution_once` has already been executed on this machine with the same
+# **Unique id**.
+#
+# **Execute** the command if it is the first occurrence and:
+# * If the parameter **Until** is `*any*`, it will consider the command as executed on the machine and define
+#   either:
+#   * `command_execution_once_${command}_repaired` if the return code is in **ok_codes**,
+#   * `command_execution_once_${command}_error` otherwise.
+# * If the parameter **Until** is *ok* and:
+#   * If the return code is in the **Ok codes** list, define the
+#     `command_execution_once_${command}_repaired` condition
+#   * If the return code is not in **Ok codes** it define the
+#      `command_execution_once_${command}_error` condition and **retry at next agent run**.
+#
+# If an exit code is not in the list it will lead to an error status.
+# If you want "0" to be a success you have to list it in the **Ok codes** list
+#
+# ##### Example:
+#
+# If you use:
+#
+# ```
+#     command_execution_once("command -a -t", "0", "ok", "my_program_setup")
+# ```
+#
+# It will retry to run `command -a -t` until it returns "0". Then it will
+# not execute it again.
+#
+# @parameter command        Command to run
+# @parameter ok_codes       List of codes that produce a repaired status separated with commas (ex: 1,2,5). Defaults to 0.
+# @parameter_constraint ok_codes "allow_empty_string" : true
+# @parameter until          Try to execute the command until a particular state: 'ok', 'any' (defaults to 'any')
+# @parameter_constraint until "allow_empty_string" : true
+# @parameter_constraint until "select" : [ "", "any", "ok" ]
+# @parameter unique_id      To identify the action without losing track if the command changes. Defaults to the command if you don't need it.
+# @parameter_constraint unique_id "allow_empty_string" : true
+# 
+# @class_prefix command_execution_once
+# @class_parameter command
+# @agent_support = ["cfengine-community"]
+
+bundle agent command_execution_once(command, ok_codes, until, unique_id)
+{
+  vars:
+      "c_unique_id"       string => canonify("${unique_id}");
+      "class_prefix"      string => canonify("command_execution_once_${command}");
+
+  defaults:
+      "until"     string => "any", if_match_regex => "";
+      "ok_codes"  string => "0", if_match_regex => "";
+      "unique_id" string => "${command}", if_match_regex => "";
+
+  classes:
+      "until_ok"      expression => strcmp("${until}", "ok");
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+    pass2::
+      "reserved"      expression => strcmp("${reserve[1]}", "ok"),
+                         comment => "${report_data.method_id}";
+      "already_set"   expression => strcmp("${reserve[1]}", "failed_set"),
+                         comment => "${report_data.method_id}";
+      "already_reserved"   expression => strcmp("${reserve[1]}", "failed_reserved"),
+                              comment => "${report_data.method_id}";
+      "set_ok"        expression => strcmp("${set[1]}", "ok"),
+                         comment => "${report_data.method_id}";
+
+
+  methods:
+    pass1.!pass2::
+      "${report_data.method_id}" usebundle => reserve_flag("command_execution_once_${c_unique_id}"),
+                                 useresult => "reserve";
+
+    pass2.reserved.!pass3::
+      "${report_data.method_id}" usebundle => call_method("command_execution_result");
+      "${report_data.method_id}" usebundle => command_execution_result("${command}", "999", "${ok_codes}");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("command_execution_result");
+
+      "${report_data.method_id}" usebundle => set_flag("command_execution_once_${c_unique_id}"),
+                                 useresult => "set",
+                                        if => "!until_ok|${class_prefix}_repaired";
+
+      "${report_data.method_id}" usebundle => cancel_flag("command_execution_once_${c_unique_id}"),
+                                        if => "until_ok.!${class_prefix}_repaired";
+
+    # Problem when writing the flag
+    pass3.reserved.!set_ok::
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+
+    pass3.(already_set|already_reserved)::
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+
+    pass3::
+      "${report_data.method_id}" usebundle => _classes_sanitize("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${command}", "Execute the command once", "${command}");
+}

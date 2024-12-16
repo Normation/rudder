@@ -1,0 +1,131 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Condition from command
+# @description Execute a command and create result conditions depending on its exit code
+# @documentation
+#
+# This method executes a command, and defines a `${condition}_true` or a
+#  `${condition}_false` condition depending on the result of the command:
+#
+# * If the exit code **is in the "True codes"** list, this will produce a
+#    kept outcome and a
+#    `${condition}_true` condition,
+# * If the exit code **is in the "False codes"** list, this will produce a
+#    kept outcome and a
+#    `${condition}_false` condition,
+# * If the exit code **is not in "True codes" nor in "False codes"**, or if
+#    the command can not be found, it will produce an
+#    error outcome and
+#    and no condition from `${condition}`
+#
+#
+# The created condition is global to the agent.
+#
+# ##### Windows
+#
+# On Windows nodes, the exit code is taken from the `LASTEXITCODE` which is defined either by:
+#
+# * The exit code of a binary execution (when the command a call to an exe)
+# * The return code of a Powershell script
+#
+# Direct Powershell execution will almost always return 0 as `LASTEXITCODE` value, meaning that you have to execute either a binary or a Powershell
+# script to control the return code.
+#
+# ##### Example:
+#
+# If you run a command `/bin/check_network_status` that output code 0, 1 or 2 in
+# case of correct configuration, and 18 or 52 in case of invalid configuration,
+# and you want to define a condition based on its execution result,
+# you can use:
+#
+# ```
+# condition_from_command("network_correctly_defined", "/bin/check_network_status", "0,1,2", "18,52")
+# ```
+#
+# * If the command exits with 0, 1 or 2, then it will define the conditions
+#     * `network_correctly_defined_true`,
+#     * `condition_from_command_network_correctly_defined_kept`,
+#     * `condition_from_command_network_correctly_defined_reached`,
+#
+# * If the command exits 18, 52, then it will define the conditions
+#     * `network_correctly_defined_false`,
+#     * `condition_from_command_network_correctly_defined_kept`,
+#     * `condition_from_command_network_correctly_defined_reached`
+#
+# * If the command exits any other code or is not found, then it will define the conditions
+#     * `condition_from_command_network_correctly_defined_error`,
+#     * `condition_from_command_network_correctly_defined_reached`
+#
+# ##### Notes:
+#
+# * In audit mode, this method will still execute the command passed in parameter.
+#   Which means that you should only pass non system-impacting commands to this method.
+#
+# * Rudder will automatically "canonify" the given **Condition prefix** at execution time,
+#   which means that all non `[a-zA-Z0-9_]` characters will be replaced by an underscore.
+#
+# @parameter condition          The condition name
+# @parameter command            The command to run
+# @parameter true_codes         List of codes that produce a true status separated with commas (ex: 1,2,5)
+# @parameter false_codes        List of codes that produce a false status separated with commas (ex: 3,4,6)
+#
+# @parameter_rename condition_prefix condition
+# @class_prefix condition_from_command
+# @class_parameter condition
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent condition_from_command(condition, command, true_codes, false_codes)
+{
+  vars:
+      "class_prefix"  string => canonify("condition_from_command_${condition}");
+      "true_list"      slist => splitstring("${true_codes}", "\s*,\s*", "256");
+      "false_list"     slist => splitstring("${false_codes}", "\s*,\s*", "256");
+    pass3::
+      "message"       string => "The command '${command}' was successfully executed and the condition '${condition}_true' was defined",
+                          if => "${report_data.method_id}_true";
+      "message"       string => "The command '${command}' returned an exit code from the 'false_codes' list and the condition '${condition}_false' was defined",
+                          if => "${report_data.method_id}_false";
+      "message"       string => "The command '${command}' returned an unexpected exit code no conditions were defined",
+                      unless => "${report_data.method_id}_true|${report_data.method_id}_false";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+      "${condition}_true"  expression => "${report_data.method_id}_true",
+                                scope => "namespace";
+      "${condition}_false" expression => "${report_data.method_id}_false",
+                                scope => "namespace";
+
+  methods:
+    pass1.!pass2::
+      # In audit mode, we need to force enforce mode to execute the command
+      "remove_dry_run_${class_prefix}"  usebundle => push_dry_run_mode("false");
+    pass2.!pass3::
+      "restore_dry_run_${class_prefix}" usebundle => pop_dry_run_mode();
+    pass3::
+      "${report_data.method_id}"
+        usebundle  => log_rudder_v4("${condition}", "${message}", "${condition}");
+
+  commands:
+    pass1.!pass2.!pass3::
+      "${command}"
+        contain      => in_shell,
+        classes      => classes_generic_return_boolean_list_two("${class_prefix}", "${report_data.method_id}", "${report_data.method_id}", @{true_list}, @{false_list});
+}

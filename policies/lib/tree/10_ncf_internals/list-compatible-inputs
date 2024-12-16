@@ -1,0 +1,254 @@
+#!/bin/sh
+
+set -e
+
+# Need at least 3 parameters
+if [ "$#" -lt 3 ]
+then
+  echo "Usage: $0 [--capability-file <capability_file_path>] [--agent-version <CFEngine_version>] --ncf-path <ncf_framework_path> [common|local]/<nn_directory> [<nn_directory ...]"
+  echo "Deprecated usage: $0 <CFEngine_version> <ncf_framework_path> [common|local]/<nn_directory> [<nn_directory ...]"
+  echo "  Finds all *.cf files in <ncf_framework>/[common|local]<nn_directory> that are compatible with the given CFEngine version and the capability list"
+  exit 1
+fi
+
+# add a default path since it is emptied by cfengine, and busybox for android
+PATH="/usr/gnu/bin:/usr/gnu/x86_64-pc-solaris2.11/bin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin:/system/xbin:${PATH}"
+export PATH
+
+# tag matching
+# warning do not change regex without testing on aix
+tag_regex='^#[ \t]*@agent_version[ \t]*'
+reqs_regex='^#[ \t]*@agent_requirements[ \t]*'
+cap_regex='"capabilities"[ \t]*:[ \t]*\[\(.*\)\]'
+version_regex='\([0-9][0-9]*\)\.\([0-9][0-9]*\).*'
+agent_regex='"agent_version"[ \t]*\([<>=]=*\)[ \t]*'${version_regex}
+
+if [ `printf "%.1s" "$1"` = "-" ]
+then
+  # standard parsing
+  while true
+  do
+    if [ "$1" = "--capability-file" ]
+    then
+      capability_file="$2"
+      shift 2
+    elif [ "$1" = "--agent-version" ]
+    then
+      cfengine_version="$2"
+      shift 2
+    elif [ "$1" = "--ncf-path" ]
+    then
+      framework_path="$2"
+      shift 2
+    else
+      break
+    fi
+  done
+else
+  cfengine_version="$1"
+  framework_path="$2"
+  # see comment below on the last parameters
+  shift 2
+fi
+
+if [ -n "${cfengine_version}" ]
+then
+  # split version numbers
+  cfengine_major=`printf "${cfengine_version}\n" | sed -e "s/${version_regex}/\\1/"`
+  cfengine_minor=`printf "${cfengine_version}\n" | sed -e "s/${version_regex}/\\2/"`
+fi
+
+# list capabilities
+capabilities=""
+if [ -f "${capability_file}" ]
+then
+  capabilities=`cat "${capability_file}"`
+else
+  # Empty the variable if the file does not exist
+  # This allows passing the file path everytime and not failing when it is not there
+  capability_file=""
+fi
+
+# requirement validation function
+validate_requirements() {
+  file="$1"
+  requirements=`sed -ne "s/${reqs_regex}//p" "${file}"`
+  # AIX's sed doesn't support '|' or '?' so we are limited to matching approximately valid expression
+  validity=`echo "${requirements}" | sed -ne "/\\(${cap_regex}\\)*[ \\t]*\\([|&][|&]\\)*[ \\t]*\\(${agent_regex}\\)*/p"`
+  if [ -z "${validity}" ]
+  then
+    echo "Invalid requirement ${requirements} in ${file}" 1>&2
+    exit 1
+  fi
+
+  # extract capabilities from the expression
+  caps=`echo "${requirements}" | sed -ne "s/${cap_regex}.*/\\1/p" | tr -d '" \t' | tr ',' ' '`
+  include_caps="x"
+  if [ -n "${caps}" ]
+  then
+    include_caps=0 # true for a shell
+    # for all required capability
+    for cap in ${caps}
+    do
+      # manage ! for negation
+      count_wanted=1
+      if [ `echo "${cap}" | cut -c 1` = '!' ]
+      then
+        count_wanted=0
+        cap=`echo "${cap}" | cut -c 2-`
+      fi
+  
+      count=0
+      # check if there is a matching agent capability
+      for c in ${capabilities}
+      do
+        if [ "${cap}" = "${c}" ]
+        then
+          count=1
+        fi
+      done
+  
+      # exclude if there is no match
+      if [ ${count} != ${count_wanted} ]
+      then
+        include_caps=1 # false in shell
+      fi
+    done
+  fi
+
+  # extract agent version from the expression
+  operator=`echo "${requirements}" | sed -ne "s/.*${agent_regex}[ \\t]*/\\1/p"`
+  major=`echo "${requirements}" | sed -ne "s/.*${agent_regex}[ \\t]*/\\2/p"`
+  minor=`echo "${requirements}" | sed -ne "s/.*${agent_regex}[ \\t]*/\\3/p"`
+  include_agent="x"
+  if [ -n "${operator}" ]
+  then
+    if [ "${operator}" = ">=" ]
+    then
+      [ "${cfengine_major}" -gt "${major}" ] || [ "${cfengine_major}" -eq "${major}" -a "${cfengine_minor}" -ge "${minor}" ]
+      include_agent=$?
+    elif [ "${operator}" = "<" ]
+    then
+      [ "${cfengine_major}" -lt "${major}" ] || [ "${cfengine_major}" -eq "${major}"  -a "${cfengine_minor}" -lt "${minor}" ]
+      include_agent=$?
+    else
+      echo "Unknown operator ${operator} in ${file}" 1>&2
+      exit 1
+    fi
+  fi
+
+  # extract binary operator
+  operator=`echo "${requirements}" | sed -ne "s/${cap_regex}[ \\t]*\\(..\\)[ \\t]*${agent_regex}/\\2/p"`
+  if [ "${operator}" = "&&" ]
+  then
+    [ ${include_caps} -eq 0 ] && [ ${include_agent} -eq 0 ]
+  elif [ "${operator}" = "||" ]
+  then
+    [ ${include_caps} -eq 0 ] || [ ${include_agent} -eq 0 ]
+  else
+    if [ "${include_caps}" = "x" ]
+    then
+      [ ${include_agent} -eq 0 ]
+    elif [ "${include_agent}" = "x" ]
+    then
+      [ ${include_caps} -eq 0 ]
+    else
+      echo "Evaluation error of ${requirements} in ${file}"
+      exit 1
+    fi
+  fi
+}
+
+# move into framework path
+cd "${framework_path}"
+
+# Last parameters not named to keep them as a quoted array
+for directory in "$@"
+do
+  if [ "${NCF_CACHE_PATH}" = "" ]
+  then
+    # maintain compatibility with old callers
+    exclude_file="${framework_path}/${directory}/.ncf-exclude-cache-${cfengine_version}"
+  else
+    # take the cache directory from environment
+    exclude_basedir="${NCF_CACHE_PATH}/ncf-exclude-cache-${cfengine_version}"
+    [ -d "${exclude_basedir}" ] || mkdir "${exclude_basedir}"
+    canonified_path=`echo "${framework_path}/${directory}" | sed -e "s/\\//_/g"`
+    exclude_file="${exclude_basedir}/${canonified_path}"
+  fi
+
+  # ignore directory if it doesn't exist
+  if [ ! -d "${framework_path}/${directory}" ]; then continue; fi
+
+  # first remove obsolete cache for exclude list
+  if [ -f "${exclude_file}" ]
+  then
+    # Include capability_file in the search list, if it doesn't exist it will be ignored
+    # If it has been changed the cache will be considered obsolete
+    newer_files=`find "${directory}" ${capability_file} -type f -newer "${exclude_file}"`
+    if [ "${newer_files}" != "" ]
+    then
+      rm -f "${exclude_file}"
+    fi
+  fi
+
+  # then create cache if it doesn't exist
+  if [ -f "${exclude_file}" ]
+  then
+    excludes=`cat "${exclude_file}"`
+  else
+    for file in `find "${directory}" -name '*.cf' -exec grep -l -e "${tag_regex}" -e "${reqs_regex}" '{}' \;`
+    do
+      operator=""
+
+      # @agent_version
+      if grep -q "${tag_regex}>=" "${file}"; then operator=">="; fi
+      if grep -q "${tag_regex}<" "${file}"; then operator="<"; fi
+      if [ -z "${operator}" ] || [ -z "${cfengine_version}" ]
+      then
+        include_version=0 # true for a shell
+      else
+        major=`sed -ne "s/${tag_regex}${operator}[ \\t]*${version_regex}/\\1/p" "${file}"`
+        minor=`sed -ne "s/${tag_regex}${operator}[ \\t]*${version_regex}/\\2/p" "${file}"`
+        set +e
+        if [ "${operator}" = ">=" ]
+        then
+          [ "${cfengine_major}" -gt "${major}" ] || [ "${cfengine_major}" -eq "${major}" -a "${cfengine_minor}" -ge "${minor}" ]
+          include_version=$?
+        else # <
+          [ "${cfengine_major}" -lt "${major}" ] || [ "${cfengine_major}" -eq "${major}"  -a "${cfengine_minor}" -lt "${minor}" ]
+          include_version=$?
+        fi
+        set -e
+      fi
+
+      # @agent_requirements
+      if grep -q "${reqs_regex}" "${file}"
+      then
+        set +e
+        validate_requirements "${file}"
+        include_reqs="$?"
+        set -e
+      else
+        # no capabilities required = accept
+        include_reqs=0 # true for a shell
+      fi
+
+      # if exclude because of version or exclude because of requirements
+      # if (include_version == false) || (include_reqs == false)
+      if [ ${include_version} -ne 0 ] || [ ${include_reqs} -ne 0 ]
+      then
+        # exclude
+        file_name=`basename ${file}`
+        # posix compliant syntax to exclude a file
+        excludes="${excludes} -name ${file_name} -prune -o"
+      fi
+    done  
+    printf "${excludes}" > "${exclude_file}"
+  fi
+
+  # eventually call find
+  # posix compliant version of find without -printf '%p\n', it should work with darwin and aix
+  find "${directory}" ${excludes} -name '*.cf' -print
+done
+

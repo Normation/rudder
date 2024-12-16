@@ -1,0 +1,52 @@
+#####################################################################################
+# Copyright 2013-2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Service start
+# @description Start a service using the appropriate method
+# @deprecated This is an action that should not be used in the general case.
+# If you really want to call the start method, use [service_action](#_service_action).
+# Otherwise, simply call [service_started](#_service_started)
+# @documentation See [service_action](#_service_action) for documentation.
+#
+# @parameter name Name of the service
+# 
+#
+# @parameter_rename service_name name
+# @class_prefix service_start
+# @class_parameter name
+# @agent_support = ["cfengine-community"]
+
+bundle agent service_start(name)
+{
+  vars:
+      "class_prefix" string => "service_start_${name}";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("ncf_services");
+      "${report_data.method_id}" usebundle => ncf_services("${name}", "start");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("ncf_services");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Start service ${name}", "");
+}

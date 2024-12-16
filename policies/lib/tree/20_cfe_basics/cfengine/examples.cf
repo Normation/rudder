@@ -1,0 +1,73 @@
+bundle agent probabilistic_usebundle(probability, bundlename)
+# @brief activate named bundle probabilistically
+# @param probability probability that the named bundle will be activated during
+# a given agent execution
+# @param bundlename the bundle to activate based on the probability
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example
+# {
+#    methods:
+#      "Toss Coin"
+#        usebundle => probabilistic_usebundle("50", "heads"),
+#        comment => "Call bundle heads ~ 50% of the time";
+#
+#      "Trick Coin"
+#        usebundle => probabilistic_usebundle("75", "heads"),
+#        comment => "Call bundle heads ~ 75% of the time";
+# }
+# ```
+{
+  classes:
+    "fifty_fifty"
+      expression => strcmp("$(probability)", "50"),
+      comment => "We have to special case 50 because of the way dist classes
+                  work you would always get 50 defined";
+    "not_fifty_fifty" expression => "!fifty_fifty";
+    "have_remainder" expression => isvariable("remainder");
+
+    fifty_fifty.have_remainder::
+      "activate_bundle"
+        dist => { "$(probability)000", "$(remainder)"};
+
+    not_fifty_fifty.have_remainder::
+      "activate_bundle"
+        dist => { "$(probability)", "$(remainder)"};
+
+  vars:
+    fifty_fifty::
+      "remainder"
+        string => format("%d", eval("((100 - $(probability)) * 1000) +1", "math", "infix"));
+
+    not_fifty_fifty::
+      "remainder"
+        string => format("%d", eval("100 - $(probability)", "math", "infix"));
+
+  methods:
+    fifty_fifty::
+      "Activate bundle probabilistically"
+        handle => "probabilistic_usebundle_methods_special_case_fifty_fifty_activate_bundle",
+        usebundle => $(bundlename),
+        if => "activate_bundle_$(probability)000",
+        comment => "Activate $(bundlename) $(probability)%ish of the time";
+
+    not_fifty_fifty::
+      "Activate bundle probabilistically"
+        handle => "probabilistic_usebundle_methods_activate_bundle",
+        usebundle => $(bundlename),
+        if => "activate_bundle_$(probability)",
+        comment => "Activate $(bundlename) $(probability)% of the time";
+
+
+  reports:
+    DEBUG.fifty_fifty::
+      "$(this.bundle) Special case for 50/50";
+
+      "$(this.bundle) activate_bundle_$(probability)000"
+        if => "activate_bundle_$(probability)000";
+
+      "$(this.bundle) activate_bundle_$(probability)001"
+        if => "activate_bundle_$(probability)001";
+}

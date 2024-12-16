@@ -1,0 +1,103 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Variable dict merge
+# @description Define a variable resulting of the merge of two other variables
+# @documentation To use the generated variable, you must use the form `${prefix.name[key]}` with each name replaced with the parameters of this method.
+#
+# The resulting variable will be the merge of the two parameters, which means it is built by:
+#
+# * Taking the content of the first variable
+# * Adding the content of the second variable, and replacing the keys that were already there
+#
+# It is only a one-level merge, and the value of the first-level key will be completely replaced by the merge.
+#
+# This method will fail if one of the variables is not defined. See [variable_dict_merge_tolerant](#_variable_dict_merge_tolerant)
+# if you want to allow one of the variables not to be defined.
+#
+#### Usage
+#
+# If you have a `prefix.variable1` variable defined by:
+#
+# ```json
+# { "key1": "value1", "key2": "value2", "key3": { "keyx": "valuex" } }
+# ```
+#
+# And a `prefix.variable2` variable defined by:
+#
+# ```json
+# { "key1": "different", "key3": "value3", "key4": "value4" }
+# ```
+#
+# And that you use:
+#
+# ```
+# variablr_dict_merge("prefix", "variable3, "prefix.variable1", "prefix.variable2")
+# ```
+#
+# You will get a `prefix.variable3` variable containing:
+#
+# ```json
+# {
+#   "key1": "different",
+#   "key2": "value2",
+#   "key3": "value3",
+#   "key4": "value4"
+# }
+# ```
+#
+# @parameter prefix The prefix of the variable name
+# @parameter name   The variable to define, the full name will be prefix.name
+# @parameter first_variable  The first variable, which content will be overridden in the resulting variable if necessary (written in the form prefix.name)
+# @parameter second_variable The second variable, which content will override the first in the resulting variable if necessary (written in the form prefix.name)
+#
+# 
+# @parameter_rename variable_prefix prefix
+# @parameter_rename variable_name name
+# @class_prefix variable_dict_merge
+# @class_parameter name
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent variable_dict_merge(prefix, name, first_variable, second_variable)
+{
+  vars:
+      "old_class_prefix"  string => canonify("variable_dict_merge_${name}");
+      "args"               slist => { "${prefix}", "${name}", "${first_variable}", "${second_variable}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("variable_dict_merge_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      # define the variable within the prefix namespace
+      "${prefix}.${name}"  data => mergedata("${first_variable}", "${second_variable}");
+
+  classes:
+     "variable_defined" expression => isvariable("${prefix}.${name}");
+
+  methods:
+    !variable_defined::
+      "error"    usebundle => _classes_failure("${old_class_prefix}");
+      "error"    usebundle => _classes_failure("${class_prefix}");
+
+    variable_defined::
+      "success"  usebundle => _classes_success("${old_class_prefix}");
+      "success"  usebundle => _classes_success("${class_prefix}");
+
+    any::
+      "report"
+        usebundle  => _log_v3("Set the dict ${prefix}.${name} to the content of the merge of ${first_variable} and ${second_variable}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

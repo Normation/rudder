@@ -1,0 +1,84 @@
+bundle common cfe_internal_common
+# @brief Select parts of the standard library that are dependant
+{
+  vars:
+      "inputs" slist => { "$(this.promise_dirname)/common.cf",
+                          "$(this.promise_dirname)/commands.cf"};
+}
+
+body file control
+# @brief Include necessary parts of stdlib
+{
+      inputs => { @(cfe_internal_common.inputs) };
+}
+
+bundle agent cfe_internal_cleanup_agent_reports
+# @brief Cleanup accumulated agent reports
+{
+  vars:
+    any::
+      # To avoid unnecessary work, we only findfiles if there is not already a
+      # variable defined.
+      "diff_files"
+        slist => findfiles("$(sys.workdir)/state/diff/*.diff"),
+        unless => isvariable( $(this.promiser) );
+
+      "promise_log_files"
+        slist => findfiles("$(sys.workdir)/state/promise_log/*.csv"),
+        unless => isvariable( $(this.promiser) );
+
+      "previous_state_files" -> { "ENT-3161" }
+        slist => findfiles("$(sys.workdir)/state/previous_state/*.cache"),
+        unless => isvariable( $(this.promiser) ),
+        comment => "The files in this directory record the state at the end of
+                    the previous agent run. They are used in concert with the
+                    promise logs to derive delta reports.";
+
+      "untracked_files" -> { "ENT-3161" }
+        slist => findfiles("$(sys.workdir)/state/untracked/*.idx"),
+        unless => isvariable( $(this.promiser) ),
+        comment => "The files in this directory are used in support of the
+                    report_data_select filters. This is a record of all promises
+                    that should not be collected";
+
+      "files"
+        slist => { @(diff_files),
+                   @(promise_log_files),
+                   @(previous_state_files),
+                   @(untracked_files) };
+
+      "reports_size[$(files)]"
+        int => filesize("$(files)"),
+        unless => isvariable( $(this.promiser) );
+
+      "tmpmap"
+        slist => maparray("$(this.v)", reports_size);
+
+    # We need to make sure that we have files before summing or errors are
+    # produced in the log
+    have_files::
+      "total_report_size" real => sum(tmpmap);
+
+  classes:
+      "cfe_internal_purge_reports"
+        expression => isgreaterthan("$(total_report_size)","$(def.max_client_history_size)"),
+        comment => "Determine if the current sum of reports exceeds the max desired";
+
+      "have_files"
+        expression => isgreaterthan(length(tmpmap), 0);
+
+  files:
+    cfe_internal_purge_reports::
+      "$(files)"
+        delete => tidy,
+        handle => "cf_cleanup_agent_reports_$(files)";
+
+  reports:
+    DEBUG|DEBUG_cfe_internal_cleanup_agent_reports::
+      "DEBUG $(this.bundle): Size of '$(files)' =  '$(reports_size[$(files)])'";
+      "DEBUG $(this.bundle): Size of all reports = '$(total_report_size)'";
+      "DEBUG $(this.bundle): Purge threshold = '$(def.max_client_history_size)'";
+      "DEBUG $(this.bundle): Client history purge triggered"
+        if => "cfe_internal_purge_reports";
+
+}

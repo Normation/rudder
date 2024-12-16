@@ -1,0 +1,154 @@
+#####################################################################################
+# Copyright 2020 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+#
+# @name File Augeas set
+# @description Use augeas commands and options to set a node label's value.
+#
+# @documentation Augeas is a tool that provides an abstraction layer for all the complexities that turn around editing files with regular expressions.
+# It's a tree based hierarchy tool, that handles system configuration files where you can securely modify your files and to do so you have to provide
+# the path to the node label's value.
+#
+# Augeas uses lenses which are like sort of modules that are in charge of identifying and converting files into tree and back.
+#
+# This method uses `augtool` to force the value of an augeas node's label.
+#
+# Actually there are two ways to use this method:
+#
+# * Either by providing the augeas **path** to the node's label and let **lens** and **file** empty.
+# ** this way augeas will load the common files and lens automatically
+# * Or by using a given **file** path and a specific **lens**.
+# ** better performances since only one lens is loaded
+# ** support custom lens, custom paths (for instance to apply the Hosts lens to another file than `/etc/hosts`)
+# * Either by simply providing an augeas **path** to the node's label
+#
+# *Warning*: When you don't specify the file and lens to use, no backup of the file will be made before
+# editing it.
+#
+# #### Two uses cases examples:
+#
+# In the first case, let's suppose that you want to set the value of the ip address of the first line in the `/etc/hosts` file to `192.168.1.5`,
+# to do so you need to provide the augeas **path** and **value** parameters.
+#
+# ```
+# file_augeas_set("/etc/hosts/1/ipaddr", "192.168.1.5", "", "");
+# ```
+#
+# The second case is more efficient, and forces the `Hosts` lens to parse the `/etc/hosts` file and set the value for the given **path** node:
+#
+# ```
+# file_augeas_set("/etc/hosts/1/ipaddr", "192.168.1.5", "Hosts", "/etc/hosts");
+# ```
+#
+# @parameter path            The path to the file and node label
+# @parameter value           The value to set
+# @parameter lens            Load a specific lens (optional)
+# @parameter file            Load a specific file (optional)
+# @parameter_constraint file "allow_empty_string" : true
+# @parameter_constraint lens "allow_empty_string" : true
+# @class_prefix file_augeas_set
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_augeas_set(path, value, lens, file)
+{
+  vars:
+      "old_class_prefix" string => canonify("file_augeas_set_${path}");
+      "args" slist => {"${path}", "${value}", "${lens}","${file}"};
+      "report_param" string => join("_", args);
+      "class_prefix" string => canonify("file_augeas_set_${report_param}");
+
+      "cpath" string => canonify("${path}");
+
+    pass1.file_defined::
+      "command" string => "printf 'set /augeas/load/${lens}/lens \"${lens}.lns\" \n set /augeas/load/${lens}/incl \"${file}\" \n load \n set /files${path} \"${value}\" \n save \n errors' | ${ncf_paths.path[augtool]} --noautoload --new && { mv '${file}.augnew' '${file}.${cpath}.augnew' 2>/dev/null || true; }";
+      "cfile" string => canonify("${file}");
+
+    pass1.!file_defined::
+      "command" string => "printf \"set /files${path} \"${value}\" \n save \" | ${ncf_paths.path[augtool]}";
+
+    pass1.augeas_binaries.!pass2::
+      "output" string => execresult("${command}", "useshell"), comment => "${path}";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1";
+
+      "should_report"    expression => "${report_data.should_report}";
+
+    pass1::
+      "augeas_binaries" expression => fileexists("${ncf_paths.path[augtool]}");
+      "file_defined"    expression => not(strcmp("${file}",""));
+
+    pass2.augeas_binaries::
+      "repaired" expression => regcmp("Saved.*", "${output}");
+      # when there is an errors command
+      "kept"     expression => regcmp(" *\(no errors\)", "${output}");
+      # when there is no errors command
+      "kept"     expression => regcmp(" *", "${output}");
+      "error"    expression => regcmp("error:.*", "${output}");
+      # failsafe in case nothing matched
+      "error"    expression => "!kept.!repaired";
+
+    pass3.augeas_binaries::
+      "cp_ok"    expression => "file_from_local_source_${cfile}_ok";
+      "ok"       expression => "!error",
+                         if => "!file_defined";
+      "ok"       expression => "!error.(!repaired|cp_ok)",
+                         if => "file_defined";
+
+  methods:
+    pass2.!pass3::
+      "disable_reporting_${class_prefix}" usebundle => disable_reporting;
+      # allows automatic backup in case file path was provided
+      "copy file"           usebundle => file_from_local_source("${file}.${cpath}.augnew", "${file}"),
+                            if => "file_defined.repaired";
+      "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
+                                                  if => "should_report";
+    pass3::
+      "disable_remove_reporting_${class_prefix}_${cpath}" usebundle => disable_reporting;
+      "remove"       usebundle => file_absent("${file}.${cpath}.augnew"),
+                            if => fileexists("${file}.${cpath}.augnew");
+      "reenable_remove_reporting_${class_prefix}_${cpath}" usebundle => enable_reporting,
+                                                  if => "should_report";
+
+    pass3.augeas_binaries.ok.kept::
+       "success" usebundle => _classes_success("${old_class_prefix}");
+       "success" usebundle => _classes_success("${class_prefix}");
+       "report"  usebundle => _log("Setting the node value for ${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    pass3.augeas_binaries.ok.repaired::
+       "repaired" usebundle => _classes_repaired("${old_class_prefix}");
+       "repaired" usebundle => _classes_repaired("${class_prefix}");
+       "report"   usebundle => _log("Setting the node value for ${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    pass3.augeas_binaries.!ok::
+      "failure" usebundle => _classes_failure("${old_class_prefix}");
+      "failure" usebundle => _classes_failure("${class_prefix}");
+      "report"  usebundle => _log("Augeas binaries does exist, but your request has failed. Setting the node value for ${path}","${old_class_prefix}", "${class_prefix}", @{args});
+
+    pass3.!augeas_binaries::
+      "failure" usebundle => _classes_failure("${old_class_prefix}");
+      "failure" usebundle => _classes_failure("${class_prefix}");
+      "report"  usebundle => _log("Augeas binaries does not exist.", "${old_class_prefix}", "${class_prefix}", @{args});
+
+  reports:
+    info::
+      "Augeas output for setting ${path} to ${value}: ${output}";
+}
+

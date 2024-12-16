@@ -1,0 +1,91 @@
+#####################################################################################
+# Copyright 2018 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Condition from variable match
+# @description Test the content of a string variable
+# @documentation
+#
+# Test a string variable content and create conditions depending on its value:
+#
+# * If the variable **is found and its content matches** the given regex:
+#     * a `${condition}_true` condition,
+#     * and **kept outcome** status
+# * If the variable **is found but its content does not match** the given regex:
+#     * a `${condition}_false` condition,
+#     * and a **kept outcome** status
+# * If the variable **can not be found**:
+#     * a `${condition}_false` condition
+#     * and an **error outcome** status
+# 
+# Be careful, we are using variable *name* not the value. For example if you want to match the property value "foo"
+# you will just need `node.properties[foo]` without `${...}` syntax
+#
+# /!\ Regex for unix machine must be PCRE compatible and those for Windows agent must respect the .Net regex format.
+#
+# * If you want to test a technique parameter, use the `technique_id` of the technique
+#   as variable prefix and the`parameter_name` as variable name.
+#
+# The method only supports plain string type variables.
+#
+# @parameter condition Prefix of the class (condition) generated
+# @parameter variable_name Complete name of the variable being tested, like my_prefix.my_variable
+# @parameter expected_match Regex to use to test if the variable content is compliant
+#
+#
+# @parameter_rename condition_prefix condition
+# @class_prefix condition_from_variable_match
+# @class_parameter condition
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent condition_from_variable_match(condition, variable_name, expected_match)
+{
+  vars:
+      "old_class_prefix"  string => canonify("condition_from_variable_match_${condition}");
+      "args"               slist => { "${condition}", "${variable_name}", "${expected_match}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("condition_from_variable_match_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+      "pass1" expression => "any";
+      "pass2" expression => "pass1";
+      "pass3" expression => "pass2";
+
+    pass2::
+      "var_exists" expression => isvariable("${variable_name}");
+
+      "${condition}_true"  and => {regcmp("${expected_match}", "${${variable_name}}"), "var_exists"},
+                                       scope => "namespace";
+
+      "${condition}_false"  or => {"!${condition}_true", "!var_exists"},
+                                       scope => "namespace";
+
+  methods:
+    pass3::
+      "failure" usebundle => _classes_failure("${old_class_prefix}"),
+        ifvarclass => "!var_exists";
+      "failure" usebundle => _classes_failure("${class_prefix}"),
+        ifvarclass => "!var_exists";
+
+      "success" usebundle => _classes_success("${old_class_prefix}"),
+        ifvarclass => "var_exists";
+      "success" usebundle => _classes_success("${class_prefix}"),
+        ifvarclass => "var_exists";
+
+      "report"  usebundle => _log("Create the condition ${condition}_{true,false} from the result of regex: /${expected_match}/ on variable ${variable_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

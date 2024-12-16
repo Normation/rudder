@@ -1,0 +1,57 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File template expand
+# @deprecated This method uses CFEngine's templating which is deprecated and not portable across agents.
+# Please use [file_from_template_mustache](#_file_from_template_mustache) or [file_from_template_jinja2](#_file_from_template_jinja2) instead.
+# @description This is a bundle to expand a template in a specific location
+#
+# @parameter tml_file File name (with full path within the framework) of the template file
+# @parameter path File name (with full path) where to expand the template
+# @parameter mode Mode of destination file
+# @parameter owner Owner of destination file
+# @parameter group Group of destination file
+#
+#
+# @parameter_rename target_file path
+# @class_prefix file_template_expand
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_template_expand(tml_file, path, mode, owner, group)
+{
+  vars:
+      "old_class_prefix" string => canonify("file_template_expand_${path}");
+      "args"              slist => { "${tml_file}", "${path}", "${mode}", "${owner}", "${group}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_template_expand_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  files:
+      "${path}"
+        create        => "true",
+        edit_template => "${sys.workdir}/inputs/${tml_file}",
+        edit_defaults => ncf_empty_select("true"),
+        perms         => mog("${mode}","${owner}","${group}"),
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
+      "report"   usebundle => _log_v3("Expand template ${tml_file} into ${path} with perms ${mode}, ${owner}, ${group}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

@@ -1,0 +1,60 @@
+#####################################################################################
+# Copyright 2018 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Monitoring template
+# @description Add a monitoring template to a node (requires a monitoring plugin)
+#
+# @documentation
+# This method assigns monitoring templates to a Rudder node. The Rudder plugin respective to
+# each monitoring platform will apply those templates to the node.
+#
+# @parameter template Name of the monitoring template
+# 
+# @class_prefix monitoring_template
+# @class_parameter template
+# @agent_support = ["cfengine-community"]
+
+bundle agent monitoring_template(template)
+{
+  vars:
+      "monitoring_file"   string => "/var/rudder/tmp/rudder_monitoring.csv";
+
+      "old_class_prefix"  string => canonify("monitoring_template_${template}");
+
+      "args"               slist => {"${template}"}; 
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("monitoring_template_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      "full_inner_class_prefix" string => canonify("file_ensure_lines_present_${monitoring_file}_template,${template}");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+
+  classes:
+  
+      "should_report" expression => "${report_data.should_report}";
+
+  methods:
+    
+      "disable_reporting_${class_prefix}"  usebundle => disable_reporting;
+      "Write csv file"                         usebundle => file_ensure_lines_present("${monitoring_file}", "template,${template}");
+      "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
+                                              ifvarclass => "should_report";
+      "result classes"                         usebundle => _classes_copy_invert_kept_repaired(canonify("file_ensure_lines_present_${monitoring_file}"), "${old_class_prefix}");
+      "new result classes"                     usebundle => _classes_copy_invert_kept_repaired("${inner_class_prefix}", "${class_prefix}");
+      "report"                                 usebundle => _log_v3("Host follows ${template} monitoring template", "${template}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

@@ -1,0 +1,60 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Package verify version
+# @description Verify if a package is installed in a specific version
+# @deprecated Use [package_present](#_package_present) in audit mode
+#
+# @parameter name    Name of the package to verify
+# @parameter version Version of the package to verify (can be "latest" for latest version)
+# @deprecated Use [package_present](#_package_present) with policy_mode_override set to audit instead
+#
+#
+# @parameter_rename package_name name
+# @parameter_rename package_version version
+# @class_prefix package_install
+# @class_parameter name
+# @agent_support = ["cfengine-community"]
+
+bundle agent package_verify_version(name, version)
+{
+  vars:
+      "old_class_prefix"        string => canonify("package_install_${name}");
+      "args"                     slist => { "${name}", "${version}" };
+      "report_param"            string => join("_", args);
+      "full_class_prefix"       string => canonify("package_install_${report_param}");
+      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
+
+      # call is to package_install_version_cmp("${name}", "==", "${version}", "verify");
+      "full_inner_class_prefix"  string => canonify("package_install_${name}_==_${version}_verify");
+      "inner_class_prefix"       string => string_head("${full_inner_class_prefix}", "1000");
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
+  methods:
+      "disable_reporting_${class_prefix}"
+                           usebundle => disable_reporting;
+      "package verify"     usebundle => package_install_version_cmp("${name}", "==", "${version}", "verify");
+      "reenable_reporting_${class_prefix}"
+                           usebundle => enable_reporting,
+                          ifvarclass => "should_report";
+    "new result classes"   usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+
+    "report"               usebundle => _log_v3("Verify that package ${name} is installed in version ${version}", "${name}", "${old_class_prefix}", "", @{args});
+}
