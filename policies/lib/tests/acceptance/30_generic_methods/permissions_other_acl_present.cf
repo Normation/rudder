@@ -542,7 +542,7 @@ bundle agent init
       "execute[58]"   string => "true";
 
       "indices" slist => getindices("files");
-      # Needed for succes + recursive
+      # Needed for success + recursive
       "indices_recursive" slist => { "15", "30" };
 
       "printable_lines[${indices}]" string => join("${const.endl}", "exp_lines[${indices}]");

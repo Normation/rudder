@@ -174,7 +174,7 @@ pipeline {
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('policies') {
-                                sh script: 'typos --exclude "*.log"', label: 'check policies typos'
+                                sh script: 'typos --exclude lib/tree/20_cfe_basics/cfengine --exclude lib/tree/10_ncf_internals/modules/packages --exclude "*.log"', label: 'check policies typos'
                             }
                             dir('webapp/sources/api-doc') {
                                 sh script: 'typos', label: 'check webapp api doc typos'

@@ -77,7 +77,7 @@ Look in default.cf for some standard check bundles (for example, to compare
 files when testing file edits, or for cleaning up temporary files).
 
 Tests should be named with only digits (e.g., "001.cf") unless they are expected
-to crash (that is, if they contan syntax errors or other faults), in which case
+to crash (that is, if they contain syntax errors or other faults), in which case
 the filename should have an 'x' suffix (e.g., "001.x.cf").
 
 Tests which are not expected to pass yet (e.g. there is a bug in code which

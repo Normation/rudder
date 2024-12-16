@@ -30,8 +30,8 @@ common_tags            = [ "name", "description", "parameter", "bundle_name", "b
 tags["generic_method"] = [ "documentation", "class_prefix", "class_parameter", "class_parameter_id", "deprecated", "agent_requirements", "parameter_constraint", "parameter_type", "action", "rename", "parameter_rename" ]
 [ value.extend(common_tags) for (k,value) in tags.items() ]
 
-optionnal_tags = {}
-optionnal_tags["generic_method"] = [ "deprecated", "documentation", "parameter_constraint", "parameter_type", "agent_requirements", "action", "rename", "parameter_rename" ]
+optional_tags = {}
+optional_tags["generic_method"] = [ "deprecated", "documentation", "parameter_constraint", "parameter_type", "agent_requirements", "action", "rename", "parameter_rename" ]
 multiline_tags                   = [ "description", "documentation", "deprecated" ]
 
 class NcfError(Exception):
@@ -53,13 +53,13 @@ class NcfError(Exception):
 
 
 def format_errors(error_list):
-  formated_errors = []
+  formatted_errors = []
   for error in error_list:
     sys.stderr.write("ERROR: " + error.message + "\n")
     sys.stderr.write(error.details + "\n")
-    formated_errors.append( { "message": error.message, "details": error.details } )
+    formatted_errors.append( { "message": error.message, "details": error.details } )
   sys.stderr.flush()
-  return formated_errors
+  return formatted_errors
 
 
 def get_root_dir():
@@ -242,7 +242,7 @@ def parse_generic_method_metadata(content):
       res[tag] = res[tag].strip('\n\r')
 
   all_tags = tags["generic_method"]
-  expected_tags = [ tag for tag in all_tags if not tag in optionnal_tags["generic_method"]]
+  expected_tags = [ tag for tag in all_tags if not tag in optional_tags["generic_method"]]
   if not set(res.keys()).issuperset(set(expected_tags)):
     missing_keys = [mkey for mkey in expected_tags if mkey not in set(res.keys())]
     name = res['bundle_name'] if 'bundle_name' in res else "unknown"
