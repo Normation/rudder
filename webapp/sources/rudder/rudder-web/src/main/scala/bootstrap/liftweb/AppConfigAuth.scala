@@ -159,20 +159,26 @@ class AppConfigAuth extends ApplicationContextAware {
       value
     }
 
-    // prepare specific properties for each configuredAuthProviders - we need system properties for spring
-    import scala.jdk.CollectionConverters.*
-    // provider properties need to be set to global config before being overridden by specific config by provider
-    val globalProviderProperties: Map[String, AuthBackendProviderProperties] = configuredAuthProviders
+    // provider properties need to be set to default config, using global value, to be used when overriding config by provider
+    val defaultProviderProperties: Map[String, AuthBackendProviderProperties] = configuredAuthProviders
       .map(_.name)
-      .map(
-        _ ->
-        AuthBackendProviderProperties.default
-          // providerRoleExtension has no global config value
-          .copy(restTokenFeatureSwitch = restTokenGlobalFeatureSwitch)
-      )
+      .map {
+        // providerRoleExtension has no global config value
+        case p @ "ldap"              => // roles for LDAP-provided users come directly from the file, they override the file roles
+          p -> AuthBackendProviderProperties(ProviderRoleExtension.WithOverride, restTokenGlobalFeatureSwitch)
+        case p @ ("oidc" | "oauth2") => // default restTokenFeatureSwitch configuration is "disabled"
+          p -> AuthBackendProviderProperties.default
+            .copy(restTokenFeatureSwitch = FeatureSwitch.Disabled)
+        case p                       =>
+          p -> AuthBackendProviderProperties.default
+            .copy(restTokenFeatureSwitch = restTokenGlobalFeatureSwitch)
+      }
       .toMap
-    val providerProperties:       Map[String, AuthBackendProviderProperties] = {
-      globalProviderProperties ++ configuredAuthProviders.flatMap { x =>
+
+    // prepare specific properties for each configuredAuthProviders - we need system properties for spring
+    val providerProperties: Map[String, AuthBackendProviderProperties] = {
+      import scala.jdk.CollectionConverters.*
+      configuredAuthProviders.map { x =>
         try {
           // try to load all the specific properties of that auth type
           // so that they are available from Spring
@@ -185,24 +191,27 @@ class AppConfigAuth extends ApplicationContextAware {
         } catch {
           case _: ConfigException.Missing => logger.debug(s"Provider configuration missing : rudder.auth.${x.name}")
         }
-        val restTokenFeatureSwitch: FeatureSwitch                                   = {
-          // special feature switch depends on global one.
+        // config value is parsed as an Option : None means the config is missing
+        val restTokenFeatureSwitch = {
+          // feature switch is always disabled if globally disabled
           restTokenGlobalFeatureSwitch match {
             case FeatureSwitch.Disabled => FeatureSwitch.Disabled
             case FeatureSwitch.Enabled  =>
+              // the fallback value if config is not correct, default map always has default values
+              val defaultValue = defaultProviderProperties(x.name).restTokenFeatureSwitch
               try {
                 val configKey   = s"rudder.auth.${x.name}.userRestToken"
                 val configValue = config.getString(configKey)
                 FeatureSwitch.parse(configValue) match {
-                  case Left(value)  =>
+                  case Left(value)  => // set to "disabled" for security reasons if the config value is not known
                     logger.warn(
-                      s"User access to REST API via token is configured to the be ${defaultEnableRestToken.name} by default, the ${configKey} property is ignored, cause was : ${value.msg}"
+                      s"User access to REST API via token is configured to the be ${defaultValue.name} by default, the ${configKey} property is ignored, cause was : ${value.msg}"
                     )
-                    defaultEnableRestToken
+                    defaultValue
                   case Right(value) =>
-                    if (value != restTokenGlobalFeatureSwitch) {
+                    if (value != defaultValue) {
                       logger.info(
-                        s"User access to REST API via token for provider ${x.name} is configured to be ${value.name}, overriding the global configuration"
+                        s"User access to REST API via token for provider ${x.name} is configured to be ${value.name}, overriding the global configuration/default value"
                       )
                     } else {
                       logger.debug(
@@ -211,20 +220,27 @@ class AppConfigAuth extends ApplicationContextAware {
                     }
                     value
                 }
-              } catch { case ex: ConfigException.Missing => defaultEnableRestToken }
+              } catch {
+                case _: ConfigException.Missing =>
+                  if (defaultValue != restTokenGlobalFeatureSwitch) {
+                    logger.info(
+                      s"User access to REST API via token for provider ${x.name} is by default configured to be ${defaultValue.name}, overriding the global configuration"
+                    )
+                  }
+                  defaultValue
+              }
           }
         }
-        val properties:             Option[(String, AuthBackendProviderProperties)] = x.name match {
-          case "ldap"            =>
-            // roles for LDAP-provided users come directly from the file, so we can say they override the file roles
-            Some("ldap" -> AuthBackendProviderProperties(ProviderRoleExtension.WithOverride, restTokenFeatureSwitch))
+        // properties config has values specific to oidc/oauth2
+        // the rest token feature configuration is common to every provider
+        val properties: (String, AuthBackendProviderProperties) = x.name match {
           case "oidc" | "oauth2" => {
             val baseProperty  = "rudder.auth.oauth2.provider"
             // we need to read under the registration key, under the base property
             val registrations =
               Try(config.getString(baseProperty + ".registrations").split(",").map(_.trim).toList).getOrElse(List.empty)
             // when there are multiple registrations we should take the most prioritized configuration under the same provider
-            Some(x.name -> registrations.foldLeft(AuthBackendProviderProperties.default) {
+            x.name -> registrations.foldLeft(AuthBackendProviderProperties.default) {
               case (acc, reg) =>
                 val rolesEnabled = Try(config.getBoolean(s"${baseProperty}.${reg}.${A_ROLES_ENABLED}"))
                   .getOrElse(false) // default value, same as in the auth backend plugin
@@ -233,9 +249,10 @@ class AppConfigAuth extends ApplicationContextAware {
                 acc.maxByPriority(
                   AuthBackendProviderProperties.fromConfig(x.name, rolesEnabled, rolesOverride, restTokenFeatureSwitch)
                 )
-            })
+            }
           }
-          case _                 => None // default providers or providers for which handling the properties is still unkown
+          case p                 => // use default config, override user-defined ones
+            p -> defaultProviderProperties(p).copy(restTokenFeatureSwitch = restTokenFeatureSwitch)
         }
         properties
       }.toMap
