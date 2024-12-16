@@ -39,7 +39,7 @@ bundle agent init
       "directory[2]"        string => "${tmp}/test2";
       "directory_canon[2]"  string => canonify("${directory[2]}");
       "mode[2]"             string => "750";
-      "Emode[2]"            string => "750";   # expexted resulting mode
+      "Emode[2]"            string => "750";   # expected resulting mode
       "owner[2]"            string => "";
       "Eowner[2]"           string => "root";
       "group[2]"            string => "";

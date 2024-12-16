@@ -25,6 +25,38 @@ pipeline {
     stages {
         stage('Tests') {
             parallel {
+                stage('python-lib') {
+                    agent {
+                        dockerfile {
+                            filename 'ci/python-avocado.Dockerfile'
+                                additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
+                        }
+                    }
+                    steps {
+                        script {
+                            running.add("Tests - policies/lib")
+                        }
+                        dir("policies/lib") {
+                            sh script: 'avocado run --disable-sysinfo tests/quick', label: 'quick method tests'
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                failedBuild = true
+                                errors.add("Tests - python-lib")
+                                slackResponse = updateSlack(errors, running, slackResponse, version, changeUrl)
+                                slackSend(channel: slackResponse.threadId, message: "Error during python-lib test - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                running.remove("Tests - python-lib")
+                                cleanWs(deleteDirs: true, notFailBuild: true)
+                            }
+                        }
+                    }
+                }
                 stage('relayd-man') {
                     agent {
                         dockerfile {
@@ -142,7 +174,7 @@ pipeline {
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('policies') {
-                                sh script: 'typos --exclude "*.log"', label: 'check policies typos'
+                                sh script: 'typos --exclude lib/tree/20_cfe_basics/cfengine --exclude lib/tree/10_ncf_internals/modules/packages --exclude "*.log"', label: 'check policies typos'
                             }
                             dir('webapp/sources/api-doc') {
                                 sh script: 'typos', label: 'check webapp api doc typos'

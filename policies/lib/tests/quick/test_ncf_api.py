@@ -23,7 +23,7 @@ class TestNcf(avocado.Test):
     self.all_methods = ncf.get_all_generic_methods_metadata()["data"]["generic_methods"]
 
     all_tags = ncf.tags["generic_method"]
-    self.methods_expected_tags = [ tag for tag in all_tags if not tag in ncf.optionnal_tags["generic_method"] ]
+    self.methods_expected_tags = [ tag for tag in all_tags if not tag in ncf.optional_tags["generic_method"] ]
 
 
   def test_get_ncf_root_dir(self):

@@ -23,7 +23,7 @@ bundle agent init
 {
   vars:
       "tmp"                        string => getenv("TEMP", 1024);
-      "splitted_tmp"                slist => { @(getParent_py.parentDirectories) };
+      "split_tmp"                slist => { @(getParent_py.parentDirectories) };
 
      # exp_lines = expected lines in the getfacl run on the target, in the check bundle
      # exp_parent_lines = expected lines in the getfacl run on the parents, in the check bundle
@@ -45,7 +45,7 @@ bundle agent init
       "initial[1]"                   slist => { "user:*:rwx", "group:*:rx", "group:bin:r", "user:*:r", "all:r" };
       "exp_lines[1]"                 slist => { "group:bin:rwx" };
       "exp_parent_lines[1]"          slist => { "group:bin:r-x" };
-      "parents[1]"                   slist => { @(splitted_tmp) };
+      "parents[1]"                   slist => { @(split_tmp) };
 
       "path[2]"                     string => "${tmp}/file1*"; # Same than 1, but with a different path resolution to avoid class conflicts
       "recursive[2]"                string => "true";
@@ -62,7 +62,7 @@ bundle agent init
       "initial[2]"                   slist => { "user:*:rwx", "group:*:rx", "group:bin:r", "user:*:r", "all:r" };
       "exp_lines[2]"                 slist => { "group:bin:rwx" };
       "exp_parent_lines[2]"          slist => { "group:bin:r-x" };
-      "parents[2]"                   slist => { @(splitted_tmp) };
+      "parents[2]"                   slist => { @(split_tmp) };
 
    pass1::
       "indices" slist => getindices("path");

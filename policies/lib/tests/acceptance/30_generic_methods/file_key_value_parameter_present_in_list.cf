@@ -170,7 +170,7 @@ js.config.file=['value4']";
     "leading_char8"         string => "[";
     "closing_char8"         string => "]";
 
-# nineth test: key is there, but parameter are merged together without the separator - should not believe it's correct
+# ninth test: key is there, but parameter are merged together without the separator - should not believe it's correct
     "base_text9"  string => "# SSH conf file
 Ciphers aes128-ctraes196-ctr";
 
@@ -282,6 +282,6 @@ commands:
     file8_correct.!ok_test8::
       "Generic method return is invalid for eighth test (expected repaired)";
     file9_correct.!ok_test9::
-      "Generic method return is invalid for nineth test (expected repaired)";
+      "Generic method return is invalid for ninth test (expected repaired)";
 
 }
