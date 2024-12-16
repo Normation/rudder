@@ -1,5 +1,6 @@
 # Rudder: Continuous Auditing & Configuration
 
+
 This project is part of Rudder, see [the main repository](https://github.com/Normation/rudder)
 for more information.
  
