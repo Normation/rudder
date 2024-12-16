@@ -28,7 +28,7 @@ pipeline {
                 stage('python-lib') {
                     agent {
                         dockerfile {
-                            filename 'ci/python.Dockerfile'
+                            filename 'ci/python-avocado.Dockerfile'
                                 additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
                         }
                     }
