@@ -1874,8 +1874,11 @@ object RudderConfigInit {
       techniqueCompiler
     )
 
-    lazy val techniqueCompilationCache: TechniqueCompilationStatusSyncService =
-      TechniqueCompilationErrorsActorSync.make(asyncDeploymentAgent, techniqueCompilationStatusService).runNow
+    lazy val techniqueCompilationCache: TechniqueCompilationStatusSyncService = {
+      val sync = TechniqueCompilationErrorsActorSync.make(asyncDeploymentAgent, techniqueCompilationStatusService).runNow
+      techniqueRepositoryImpl.registerCallback(new SyncCompilationStatusOnTechniqueCallback("SyncCompilationStatus", 10000, sync))
+      sync
+    }
 
     lazy val ncfTechniqueWriter: TechniqueWriter = new TechniqueWriterImpl(
       techniqueArchiver,
@@ -1887,6 +1890,7 @@ object RudderConfigInit {
         woDirectiveRepository,
         techniqueRepository,
         workflowLevelService,
+        techniqueCompilationCache,
         RUDDER_GIT_ROOT_CONFIG_REPO
       ),
       techniqueCompiler,

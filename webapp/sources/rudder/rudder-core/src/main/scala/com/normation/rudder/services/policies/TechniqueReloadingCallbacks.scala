@@ -48,6 +48,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.ReloadTechniqueLibrary
+import com.normation.rudder.ncf.TechniqueCompilationStatusSyncService
 import com.normation.rudder.repository.EventLogRepository
 import net.liftweb.common.*
 
@@ -103,5 +104,22 @@ class LogEventOnTechniqueReloadCallback(
       .chainError("Error when saving event log for techniques library reload")
       .unit
       .toBox
+  }
+}
+
+class SyncCompilationStatusOnTechniqueCallback(
+    override val name:                 String,
+    override val order:                Int,
+    techniqueCompilationStatusService: TechniqueCompilationStatusSyncService
+) extends TechniquesLibraryUpdateNotification with Loggable {
+  override def updatedTechniques(
+      gitRev:            String,
+      techniqueIds:      Map[TechniqueName, TechniquesLibraryUpdateType],
+      updatedCategories: Set[TechniqueCategoryModType],
+      modId:             ModificationId,
+      actor:             EventActor,
+      reason:            Option[String]
+  ): Box[Unit] = {
+    techniqueCompilationStatusService.getUpdateAndSync().toBox
   }
 }

@@ -683,7 +683,7 @@ class SystemApiService11(
       getActor(req),
       Some("Technique library reloaded from REST API")
     ) match {
-      case Full(x) => Right(JField("techniques", "Started"))
+      case Full(_) => Right(JField("techniques", "Started"))
       case eb: EmptyBox =>
         val e = eb ?~! "An error occurred when updating the Technique library from file system"
         logger.error(e.messageChain)
