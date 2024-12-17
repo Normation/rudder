@@ -45,6 +45,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.services.policies.*
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
@@ -102,15 +103,16 @@ class TechniqueEditForm(
   import TechniqueEditForm.*
 
   // find Technique
-  private val techniqueRepository         = RudderConfig.techniqueRepository
-  private val roActiveTechniqueRepository = RudderConfig.roDirectiveRepository
-  private val rwActiveTechniqueRepository = RudderConfig.woDirectiveRepository
-  private val uuidGen                     = RudderConfig.stringUuidGenerator
+  private val techniqueRepository               = RudderConfig.techniqueRepository
+  private val roActiveTechniqueRepository       = RudderConfig.roDirectiveRepository
+  private val rwActiveTechniqueRepository       = RudderConfig.woDirectiveRepository
+  private val techniqueCompilationStatusService = RudderConfig.techniqueCompilationStatusService
+  private val uuidGen                           = RudderConfig.stringUuidGenerator
   // transform Technique variable to human viewable HTML fields
-  private val directiveEditorService      = RudderConfig.directiveEditorService
-  private val dependencyService           = RudderConfig.dependencyAndDeletionService
-  private val asyncDeploymentAgent        = RudderConfig.asyncDeploymentAgent
-  private val userPropertyService         = RudderConfig.userPropertyService
+  private val directiveEditorService            = RudderConfig.directiveEditorService
+  private val dependencyService                 = RudderConfig.dependencyAndDeletionService
+  private val asyncDeploymentAgent              = RudderConfig.asyncDeploymentAgent
+  private val userPropertyService               = RudderConfig.userPropertyService
 
   private var currentActiveTechnique: Box[ActiveTechnique] = Box(activeTechnique).or {
     for {
@@ -409,7 +411,7 @@ class TechniqueEditForm(
       } else {
         currentActiveTechnique = currentActiveTechnique.map(activeTechnique => activeTechnique.copy(_isEnabled = status))
         JsRaw("hideBsModal('disableActionDialog');") & // JsRaw ok, const
-        statusAndDeployTechnique(activeTechnique.id, status)
+        statusAndDeployTechnique(activeTechnique, status)
       }
     }
 
@@ -561,12 +563,13 @@ class TechniqueEditForm(
 
   private def error(msg: String) = <span class="error">{msg}</span>
 
-  private def statusAndDeployTechnique(uactiveTechniqueId: ActiveTechniqueId, status: Boolean): JsCmd = {
+  private def statusAndDeployTechnique(activeTechnique: ActiveTechnique, status: Boolean): JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
     (for {
-      save   <- rwActiveTechniqueRepository
-                  .changeStatus(uactiveTechniqueId, status, modId, CurrentUser.actor, crReasonsDisablePopup.map(_.get))
-                  .toBox
+      save   <-
+        (rwActiveTechniqueRepository
+          .changeStatus(activeTechnique.id, status, modId, CurrentUser.actor, crReasonsDisablePopup.map(_.get))
+        <* techniqueCompilationStatusService.syncTechniqueActiveStatus(BundleName(activeTechnique.techniqueName.value))).toBox
       deploy <- {
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
         Full("Policy update request sent")
