@@ -35,7 +35,7 @@ struct Helper<'a> {
     certs: &'a [Cert],
 }
 
-impl<'a> VerificationHelper for Helper<'a> {
+impl VerificationHelper for Helper<'_> {
     fn get_certs(&mut self, ids: &[KeyHandle]) -> openpgp::Result<Vec<Cert>> {
         for id in ids {
             for cert in self.certs {
@@ -90,6 +90,7 @@ impl SignatureVerifier {
         let mut verifier =
             DetachedVerifierBuilder::from_bytes(signature)?.with_policy(&policy, time, helper)?;
         verifier.verify_bytes(data)?;
+
         Ok(VerificationSuccess::ValidSignature)
     }
 
