@@ -24,20 +24,21 @@ pub enum VerificationSuccess {
     ValidSignatureAndHash,
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug)]
 pub struct SignatureVerifier {
-    keyring: PathBuf,
+    /// The configured certificates.
+    keyring: Vec<Cert>,
 }
 
-struct Helper {
-    // The configured certificates.
-    certs: Vec<Cert>,
+#[derive(Clone, Debug)]
+struct Helper<'a> {
+    certs: &'a [Cert],
 }
 
-impl VerificationHelper for Helper {
+impl<'a> VerificationHelper for Helper<'a> {
     fn get_certs(&mut self, ids: &[KeyHandle]) -> openpgp::Result<Vec<Cert>> {
         for id in ids {
-            for cert in &self.certs {
+            for cert in self.certs {
                 if cert.key_handle().aliases(id) {
                     return Ok(vec![cert.clone()]);
                 }
@@ -71,8 +72,10 @@ impl VerificationHelper for Helper {
 }
 
 impl SignatureVerifier {
-    pub fn new(keyring: PathBuf) -> Self {
-        Self { keyring }
+    pub fn new(keyring: PathBuf) -> Result<Self> {
+        let cert_parser = CertParser::from_file(&keyring)?;
+        let keyring: Vec<Cert> = cert_parser.collect::<Result<Vec<Cert>>>()?;
+        Ok(Self { keyring })
     }
 
     /// Verify a file against a detached signature using sequoia
@@ -80,9 +83,9 @@ impl SignatureVerifier {
         let policy = StandardPolicy::new();
         // Use current time
         let time = None;
-        let cert_parser = CertParser::from_file(&self.keyring)?;
-        let certs: Vec<Cert> = cert_parser.collect::<Result<Vec<Cert>>>()?;
-        let helper = Helper { certs };
+        let helper = Helper {
+            certs: &self.keyring,
+        };
 
         let mut verifier =
             DetachedVerifierBuilder::from_file(signature)?.with_policy(&policy, time, helper)?;
@@ -152,7 +155,8 @@ mod tests {
 
     #[test]
     fn it_verifies_signature_with_sequoia() {
-        let verifier = SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg"));
+        let verifier =
+            SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
 
         assert!(verifier
             .verify_sq(
@@ -170,7 +174,8 @@ mod tests {
 
     #[test]
     fn it_verifies_files() {
-        let verifier = SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg"));
+        let verifier =
+            SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
         assert!(verifier
             .verify_file(
                 Path::new("tests/signature/rudder-plugin-zabbix-8.0.3-2.1.rpkg"),

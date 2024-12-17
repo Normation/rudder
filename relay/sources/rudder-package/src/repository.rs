@@ -195,7 +195,8 @@ mod tests {
     #[test]
     fn it_downloads_unverified_files() {
         let config = Configuration::parse("").unwrap();
-        let verifier = SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg"));
+        let verifier =
+            SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
         let repo = Repository::new(&config, verifier).unwrap();
         let dst = NamedTempFile::new().unwrap();
         repo.download_unsafe("../rpm/rudder_rpm_key.pub", dst.path())
@@ -207,7 +208,8 @@ mod tests {
     #[test]
     fn it_downloads_verified_files() {
         let config = Configuration::parse("").unwrap();
-        let verifier = SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg"));
+        let verifier =
+            SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
         let repo = Repository::new(&config, verifier).unwrap();
         let dst = NamedTempFile::new().unwrap();
         repo.download(

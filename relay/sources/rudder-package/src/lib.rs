@@ -109,7 +109,7 @@ pub fn run_inner(args: Args) -> Result<()> {
     debug!("Parsed configuration: {cfg:?}");
 
     // Now initialize all common data structures
-    let verifier = SignatureVerifier::new(PathBuf::from(SIGNATURE_KEYRING_PATH));
+    let verifier = SignatureVerifier::new(PathBuf::from(SIGNATURE_KEYRING_PATH))?;
     let repo = Repository::new(&cfg, verifier)?;
     let webapp_version = RudderVersion::from_path(RUDDER_VERSION_PATH)?;
     let mut webapp = Webapp::new(PathBuf::from(WEBAPP_XML_PATH), webapp_version);
