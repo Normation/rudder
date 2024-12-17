@@ -34,6 +34,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 which = "7"
 flate2 = "1.0.28"
 cli-table = "0.4.7"
+sequoia-openpgp = "1"
 spinners = "4.1.1"
 rudder_cli = { path = "../../../policies/rudder-cli" }
 itertools = "0.13"

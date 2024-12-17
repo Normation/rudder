@@ -1,26 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-//! Here we use gpgv:
-//!
-//! * It is a bit lighter than the full gpg implementation, with a way simpler CLI, but still provided
-//!   everywhere.
-//! * sequoia is to low-level for our goals, we don't want to have to deal with gpg internals.
-//! * Other Rust implementation do not seem mature enough.
-
-const GPGV_BIN: &str = "/usr/bin/gpgv";
-
 use std::{
     fs::{read_to_string, File},
     io,
     os::unix::ffi::OsStrExt,
     path::{Path, PathBuf},
-    process::Command,
     str,
 };
 
 use anyhow::{bail, Result};
+use openpgp::parse::{stream::*, Parse};
+use openpgp::policy::StandardPolicy;
+use openpgp::{Cert, KeyHandle};
 use regex::Regex;
+use sequoia_openpgp as openpgp;
+use sequoia_openpgp::cert::CertParser;
 use sha2::{Digest, Sha512};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
@@ -29,11 +24,50 @@ pub enum VerificationSuccess {
     ValidSignatureAndHash,
 }
 
-use crate::cmd::CmdOutput;
-
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct SignatureVerifier {
     keyring: PathBuf,
+}
+
+struct Helper {
+    // The configured certificates.
+    certs: Vec<Cert>,
+}
+
+impl VerificationHelper for Helper {
+    fn get_certs(&mut self, ids: &[KeyHandle]) -> openpgp::Result<Vec<Cert>> {
+        for id in ids {
+            for cert in &self.certs {
+                if cert.key_handle().aliases(id) {
+                    return Ok(vec![cert.clone()]);
+                }
+            }
+        }
+        bail!("Could not find key")
+    }
+
+    fn check(&mut self, structure: MessageStructure) -> openpgp::Result<()> {
+        // Per `DetachedVerifierBuilder` docs:
+        //
+        // > `VerificationHelper::check` will be called with a `MessageStructure` containing exactly
+        // > one layer, a signature group.
+
+        if structure.len() != 1 {
+            bail!("Unexpected number of layers");
+        }
+
+        match structure[0] {
+            MessageLayer::Encryption { .. } => bail!("Unexpected encryption layer"),
+            MessageLayer::Compression { .. } => bail!("Unexpected compression layer"),
+            MessageLayer::SignatureGroup { ref results } => {
+                if !results.iter().any(|r| r.is_ok()) {
+                    bail!("No valid signature found");
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl SignatureVerifier {
@@ -41,33 +75,20 @@ impl SignatureVerifier {
         Self { keyring }
     }
 
-    fn verify(&self, signature: &Path, data: &Path) -> Result<VerificationSuccess> {
-        let mut gpgv = Command::new(GPGV_BIN);
-        let cmd = gpgv
-            .arg("--keyring")
-            .arg(&self.keyring)
-            .arg("--")
-            .arg(signature)
-            .arg(data);
-        let gpg_output = match CmdOutput::new(cmd) {
-            Ok(out) => out,
-            Err(e) => {
-                bail!(
-                    "Could not check signature using gpgv, most likely because it is not installed:\n{}",
-                    e
-                );
-            }
-        };
-        if gpg_output.output.status.success() {
-            Ok(VerificationSuccess::ValidSignature)
-        } else {
-            bail!(
-                "Invalid signature file '{}' for '{}', gpgv failed with:\n{}",
-                signature.display(),
-                data.display(),
-                String::from_utf8_lossy(&gpg_output.output.stderr)
-            )
-        }
+    /// Verify a file against a detached signature using sequoia
+    fn verify_sq(&self, signature: &Path, data: &Path) -> Result<VerificationSuccess> {
+        let policy = StandardPolicy::new();
+        // Use current time
+        let time = None;
+        let cert_parser = CertParser::from_file(&self.keyring)?;
+        let certs: Vec<Cert> = cert_parser.collect::<Result<Vec<Cert>>>()?;
+        let helper = Helper { certs };
+
+        let mut verifier =
+            DetachedVerifierBuilder::from_file(signature)?.with_policy(&policy, time, helper)?;
+
+        verifier.verify_file(data)?;
+        Ok(VerificationSuccess::ValidSignature)
     }
 
     /// Returns hexadecimal encoded sha512 hash of the file
@@ -100,7 +121,7 @@ impl SignatureVerifier {
         hash_sign_file: &Path,
         hash_file: &Path,
     ) -> Result<VerificationSuccess> {
-        let v = self.verify(hash_sign_file, hash_file)?;
+        let v = self.verify_sq(hash_sign_file, hash_file)?;
         assert_eq!(v, VerificationSuccess::ValidSignature);
         let hash_r = read_to_string(hash_file)?;
         let file_hash = Self::file_sha512(file)?;
@@ -130,16 +151,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_verifies_signature() {
+    fn it_verifies_signature_with_sequoia() {
         let verifier = SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg"));
+
         assert!(verifier
-            .verify(
+            .verify_sq(
                 Path::new("tests/signature/SHA512SUMS.asc"),
                 Path::new("tests/signature/SHA512SUMS")
             )
             .is_ok());
         assert!(verifier
-            .verify(
+            .verify_sq(
                 Path::new("tests/signature/SHA512SUMS.asc"),
                 Path::new("tests/signature/SHA512SUMS.wrong")
             )
