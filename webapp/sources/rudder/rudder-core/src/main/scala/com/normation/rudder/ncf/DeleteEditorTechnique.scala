@@ -48,6 +48,7 @@ import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.policies.DeleteDirectiveDiff
 import com.normation.rudder.domain.policies.Directive
@@ -79,13 +80,14 @@ trait DeleteEditorTechnique {
 }
 
 class DeleteEditorTechniqueImpl(
-    archiver:             TechniqueArchiver,
-    techLibUpdate:        UpdateTechniqueLibrary,
-    readDirectives:       RoDirectiveRepository,
-    writeDirectives:      WoDirectiveRepository,
-    techniqueRepository:  TechniqueRepository,
-    workflowLevelService: WorkflowLevelService,
-    baseConfigRepoPath:   String // root of config repos
+    archiver:                 TechniqueArchiver,
+    techLibUpdate:            UpdateTechniqueLibrary,
+    readDirectives:           RoDirectiveRepository,
+    writeDirectives:          WoDirectiveRepository,
+    techniqueRepository:      TechniqueRepository,
+    workflowLevelService:     WorkflowLevelService,
+    compilationStatusService: TechniqueCompilationStatusSyncService,
+    baseConfigRepoPath:       String // root of config repos
 ) extends DeleteEditorTechnique {
   // root of technique repository
   val techniquesDir: File = File(baseConfigRepoPath) / "techniques"
@@ -237,6 +239,10 @@ class DeleteEditorTechniqueImpl(
                        case Some(technique) => removeTechnique(techniqueId, technique)
                        case None            => removeInvalidTechnique(techniquesDir, techniqueId)
                      }
+
+      _ <- compilationStatusService.unsyncOne(
+             BundleName(techniqueName) -> new Version(techniqueVersion)
+           ) // to delete the status of the technique
     } yield ()
   }
 }
