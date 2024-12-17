@@ -1,27 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-//! Here we use gpgv:
-//!
-//! * It is a bit lighter than the full gpg implementation, with a way simpler CLI, but still provided
-//!   everywhere.
-//! * sequoia is to low-level for our goals, we don't want to have to deal with gpg internals.
-//! * Other Rust implementation do not seem mature enough.
-
-const GPGV_BIN: &str = "/usr/bin/gpgv";
-
+use anyhow::{bail, Result};
+use openpgp::parse::{stream::*, Parse};
+use openpgp::policy::StandardPolicy;
+use openpgp::{Cert, KeyHandle};
+use regex::Regex;
+use sequoia_openpgp as openpgp;
+use sequoia_openpgp::cert::CertParser;
+use sha2::{Digest, Sha512};
+use std::fs::read;
 use std::{
     fs::{read_to_string, File},
     io,
     os::unix::ffi::OsStrExt,
     path::{Path, PathBuf},
-    process::Command,
     str,
 };
-
-use anyhow::{bail, Result};
-use regex::Regex;
-use sha2::{Digest, Sha512};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum VerificationSuccess {
@@ -29,45 +24,74 @@ pub enum VerificationSuccess {
     ValidSignatureAndHash,
 }
 
-use crate::cmd::CmdOutput;
-
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug)]
 pub struct SignatureVerifier {
-    keyring: PathBuf,
+    /// The configured certificates.
+    keyring: Vec<Cert>,
+}
+
+#[derive(Clone, Debug)]
+struct Helper<'a> {
+    certs: &'a [Cert],
+}
+
+impl VerificationHelper for Helper<'_> {
+    fn get_certs(&mut self, ids: &[KeyHandle]) -> openpgp::Result<Vec<Cert>> {
+        for id in ids {
+            for cert in self.certs {
+                if cert.key_handle().aliases(id) {
+                    return Ok(vec![cert.clone()]);
+                }
+            }
+        }
+        bail!("Could not find key")
+    }
+
+    fn check(&mut self, structure: MessageStructure) -> openpgp::Result<()> {
+        // Per `DetachedVerifierBuilder` docs:
+        //
+        // > `VerificationHelper::check` will be called with a `MessageStructure` containing exactly
+        // > one layer, a signature group.
+
+        if structure.len() != 1 {
+            bail!("Unexpected number of layers");
+        }
+
+        match structure[0] {
+            MessageLayer::Encryption { .. } => bail!("Unexpected encryption layer"),
+            MessageLayer::Compression { .. } => bail!("Unexpected compression layer"),
+            MessageLayer::SignatureGroup { ref results } => {
+                if !results.iter().any(|r| r.is_ok()) {
+                    bail!("No valid signature found");
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl SignatureVerifier {
-    pub fn new(keyring: PathBuf) -> Self {
-        Self { keyring }
+    pub fn new(keyring: PathBuf) -> Result<Self> {
+        let cert_parser = CertParser::from_file(&keyring)?;
+        let keyring: Vec<Cert> = cert_parser.collect::<Result<Vec<Cert>>>()?;
+        Ok(Self { keyring })
     }
 
-    fn verify(&self, signature: &Path, data: &Path) -> Result<VerificationSuccess> {
-        let mut gpgv = Command::new(GPGV_BIN);
-        let cmd = gpgv
-            .arg("--keyring")
-            .arg(&self.keyring)
-            .arg("--")
-            .arg(signature)
-            .arg(data);
-        let gpg_output = match CmdOutput::new(cmd) {
-            Ok(out) => out,
-            Err(e) => {
-                bail!(
-                    "Could not check signature using gpgv, most likely because it is not installed:\n{}",
-                    e
-                );
-            }
+    /// Verify data against a detached signature using sequoia
+    fn verify_sq(&self, signature: &[u8], data: &[u8]) -> Result<VerificationSuccess> {
+        let policy = StandardPolicy::new();
+        // Use current time
+        let time = None;
+        let helper = Helper {
+            certs: &self.keyring,
         };
-        if gpg_output.output.status.success() {
-            Ok(VerificationSuccess::ValidSignature)
-        } else {
-            bail!(
-                "Invalid signature file '{}' for '{}', gpgv failed with:\n{}",
-                signature.display(),
-                data.display(),
-                String::from_utf8_lossy(&gpg_output.output.stderr)
-            )
-        }
+
+        let mut verifier =
+            DetachedVerifierBuilder::from_bytes(signature)?.with_policy(&policy, time, helper)?;
+        verifier.verify_bytes(data)?;
+
+        Ok(VerificationSuccess::ValidSignature)
     }
 
     /// Returns hexadecimal encoded sha512 hash of the file
@@ -100,9 +124,12 @@ impl SignatureVerifier {
         hash_sign_file: &Path,
         hash_file: &Path,
     ) -> Result<VerificationSuccess> {
-        let v = self.verify(hash_sign_file, hash_file)?;
-        assert_eq!(v, VerificationSuccess::ValidSignature);
+        // Read files, hash file contains UTF-8 text.
         let hash_r = read_to_string(hash_file)?;
+        let sign_r = read(hash_sign_file)?;
+
+        let v = self.verify_sq(&sign_r, hash_r.as_bytes())?;
+        assert_eq!(v, VerificationSuccess::ValidSignature);
         let file_hash = Self::file_sha512(file)?;
         let file_name = String::from_utf8_lossy(file.file_name().unwrap().as_bytes());
 
@@ -130,25 +157,28 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_verifies_signature() {
-        let verifier = SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg"));
+    fn it_verifies_signature_with_sequoia() {
+        let verifier =
+            SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
+
         assert!(verifier
-            .verify(
-                Path::new("tests/signature/SHA512SUMS.asc"),
-                Path::new("tests/signature/SHA512SUMS")
+            .verify_sq(
+                &read(Path::new("tests/signature/SHA512SUMS.asc")).unwrap(),
+                &read(Path::new("tests/signature/SHA512SUMS")).unwrap()
             )
             .is_ok());
         assert!(verifier
-            .verify(
-                Path::new("tests/signature/SHA512SUMS.asc"),
-                Path::new("tests/signature/SHA512SUMS.wrong")
+            .verify_sq(
+                &read(Path::new("tests/signature/SHA512SUMS.asc")).unwrap(),
+                &read(Path::new("tests/signature/SHA512SUMS.wrong")).unwrap()
             )
             .is_err());
     }
 
     #[test]
     fn it_verifies_files() {
-        let verifier = SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg"));
+        let verifier =
+            SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
         assert!(verifier
             .verify_file(
                 Path::new("tests/signature/rudder-plugin-zabbix-8.0.3-2.1.rpkg"),

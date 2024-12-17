@@ -30,10 +30,10 @@ tar = "0.4.40"
 tempfile = "3.8.0"
 # Compile dev and release with trace logs enabled
 tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 which = "7"
 flate2 = "1.0.28"
 cli-table = "0.4.7"
+sequoia-openpgp = "1"
 spinners = "4.1.1"
 rudder_cli = { path = "../../../policies/rudder-cli" }
 itertools = "0.13"
