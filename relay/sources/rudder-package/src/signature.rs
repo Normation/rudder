@@ -89,7 +89,6 @@ impl SignatureVerifier {
 
         let mut verifier =
             DetachedVerifierBuilder::from_file(signature)?.with_policy(&policy, time, helper)?;
-
         verifier.verify_file(data)?;
         Ok(VerificationSuccess::ValidSignature)
     }
@@ -124,6 +123,7 @@ impl SignatureVerifier {
         hash_sign_file: &Path,
         hash_file: &Path,
     ) -> Result<VerificationSuccess> {
+        // FIXME race condition!!
         let v = self.verify_sq(hash_sign_file, hash_file)?;
         assert_eq!(v, VerificationSuccess::ValidSignature);
         let hash_r = read_to_string(hash_file)?;
