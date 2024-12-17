@@ -1,14 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use std::{
-    fs::{read_to_string, File},
-    io,
-    os::unix::ffi::OsStrExt,
-    path::{Path, PathBuf},
-    str,
-};
-
 use anyhow::{bail, Result};
 use openpgp::parse::{stream::*, Parse};
 use openpgp::policy::StandardPolicy;
@@ -17,6 +9,14 @@ use regex::Regex;
 use sequoia_openpgp as openpgp;
 use sequoia_openpgp::cert::CertParser;
 use sha2::{Digest, Sha512};
+use std::fs::read;
+use std::{
+    fs::{read_to_string, File},
+    io,
+    os::unix::ffi::OsStrExt,
+    path::{Path, PathBuf},
+    str,
+};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum VerificationSuccess {
@@ -78,8 +78,8 @@ impl SignatureVerifier {
         Ok(Self { keyring })
     }
 
-    /// Verify a file against a detached signature using sequoia
-    fn verify_sq(&self, signature: &Path, data: &Path) -> Result<VerificationSuccess> {
+    /// Verify data against a detached signature using sequoia
+    fn verify_sq(&self, signature: &[u8], data: &[u8]) -> Result<VerificationSuccess> {
         let policy = StandardPolicy::new();
         // Use current time
         let time = None;
@@ -88,8 +88,8 @@ impl SignatureVerifier {
         };
 
         let mut verifier =
-            DetachedVerifierBuilder::from_file(signature)?.with_policy(&policy, time, helper)?;
-        verifier.verify_file(data)?;
+            DetachedVerifierBuilder::from_bytes(signature)?.with_policy(&policy, time, helper)?;
+        verifier.verify_bytes(data)?;
         Ok(VerificationSuccess::ValidSignature)
     }
 
@@ -123,10 +123,12 @@ impl SignatureVerifier {
         hash_sign_file: &Path,
         hash_file: &Path,
     ) -> Result<VerificationSuccess> {
-        // FIXME race condition!!
-        let v = self.verify_sq(hash_sign_file, hash_file)?;
-        assert_eq!(v, VerificationSuccess::ValidSignature);
+        // Read files, hash file contains UTF-8 text.
         let hash_r = read_to_string(hash_file)?;
+        let sign_r = read(hash_sign_file)?;
+
+        let v = self.verify_sq(&sign_r, hash_r.as_bytes())?;
+        assert_eq!(v, VerificationSuccess::ValidSignature);
         let file_hash = Self::file_sha512(file)?;
         let file_name = String::from_utf8_lossy(file.file_name().unwrap().as_bytes());
 
@@ -160,14 +162,14 @@ mod tests {
 
         assert!(verifier
             .verify_sq(
-                Path::new("tests/signature/SHA512SUMS.asc"),
-                Path::new("tests/signature/SHA512SUMS")
+                &read(Path::new("tests/signature/SHA512SUMS.asc")).unwrap(),
+                &read(Path::new("tests/signature/SHA512SUMS")).unwrap()
             )
             .is_ok());
         assert!(verifier
             .verify_sq(
-                Path::new("tests/signature/SHA512SUMS.asc"),
-                Path::new("tests/signature/SHA512SUMS.wrong")
+                &read(Path::new("tests/signature/SHA512SUMS.asc")).unwrap(),
+                &read(Path::new("tests/signature/SHA512SUMS.wrong")).unwrap()
             )
             .is_err());
     }

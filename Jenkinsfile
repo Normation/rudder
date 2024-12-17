@@ -180,7 +180,7 @@ pipeline {
                                 sh script: 'typos', label: 'check webapp api doc typos'
                             }
                             dir('relay') {
-                                sh script: 'typos --exclude "*.log" --exclude "*.license" --exclude "*.asc" --exclude "*.pem" --exclude "*.cert" --exclude "*.priv" --exclude "*.pub" --exclude "*.signed" --exclude "*.log" --exclude "*.json"', label: 'check relayd typos'
+                                sh script: 'typos --exclude "*.log"  --exclude "*.gpg" --exclude "*.license" --exclude "*.asc" --exclude "*.pem" --exclude "*.cert" --exclude "*.priv" --exclude "*.pub" --exclude "*.signed" --exclude "*.log" --exclude "*.json"', label: 'check relayd typos'
                             }
                         }
                     }
