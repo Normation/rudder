@@ -17,6 +17,8 @@ allow = [
 
 [advisories]
 ignore = [
+    # Not vulnerable to puny-code masking
+    "RUSTSEC-2024-0421",
 ]
 
 [bans]
