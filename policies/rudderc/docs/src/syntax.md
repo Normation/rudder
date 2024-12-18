@@ -121,7 +121,7 @@ Blocks contains:
       * `worst-case-weighted-sum`: Select the worst status from all methods, and use it as the block compliance, with a weight equal to the total number of methods below the block.
       * `worst-case-weighted-one`: Select the worst status from all methods, and use it as the block compliance, with a weight of 1.
   * `id` (required with `focus` mode): ID of the method to focus reporting on.
-* `foreach` (optional): List of dictionary, repeat the block for each items in the list and each time, replace every occurrence of `${item.x}` in the subitems, condition by the corresponding value in the dictionary.
+* `foreach` (optional): List of dictionaries, repeats the block for each items in the list and each time, replace every occurrence of `${item.x}` in the subitems, condition by the corresponding value in the dictionary.
 * `foreach_name` (optional): Name of the local iterator variable to use if a `foreach` loop is used. Defaults to `item`.
 
 <div class="warning">
