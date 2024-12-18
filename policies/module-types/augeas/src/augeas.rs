@@ -109,7 +109,7 @@ impl Augeas {
         }
         aug.save()?;
 
-        // Get info about changes
+        // Get information about changes
 
         // make backups
 

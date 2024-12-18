@@ -6,6 +6,40 @@
 
 /*
 
+use anyhow::Error;
+use std::str::FromStr;
+
+pub type Path = String;
+pub type Value = String;
+pub type Sub = String;
+
+pub enum Changes {
+    Set(Path, Value),
+    SetM(Path, Sub, Value),
+    Rm(Path),
+    Remove(Path),
+    Clear(Path),
+    ClearM(Path, Sub),
+    Touch(Path),
+    Ins(String, String, Path),
+    Insert(String, String, Path),
+    Mv(Path, Path),
+    Move(Path, Path),
+    Rename(Path, String),
+    DefVar(String, Path),
+    DefNode(String, Path, Value),
+}
+
+impl FromStr for Changes {
+    type Err = Error;
+
+    fn from_str(_s: &str) -> Result<Self, Self::Err> {
+        todo!()
+    }
+}
+
+
+
 from https://github.com/puppetlabs/puppetlabs-augeas_core.git
 under Apache-2.0
 
@@ -36,10 +70,12 @@ ifonly:
     match <MATCH_PATH> not_include <STRING>
     match <MATCH_PATH> == <AN_ARRAY>
     match <MATCH_PATH> != <AN_ARRAY>
+
 where:
     AUGEAS_PATH is a valid path scoped by the context
     MATCH_PATH is a valid match syntax scoped by the context
     COMPARATOR is one of >, >=, !=, ==, <=, or <
+      ~ for regex match
     STRING is a string
     INT is a number
     AN_ARRAY is in the form ['a string', 'another']

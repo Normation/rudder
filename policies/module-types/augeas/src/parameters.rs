@@ -15,7 +15,7 @@ use std::iter;
 #[serde(rename_all = "snake_case")]
 #[serde_inline_default]
 pub struct AugeasParameters {
-    // force ?? FIXME: check why, force l'écriture même sans changement détectés
+    // force ?? FIXME: check why puppet needed it.
     /// Raw commands to run.
     ///
     /// Should be used with care, as it can lead to override any configuration, including
