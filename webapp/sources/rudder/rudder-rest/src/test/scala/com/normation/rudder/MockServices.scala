@@ -269,7 +269,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
     def getAllNonSystemCategories(): IOResult[Seq[NodeGroupCategory]] = ???
   }
 
-  private object nodeFactRepo extends NodeFactRepository {
+  object nodeFactRepo extends NodeFactRepository {
     override def getAll()(implicit qc: QueryContext, status: SelectNodeStatus): IOResult[MapView[NodeId, CoreNodeFact]] = {
       val _                                           = (qc, status) // ignore "unused" warning
       def build(id: String, mode: Option[PolicyMode]) = {
@@ -387,7 +387,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
     )
   }
 
-  private object simpleExample {
+  object simpleExample {
 
     /*
     Nodes N1 and N2,
@@ -402,7 +402,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       nodeId(1) -> simpleNodeStatusReport(
         nodeId(1),
         Set(
-          simpleRuleNodeStatusReport(nodeId(1), ruleId(1), directives.fileTemplateDirecive1.id, ReportType.EnforceSuccess),
+          simpleRuleNodeStatusReport(nodeId(1), ruleId(1), directives.techniqueWithBlocksDirective.id, ReportType.EnforceSuccess),
           simpleRuleNodeStatusReport(nodeId(1), ruleId(2), directives.fileTemplateVariables2.id, ReportType.EnforceRepaired),
           simpleRuleNodeStatusReport(nodeId(1), ruleId(3), directives.rpmDirective.id, ReportType.EnforceError)
         )
@@ -411,7 +411,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       nodeId(2) -> simpleNodeStatusReport(
         nodeId(2),
         Set(
-          simpleRuleNodeStatusReport(nodeId(2), ruleId(1), directives.fileTemplateDirecive1.id, ReportType.EnforceSuccess),
+          simpleRuleNodeStatusReport(nodeId(2), ruleId(1), directives.techniqueWithBlocksDirective.id, ReportType.EnforceSuccess),
           simpleRuleNodeStatusReport(nodeId(2), ruleId(3), directives.rpmDirective.id, ReportType.EnforceError)
         )
       )
@@ -455,7 +455,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       "R1",
       RuleCategoryId("rulecat1"),
       Set(GroupTarget(g1.id)),
-      Set(directives.fileTemplateDirecive1.id)
+      Set(directives.techniqueWithBlocksDirective.id)
     )
 
     val r2: Rule = Rule(
@@ -464,16 +464,16 @@ class MockCompliance(mockDirectives: MockDirectives) {
       RuleCategoryId("rulecat1"),
       Set(
         TargetExclusion(TargetIntersection(Set(GroupTarget(g1.id))), TargetIntersection(Set(GroupTarget(g2.id))))
-      ), // include G1 but not G2
-      Set(directives.fileTemplateDirecive1.id)
+      ), // include G1 but not G2, ie only node1
+      Set(directives.fileTemplateVariables2.id)
     )
 
     val r3: Rule = Rule(
       ruleId(3),
       "R3",
       RuleCategoryId("rulecat1"),
-      Set(GroupTarget(g2.id), GroupTarget(g3.id)),
-      Set(directives.fileTemplateDirecive1.id)
+      Set(GroupTarget(g1.id), GroupTarget(g3.id)),
+      Set(directives.rpmDirective.id)
     )
 
     val simpleCustomRules: List[Rule] = List(r1, r2, r3)
@@ -485,7 +485,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
     private def nodeGroupId(id: Int): NodeGroupId = NodeGroupId(NodeGroupUid("g" + id))
   }
 
-  private object complexExample {
+  object complexExample {
 
     /*
     Nodes N1, N2, N3, N4, N5

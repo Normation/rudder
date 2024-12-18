@@ -1680,8 +1680,8 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
     val updatedNodeIds = updatedNodes.keySet
     allNodeConfigurations.collect {
       case (nodeId, nodeConfig) if (updatedNodeIds.contains(nodeId)) =>
-        // overrides are in the reverse way, we need to transform them into OverridenPolicy
-        val overrides = nodeConfig.policies.flatMap(p => p.overrides.map(overriden => OverriddenPolicy(overriden, p.id)))
+        // overrides are in the reverse way, we need to transform them into OverriddenPolicy
+        val overrides = nodeConfig.policies.flatMap(p => p.overrides.map(overridden => OverriddenPolicy(overridden, p.id)))
 
         NodeExpectedReports(
           nodeId,

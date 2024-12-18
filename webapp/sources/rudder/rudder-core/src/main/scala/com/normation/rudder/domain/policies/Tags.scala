@@ -38,7 +38,10 @@ package com.normation.rudder.domain.policies
 
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.repository.json.JsonExtractorUtils
+import io.scalaland.chimney.*
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
+import zio.json.*
 
 /**
  * Tags that apply on Rules and Directives
@@ -64,6 +67,15 @@ final case class Tags(tags: Set[Tag]) extends AnyVal {
 }
 
 object Tags {
+  private case class JsonTag(key: String, value: String)
+  implicit private val transformTag:  Transformer[Tag, JsonTag]        = { case Tag(name, value) => JsonTag(name.value, value.value) }
+  implicit private val transformTags: Transformer[Tags, List[JsonTag]] = {
+    case Tags(tags) => tags.toList.sortBy(_.name.value).map(_.transformInto[JsonTag])
+  }
+
+  implicit private val encoderJsonTag: JsonEncoder[JsonTag] = DeriveJsonEncoder.gen
+  implicit val encoderTags:            JsonEncoder[Tags]    = JsonEncoder.list[JsonTag].contramap(_.transformInto[List[JsonTag]])
+
   // get tags from a list of key/value embodied by a Map with one elements (but
   // also works with several elements in map)
   def fromMaps(tags: List[Map[String, String]]): Tags = {

@@ -85,7 +85,7 @@ view model =
               [ text ( if model.selectedSettings.overridable then
                 "Make this setting a default only and allow overrides on a per-node or per-directive basis."
                 else
-                "This setting may not be overriden per-node or per-directive. All Rudder configuration rules will operate in this mode."
+                "This setting may not be overridden per-node or per-directive. All Rudder configuration rules will operate in this mode."
                 )
               ]
             ]
@@ -103,7 +103,7 @@ view model =
               ]
               , span [class "info-mode"]
                 [ text (case selectedMode of
-                  Default -> "This may be overriden on a per-Directive basis."
+                  Default -> "This may be overridden on a per-Directive basis."
                   Audit   -> "Directives will never be enforced on this node, regardless of their policy mode."
                   Enforce -> "All Directives will apply necessary changes on this node, except Directives with an Audit override setting."
                   _       -> ""

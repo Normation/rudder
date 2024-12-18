@@ -2263,7 +2263,7 @@ function compliancePercentValue(compliances) {
   decomposedValues.sort(function(a,b){return b.dec - a.dec;});
   total = decomposedValues.reduce(function(a, b) {;return {val : (a.val + b.val)}; }, {val:0}).val;
 
-  //we can have total = 0 in the case of overriden directives. We don't want to loop until 100.
+  //we can have total = 0 in the case of overridden directives. We don't want to loop until 100.
   //in fact, that loop can't be ok if (100 - total) > decomposedValue.length
   diff = 100 - total;
 

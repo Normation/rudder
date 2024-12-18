@@ -435,11 +435,11 @@ function updateHashString(key, value) {
   window.location.replace(baseUrl + '#' + JSON.stringify(hash));
 }
 
-function directiveOverridenTooltip(explanation){
+function directiveOverriddenTooltip(explanation){
   var tooltip = "" +
     "<h4>Directive Skipped</h4>" +
-    "<div class='tooltip-content policy-mode overriden'>"+
-    "<p>This directive is skipped because it is overriden by an other one here.</p>"+
+    "<div class='tooltip-content policy-mode overridden'>"+
+    "<p>This directive is skipped because it is overridden by an other one here.</p>"+
     "<p>"+ explanation +"</p>"+
     "</div>";
   return tooltip;
@@ -472,8 +472,8 @@ function createBadgeAgentPolicyMode(elmnt, currentPolicyMode, explanation){
   var span = "<span class='rudder-label label-sm "+ labelType +"' data-bs-toggle='tooltip' data-bs-placement='top' title=''></span>";
   var badge = $(span).get(0);
   var tooltip = null;
-  if(currentPolicyMode == "overriden") {
-    tooltip = directiveOverridenTooltip(explanation);
+  if(currentPolicyMode == "overridden") {
+    tooltip = directiveOverriddenTooltip(explanation);
   } else {
     tooltip = policyModeTooltip(elmnt, policyMode, explanation);
   }

@@ -1397,7 +1397,7 @@ class TestNodeConfiguration(
   /*
    * Test override order of generic-variable-definition.
    * We want to have to directive, directive1 and directive2.
-   * directive1 is the default value and must be overriden by value in directive 2, which means that directive2 value must be
+   * directive1 is the default value and must be overridden by value in directive 2, which means that directive2 value must be
    * define after directive 1 value in generated "genericVariableDefinition.cf".
    * The semantic to achieve that is to use Priority: directive 1 has a higher (ie smaller int number) priority than directive 2.
    *

@@ -159,7 +159,7 @@ class AsyncComplianceService(
               for { (key, optCompliance) <- compliances } yield {
                 val value             = kind.value(key)
                 val displayCompliance = optCompliance
-                  .map(_.toJsArray.toJsCmd)
+                  .map(_.toJsArray.toJson)
                   .getOrElse("""'<div class="text-muted text-center">no data available</div>'""")
                 s"${kind.jsContainer}['${value}'] = ${displayCompliance};"
               }

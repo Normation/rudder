@@ -1022,7 +1022,7 @@ class InternalLDAPQueryProcessor(
       // Compute in one go all data for a filter, fails if one filter fails to build
       q.criteria.traverse {
         case crit @ CriterionLine(ot, a, comp, value) =>
-          // objectType may be overriden in the attribute (for node state).
+          // objectType may be overridden in the attribute (for node state).
           val objectType = a.overrideObjectType.getOrElse(ot.objectType)
 
           // Validate that for each object type in criteria, we know it

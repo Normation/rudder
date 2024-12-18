@@ -672,7 +672,7 @@ badgeSkipped { overridingRuleId, overridingRuleName } =
         msg =
             "This directive is skipped because it is overridden by the rule <b>" ++ overridingRuleName ++ "</b> (with id " ++ overridingRuleId ++ ")."
     in
-    span [ class "treeGroupName tooltipable bs-tooltip rudder-label label-sm label-overriden", attribute "data-toggle" "tooltip", attribute "data-placement" "bottom", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Skipped directive" msg) ] []
+    span [ class "treeGroupName tooltipable bs-tooltip rudder-label label-sm label-overridden", attribute "data-toggle" "tooltip", attribute "data-placement" "bottom", attribute "data-container" "body", attribute "data-html" "true", attribute "data-original-title" (buildTooltipContent "Skipped directive" msg) ] []
 
 
 
