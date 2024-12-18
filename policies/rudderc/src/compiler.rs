@@ -13,6 +13,7 @@ use rudder_commons::{is_canonified, logs::ok_output, methods::Methods, Target};
 use serde_json::Value;
 use tracing::{error, warn};
 
+use crate::ir::technique::ForeachResolvedState;
 use crate::{
     backends::{backend, metadata::Metadata, Backend},
     frontends,
@@ -51,11 +52,15 @@ pub fn is_exit_on_user_error() -> bool {
 /// Read technique and augment with data from libraries
 ///
 /// Don't return early on user error but display an error message
-pub fn read_technique(methods: &'static Methods, input: &str) -> Result<Technique> {
+pub fn read_technique(
+    methods: &'static Methods,
+    input: &str,
+    resolve_loops: bool,
+) -> Result<Technique> {
     // Deserialize into `Technique`
     // Here return early as we can't do much if parsing failed,
     // plus serde already displays as many errors as possible
-    let mut policy = frontends::read(input)?;
+    let mut policy = frontends::read(input, resolve_loops)?;
     // Inject methods info into policy
     // Also check consistency (parameters, constraints, etc.)
     methods_metadata(&mut policy.items, methods)?;
@@ -280,13 +285,26 @@ fn check_block(block: &Block) -> Result<()> {
 // TODO: Could be more efficient...
 fn check_ids_unicity(technique: &Technique) -> Result<()> {
     fn get_ids(r: &ItemKind) -> Vec<Id> {
+        // Only keep the id on non-virtual items
         match r {
-            ItemKind::Block(r) => {
-                let mut ids = vec![r.id.clone()];
-                ids.extend(r.items.iter().flat_map(get_ids));
-                ids
-            }
-            ItemKind::Method(r) => vec![r.id.clone()],
+            ItemKind::Block(r) => match r.resolved_foreach_state {
+                Some(ForeachResolvedState::Virtual) => vec![],
+                Some(ForeachResolvedState::Main) => {
+                    let mut ids = vec![r.id.clone()];
+                    ids.extend(r.items.iter().flat_map(get_ids));
+                    ids
+                }
+                None => {
+                    let mut ids = vec![r.id.clone()];
+                    ids.extend(r.items.iter().flat_map(get_ids));
+                    ids
+                }
+            },
+            ItemKind::Method(r) => match r.resolved_foreach_state {
+                Some(ForeachResolvedState::Virtual) => vec![],
+                Some(ForeachResolvedState::Main) => vec![r.id.clone()],
+                None => vec![r.id.clone()],
+            },
             _ => todo!(),
         }
     }

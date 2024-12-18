@@ -8,6 +8,7 @@ use anyhow::Result;
 use tracing::trace;
 
 use super::Backend;
+use crate::ir::technique::ForeachResolvedState;
 use crate::{
     backends::unix::{
         cfengine::{bundle::Bundle, promise::Promise},
@@ -19,7 +20,6 @@ use crate::{
         technique::{ItemKind, TechniqueId},
     },
 };
-
 // TODO support macros at the policy or bundle level
 // this will allow conditionals on the agent version
 // and using more recent features while keeping compatibility
@@ -96,8 +96,18 @@ impl Backend for Unix {
                     Ok(calls)
                 }
                 ItemKind::Method(r) => {
+                    // As some bundle generation optimizations are done later in the generation if
+                    // the context is resolvable at compile time (always false or always true),
+                    // we need to force the context of the main branches of forks to be non
+                    // resolvable at compile time by making it an expression
+                    let computed_context = match r.resolved_foreach_state {
+                        Some(ForeachResolvedState::Main) => {
+                            Condition::Expression(context.to_string())
+                        }
+                        _ => context,
+                    };
                     let method: Vec<(Promise, Option<Bundle>)> =
-                        vec![method_call(technique_id, r, context)?];
+                        vec![method_call(technique_id, r, computed_context)?];
                     Ok(method)
                 }
                 _ => todo!(),
@@ -135,7 +145,7 @@ impl Backend for Unix {
             ),
         ]);
         for item in technique.items {
-            for call in resolve_module(item, Condition::Defined, &technique.id)? {
+            for call in resolve_module(item.clone(), Condition::Defined, &technique.id)? {
                 let (use_bundle, bundle) = call;
                 main_bundle.add_promise_group(vec![use_bundle]);
                 call_bundles.push(bundle)

@@ -1,0 +1,52 @@
+#####################################################################################
+# Copyright 2020 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name User group
+# @description Define secondary group for a user
+# @documentation Ensure that a user is within a group
+#
+# #### Behavior
+#
+# Ensure that the user belongs in the given secondary group (non-exclusive)
+#
+# ##### Parameters
+#
+# `login`      : the user login
+# `group_name`: secondary group name the user should belong to (non-exclusive)
+#
+# #### Examples
+#
+# To ensure that user `test` belongs in group `dev`
+#
+# ```
+#  user_group("test", "dev")
+# ```
+# Note that it will make sure that user test is in group dev, but won't remove it
+# from other groups it may belong to
+#
+# @parameter login           User login
+# @parameter group_name     Secondary group name for the user
+#
+#
+# @parameter_rename user login
+# @class_prefix user_group
+# @class_parameter login
+# @agent_support = ["cfengine-community"]
+
+bundle agent user_group(login, group_name) {
+}

@@ -121,6 +121,8 @@ Blocks contains:
       * `worst-case-weighted-sum`: Select the worst status from all methods, and use it as the block compliance, with a weight equal to the total number of methods below the block.
       * `worst-case-weighted-one`: Select the worst status from all methods, and use it as the block compliance, with a weight of 1.
   * `id` (required with `focus` mode): ID of the method to focus reporting on.
+* `foreach` (optional): List of dictionaries, repeats the block for each items in the list and each time, replace every occurrence of `${item.x}` in the subitems, condition by the corresponding value in the dictionary.
+* `foreach_name` (optional): Name of the local iterator variable to use if a `foreach` loop is used. Defaults to `item`.
 
 <div class="warning">
 Setting <code class="hljs">policy_mode_override</code> to <code class="hljs">enforce</code> will <strong>bypass the audit mode</strong>, so it must only be used
@@ -184,6 +186,117 @@ items:
       name: "telnet-server"
     reporting:
       mode: disabled
+```
+
+## Foreach
+
+Blocks and methods can be executed multiple times using the `foreach` field. Each iteration can be parameterized using a simple templating to fill the `params`, `condition` or `items` fields of the block|method being executed.
+The templating is done by using a local variable, replaced at technique compilation using the syntax `${<iterator name>.<key>}`.
+The `<iterator name>` is by default named `item` and can be changed using the `foreach_name` field, which is useful when nesting looping blocks.
+
+* The `foreach_name` must follow the pattern `^[a-zA-Z0-9_]+$`.
+
+For example
+
+```yaml
+  - name: "Install the '${item.name}' package"
+    method: package_present
+    params:
+      name: "${item.name}"
+      version: "latest"
+    foreach:
+      - name: "vim"
+      - name: "htop"
+```
+
+and
+
+```yaml
+  - name: "Install the '${tools.pkg_name}' package"
+    method: package_present
+    params:
+      name: "${tools.pkg_name}"
+      version: "${tools.version}"
+    foreach:
+      - pkg_name: "vim"
+        version: "latest"
+      - pkg_name: "htop"
+        version: "latest"
+```
+
+would both be strictly equivalent to
+
+```yaml
+  - name: "Install the vim package"
+    method: package_present
+    params:
+      name: "vim"
+      version: "latest"
+
+  - name: "Install the 'htop' package"
+    method: package_present
+    params:
+      name: htop"
+      version: "latest"
+```
+
+Foreach loops can also be nested when used on blocks. If it is the case, the replacement is done from top to bottom.
+Make sure to rename the foreach iterator variable to avoid any conflict.
+
+Example:
+
+```yaml
+items:
+  - name: "Deploy utility files for ${user.login}"
+    foreach_name: "user"
+    foreach:
+      - login: "bob"
+      - login: "alice"
+    items:
+      - name: "Deploy file ~/${file.path}"
+        method: file_from_shared_folder
+        params:
+          hash_type: sha256
+          source: "${file.path}"
+          path: "/home/${user.login}/${file.path}"
+        foreach_name: "file"
+        foreach:
+          - path: ".vimrc"
+          - path: ".bashrc"
+```
+
+would resolve to
+
+```yaml
+items:
+  - name: "Deploy utility files for bob"
+    items:
+      - name: "Deploy file ~/.vimrc"
+        method: file_from_shared_folder
+        params:
+          hash_type: sha256
+          source: ".vimrc"
+          path: "/home/bob/.vimrc"
+      - name: "Deploy file ~/.bashrc"
+        method: file_from_shared_folder
+        params:
+          hash_type: sha256
+          source: ".bashrc"
+          path: "/home/bob/.bashrc"
+  - name: "Deploy utility files for alice"
+    items:
+      - name: "Deploy file ~/.vimrc"
+        method: file_from_shared_folder
+        params:
+          hash_type: sha256
+          source: ".vimrc"
+          path: "/home/alice/.vimrc"
+      - name: "Deploy file ~/.bashrc"
+        method: file_from_shared_folder
+        params:
+          hash_type: sha256
+          source: ".bashrc"
+          path: "/home/alice/.bashrc"
 ```
 
 ## Resources
