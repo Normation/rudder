@@ -52,8 +52,6 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.hooks.PureHooksLogger
 import com.normation.rudder.hooks.RunHooks
-import com.normation.rudder.score.ScoreServiceManager
-import com.normation.rudder.score.SystemUpdateScoreEvent
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.currentTimeMillis
 import zio.*
@@ -180,14 +178,5 @@ class TriggerPolicyGenerationPostCommit[A](
     (if (inventory.node.main.status == AcceptedInventory) {
        IOResult.attempt(asyncGenerationActor ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor))
      } else ZIO.unit) *> records.succeed
-  }
-}
-
-class TriggerInventoryScorePostCommit[A](scoreServiceManager: ScoreServiceManager) extends PostCommit[A] {
-  override def name:                                    String      = "trigger Score computation on inventory update"
-  override def apply(inventory: Inventory, records: A): IOResult[A] = {
-    scoreServiceManager.handleEvent(
-      SystemUpdateScoreEvent(inventory.node.main.id, inventory.node.softwareUpdates)
-    ) *> records.succeed
   }
 }

@@ -219,7 +219,7 @@ class HomePage extends StatefulSnippet {
       n5                <- currentTimeMillis
       _                 <- TimingDebugLoggerPure.trace(s"Compute global compliance in: ${n5 - n4}ms")
       _                 <- TimingDebugLoggerPure.debug(s"Compute compliance: ${n5 - n2}ms")
-      scores            <- scoreService.getAll()
+      scores            <- scoreService.getAll()(CurrentUser.queryContext)
       existingScore     <- scoreService.getAvailableScore()
     } yield {
 

@@ -40,13 +40,12 @@ package com.normation.rudder.score
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
+import com.normation.zio.*
 import doobie.implicits.*
-import doobie.implicits.toSqlInterpolator
 import doobie.postgres.implicits.pgEnumString
 import doobie.util.invariant.InvalidEnum
-import zio.ZIO
+import zio.Ref
 import zio.interop.catz.*
-import zio.syntax.*
 
 trait GlobalScoreRepository {
   def getAll(): IOResult[Map[NodeId, GlobalScore]]
@@ -58,11 +57,13 @@ trait GlobalScoreRepository {
 /*
  * a repository that doesn't do anything, for tests
  */
-class DummyGlobalScoreRepository extends GlobalScoreRepository {
-  override def getAll(): IOResult[Map[NodeId, GlobalScore]] = Map().succeed
-  override def get(id:      NodeId): IOResult[Option[GlobalScore]] = None.succeed
-  override def delete(id:   NodeId): IOResult[Unit] = ZIO.unit
-  override def save(nodeId: NodeId, globalScore: GlobalScore): IOResult[(NodeId, GlobalScore)] = (nodeId, globalScore).succeed
+class InMemoryGlobalScoreRepository extends GlobalScoreRepository {
+  private[this] val cache: Ref[Map[NodeId, GlobalScore]]      = Ref.make(Map[NodeId, GlobalScore]()).runNow
+  override def getAll():   IOResult[Map[NodeId, GlobalScore]] = cache.get
+  override def get(id:    NodeId): IOResult[Option[GlobalScore]] = cache.get.map(_.get(id))
+  override def delete(id: NodeId): IOResult[Unit]                = cache.update(_.removed(id))
+  override def save(nodeId: NodeId, globalScore: GlobalScore): IOResult[(NodeId, GlobalScore)] =
+    cache.update(_.updated(nodeId, globalScore)).map(_ => (nodeId, globalScore))
 }
 
 object GlobalScoreRepositoryImpl {
