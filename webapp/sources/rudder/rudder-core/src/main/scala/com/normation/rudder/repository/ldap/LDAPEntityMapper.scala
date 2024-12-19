@@ -108,7 +108,7 @@ class LDAPEntityMapper(
     rudderDit:       RudderDit,
     nodeDit:         NodeDit,
     inventoryDit:    InventoryDit,
-    cmdbQueryParser: CmdbQueryParser,
+    cmdbQueryParser: CmdbQueryParser & RawStringQueryParser, // used to read from LDAP, in which case we do not need validation
     inventoryMapper: InventoryMapper
 ) extends NamedZioLogger {
 
@@ -678,7 +678,6 @@ class LDAPEntityMapper(
       for {
         id         <- e.required(A_NODE_GROUP_UUID).flatMap(NodeGroupId.parse(_).left.map(MalformedDN.apply))
         name       <- e.required(A_NAME)
-        query       = e(A_QUERY_NODE_GROUP)
         nodeIds     = e.valuesFor(A_NODE_UUID).map(x => NodeId(x))
         query      <- e(A_QUERY_NODE_GROUP) match {
                         case None    => Right(None)

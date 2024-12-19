@@ -75,7 +75,7 @@ import scala.util.control.NonFatal
 
 class LDAPDiffMapper(
     mapper:          LDAPEntityMapper,
-    cmdbQueryParser: CmdbQueryParser
+    cmdbQueryParser: CmdbQueryParser & RawStringQueryParser
 ) extends Loggable {
 
   // utility method for safe non null

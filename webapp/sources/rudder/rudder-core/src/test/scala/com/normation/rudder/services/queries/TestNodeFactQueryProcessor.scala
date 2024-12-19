@@ -139,10 +139,7 @@ class TestNodeFactQueryProcessor {
 
   val queryProcessor = new NodeFactQueryProcessor(nodeRepository, subGroupComparatorRepo, internalLDAPQueryProcessor)
 
-  val parser: CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer = new CmdbQueryParser
-    with DefaultStringQueryParser with JsonQueryLexer {
-    override val criterionObjects = queryData.criteriaMap.toMap
-  }
+  val parser = CmdbQueryParser.jsonStrictParser(queryData.criteriaMap.toMap)
 
   case class TestQuery(name: String, query: Query, awaited: Seq[NodeId])
 
