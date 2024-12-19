@@ -449,7 +449,7 @@ view model =
 
                 TechniqueDetails technique state uiInfo editInfo ->
                   showTechnique model technique state uiInfo editInfo
-    classes = "rudder-template " ++ if model.genericMethodsOpen then "show-methods" else "show-techniques"
+    classes = "rudder-template " ++ if model.genericMethodsOpen then "show-right" else "show-left"
 
 
   in
