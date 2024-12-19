@@ -40,7 +40,7 @@ import java.security.SecureRandom
 import scala.util.Random
 
 /**
- * Generate random string usable as token
+ * Generate a random string usable as secret (token, password, etc.)
  */
 trait TokenGenerator {
 
