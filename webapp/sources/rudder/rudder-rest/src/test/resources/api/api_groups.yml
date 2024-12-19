@@ -1122,6 +1122,37 @@ response:
       }
     }
 ---
+description: Update a node group query with invalid query comparator value
+method: POST
+url: /api/latest/groups/00000000-cb9d-4f7b-abda-ca38c5d643ea
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "00000000-cb9d-4f7b-abda-ca38c5d643ea",
+    "query": {
+      "select": "nodeAndPolicyServer",
+      "composition": "and",
+      "transform": "invert",
+      "where":[
+        {
+          "objectType": "node",
+          "attribute": "nodeId",
+          "comparator": "eq",
+          "value": ""
+        }
+      ]
+    }
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action":"updateGroup",
+      "result":"error",
+      "errorDetails": "Unexpected: Missing required value for comparator 'eq' in line 'StringCriterionLine(node,nodeId,eq,Some())'"
+    }
+---
 description: Move a node group to a new category
 method: POST
 url: /api/latest/groups/3fa29229-1a4b-4fd6-9edd-af114289fc9a
