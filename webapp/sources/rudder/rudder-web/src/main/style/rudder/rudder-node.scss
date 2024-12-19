@@ -123,7 +123,7 @@ form select.selectField {
   padding: 15px 15px 10px !important;
   margin: 0;
   font-size: 1.3rem;
-  background-color: $rudder-bg-gray;
+  background-color: $rudder-bg-light-gray;
   border-bottom: 1px solid $rudder-border-color-default;
 }
 
@@ -278,7 +278,7 @@ pre.display-keys{
   border-top-left-radius: 0;
   border: 1px solid $rudder-border-color-default;
   border-radius: 0px 4px 4px 4px;
-  background-color: $rudder-bg-gray;
+  background-color: $rudder-bg-light-gray;
   display: inline-block;
 }
 pre.display-keys > label:first-child{
@@ -318,7 +318,7 @@ pre.display-keys > label{
   & > .nav-item {
     & > button {
       transition-duration: .2s;
-      background-color: $rudder-bg-gray;
+      background-color: $rudder-bg-light-gray;
       border: 1px solid $rudder-border-color-default;
       padding: 6px 10px;
       color: $rudder-txt-secondary;
