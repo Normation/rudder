@@ -42,97 +42,61 @@ import com.normation.GitVersion
 import com.normation.box.*
 import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.impl.*
-import com.normation.cfclerk.xmlparsers.SectionSpecParser
-import com.normation.cfclerk.xmlparsers.TechniqueParser
-import com.normation.cfclerk.xmlparsers.VariableSpecParser
+import com.normation.cfclerk.xmlparsers.{SectionSpecParser, TechniqueParser, VariableSpecParser}
 import com.normation.errors.*
-import com.normation.errors.IOResult
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
+import com.normation.eventlog.{EventActor, ModificationId}
 import com.normation.inventory.domain.*
 import com.normation.inventory.domain.AgentType.CfeCommunity
-import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.ldap.core.InventoryDitService
-import com.normation.inventory.ldap.core.InventoryDitServiceImpl
+import com.normation.inventory.ldap.core.{InventoryDit, InventoryDitService, InventoryDitServiceImpl}
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 import com.normation.rudder.MockNodes.allNodeFacts
 import com.normation.rudder.batch.NodePropertiesSyncServiceImpl
 import com.normation.rudder.campaigns.*
-import com.normation.rudder.configuration.ConfigurationRepositoryImpl
-import com.normation.rudder.configuration.DirectiveRevisionRepository
-import com.normation.rudder.configuration.GroupRevisionRepository
-import com.normation.rudder.configuration.RuleRevisionRepository
-import com.normation.rudder.domain.NodeDit
-import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.domain.archives.ParameterArchiveId
-import com.normation.rudder.domain.archives.RuleArchiveId
+import com.normation.rudder.configuration.{ConfigurationRepositoryImpl, DirectiveRevisionRepository, GroupRevisionRepository, RuleRevisionRepository}
+import com.normation.rudder.domain.{NodeDit, RudderDit}
+import com.normation.rudder.domain.archives.{ParameterArchiveId, RuleArchiveId}
 import com.normation.rudder.domain.nodes.*
-import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.properties.GenericProperty.StringToConfigValue
 import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.queries.*
-import com.normation.rudder.domain.queries.CriterionComposition
-import com.normation.rudder.domain.reports.NodeComplianceExpirationMode
-import com.normation.rudder.domain.reports.NodeModeConfig
+import com.normation.rudder.domain.reports.{NodeComplianceExpirationMode, NodeModeConfig}
 import com.normation.rudder.facts.nodes.*
-import com.normation.rudder.git.GitFindUtils
-import com.normation.rudder.git.GitRepositoryProviderImpl
-import com.normation.rudder.git.GitRevisionProvider
-import com.normation.rudder.git.SimpleGitRevisionProvider
+import com.normation.rudder.git.{GitFindUtils, GitRepositoryProviderImpl, GitRevisionProvider, SimpleGitRevisionProvider}
 import com.normation.rudder.hooks.HookEnvPairs
-import com.normation.rudder.properties.InMemoryPropertiesRepository
-import com.normation.rudder.properties.NodePropertiesServiceImpl
-import com.normation.rudder.properties.PropertiesRepository
+import com.normation.rudder.properties.{InMemoryPropertiesRepository, NodePropertiesServiceImpl, PropertiesRepository}
 import com.normation.rudder.reports.*
 import com.normation.rudder.repository.*
-import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.repository.WoRuleRepository
-import com.normation.rudder.repository.xml.GitParseGroupLibrary
-import com.normation.rudder.repository.xml.GitParseRules
-import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
-import com.normation.rudder.repository.xml.TechniqueRevisionRepository
+import com.normation.rudder.repository.xml.{GitParseGroupLibrary, GitParseRules, GitParseTechniqueLibrary, TechniqueRevisionRepository}
 import com.normation.rudder.rule.category.*
-import com.normation.rudder.score.GlobalScore
-import com.normation.rudder.score.Score
-import com.normation.rudder.score.ScoreService
-import com.normation.rudder.services.marshalling.NodeGroupCategoryUnserialisationImpl
-import com.normation.rudder.services.marshalling.NodeGroupUnserialisationImpl
-import com.normation.rudder.services.marshalling.RuleUnserialisationImpl
-import com.normation.rudder.services.policies.ComponentId
-import com.normation.rudder.services.policies.NodeConfigData
-import com.normation.rudder.services.policies.NodeConfiguration
-import com.normation.rudder.services.policies.ParameterForConfiguration
-import com.normation.rudder.services.policies.Policy
-import com.normation.rudder.services.policies.SystemVariableServiceImpl
+import com.normation.rudder.score.{InMemoryGlobalScoreRepository, InMemoryScoreRepository, ScoreServiceImpl, ScoreServiceManager}
+import com.normation.rudder.services.marshalling.{NodeGroupCategoryUnserialisationImpl, NodeGroupUnserialisationImpl, RuleUnserialisationImpl}
+import com.normation.rudder.services.policies.*
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.reports.NodePropertyBasedComplianceExpirationService
 import com.normation.rudder.services.servers.*
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
 import com.normation.rudder.tenants.DefaultTenantService
-import com.normation.utils.DateFormaterService
-import com.normation.utils.StringUuidGeneratorImpl
+import com.normation.utils.{DateFormaterService, StringUuidGeneratorImpl}
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
-import com.unboundid.ldap.sdk.DN
-import com.unboundid.ldap.sdk.RDN
+import com.unboundid.ldap.sdk.{DN, RDN}
 import com.unboundid.ldif.LDIFChangeRecord
 import net.liftweb.actor.MockLiftActor
-import net.liftweb.common.Box
-import net.liftweb.common.Full
+import net.liftweb.common.{Box, Full}
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.ObjectId
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
+import zio.json.{jsonDiscriminator, jsonHint}
+import zio.stream.ZStream
+import zio.syntax.*
+import zio.{System as _, Tag as _, *}
+
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap as ISortedMap
 import scala.util.control.NonFatal
-import zio.{System as _, Tag as _, *}
-import zio.json.jsonDiscriminator
-import zio.json.jsonHint
-import zio.stream.ZStream
-import zio.syntax.*
 
 /*
  * Mock services for test, especially repositories, and provides
@@ -2380,6 +2344,11 @@ class MockNodes() {
       (HookEnvPairs(List.empty), HookEnvPairs(List.empty)).succeed
     }
   }
+
+  val globalScoreRepo = new InMemoryGlobalScoreRepository()
+  val scoreRepo       = new InMemoryScoreRepository()
+  val scoreService    = new ScoreServiceImpl(globalScoreRepo, scoreRepo, nodeFactRepo)
+  val scoreManager: ScoreServiceManager = new ScoreServiceManager(scoreService)
 }
 
 class MockNodeGroups(mockNodes: MockNodes, mockGlobalParam: MockGlobalParam) {
@@ -3147,8 +3116,8 @@ class MockCampaign() {
   }
 
   object dumbCampaignTranslator extends JSONTranslateCampaign {
-    import com.normation.rudder.campaigns.CampaignSerializer.*
     import zio.json.*
+    import com.normation.rudder.campaigns.CampaignSerializer.*
     implicit val dumbCampaignDetailsDecoder: JsonDecoder[DumbCampaignDetails] = DeriveJsonDecoder.gen
     implicit val dumbCampaignDecoder:        JsonDecoder[DumbCampaignTrait]   = DeriveJsonDecoder.gen
     implicit val dumbCampaignDetailsEncoder: JsonEncoder[DumbCampaignDetails] = DeriveJsonEncoder.gen
@@ -3299,17 +3268,3 @@ class MockCampaign() {
 
 }
 
-class MockScores() {
-  object emptyScoreService extends ScoreService {
-    override def getAll(): IOResult[Map[NodeId, GlobalScore]] = Map.empty.succeed
-    override def getGlobalScore(nodeId:  NodeId): IOResult[GlobalScore] = ???
-    override def getScoreDetails(nodeId: NodeId): IOResult[List[Score]] = ???
-    override def clean(): IOResult[Unit] = ???
-    override def cleanScore(name:          String): IOResult[Unit] = ???
-    override def update(newScores:         Map[NodeId, List[Score]]): IOResult[Unit] = ???
-    override def registerScore(newScoreId: String, displayName: String): IOResult[Unit] = ???
-    override def getAvailableScore(): IOResult[List[(String, String)]] = List.empty.succeed
-    override def init():              IOResult[Unit]                   = ???
-    override def deleteNodeScore(nodeId: NodeId): IOResult[Unit] = ???
-  }
-}
