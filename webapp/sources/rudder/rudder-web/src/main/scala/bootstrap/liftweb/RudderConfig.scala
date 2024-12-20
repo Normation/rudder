@@ -108,7 +108,7 @@ import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
 import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.queries.*
-import com.normation.rudder.facts.nodes.{AppLogNodeFactChangeEventCallback, CacheInvalidateNodeFactEventCallback, CoreNodeFactRepository, EventLogsNodeFactChangeEventCallback, GenerationOnChange, GitNodeFactStorageImpl, HistorizeNodeState, LdapNodeFactStorage, NodeFactChangeEventCallback, NodeFactInventorySaver, NodeFactRepository, NodeInfoServiceProxy, NoopFactStorage, QueryContext, ScoreUpdateOnNodeFactChange, SelectNodeStatus, SoftDaoGetNodesBySoftwareName, WoFactNodeRepositoryProxy}
+import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
@@ -193,7 +193,6 @@ import com.typesafe.config.ConfigFactory
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import cron4s.CronExpr
-
 import java.io.File
 import java.nio.file.attribute.PosixFilePermission
 import java.security.Security
@@ -203,7 +202,6 @@ import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
-
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration
 import scala.concurrent.duration.FiniteDuration
