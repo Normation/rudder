@@ -55,12 +55,11 @@
   & > a {
     .badge{
       background-color: #b1bbcb;
-      opacity:.5;
       display: inline-flex;
       justify-content: center;
       align-items: center;
-      padding: 5px 10px;
-      font-size: .8em;
+      padding: 0px 10px;
+      font-size: 1em;
     }
 
     &:hover {
