@@ -168,11 +168,12 @@ trait DefaultStringQueryParser extends StringQueryParser {
 
       /*
        * Only validate the fact that if the comparator requires a value, then a value is provided.
-       * Providing an error when none is required is not an error
+       * An empty String is allowed because "" could have a different meaning from being absent.
+       * Providing an error when none is required is not an error.
        */
       value      <- line.value match {
-                      case Some(x) if x.nonEmpty => Right(x)
-                      case _                     =>
+                      case Some(x) => Right(x)
+                      case None    =>
                         if (needValidation && comparator.hasValue)
                           Left("Missing required value for comparator '%s' in line '%s'".format(line.comparator, line))
                         else Right("")
