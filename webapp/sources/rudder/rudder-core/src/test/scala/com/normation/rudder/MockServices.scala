@@ -2986,20 +2986,14 @@ class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeG
   val getSubGroupChoices = new DefaultSubGroupComparatorRepository(mockNodeGroups.groupsRepo)
   val nodeQueryData      = new NodeQueryCriteriaData(() => getSubGroupChoices)
   val ditQueryDataImpl   = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, nodeQueryData)
-  val queryParser: CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer = new CmdbQueryParser
-    with DefaultStringQueryParser with JsonQueryLexer {
-    override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryDataImpl.criteriaMap
-  }
+  val queryParser        = CmdbQueryParser.jsonStrictParser(ditQueryDataImpl.criteriaMap.toMap)
 
   val xmlEntityMigration: XmlEntityMigration      = new XmlEntityMigration {
     override def getUpToDateXml(entity: Elem): Box[Elem] = Full(entity)
   }
   val groupRevisionRepo:  GroupRevisionRepository = new GitParseGroupLibrary(
     new NodeGroupCategoryUnserialisationImpl(),
-    new NodeGroupUnserialisationImpl(new CmdbQueryParser {
-      override def parse(query: StringQuery): Box[Query]       = ???
-      override def lex(query:   String):      Box[StringQuery] = ???
-    }),
+    new NodeGroupUnserialisationImpl(CmdbQueryParser.jsonStrictParser(Map.empty)),
     mockGit.gitRepo,
     xmlEntityMigration,
     "groups"

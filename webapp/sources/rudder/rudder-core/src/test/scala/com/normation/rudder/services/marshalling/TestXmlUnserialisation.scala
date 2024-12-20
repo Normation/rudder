@@ -16,12 +16,9 @@ import com.normation.rudder.domain.policies.SectionVal
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.queries.*
-import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.domain.queries.ResultTransformation.*
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.queries.CmdbQueryParser
-import com.normation.rudder.services.queries.DefaultStringQueryParser
-import com.normation.rudder.services.queries.JsonQueryLexer
 import net.liftweb.common.Empty
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
@@ -36,11 +33,8 @@ import scala.xml.Elem
 @RunWith(classOf[JUnitRunner])
 class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
 
-  val queryParser: CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer = new CmdbQueryParser
-    with DefaultStringQueryParser with JsonQueryLexer {
-    override val criterionObjects = Map[String, ObjectCriterion]()
-  }
-  val directiveUnserialisation = new DirectiveUnserialisationImpl
+  val queryParser                      = CmdbQueryParser.jsonStrictParser(Map.empty)
+  val directiveUnserialisation         = new DirectiveUnserialisationImpl
   val nodeGroupCategoryUnserialisation = new NodeGroupCategoryUnserialisationImpl
   val nodeGroupUnserialisation         = new NodeGroupUnserialisationImpl(queryParser)
   val ruleUnserialisation              = new RuleUnserialisationImpl
