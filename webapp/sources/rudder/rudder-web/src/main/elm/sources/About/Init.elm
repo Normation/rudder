@@ -16,7 +16,7 @@ init flags =
       ( initModel
       , getAboutInfo initModel
       )
--- {--
+{--
 fakeData : AboutInfo
 fakeData =
     let
