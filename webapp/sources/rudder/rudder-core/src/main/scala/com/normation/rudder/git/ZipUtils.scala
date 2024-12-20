@@ -59,7 +59,14 @@ import zio.syntax.*
 
 object ZipUtils {
 
-  final case class Zippable(path: String, useContent: Option[(InputStream => IOResult[Any]) => IOResult[Any]])
+  // we need to ensure that path is never null, which can happen because we interact with Java
+  final case class Zippable(path: String, useContent: Option[(InputStream => IOResult[Any]) => IOResult[Any]]) {
+    if (null == path) {
+      throw new IllegalArgumentException(
+        s"A zippable can not be created with an 'null' path (useContent ${if (useContent.isEmpty) "is empty" else "is defined"})"
+      )
+    }
+  }
 
   object Zippable {
     def make(path: String, content: Option[IOManaged[InputStream]]): Zippable = {
@@ -193,7 +200,12 @@ object ZipUtils {
     }
     val base = file.getParentFile.toURI
 
-    def getPath(f: File) = base.relativize(f.toURI).getPath
+    def getPath(f: File): Option[String] = {
+      base.relativize(f.toURI).getPath match {
+        case null => None
+        case p    => Some(p)
+      }
+    }
 
     def recZippable(f: File, existing: Seq[Zippable]): Seq[Zippable] = {
       // sort accordingly to the required convention
@@ -208,21 +220,24 @@ object ZipUtils {
         }
       }
 
-      if (f.isDirectory) {
-        val c = existing :+ Zippable(getPath(f), None)
+      getPath(f) match {
+        case None       => existing
+        case Some(path) =>
+          if (f.isDirectory) {
+            val c = existing :+ Zippable(path, None)
 
-        sortFile(f.listFiles).foldLeft(c)((seq, ff) => recZippable(ff, seq))
-      } else {
-        def buildContent(use: InputStream => Any): IOResult[Any] = {
-          ZIO.acquireReleaseWith(IOResult.attempt(new FileInputStream(f)))(is => effectUioUnit(is.close)) { is =>
-            IOResult.attempt("Error when using file")(use(is))
+            sortFile(f.listFiles).foldLeft(c)((seq, ff) => recZippable(ff, seq))
+          } else {
+            def buildContent(use: InputStream => Any): IOResult[Any] = {
+              ZIO.acquireReleaseWith(IOResult.attempt(new FileInputStream(f)))(is => effectUioUnit(is.close())) { is =>
+                IOResult.attempt("Error when using file")(use(is))
+              }
+            }
+
+            existing :+ Zippable(path, Some(buildContent))
           }
-        }
-
-        existing :+ Zippable(getPath(f), Some(buildContent _))
       }
     }
-
     recZippable(file, Seq())
   }
 }

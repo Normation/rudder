@@ -220,8 +220,11 @@ object GitFindUtils extends NamedZioLogger {
       tw.reset(revTreeId)
 
       while (tw.next) {
-        val path = tw.getPathString
-        directories += (new File(path)).getParent
+        val path   = tw.getPathString
+        val parent = (new File(path)).getParent
+        if (null != parent) {
+          directories += parent
+        }
         entries += ((path, Some(GitFindUtils.getManagedFileContent(db, revTreeId, path))))
       }
 
