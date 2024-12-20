@@ -34,8 +34,8 @@ view model =
                         ]
                     , div[ class "one-col-main overflow-auto h-100"]
                         [ div [class "d-flex flex-column info-container p-3 pb-5 w-100 h-100 overflow-auto"]
-                            [ div [class "col-12 col-lg-8"]
-                                [ div[class "mb-3"]
+                            [ div [class "col-12 col-xl-10"]
+                                [ div[class "mb-4"]
                                     [ h4[]
                                         [ text "Rudder info"
                                         , btnCopyJson "rudder" (encodeRudderInfo info.rudderInfo)
@@ -47,7 +47,7 @@ view model =
                                         , relaysList info.rudderInfo.relays model.ui
                                         ]
                                     ]
-                                , div[class "mb-3"]
+                                , div[class "mb-4"]
                                     [ h4[]
                                         [ text "System"
                                         , btnCopyJson "system" (encodeSystemInfo info.system)
@@ -59,7 +59,7 @@ view model =
                                         , rowTxtInfo "Launch options" info.system.jvm.cmd
                                         ]
                                     ]
-                                , div[class "mb-3"]
+                                , div[class "mb-4"]
                                     [ h4[]
                                         [ text "Managed nodes"
                                         , btnCopyJson "nodes" (encodeNodesInfo info.nodes)
@@ -72,7 +72,7 @@ view model =
                                         , rowNbInfo "Total" info.nodes.total
                                         ]
                                     ]
-                                , div[class "mb-3"]
+                                , div[class "mb-4"]
                                     [ h4[]
                                         [ text "Plugins"
                                         , btnCopyJson "plugins" (list encodePluginInfo info.plugins)

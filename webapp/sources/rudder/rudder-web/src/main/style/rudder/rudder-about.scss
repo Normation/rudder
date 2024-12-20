@@ -35,10 +35,17 @@
 *************************************************************************************
 */
 
+$col-label-width: 200px;
+$margin-label : 10px;
+
 .info-container{
+  h4, label{
+      width: $col-label-width;
+      text-align: right;
+  }
   label {
     color: #738195;
-    margin-right: 10px;
+    margin-right: $margin-label;
 
     &:after{
       content : ":";
@@ -66,8 +73,11 @@
       right: 0;
     }
   }
-
+  h4 > .btn-goto.clipboard{
+    margin-right: -30px;
+  }
   .dataTable{
     background-color: #fff;
+    margin-left: $col-label-width + $margin-label;
   }
 }

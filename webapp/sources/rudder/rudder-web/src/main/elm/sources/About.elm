@@ -5,7 +5,7 @@ import Result
 import Json.Decode exposing (Value)
 
 import About.DataTypes exposing (..)
-import About.Init exposing (init, subscriptions) -- fakeData
+import About.Init exposing (init, subscriptions, fakeData) -- fakeData
 import About.View exposing (view)
 
 --
@@ -38,8 +38,8 @@ update msg model =
                     Ok info ->
                         ({newModel | info = Just info}, Cmd.none)
                     Err _ ->
-                        (newModel, (errorNotification "Error while fetching information"))
-                        -- ({ newModel | info = Just fakeData}, (errorNotification "Error while fetching information"))
+                        --(newModel, (errorNotification "Error while fetching information"))
+                        ({ newModel | info = Just fakeData}, (errorNotification "Error while fetching information"))
         Copy s ->
             ( model, copy s )
 
