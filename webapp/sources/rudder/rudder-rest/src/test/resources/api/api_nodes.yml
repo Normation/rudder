@@ -1041,7 +1041,7 @@ response:
         "inheritedProperties" : {},
         "score" : {
           "score" : "X",
-          "details" : {}
+          "details" : {"compliance" : "X", "system-updates" : "X"}
         }
       },
       {
@@ -1068,7 +1068,7 @@ response:
         "inheritedProperties" : {},
         "score" : {
           "score" : "X",
-          "details" : {}
+          "details" : {"compliance" : "X", "system-updates" : "X"}
         }
       },
       {
@@ -1095,7 +1095,7 @@ response:
         "inheritedProperties" : {},
         "score" : {
           "score" : "X",
-          "details" : {}
+          "details" : {"compliance" : "X", "system-updates" : "X"}
         }
       },
       {
@@ -1121,7 +1121,7 @@ response:
         "inheritedProperties" : {},
         "score" : {
           "score" : "X",
-          "details" : {}
+          "details" : {"compliance" : "X", "system-updates" : "X"}
         }
       }
     ]
@@ -1176,7 +1176,7 @@ response:
         },
         "score" : {
           "score" : "X",
-          "details" : {}
+          "details" : {"compliance" : "X", "system-updates" : "X"}
         }
       }
     ]

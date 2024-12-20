@@ -237,7 +237,6 @@ class RestTestSetUp {
   val mockLdapQueryParsing                           = new MockLdapQueryParsing(mockGitRepo, mockNodeGroups)
   val uuidGen                                        = new StringUuidGeneratorImpl()
   val mockConfigRepo                                 = new MockConfigRepo(mockTechniques, mockDirectives, mockRules, mockNodeGroups, mockLdapQueryParsing)
-  val mockScores                                     = new MockScores()
   val mockCompliance                                 = new MockCompliance(mockDirectives)
   val (mockUserManagementTmpDir, mockUserManagement) = MockUserManagement()
 
@@ -796,7 +795,7 @@ class RestTestSetUp {
         null,
         () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),
         "relay",
-        mockScores.emptyScoreService
+        mockNodes.scoreService
       ) {
     implicit val testCC: ChangeContext = {
       ChangeContext(
