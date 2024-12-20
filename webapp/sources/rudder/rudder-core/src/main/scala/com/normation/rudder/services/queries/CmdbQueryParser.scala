@@ -106,7 +106,7 @@ trait StringQueryParser {
   def parse(query: StringQuery): Box[Query]
 }
 
-trait CmdbQueryParser extends StringQueryParser with QueryLexer {
+sealed trait CmdbQueryParser extends StringQueryParser with QueryLexer {
   def apply(query: String): Box[Query] = for {
     sq <- lex(query)
     q  <- parse(sq)
