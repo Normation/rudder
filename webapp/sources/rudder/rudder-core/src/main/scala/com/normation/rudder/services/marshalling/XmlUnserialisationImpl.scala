@@ -436,9 +436,12 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
       ptName           <- (activeTechnique \ "techniqueName").headOption.map(
                             _.text
                           ) ?~! ("Missing attribute 'displayName' in entry type policyLibraryTemplate : " + entry)
-      policyTypes      <- (activeTechnique \ "policyTypes").headOption.flatMap(s =>
-                            s.text.fromJson[PolicyTypes].toBox
-                          ) ?~! ("Missing attribute 'isSystem' in entry type policyLibraryTemplate : " + entry)
+      policyTypes       = (activeTechnique \ "policyTypes").headOption
+                            .flatMap(s => s.text.fromJson[PolicyTypes].toBox)
+                            .getOrElse(
+                              // by default, for compat reason, if the type is missing, we assume rudder std technique
+                              PolicyTypes.rudderBase
+                            )
       isEnabled        <- (activeTechnique \ "isEnabled").headOption.flatMap(s =>
                             tryo(s.text.toBoolean)
                           ) ?~! ("Missing attribute 'isEnabled' in entry type policyLibraryTemplate : " + entry)
