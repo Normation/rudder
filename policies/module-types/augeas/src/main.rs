@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+#![allow(dead_code)]
 mod augeas;
-mod check;
 mod dsl;
 mod parameters;
 
@@ -28,6 +28,7 @@ impl ModuleType0 for Augeas {
     }
 
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
+        // from_value does not allow zero-copy deserialization
         let parameters: AugeasParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))?;
         parameters.validate(None)

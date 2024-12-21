@@ -6,6 +6,7 @@ use anyhow::{anyhow, Result};
 use rudder_module_type::PolicyMode;
 use serde::{Deserialize, Serialize};
 use serde_inline_default::serde_inline_default;
+use std::borrow::Cow;
 use std::iter;
 
 /// Parameters for the augeas module.
@@ -15,18 +16,17 @@ use std::iter;
 #[serde(rename_all = "snake_case")]
 #[serde_inline_default]
 pub struct AugeasParameters {
-    // force ?? FIXME: check why puppet needed it.
     /// Raw commands to run.
     ///
     /// Should be used with care, as it can lead to override any configuration, including
     /// making changes in audit mode.
-    pub commands: Vec<String>,
-    pub changes: Vec<String>,
+    pub commands: String,
+    pub changes: String,
     // changes
     // same syntax as only if?
-    pub checks: Vec<String>,
+    pub checks: String,
     // only_if
-    pub condition: Vec<String>,
+    pub change_if: String,
     /// Prefix to add.
     ///
     /// By default,
@@ -82,19 +82,31 @@ impl AugeasParameters {
     }
 
     /// Returns the lens name with the `.lns` extension if missing.
-    pub fn lens(&self) -> Option<String> {
-        match self.lens.as_ref() {
+    pub fn lens_name(&self) -> Option<Cow<str>> {
+        match self.lens.as_deref() {
             Some(lens) => {
                 if lens.ends_with(".lns") {
-                    Some(lens.clone())
+                    Some(Cow::from(lens))
                 } else {
-                    Some(format!("{lens}.lns"))
+                    Some(Cow::from(format!("{lens}.lns")))
                 }
             }
             None => None,
         }
     }
 
+    pub fn context(&self) -> Option<Cow<str>> {
+        match (self.context.as_deref(), self.path.as_deref()) {
+            (Some(context), _) => Some(Cow::from(context)),
+            (None, Some(p)) => Some(Cow::from(format!("files/{p}"))),
+            (_, None) => None,
+        }
+    }
+
+    /// Validate the parameters.
+    ///
+    /// Enforce consistency between the different fields, as this module
+    /// provides a lot of flexibility, with different operating modes.
     pub fn validate(&self, policy_mode: Option<PolicyMode>) -> Result<()> {
         if !self.commands.is_empty() {
             if let Some(p) = policy_mode {
@@ -117,11 +129,10 @@ impl AugeasParameters {
             }
         }
 
-        if !self.changes.is_empty() && !self.checks.is_empty() {
-            return Err(anyhow!("Cannot use both `changes` and `checks`"));
-        }
         if self.changes.is_empty() && self.checks.is_empty() {
-            return Err(anyhow!("One of `changes` or `checks` must be used"));
+            return Err(anyhow!(
+                "At least one of `changes` or `checks` must be used"
+            ));
         }
 
         if self.path.is_none() {
@@ -143,7 +154,7 @@ mod tests {
             lens: Some(lens),
             ..Default::default()
         };
-        let result = p.lens().unwrap();
+        let result = p.lens_name().unwrap();
         assert_eq!(result, "test_lens.lns");
     }
 
@@ -154,7 +165,7 @@ mod tests {
             lens: Some(lens),
             ..Default::default()
         };
-        let result = p.lens().unwrap();
+        let result = p.lens_name().unwrap();
         assert_eq!(result, "test_lens.lns");
     }
 }

@@ -1,82 +1,134 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-//! Implements two DSLs to define a safe subset of augeas commands
-//! and handle checks.
+use nom::branch::alt;
+use nom::bytes::complete::{is_not, tag};
+use nom::character::complete::{char, not_line_ending, space0};
+use nom::error::VerboseError;
+use nom::sequence::delimited;
+use nom::IResult;
+use std::borrow::Cow;
+use std::ops::Deref;
 
-/*
+pub mod changes;
+mod checks;
+pub mod comparator;
 
-use anyhow::Error;
-use std::str::FromStr;
+pub type Value<'a> = &'a str;
+pub type Sub<'a> = &'a str;
 
-pub type Path = String;
-pub type Value = String;
-pub type Sub = String;
-
-pub enum Changes {
-    Set(Path, Value),
-    SetM(Path, Sub, Value),
-    Rm(Path),
-    Remove(Path),
-    Clear(Path),
-    ClearM(Path, Sub),
-    Touch(Path),
-    Ins(String, String, Path),
-    Insert(String, String, Path),
-    Mv(Path, Path),
-    Move(Path, Path),
-    Rename(Path, String),
-    DefVar(String, Path),
-    DefNode(String, Path, Value),
+/// A path in the Augeas tree.
+#[derive(Debug, PartialEq)]
+pub struct AugPath<'a> {
+    inner: &'a str,
 }
 
-impl FromStr for Changes {
-    type Err = Error;
+impl Deref for AugPath<'_> {
+    type Target = str;
 
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        todo!()
+    fn deref(&self) -> &Self::Target {
+        self.inner
     }
 }
 
+impl<'a> From<&'a str> for AugPath<'a> {
+    fn from(s: &'a str) -> Self {
+        AugPath { inner: s }
+    }
+}
 
+impl AugPath<'_> {
+    pub fn is_absolute(&self) -> bool {
+        self.inner.starts_with('/')
+    }
 
-from https://github.com/puppetlabs/puppetlabs-augeas_core.git
-under Apache-2.0
+    pub fn is_relative(&self) -> bool {
+        !self.is_absolute()
+    }
 
-changes:
-    set <PATH> <VALUE> --- Sets the value VALUE at location PATH
-    setm <PATH> <SUB> <VALUE> --- Sets multiple nodes (matching SUB relative to PATH) to VALUE
-    rm <PATH> --- Removes the node at location PATH
-    remove <PATH> --- Synonym for rm
-    clear <PATH> --- Sets the node at PATH to NULL, creating it if needed
-    clearm <PATH> <SUB> --- Sets multiple nodes (matching SUB relative to PATH) to NULL
-    touch <PATH> --- Creates PATH with the value NULL if it does not exist
-    ins <LABEL> (before|after) <PATH> --- Inserts an empty node LABEL either before or after PATH.
-    insert <LABEL> <WHERE> <PATH> --- Synonym for ins
-    mv <PATH> <OTHER PATH> --- Moves a node at PATH to the new location OTHER PATH
-    move <PATH> <OTHER PATH> --- Synonym for mv
-    rename <PATH> <LABEL> --- Rename a node at PATH to a new LABEL
-    defvar <NAME> <PATH> --- Sets Augeas variable $NAME to PATH
-    defnode <NAME> <PATH> <VALUE> --- Sets Augeas variable $NAME to PATH, creating it with VALUE if needed
+    /// Return the path with the given context.
+    ///
+    /// If the path is relative, it is appended to the context.
+    /// If the path is absolute, it is returned as is.
+    ///
+    /// Handles the case where the context does not end with a `/`.
+    pub fn with_context(&self, context: Option<&str>) -> Cow<str> {
+        match context {
+            Some(c) if self.is_relative() && c.ends_with('/') => {
+                format!("{}{}", c, self.inner).into()
+            }
+            Some(c) if self.is_relative() && !c.ends_with('/') => {
+                format!("{}/{}", c, self.inner).into()
+            }
+            _ => self.inner.into(),
+        }
+    }
+}
 
-ifonly:
-    get <AUGEAS_PATH> <COMPARATOR> <STRING>
-    values <MATCH_PATH> include <STRING>
-    values <MATCH_PATH> not_include <STRING>
-    values <MATCH_PATH> == <AN_ARRAY>
-    values <MATCH_PATH> != <AN_ARRAY>
-    match <MATCH_PATH> size <COMPARATOR> <INT>
-    match <MATCH_PATH> include <STRING>
-    match <MATCH_PATH> not_include <STRING>
-    match <MATCH_PATH> == <AN_ARRAY>
-    match <MATCH_PATH> != <AN_ARRAY>
+/// Read a comment.
+///
+/// A comment starts with a `#` and ends with a newline.
+fn comment(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
+    let (input, _) = tag("#")(input)?;
+    let (input, comment) = not_line_ending(input)?;
+    Ok((input, comment))
+}
 
-where:
-    AUGEAS_PATH is a valid path scoped by the context
-    MATCH_PATH is a valid match syntax scoped by the context
-    COMPARATOR is one of >, >=, !=, ==, <=, or <
-      ~ for regex match
-    STRING is a string
-    INT is a number
-    AN_ARRAY is in the form ['a string', 'another']
-*/
+/// Read a path or a value.
+///
+/// It can contain spaces, in which case it must be quoted.
+fn arg(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
+    let (input, _) = space0(input)?;
+    // either a quoted string or an unquoted string
+    let (input, arg) = alt((
+        // FIXME cleanup eol & delimiters
+        delimited(char('"'), is_not("\"\r\n"), char('"')),
+        delimited(char('\''), is_not("'\r\n"), char('\'')),
+        is_not("\"' \t\r\n"),
+    ))(input)?;
+    Ok((input, arg))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_comment() {
+        let input = "# This is a comment";
+        let expected = " This is a comment";
+        let result = comment(input).unwrap();
+        assert_eq!(result.1, expected);
+    }
+
+    #[test]
+    fn test_arg_with_quoted_value() {
+        let input = r#""quoted value""#;
+        let expected = "quoted value";
+        let result = arg(input).unwrap();
+        assert_eq!(result.1, expected);
+    }
+
+    #[test]
+    fn test_arg_with_single_quoted_value() {
+        let input = r#"'quoted value'"#;
+        let expected = "quoted value";
+        let result = arg(input).unwrap();
+        assert_eq!(result.1, expected);
+    }
+
+    #[test]
+    fn test_arg_with_unquoted_value() {
+        let input = "unquoted value";
+        let expected = "unquoted";
+        let result = arg(input).unwrap();
+        assert_eq!(result.1, expected);
+    }
+
+    #[test]
+    fn test_arg_with_empty_input() {
+        let input = "";
+        let result = arg(input);
+        assert!(result.is_err());
+    }
+}
