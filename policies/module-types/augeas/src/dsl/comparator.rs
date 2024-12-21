@@ -7,6 +7,7 @@ use bytesize::ByteSize;
 use regex::Regex;
 use std::fmt::Debug;
 use std::num::{ParseFloatError, ParseIntError};
+use std::ops::Deref;
 use std::str::FromStr;
 
 #[derive(Debug, Clone)]
@@ -23,6 +24,20 @@ pub enum NumComparator {
     LessThanOrEqual,
     /// Less than.
     LessThan,
+}
+
+impl NumComparator {
+    /// Computes `a comparator b`.
+    fn numeric_compare<T: PartialEq + PartialOrd>(&self, a: &T, b: &T) -> bool {
+        match self {
+            NumComparator::GreaterThan => a.gt(b),
+            NumComparator::GreaterThanOrEqual => a.ge(b),
+            NumComparator::NotEqual => a.ne(b),
+            NumComparator::Equal => a.eq(b),
+            NumComparator::LessThanOrEqual => a.lt(b),
+            NumComparator::LessThan => a.le(b),
+        }
+    }
 }
 
 impl FromStr for NumComparator {
@@ -94,55 +109,38 @@ impl FromStr for Number {
     }
 }
 
-// Generic number comparison.
-//
-// "a operator b"
-#[macro_use]
-macro_rules! match_comparator {
-    ($a:expr, $b:expr, $comparator:expr) => {
-        match $comparator {
-            NumComparator::GreaterThan => Ok($a > $b),
-            NumComparator::GreaterThanOrEqual => Ok($a >= $b),
-            NumComparator::NotEqual => Ok($a != $b),
-            NumComparator::Equal => Ok($a == $b),
-            NumComparator::LessThanOrEqual => Ok($a <= $b),
-            NumComparator::LessThan => Ok($a < $b),
-        }
-    };
-}
-
 impl NumericComparison {
     /// Compare the given value with the stored one.
     ///
-    /// evaluates `value self.comparator self.value`
+    /// Evaluates `value self.comparator self.value`.
     fn matches(&self, value: Number) -> Result<bool> {
-        match (value, self.value) {
-            (Number::Int(a), Number::Int(b)) => match_comparator!(a, b, self.comparator),
-            (Number::Float(a), Number::Float(b)) => match_comparator!(a, b, self.comparator),
+        Ok(match (value, self.value) {
+            (Number::Int(a), Number::Int(b)) => self.comparator.numeric_compare(&a, &b),
+            (Number::Float(a), Number::Float(b)) => self.comparator.numeric_compare(&a, &b),
             (Number::Int(a), Number::Float(b)) => {
                 let a = a as f32;
-                match_comparator!(a, b, self.comparator)
+                self.comparator.numeric_compare(&a, &b)
             }
             (Number::Float(a), Number::Int(b)) => {
                 let b = b as f32;
-                match_comparator!(a, b, self.comparator)
+                self.comparator.numeric_compare(&a, &b)
             }
-            (Number::Bytes(a), Number::Bytes(b)) => match_comparator!(a, b, self.comparator),
+            (Number::Bytes(a), Number::Bytes(b)) => self.comparator.numeric_compare(&a, &b),
             // When comparing int and bytes, convert the int to bytes
             (Number::Int(a), Number::Bytes(b)) if a >= 0 => {
                 let a = ByteSize(a as u64);
-                match_comparator!(a, b, self.comparator)
+                self.comparator.numeric_compare(&a, &b)
             }
             (Number::Bytes(a), Number::Int(b)) if b >= 0 => {
                 let b = ByteSize(b as u64);
-                match_comparator!(a, b, self.comparator)
+                self.comparator.numeric_compare(&a, &b)
             }
             _ => bail!(
                 "Invalid comparison between numbers '{:?}' and '{:?}'",
                 self.value,
                 value
             ),
-        }
+        })
     }
 }
 
