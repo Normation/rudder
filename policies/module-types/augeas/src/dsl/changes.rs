@@ -47,13 +47,13 @@ pub enum Change<'a> {
     /// Sets the value VALUE at location PATH
     Set(AugPath<'a>, Value<'a>),
     /// Sets multiple nodes (matching SUB relative to PATH) to VALUE
-    SetM(AugPath<'a>, Sub<'a>, Value<'a>),
+    SetMultiple(AugPath<'a>, Sub<'a>, Value<'a>),
     /// Removes the node at location PATH
     Remove(AugPath<'a>),
     /// Sets the node at PATH to NULL, creating it if needed
     Clear(AugPath<'a>),
     /// Sets multiple nodes (matching SUB relative to PATH) to NULL
-    ClearM(AugPath<'a>, Sub<'a>),
+    ClearMultiple(AugPath<'a>, Sub<'a>),
     /// Creates PATH with the value NULL if it does not exist
     Touch(AugPath<'a>),
     /// Inserts an empty node LABEL either before or after PATH.
@@ -63,22 +63,29 @@ pub enum Change<'a> {
     /// Rename a node at PATH to a new LABEL
     Rename(AugPath<'a>, Value<'a>),
     /// Sets Augeas variable $NAME to PATH
-    DefVar(Value<'a>, AugPath<'a>),
+    DefineVar(Value<'a>, AugPath<'a>),
     /// Sets Augeas variable $NAME to PATH, creating it with VALUE if needed
-    DefNode(Value<'a>, AugPath<'a>, Value<'a>),
+    DefineNode(Value<'a>, AugPath<'a>, Value<'a>),
 }
 
 impl<'a> Change<'a> {
     fn evaluate(&self, context: Option<&str>, augeas: &'a mut Augeas) -> Result<()> {
         match self {
             Change::Set(path, value) => augeas.set(path.with_context(context).as_ref(), value)?,
-            Change::SetM(path, sub, value) => augeas
-                .setm(path.with_context(context).as_ref(), sub, value)
-                .map(|_| ())?,
-            Change::Remove(path) => augeas.rm(path.with_context(context).as_ref()).map(|_| ())?,
-            //Change::Clear(path) => augeas.clear(path.with_context(context).as_ref())?,
-            //Change::ClearM(path, sub) => augeas.clearm(path.with_context(context).as_ref(), sub)?,
-            //Change::Touch(path) => augeas.touch(path.with_context(context).as_ref())?,
+            Change::SetMultiple(path, sub, value) => {
+                let n = augeas.setm(path.with_context(context).as_ref(), sub, value)?;
+                rudder_debug!("setm: modified {n} nodes");
+            }
+            Change::Remove(path) => {
+                let n = augeas.rm(path.with_context(context).as_ref())?;
+                rudder_debug!("rm: removed {n} nodes");
+            }
+            Change::Clear(path) => augeas.clear(path.with_context(context).as_ref())?,
+            Change::ClearMultiple(path, sub) => {
+                let n = augeas.clearm(path.with_context(context).as_ref(), sub)?;
+                rudder_debug!("clearm: cleared {n} nodes");
+            }
+            Change::Touch(path) => augeas.touch(path.with_context(context).as_ref())?,
             Change::Insert(label, position, path) => {
                 augeas.insert(path.with_context(context).as_ref(), label, *position)?
             }
@@ -86,10 +93,21 @@ impl<'a> Change<'a> {
                 path.with_context(context).as_ref(),
                 other.with_context(context).as_ref(),
             )?,
-            //Change::Rename(path, label) => augeas.rename(path, label).map(|_| ())?,
-            //Change::DefVar(name, path) => augeas.defvar(name, path)?,
-            //Change::DefNode(name, path, value) => augeas.defnode(name, path, value).map(|_| ())?,
-            _ => todo!(),
+            Change::Rename(path, label) => {
+                let n = augeas.rename(path.with_context(context).as_ref(), label)?;
+                rudder_debug!("rename: renamed {n} nodes");
+            }
+            Change::DefineVar(name, path) => {
+                augeas.defvar(name, path.with_context(context).as_ref())?
+            }
+            Change::DefineNode(name, path, value) => {
+                let created = augeas.defnode(name, path.with_context(context).as_ref(), value)?;
+                if created {
+                    rudder_debug!("defnode: 1 node was created");
+                } else {
+                    rudder_debug!("defnode: no nodes were created");
+                }
+            }
         }
         Ok(())
     }
@@ -109,7 +127,7 @@ fn cmd_setm(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
     let (input, path) = dsl::arg(input)?;
     let (input, sub) = dsl::arg(input)?;
     let (input, value) = dsl::arg(input)?;
-    Ok((input, Change::SetM(path.into(), sub, value)))
+    Ok((input, Change::SetMultiple(path.into(), sub, value)))
 }
 
 fn cmd_rm(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
@@ -131,7 +149,7 @@ fn cmd_clearm(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
     let (input, _) = space1(input)?;
     let (input, path) = dsl::arg(input)?;
     let (input, sub) = dsl::arg(input)?;
-    Ok((input, Change::ClearM(path.into(), sub)))
+    Ok((input, Change::ClearMultiple(path.into(), sub)))
 }
 
 fn cmd_touch(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
@@ -171,7 +189,7 @@ fn cmd_defvar(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
     let (input, _) = space1(input)?;
     let (input, name) = dsl::arg(input)?;
     let (input, path) = dsl::arg(input)?;
-    Ok((input, Change::DefVar(name, path.into())))
+    Ok((input, Change::DefineVar(name, path.into())))
 }
 
 fn cmd_defnode(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
@@ -180,7 +198,7 @@ fn cmd_defnode(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
     let (input, name) = dsl::arg(input)?;
     let (input, path) = dsl::arg(input)?;
     let (input, value) = dsl::arg(input)?;
-    Ok((input, Change::DefNode(name, path.into(), value)))
+    Ok((input, Change::DefineNode(name, path.into(), value)))
 }
 
 /// Read a valid change.
@@ -235,7 +253,7 @@ mod tests {
     #[test]
     fn test_change_setm() {
         let input = "setm /path/to/nodes subnode value";
-        let expected = Change::SetM("/path/to/nodes".into(), "subnode", "value");
+        let expected = Change::SetMultiple("/path/to/nodes".into(), "subnode", "value");
         let result = change(input).unwrap();
         assert_eq!(result.1, expected);
     }
@@ -259,7 +277,7 @@ mod tests {
     #[test]
     fn test_change_clearm() {
         let input = "clearm /path/to/nodes subnode";
-        let expected = Change::ClearM("/path/to/nodes".into(), "subnode");
+        let expected = Change::ClearMultiple("/path/to/nodes".into(), "subnode");
         let result = change(input).unwrap();
         assert_eq!(result.1, expected);
     }
@@ -299,7 +317,7 @@ mod tests {
     #[test]
     fn test_change_defvar() {
         let input = "defvar name /path/to/node";
-        let expected = Change::DefVar("name", "/path/to/node".into());
+        let expected = Change::DefineVar("name", "/path/to/node".into());
         let result = change(input).unwrap();
         assert_eq!(result.1, expected);
     }
@@ -307,7 +325,7 @@ mod tests {
     #[test]
     fn test_change_defnode() {
         let input = "defnode name /path/to/node value";
-        let expected = Change::DefNode("name", "/path/to/node".into(), "value");
+        let expected = Change::DefineNode("name", "/path/to/node".into(), "value");
         let result = change(input).unwrap();
         assert_eq!(result.1, expected);
     }
@@ -377,16 +395,16 @@ mod tests {
         "#;
         let expected = vec![
             Change::Set("/path/to/node".into(), "value"),
-            Change::SetM("/path/to/nodes".into(), "sub node", "value"),
+            Change::SetMultiple("/path/to/nodes".into(), "sub node", "value"),
             Change::Remove("/path/to/node".into()),
             Change::Clear("/path/to/node".into()),
-            Change::ClearM("/path/to/nodes".into(), "sub node"),
+            Change::ClearMultiple("/path/to/nodes".into(), "sub node"),
             Change::Touch("/path/to/node".into()),
             Change::Insert("label", Position::Before, "/path/to/node".into()),
             Change::Move("/path/to/node".into(), "/new/path".into()),
             Change::Rename("/path/to/node".into(), "new_label"),
-            Change::DefVar("name", "/path/to/node".into()),
-            Change::DefNode("name", "/path/to/node".into(), "value"),
+            Change::DefineVar("name", "/path/to/node".into()),
+            Change::DefineNode("name", "/path/to/node".into(), "value"),
         ];
         let result = changes(input).unwrap();
         assert_eq!(result.1, expected);

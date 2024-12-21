@@ -45,9 +45,20 @@ impl<'a> AugPath<'a> {
         !self.is_absolute()
     }
 
+    /// Return the path with the given context.
+    ///
+    /// If the path is relative, it is appended to the context.
+    /// If the path is absolute, it is returned as is.
+    ///
+    /// Handles the case where the context does not end with a `/`.
     pub fn with_context(&self, context: Option<&str>) -> Cow<str> {
         match context {
-            Some(c) if self.is_relative() => format!("{}/{}", c, self.inner).into(),
+            Some(c) if self.is_relative() && c.ends_with('/') => {
+                format!("{}{}", c, self.inner).into()
+            }
+            Some(c) if self.is_relative() && !c.ends_with('/') => {
+                format!("{}/{}", c, self.inner).into()
+            }
             _ => self.inner.into(),
         }
     }

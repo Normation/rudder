@@ -3068,7 +3068,7 @@ dependencies = [
 [[package]]
 name = "raugeas"
 version = "0.2.2"
-source = "git+https://github.com/Normation/raugeas.git#36058dfc73fc14070030f2d7bf18dcca788fcae9"
+source = "git+https://github.com/Normation/raugeas.git#a9e3bc7e13eecabf5494367d440aaa9ee2df5af0"
 dependencies = [
  "bitflags 2.6.0",
  "libc",
@@ -3078,7 +3078,7 @@ dependencies = [
 [[package]]
 name = "raugeas_sys"
 version = "0.2.0"
-source = "git+https://github.com/Normation/raugeas.git#36058dfc73fc14070030f2d7bf18dcca788fcae9"
+source = "git+https://github.com/Normation/raugeas.git#a9e3bc7e13eecabf5494367d440aaa9ee2df5af0"
 dependencies = [
  "bindgen 0.70.1",
  "pkg-config",
