@@ -7,7 +7,6 @@ use bytesize::ByteSize;
 use regex::Regex;
 use std::fmt::Debug;
 use std::num::{ParseFloatError, ParseIntError};
-use std::ops::Deref;
 use std::str::FromStr;
 
 #[derive(Debug, Clone)]

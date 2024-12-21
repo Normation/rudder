@@ -17,8 +17,8 @@ use rudder_module_type::rudder_debug;
 
 /// The ordered list of changes to apply.
 ///
-/// FIXME: *excellent* reporting for each change.
-/// FIXME: make it as close as possible to the augeas command line & srun syntax.
+/// TODO: make it as close as possible to the augeas command line & srun syntax to ease
+///       development and debugging.
 #[derive(Debug, PartialEq)]
 pub struct Changes<'a> {
     changes: Vec<Change<'a>>,

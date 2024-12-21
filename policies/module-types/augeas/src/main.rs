@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+#![allow(dead_code)]
 mod augeas;
 mod dsl;
 mod parameters;

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::dsl::comparator::Comparison;
+use crate::dsl::comparator::{Comparison, NumComparator};
 use crate::dsl::AugPath;
 
 /*
@@ -27,8 +27,6 @@ where:
     AN_ARRAY is in the form ['a string', 'another']
 */
 
-// FIXME NumComparators ?
-
 pub enum Check<'a> {
     // Comparison contains both the typed value and the comparator
     Get(AugPath<'a>, Comparison),
@@ -36,7 +34,7 @@ pub enum Check<'a> {
     ValuesNotInclude(AugPath<'a>, &'a str),
     ValuesEqual(AugPath<'a>, Vec<&'a str>),
     ValuesNotEqual(AugPath<'a>, Vec<&'a str>),
-    MatchSize(AugPath<'a>, String, usize),
+    MatchSize(AugPath<'a>, NumComparator, usize),
     MatchInclude(AugPath<'a>, String),
     MatchNotInclude(AugPath<'a>, &'a str),
     MatchEqual(AugPath<'a>, Vec<&'a str>),

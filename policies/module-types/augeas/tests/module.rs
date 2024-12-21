@@ -11,7 +11,7 @@ use tempfile::tempdir;
 
 const BIN: &str = concat!("../../../target/debug/", env!("CARGO_PKG_NAME"));
 
-// FIXME fichiers YAML de cas de test avec les parameters
+// FIXME: fichiers YAML de cas de test avec les parameters
 
 #[test]
 #[ignore]
