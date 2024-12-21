@@ -2268,7 +2268,7 @@ object RudderConfigInit {
         stringUuidGenerator
       )
       val modules     = List(
-        new ComplianceApi(restExtractorService, complianceAPIService, roDirectiveRepository),
+        new ComplianceApi(restExtractorService, zioJsonExtractor, complianceAPIService, roDirectiveRepository),
         new GroupsApi(
           roLdapNodeGroupRepository,
           restExtractorService,
