@@ -11,7 +11,8 @@ use std::borrow::Cow;
 use std::ops::Deref;
 
 pub mod changes;
-pub mod checks;
+mod checks;
+pub mod comparator;
 
 pub type Value<'a> = &'a str;
 pub type Sub<'a> = &'a str;
@@ -36,7 +37,7 @@ impl<'a> From<&'a str> for AugPath<'a> {
     }
 }
 
-impl<'a> AugPath<'a> {
+impl AugPath<'_> {
     pub fn is_absolute(&self) -> bool {
         self.inner.starts_with('/')
     }
