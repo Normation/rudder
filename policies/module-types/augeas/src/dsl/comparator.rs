@@ -25,22 +25,26 @@ pub enum NumComparator {
     LessThan,
 }
 
+impl FromStr for NumComparator {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            ">" => Ok(NumComparator::GreaterThan),
+            ">=" => Ok(NumComparator::GreaterThanOrEqual),
+            "!=" => Ok(NumComparator::NotEqual),
+            "==" => Ok(NumComparator::Equal),
+            "<=" => Ok(NumComparator::LessThanOrEqual),
+            "<" => Ok(NumComparator::LessThan),
+            _ => bail!("Invalid comparator '{}'", s),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct NumericComparison {
     pub comparator: NumComparator,
     pub value: Number,
-}
-
-#[derive(Debug, Clone)]
-pub enum StrComparison {
-    /// Match a regex.
-    MatchRegex(Regex),
-    /// Not match a regex.
-    NotMatchRegex(Regex),
-    /// Not equal.
-    StrNotEqual(String),
-    /// Equal.
-    StrEqual(String),
 }
 
 #[derive(Debug, Clone)]
@@ -142,13 +146,70 @@ impl NumericComparison {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum StrComparator {
+    Equal,
+    NotEqual,
+}
+
+#[derive(Debug, Clone)]
+pub struct StrComparison {
+    comparator: StrComparator,
+    value: String,
+}
+
+impl FromStr for StrComparator {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "==" => Ok(StrComparator::Equal),
+            "!=" => Ok(StrComparator::NotEqual),
+            _ => bail!("Invalid string comparator '{}'", s),
+        }
+    }
+}
+
 impl StrComparison {
-    pub fn matches(&self, value: &str) -> Result<bool> {
-        match self {
-            StrComparison::MatchRegex(re) => Ok(re.is_match(value)),
-            StrComparison::NotMatchRegex(re) => Ok(!re.is_match(value)),
-            StrComparison::StrNotEqual(s) => Ok(value != s),
-            StrComparison::StrEqual(s) => Ok(value == s),
+    pub fn matches(&self, value: &str) -> bool {
+        let is_equal = value == self.value;
+        match self.comparator {
+            StrComparator::NotEqual => !is_equal,
+            StrComparator::Equal => is_equal,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum RegexComparator {
+    Match,
+    NotMatch,
+}
+
+#[derive(Debug, Clone)]
+pub struct RegexComparison {
+    comparator: RegexComparator,
+    re: Regex,
+}
+
+impl FromStr for RegexComparator {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "~" | "=~" => Ok(RegexComparator::Match),
+            "!~" => Ok(RegexComparator::NotMatch),
+            _ => bail!("Invalid regex comparator '{}'", s),
+        }
+    }
+}
+
+impl RegexComparison {
+    pub fn matches(&self, value: &str) -> bool {
+        let is_match = self.re.is_match(value);
+        match self.comparator {
+            RegexComparator::Match => is_match,
+            RegexComparator::NotMatch => !is_match,
         }
     }
 }
@@ -234,33 +295,78 @@ mod tests {
     }
 
     #[test]
-    fn test_str_comparison_matches() {
-        let c = StrComparison::StrEqual("foo".to_string());
-        let r = c.matches("foo").unwrap();
+    fn test_numeric_comparison_bytes() {
+        let c = NumericComparison {
+            comparator: NumComparator::GreaterThan,
+            value: Number::Bytes(ByteSize::b(42)),
+        };
+
+        let r = c.matches(Number::Int(41)).unwrap();
+        assert!(!r);
+
+        let r = c.matches(Number::Int(42)).unwrap();
+        assert!(!r);
+
+        let r = c.matches(Number::Int(43)).unwrap();
         assert!(r);
 
-        let r = c.matches("bar").unwrap();
+        let r = c.matches(Number::Float(42.0));
+        assert!(r.is_err());
+
+        let r = c.matches(Number::Bytes(ByteSize::b(42))).unwrap();
         assert!(!r);
 
-        let c = StrComparison::StrNotEqual("foo".to_string());
-        let r = c.matches("foo").unwrap();
-        assert!(!r);
+        let r = c.matches(Number::Bytes(ByteSize::b(43))).unwrap();
+        assert!(r);
+    }
 
-        let r = c.matches("bar").unwrap();
+    #[test]
+    fn test_str_comparison() {
+        let c = StrComparison {
+            comparator: StrComparator::Equal,
+            value: "foo".to_string(),
+        };
+
+        let r = c.matches("foo");
         assert!(r);
 
-        let c = StrComparison::MatchRegex(Regex::new(r"^\d+$").unwrap());
-        let r = c.matches("42").unwrap();
+        let r = c.matches("bar");
+        assert!(!r);
+
+        let c = StrComparison {
+            comparator: StrComparator::NotEqual,
+            value: "foo".to_string(),
+        };
+
+        let r = c.matches("foo");
+        assert!(!r);
+
+        let r = c.matches("bar");
+        assert!(r);
+    }
+
+    #[test]
+    fn test_regex_comparison() {
+        let c = RegexComparison {
+            comparator: RegexComparator::Match,
+            re: r"\d+".parse().unwrap(),
+        };
+
+        let r = c.matches("34");
         assert!(r);
 
-        let r = c.matches("foo").unwrap();
+        let r = c.matches("bar");
         assert!(!r);
 
-        let c = StrComparison::NotMatchRegex(Regex::new(r"^\d+$").unwrap());
-        let r = c.matches("42").unwrap();
+        let c = RegexComparison {
+            comparator: RegexComparator::NotMatch,
+            re: r"\d+".parse().unwrap(),
+        };
+
+        let r = c.matches("34");
         assert!(!r);
 
-        let r = c.matches("foo").unwrap();
+        let r = c.matches("bar");
         assert!(r);
     }
 }
