@@ -32,6 +32,7 @@ where:
     AN_ARRAY is in the form ['a string', 'another']
 */
 
+// FIXME: = stirng vs equal number
 pub enum Comparator {
     GreaterThan,
     GreaterThanOrEqual,

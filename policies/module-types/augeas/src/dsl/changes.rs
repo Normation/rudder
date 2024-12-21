@@ -2,17 +2,18 @@
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
 use nom::branch::alt;
-use nom::bytes::complete::{is_not, tag};
-use nom::character::complete::{char, line_ending, multispace0, not_line_ending, space0, space1};
-use nom::combinator::{eof, not, opt};
+use nom::bytes::complete::tag;
+use nom::character::complete::{line_ending, multispace0, space0, space1};
+use nom::combinator::{eof, map_res, not, opt};
 use nom::multi::many0;
-use nom::sequence::delimited;
 use nom::{Finish, IResult};
 
+use crate::dsl;
 use crate::dsl::{AugPath, Sub, Value};
 use anyhow::{anyhow, Result};
 use nom::error::VerboseError;
-use raugeas::Augeas;
+use raugeas::{Augeas, Position};
+use rudder_module_type::rudder_debug;
 
 /// The ordered list of changes to apply.
 ///
@@ -27,11 +28,13 @@ impl<'a> Changes<'a> {
     pub fn from_str(input: &'a str) -> Result<Changes<'a>> {
         let (_, changes) = changes(input)
             .finish()
+            // We can't keep the verbose error as it contains references to the input.
             .map_err(|e| anyhow!(format!("{:?}", e)))?;
         Ok(Changes { changes })
     }
 
     pub fn run(&self, context: Option<&str>, augeas: &mut Augeas) -> Result<()> {
+        rudder_debug!("Running {} changes", self.changes.len());
         for change in &self.changes {
             change.evaluate(context, augeas)?;
         }
@@ -46,8 +49,6 @@ pub enum Change<'a> {
     /// Sets multiple nodes (matching SUB relative to PATH) to VALUE
     SetM(AugPath<'a>, Sub<'a>, Value<'a>),
     /// Removes the node at location PATH
-    Rm(AugPath<'a>),
-    /// Synonym for Rm
     Remove(AugPath<'a>),
     /// Sets the node at PATH to NULL, creating it if needed
     Clear(AugPath<'a>),
@@ -56,12 +57,8 @@ pub enum Change<'a> {
     /// Creates PATH with the value NULL if it does not exist
     Touch(AugPath<'a>),
     /// Inserts an empty node LABEL either before or after PATH.
-    Ins(Value<'a>, Value<'a>, AugPath<'a>),
-    /// Synonym for Ins
-    Insert(Value<'a>, Value<'a>, AugPath<'a>),
+    Insert(Value<'a>, Position, AugPath<'a>),
     /// Moves a node at PATH to the new location OTHER PATH
-    Mv(AugPath<'a>, AugPath<'a>),
-    /// Synonym for Mv
     Move(AugPath<'a>, AugPath<'a>),
     /// Rename a node at PATH to a new LABEL
     Rename(AugPath<'a>, Value<'a>),
@@ -75,16 +72,20 @@ impl<'a> Change<'a> {
     fn evaluate(&self, context: Option<&str>, augeas: &'a mut Augeas) -> Result<()> {
         match self {
             Change::Set(path, value) => augeas.set(path.with_context(context).as_ref(), value)?,
-            //Change::SetM(path, sub, value) => augeas.setm(path, sub, value).map(|_| ())?,
-            //Change::Rm(path) => augeas.rm(path).map(|_| ())?,
-            //Change::Remove(path) => augeas.rm(path).map(|_| ())?,
-            //Change::Clear(path) => augeas.clear(path)?,
-            //Change::ClearM(path, sub) => augeas.clearm(path, sub)?,
-            //Change::Touch(path) => augeas.touch(path)?,
-            //Change::Ins(label, position, path) => augeas.insert(label, position, path)?,
-            //Change::Insert(label, position, path) => augeas.insert(label, position, path)?,
-            //Change::Mv(path, other) => augeas.mv(path, other)?,
-            //Change::Move(path, other) => augeas.mv(path, other)?,
+            Change::SetM(path, sub, value) => augeas
+                .setm(path.with_context(context).as_ref(), sub, value)
+                .map(|_| ())?,
+            Change::Remove(path) => augeas.rm(path.with_context(context).as_ref()).map(|_| ())?,
+            //Change::Clear(path) => augeas.clear(path.with_context(context).as_ref())?,
+            //Change::ClearM(path, sub) => augeas.clearm(path.with_context(context).as_ref(), sub)?,
+            //Change::Touch(path) => augeas.touch(path.with_context(context).as_ref())?,
+            Change::Insert(label, position, path) => {
+                augeas.insert(path.with_context(context).as_ref(), label, *position)?
+            }
+            Change::Move(path, other) => augeas.mv(
+                path.with_context(context).as_ref(),
+                other.with_context(context).as_ref(),
+            )?,
             //Change::Rename(path, label) => augeas.rename(path, label).map(|_| ())?,
             //Change::DefVar(name, path) => augeas.defvar(name, path)?,
             //Change::DefNode(name, path, value) => augeas.defnode(name, path, value).map(|_| ())?,
@@ -94,115 +95,91 @@ impl<'a> Change<'a> {
     }
 }
 
-/// Read a comment.
-///
-/// A comment starts with a `#` and ends with a newline.
-fn comment(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
-    let (input, _) = tag("#")(input)?;
-    let (input, comment) = not_line_ending(input)?;
-    Ok((input, comment))
-}
-
-/// Read a path or a value.
-///
-/// It can contain spaces, in which case it must be quoted.
-fn arg(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
-    let (input, _) = space0(input)?;
-    // either a quoted string or an unquoted string
-    let (input, arg) = alt((
-        // FIXME cleanup eol & delimiters
-        delimited(char('"'), is_not("\"\r\n"), char('"')),
-        delimited(char('\''), is_not("'\r\n"), char('\'')),
-        is_not("\"' \t\r\n"),
-    ))(input)?;
-    Ok((input, arg))
-}
-
 fn cmd_set(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
     let (input, _) = tag("set")(input)?;
     let (input, _) = space1(input)?;
-    let (input, path) = arg(input)?;
-    let (input, value) = arg(input)?;
+    let (input, path) = dsl::arg(input)?;
+    let (input, value) = dsl::arg(input)?;
     Ok((input, Change::Set(path.into(), value)))
 }
 
 fn cmd_setm(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
     let (input, _) = tag("setm")(input)?;
     let (input, _) = space1(input)?;
-    let (input, path) = arg(input)?;
-    let (input, sub) = arg(input)?;
-    let (input, value) = arg(input)?;
+    let (input, path) = dsl::arg(input)?;
+    let (input, sub) = dsl::arg(input)?;
+    let (input, value) = dsl::arg(input)?;
     Ok((input, Change::SetM(path.into(), sub, value)))
 }
 
 fn cmd_rm(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
     let (input, _) = alt((tag("rm"), tag("remove")))(input)?;
     let (input, _) = space1(input)?;
-    let (input, path) = arg(input)?;
-    Ok((input, Change::Rm(path.into())))
+    let (input, path) = dsl::arg(input)?;
+    Ok((input, Change::Remove(path.into())))
 }
 
 fn cmd_clear(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
     let (input, _) = tag("clear")(input)?;
     let (input, _) = space1(input)?;
-    let (input, path) = arg(input)?;
+    let (input, path) = dsl::arg(input)?;
     Ok((input, Change::Clear(path.into())))
 }
 
 fn cmd_clearm(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
     let (input, _) = tag("clearm")(input)?;
     let (input, _) = space1(input)?;
-    let (input, path) = arg(input)?;
-    let (input, sub) = arg(input)?;
+    let (input, path) = dsl::arg(input)?;
+    let (input, sub) = dsl::arg(input)?;
     Ok((input, Change::ClearM(path.into(), sub)))
 }
 
 fn cmd_touch(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
     let (input, _) = tag("touch")(input)?;
     let (input, _) = space1(input)?;
-    let (input, path) = arg(input)?;
+    let (input, path) = dsl::arg(input)?;
     Ok((input, Change::Touch(path.into())))
 }
 
 fn cmd_ins(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
     let (input, _) = alt((tag("ins"), tag("insert")))(input)?;
     let (input, _) = space1(input)?;
-    let (input, label) = arg(input)?;
-    let (input, position) = arg(input)?;
-    let (input, path) = arg(input)?;
-    Ok((input, Change::Ins(label, position, path.into())))
+    let (input, label) = dsl::arg(input)?;
+    let (input, position) = map_res(dsl::arg, |p| p.parse())(input)?;
+    let (input, path) = dsl::arg(input)?;
+    Ok((input, Change::Insert(label, position, path.into())))
 }
 
 fn cmd_mv(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
     let (input, _) = alt((tag("mv"), tag("move")))(input)?;
     let (input, _) = space1(input)?;
-    let (input, path) = arg(input)?;
-    let (input, other) = arg(input)?;
-    Ok((input, Change::Mv(path.into(), other.into())))
+    let (input, path) = dsl::arg(input)?;
+    let (input, other) = dsl::arg(input)?;
+    Ok((input, Change::Move(path.into(), other.into())))
 }
 
 fn cmd_rename(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
     let (input, _) = tag("rename")(input)?;
     let (input, _) = space1(input)?;
-    let (input, path) = arg(input)?;
-    let (input, label) = arg(input)?;
+    let (input, path) = dsl::arg(input)?;
+    let (input, label) = dsl::arg(input)?;
     Ok((input, Change::Rename(path.into(), label)))
 }
 
 fn cmd_defvar(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
     let (input, _) = tag("defvar")(input)?;
     let (input, _) = space1(input)?;
-    let (input, name) = arg(input)?;
-    let (input, path) = arg(input)?;
+    let (input, name) = dsl::arg(input)?;
+    let (input, path) = dsl::arg(input)?;
     Ok((input, Change::DefVar(name, path.into())))
 }
 
 fn cmd_defnode(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
     let (input, _) = tag("defnode")(input)?;
     let (input, _) = space1(input)?;
-    let (input, name) = arg(input)?;
-    let (input, path) = arg(input)?;
-    let (input, value) = arg(input)?;
+    let (input, name) = dsl::arg(input)?;
+    let (input, path) = dsl::arg(input)?;
+    let (input, value) = dsl::arg(input)?;
     Ok((input, Change::DefNode(name, path.into(), value)))
 }
 
@@ -226,10 +203,10 @@ fn change(input: &str) -> IResult<&str, Change, VerboseError<&str>> {
 fn line(input: &str) -> IResult<&str, Option<Change>, VerboseError<&str>> {
     let (input, _) = not(eof)(input)?;
     let (input, _) = space0(input)?;
-    let (input, _) = opt(comment)(input)?;
+    let (input, _) = opt(dsl::comment)(input)?;
     let (input, change) = opt(change)(input)?;
     let (input, _) = space0(input)?;
-    let (input, _) = opt(comment)(input)?;
+    let (input, _) = opt(dsl::comment)(input)?;
     let (input, _) = opt(line_ending)(input)?;
     Ok((input, change))
 }
@@ -246,45 +223,6 @@ fn changes(input: &str) -> IResult<&str, Vec<Change>, VerboseError<&str>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_comment() {
-        let input = "# This is a comment";
-        let expected = " This is a comment";
-        let result = comment(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_arg_with_quoted_value() {
-        let input = r#""quoted value""#;
-        let expected = "quoted value";
-        let result = arg(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_arg_with_single_quoted_value() {
-        let input = r#"'quoted value'"#;
-        let expected = "quoted value";
-        let result = arg(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_arg_with_unquoted_value() {
-        let input = "unquoted value";
-        let expected = "unquoted";
-        let result = arg(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_arg_with_empty_input() {
-        let input = "";
-        let result = arg(input);
-        assert!(result.is_err());
-    }
 
     #[test]
     fn test_change_set() {
@@ -305,7 +243,7 @@ mod tests {
     #[test]
     fn test_change_rm() {
         let input = "rm /path/to/node";
-        let expected = Change::Rm("/path/to/node".into());
+        let expected = Change::Remove("/path/to/node".into());
         let result = change(input).unwrap();
         assert_eq!(result.1, expected);
     }
@@ -337,7 +275,7 @@ mod tests {
     #[test]
     fn test_change_ins() {
         let input = "ins label before /path/to/node";
-        let expected = Change::Ins("label", "before", "/path/to/node".into());
+        let expected = Change::Insert("label", Position::Before, "/path/to/node".into());
         let result = change(input).unwrap();
         assert_eq!(result.1, expected);
     }
@@ -345,7 +283,7 @@ mod tests {
     #[test]
     fn test_change_mv() {
         let input = "mv /path/to/node /new/path";
-        let expected = Change::Mv("/path/to/node".into(), "/new/path".into());
+        let expected = Change::Move("/path/to/node".into(), "/new/path".into());
         let result = change(input).unwrap();
         assert_eq!(result.1, expected);
     }
@@ -440,12 +378,12 @@ mod tests {
         let expected = vec![
             Change::Set("/path/to/node".into(), "value"),
             Change::SetM("/path/to/nodes".into(), "sub node", "value"),
-            Change::Rm("/path/to/node".into()),
+            Change::Remove("/path/to/node".into()),
             Change::Clear("/path/to/node".into()),
             Change::ClearM("/path/to/nodes".into(), "sub node"),
             Change::Touch("/path/to/node".into()),
-            Change::Ins("label", "before", "/path/to/node".into()),
-            Change::Mv("/path/to/node".into(), "/new/path".into()),
+            Change::Insert("label", Position::Before, "/path/to/node".into()),
+            Change::Move("/path/to/node".into(), "/new/path".into()),
             Change::Rename("/path/to/node".into(), "new_label"),
             Change::DefVar("name", "/path/to/node".into()),
             Change::DefNode("name", "/path/to/node".into(), "value"),
