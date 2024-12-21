@@ -77,8 +77,7 @@ impl Augeas {
         }
 
         let root: Option<&str> = p.root.as_deref();
-        // FIXME root
-        let mut aug = raugeas::Augeas::init("/", p.load_paths(), flags)?;
+        let mut aug = raugeas::Augeas::init(root, p.load_paths(), flags)?;
 
         // Show version for debugging purposes.
         let version = aug.version()?;
