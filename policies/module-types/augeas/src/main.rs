@@ -2,7 +2,6 @@
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
 mod augeas;
-mod check;
 mod dsl;
 mod parameters;
 

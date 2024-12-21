@@ -6,7 +6,39 @@ use raugeas::{CommandsNumber, Flags, SaveMode};
 use rudder_module_type::{rudder_debug, CheckApplyResult, Outcome, PolicyMode};
 use std::env;
 
+/// Augeas module implementation.
+///
+/// NOTE: We only support UTF-8 paths and values. This is constrained by
+/// the usage of JSON in the API.
+///
+/// We don't store the Augeas instance across runs.
+///
+/// We never load the tree. Reading the lenses takes time, but is quite convenient, so we offer
+/// the options.
+///
+/// Below are some metrics for the different ways to run Augeas, based on `augtool` options:
+///
+/// * `-L` is for skipping loading the tree.
+/// * `-A` is for skipping autoloading lenses (and hence the tree)
+///
+/// | Command | Mean \[ms\] | Min \[ms\] | Max \[ms\] | Relative |
+/// |:---|---:|---:|---:|---:|
+/// | `augtool -LA get /augeas/version` | 2.6 ± 0.5 | 1.6 | 4.6 | 1.00 |
+/// | `augtool -L get /augeas/version` | 209.5 ± 5.2 | 200.2 | 221.5 | 80.72 ± 15.16 |
+/// | `augtool get /augeas/version` | 663.0 ± 37.2 | 632.0 | 755.7 | 255.46 ± 49.69 |
+///
+/// Using:
+///
+/// ```shell
+/// hyperfine -N  --export-markdown augtool.md
+///     "augtool -LA get /augeas/version"
+///     "augtool -L get /augeas/version"
+///     "augtool get /augeas/version"
+/// ```
 pub struct Augeas {}
+
+// TODO: study allowing to store the instance and keeping it until we see
+//       potential problems (e.g. commands).
 
 impl Augeas {
     pub(crate) fn new() -> anyhow::Result<Self> {
@@ -43,7 +75,9 @@ impl Augeas {
             flags.insert(Flags::TYPE_CHECK);
         }
 
-        let mut aug = raugeas::Augeas::init(p.root.as_deref(), &p.load_paths(), flags)?;
+        let root: Option<&str> = p.root.as_deref();
+        // FIXME root
+        let mut aug = raugeas::Augeas::init("/", &p.load_paths(), flags)?;
 
         // Show version for debugging purposes.
         let version = aug.version()?;
@@ -77,12 +111,14 @@ impl Augeas {
         // * We guarantee that the policy mode is respected.
         //////////////////////////////////
 
-        let path = p.path.clone().unwrap();
+        let lens_opt = p.lens_name();
+        let _context = p.context();
+        let path = p.path.as_deref().unwrap().to_string();
 
-        if let Some(l) = p.lens() {
+        if let Some(l) = lens_opt {
             // If we have a lens, we need to load it and load the file.
-            aug.set(&format!("/augeas/load/${l}/lens"), &l.to_string())?;
-            aug.set(&format!("/augeas/load/${l}/incl"), &path.to_string())?;
+            aug.set(&format!("/augeas/load/${l}/lens"), l.as_ref())?;
+            aug.set(&format!("/augeas/load/${l}/incl"), &path)?;
             aug.load()?;
         } else {
             // Else load it with the detected lens.
@@ -90,10 +126,22 @@ impl Augeas {
             aug.load_file(&path.to_string())?;
         }
 
-        if !p.changes.is_empty() {
+        // Do the changes before the checks.
+
+        let do_changes = if !p.change_if.is_empty() {
+            rudder_debug!("Running change conditions: {:?}", p.change_if);
+            // FIXME handle policy mode
+            todo!()
+        } else {
+            true
+        };
+
+        if do_changes && !p.changes.is_empty() {
             rudder_debug!("Running changes: {:?}", p.changes);
+            // FIXME handle policy mode
             todo!()
         }
+
         if !p.checks.is_empty() {
             rudder_debug!("Running checks: {:?}", p.checks);
             todo!()
@@ -112,7 +160,6 @@ impl Augeas {
         // Get information about changes
 
         // make backups
-
         todo!()
     }
 }

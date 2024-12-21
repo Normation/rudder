@@ -3071,8 +3071,7 @@ dependencies = [
 [[package]]
 name = "raugeas"
 version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b0aeef2b5e9cb2aca61802a4622597b2e0be5467b2344d91eb6340d0ea050cb"
+source = "git+https://github.com/Normation/raugeas.git#ca2790e6ecc127a9062324f60227a907cc56e7db"
 dependencies = [
  "bitflags 2.6.0",
  "libc",
@@ -3082,8 +3081,7 @@ dependencies = [
 [[package]]
 name = "raugeas_sys"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae9dc7ba072353d6dff50ade0ffc23a679c7f645ac0c21ae7edb7efa22f8a1f9"
+source = "git+https://github.com/Normation/raugeas.git#ca2790e6ecc127a9062324f60227a907cc56e7db"
 dependencies = [
  "bindgen 0.70.1",
  "pkg-config",
@@ -3302,7 +3300,9 @@ name = "rudder-module-augeas"
 version = "0.0.0-dev"
 dependencies = [
  "anyhow",
+ "nom",
  "raugeas",
+ "regex",
  "rudder_commons_test",
  "rudder_module_type",
  "serde",
