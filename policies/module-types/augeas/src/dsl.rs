@@ -3,8 +3,8 @@
 
 use std::borrow::Cow;
 
-mod changes;
-mod checks;
+pub mod changes;
+pub mod checks;
 
 /// A path in the Augeas tree.
 #[derive(Debug, PartialEq)]

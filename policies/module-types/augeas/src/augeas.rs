@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+use crate::dsl::changes::Changes;
 use crate::AugeasParameters;
 use raugeas::{CommandsNumber, Flags, SaveMode};
 use rudder_module_type::{rudder_debug, CheckApplyResult, Outcome, PolicyMode};
@@ -138,8 +139,9 @@ impl Augeas {
 
         if do_changes && !p.changes.is_empty() {
             rudder_debug!("Running changes: {:?}", p.changes);
+            let changes = Changes::from_str(&p.changes)?;
+            changes.run(p.context.as_deref(), &mut aug)?;
             // FIXME handle policy mode
-            todo!()
         }
 
         if !p.checks.is_empty() {
@@ -187,11 +189,13 @@ mod tests {
         let r = augeas
             .handle_check_apply(
                 arguments(
-                    [format!("set /augeas/load/${lens}/lens \"{lens}.lns\""),
+                    [
+                        format!("set /augeas/load/${lens}/lens \"{lens}.lns\""),
                         format!("set /augeas/load/${lens}/incl \"{}\"", f.display()),
                         "load".to_string(),
                         format!("set /files{}/0 \"hello world\"", f.display()),
-                        "save".to_string()]
+                        "save".to_string(),
+                    ]
                     .join("\n"),
                 ),
                 PolicyMode::Enforce,

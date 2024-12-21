@@ -3,9 +3,7 @@
 
 use nom::branch::alt;
 use nom::bytes::complete::{is_not, tag};
-use nom::character::complete::{
-    char, line_ending, multispace0, not_line_ending, space0, space1,
-};
+use nom::character::complete::{char, line_ending, multispace0, not_line_ending, space0, space1};
 use nom::combinator::{eof, not, opt};
 use nom::multi::many0;
 use nom::sequence::delimited;
@@ -26,14 +24,14 @@ pub struct Changes<'a> {
 }
 
 impl<'a> Changes<'a> {
-    pub fn from(input: &'a str) -> Result<Changes<'a>> {
+    pub fn from_str(input: &'a str) -> Result<Changes<'a>> {
         let (_, changes) = changes(input)
             .finish()
             .map_err(|e| anyhow!(format!("{:?}", e)))?;
         Ok(Changes { changes })
     }
 
-    pub fn evaluate(&self, context: Option<&str>, augeas: &mut Augeas) -> Result<()> {
+    pub fn run(&self, context: Option<&str>, augeas: &mut Augeas) -> Result<()> {
         for change in &self.changes {
             change.evaluate(context, augeas)?;
         }
