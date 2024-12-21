@@ -7,7 +7,7 @@ use nom::character::complete::{char, not_line_ending, space0};
 use nom::error::VerboseError;
 use nom::sequence::delimited;
 use nom::IResult;
-use std::borrow::Cow;
+use std::ffi::OsStr;
 use std::ops::Deref;
 
 pub mod changes;
@@ -31,6 +31,12 @@ impl Deref for AugPath<'_> {
     }
 }
 
+impl AsRef<OsStr> for AugPath<'_> {
+    fn as_ref(&self) -> &OsStr {
+        self.inner.as_ref()
+    }
+}
+
 impl<'a> From<&'a str> for AugPath<'a> {
     fn from(s: &'a str) -> Self {
         AugPath { inner: s }
@@ -44,24 +50,6 @@ impl AugPath<'_> {
 
     pub fn is_relative(&self) -> bool {
         !self.is_absolute()
-    }
-
-    /// Return the path with the given context.
-    ///
-    /// If the path is relative, it is appended to the context.
-    /// If the path is absolute, it is returned as is.
-    ///
-    /// Handles the case where the context does not end with a `/`.
-    pub fn with_context(&self, context: Option<&str>) -> Cow<str> {
-        match context {
-            Some(c) if self.is_relative() && c.ends_with('/') => {
-                format!("{}{}", c, self.inner).into()
-            }
-            Some(c) if self.is_relative() && !c.ends_with('/') => {
-                format!("{}/{}", c, self.inner).into()
-            }
-            _ => self.inner.into(),
-        }
     }
 }
 

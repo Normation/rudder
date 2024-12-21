@@ -5,6 +5,8 @@ use crate::dsl::changes::Changes;
 use crate::AugeasParameters;
 use raugeas::{CommandsNumber, Flags, SaveMode};
 use rudder_module_type::{rudder_debug, CheckApplyResult, Outcome, PolicyMode};
+use similar::TextDiffConfig;
+use std::borrow::Cow;
 use std::env;
 
 /// Augeas module implementation.
@@ -58,6 +60,7 @@ impl Augeas {
     pub(crate) fn handle_check_apply(
         &self,
         p: AugeasParameters,
+        differ: TextDiffConfig,
         policy_mode: PolicyMode,
     ) -> CheckApplyResult {
         let mut flags = Flags::NONE;
@@ -82,6 +85,17 @@ impl Augeas {
         // Show version for debugging purposes.
         let version = aug.version()?;
         rudder_debug!("Augeas version: {}", version);
+
+        // Set context if needed.
+        let context: Option<Cow<str>> = if let Some(c) = p.context.as_deref() {
+            Some(c.into())
+        } else {
+            p.path.as_deref().map(|p| format!("files/{p}").into())
+        };
+        if let Some(c) = &context {
+            rudder_debug!("Setting context to: {c}");
+            aug.set("/augeas/context", c.as_ref())?;
+        }
 
         //////////////////////////////////
         // Start with the special unsafe mode
@@ -112,7 +126,7 @@ impl Augeas {
         //////////////////////////////////
 
         let lens_opt = p.lens_name();
-        let _context = p.context();
+
         let path = p.path.as_deref().unwrap().to_string();
 
         if let Some(l) = lens_opt {
@@ -139,7 +153,7 @@ impl Augeas {
         if do_changes && !p.changes.is_empty() {
             rudder_debug!("Running changes: {:?}", p.changes);
             let changes = Changes::from_str(&p.changes)?;
-            changes.run(p.context.as_deref(), &mut aug)?;
+            changes.run(&mut aug)?;
             // FIXME handle policy mode
         }
 
@@ -157,6 +171,11 @@ impl Augeas {
             }
         }
         aug.save()?;
+
+        let diff = differ.diff_lines("", "");
+        let mut udiff = diff.unified_diff();
+        udiff.context_radius(3).header("a", "b");
+        rudder_debug!("Diff: {udiff}");
 
         // Get information about changes
 
@@ -181,6 +200,7 @@ mod tests {
     #[test]
     fn it_writes_file_from_commands() {
         let augeas = Augeas::new().unwrap();
+        let differ = TextDiffConfig::default();
         let d = tempdir().unwrap().into_path();
         let f = d.join("test");
         let lens = "Simplelines";
@@ -197,6 +217,7 @@ mod tests {
                     ]
                     .join("\n"),
                 ),
+                differ,
                 PolicyMode::Enforce,
             )
             .unwrap();

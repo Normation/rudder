@@ -33,10 +33,10 @@ impl<'a> Changes<'a> {
         Ok(Changes { changes })
     }
 
-    pub fn run(&self, context: Option<&str>, augeas: &mut Augeas) -> Result<()> {
+    pub fn run(&self, augeas: &mut Augeas) -> Result<()> {
         rudder_debug!("Running {} changes", self.changes.len());
         for change in &self.changes {
-            change.evaluate(context, augeas)?;
+            change.evaluate(augeas)?;
         }
         Ok(())
     }
@@ -69,39 +69,32 @@ pub enum Change<'a> {
 }
 
 impl<'a> Change<'a> {
-    fn evaluate(&self, context: Option<&str>, augeas: &'a mut Augeas) -> Result<()> {
+    fn evaluate(&self, augeas: &'a mut Augeas) -> Result<()> {
         match self {
-            Change::Set(path, value) => augeas.set(path.with_context(context).as_ref(), value)?,
+            Change::Set(path, value) => augeas.set(path, value)?,
             Change::SetMultiple(path, sub, value) => {
-                let n = augeas.setm(path.with_context(context).as_ref(), sub, value)?;
+                let n = augeas.setm(path, sub, value)?;
                 rudder_debug!("setm: modified {n} nodes");
             }
             Change::Remove(path) => {
-                let n = augeas.rm(path.with_context(context).as_ref())?;
+                let n = augeas.rm(path)?;
                 rudder_debug!("rm: removed {n} nodes");
             }
-            Change::Clear(path) => augeas.clear(path.with_context(context).as_ref())?,
+            Change::Clear(path) => augeas.clear(path)?,
             Change::ClearMultiple(path, sub) => {
-                let n = augeas.clearm(path.with_context(context).as_ref(), sub)?;
+                let n = augeas.clearm(path, sub)?;
                 rudder_debug!("clearm: cleared {n} nodes");
             }
-            Change::Touch(path) => augeas.touch(path.with_context(context).as_ref())?,
-            Change::Insert(label, position, path) => {
-                augeas.insert(path.with_context(context).as_ref(), label, *position)?
-            }
-            Change::Move(path, other) => augeas.mv(
-                path.with_context(context).as_ref(),
-                other.with_context(context).as_ref(),
-            )?,
+            Change::Touch(path) => augeas.touch(path)?,
+            Change::Insert(label, position, path) => augeas.insert(path, label, *position)?,
+            Change::Move(path, other) => augeas.mv(path, other)?,
             Change::Rename(path, label) => {
-                let n = augeas.rename(path.with_context(context).as_ref(), label)?;
+                let n = augeas.rename(path, label)?;
                 rudder_debug!("rename: renamed {n} nodes");
             }
-            Change::DefineVar(name, path) => {
-                augeas.defvar(name, path.with_context(context).as_ref())?
-            }
+            Change::DefineVar(name, path) => augeas.defvar(name, path)?,
             Change::DefineNode(name, path, value) => {
-                let created = augeas.defnode(name, path.with_context(context).as_ref(), value)?;
+                let created = augeas.defnode(name, path, value)?;
                 if created {
                     rudder_debug!("defnode: 1 node was created");
                 } else {
