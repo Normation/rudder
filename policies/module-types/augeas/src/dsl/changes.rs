@@ -1,54 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-//#![deny(elided_lifetimes_in_paths)]
-
-//! Implements two DSLs to define a safe subset of augeas commands.
-
 use nom::branch::alt;
 use nom::bytes::complete::{is_not, tag};
 use nom::character::complete::{
-    alpha1, char, line_ending, multispace0, not_line_ending, space0, space1,
+    char, line_ending, multispace0, not_line_ending, space0, space1,
 };
 use nom::combinator::{eof, not, opt};
 use nom::multi::many0;
 use nom::sequence::delimited;
 use nom::{Finish, IResult};
-use std::borrow::Cow;
-use std::str::FromStr;
 
+use crate::dsl::{AugPath, Sub, Value};
 use anyhow::{anyhow, Result};
 use nom::error::VerboseError;
 use raugeas::Augeas;
-
-/// A path in the Augeas tree.
-#[derive(Debug, PartialEq)]
-pub struct AugPath<'a> {
-    inner: &'a str,
-}
-pub type Value<'a> = &'a str;
-pub type Sub<'a> = &'a str;
-
-impl<'a> From<&'a str> for AugPath<'a> {
-    fn from(s: &'a str) -> Self {
-        AugPath { inner: s }
-    }
-}
-
-impl<'a> AugPath<'a> {
-    pub fn new<T: AsRef<&'a str>>(path: T) -> AugPath<'a> {
-        AugPath {
-            inner: path.as_ref(),
-        }
-    }
-
-    pub fn with_context(&self, context: Option<&str>) -> Cow<str> {
-        match context {
-            Some(c) => format!("{}/{}", c, self.inner).into(),
-            None => self.inner.into(),
-        }
-    }
-}
 
 /// The ordered list of changes to apply.
 ///
@@ -61,7 +27,7 @@ pub struct Changes<'a> {
 
 impl<'a> Changes<'a> {
     pub fn from(input: &'a str) -> Result<Changes<'a>> {
-        let (_, changes) = changes(&input)
+        let (_, changes) = changes(input)
             .finish()
             .map_err(|e| anyhow!(format!("{:?}", e)))?;
         Ok(Changes { changes })
@@ -137,12 +103,6 @@ fn comment(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
     let (input, _) = tag("#")(input)?;
     let (input, comment) = not_line_ending(input)?;
     Ok((input, comment))
-}
-
-/// Read a command name.
-fn command(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
-    let (input, command) = alpha1(input)?;
-    Ok((input, command))
 }
 
 /// Read a path or a value.
@@ -279,7 +239,7 @@ fn line(input: &str) -> IResult<&str, Option<Change>, VerboseError<&str>> {
 fn changes(input: &str) -> IResult<&str, Vec<Change>, VerboseError<&str>> {
     // many0 -> allow empty changes (only comments, etc.)
     let (input, changes) = many0(line)(input)?;
-    let changes = changes.into_iter().filter_map(|c| c).collect();
+    let changes = changes.into_iter().flatten().collect();
     let (input, _) = multispace0(input)?;
     let (input, _) = eof(input)?;
     Ok((input, changes))
@@ -295,37 +255,6 @@ mod tests {
         let expected = " This is a comment";
         let result = comment(input).unwrap();
         assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_command() {
-        let input = "set /path/to/node value";
-        let expected = "set";
-        let result = command(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_command_with_multiple_words() {
-        let input = "set /path/to/node value";
-        let expected = "set";
-        let result = command(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_command_with_no_space() {
-        let input = "set";
-        let expected = "set";
-        let result = command(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_command_with_empty_input() {
-        let input = "";
-        let result = command(input);
-        assert!(result.is_err());
     }
 
     #[test]

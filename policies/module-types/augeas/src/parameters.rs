@@ -21,13 +21,13 @@ pub struct AugeasParameters {
     ///
     /// Should be used with care, as it can lead to override any configuration, including
     /// making changes in audit mode.
-    pub commands: Vec<String>,
-    pub changes: Vec<String>,
+    pub commands: String,
+    pub changes: String,
     // changes
     // same syntax as only if?
-    pub checks: Vec<String>,
+    pub checks: String,
     // only_if
-    pub change_if: Vec<String>,
+    pub change_if: String,
     /// Prefix to add.
     ///
     /// By default,

@@ -77,7 +77,7 @@ impl Augeas {
 
         let root: Option<&str> = p.root.as_deref();
         // FIXME root
-        let mut aug = raugeas::Augeas::init("/", &p.load_paths(), flags)?;
+        let mut aug = raugeas::Augeas::init("/", p.load_paths(), flags)?;
 
         // Show version for debugging purposes.
         let version = aug.version()?;
@@ -94,7 +94,7 @@ impl Augeas {
             assert_eq!(policy_mode, PolicyMode::Enforce);
 
             rudder_debug!("Running commands: {:?}", p.commands);
-            let (num, out) = aug.srun(&p.commands.join("\n"))?;
+            let (num, out) = aug.srun(&p.commands)?;
             let summary = match num {
                 CommandsNumber::Success(n) => format!("{n} success"),
                 CommandsNumber::Quit => "has quit".to_string(),
@@ -117,13 +117,13 @@ impl Augeas {
 
         if let Some(l) = lens_opt {
             // If we have a lens, we need to load it and load the file.
-            aug.set(&format!("/augeas/load/${l}/lens"), l.as_ref())?;
-            aug.set(&format!("/augeas/load/${l}/incl"), &path)?;
+            aug.set(format!("/augeas/load/${l}/lens"), l.as_ref())?;
+            aug.set(format!("/augeas/load/${l}/incl"), &path)?;
             aug.load()?;
         } else {
             // Else load it with the detected lens.
             // FIXME handle errors.
-            aug.load_file(&path.to_string())?;
+            aug.load_file(&path)?;
         }
 
         // Do the changes before the checks.
@@ -170,7 +170,7 @@ mod tests {
     use std::fs::read_to_string;
     use tempfile::tempdir;
 
-    fn arguments(commands: Vec<String>) -> AugeasParameters {
+    fn arguments(commands: String) -> AugeasParameters {
         AugeasParameters {
             commands,
             ..Default::default()
@@ -186,13 +186,14 @@ mod tests {
 
         let r = augeas
             .handle_check_apply(
-                arguments(vec![
-                    format!("set /augeas/load/${lens}/lens \"{lens}.lns\""),
-                    format!("set /augeas/load/${lens}/incl \"{}\"", f.display()),
-                    "load".to_string(),
-                    format!("set /files{}/0 \"hello world\"", f.display()),
-                    "save".to_string(),
-                ]),
+                arguments(
+                    [format!("set /augeas/load/${lens}/lens \"{lens}.lns\""),
+                        format!("set /augeas/load/${lens}/incl \"{}\"", f.display()),
+                        "load".to_string(),
+                        format!("set /files{}/0 \"hello world\"", f.display()),
+                        "save".to_string()]
+                    .join("\n"),
+                ),
                 PolicyMode::Enforce,
             )
             .unwrap();
