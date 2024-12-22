@@ -10,10 +10,10 @@ use nom::IResult;
 use std::ffi::OsStr;
 use std::ops::Deref;
 
-pub mod changes;
-mod checks;
 pub mod comparator;
+mod parser;
 pub mod repl;
+pub mod script;
 
 pub type Value<'a> = &'a str;
 pub type Sub<'a> = &'a str;

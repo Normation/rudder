@@ -10,23 +10,14 @@ use std::borrow::Cow;
 use std::iter;
 
 /// Parameters for the augeas module.
-///
-/// Only one of `commands`, `changes+path+(lens)` or `checks+path+(lens)` can be used.
 #[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[serde_inline_default]
 pub struct AugeasParameters {
-    /// Raw commands to run.
-    ///
-    /// Should be used with care, as it can lead to override any configuration, including
-    /// making changes in audit mode.
-    pub commands: String,
-    pub changes: String,
-    // changes
-    // same syntax as only if?
-    pub checks: String,
+    /// Expressions to run
+    pub script: String,
     // only_if
-    pub change_if: String,
+    pub if_script: String,
     /// Prefix to add.
     ///
     /// By default,
@@ -63,11 +54,6 @@ pub struct AugeasParameters {
     /// load all lenses.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lens: Option<String>,
-    /// Force augeas to type-check the lenses.
-    ///
-    /// This is slow and should only be used for debugging.
-    #[serde_inline_default(false)]
-    pub type_check_lenses: bool,
 }
 
 impl AugeasParameters {
@@ -104,41 +90,7 @@ impl AugeasParameters {
     }
 
     /// Validate the parameters.
-    ///
-    /// Enforce consistency between the different fields, as this module
-    /// provides a lot of flexibility, with different operating modes.
-    pub fn validate(&self, policy_mode: Option<PolicyMode>) -> Result<()> {
-        if !self.commands.is_empty() {
-            if let Some(p) = policy_mode {
-                if p != PolicyMode::Enforce {
-                    return Err(anyhow!("`commands` can only be used in enforce mode"));
-                }
-            }
-
-            if !self.changes.is_empty() {
-                return Err(anyhow!("Cannot use both `commands` and `changes`"));
-            }
-            if !self.checks.is_empty() {
-                return Err(anyhow!("Cannot use both `commands` and `checks`"));
-            }
-            if self.path.is_some() {
-                return Err(anyhow!("Cannot use both `commands` and `path`"));
-            }
-            if self.lens.is_some() {
-                return Err(anyhow!("Cannot use both `commands` and `lens`"));
-            }
-        }
-
-        if self.changes.is_empty() && self.checks.is_empty() {
-            return Err(anyhow!(
-                "At least one of `changes` or `checks` must be used"
-            ));
-        }
-
-        if self.path.is_none() {
-            return Err(anyhow!("`path` is required when not in `commands` mode"));
-        }
-
+    pub fn validate(&self, _policy_mode: Option<PolicyMode>) -> Result<()> {
         Ok(())
     }
 }

@@ -10,6 +10,8 @@ use anyhow::Result;
 use gumdrop::Options;
 use rudder_module_augeas::augeas::Augeas;
 use rudder_module_augeas::dsl::repl;
+use rudder_module_augeas::dsl::script::Interpreter;
+use rudder_module_augeas::{CRATE_NAME, CRATE_VERSION};
 use rudder_module_type::cfengine::log::{set_max_level, LevelFilter};
 use std::env;
 
@@ -69,15 +71,19 @@ impl Cli {
             println!("Parsed options: {:#?}", &opts);
         }
 
-        let mut aug = Augeas::new_aug(
-            opts.root.as_deref(),
-            opts.context.as_deref(),
-            opts.path.as_deref(),
-            "",
-            None,
-            false,
-        )?;
-        repl::start(&mut aug)
+        let mut aug = Augeas::new_aug(opts.root.as_deref(), opts.type_check_lenses)?;
+
+        // FIXME handle other parameters
+
+        println!("Rudder Augeas. Type 'quit' to leave.");
+        println!(
+            "{} {} (augeas: {})",
+            CRATE_NAME,
+            CRATE_VERSION,
+            aug.version()?
+        );
+        let mut interpreter = Interpreter::new(&mut aug);
+        repl::start(&mut interpreter)
     }
 }
 

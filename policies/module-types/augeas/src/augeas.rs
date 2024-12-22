@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::dsl::changes::Changes;
+use crate::dsl::script::{Interpreter, InterpreterMode, Script};
 use crate::report::diff;
-use crate::AugeasParameters;
+use crate::{AugeasParameters, RUDDER_LENS_LIB};
 use raugeas::{CommandsNumber, Flags, SaveMode};
-use rudder_module_type::{rudder_debug, CheckApplyResult, Outcome, PolicyMode};
+use rudder_module_type::{rudder_debug, rudder_error, CheckApplyResult, Outcome, PolicyMode};
 use std::borrow::Cow;
 use std::env;
 use std::fs::read_to_string;
@@ -15,10 +15,10 @@ use std::fs::read_to_string;
 /// NOTE: We only support UTF-8 paths and values. This is constrained by
 /// the usage of JSON in the API.
 ///
-/// We don't store the Augeas instance across runs.
+/// We store the Augeas instance across runs.
 ///
-/// We never load the tree. Reading the lenses takes time, but is quite convenient, so we offer
-/// the options.
+/// We never load the tree. Reading the lenses takes time, but is quite convenient, so we do it
+/// once.
 ///
 /// Below are some metrics for the different ways to run Augeas, based on `augtool` options:
 ///
@@ -39,10 +39,9 @@ use std::fs::read_to_string;
 ///     "augtool -L get /augeas/version"
 ///     "augtool get /augeas/version"
 /// ```
-pub struct Augeas {}
-
-// TODO: study allowing to store the instance and keeping it until we see
-//       potential problems (e.g. commands).
+pub struct Augeas {
+    aug: raugeas::Augeas,
+}
 
 impl Augeas {
     pub fn new() -> anyhow::Result<Self> {
@@ -55,100 +54,57 @@ impl Augeas {
             env::remove_var("AUGEAS_DEBUG");
         }
 
-        Ok(Augeas {})
+        let aug = Self::new_aug(
+            None, // Root is global in an agent context.
+            false,
+        )?;
+
+        Ok(Augeas { aug })
     }
 
-    pub fn new_aug(
-        root: Option<&str>,
-        context: Option<&str>,
-        path: Option<&str>,
-        load_paths: &str,
-        lens: Option<&str>,
-        type_check_lenses: bool,
-    ) -> anyhow::Result<raugeas::Augeas> {
+    pub fn new_aug(root: Option<&str>, type_check_lenses: bool) -> anyhow::Result<raugeas::Augeas> {
         let mut flags = Flags::NONE;
 
-        if let Some(l) = lens {
-            rudder_debug!("Using lens: {l}, skipping autoloading");
-            flags.insert(Flags::NO_MODULE_AUTOLOAD);
-        } else {
-            // We never want to load the whole tree.
-            rudder_debug!("Autoloading lenses");
-            flags.insert(Flags::NO_LOAD);
-        }
+        // We never want to load the whole tree, but we load the lenses once.
+        rudder_debug!("Autoloading lenses");
+        flags.insert(Flags::NO_LOAD);
 
         if type_check_lenses {
             rudder_debug!("Type checking lenses");
             flags.insert(Flags::TYPE_CHECK);
         }
 
-        let root: Option<&str> = root;
-        // FIXME gneric load path
-        let mut aug = raugeas::Augeas::init(root, load_paths, flags)?;
+        let aug = raugeas::Augeas::init(root, RUDDER_LENS_LIB, flags)?;
 
         // Show version for debugging purposes.
         let version = aug.version()?;
-        rudder_debug!("Augeas version: {}", version);
+        rudder_debug!("augeas version: {}", version);
+
+        Ok(aug)
+    }
+
+    pub(crate) fn handle_check_apply(
+        &mut self,
+        p: AugeasParameters,
+        policy_mode: PolicyMode,
+    ) -> CheckApplyResult {
+        let aug = &mut self.aug;
 
         // Set context if needed.
-        let context: Option<Cow<str>> = if let Some(c) = context {
+        let context: Option<Cow<str>> = if let Some(c) = p.context.as_deref() {
             Some(c.into())
         } else {
-            path.map(|p| format!("files/{p}").into())
+            p.path.as_deref().map(|p| format!("files/{p}").into())
         };
         if let Some(c) = &context {
             rudder_debug!("Setting context to: {c}");
             aug.set("/augeas/context", c.as_ref())?;
         }
-        Ok(aug)
-    }
-
-    pub(crate) fn handle_check_apply(
-        &self,
-        p: AugeasParameters,
-        policy_mode: PolicyMode,
-    ) -> CheckApplyResult {
-        let mut aug = Self::new_aug(
-            p.root.as_deref(),
-            p.context.as_deref(),
-            p.path.as_deref(),
-            &p.load_paths(),
-            p.lens.as_deref(),
-            p.type_check_lenses,
-        )?;
-
-        //////////////////////////////////
-        // Start with the special unsafe mode
-        //////////////////////////////////
-
-        if !p.commands.is_empty() {
-            // Only allowed in "enforce" mode.
-            // Makes little sense for audit mode, and risks making changes.
-            // Already validated but make sure.
-            assert_eq!(policy_mode, PolicyMode::Enforce);
-
-            rudder_debug!("Running commands: {:?}", p.commands);
-            let (num, out) = aug.srun(&p.commands)?;
-            let summary = match num {
-                CommandsNumber::Success(n) => format!("{n} success"),
-                CommandsNumber::Quit => "has quit".to_string(),
-            };
-            rudder_debug!("{summary}, output: {out}");
-            return Ok(Outcome::repaired(summary));
-        }
-
-        //////////////////////////////////
-        // Now in "normal" mode:
-        //
-        // * We only work on one file.
-        // * We handle backups, diffs, precise reporting.
-        // * We guarantee that the policy mode is respected.
-        //////////////////////////////////
 
         let lens_opt = p.lens_name();
-
         let path = p.path.as_deref().unwrap().to_string();
 
+        // FIXME XFM
         if let Some(l) = lens_opt {
             // If we have a lens, we need to load it and load the file.
             aug.set(format!("/augeas/load/${l}/lens"), l.as_ref())?;
@@ -162,24 +118,21 @@ impl Augeas {
 
         // Do the changes before the checks.
 
-        let do_changes = if !p.change_if.is_empty() {
-            rudder_debug!("Running change conditions: {:?}", p.change_if);
-            // FIXME handle policy mode
-            todo!()
-        } else {
-            true
+        let mut interpreter = Interpreter::new(aug);
+
+        // FIXME: handle check only and check script_if
+        let do_changes = match interpreter.run(InterpreterMode::Check, &p.if_script) {
+            Ok(_) => true,
+            Err(e) => {
+                rudder_error!("Error in if_script: {e}");
+                false
+            }
         };
 
-        if do_changes && !p.changes.is_empty() {
-            rudder_debug!("Running changes: {:?}", p.changes);
-            let changes = Changes::from_str(&p.changes)?;
-            changes.run(&mut aug)?;
+        if do_changes {
+            rudder_debug!("Running script: {:?}", p.script);
+            interpreter.run(InterpreterMode::CheckApply, &p.script)?;
             // FIXME handle policy mode
-        }
-
-        if !p.checks.is_empty() {
-            rudder_debug!("Running checks: {:?}", p.checks);
-            todo!()
         }
 
         // Avoid writing if we are in audit mode.
@@ -213,16 +166,16 @@ mod tests {
     use std::fs::read_to_string;
     use tempfile::tempdir;
 
-    fn arguments(commands: String) -> AugeasParameters {
+    fn arguments(script: String) -> AugeasParameters {
         AugeasParameters {
-            commands,
+            script,
             ..Default::default()
         }
     }
 
     #[test]
     fn it_writes_file_from_commands() {
-        let augeas = Augeas::new().unwrap();
+        let mut augeas = Augeas::new().unwrap();
         let d = tempdir().unwrap().into_path();
         let f = d.join("test");
         let lens = "Simplelines";

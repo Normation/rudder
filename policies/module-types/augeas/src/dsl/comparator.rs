@@ -9,7 +9,14 @@ use std::fmt::Debug;
 use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
 
-#[derive(Debug, Clone)]
+// FIXME: add
+// - support for arrays
+// - support for IP ranges
+// - support for type validation (IP, int)
+// - password complexity checks
+// - compare str len
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum NumComparator {
     /// Greater than.
     GreaterThan,
@@ -55,13 +62,13 @@ impl FromStr for NumComparator {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct NumericComparison {
     pub comparator: NumComparator,
     pub value: Number,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Comparison {
     Num(NumericComparison),
     Str(StrComparison),
@@ -143,13 +150,13 @@ impl NumericComparison {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum StrComparator {
     Equal,
     NotEqual,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct StrComparison {
     comparator: StrComparator,
     value: String,
