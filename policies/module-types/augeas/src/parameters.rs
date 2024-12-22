@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
 use crate::RUDDER_LENS_LIB;
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use rudder_module_type::PolicyMode;
 use serde::{Deserialize, Serialize};
 use serde_inline_default::serde_inline_default;

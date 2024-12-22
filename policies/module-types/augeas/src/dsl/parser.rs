@@ -1,133 +1,163 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::dsl;
 use crate::dsl::script::Expression;
 use nom::branch::alt;
-use nom::bytes::complete::tag;
-use nom::character::complete::{line_ending, multispace0, space0, space1};
+use nom::bytes::complete::{is_not, tag};
+use nom::character::complete::{
+    alpha1, char, line_ending, multispace0, not_line_ending, space0, space1,
+};
 use nom::combinator::{eof, map_res, not, opt};
 use nom::error::VerboseError;
-use nom::multi::many0;
+use nom::multi::{many0, separated_list0};
+use nom::sequence::delimited;
 use nom::IResult;
 
-fn cmd_set(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, _) = tag("set")(input)?;
+/// Read a comment.
+///
+/// A comment starts with a `#` and ends with a newline.
+pub fn comment(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
+    let (input, _) = tag("#")(input)?;
+    let (input, comment) = not_line_ending(input)?;
+    Ok((input, comment))
+}
+
+/// Read an array of arguments.
+pub fn arg_array(input: &str) -> IResult<&str, Vec<&str>, VerboseError<&str>> {
+    let (input, _) = space0(input)?;
+    let (input, _) = char('[')(input)?;
+    let (input, args) = separated_list0(delimited(space0, char(','), space0), arg)(input)?;
+    let (input, _) = space0(input)?;
+    let (input, _) = char(']')(input)?;
+    Ok((input, args))
+}
+
+/// Read a path or a value.
+///
+/// It can contain spaces, in which case it must be quoted.
+pub fn arg(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
+    let (input, _) = space0(input)?;
+    // either a quoted string or an unquoted string
+    let (input, arg) = alt((
+        // FIXME cleanup eol & delimiters
+        delimited(char('"'), is_not("\"\r\n"), char('"')),
+        delimited(char('\''), is_not("'\r\n"), char('\'')),
+        is_not("\"' \t\r\n"),
+    ))(input)?;
+    Ok((input, arg))
+}
+
+fn cmd(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
+    let (input, cmd) = alpha1(input)?;
     let (input, _) = space1(input)?;
-    let (input, path) = dsl::arg(input)?;
-    let (input, value) = dsl::arg(input)?;
+    Ok((input, cmd))
+}
+
+fn cmd_set(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
+    let (input, path) = arg(input)?;
+    let (input, value) = arg(input)?;
     Ok((input, Expression::Set(path.into(), value)))
 }
 
 fn cmd_setm(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, _) = tag("setm")(input)?;
-    let (input, _) = space1(input)?;
-    let (input, path) = dsl::arg(input)?;
-    let (input, sub) = dsl::arg(input)?;
-    let (input, value) = dsl::arg(input)?;
+    let (input, path) = arg(input)?;
+    let (input, sub) = arg(input)?;
+    let (input, value) = arg(input)?;
     Ok((input, Expression::SetMultiple(path.into(), sub, value)))
 }
 
 fn cmd_rm(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, _) = alt((tag("rm"), tag("remove")))(input)?;
-    let (input, _) = space1(input)?;
-    let (input, path) = dsl::arg(input)?;
+    let (input, path) = arg(input)?;
     Ok((input, Expression::Remove(path.into())))
 }
 
 fn cmd_clear(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, _) = tag("clear")(input)?;
-    let (input, _) = space1(input)?;
-    let (input, path) = dsl::arg(input)?;
+    let (input, path) = arg(input)?;
     Ok((input, Expression::Clear(path.into())))
 }
 
 fn cmd_clearm(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, _) = tag("clearm")(input)?;
-    let (input, _) = space1(input)?;
-    let (input, path) = dsl::arg(input)?;
-    let (input, sub) = dsl::arg(input)?;
+    let (input, path) = arg(input)?;
+    let (input, sub) = arg(input)?;
     Ok((input, Expression::ClearMultiple(path.into(), sub)))
 }
 
 fn cmd_touch(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, _) = tag("touch")(input)?;
-    let (input, _) = space1(input)?;
-    let (input, path) = dsl::arg(input)?;
+    let (input, path) = arg(input)?;
     Ok((input, Expression::Touch(path.into())))
 }
 
 fn cmd_ins(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, _) = alt((tag("ins"), tag("insert")))(input)?;
-    let (input, _) = space1(input)?;
-    let (input, label) = dsl::arg(input)?;
-    let (input, position) = map_res(dsl::arg, |p| p.parse())(input)?;
-    let (input, path) = dsl::arg(input)?;
+    let (input, label) = arg(input)?;
+    let (input, position) = map_res(arg, |p| p.parse())(input)?;
+    let (input, path) = arg(input)?;
     Ok((input, Expression::Insert(label, position, path.into())))
 }
 
 fn cmd_mv(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, _) = alt((tag("mv"), tag("move")))(input)?;
-    let (input, _) = space1(input)?;
-    let (input, path) = dsl::arg(input)?;
-    let (input, other) = dsl::arg(input)?;
+    let (input, path) = arg(input)?;
+    let (input, other) = arg(input)?;
     Ok((input, Expression::Move(path.into(), other.into())))
 }
 
 fn cmd_rename(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, _) = tag("rename")(input)?;
-    let (input, _) = space1(input)?;
-    let (input, path) = dsl::arg(input)?;
-    let (input, label) = dsl::arg(input)?;
+    let (input, path) = arg(input)?;
+    let (input, label) = arg(input)?;
     Ok((input, Expression::Rename(path.into(), label)))
 }
 
 fn cmd_defvar(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, _) = tag("defvar")(input)?;
-    let (input, _) = space1(input)?;
-    let (input, name) = dsl::arg(input)?;
-    let (input, path) = dsl::arg(input)?;
+    let (input, name) = arg(input)?;
+    let (input, path) = arg(input)?;
     Ok((input, Expression::DefineVar(name, path.into())))
 }
 
 fn cmd_defnode(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, _) = tag("defnode")(input)?;
-    let (input, _) = space1(input)?;
-    let (input, name) = dsl::arg(input)?;
-    let (input, path) = dsl::arg(input)?;
-    let (input, value) = dsl::arg(input)?;
+    let (input, name) = arg(input)?;
+    let (input, path) = arg(input)?;
+    let (input, value) = arg(input)?;
     Ok((input, Expression::DefineNode(name, path.into(), value)))
 }
 
+fn cmd_generic(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
+    let (input, cmd) = not_line_ending(input)?;
+    Ok((input, Expression::GenericAugeas(cmd)))
+}
+
 /// Read a valid change.
-fn change(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    alt((
-        cmd_set,
-        cmd_setm,
-        cmd_rm,
-        cmd_clear,
-        cmd_clearm,
-        cmd_touch,
-        cmd_ins,
-        cmd_mv,
-        cmd_rename,
-        cmd_defvar,
-        cmd_defnode,
-    ))(input)
+fn expression(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
+    let (i, c) = cmd(input)?;
+    match c {
+        "set" => cmd_set(i),
+        "setm" => cmd_setm(i),
+        "rm" | "remove" => cmd_rm(i),
+        "clear" => cmd_clear(i),
+        "clearm" => cmd_clearm(i),
+        "touch" => cmd_touch(i),
+        "ins" | "insert" => cmd_ins(i),
+        "mv" | "move" => cmd_mv(i),
+        "rename" => cmd_rename(i),
+        "defvar" => cmd_defvar(i),
+        "defnode" => cmd_defnode(i),
+        "save" => Ok((i, Expression::Save)),
+        "quit" => Ok((i, Expression::Quit)),
+        "load" => Ok((i, Expression::Load)),
+        _ => cmd_generic(input),
+    }
 }
 
 fn line(input: &str) -> IResult<&str, Option<Expression>, VerboseError<&str>> {
     let (input, _) = not(eof)(input)?;
     let (input, _) = space0(input)?;
-    let (input, _) = opt(dsl::comment)(input)?;
-    let (input, change) = opt(change)(input)?;
+    let (input, _) = opt(comment)(input)?;
+    let (input, e) = opt(expression)(input)?;
     let (input, _) = space0(input)?;
-    let (input, _) = opt(dsl::comment)(input)?;
+    let (input, _) = opt(comment)(input)?;
     let (input, _) = opt(line_ending)(input)?;
-    Ok((input, change))
+    Ok((input, e))
 }
 
-pub fn changes(input: &str) -> IResult<&str, Vec<Expression>, VerboseError<&str>> {
+pub fn script(input: &str) -> IResult<&str, Vec<Expression>, VerboseError<&str>> {
     // many0 -> allow empty changes (only comments, etc.)
     let (input, changes) = many0(line)(input)?;
     let changes = changes.into_iter().flatten().collect();
@@ -138,15 +168,29 @@ pub fn changes(input: &str) -> IResult<&str, Vec<Expression>, VerboseError<&str>
 
 #[cfg(test)]
 mod tests {
-    use crate::dsl::parser::{change, changes, line};
+    use crate::dsl::parser::{arg_array, expression, line, script};
     use crate::dsl::script::*;
     use raugeas::Position;
+
+    fn test_arg_array() {
+        let input = "[arg1, 'arg2', \"arg3\"]";
+        let expected = vec!["arg1", "arg2", "arg3"];
+        let result = arg_array(input).unwrap();
+        assert_eq!(result.1, expected);
+    }
+
+    fn test_cmd_generic() {
+        let input = "generic command";
+        let expected = Expression::GenericAugeas("generic command".into());
+        let result = expression(input).unwrap();
+        assert_eq!(result.1, expected);
+    }
 
     #[test]
     fn test_change_set() {
         let input = "set /path/to/node value";
         let expected = Expression::Set("/path/to/node".into(), "value");
-        let result = change(input).unwrap();
+        let result = expression(input).unwrap();
         assert_eq!(result.1, expected);
     }
 
@@ -154,7 +198,7 @@ mod tests {
     fn test_change_setm() {
         let input = "setm /path/to/nodes subnode value";
         let expected = Expression::SetMultiple("/path/to/nodes".into(), "subnode", "value");
-        let result = change(input).unwrap();
+        let result = expression(input).unwrap();
         assert_eq!(result.1, expected);
     }
 
@@ -162,7 +206,7 @@ mod tests {
     fn test_change_rm() {
         let input = "rm /path/to/node";
         let expected = Expression::Remove("/path/to/node".into());
-        let result = change(input).unwrap();
+        let result = expression(input).unwrap();
         assert_eq!(result.1, expected);
     }
 
@@ -170,7 +214,7 @@ mod tests {
     fn test_change_clear() {
         let input = "clear /path/to/node";
         let expected = Expression::Clear("/path/to/node".into());
-        let result = change(input).unwrap();
+        let result = expression(input).unwrap();
         assert_eq!(result.1, expected);
     }
 
@@ -178,7 +222,7 @@ mod tests {
     fn test_change_clearm() {
         let input = "clearm /path/to/nodes subnode";
         let expected = Expression::ClearMultiple("/path/to/nodes".into(), "subnode");
-        let result = change(input).unwrap();
+        let result = expression(input).unwrap();
         assert_eq!(result.1, expected);
     }
 
@@ -186,7 +230,7 @@ mod tests {
     fn test_change_touch() {
         let input = "touch /path/to/node";
         let expected = Expression::Touch("/path/to/node".into());
-        let result = change(input).unwrap();
+        let result = expression(input).unwrap();
         assert_eq!(result.1, expected);
     }
 
@@ -194,7 +238,7 @@ mod tests {
     fn test_change_ins() {
         let input = "ins label before /path/to/node";
         let expected = Expression::Insert("label", Position::Before, "/path/to/node".into());
-        let result = change(input).unwrap();
+        let result = expression(input).unwrap();
         assert_eq!(result.1, expected);
     }
 
@@ -202,7 +246,7 @@ mod tests {
     fn test_change_mv() {
         let input = "mv /path/to/node /new/path";
         let expected = Expression::Move("/path/to/node".into(), "/new/path".into());
-        let result = change(input).unwrap();
+        let result = expression(input).unwrap();
         assert_eq!(result.1, expected);
     }
 
@@ -210,7 +254,7 @@ mod tests {
     fn test_change_rename() {
         let input = "rename /path/to/node new_label";
         let expected = Expression::Rename("/path/to/node".into(), "new_label");
-        let result = change(input).unwrap();
+        let result = expression(input).unwrap();
         assert_eq!(result.1, expected);
     }
 
@@ -218,7 +262,7 @@ mod tests {
     fn test_change_defvar() {
         let input = "defvar name /path/to/node";
         let expected = Expression::DefineVar("name", "/path/to/node".into());
-        let result = change(input).unwrap();
+        let result = expression(input).unwrap();
         assert_eq!(result.1, expected);
     }
 
@@ -226,7 +270,7 @@ mod tests {
     fn test_change_defnode() {
         let input = "defnode name /path/to/node value";
         let expected = Expression::DefineNode("name", "/path/to/node".into(), "value");
-        let result = change(input).unwrap();
+        let result = expression(input).unwrap();
         assert_eq!(result.1, expected);
     }
 
@@ -293,7 +337,6 @@ mod tests {
             defvar name /path/to/node
             defnode name /path/to/node value
 
-            quit
         "#;
         let expected = vec![
             Expression::Set("/path/to/node".into(), "value"),
@@ -307,9 +350,8 @@ mod tests {
             Expression::Rename("/path/to/node".into(), "new_label"),
             Expression::DefineVar("name", "/path/to/node".into()),
             Expression::DefineNode("name", "/path/to/node".into(), "value"),
-            Expression::Quit,
         ];
-        let result = changes(input).unwrap();
+        let result = script(input).unwrap();
         assert_eq!(result.1, expected);
     }
 }

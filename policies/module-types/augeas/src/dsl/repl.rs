@@ -20,7 +20,7 @@ pub fn start(interpreter: &mut Interpreter) -> Result<()> {
             Ok(l) => match l.trim() {
                 "" => continue,
                 line => {
-                    let res = interpreter.run(InterpreterMode::Unrestricted, line);
+                    let res = interpreter.run(InterpreterMode::WriteSystem, line);
                     match res {
                         Ok(true) => break,
                         Ok(false) => (),

@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::dsl::script::{Interpreter, InterpreterMode, Script};
+use crate::dsl::script::{Interpreter, InterpreterMode};
 use crate::report::diff;
 use crate::{AugeasParameters, RUDDER_LENS_LIB};
-use raugeas::{CommandsNumber, Flags, SaveMode};
-use rudder_module_type::{rudder_debug, rudder_error, CheckApplyResult, Outcome, PolicyMode};
+use raugeas::{Flags, SaveMode};
+use rudder_module_type::{
+    rudder_debug, rudder_error, rudder_info, CheckApplyResult, Outcome, PolicyMode,
+};
 use std::borrow::Cow;
 use std::env;
 use std::fs::read_to_string;
@@ -101,19 +103,17 @@ impl Augeas {
             aug.set("/augeas/context", c.as_ref())?;
         }
 
-        let lens_opt = p.lens_name();
-        let path = p.path.as_deref().unwrap().to_string();
-
-        // FIXME XFM
-        if let Some(l) = lens_opt {
-            // If we have a lens, we need to load it and load the file.
-            aug.set(format!("/augeas/load/${l}/lens"), l.as_ref())?;
-            aug.set(format!("/augeas/load/${l}/incl"), &path)?;
-            aug.load()?;
-        } else {
-            // Else load it with the detected lens.
-            // FIXME handle errors.
-            aug.load_file(&path)?;
+        match (p.lens.as_deref(), p.path.as_deref()) {
+            (Some(l), Some(p)) => {
+                rudder_debug!("Using lens: {l}");
+                aug.transform(l, p, false)?;
+                aug.load()?;
+            }
+            (None, Some(p)) => {
+                rudder_debug!("Detecting lens for path: {p}");
+                aug.load_file(p)?;
+            }
+            _ => (),
         }
 
         // Do the changes before the checks.
@@ -121,18 +121,16 @@ impl Augeas {
         let mut interpreter = Interpreter::new(aug);
 
         // FIXME: handle check only and check script_if
-        let do_changes = match interpreter.run(InterpreterMode::Check, &p.if_script) {
+        let do_script = match interpreter.run(InterpreterMode::ReadTree, &p.if_script) {
             Ok(_) => true,
             Err(e) => {
                 rudder_error!("Error in if_script: {e}");
                 false
             }
         };
-
-        if do_changes {
+        if do_script {
             rudder_debug!("Running script: {:?}", p.script);
-            interpreter.run(InterpreterMode::CheckApply, &p.script)?;
-            // FIXME handle policy mode
+            interpreter.run(InterpreterMode::WriteTree, &p.script)?;
         }
 
         // Avoid writing if we are in audit mode.
@@ -145,30 +143,42 @@ impl Augeas {
             }
         }
 
-        let src = read_to_string(&path)?;
-        let preview = aug.preview(path)?;
+        if let Some(path) = p.path.as_deref() {
+            let src = read_to_string(path)?;
+            let preview = aug.preview(path)?;
 
-        let diff = diff(&src, &preview.unwrap());
-        rudder_debug!("Diff: {diff:?}");
+            let diff = diff(&src, &preview.unwrap());
+
+            if p.show_diff {
+                rudder_info!("Diff: {diff:?}");
+            }
+        }
 
         aug.save()?;
 
-        // Get information about changes
+        // FIXME reload in case the tree is not clean
 
+        // Ensure `files` are clean before next call.
+        aug.load()?;
+
+        // Get information about changes
         // make backups
-        todo!()
+        Ok(Outcome::Repaired("5 success".to_string()))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rudder_module_type::Outcome;
     use std::fs::read_to_string;
     use tempfile::tempdir;
 
-    fn arguments(script: String) -> AugeasParameters {
+    fn arguments(script: String, path: Option<String>, lens: Option<String>) -> AugeasParameters {
         AugeasParameters {
             script,
+            path,
+            lens,
             ..Default::default()
         }
     }
@@ -183,14 +193,9 @@ mod tests {
         let r = augeas
             .handle_check_apply(
                 arguments(
-                    [
-                        format!("set /augeas/load/${lens}/lens \"{lens}.lns\""),
-                        format!("set /augeas/load/${lens}/incl \"{}\"", f.display()),
-                        "load".to_string(),
-                        format!("set /files{}/0 \"hello world\"", f.display()),
-                        "save".to_string(),
-                    ]
-                    .join("\n"),
+                    format!("set /files{}/0 \"hello world\"", f.display()),
+                    Some(f.display().to_string()),
+                    Some(lens.to_string()),
                 ),
                 PolicyMode::Enforce,
             )

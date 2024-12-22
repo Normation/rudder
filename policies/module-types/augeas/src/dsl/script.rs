@@ -17,12 +17,12 @@ use rudder_module_type::rudder_debug;
 /// The unrestricted mode is only available in the REPL.
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum InterpreterMode {
-    /// Fail if running changes. Only check some assertions.
-    Check,
+    /// Fail if running changes on the tree. Only check some assertions.
+    ReadTree,
     /// Check and apply the changes to the tree, but writing to the disk is impossible in the script.
-    CheckApply,
+    WriteTree,
     /// Anything goes. Full access to the tree and the system.
-    Unrestricted,
+    WriteSystem,
 }
 
 /// Interpreter for the extended Augeas DSL.
@@ -40,7 +40,7 @@ impl<'a> Interpreter<'a> {
 
         rudder_debug!("Running {} changes", script.expressions.len());
         for expr in &script.expressions {
-            if expr.expr_type() == ExprType::Write && mode == InterpreterMode::Check {
+            if expr.expr_type() == ExprType::Write && mode == InterpreterMode::ReadTree {
                 bail!("Cannot run an action ({:?}) in check mode", expr);
             }
             let quit = self.eval(expr)?;
@@ -118,7 +118,7 @@ pub struct Script<'a> {
 
 impl<'a> Script<'a> {
     pub fn from_str(input: &'a str) -> Result<Script<'a>> {
-        let (_, changes) = parser::changes(input)
+        let (_, changes) = parser::script(input)
             .finish()
             // We can't keep the verbose error as it contains references to the input.
             .map_err(|e| anyhow!(format!("{}", e)))?;
@@ -167,8 +167,11 @@ pub enum Expression<'a> {
     MatchNotInclude(AugPath<'a>, &'a str),
     MatchEqual(AugPath<'a>, Vec<&'a str>),
     MatchNotEqual(AugPath<'a>, Vec<&'a str>),
+    /// Save the changes to the tree.
     Save,
+    /// Quit the script.
     Quit,
+    /// (Re)load the tree.
     Load,
 }
 
