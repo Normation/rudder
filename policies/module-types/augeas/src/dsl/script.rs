@@ -163,7 +163,7 @@ pub enum Expression<'a> {
     ValuesEqual(AugPath<'a>, Vec<&'a str>),
     ValuesNotEqual(AugPath<'a>, Vec<&'a str>),
     MatchSize(AugPath<'a>, NumComparator, usize),
-    MatchInclude(AugPath<'a>, String),
+    MatchInclude(AugPath<'a>, &'a str),
     MatchNotInclude(AugPath<'a>, &'a str),
     MatchEqual(AugPath<'a>, Vec<&'a str>),
     MatchNotEqual(AugPath<'a>, Vec<&'a str>),

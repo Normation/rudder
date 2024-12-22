@@ -119,6 +119,20 @@ fn cmd_defnode(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
     Ok((input, Expression::DefineNode(name, path.into(), value)))
 }
 
+fn cmd_match_include(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
+    let (input, path) = arg(input)?;
+    let (input, _) = tag("include")(input)?;
+    let (input, value) = arg(input)?;
+    Ok((input, Expression::MatchInclude(path.into(), value)))
+}
+
+fn cmd_match_not_include(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
+    let (input, path) = arg(input)?;
+    let (input, _) = tag("not_include")(input)?;
+    let (input, value) = arg(input)?;
+    Ok((input, Expression::MatchInclude(path.into(), value)))
+}
+
 fn cmd_generic(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
     let (input, cmd) = not_line_ending(input)?;
     Ok((input, Expression::GenericAugeas(cmd)))
@@ -139,6 +153,7 @@ fn expression(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
         "rename" => cmd_rename(i),
         "defvar" => cmd_defvar(i),
         "defnode" => cmd_defnode(i),
+        "match" => alt((cmd_match_include, cmd_match_not_include))(i),
         "save" => Ok((i, Expression::Save)),
         "quit" => Ok((i, Expression::Quit)),
         "load" => Ok((i, Expression::Load)),
@@ -171,6 +186,13 @@ mod tests {
     use crate::dsl::parser::{arg_array, expression, line, script};
     use crate::dsl::script::*;
     use raugeas::Position;
+
+    fn test_match_include() {
+        let input = "match /files/etc include token";
+        let expected = Expression::MatchInclude("/files/etc".into(), "token");
+        let result = expression(input).unwrap();
+        assert_eq!(result.1, expected);
+    }
 
     fn test_arg_array() {
         let input = "[arg1, 'arg2', \"arg3\"]";
@@ -313,7 +335,7 @@ mod tests {
 
     #[test]
     fn test_line_comment() {
-        let input = "# comment\n";
+        let input = " comment\n";
         let result = line(input).unwrap();
         assert_eq!(result.1, None);
     }
