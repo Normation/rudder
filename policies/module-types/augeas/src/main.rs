@@ -8,7 +8,6 @@ mod parameters;
 mod report;
 
 use crate::parameters::AugeasParameters;
-use crate::report::diff_config;
 use anyhow::{bail, Result};
 use augeas::Augeas;
 use rudder_module_type::cfengine::called_from_agent;
@@ -40,8 +39,7 @@ impl ModuleType0 for Augeas {
         let p: AugeasParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
         p.validate(Some(mode))?;
 
-        let differ = diff_config();
-        self.handle_check_apply(p, differ, mode)
+        self.handle_check_apply(p, mode)
 
         // FIXME : reporting structuré, sérialisé ici
         //         also to be used tests!

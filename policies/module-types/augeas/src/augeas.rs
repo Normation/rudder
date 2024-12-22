@@ -2,10 +2,10 @@
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
 use crate::dsl::changes::Changes;
+use crate::report::diff;
 use crate::AugeasParameters;
 use raugeas::{CommandsNumber, Flags, SaveMode};
 use rudder_module_type::{rudder_debug, CheckApplyResult, Outcome, PolicyMode};
-use similar::TextDiffConfig;
 use std::borrow::Cow;
 use std::env;
 
@@ -60,7 +60,6 @@ impl Augeas {
     pub(crate) fn handle_check_apply(
         &self,
         p: AugeasParameters,
-        differ: TextDiffConfig,
         policy_mode: PolicyMode,
     ) -> CheckApplyResult {
         let mut flags = Flags::NONE;
@@ -172,10 +171,8 @@ impl Augeas {
         }
         aug.save()?;
 
-        let diff = differ.diff_lines("", "");
-        let mut udiff = diff.unified_diff();
-        udiff.context_radius(3).header("a", "b");
-        rudder_debug!("Diff: {udiff}");
+        let diff = diff("", "");
+        rudder_debug!("Diff: {diff:?}");
 
         // Get information about changes
 
@@ -200,7 +197,6 @@ mod tests {
     #[test]
     fn it_writes_file_from_commands() {
         let augeas = Augeas::new().unwrap();
-        let differ = TextDiffConfig::default();
         let d = tempdir().unwrap().into_path();
         let f = d.join("test");
         let lens = "Simplelines";
@@ -217,7 +213,6 @@ mod tests {
                     ]
                     .join("\n"),
                 ),
-                differ,
                 PolicyMode::Enforce,
             )
             .unwrap();

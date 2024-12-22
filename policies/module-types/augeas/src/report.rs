@@ -7,19 +7,11 @@
 
 use anyhow::Error;
 use rudder_module_type::Outcome;
-use similar::{Algorithm, TextDiff, TextDiffConfig};
-use std::time::Duration;
+use similar::udiff::unified_diff;
+use similar::{Algorithm, TextDiff};
 
-pub fn diff_config() -> TextDiffConfig {
-    let mut c = TextDiff::configure();
-    // We use the Myers algorithm, which is also the default in Git.
-    // Patience is also a good choice, but it's slower.
-    c.algorithm(Algorithm::Myers);
-    // By safety, we limit the diff time.
-    // This is a bit arbitrary, but we don't want to hang forever, and 1 second should
-    // be more than enough.
-    c.timeout(Duration::from_secs(1));
-    c
+pub fn diff(a: &str, b: &str) -> String {
+    unified_diff(Algorithm::Myers, a, b, 3, None)
 }
 
 /// Report a change in a file.
