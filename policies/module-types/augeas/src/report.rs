@@ -8,8 +8,11 @@
 use anyhow::Error;
 use rudder_module_type::Outcome;
 use similar::udiff::unified_diff;
-use similar::{Algorithm, TextDiff};
+use similar::Algorithm;
 
+/// Compute the unified diff between two strings.
+///
+/// TODO: Use structured diff?
 pub fn diff(a: &str, b: &str) -> String {
     unified_diff(Algorithm::Myers, a, b, 3, None)
 }
@@ -17,17 +20,17 @@ pub fn diff(a: &str, b: &str) -> String {
 /// Report a change in a file.
 ///
 /// We don't repeat the parameters.
-pub struct ChangeReport<'a> {
+pub struct ChangeReport {
     pub outcome: Outcome,
     /// The unified diff of the change.
     ///
     /// <https://www.gnu.org/software/diffutils/manual/html_node/Detailed-Unified.html>
-    pub diff: Option<TextDiff<'a, 'a, 'a, str>>,
+    pub diff: Option<String>,
     /// The error that occurred.
     pub error: Option<Error>,
 }
 
-impl ChangeReport<'_> {
+impl ChangeReport {
     pub fn new(outcome: Outcome) -> Self {
         Self {
             outcome,

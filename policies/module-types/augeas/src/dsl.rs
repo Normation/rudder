@@ -13,6 +13,7 @@ use std::ops::Deref;
 pub mod changes;
 mod checks;
 pub mod comparator;
+pub mod repl;
 
 pub type Value<'a> = &'a str;
 pub type Sub<'a> = &'a str;

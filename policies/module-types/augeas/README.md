@@ -7,6 +7,8 @@ Augeas module type.
 This module provides a type to manage configuration files using Augeas.
 It uses the C API through Rust bindings.
 
+Provide an improved experience of Augeas.
+
 ## Usage
 
 There are different ways to use this module:

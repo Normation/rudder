@@ -8,6 +8,7 @@ use raugeas::{CommandsNumber, Flags, SaveMode};
 use rudder_module_type::{rudder_debug, CheckApplyResult, Outcome, PolicyMode};
 use std::borrow::Cow;
 use std::env;
+use std::fs::read_to_string;
 
 /// Augeas module implementation.
 ///
@@ -44,7 +45,7 @@ pub struct Augeas {}
 //       potential problems (e.g. commands).
 
 impl Augeas {
-    pub(crate) fn new() -> anyhow::Result<Self> {
+    pub fn new() -> anyhow::Result<Self> {
         // Cleanup the environment first to avoid any interference.
         //
         // SAFETY: Safe as the module is single threaded.
@@ -57,14 +58,17 @@ impl Augeas {
         Ok(Augeas {})
     }
 
-    pub(crate) fn handle_check_apply(
-        &self,
-        p: AugeasParameters,
-        policy_mode: PolicyMode,
-    ) -> CheckApplyResult {
+    pub fn new_aug(
+        root: Option<&str>,
+        context: Option<&str>,
+        path: Option<&str>,
+        load_paths: &str,
+        lens: Option<&str>,
+        type_check_lenses: bool,
+    ) -> anyhow::Result<raugeas::Augeas> {
         let mut flags = Flags::NONE;
 
-        if let Some(l) = p.lens.as_ref() {
+        if let Some(l) = lens {
             rudder_debug!("Using lens: {l}, skipping autoloading");
             flags.insert(Flags::NO_MODULE_AUTOLOAD);
         } else {
@@ -73,28 +77,45 @@ impl Augeas {
             flags.insert(Flags::NO_LOAD);
         }
 
-        if p.type_check_lenses {
+        if type_check_lenses {
             rudder_debug!("Type checking lenses");
             flags.insert(Flags::TYPE_CHECK);
         }
 
-        let root: Option<&str> = p.root.as_deref();
-        let mut aug = raugeas::Augeas::init(root, p.load_paths(), flags)?;
+        let root: Option<&str> = root;
+        // FIXME gneric load path
+        let mut aug = raugeas::Augeas::init(root, load_paths, flags)?;
 
         // Show version for debugging purposes.
         let version = aug.version()?;
         rudder_debug!("Augeas version: {}", version);
 
         // Set context if needed.
-        let context: Option<Cow<str>> = if let Some(c) = p.context.as_deref() {
+        let context: Option<Cow<str>> = if let Some(c) = context {
             Some(c.into())
         } else {
-            p.path.as_deref().map(|p| format!("files/{p}").into())
+            path.map(|p| format!("files/{p}").into())
         };
         if let Some(c) = &context {
             rudder_debug!("Setting context to: {c}");
             aug.set("/augeas/context", c.as_ref())?;
         }
+        Ok(aug)
+    }
+
+    pub(crate) fn handle_check_apply(
+        &self,
+        p: AugeasParameters,
+        policy_mode: PolicyMode,
+    ) -> CheckApplyResult {
+        let mut aug = Self::new_aug(
+            p.root.as_deref(),
+            p.context.as_deref(),
+            p.path.as_deref(),
+            &p.load_paths(),
+            p.lens.as_deref(),
+            p.type_check_lenses,
+        )?;
 
         //////////////////////////////////
         // Start with the special unsafe mode
@@ -161,6 +182,7 @@ impl Augeas {
             todo!()
         }
 
+        // Avoid writing if we are in audit mode.
         match policy_mode {
             PolicyMode::Enforce => {
                 aug.set_save_mode(SaveMode::Backup)?;
@@ -169,10 +191,14 @@ impl Augeas {
                 aug.set_save_mode(SaveMode::Noop)?;
             }
         }
-        aug.save()?;
 
-        let diff = diff("", "");
+        let src = read_to_string(&path)?;
+        let preview = aug.preview(path)?;
+
+        let diff = diff(&src, &preview.unwrap());
         rudder_debug!("Diff: {diff:?}");
+
+        aug.save()?;
 
         // Get information about changes
 

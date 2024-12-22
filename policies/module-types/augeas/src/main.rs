@@ -1,57 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2024 Normation SAS
+// SPDX-FileCopyrightText: 2024 Normation SAS ;
 
-#![allow(dead_code)]
-mod augeas;
-mod dsl;
-mod parameters;
-mod report;
+use anyhow::Result;
 
-use crate::parameters::AugeasParameters;
-use anyhow::{bail, Result};
-use augeas::Augeas;
-use rudder_module_type::cfengine::called_from_agent;
-use rudder_module_type::{
-    parameters::Parameters, run_module, CheckApplyResult, ModuleType0, ModuleTypeMetadata,
-    PolicyMode, ValidateResult,
-};
-use serde_json::Value;
+// binaire raugtool ("rudder agent augeas" séparé ??
+// mode hybride augtool / rudder)
+// implémenter une commande pour le diff!
+// intercepter le help et le modifier!
 
-pub const RUDDER_LENS_LIB: &str = "/var/rudder/lib/lenses";
+// faire juste un reload du tree devrait virer les trucs en cours
+// on devrit pas avoir de pb avec les lens.
 
-impl ModuleType0 for Augeas {
-    fn metadata(&self) -> ModuleTypeMetadata {
-        let meta = include_str!("../rudder_module_type.yml");
-        let docs = include_str!("../README.md");
-        ModuleTypeMetadata::from_metadata(meta)
-            .expect("invalid metadata")
-            .documentation(docs)
-    }
-
-    fn validate(&self, parameters: &Parameters) -> ValidateResult {
-        // from_value does not allow zero-copy deserialization
-        let parameters: AugeasParameters =
-            serde_json::from_value(Value::Object(parameters.data.clone()))?;
-        parameters.validate(None)
-    }
-
-    fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
-        let p: AugeasParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
-        p.validate(Some(mode))?;
-
-        self.handle_check_apply(p, mode)
-
-        // FIXME : reporting structuré, sérialisé ici
-        //         also to be used tests!
-    }
-}
+// très important!
+// https://github.com/hercules-team/augeas/issues/68
+// https://github.com/dominikh/go-augeas/blob/master/augeas.go
 
 fn main() -> Result<(), anyhow::Error> {
-    let promise_type = Augeas::new()?;
-
-    if called_from_agent() {
-        run_module(promise_type)
-    } else {
-        bail!("Only agent mode is supported, use 'augtool' for manual testing")
-    }
+    rudder_module_augeas::entry()
 }

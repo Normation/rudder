@@ -17,6 +17,10 @@ use rudder_module_type::rudder_debug;
 
 /// The ordered list of changes to apply.
 ///
+/// It is compatible with the augeas command line and srun syntax.
+/// The goal is to restrict the DSL to a subset of the augeas command line syntax
+/// to prevent the user from shooting themselves in the foot.
+///
 /// TODO: make it as close as possible to the augeas command line & srun syntax to ease
 ///       development and debugging.
 #[derive(Debug, PartialEq)]
@@ -29,7 +33,7 @@ impl<'a> Changes<'a> {
         let (_, changes) = changes(input)
             .finish()
             // We can't keep the verbose error as it contains references to the input.
-            .map_err(|e| anyhow!(format!("{:?}", e)))?;
+            .map_err(|e| anyhow!(format!("{}", e)))?;
         Ok(Changes { changes })
     }
 
