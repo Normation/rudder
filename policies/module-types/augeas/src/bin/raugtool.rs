@@ -38,6 +38,11 @@ pub struct Cli {
     /// Additional load paths for lenses.
     ///
     /// `/var/rudder/lib/lenses` is always added.
+    #[options(
+        short = "i",
+        long = "include",
+        help = "additional load paths for lenses"
+    )]
     lens_paths: Vec<String>,
     /// A lens to use.
     ///
@@ -49,6 +54,11 @@ pub struct Cli {
     /// Force augeas to type-check the lenses.
     ///
     /// This is slow and should only be used for debugging.
+    #[options(
+        short = "c",
+        long = "typecheck",
+        help = "force type checking of lenses"
+    )]
     type_check_lenses: bool,
 }
 
