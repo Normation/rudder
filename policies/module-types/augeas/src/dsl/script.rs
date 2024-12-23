@@ -16,13 +16,21 @@ use rudder_module_type::rudder_debug;
 ///
 /// The unrestricted mode is only available in the REPL.
 #[derive(Debug, PartialEq, Copy, Clone)]
-pub enum InterpreterMode {
+pub enum InterpreterPerms {
     /// Fail if running changes on the tree. Only check some assertions.
     ReadTree,
     /// Check and apply the changes to the tree, but writing to the disk is impossible in the script.
-    WriteTree,
+    ReadWriteTree,
     /// Anything goes. Full access to the tree and the system.
-    WriteSystem,
+    ReadWriteSystem,
+}
+
+/// When running a script containing several expressions,
+/// should the interpreter accumulate the results or fail early.
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum ErrorMode {
+    FailEarly,
+    StackErrors,
 }
 
 /// Interpreter for the extended Augeas DSL.
@@ -35,12 +43,12 @@ impl<'a> Interpreter<'a> {
         Self { aug }
     }
 
-    pub fn run(&mut self, mode: InterpreterMode, script: &str) -> Result<bool> {
-        let script = Script::from_str(script)?;
+    pub fn run(&mut self, mode: InterpreterPerms, script: &str) -> Result<bool> {
+        let script = Script::from(script)?;
 
         rudder_debug!("Running {} changes", script.expressions.len());
         for expr in &script.expressions {
-            if expr.expr_type() == ExprType::Write && mode == InterpreterMode::ReadTree {
+            if expr.expr_type() == ExprType::Write && mode == InterpreterPerms::ReadTree {
                 bail!("Cannot run an action ({:?}) in check mode", expr);
             }
             let quit = self.eval(expr)?;
@@ -52,6 +60,9 @@ impl<'a> Interpreter<'a> {
         // Handle convergence/idempotency test
         Ok(false)
     }
+
+    // FIXME : accumulate check errors in audit mode
+    //         BUT abort early in enforce....
 
     fn eval(&mut self, expr: &Expression) -> Result<bool> {
         match expr {
@@ -86,6 +97,12 @@ impl<'a> Interpreter<'a> {
                     rudder_debug!("defnode: no nodes were created");
                 }
             }
+            Expression::MatchInclude(path, value) => {
+                let matches = self.aug.matches(path)?;
+                if !matches.iter().any(|v| v == value) {
+                    todo!()
+                }
+            }
             Expression::GenericAugeas(cmd) => {
                 let (num, out) = self.aug.srun(cmd)?;
                 let summary = match num {
@@ -117,7 +134,7 @@ pub struct Script<'a> {
 }
 
 impl<'a> Script<'a> {
-    pub fn from_str(input: &'a str) -> Result<Script<'a>> {
+    pub fn from(input: &'a str) -> Result<Script<'a>> {
         let (_, changes) = parser::script(input)
             .finish()
             // We can't keep the verbose error as it contains references to the input.

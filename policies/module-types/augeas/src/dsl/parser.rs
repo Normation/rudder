@@ -194,6 +194,13 @@ mod tests {
         assert_eq!(result.1, expected);
     }
 
+    fn test_match_not_include() {
+        let input = "match /files/etc not_include token";
+        let expected = Expression::MatchNotInclude("/files/etc".into(), "token");
+        let result = expression(input).unwrap();
+        assert_eq!(result.1, expected);
+    }
+
     fn test_arg_array() {
         let input = "[arg1, 'arg2', \"arg3\"]";
         let expected = vec!["arg1", "arg2", "arg3"];
@@ -203,7 +210,7 @@ mod tests {
 
     fn test_cmd_generic() {
         let input = "generic command";
-        let expected = Expression::GenericAugeas("generic command".into());
+        let expected = Expression::GenericAugeas("generic command");
         let result = expression(input).unwrap();
         assert_eq!(result.1, expected);
     }

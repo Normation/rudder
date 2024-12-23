@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::dsl::script::{Interpreter, InterpreterMode};
+use crate::dsl::script::{Interpreter, InterpreterPerms};
 use crate::report::diff;
 use crate::{AugeasParameters, RUDDER_LENS_LIB};
 use raugeas::{Flags, SaveMode};
@@ -121,7 +121,7 @@ impl Augeas {
         let mut interpreter = Interpreter::new(aug);
 
         // FIXME: handle check only and check script_if
-        let do_script = match interpreter.run(InterpreterMode::ReadTree, &p.if_script) {
+        let do_script = match interpreter.run(InterpreterPerms::ReadTree, &p.if_script) {
             Ok(_) => true,
             Err(e) => {
                 rudder_error!("Error in if_script: {e}");
@@ -130,7 +130,7 @@ impl Augeas {
         };
         if do_script {
             rudder_debug!("Running script: {:?}", p.script);
-            interpreter.run(InterpreterMode::WriteTree, &p.script)?;
+            interpreter.run(InterpreterPerms::ReadWriteTree, &p.script)?;
         }
 
         // Avoid writing if we are in audit mode.

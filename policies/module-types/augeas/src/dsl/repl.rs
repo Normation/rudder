@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::dsl::script::{Interpreter, InterpreterMode};
+use crate::dsl::script::{Interpreter, InterpreterPerms};
 use anyhow::Result;
 use rustyline::error::ReadlineError;
 
@@ -20,7 +20,7 @@ pub fn start(interpreter: &mut Interpreter) -> Result<()> {
             Ok(l) => match l.trim() {
                 "" => continue,
                 line => {
-                    let res = interpreter.run(InterpreterMode::WriteSystem, line);
+                    let res = interpreter.run(InterpreterPerms::ReadWriteSystem, line);
                     match res {
                         Ok(true) => break,
                         Ok(false) => (),
