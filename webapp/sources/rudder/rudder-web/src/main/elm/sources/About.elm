@@ -27,8 +27,6 @@ main =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Ignore ->
-            ( model, Cmd.none )
         GetAboutInfo res ->
             let
                 ui = model.ui

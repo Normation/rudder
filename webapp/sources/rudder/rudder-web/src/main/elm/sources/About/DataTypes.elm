@@ -76,8 +76,7 @@ type alias UI =
     }
 
 type Msg
-  = Ignore
-  | GetAboutInfo  (Result Error AboutInfo)
+  = GetAboutInfo  (Result Error AboutInfo)
   | Copy String
   | CopyJson Value
   | UpdateUI UI
