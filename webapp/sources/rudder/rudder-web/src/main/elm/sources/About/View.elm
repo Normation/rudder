@@ -16,7 +16,7 @@ view model =
             case model.info of
             Nothing ->
                 ( text ""
-                , if not model.ui.loading then
+                , if model.ui.loading then
                     let
                         fakeSection : Int -> Html Msg
                         fakeSection i =
