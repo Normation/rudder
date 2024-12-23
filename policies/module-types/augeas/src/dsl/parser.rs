@@ -130,7 +130,21 @@ fn cmd_match_not_include(input: &str) -> IResult<&str, Expression, VerboseError<
     let (input, path) = arg(input)?;
     let (input, _) = tag("not_include")(input)?;
     let (input, value) = arg(input)?;
-    Ok((input, Expression::MatchInclude(path.into(), value)))
+    Ok((input, Expression::MatchNotInclude(path.into(), value)))
+}
+
+fn cmd_match_equal(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
+    let (input, path) = arg(input)?;
+    let (input, _) = tag("==")(input)?;
+    let (input, value) = arg_array(input)?;
+    Ok((input, Expression::MatchEqual(path.into(), value)))
+}
+
+fn cmd_match_not_equal(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
+    let (input, path) = arg(input)?;
+    let (input, _) = tag("!=")(input)?;
+    let (input, value) = arg_array(input)?;
+    Ok((input, Expression::MatchNotEqual(path.into(), value)))
 }
 
 fn cmd_generic(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {

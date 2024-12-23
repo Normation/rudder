@@ -7,6 +7,10 @@ use anyhow::Result;
 
 // transofrmer un diff en conf augeas??
 
+// vraie attention sur les perfs
+
+// Pas de modif des lens au runtime, il faut les placer dan sle rpeo magisue de l'agent.
+
 // https://github.com/georgehansper/augprint.py
 // outil pour savoir comment écrire le set ??
 // ou pour prendre l'état d'un fichier ?

@@ -103,6 +103,24 @@ impl<'a> Interpreter<'a> {
                     todo!()
                 }
             }
+            Expression::MatchNotInclude(path, value) => {
+                let matches = self.aug.matches(path)?;
+                if !matches.iter().any(|v| v == value) {
+                    todo!()
+                }
+            }
+            Expression::MatchEqual(path, value) => {
+                let matches = self.aug.matches(path)?;
+                if matches == *value {
+                    todo!()
+                }
+            }
+            Expression::MatchNotEqual(path, value) => {
+                let matches = self.aug.matches(path)?;
+                if matches != *value {
+                    todo!()
+                }
+            }
             Expression::GenericAugeas(cmd) => {
                 let (num, out) = self.aug.srun(cmd)?;
                 let summary = match num {
@@ -210,9 +228,7 @@ where:
     MATCH_PATH is a valid match syntax scoped by the context
     COMPARATOR is one of >, >=, !=, ==, <=, or <
                          ~ for regex match, !~ for regex not match
-    STRING is a string
-    INT is a number
-    AN_ARRAY is in the form ['a string', 'another']
+
 */
 
 #[derive(Debug, PartialEq)]
