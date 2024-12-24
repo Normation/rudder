@@ -7,7 +7,7 @@ use crate::dsl::comparator::{Comparison, NumComparator};
 use crate::dsl::{parser, AugPath, Sub, Value};
 use anyhow::{anyhow, bail, Result};
 use raugeas::{Augeas, Position};
-use rudder_module_type::rudder_debug;
+use rudder_module_type::{rudder_debug, rudder_trace};
 
 /// The mode of the interpreter.
 ///
@@ -65,6 +65,7 @@ impl<'a> Interpreter<'a> {
     //         BUT abort early in enforce....
 
     fn eval(&mut self, expr: &Expression) -> Result<bool> {
+        rudder_trace!("Running expression: {:?}", expr);
         match expr {
             Expression::Set(path, value) => self.aug.set(path, value)?,
             Expression::SetMultiple(path, sub, value) => {

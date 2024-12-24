@@ -2,16 +2,14 @@
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
 use crate::dsl::script::{Interpreter, InterpreterPerms};
-use crate::report::diff;
 use crate::{AugeasParameters, RUDDER_LENS_LIB};
 use anyhow::bail;
 use raugeas::{Flags, SaveMode};
 use rudder_module_type::{
-    rudder_debug, rudder_error, rudder_info, CheckApplyResult, Outcome, PolicyMode,
+    rudder_debug, rudder_error, CheckApplyResult, Outcome, PolicyMode,
 };
 use std::borrow::Cow;
 use std::env;
-use std::fs::read_to_string;
 use std::path::Path;
 
 /// Augeas module implementation.
@@ -28,11 +26,16 @@ pub struct Augeas {
     aug: raugeas::Augeas,
 }
 
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum LoadMode {
+    All,
+    LensesOnly,
+    Nothing,
+}
+
 impl Augeas {
-    /// Additional load paths for lenses.
-    ///
-    /// `/var/rudder/lib/lenses` is always added.
-    pub fn new(root: Option<&Path>, load_paths: Vec<&Path>) -> anyhow::Result<Self> {
+    /// Create a new Augeas module.
+    pub fn new_module(root: Option<&Path>, load_paths: Vec<&Path>) -> anyhow::Result<Self> {
         // Cleanup the environment first to avoid any interference.
         //
         // SAFETY: Safe as the module is single threaded.
@@ -44,7 +47,9 @@ impl Augeas {
 
         let aug = Self::new_aug(
             root, // Root is global in an agent context.
-            load_paths, false,
+            load_paths,
+            false,
+            LoadMode::LensesOnly, // We only need lenses. We only load them once.
         )?;
 
         Ok(Augeas { aug })
@@ -54,12 +59,23 @@ impl Augeas {
         root: Option<&Path>,
         load_paths: Vec<T>,
         type_check_lenses: bool,
+        load_mode: LoadMode,
     ) -> anyhow::Result<raugeas::Augeas> {
         let mut flags = Flags::NONE;
 
-        // We never want to load the whole tree, but we load the lenses once.
-        rudder_debug!("Autoloading lenses");
-        flags.insert(Flags::NO_LOAD);
+        match load_mode {
+            LoadMode::All => {
+                rudder_debug!("Loading all files into the tree on startup");
+            }
+            LoadMode::LensesOnly => {
+                rudder_debug!("Loading lenses on startup");
+                flags.insert(Flags::NO_LOAD);
+            }
+            LoadMode::Nothing => {
+                rudder_debug!("Not loading lenses on startup");
+                flags.insert(Flags::NO_MODULE_AUTOLOAD);
+            }
+        }
 
         if type_check_lenses {
             rudder_debug!("Type checking lenses");
@@ -90,27 +106,20 @@ impl Augeas {
 
         if p.path.exists() {
             rudder_debug!("Target {} already exists", p.path.display());
+        } else if policy_mode == PolicyMode::Audit {
+            rudder_error!("Target {} does not exist", p.path.display());
+            // Short-circuit the check.
+            bail!("Audit target file '{}' does not exist", p.path.display());
         } else {
             rudder_debug!("Target {} does not exist", p.path.display());
-            if policy_mode == PolicyMode::Audit {
-                rudder_error!("Target {} does not exist", p.path.display());
-                // Short-circuit the check.
-                bail!("Audit target file '{}' does not exist", p.path.display());
-            } else {
-                rudder_debug!("Target {} does not exist", p.path.display());
-            }
         }
 
-        match p.lens.as_deref() {
-            Some(l) => {
-                rudder_debug!("Using lens: {l}");
-                aug.transform(l, p.path.as_os_str(), false)?;
-                aug.load()?;
-            }
-            None => {
-                rudder_debug!("Detecting lens for path: {}", p.path.display());
-                aug.load_file(p.path.as_os_str())?;
-            }
+        if let Some(l) = p.lens.as_deref() {
+            rudder_debug!("Using lens: {l}");
+            aug.transform(l, p.path.as_os_str(), false)?;
+        }
+        if p.path.exists() {
+            aug.load_file(p.path.as_os_str())?;
         }
 
         // We have loaded the target, let's check for parsing errors.
@@ -158,32 +167,38 @@ impl Augeas {
             }
         }
 
-        let src = read_to_string(&p.path)?;
-        let preview = aug.preview(p.path)?;
+        // TODO: Pas de preview dispo en création de fichier
 
-        let diff = diff(&src, &preview.unwrap());
+        /*
+        let src = read_to_string(&p.path).unwrap_or("".to_string());
+        let preview = aug.preview(p.path).unwrap().unwrap_or("".to_string());
+
+        let diff = diff(&src, &preview);
 
         if p.show_diff {
             rudder_info!("Diff: {diff:?}");
-        }
+        }*/
 
         aug.save()?;
 
         // FIXME reload in case the tree is not clean
 
         // Ensure `files` are clean before next call.
-        aug.load()?;
+        //aug.load()?;
 
         // Get information about changes
         // make backups
         Ok(Outcome::Repaired("5 success".to_string()))
+        // TODO text reporting with structured data
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    
     use rudder_module_type::Outcome;
+    use std::fs;
     use std::fs::read_to_string;
     use std::path::PathBuf;
     use tempfile::tempdir;
@@ -193,13 +208,15 @@ mod tests {
             script,
             path,
             lens,
+            show_diff: true,
+            context: Some("".to_string()),
             ..Default::default()
         }
     }
 
     #[test]
-    fn it_writes_file_from_commands() {
-        let mut augeas = Augeas::new(None, vec![]).unwrap();
+    fn it_writes_file_from_commands_in_new_file() {
+        let mut augeas = Augeas::new_module(None, vec![]).unwrap();
         let d = tempdir().unwrap().into_path();
         let f = d.join("test");
         let lens = "Simplelines";
@@ -215,8 +232,31 @@ mod tests {
             )
             .unwrap();
         assert_eq!(r, Outcome::repaired("5 success".to_string()));
-
         let content = read_to_string(&f).unwrap();
         assert_eq!(content.trim(), "hello world");
+    }
+
+    #[test]
+    fn it_writes_file_from_commands_in_existing_file() {
+        let mut augeas = Augeas::new_module(None, vec![]).unwrap();
+        let d = tempdir().unwrap().into_path();
+        let f = d.join("test");
+        let lens = "Simplelines";
+
+        fs::write(&f, "hello").unwrap();
+
+        let r = augeas
+            .handle_check_apply(
+                arguments(
+                    format!("set /files{}/1 \"world\"", f.display()),
+                    f.clone(),
+                    Some(lens.to_string()),
+                ),
+                PolicyMode::Enforce,
+            )
+            .unwrap();
+        assert_eq!(r, Outcome::repaired("5 success".to_string()));
+        let content = read_to_string(&f).unwrap();
+        assert_eq!(content.trim(), "world");
     }
 }

@@ -8,7 +8,7 @@
 
 use anyhow::Result;
 use gumdrop::Options;
-use rudder_module_augeas::augeas::Augeas;
+use rudder_module_augeas::augeas::{Augeas, LoadMode};
 use rudder_module_augeas::dsl::repl;
 use rudder_module_augeas::dsl::script::Interpreter;
 use rudder_module_augeas::{CRATE_NAME, CRATE_VERSION};
@@ -63,6 +63,21 @@ pub struct Cli {
         help = "force type checking of lenses"
     )]
     type_check_lenses: bool,
+
+    /// Do not load any files into the tree on startup.
+    #[options(
+        short = "L",
+        long = "noload",
+        help = "do not load any files into the tree on startup"
+    )]
+    dont_load_tree: bool,
+    /// Do not autoload modules from the search path.
+    #[options(
+        short = "A",
+        long = "noautoload",
+        help = "do not autoload modules from the search path"
+    )]
+    dont_load_lenses: bool,
 }
 
 impl Cli {
@@ -72,10 +87,17 @@ impl Cli {
             println!("Parsed options: {:#?}", &opts);
         }
 
+        let load_mode = match (!opts.dont_load_lenses, !opts.dont_load_tree) {
+            (false, _) => LoadMode::Nothing,
+            (true, false) => LoadMode::LensesOnly,
+            (true, true) => LoadMode::All,
+        };
+
         let mut aug = Augeas::new_aug(
             opts.root.as_deref(),
             opts.lens_paths,
             opts.type_check_lenses,
+            load_mode,
         )?;
 
         // FIXME handle other parameters
