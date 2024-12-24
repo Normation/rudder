@@ -26,7 +26,7 @@ pub enum InterpreterPerms {
 }
 
 impl InterpreterPerms {
-    pub fn is_authorised(&self, expr_type: ExprType) -> bool {
+    fn is_authorised(&self, expr_type: ExprType) -> bool {
         match self {
             InterpreterPerms::ReadTree => expr_type == ExprType::Read,
             InterpreterPerms::ReadWriteTree => {
@@ -39,19 +39,63 @@ impl InterpreterPerms {
 
 pub struct InterpreterOut {
     pub outcome: InterpreterOutcome,
+    pub output: String,
     pub quit: bool,
 }
 
 impl InterpreterOut {
-    pub fn new(outcome: InterpreterOutcome, quit: bool) -> Self {
-        Self { outcome, quit }
+    pub fn new(outcome: InterpreterOutcome, output: String, quit: bool) -> Self {
+        Self {
+            outcome,
+            output,
+            quit,
+        }
     }
 
-    pub fn from_res_no_quit(res: Result<()>) -> Result<Self> {
-        Ok(match res {
-            Ok(_) => Self::new(InterpreterOutcome::Ok, false),
-            Err(e) => Self::new(InterpreterOutcome::CheckErrors(vec![e]), false),
-        })
+    pub fn ok() -> Result<Self> {
+        Ok(Self::new(InterpreterOutcome::Ok, String::new(), false))
+    }
+
+    pub fn ok_quit() -> Result<Self> {
+        Ok(Self::new(InterpreterOutcome::Ok, String::new(), true))
+    }
+
+    pub fn from_res_out(res: Result<String>) -> Result<Self> {
+        match res {
+            Ok(o) => Ok(Self::new(InterpreterOutcome::Ok, o, false)),
+            Err(e) => Err(e),
+        }
+    }
+
+    pub fn from_out(out: String) -> Result<Self> {
+        Ok(Self::new(InterpreterOutcome::Ok, out, false))
+    }
+
+    pub fn from_res(res: Result<()>) -> Result<Self> {
+        match res {
+            Ok(()) => Ok(Self::new(InterpreterOutcome::Ok, String::new(), false)),
+            Err(e) => Err(e),
+        }
+    }
+
+    pub fn from_aug_res(res: raugeas::Result<()>) -> Result<Self> {
+        match res {
+            Ok(()) => Ok(Self::new(InterpreterOutcome::Ok, String::new(), false)),
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    // FIXME: check res structured type
+    pub fn from_check_res(res: Result<Result<String>>) -> Result<Self> {
+        match res {
+            Ok(Ok(o)) => Ok(Self::new(InterpreterOutcome::Ok, o, false)),
+            Ok(Err(e)) => Ok(Self::new(
+                InterpreterOutcome::CheckErrors(vec![e]),
+                String::new(),
+                false,
+            )),
+            Err(e) => Err(e),
+        }
     }
 }
 
@@ -105,6 +149,7 @@ impl<'a> Interpreter<'a> {
     ) -> Result<InterpreterOut> {
         let script = Script::from(script)?;
         let mut check_errors = vec![];
+        let mut output = String::new();
 
         rudder_debug!("Running {} changes", script.expressions.len());
         for expr in &script.expressions {
@@ -118,17 +163,21 @@ impl<'a> Interpreter<'a> {
             }
 
             let eval_r = self.eval(expr)?;
+            output.push_str(&eval_r.output);
             match eval_r.outcome {
                 InterpreterOutcome::CheckErrors(mut e) => match check_mode {
                     CheckMode::FailEarly => {
                         if !e.is_empty() {
                             return Ok(InterpreterOut::new(
                                 InterpreterOutcome::CheckErrors(e),
+                                output,
                                 eval_r.quit,
                             ));
                         }
                     }
-                    CheckMode::StackErrors => check_errors.append(&mut e),
+                    CheckMode::StackErrors => {
+                        check_errors.append(&mut e);
+                    }
                 },
                 InterpreterOutcome::Ok => {}
             }
@@ -136,6 +185,7 @@ impl<'a> Interpreter<'a> {
             if eval_r.quit {
                 return Ok(InterpreterOut::new(
                     InterpreterOutcome::from_errors(check_errors),
+                    output,
                     true,
                 ));
             }
@@ -144,43 +194,46 @@ impl<'a> Interpreter<'a> {
         // Handle convergence/idempotency test
         Ok(InterpreterOut::new(
             InterpreterOutcome::from_errors(check_errors),
+            output,
             false,
         ))
     }
 
     fn eval(&mut self, expr: &Expression) -> Result<InterpreterOut> {
         rudder_trace!("Running expression: {:?}", expr);
-        InterpreterOut::from_res_no_quit(match expr {
-            Expression::Set(path, value) => self.aug.set(path, value).map_err(|e| e.into()),
+        // FIXME : errors are not handled correctly (check vs no check)
+        match expr {
+            Expression::Set(path, value) => InterpreterOut::from_aug_res(self.aug.set(path, value)),
             Expression::SetMultiple(path, sub, value) => {
                 let n = self.aug.setm(path, sub, value)?;
                 rudder_debug!("setm: modified {n} nodes");
-                Ok(())
+                InterpreterOut::ok()
             }
             Expression::Remove(path) => {
                 let n = self.aug.rm(path)?;
                 rudder_debug!("rm: removed {n} nodes");
-                Ok(())
+                InterpreterOut::ok()
             }
-            Expression::Clear(path) => self.aug.clear(path).map_err(|e| e.into()),
+            Expression::Clear(path) => InterpreterOut::from_aug_res(self.aug.clear(path)),
             Expression::ClearMultiple(path, sub) => {
                 let n = self.aug.clearm(path, sub)?;
                 rudder_debug!("clearm: cleared {n} nodes");
-                Ok(())
+                InterpreterOut::ok()
             }
-            Expression::Touch(path) => self.aug.touch(path).map_err(|e| e.into()),
-            Expression::Insert(label, position, path) => self
-                .aug
-                .insert(path, label, *position)
-                .map_err(|e| e.into()),
-            Expression::Move(path, other) => self.aug.mv(path, other).map_err(|e| e.into()),
-            Expression::Copy(path, other) => self.aug.cp(path, other).map_err(|e| e.into()),
+            Expression::Touch(path) => InterpreterOut::from_aug_res(self.aug.touch(path)),
+            Expression::Insert(label, position, path) => {
+                InterpreterOut::from_aug_res(self.aug.insert(path, label, *position))
+            }
+            Expression::Move(path, other) => InterpreterOut::from_aug_res(self.aug.mv(path, other)),
+            Expression::Copy(path, other) => InterpreterOut::from_aug_res(self.aug.cp(path, other)),
             Expression::Rename(path, label) => {
                 let n = self.aug.rename(path, label)?;
                 rudder_debug!("rename: renamed {n} nodes");
-                Ok(())
+                InterpreterOut::ok()
             }
-            Expression::DefineVar(name, path) => self.aug.defvar(name, path).map_err(|e| e.into()),
+            Expression::DefineVar(name, path) => {
+                InterpreterOut::from_aug_res(self.aug.defvar(name, path))
+            }
             Expression::DefineNode(name, path, value) => {
                 let created = self.aug.defnode(name, path, value)?;
                 if created {
@@ -188,50 +241,44 @@ impl<'a> Interpreter<'a> {
                 } else {
                     rudder_debug!("defnode: no nodes were created");
                 }
-                Ok(())
+                InterpreterOut::ok()
             }
             Expression::MatchInclude(path, value) => {
                 let matches = self.aug.matches(path)?;
                 if !matches.iter().any(|v| v == value) {
                     todo!()
                 }
-                Ok(())
+                todo!()
             }
             Expression::MatchNotInclude(path, value) => {
                 let matches = self.aug.matches(path)?;
                 if !matches.iter().any(|v| v == value) {
                     todo!()
                 }
-                Ok(())
+                todo!()
             }
             Expression::MatchEqual(path, value) => {
                 let matches = self.aug.matches(path)?;
                 if matches == *value {
                     todo!()
                 }
-                Ok(())
+                todo!()
             }
             Expression::MatchNotEqual(path, value) => {
                 let matches = self.aug.matches(path)?;
                 if matches != *value {
                     todo!()
                 }
-                Ok(())
+                todo!()
             }
-            Expression::GenericAugeasRead(cmd) => {
-                let (num, out) = self.aug.srun(cmd)?;
-                let summary = match num {
-                    raugeas::CommandsNumber::Success(n) => format!("{n} success"),
-                    // FIXME: should be an error, no sense in this context.
-                    raugeas::CommandsNumber::Quit => "has quit".to_string(),
-                };
-                rudder_debug!("{}, output: {}", summary, out);
-                Ok(())
+            Expression::GenericAugeas(cmd) => {
+                let (_num, out) = self.aug.srun(cmd)?;
+                InterpreterOut::from_out(out)
             }
-            Expression::Save => self.aug.save().map_err(|e| e.into()),
-            Expression::Quit => return Ok(InterpreterOut::new(InterpreterOutcome::Ok, true)),
+            Expression::Save => InterpreterOut::from_aug_res(self.aug.save()),
+            Expression::Quit => InterpreterOut::ok_quit(),
             _ => todo!(),
-        })
+        }
     }
 }
 
@@ -263,7 +310,7 @@ impl<'a> Script<'a> {
 #[derive(Debug, PartialEq)]
 pub enum Expression<'a> {
     /// A generic augeas command, not parsed.
-    GenericAugeasRead(&'a str),
+    GenericAugeas(&'a str),
     /// Sets the value VALUE at location PATH
     Set(AugPath<'a>, Value<'a>),
     /// Sets multiple nodes (matching SUB relative to PATH) to VALUE
@@ -343,8 +390,9 @@ enum ExprType {
 impl Expression<'_> {
     fn expr_type(&self) -> ExprType {
         match self {
-            // FIXME: ensure we cover all changes!
-            Expression::GenericAugeasRead(..) => ExprType::Read,
+            // We only guarantee that the generic augeas command does not modify the system.
+            // There are both read and write commands there.
+            Expression::GenericAugeas(..) => ExprType::Write,
             Expression::DefineVar(..)
             | Expression::DefineNode(..)
             | Expression::Set(..)

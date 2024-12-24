@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::dsl::script::{CheckMode, Interpreter, InterpreterOut, InterpreterPerms};
+use crate::dsl::script::{
+    CheckMode, Interpreter, InterpreterOut, InterpreterOutcome, InterpreterPerms,
+};
 use anyhow::Result;
 use rustyline::error::ReadlineError;
 
@@ -26,11 +28,27 @@ pub fn start(interpreter: &mut Interpreter) -> Result<()> {
                         line,
                     );
                     match res {
-                        Ok(InterpreterOut { quit: true, .. }) => break,
+                        Ok(InterpreterOut {
+                            quit,
+                            output,
+                            outcome,
+                        }) => {
+                            match outcome {
+                                InterpreterOutcome::Ok => {}
+                                InterpreterOutcome::CheckErrors(errors) => {
+                                    for e in errors {
+                                        eprintln!("check error: {:?}", e);
+                                    }
+                                }
+                            }
+                            println!("{}", output.trim());
+                            if quit {
+                                break;
+                            }
+                        }
                         Err(e) => {
                             eprintln!("error: {:?}", e);
                         }
-                        _ => {}
                     }
                 }
             },

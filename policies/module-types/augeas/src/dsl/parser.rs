@@ -5,7 +5,7 @@ use crate::dsl::script::Expression;
 use nom::branch::alt;
 use nom::bytes::complete::{is_not, tag};
 use nom::character::complete::{
-    alpha1, char, line_ending, multispace0, not_line_ending, space0, space1,
+    alpha1, char, line_ending, multispace0, not_line_ending, space0,
 };
 use nom::combinator::{eof, map_res, not, opt};
 use nom::error::VerboseError;
@@ -49,7 +49,7 @@ pub fn arg(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
 
 fn cmd(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
     let (input, cmd) = alpha1(input)?;
-    let (input, _) = space1(input)?;
+    let (input, _) = space0(input)?;
     Ok((input, cmd))
 }
 
@@ -149,7 +149,7 @@ fn cmd_match_not_equal(input: &str) -> IResult<&str, Expression, VerboseError<&s
 
 fn cmd_generic(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
     let (input, cmd) = not_line_ending(input)?;
-    Ok((input, Expression::GenericAugeasRead(cmd)))
+    Ok((input, Expression::GenericAugeas(cmd)))
 }
 
 /// Read a valid change.
@@ -224,7 +224,7 @@ mod tests {
 
     fn test_cmd_generic() {
         let input = "generic command";
-        let expected = Expression::GenericAugeasRead("generic command");
+        let expected = Expression::GenericAugeas("generic command");
         let result = expression(input).unwrap();
         assert_eq!(result.1, expected);
     }
@@ -356,7 +356,7 @@ mod tests {
 
     #[test]
     fn test_line_comment() {
-        let input = " comment\n";
+        let input = "# comment\n";
         let result = line(input).unwrap();
         assert_eq!(result.1, None);
     }
@@ -374,6 +374,9 @@ mod tests {
             clearm /path/to/nodes "sub node"
             touch /path/to/node
 
+            print /path/to/node
+            quit
+
             ins  label  before        /path/to/node
             mv /path/to/node /new/path
             rename /path/to/node new_label
@@ -388,6 +391,8 @@ mod tests {
             Expression::Clear("/path/to/node".into()),
             Expression::ClearMultiple("/path/to/nodes".into(), "sub node"),
             Expression::Touch("/path/to/node".into()),
+            Expression::GenericAugeas("print /path/to/node"),
+            Expression::Quit,
             Expression::Insert("label", Position::Before, "/path/to/node".into()),
             Expression::Move("/path/to/node".into(), "/new/path".into()),
             Expression::Rename("/path/to/node".into(), "new_label"),

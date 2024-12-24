@@ -66,7 +66,7 @@ impl Augeas {
         root: Option<&Path>,
         load_paths: &[T],
     ) -> anyhow::Result<raugeas::Augeas> {
-        Self::new_aug(root.as_deref(), &load_paths, false, LoadMode::LensesOnly)
+        Self::new_aug(root, load_paths, false, LoadMode::LensesOnly)
     }
 
     pub fn new_aug<T: AsRef<Path>>(
