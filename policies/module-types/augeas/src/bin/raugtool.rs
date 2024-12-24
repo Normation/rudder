@@ -14,6 +14,7 @@ use rudder_module_augeas::dsl::script::Interpreter;
 use rudder_module_augeas::{CRATE_NAME, CRATE_VERSION};
 use rudder_module_type::cfengine::log::{set_max_level, LevelFilter};
 use std::env;
+use std::path::PathBuf;
 
 #[derive(Debug, Options)]
 pub struct Cli {
@@ -30,13 +31,13 @@ pub struct Cli {
     context: Option<String>,
     /// Output file path
     // used as incl
-    path: Option<String>,
+    path: Option<PathBuf>,
     /// Augeas root
     ///
     /// The root of the filesystem to use for augeas.
     ///
     /// WARNING: Should not be used in most cases.
-    root: Option<String>,
+    root: Option<PathBuf>,
     /// Additional load paths for lenses.
     ///
     /// `/var/rudder/lib/lenses` is always added.
@@ -45,7 +46,7 @@ pub struct Cli {
         long = "include",
         help = "additional load paths for lenses"
     )]
-    lens_paths: Vec<String>,
+    lens_paths: Vec<PathBuf>,
     /// A lens to use.
     ///
     /// If not passed, all lenses are loaded, and the `path` is used
@@ -71,7 +72,11 @@ impl Cli {
             println!("Parsed options: {:#?}", &opts);
         }
 
-        let mut aug = Augeas::new_aug(opts.root.as_deref(), opts.type_check_lenses)?;
+        let mut aug = Augeas::new_aug(
+            opts.root.as_deref(),
+            opts.lens_paths,
+            opts.type_check_lenses,
+        )?;
 
         // FIXME handle other parameters
 

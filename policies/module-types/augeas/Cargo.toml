@@ -19,7 +19,8 @@ serde-inline-default = "0.2"
 similar = "2.6.0"
 regex = "1.11.1"
 rudder_module_type = { path = "../../rudder-module-type" }
-raugeas = { git = "https://github.com/Normation/raugeas.git" }
+#raugeas = { git = "https://github.com/Normation/raugeas.git" }
+raugeas = "0.3.0"
 rustyline = "15"
 
 [dev-dependencies]

@@ -4,6 +4,7 @@
 use crate::dsl::script::{Interpreter, InterpreterPerms};
 use crate::report::diff;
 use crate::{AugeasParameters, RUDDER_LENS_LIB};
+use anyhow::bail;
 use raugeas::{Flags, SaveMode};
 use rudder_module_type::{
     rudder_debug, rudder_error, rudder_info, CheckApplyResult, Outcome, PolicyMode,
@@ -11,6 +12,7 @@ use rudder_module_type::{
 use std::borrow::Cow;
 use std::env;
 use std::fs::read_to_string;
+use std::path::Path;
 
 /// Augeas module implementation.
 ///
@@ -21,32 +23,16 @@ use std::fs::read_to_string;
 ///
 /// We never load the tree. Reading the lenses takes time, but is quite convenient, so we do it
 /// once.
-///
-/// Below are some metrics for the different ways to run Augeas, based on `augtool` options:
-///
-/// * `-L` is for skipping loading the tree.
-/// * `-A` is for skipping autoloading lenses (and hence the tree)
-///
-/// | Command | Mean \[ms\] | Min \[ms\] | Max \[ms\] | Relative |
-/// |:---|---:|---:|---:|---:|
-/// | `augtool -LA get /augeas/version` | 2.6 ± 0.5 | 1.6 | 4.6 | 1.00 |
-/// | `augtool -L get /augeas/version` | 209.5 ± 5.2 | 200.2 | 221.5 | 80.72 ± 15.16 |
-/// | `augtool get /augeas/version` | 663.0 ± 37.2 | 632.0 | 755.7 | 255.46 ± 49.69 |
-///
-/// Using:
-///
-/// ```shell
-/// hyperfine -N  --export-markdown augtool.md
-///     "augtool -LA get /augeas/version"
-///     "augtool -L get /augeas/version"
-///     "augtool get /augeas/version"
-/// ```
+//
 pub struct Augeas {
     aug: raugeas::Augeas,
 }
 
 impl Augeas {
-    pub fn new() -> anyhow::Result<Self> {
+    /// Additional load paths for lenses.
+    ///
+    /// `/var/rudder/lib/lenses` is always added.
+    pub fn new(root: Option<&Path>, load_paths: Vec<&Path>) -> anyhow::Result<Self> {
         // Cleanup the environment first to avoid any interference.
         //
         // SAFETY: Safe as the module is single threaded.
@@ -57,14 +43,18 @@ impl Augeas {
         }
 
         let aug = Self::new_aug(
-            None, // Root is global in an agent context.
-            false,
+            root, // Root is global in an agent context.
+            load_paths, false,
         )?;
 
         Ok(Augeas { aug })
     }
 
-    pub fn new_aug(root: Option<&str>, type_check_lenses: bool) -> anyhow::Result<raugeas::Augeas> {
+    pub fn new_aug<T: AsRef<Path>>(
+        root: Option<&Path>,
+        load_paths: Vec<T>,
+        type_check_lenses: bool,
+    ) -> anyhow::Result<raugeas::Augeas> {
         let mut flags = Flags::NONE;
 
         // We never want to load the whole tree, but we load the lenses once.
@@ -76,7 +66,13 @@ impl Augeas {
             flags.insert(Flags::TYPE_CHECK);
         }
 
-        let aug = raugeas::Augeas::init(root, RUDDER_LENS_LIB, flags)?;
+        // Load from the given paths plus the default one.
+        let load_paths = std::iter::once(RUDDER_LENS_LIB.into())
+            .chain(load_paths.iter().map(|p| p.as_ref().to_string_lossy()))
+            .collect::<Vec<Cow<str>>>()
+            .join(":");
+        rudder_debug!("Loading lenses from: {}", load_paths);
+        let aug = raugeas::Augeas::init(root, load_paths, flags)?;
 
         // Show version for debugging purposes.
         let version = aug.version()?;
@@ -92,40 +88,59 @@ impl Augeas {
     ) -> CheckApplyResult {
         let aug = &mut self.aug;
 
-        // Set context if needed.
-        let context: Option<Cow<str>> = if let Some(c) = p.context.as_deref() {
-            Some(c.into())
+        if p.path.exists() {
+            rudder_debug!("Target {} already exists", p.path.display());
         } else {
-            p.path.as_deref().map(|p| format!("files/{p}").into())
-        };
-        if let Some(c) = &context {
-            rudder_debug!("Setting context to: {c}");
-            aug.set("/augeas/context", c.as_ref())?;
+            rudder_debug!("Target {} does not exist", p.path.display());
+            if policy_mode == PolicyMode::Audit {
+                rudder_error!("Target {} does not exist", p.path.display());
+                // Short-circuit the check.
+                bail!("Audit target file '{}' does not exist", p.path.display());
+            } else {
+                rudder_debug!("Target {} does not exist", p.path.display());
+            }
         }
 
-        match (p.lens.as_deref(), p.path.as_deref()) {
-            (Some(l), Some(p)) => {
+        match p.lens.as_deref() {
+            Some(l) => {
                 rudder_debug!("Using lens: {l}");
-                aug.transform(l, p, false)?;
+                aug.transform(l, p.path.as_os_str(), false)?;
                 aug.load()?;
             }
-            (None, Some(p)) => {
-                rudder_debug!("Detecting lens for path: {p}");
-                aug.load_file(p)?;
+            None => {
+                rudder_debug!("Detecting lens for path: {}", p.path.display());
+                aug.load_file(p.path.as_os_str())?;
             }
-            _ => (),
         }
 
-        // Do the changes before the checks.
+        // We have loaded the target, let's check for parsing errors.
+        if let Some(e) = aug.tree_error(format!("/augeas/{}", p.path.display()))? {
+            bail!("Error loading target file '{}': {}", p.path.display(), e);
+            // TODO: some errors might not be fatal?
+        }
+
+        let context: Cow<str> = if let Some(c) = p.context.as_deref() {
+            c.into()
+        } else {
+            format!("files/{}", p.path.display()).into()
+        };
+        rudder_debug!("Setting context to: {context}");
+        aug.set("/augeas/context", context.as_ref())?;
 
         let mut interpreter = Interpreter::new(aug);
 
         // FIXME: handle check only and check script_if
-        let do_script = match interpreter.run(InterpreterPerms::ReadTree, &p.if_script) {
-            Ok(_) => true,
-            Err(e) => {
-                rudder_error!("Error in if_script: {e}");
-                false
+        let do_script = if p.if_script.trim().is_empty() {
+            // No condition, always run the script.
+            true
+        } else {
+            match interpreter.run(InterpreterPerms::ReadTree, &p.if_script) {
+                Ok(_) => true,
+                Err(e) => {
+                    // FIXME: make a difference between audit errors and other errors!
+                    rudder_error!("Error in if_script: {}", e);
+                    false
+                }
             }
         };
         if do_script {
@@ -143,15 +158,13 @@ impl Augeas {
             }
         }
 
-        if let Some(path) = p.path.as_deref() {
-            let src = read_to_string(path)?;
-            let preview = aug.preview(path)?;
+        let src = read_to_string(&p.path)?;
+        let preview = aug.preview(p.path)?;
 
-            let diff = diff(&src, &preview.unwrap());
+        let diff = diff(&src, &preview.unwrap());
 
-            if p.show_diff {
-                rudder_info!("Diff: {diff:?}");
-            }
+        if p.show_diff {
+            rudder_info!("Diff: {diff:?}");
         }
 
         aug.save()?;
@@ -172,9 +185,10 @@ mod tests {
     use super::*;
     use rudder_module_type::Outcome;
     use std::fs::read_to_string;
+    use std::path::PathBuf;
     use tempfile::tempdir;
 
-    fn arguments(script: String, path: Option<String>, lens: Option<String>) -> AugeasParameters {
+    fn arguments(script: String, path: PathBuf, lens: Option<String>) -> AugeasParameters {
         AugeasParameters {
             script,
             path,
@@ -185,7 +199,7 @@ mod tests {
 
     #[test]
     fn it_writes_file_from_commands() {
-        let mut augeas = Augeas::new().unwrap();
+        let mut augeas = Augeas::new(None, vec![]).unwrap();
         let d = tempdir().unwrap().into_path();
         let f = d.join("test");
         let lens = "Simplelines";
@@ -194,7 +208,7 @@ mod tests {
             .handle_check_apply(
                 arguments(
                     format!("set /files{}/0 \"hello world\"", f.display()),
-                    Some(f.display().to_string()),
+                    f.clone(),
                     Some(lens.to_string()),
                 ),
                 PolicyMode::Enforce,

@@ -35,12 +35,12 @@ impl ModuleType0 for Augeas {
         // from_value does not allow zero-copy deserialization
         let parameters: AugeasParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))?;
-        parameters.validate(None)
+        parameters.validate()
     }
 
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
         let p: AugeasParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
-        p.validate(Some(mode))?;
+        p.validate()?;
 
         self.handle_check_apply(p, mode)
 
@@ -52,7 +52,7 @@ impl ModuleType0 for Augeas {
 pub fn entry() -> Result<(), anyhow::Error> {
     env::set_var("LC_ALL", "C");
 
-    let promise_type = Augeas::new()?;
+    let promise_type = Augeas::new(None, vec![])?;
     if rudder_module_type::cfengine::called_from_agent() {
         rudder_module_type::run_module(promise_type)
     } else {
