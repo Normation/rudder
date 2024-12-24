@@ -86,15 +86,14 @@ impl InterpreterOut {
     }
 
     // FIXME: check res structured type
-    pub fn from_check_res(res: Result<Result<String>>) -> Result<Self> {
+    pub fn from_check_res(res: Result<String>) -> Result<Self> {
         match res {
-            Ok(Ok(o)) => Ok(Self::new(InterpreterOutcome::Ok, o, false)),
-            Ok(Err(e)) => Ok(Self::new(
+            Ok(o) => Ok(Self::new(InterpreterOutcome::Ok, o, false)),
+            Err(e) => Ok(Self::new(
                 InterpreterOutcome::CheckErrors(vec![e]),
                 String::new(),
                 false,
             )),
-            Err(e) => Err(e),
         }
     }
 }
@@ -190,8 +189,6 @@ impl<'a> Interpreter<'a> {
                 ));
             }
         }
-        // FIXME handle write/save??
-        // Handle convergence/idempotency test
         Ok(InterpreterOut::new(
             InterpreterOutcome::from_errors(check_errors),
             output,
@@ -201,7 +198,6 @@ impl<'a> Interpreter<'a> {
 
     fn eval(&mut self, expr: &Expression) -> Result<InterpreterOut> {
         rudder_trace!("Running expression: {:?}", expr);
-        // FIXME : errors are not handled correctly (check vs no check)
         match expr {
             Expression::Set(path, value) => InterpreterOut::from_aug_res(self.aug.set(path, value)),
             Expression::SetMultiple(path, sub, value) => {
@@ -276,6 +272,7 @@ impl<'a> Interpreter<'a> {
                 InterpreterOut::from_out(out)
             }
             Expression::Save => InterpreterOut::from_aug_res(self.aug.save()),
+            Expression::Load => InterpreterOut::from_aug_res(self.aug.load()),
             Expression::Quit => InterpreterOut::ok_quit(),
             _ => todo!(),
         }

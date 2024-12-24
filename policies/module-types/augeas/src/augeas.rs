@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::dsl::script::{CheckMode, Interpreter, InterpreterPerms};
+use crate::dsl::script::{
+    CheckMode, Interpreter, InterpreterOut, InterpreterOutcome, InterpreterPerms,
+};
 use crate::{AugeasParameters, RUDDER_LENS_LIB};
 use anyhow::bail;
 use raugeas::{Flags, SaveMode};
@@ -155,7 +157,10 @@ impl Augeas {
         let mut interpreter = Interpreter::new(aug);
 
         // FIXME: handle check only and check script_if
-        let do_script = if p.if_script.trim().is_empty() {
+
+        let no_if_script = p.if_script.trim().is_empty();
+
+        let do_script = if no_if_script {
             // No condition, always run the script.
             true
         } else {
@@ -164,14 +169,32 @@ impl Augeas {
                 CheckMode::FailEarly,
                 &p.if_script,
             ) {
-                Ok(_) => true,
+                Ok(InterpreterOut {
+                    outcome,
+                    output,
+                    quit,
+                }) => {
+                    if quit {
+                        bail!("if_script quit unexpectedly: {}", output);
+                    }
+                    match outcome {
+                        InterpreterOutcome::Ok => true,
+                        // Some checks failed, do not run the script.
+                        InterpreterOutcome::CheckErrors(errors) => {
+                            for e in errors {
+                                rudder_error!("if_script check error: {:?}", e);
+                            }
+                            false
+                        }
+                    }
+                }
                 Err(e) => {
-                    // FIXME: make a difference between audit errors and other errors!
                     rudder_error!("Error in if_script: {}", e);
                     false
                 }
             }
         };
+
         if do_script {
             rudder_debug!("Running script: {:?}", p.script);
             interpreter.run(
@@ -179,6 +202,11 @@ impl Augeas {
                 CheckMode::StackErrors,
                 &p.script,
             )?;
+            // TODO check:
+            // - if running twice changes the result (or triggers checks)
+            // - is if_script now returns false
+            //
+            // This allows detecting non-idempotent configurations and avoid writing them.
         }
 
         // Avoid writing if we are in audit mode.
