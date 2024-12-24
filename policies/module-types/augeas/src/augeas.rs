@@ -5,12 +5,10 @@ use crate::dsl::script::{Interpreter, InterpreterPerms};
 use crate::{AugeasParameters, RUDDER_LENS_LIB};
 use anyhow::bail;
 use raugeas::{Flags, SaveMode};
-use rudder_module_type::{
-    rudder_debug, rudder_error, CheckApplyResult, Outcome, PolicyMode,
-};
+use rudder_module_type::{rudder_debug, rudder_error, CheckApplyResult, Outcome, PolicyMode};
 use std::borrow::Cow;
 use std::env;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Augeas module implementation.
 ///
@@ -24,6 +22,8 @@ use std::path::Path;
 //
 pub struct Augeas {
     aug: raugeas::Augeas,
+    root: Option<PathBuf>,
+    load_paths: Vec<PathBuf>,
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -35,7 +35,7 @@ pub enum LoadMode {
 
 impl Augeas {
     /// Create a new Augeas module.
-    pub fn new_module(root: Option<&Path>, load_paths: Vec<&Path>) -> anyhow::Result<Self> {
+    pub fn new_module(root: Option<PathBuf>, load_paths: Vec<PathBuf>) -> anyhow::Result<Self> {
         // Cleanup the environment first to avoid any interference.
         //
         // SAFETY: Safe as the module is single threaded.
@@ -46,18 +46,33 @@ impl Augeas {
         }
 
         let aug = Self::new_aug(
-            root, // Root is global in an agent context.
-            load_paths,
+            root.as_deref(), // Root is global in an agent context.
+            &load_paths,
             false,
             LoadMode::LensesOnly, // We only need lenses. We only load them once.
         )?;
 
-        Ok(Augeas { aug })
+        Ok(Augeas {
+            aug,
+            root,
+            load_paths,
+        })
+    }
+
+    fn reset_augeas(&mut self) -> anyhow::Result<()> {
+        let new = Self::new_aug(
+            self.root.as_deref(), // Root is global in an agent context.
+            &self.load_paths,
+            false,
+            LoadMode::LensesOnly, // We only need lenses. We only load them once.
+        )?;
+        self.aug = new;
+        Ok(())
     }
 
     pub fn new_aug<T: AsRef<Path>>(
         root: Option<&Path>,
-        load_paths: Vec<T>,
+        load_paths: &[T],
         type_check_lenses: bool,
         load_mode: LoadMode,
     ) -> anyhow::Result<raugeas::Augeas> {
@@ -104,7 +119,9 @@ impl Augeas {
     ) -> CheckApplyResult {
         let aug = &mut self.aug;
 
-        if p.path.exists() {
+        let already_exists = p.path.exists();
+
+        if already_exists {
             rudder_debug!("Target {} already exists", p.path.display());
         } else if policy_mode == PolicyMode::Audit {
             rudder_error!("Target {} does not exist", p.path.display());
@@ -118,7 +135,7 @@ impl Augeas {
             rudder_debug!("Using lens: {l}");
             aug.transform(l, p.path.as_os_str(), false)?;
         }
-        if p.path.exists() {
+        if already_exists {
             aug.load_file(p.path.as_os_str())?;
         }
 
@@ -196,7 +213,7 @@ impl Augeas {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     use rudder_module_type::Outcome;
     use std::fs;
     use std::fs::read_to_string;

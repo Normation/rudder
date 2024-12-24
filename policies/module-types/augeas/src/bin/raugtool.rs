@@ -95,7 +95,7 @@ impl Cli {
 
         let mut aug = Augeas::new_aug(
             opts.root.as_deref(),
-            opts.lens_paths,
+            &opts.lens_paths,
             opts.type_check_lenses,
             load_mode,
         )?;
