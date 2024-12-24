@@ -25,11 +25,65 @@ pub enum InterpreterPerms {
     ReadWriteSystem,
 }
 
+impl InterpreterPerms {
+    pub fn is_authorised(&self, expr_type: ExprType) -> bool {
+        match self {
+            InterpreterPerms::ReadTree => expr_type == ExprType::Read,
+            InterpreterPerms::ReadWriteTree => {
+                expr_type == ExprType::Read || expr_type == ExprType::Write
+            }
+            InterpreterPerms::ReadWriteSystem => true,
+        }
+    }
+}
+
+pub struct InterpreterOut {
+    pub outcome: InterpreterOutcome,
+    pub quit: bool,
+}
+
+impl InterpreterOut {
+    pub fn new(outcome: InterpreterOutcome, quit: bool) -> Self {
+        Self { outcome, quit }
+    }
+
+    pub fn from_res_no_quit(res: Result<()>) -> Result<Self> {
+        Ok(match res {
+            Ok(_) => Self::new(InterpreterOutcome::Ok, false),
+            Err(e) => Self::new(InterpreterOutcome::CheckErrors(vec![e]), false),
+        })
+    }
+}
+
+#[derive(Debug)]
+pub enum InterpreterOutcome {
+    /// Everything went well.
+    Ok,
+    /// The augeas expressions were evaluated correctly,
+    /// and lead to invalidated checks.
+    /// Note: change errors are treated as hard errors and stop the script.
+    ///
+    /// They can be accumulated or not.
+    CheckErrors(Vec<anyhow::Error>),
+}
+
+impl InterpreterOutcome {
+    fn from_errors(errors: Vec<anyhow::Error>) -> Self {
+        if errors.is_empty() {
+            Self::Ok
+        } else {
+            Self::CheckErrors(errors)
+        }
+    }
+}
+
 /// When running a script containing several expressions,
 /// should the interpreter accumulate the results or fail early.
 #[derive(Debug, PartialEq, Copy, Clone)]
-pub enum ErrorMode {
+pub enum CheckMode {
+    /// Fail on first check error.
     FailEarly,
+    /// Stack all check errors.
     StackErrors,
 }
 
@@ -43,53 +97,90 @@ impl<'a> Interpreter<'a> {
         Self { aug }
     }
 
-    pub fn run(&mut self, mode: InterpreterPerms, script: &str) -> Result<bool> {
+    pub fn run(
+        &mut self,
+        mode: InterpreterPerms,
+        check_mode: CheckMode,
+        script: &str,
+    ) -> Result<InterpreterOut> {
         let script = Script::from(script)?;
+        let mut check_errors = vec![];
 
         rudder_debug!("Running {} changes", script.expressions.len());
         for expr in &script.expressions {
-            if expr.expr_type() == ExprType::Write && mode == InterpreterPerms::ReadTree {
-                bail!("Cannot run an action ({:?}) in check mode", expr);
+            let expr_type = expr.expr_type();
+            if !mode.is_authorised(expr_type) {
+                bail!(
+                    "Expression type {:?} not allowed in {:?} mode",
+                    expr_type,
+                    mode
+                );
             }
-            let quit = self.eval(expr)?;
-            if quit {
-                return Ok(true);
+
+            let eval_r = self.eval(expr)?;
+            match eval_r.outcome {
+                InterpreterOutcome::CheckErrors(mut e) => match check_mode {
+                    CheckMode::FailEarly => {
+                        if !e.is_empty() {
+                            return Ok(InterpreterOut::new(
+                                InterpreterOutcome::CheckErrors(e),
+                                eval_r.quit,
+                            ));
+                        }
+                    }
+                    CheckMode::StackErrors => check_errors.append(&mut e),
+                },
+                InterpreterOutcome::Ok => {}
+            }
+
+            if eval_r.quit {
+                return Ok(InterpreterOut::new(
+                    InterpreterOutcome::from_errors(check_errors),
+                    true,
+                ));
             }
         }
         // FIXME handle write/save??
         // Handle convergence/idempotency test
-        Ok(false)
+        Ok(InterpreterOut::new(
+            InterpreterOutcome::from_errors(check_errors),
+            false,
+        ))
     }
 
-    // FIXME : accumulate check errors in audit mode
-    //         BUT abort early in enforce....
-
-    fn eval(&mut self, expr: &Expression) -> Result<bool> {
+    fn eval(&mut self, expr: &Expression) -> Result<InterpreterOut> {
         rudder_trace!("Running expression: {:?}", expr);
-        match expr {
-            Expression::Set(path, value) => self.aug.set(path, value)?,
+        InterpreterOut::from_res_no_quit(match expr {
+            Expression::Set(path, value) => self.aug.set(path, value).map_err(|e| e.into()),
             Expression::SetMultiple(path, sub, value) => {
                 let n = self.aug.setm(path, sub, value)?;
                 rudder_debug!("setm: modified {n} nodes");
+                Ok(())
             }
             Expression::Remove(path) => {
                 let n = self.aug.rm(path)?;
                 rudder_debug!("rm: removed {n} nodes");
+                Ok(())
             }
-            Expression::Clear(path) => self.aug.clear(path)?,
+            Expression::Clear(path) => self.aug.clear(path).map_err(|e| e.into()),
             Expression::ClearMultiple(path, sub) => {
                 let n = self.aug.clearm(path, sub)?;
                 rudder_debug!("clearm: cleared {n} nodes");
+                Ok(())
             }
-            Expression::Touch(path) => self.aug.touch(path)?,
-            Expression::Insert(label, position, path) => self.aug.insert(path, label, *position)?,
-            Expression::Move(path, other) => self.aug.mv(path, other)?,
-            Expression::Copy(path, other) => self.aug.cp(path, other)?,
+            Expression::Touch(path) => self.aug.touch(path).map_err(|e| e.into()),
+            Expression::Insert(label, position, path) => self
+                .aug
+                .insert(path, label, *position)
+                .map_err(|e| e.into()),
+            Expression::Move(path, other) => self.aug.mv(path, other).map_err(|e| e.into()),
+            Expression::Copy(path, other) => self.aug.cp(path, other).map_err(|e| e.into()),
             Expression::Rename(path, label) => {
                 let n = self.aug.rename(path, label)?;
                 rudder_debug!("rename: renamed {n} nodes");
+                Ok(())
             }
-            Expression::DefineVar(name, path) => self.aug.defvar(name, path)?,
+            Expression::DefineVar(name, path) => self.aug.defvar(name, path).map_err(|e| e.into()),
             Expression::DefineNode(name, path, value) => {
                 let created = self.aug.defnode(name, path, value)?;
                 if created {
@@ -97,45 +188,50 @@ impl<'a> Interpreter<'a> {
                 } else {
                     rudder_debug!("defnode: no nodes were created");
                 }
+                Ok(())
             }
             Expression::MatchInclude(path, value) => {
                 let matches = self.aug.matches(path)?;
                 if !matches.iter().any(|v| v == value) {
                     todo!()
                 }
+                Ok(())
             }
             Expression::MatchNotInclude(path, value) => {
                 let matches = self.aug.matches(path)?;
                 if !matches.iter().any(|v| v == value) {
                     todo!()
                 }
+                Ok(())
             }
             Expression::MatchEqual(path, value) => {
                 let matches = self.aug.matches(path)?;
                 if matches == *value {
                     todo!()
                 }
+                Ok(())
             }
             Expression::MatchNotEqual(path, value) => {
                 let matches = self.aug.matches(path)?;
                 if matches != *value {
                     todo!()
                 }
+                Ok(())
             }
-            Expression::GenericAugeas(cmd) => {
+            Expression::GenericAugeasRead(cmd) => {
                 let (num, out) = self.aug.srun(cmd)?;
                 let summary = match num {
                     raugeas::CommandsNumber::Success(n) => format!("{n} success"),
                     // FIXME: should be an error, no sense in this context.
                     raugeas::CommandsNumber::Quit => "has quit".to_string(),
                 };
-                rudder_debug!("{summary}, output: {out}");
+                rudder_debug!("{}, output: {}", summary, out);
+                Ok(())
             }
-            Expression::Save => self.aug.save()?,
-            Expression::Quit => return Ok(true),
+            Expression::Save => self.aug.save().map_err(|e| e.into()),
+            Expression::Quit => return Ok(InterpreterOut::new(InterpreterOutcome::Ok, true)),
             _ => todo!(),
-        }
-        Ok(false)
+        })
     }
 }
 
@@ -167,7 +263,7 @@ impl<'a> Script<'a> {
 #[derive(Debug, PartialEq)]
 pub enum Expression<'a> {
     /// A generic augeas command, not parsed.
-    GenericAugeas(&'a str),
+    GenericAugeasRead(&'a str),
     /// Sets the value VALUE at location PATH
     Set(AugPath<'a>, Value<'a>),
     /// Sets multiple nodes (matching SUB relative to PATH) to VALUE
@@ -232,7 +328,7 @@ where:
 
 */
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 enum ExprType {
     /// Only reads the tree and return data.
     Read,
@@ -247,8 +343,9 @@ enum ExprType {
 impl Expression<'_> {
     fn expr_type(&self) -> ExprType {
         match self {
-            Expression::GenericAugeas(..)
-            | Expression::DefineVar(..)
+            // FIXME: ensure we cover all changes!
+            Expression::GenericAugeasRead(..) => ExprType::Read,
+            Expression::DefineVar(..)
             | Expression::DefineNode(..)
             | Expression::Set(..)
             | Expression::SetMultiple(..)

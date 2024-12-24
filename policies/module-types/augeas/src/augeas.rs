@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::dsl::script::{Interpreter, InterpreterPerms};
+use crate::dsl::script::{CheckMode, Interpreter, InterpreterPerms};
 use crate::{AugeasParameters, RUDDER_LENS_LIB};
 use anyhow::bail;
 use raugeas::{Flags, SaveMode};
@@ -45,12 +45,7 @@ impl Augeas {
             env::remove_var("AUGEAS_DEBUG");
         }
 
-        let aug = Self::new_aug(
-            root.as_deref(), // Root is global in an agent context.
-            &load_paths,
-            false,
-            LoadMode::LensesOnly, // We only need lenses. We only load them once.
-        )?;
+        let aug = Self::new_aug_for_module(root.as_deref(), &load_paths)?;
 
         Ok(Augeas {
             aug,
@@ -59,15 +54,19 @@ impl Augeas {
         })
     }
 
+    /// Close and recreate the Augeas instance.
+    ///
+    /// Allows recovering from errors and starting fresh.
     fn reset_augeas(&mut self) -> anyhow::Result<()> {
-        let new = Self::new_aug(
-            self.root.as_deref(), // Root is global in an agent context.
-            &self.load_paths,
-            false,
-            LoadMode::LensesOnly, // We only need lenses. We only load them once.
-        )?;
-        self.aug = new;
+        self.aug = Self::new_aug_for_module(self.root.as_deref(), &self.load_paths)?;
         Ok(())
+    }
+
+    fn new_aug_for_module<T: AsRef<Path>>(
+        root: Option<&Path>,
+        load_paths: &[T],
+    ) -> anyhow::Result<raugeas::Augeas> {
+        Self::new_aug(root.as_deref(), &load_paths, false, LoadMode::LensesOnly)
     }
 
     pub fn new_aug<T: AsRef<Path>>(
@@ -160,7 +159,11 @@ impl Augeas {
             // No condition, always run the script.
             true
         } else {
-            match interpreter.run(InterpreterPerms::ReadTree, &p.if_script) {
+            match interpreter.run(
+                InterpreterPerms::ReadTree,
+                CheckMode::FailEarly,
+                &p.if_script,
+            ) {
                 Ok(_) => true,
                 Err(e) => {
                     // FIXME: make a difference between audit errors and other errors!
@@ -171,7 +174,11 @@ impl Augeas {
         };
         if do_script {
             rudder_debug!("Running script: {:?}", p.script);
-            interpreter.run(InterpreterPerms::ReadWriteTree, &p.script)?;
+            interpreter.run(
+                InterpreterPerms::ReadWriteTree,
+                CheckMode::StackErrors,
+                &p.script,
+            )?;
         }
 
         // Avoid writing if we are in audit mode.
@@ -184,7 +191,7 @@ impl Augeas {
             }
         }
 
-        // TODO: Pas de preview dispo en création de fichier
+        // TODO: Pas de preview() dispo en création de fichier
 
         /*
         let src = read_to_string(&p.path).unwrap_or("".to_string());

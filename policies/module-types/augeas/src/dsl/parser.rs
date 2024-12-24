@@ -149,7 +149,7 @@ fn cmd_match_not_equal(input: &str) -> IResult<&str, Expression, VerboseError<&s
 
 fn cmd_generic(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
     let (input, cmd) = not_line_ending(input)?;
-    Ok((input, Expression::GenericAugeas(cmd)))
+    Ok((input, Expression::GenericAugeasRead(cmd)))
 }
 
 /// Read a valid change.
@@ -224,7 +224,7 @@ mod tests {
 
     fn test_cmd_generic() {
         let input = "generic command";
-        let expected = Expression::GenericAugeas("generic command");
+        let expected = Expression::GenericAugeasRead("generic command");
         let result = expression(input).unwrap();
         assert_eq!(result.1, expected);
     }
