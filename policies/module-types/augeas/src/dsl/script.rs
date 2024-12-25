@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
 use nom::Finish;
+use std::path::Path;
 
 use crate::dsl::comparator::{Comparison, NumComparator};
 use crate::dsl::{parser, AugPath, Sub, Value};
@@ -138,6 +139,18 @@ pub struct Interpreter<'a> {
 impl<'a> Interpreter<'a> {
     pub fn new(aug: &'a mut Augeas) -> Self {
         Self { aug }
+    }
+
+    pub fn preview(&mut self, file: &Path) -> Result<Option<String>> {
+        println!("{}", self.aug.print("").unwrap());
+
+        let path = format!("{}", file.display());
+
+        let path = path.strip_prefix("/").unwrap();
+        dbg!(path);
+
+        self.aug.set("/augeas/context", "")?;
+        self.aug.preview(path).map_err(Into::into)
     }
 
     pub fn run(
@@ -376,11 +389,9 @@ where:
 enum ExprType {
     /// Only reads the tree and return data.
     Read,
-    /// Only reads the tree, but can fail.
-    Assert,
     /// Changes the tree.
     Write,
-    /// Changes the system from the tree (a.k.a. save)
+    /// Changes the system (from the tree, a.k.a. save)
     Effect,
 }
 
@@ -412,7 +423,7 @@ impl Expression<'_> {
             | Expression::ValuesNotEqual(..)
             | Expression::ValuesInclude(..)
             | Expression::Compare(..)
-            | Expression::ValuesNotInclude(..) => ExprType::Assert,
+            | Expression::ValuesNotInclude(..) => ExprType::Read,
             Expression::Save | Expression::Quit => ExprType::Effect,
         }
     }

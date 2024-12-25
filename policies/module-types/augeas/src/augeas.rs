@@ -4,12 +4,14 @@
 use crate::dsl::script::{
     CheckMode, Interpreter, InterpreterOut, InterpreterOutcome, InterpreterPerms,
 };
+use crate::report::diff;
 use crate::{AugeasParameters, RUDDER_LENS_LIB};
 use anyhow::bail;
 use raugeas::{Flags, SaveMode};
 use rudder_module_type::{rudder_debug, rudder_error, CheckApplyResult, Outcome, PolicyMode};
 use std::borrow::Cow;
 use std::env;
+use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 
 /// Augeas module implementation.
@@ -123,6 +125,17 @@ impl Augeas {
         let already_exists = p.path.exists();
 
         if already_exists {
+            // Avoid memory exhaustion by not loading the file if it is too big.
+            // NOTE: this is not a security feature, as we don't defend against TOCTOU attacks.
+            let size = p.path.metadata()?.size();
+            // 10MB is a reasonable limit for config file.
+            if size > 10_000_000 {
+                bail!(
+                    "File too big to load: {} ({}B > 10MB)",
+                    p.path.display(),
+                    size
+                );
+            }
             rudder_debug!("Target {} already exists", p.path.display());
         } else if policy_mode == PolicyMode::Audit {
             rudder_error!("Target {} does not exist", p.path.display());
@@ -202,6 +215,34 @@ impl Augeas {
                 CheckMode::StackErrors,
                 &p.script,
             )?;
+
+            if already_exists {
+                // FIXME : bug in preview??
+                dbg!("ONE");
+
+                let content_after1 = interpreter.preview(&p.path)?.unwrap();
+
+                dbg!("ONE");
+
+                interpreter.run(
+                    InterpreterPerms::ReadWriteTree,
+                    CheckMode::StackErrors,
+                    &p.script,
+                )?;
+                dbg!("ONE");
+
+                let content_after2 = interpreter.preview(&p.path)?.unwrap();
+                dbg!("ONE");
+
+                if content_after1 != content_after2 {
+                    let diff = diff(&content_after1, &content_after2);
+                    bail!("Non-idempotent script: {}, stopping:\n{}", p.script, diff);
+                }
+            }
+
+            // FIXME: comment détecter les non-convergences sur les nouveaux fichiers ??
+            // peut-être pas possible
+
             // TODO check:
             // - if running twice changes the result (or triggers checks)
             // - is if_script now returns false
