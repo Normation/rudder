@@ -166,6 +166,8 @@ pub enum ProtocolResult {
 }
 
 /// Represents a connector able to run the given module_type implementation
+///
+/// Version 0 is for CFEgine custom promise types.
 pub trait Runner0 {
     fn run<T: ModuleType0>(&self, module_type: T) -> Result<(), Error>;
 }
@@ -201,7 +203,11 @@ pub fn run_module<T: ModuleType0>(module_type: T) -> Result<(), Error> {
     }
 
     #[cfg(target_family = "unix")]
-    CfengineRunner::new().run(module_type)
+    CfengineRunner::new().run(module_type)?;
+    #[cfg(not(target_family = "unix"))]
+    unimplemented!("Only Unix-like systems are supported")?;
+
+    Ok(())
 }
 
 #[derive(Debug, Options)]

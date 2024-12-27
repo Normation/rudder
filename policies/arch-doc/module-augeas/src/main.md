@@ -252,3 +252,28 @@ augeas vs jinja
 ### Workflow
 
 ## Conclusion
+
+L'audit demande plus de sémantique que la configuration.
+Pour savoir si c'est bon, on ne peut pas faire une comparaison
+bit à bit, il faut un peu plus comprendre.
+
+Mais ça peut se faire en surcouche, pas besoin de toucher à la base.
+Au contraire, c'est une bonne abstraction comme base.
+
+On fait de la validation de data dans un contexte de lens.
+On va avoir besoin d'un backend de validation dans d'autres contextes,
+autant le rendre réutilisable.
+Il y a des libs de validation mais c'est souvent peu orienté sur un
+retour structuré, souvent ça renvoie une erreur et c'est tout.
+
+La clé d'augeas est le niveau d'abstraction choisi.
+
+Pour installer augeas sur les systèmes:
+https://github.com/voxpupuli/puppet-augeas/tree/master
+
+Comment mêler avec la théorie des promesses ?
+Avec les principes de cf-serverd.
+
+Puissance du modèle en mémoire -> pour tout ce qui est édition, grouper dans une seule GM au max.
+
+L'enjeu c'est l'UX. LUA, DSL, etc.
