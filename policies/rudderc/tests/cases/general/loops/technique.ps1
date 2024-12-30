@@ -86,24 +86,20 @@ latest
             TechniqueName = $techniqueName
         }
         
-        $class = "false"
-        if ([Rudder.Datastate]::Evaluate($class)) {
-            $methodParams = @{
-                Architecture = ''
-                Name = @'
+        $methodParams = @{
+            Architecture = ''
+            Name = @'
 htop
 '@
-                Provider = ''
-                Version = @'
+            Provider = ''
+            Version = @'
 2.3.4
 '@
-                
-            }
-            $call = Package-Present @methodParams -PolicyMode $policyMode
-            Compute-Method-Call @reportParams -MethodCall $call
-        } else {
-            Rudder-Report-NA @reportParams
+            
         }
+        $call = Package-Present @methodParams -PolicyMode $policyMode
+        Compute-Method-Call @reportParams -MethodCall $call
+        
     } catch [Nustache.Core.NustacheDataContextMissException], [Nustache.Core.NustacheException] {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(

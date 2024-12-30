@@ -7,16 +7,18 @@ documentation: "Long documentation"
 items:
   - name: "Install a package"
     id: d86ce2e5-d5b6-45cc-87e8-c11cca71d907
-    condition: false
     method: package_present
+    condition: "${plouf.condition}"
     params:
       name: "${plouf.name}"
       version: "${plouf.version}"
     foreach:
       - name: "vim"
         version: "latest"
+        condition: "false"
       - name: "htop"
         version: "2.3.4"
+        condition: "true"
     foreach_name: "plouf"
   - name: "Configure user ${user.login}"
     id: 89f36b72-43c8-4b42-89e2-6cf8cb54497f
