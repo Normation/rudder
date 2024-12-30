@@ -49,10 +49,7 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.properties.GenericProperty.*
 import com.normation.rudder.domain.properties.GlobalParameter
-import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.services.queries.CmdbQueryParser
-import com.normation.rudder.services.queries.DefaultStringQueryParser
-import com.normation.rudder.services.queries.JsonQueryLexer
 import com.typesafe.config.ConfigValueType
 import com.unboundid.ldap.sdk.DN
 import org.junit.runner.*
@@ -97,9 +94,7 @@ class GlobalParamMigration61Test extends Specification {
 
     val rudderDit       = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
     val nodeDit         = new NodeDit(new DN("ou=Nodes, ou=Rudder, cn=rudder-configuration"))
-    val cmdbQueryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
-      val criterionObjects: Map[String, ObjectCriterion] = Map()
-    }
+    val cmdbQueryParser = CmdbQueryParser.jsonRawParser(Map.empty)
 
     new LDAPEntityMapper(rudderDit, nodeDit, cmdbQueryParser, inventoryMapper)
   }

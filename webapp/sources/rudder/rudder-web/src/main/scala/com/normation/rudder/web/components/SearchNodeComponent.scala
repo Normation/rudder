@@ -174,7 +174,7 @@ class SearchNodeComponent(
       }
       query = Some(Query(rType, composition, transform, lines.toList))
       initUpdate = false
-      ajaxCriteriaRefresh(isGroupsPage)
+      ajaxCriteriaRefresh(isGroupsPage, preventSave = true)
     }
 
     def removeLine(i: Int): JsCmd = {
@@ -191,7 +191,7 @@ class SearchNodeComponent(
         query = Some(Query(rType, composition, transform, lines.toList))
       }
       initUpdate = false
-      ajaxCriteriaRefresh(isGroupsPage)
+      ajaxCriteriaRefresh(isGroupsPage, preventSave = true)
     }
 
     def processForm(isGroupPage: Boolean): JsCmd = {
@@ -225,16 +225,16 @@ class SearchNodeComponent(
         srvList = Empty
         searchFormHasError = true
       }
-      ajaxCriteriaRefresh(isGroupsPage) & ajaxGridRefresh(isGroupsPage)
+      ajaxCriteriaRefresh(isGroupsPage, preventSave = false) & gridResult(isGroupPage)
       // ajaxGroupCriteriaRefresh & ajaxNodesTableRefresh()
     }
 
     /**
      * Refresh the query parameter part
      */
-    def ajaxCriteriaRefresh(isGroupPage: Boolean):                           JsCmd   = {
+    def ajaxCriteriaRefresh(isGroupPage: Boolean, preventSave: Boolean):     JsCmd   = {
       lines.clear()
-      SetHtml("SearchForm", displayQuery(content, isGroupPage)) & activateButtonOnChange()
+      SetHtml("SearchForm", displayQuery(content, isGroupPage)) & activateButtonOnChange(preventSave)
     }
     def displayQueryLine(cl: CriterionLine, index: Int, addRemove: Boolean): NodeSeq = {
 
@@ -391,7 +391,7 @@ class SearchNodeComponent(
    * @return
    */
   def ajaxGridRefresh(isGroupPage: Boolean): JsCmd = {
-    activateButtonOnChange() &
+    activateButtonOnChange(preventSave = false) &
     gridResult(isGroupPage)
   }
 
@@ -423,7 +423,7 @@ class SearchNodeComponent(
    * When we change the form, we can update the query
    * @return
    */
-  def activateButtonOnChange(): JsCmd = {
+  def activateButtonOnChange(preventSave: Boolean): JsCmd = {
     // If saved button id is not defined do not disable save button
     val disableGridOnChange: JsCmd = if (saveButtonId != "") {
       JE.JsRaw(
@@ -433,7 +433,8 @@ class SearchNodeComponent(
     } else {
       Noop
     }
-    onSearchCallback(searchFormHasError, query) & disableGridOnChange
+    val disableSave = searchFormHasError || preventSave
+    onSearchCallback(disableSave, query) & disableGridOnChange
   }
 
   /**

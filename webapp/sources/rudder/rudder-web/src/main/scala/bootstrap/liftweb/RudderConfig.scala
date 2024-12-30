@@ -79,6 +79,7 @@ import com.normation.rudder.inventory.InventoryFailedHook
 import com.normation.rudder.inventory.InventoryFileWatcher
 import com.normation.rudder.inventory.InventoryMover
 import com.normation.rudder.inventory.InventoryProcessor
+import com.normation.rudder.inventory.NodeFactInventorySaver
 import com.normation.rudder.inventory.PostCommitInventoryHooks
 import com.normation.rudder.inventory.ProcessFile
 import com.normation.rudder.metrics.*
@@ -2378,7 +2379,7 @@ object RudderConfigInit {
     lazy val uuidGen                   = stringUuidGenerator
     lazy val systemVariableSpecService = new SystemVariableSpecServiceImpl()
     lazy val ldapEntityMapper: LDAPEntityMapper =
-      new LDAPEntityMapper(rudderDitImpl, nodeDitImpl, queryParser, inventoryMapper)
+      new LDAPEntityMapper(rudderDitImpl, nodeDitImpl, queryRawParser, inventoryMapper)
 
     ///// items serializer - service that transforms items to XML /////
     lazy val ruleSerialisation:                    RuleSerialisation                    = new RuleSerialisationImpl(
@@ -2442,13 +2443,12 @@ object RudderConfigInit {
     lazy val getSubGroupChoices = new DefaultSubGroupComparatorRepository(roLdapNodeGroupRepository)
     lazy val nodeQueryData      = new NodeQueryCriteriaData(() => getSubGroupChoices)
     lazy val ditQueryDataImpl   = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, nodeQueryData)
-    lazy val queryParser        = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
-      override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryDataImpl.criteriaMap
-    }
+    lazy val queryParser        = CmdbQueryParser.jsonStrictParser(Map.empty[String, ObjectCriterion] ++ ditQueryDataImpl.criteriaMap)
+    lazy val queryRawParser     = CmdbQueryParser.jsonRawParser(Map.empty[String, ObjectCriterion] ++ ditQueryDataImpl.criteriaMap)
     lazy val inventoryMapper: InventoryMapper =
       new InventoryMapper(inventoryDitService, pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
 
-    lazy val ldapDiffMapper = new LDAPDiffMapper(ldapEntityMapper, queryParser)
+    lazy val ldapDiffMapper = new LDAPDiffMapper(ldapEntityMapper, queryRawParser)
 
     lazy val activeTechniqueCategoryUnserialisation = new ActiveTechniqueCategoryUnserialisationImpl
     lazy val activeTechniqueUnserialisation         = new ActiveTechniqueUnserialisationImpl

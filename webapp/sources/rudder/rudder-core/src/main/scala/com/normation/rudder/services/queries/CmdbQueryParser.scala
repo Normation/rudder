@@ -77,6 +77,24 @@ object CmdbQueryParser {
   val ATTRIBUTE  = "attribute"
   val COMPARATOR = "comparator"
   val VALUE      = "value"
+
+  /**
+    * Use JSON parser for the query, using strict validation (of comparator values), with criterion objects.
+    */
+  def jsonStrictParser(objects: Map[String, ObjectCriterion]): CmdbQueryParser & StringQueryParser & JsonQueryLexer = {
+    new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
+      override val criterionObjects: Map[String, ObjectCriterion] = objects
+    }
+  }
+
+  /**
+    * Use the specific JSON parser that bypass validation of criterion values.
+    */
+  def jsonRawParser(objects: Map[String, ObjectCriterion]): CmdbQueryParser & RawStringQueryParser & JsonQueryLexer = {
+    new CmdbQueryParser with RawStringQueryParser with JsonQueryLexer {
+      override val criterionObjects: Map[String, ObjectCriterion] = objects
+    }
+  }
 }
 
 trait QueryLexer {
@@ -89,7 +107,7 @@ trait StringQueryParser {
   def parse(query: StringQuery): Box[Query]
 }
 
-trait CmdbQueryParser extends StringQueryParser with QueryLexer {
+sealed trait CmdbQueryParser extends StringQueryParser with QueryLexer {
   def apply(query: String): Box[Query] = for {
     sq <- lex(query)
     q  <- parse(sq)
@@ -98,10 +116,15 @@ trait CmdbQueryParser extends StringQueryParser with QueryLexer {
 
 /**
  * Some default behaviour:
+ * - validation of criterion value being empty or not is applied
  * - default composition is AND
- *
+ * - transformation is not inverted
  */
 trait DefaultStringQueryParser extends StringQueryParser {
+
+  protected def needValidation:        Boolean              = true
+  protected def defaultComposition:    CriterionComposition = CriterionComposition.And
+  protected def defaultTransformation: ResultTransformation = ResultTransformation.Identity
 
   def criterionObjects: Map[String, ObjectCriterion]
 
@@ -109,7 +132,7 @@ trait DefaultStringQueryParser extends StringQueryParser {
 
     for {
       comp  <- query.composition match {
-                 case None    => Full(CriterionComposition.And)
+                 case None    => Full(defaultComposition)
                  case Some(s) =>
                    CriterionComposition.parse(s) match {
                      case Some(x) => Full(x)
@@ -117,7 +140,7 @@ trait DefaultStringQueryParser extends StringQueryParser {
                    }
                }
       trans <- query.transform match {
-                 case None    => Full(ResultTransformation.Identity)
+                 case None    => Full(defaultTransformation)
                  case Some(x) => ResultTransformation.parse(x).toBox
                }
       lines <- traverse(query.criteria)(parseLine)
@@ -146,12 +169,13 @@ trait DefaultStringQueryParser extends StringQueryParser {
 
       /*
        * Only validate the fact that if the comparator requires a value, then a value is provided.
-       * Providing an error when none is required is not an error
+       * An empty String is allowed because "" could have a different meaning from being absent.
+       * Providing an error when none is required is not an error.
        */
       value      <- line.value match {
                       case Some(x) => Right(x)
                       case None    =>
-                        if (comparator.hasValue)
+                        if (needValidation && comparator.hasValue)
                           Left("Missing required value for comparator '%s' in line '%s'".format(line.comparator, line))
                         else Right("")
                     }
@@ -159,6 +183,13 @@ trait DefaultStringQueryParser extends StringQueryParser {
 
   }
 
+}
+
+/**
+  * The query parser that does not apply validation
+  */
+trait RawStringQueryParser extends DefaultStringQueryParser {
+  final override val needValidation: Boolean = false
 }
 
 /**
