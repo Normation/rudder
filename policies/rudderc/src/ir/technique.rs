@@ -435,7 +435,7 @@ impl DeserTechnique {
             let unflatten_loop_resolved_items: Result<Vec<Vec<DeserItem>>> = self
                 .items
                 .into_iter()
-                .map(|i| i.resolve_loop(vec![], false, None))
+                .map(|i| i.resolve_loop(vec![], None))
                 .collect();
             let binding =
                 unflatten_loop_resolved_items.with_context(|| "Failed to resolve loops items")?;
@@ -542,7 +542,6 @@ impl DeserItem {
     fn resolve_loop(
         self,
         parent_context: Vec<ForeachContext>,
-        force_virtual: bool,
         parent_foreach_state: Option<ForeachResolvedState>,
     ) -> Result<Vec<DeserItem>> {
         // Replace every description, documentation, name, condition, params fields in the tree, using the given context.
@@ -552,7 +551,6 @@ impl DeserItem {
 
         // Resolve the state of the first sub item as it is the only one difficult to identify
         let first_item_resolved_state = match parent_foreach_state {
-            Some(ForeachResolvedState::Virtual) => Some(ForeachResolvedState::Virtual),
             None => {
                 if self.foreach.is_some() {
                     Some(ForeachResolvedState::Main)
@@ -560,13 +558,7 @@ impl DeserItem {
                     None
                 }
             }
-            Some(ForeachResolvedState::Main) => {
-                if force_virtual {
-                    Some(ForeachResolvedState::Virtual)
-                } else {
-                    Some(ForeachResolvedState::Main)
-                }
-            }
+            Some(_) => parent_foreach_state.clone(),
         };
         let mut is_first_item = true;
         let branches: Result<Vec<DeserItem>> = if let Some(ref cases) = self.foreach {
@@ -587,11 +579,7 @@ impl DeserItem {
                         .map(|child| {
                             child
                                 .clone()
-                                .resolve_loop(
-                                    branch_context.clone(),
-                                    force_virtual || !is_first_item,
-                                    branch_resolved_state.clone(),
-                                )
+                                .resolve_loop(branch_context.clone(), branch_resolved_state.clone())
                                 .with_context(|| {
                                     format!(
                                         "Failed to resolve item {} while resolving foreach fields",
@@ -613,25 +601,18 @@ impl DeserItem {
                 })
                 .collect()
         } else {
-            let branch_resolved_state = if force_virtual {
-                Some(ForeachResolvedState::Virtual)
-            } else {
-                parent_foreach_state
-            };
             let raw_children: Result<Vec<Vec<DeserItem>>> = self
                 .items
                 .iter()
                 .map(|child| {
-                    child.clone().resolve_loop(
-                        parent_context.clone(),
-                        force_virtual,
-                        branch_resolved_state.clone(),
-                    )
+                    child
+                        .clone()
+                        .resolve_loop(parent_context.clone(), first_item_resolved_state.clone())
                 })
                 .collect();
             let children = raw_children?.into_iter().flatten().collect();
             Ok(vec![DeserItem {
-                foreach_resolved_state: branch_resolved_state,
+                foreach_resolved_state: first_item_resolved_state,
                 items: children,
                 ..self.replace_using_context(parent_context.clone())?
             }])
@@ -1038,6 +1019,6 @@ mod tests {
                 ..DeserItem::default()
             },
         ];
-        assert_eq!(expected, simple_method.resolve_loop(vec![], false, None).unwrap());
+        assert_eq!(expected, simple_method.resolve_loop(vec![], None).unwrap());
     }
 }
