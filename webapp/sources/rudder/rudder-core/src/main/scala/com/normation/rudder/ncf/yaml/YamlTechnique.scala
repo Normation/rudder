@@ -82,7 +82,9 @@ case class MethodItem(
     params:               Option[Map[ParameterId, String]],
     // Block specific fields
     items:                Option[List[MethodItem]],
-    policy_mode_override: Option[PolicyMode]
+    policy_mode_override: Option[PolicyMode],
+    foreach:              Option[List[Map[String, String]]],
+    foreach_name:         Option[String]
 )
 
 case class Reporting(
@@ -170,7 +172,9 @@ object YamlTechniqueSerializer {
             reporting,
             item.condition.getOrElse(""),
             items,
-            item.policy_mode_override
+            item.policy_mode_override,
+            item.foreach,
+            item.foreach_name
           )
         }
       case None        =>
@@ -185,7 +189,9 @@ object YamlTechniqueSerializer {
                 item.name,
                 // boolean for "disableReporting"
                 item.reporting.map(_.mode == "disabled").getOrElse(false),
-                item.policy_mode_override
+                item.policy_mode_override,
+                item.foreach,
+                item.foreach_name
               )
             )
           case None         => Left(Consistancy("error"))
@@ -255,7 +261,7 @@ object YamlTechniqueSerializer {
     }
 
     methodElem match {
-      case MethodBlock(id, name, reportingLogic, condition, items, policyMode)               =>
+      case MethodBlock(id, name, reportingLogic, condition, items, policyMode, foreach, foreachName)               =>
         MethodItem(
           id,
           name,
@@ -265,9 +271,11 @@ object YamlTechniqueSerializer {
           None,
           None,
           Some(items.map(fromJsonMethodElem)),
-          policyMode
+          policyMode,
+          foreach,
+          foreachName
         )
-      case MethodCall(method, id, parameters, condition, name, disableReporting, policyMode) =>
+      case MethodCall(method, id, parameters, condition, name, disableReporting, policyMode, foreach, foreachName) =>
         MethodItem(
           id,
           name,
@@ -277,7 +285,9 @@ object YamlTechniqueSerializer {
           Some(method.value),
           Some(parameters),
           None,
-          policyMode
+          policyMode,
+          foreach,
+          foreachName
         )
     }
   }

@@ -124,6 +124,8 @@ object MigrateJsonTechniquesService {
             reportingLogic,
             elem.condition,
             calls.map(toMethodElem),
+            None,
+            None,
             None
           )
         case None        =>
@@ -134,6 +136,8 @@ object MigrateJsonTechniquesService {
             elem.condition,
             elem.component,
             elem.disableReporting.getOrElse(false),
+            None,
+            None,
             None
           )
       }

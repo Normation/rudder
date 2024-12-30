@@ -152,7 +152,9 @@ final case class MethodBlock(
     reportingLogic: ReportingLogic,
     condition:      String,
     calls:          List[MethodElem],
-    policyMode:     Option[PolicyMode]
+    policyMode:     Option[PolicyMode],
+    foreach:        Option[List[Map[String, String]]],
+    foreachName:    Option[String]
 ) extends MethodElem
 
 @jsonHint("call")
@@ -163,7 +165,9 @@ final case class MethodCall(
     condition:         String,
     component:         String,
     disabledReporting: Boolean,
-    policyMode:        Option[PolicyMode]
+    policyMode:        Option[PolicyMode],
+    foreach:           Option[List[Map[String, String]]],
+    foreachName:       Option[String]
 ) extends MethodElem
 
 object MethodCall {
