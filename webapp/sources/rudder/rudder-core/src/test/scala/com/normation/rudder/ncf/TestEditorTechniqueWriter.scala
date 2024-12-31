@@ -458,7 +458,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
           "any",
           "Customized component",
           disabledReporting = false,
-          policyMode = None
+          policyMode = None,
+          None,
+          None
         ) ::
         MethodCall(
           BundleName("command_execution"),
@@ -467,9 +469,13 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
           "windows",
           "Command execution",
           disabledReporting = true,
-          policyMode = Some(Enforce)
+          policyMode = Some(Enforce),
+          None,
+          None
         ) :: Nil,
-        Some(Audit)
+        Some(Audit),
+        None,
+        None
       ) ::
       MethodCall(
         BundleName("service_start"),
@@ -478,7 +484,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "package_install_version_${node.properties[apache_package_name]}_repaired",
         "Customized component",
         disabledReporting = false,
-        policyMode = Some(Audit)
+        policyMode = Some(Audit),
+        None,
+        None
       ) ::
       MethodCall(
         BundleName("package_install"),
@@ -487,7 +495,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "redhat",
         "Package install",
         disabledReporting = false,
-        policyMode = None
+        policyMode = None,
+        None,
+        None
       ) ::
       MethodCall(
         BundleName("command_execution"),
@@ -496,7 +506,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "cfengine-community",
         "Command execution",
         disabledReporting = false,
-        policyMode = Some(Audit)
+        policyMode = Some(Audit),
+        None,
+        None
       ) ::
       MethodCall(
         BundleName("package_state_windows"),
@@ -505,7 +517,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "dsc",
         "Package state windows",
         disabledReporting = false,
-        policyMode = None
+        policyMode = None,
+        None,
+        None
       ) ::
       MethodCall(
         BundleName("_logger"),
@@ -514,7 +528,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "any",
         "Not sure we should test it ...",
         disabledReporting = false,
-        policyMode = None
+        policyMode = None,
+        None,
+        None
       ) :: Nil,
       "This Technique exists only to see if Rudder creates Technique correctly.",
       "",
@@ -585,7 +601,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "any",
         "Test component$&é)à\\'\"",
         disabledReporting = false,
-        policyMode = Some(Audit)
+        policyMode = Some(Audit),
+        None,
+        None
       ) :: Nil,
       "This Technique exists only to see if Rudder creates Technique correctly.",
       "",
@@ -634,7 +652,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "${my_custom_condition}",
         "Command execution",
         disabledReporting = false,
-        policyMode = None
+        policyMode = None,
+        None,
+        None
       ) :: Nil,
       "",
       "",
