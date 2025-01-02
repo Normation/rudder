@@ -2278,6 +2278,11 @@ function getProgressBars(arr){
   //Values less than 3 are hidden by default on small devices
   var minVal = 3;
   var bars = [];
+  function displayValue(value){
+    //TODO : Add condition for tabs
+    var percent = value>minVal ? String(value)+"%" : "";
+    return "<span>"+percent+"</span>";
+  }
   var compliances = compliancePercentValue(arr);
   var bar;
 
@@ -2287,7 +2292,7 @@ function getProgressBars(arr){
     var compliancePercent = compliance.val;
     bar = {
         width : compliancePercent.toString()
-      , value: ""
+      , value: displayValue(compliancePercent)
       }
     bars.push(bar);
   });
