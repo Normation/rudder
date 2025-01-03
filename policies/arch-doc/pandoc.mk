@@ -1,6 +1,6 @@
 # Work with pandoc Markdown sources, producing HTML & PDF outputs.
 #
-# The build is fast, we start clean everytime to avoid managing dependencies.
+# The build is fast, we clean everytime to avoid managing dependencies.
 
 src_dir := src
 dest_dir := target
@@ -13,6 +13,14 @@ tmp := ${dest_dir}/${file}
 
 all: pdf html
 
+versions:
+	pandoc --version
+	typst --version
+	structurizr version
+	mmdc --version
+	svgo --version
+	typos --version
+
 # Build an intermediary Markdown file, including rendered diagrams (C4+Mermaid).
 markdown: clean
 	if [ -f ${src_dir}/workspace.dsl ]; then structurizr export --workspace ${src_dir}/workspace.dsl --output ${src_dir} --format mermaid >/dev/null; fi
@@ -23,7 +31,9 @@ markdown: clean
 
 # Build the typst source file
 typst: markdown
-	pandoc --standalone --from markdown ${tmp}-mm.md --to typst --output ${tmp}.typ
+	cp ../rudder.typ ${dest_dir}/rudder.typ
+	cp ../../../logo/icons/svg/rudder-logo-rect-black.svg ${dest_dir}/rudder.svg
+	pandoc --standalone --from markdown ${tmp}-mm.md --to typst --template=../rudder.typ.template --output ${tmp}.typ
 
 # Build the HTML output
 html: markdown

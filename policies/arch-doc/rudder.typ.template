@@ -1,0 +1,22 @@
+// #import "rudder.typ": *
+
+#import "@preview/ilm:1.4.0": *
+
+#set text(lang: "$lang$", region: "$region$")
+
+#show: ilm.with(
+  title: [$title$],
+  author: "$author$",
+$if(date)$
+  date: $date$,
+$endif$
+  abstract: [$abstract$],
+$if(bibliography)$
+  bibliography: bibliography("$bibliography$"),
+$endif$
+  figure-index: (enabled: false),
+  table-index: (enabled: false),
+  listing-index: (enabled: false),
+)
+
+$body$
