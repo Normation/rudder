@@ -15,6 +15,7 @@ use crate::{cfengine::CfengineRunner, parameters::Parameters};
 pub mod cfengine;
 pub mod os_release;
 pub mod parameters;
+mod runner;
 
 /// Information about the module type to pass to the library
 ///
@@ -165,9 +166,9 @@ pub enum ProtocolResult {
     Error(String),
 }
 
-/// Represents a connector able to run the given module_type implementation
+/// Represents a connector able to run the given module_type implementation.
 ///
-/// Version 0 is for CFEgine custom promise types.
+/// Version 0 is for CFEngine custom promise types.
 pub trait Runner0 {
     fn run<T: ModuleType0>(&self, module_type: T) -> Result<(), Error>;
 }

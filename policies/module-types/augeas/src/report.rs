@@ -17,12 +17,6 @@ pub fn diff(a: &str, b: &str) -> String {
     unified_diff(Algorithm::Myers, a, b, 3, None)
 }
 
-// diff de valeur d'audit expected vs constraint
-
-// diff de valeur sur les set ??
-
-// observabilité d'augeas !
-
 /// Report a change in a file.
 ///
 /// We don't repeat the parameters.

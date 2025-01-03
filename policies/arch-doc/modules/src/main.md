@@ -1,12 +1,8 @@
 ---
 title: "Rudder agent modules"
-#subtitle: "Extending the agent"
 author: Alexis Mousset
-lang: en
-region: US
-date: "datetime(year: 2025, month: 01, day: 02)"
 bibliography:
-  - arch-doc.bib
+  - modules.bib
 abstract: Configuration management primitives appear like a solved topic now, and current major solutions have converged to pretty similar choices 10+ years ago. However, new needs are becoming more prominent, like observability, auditing and self-auditing abilities, in a context of growing attention for security topics. Could we benefit from reconsidering some of these design choices now to better address them? We will navigate through the solution space of configuration management low-level implementations (resource/promise/etc.), and explore what we can modify to provide new promising features. It will also cover implementation and programming language choices, from C to Python, Ruby, and Rust, and how these choices participate in shaping our tools strengths and weaknesses. It will feature some examples from ongoing work in Rudder, as well as other projects (mgmt, Jet, etc.)
 ...
 
@@ -155,6 +151,8 @@ explique l'échec ? tentative d'abstraction douteuse ?
 
 ### Audit
 
+Tools and frameworks for compliance automation such as OpenSCAP, Chef InSpec, and CIS-CAT.
+
 mixing audit and enforce is tricky
 why?
 
@@ -256,6 +254,7 @@ The tools we will mention here besides Rudder are:
 - [Puppet](https://www.puppet.com/): CFEngine's successor in a way.
 - [Chef Automate](https://community.chef.io/): Puppet's competitor, with a more developer-oriented approach.
 - [Chef InSpec](https://community.chef.io/tools/chef-inspec): a compliance tool developed by Chef.
+- [OpenSCAP](https://www.open-scap.org/): a compliance tool developed by Red Hat.
 - [Ansible](https://www.redhat.com/en/ansible-collaborative): The current leader in the field, with a simpler approach.
 - [DSCv3](https://learn.microsoft.com/en-us/powershell/dsc/overview?view=dsc-3.0): The new version of Desired State
   Configuration in Windows.
@@ -775,6 +774,8 @@ Or is it juste enough data to allow the server to make sense out of what the age
 
 - No news is **not** good news?
 
+#### OpenSCAP
+
 #### InSpec
 
 Below is an example of what is done by InSpec, a compliance tool
@@ -929,10 +930,6 @@ A strong bet.
 
 Our users won't generally be able to write it.
 
-#### Performance is a feature
-
-In the domain, it should not be neglected as it can be a key feature.
-
 ### Policies / User interface
 
 Data (YAML) and not a programming language.
@@ -1039,6 +1036,16 @@ TODO : possibilité pour chaque module de
 ## Implementation
 
 ### Principles
+
+#### Performances
+
+in-line with the choice of rust
+
+un ordre de magnitude par rapport à CFEngine (au global)
+
+In the domain, it should not be neglected as it can be a key feature.
+
+#### State machines
 
 des state machines autant que possible
 pour gérer les états complexes.
@@ -1171,6 +1178,8 @@ platform to preinstall `rustup` on all build containers.
 
 It adds quite some weight to the agent package, so we might need to
 mutualize modules into fewer binaries.
+
+FIXME: mutualize modules in single file
 
 ### Secrets
 
@@ -1457,6 +1466,10 @@ des commandes IDEMPOTENTES
 ## Perspectives
 
 ### A new Rudder agent
+
+rootless
+agentless
+saas
 
 #### Replacing CFEngine
 

@@ -1,15 +1,23 @@
-// #import "rudder.typ": *
+// Template for rudder reports. Using the ilm template.
 
 #import "@preview/ilm:1.4.0": *
 
+// Default to en_US if no language is specified.
+$if(lang)$
+$if(region)$
 #set text(lang: "$lang$", region: "$region$")
+$else$
+#set text(lang: "$lang$")
+$endif$
+$else$
+#set text(lang: "en", region: "US")
+$endif$
 
 #show: ilm.with(
   title: [$title$],
   author: "$author$",
-$if(date)$
-  date: $date$,
-$endif$
+  paper-size: "a4",
+  date: datetime.today(),
   abstract: [$abstract$],
 $if(bibliography)$
   bibliography: bibliography("$bibliography$"),

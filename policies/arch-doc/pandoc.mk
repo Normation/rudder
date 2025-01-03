@@ -31,13 +31,11 @@ markdown: clean
 
 # Build the typst source file
 typst: markdown
-	cp ../rudder.typ ${dest_dir}/rudder.typ
-	cp ../../../logo/icons/svg/rudder-logo-rect-black.svg ${dest_dir}/rudder.svg
 	pandoc --standalone --from markdown ${tmp}-mm.md --to typst --template=../rudder.typ.template --output ${tmp}.typ
 
 # Build the HTML output
 html: markdown
-	pandoc --standalone --from markdown ${tmp}-mm.md --to html5 --output ${out}.html
+	pandoc --standalone --from markdown ${tmp}-mm.md --to html5 --metadata date="`date -u --rfc-3339=date`" --output ${out}.html
 
 # Build the PDF
 pdf: typst

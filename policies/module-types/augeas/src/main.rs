@@ -4,7 +4,6 @@
 use anyhow::Result;
 
 // transofrmer un diff en conf augeas??
-// https://github.com/georgehansper/augprint.py
 // outil pour savoir comment écrire le set ??
 // ou pour prendre l'état d'un fichier ?
 
@@ -20,6 +19,12 @@ use anyhow::Result;
 // très important!
 // https://github.com/hercules-team/augeas/issues/68
 // https://github.com/dominikh/go-augeas/blob/master/augeas.go
+
+// diff de valeur d'audit expected vs constraint
+
+// diff de valeur sur les set ??
+
+// observabilité d'augeas !
 
 fn main() -> Result<(), anyhow::Error> {
     rudder_module_augeas::entry()

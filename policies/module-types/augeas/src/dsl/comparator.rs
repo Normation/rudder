@@ -16,6 +16,8 @@ use std::str::FromStr;
 // - password complexity checks
 // - compare str len
 
+// TODO consider https://github.com/jprochazk/garde
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum NumComparator {
     /// Greater than.

@@ -23,7 +23,6 @@ use std::path::{Path, PathBuf};
 ///
 /// We never load the tree. Reading the lenses takes time, but is quite convenient, so we do it
 /// once.
-//
 pub struct Augeas {
     aug: raugeas::Augeas,
     root: Option<PathBuf>,
