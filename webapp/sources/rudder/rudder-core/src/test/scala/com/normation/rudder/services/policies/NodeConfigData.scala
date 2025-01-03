@@ -73,6 +73,8 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.policies.NodeConfigData.fact1
 import com.normation.rudder.services.policies.NodeConfigData.factRoot
 import com.normation.rudder.services.servers.AllowedNetwork
+import com.normation.rudder.services.servers.InstanceId
+import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.rudder.services.servers.PolicyServer
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.PolicyServers
@@ -767,9 +769,11 @@ class TestNodeConfiguration(
   val t7:                     Long                          = System.currentTimeMillis()
   NodeConfigData.logger.trace(s"Policy Server Management: ${t7 - t6} ms")
 
+  val instanceIdService     = new InstanceIdService(InstanceId("test-instance-id"))
   val systemVariableService = new SystemVariableServiceImpl(
     systemVariableServiceSpec,
     policyServerManagement,
+    instanceIdService,
     toolsFolder = "tools_folder",
     policyDistribCfenginePort = 5309,
     policyDistribHttpsPort = 443,

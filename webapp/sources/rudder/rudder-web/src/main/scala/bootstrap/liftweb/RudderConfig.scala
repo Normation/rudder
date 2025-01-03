@@ -2931,6 +2931,7 @@ object RudderConfigInit {
     lazy val systemVariableService: SystemVariableService = new SystemVariableServiceImpl(
       systemVariableSpecService,
       psMngtService,
+      instanceIdService,
       RUDDER_DIR_DEPENDENCIES,
       CFENGINE_POLICY_DISTRIBUTION_PORT,
       HTTPS_POLICY_DISTRIBUTION_PORT,

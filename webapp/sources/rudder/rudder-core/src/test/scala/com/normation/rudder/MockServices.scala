@@ -279,9 +279,11 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     override def deleteRelaySystemObjects(policyServerId: NodeId): IOResult[Unit] = ???
   }
 
+  val instanceIdService     = new InstanceIdService(InstanceId("test-instance-id"))
   val systemVariableService = new SystemVariableServiceImpl(
     systemVariableServiceSpec,
     policyServerManagementService,
+    instanceIdService,
     toolsFolder = "tools_folder",
     policyDistribCfenginePort = 5309,
     policyDistribHttpsPort = 443,

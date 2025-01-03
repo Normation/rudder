@@ -51,6 +51,11 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
 
   private val varSpecs: Seq[SystemVariableSpec] = Seq(
     SystemVariableSpec(
+      "INSTANCE_ID",
+      "Identifier of the server with which nodes are managed",
+      multivalued = false
+    ),
+    SystemVariableSpec(
       "ALLOWCONNECT",
       "List of ip allowed to connect to the node (policyserver + children if any)",
       multivalued = true
