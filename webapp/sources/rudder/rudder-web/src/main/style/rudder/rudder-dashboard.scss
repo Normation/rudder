@@ -19,7 +19,7 @@
 
 .rudder-template .homePage .panel,
 .rudder-template .homePage .card{
-  margin-bottom: 30px;
+  height: 100%;
   border-radius: 12px;
   box-shadow: 0 10px 20px 6px #dce3ef63;
   border: none !important;
@@ -55,12 +55,11 @@
   & > a {
     .badge{
       background-color: #b1bbcb;
-      opacity:.5;
       display: inline-flex;
       justify-content: center;
       align-items: center;
-      padding: 5px 10px;
-      font-size: .8em;
+      padding: 0px 10px;
+      font-size: 1em;
     }
 
     &:hover {
