@@ -364,7 +364,11 @@ class MockCompliance(mockDirectives: MockDirectives) {
     def findDirectiveNodeStatusReports(
         nodeIds:            Set[NodeId],
         filterByDirectives: Set[DirectiveId]
-    )(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = ???
+    )(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = {
+      val filteredNodeReports = statusReports.view.filterKeys(nodeIds.contains(_)).toMap
+      ReportingService.filterReportsByDirectives(filteredNodeReports, filterByDirectives).succeed
+    }
+
     def findDirectiveRuleStatusReportsByRule(ruleId: RuleId)(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] =
       ???
     def findNodeStatusReport(nodeId:            NodeId)(implicit qc: QueryContext): IOResult[NodeStatusReport] = ???

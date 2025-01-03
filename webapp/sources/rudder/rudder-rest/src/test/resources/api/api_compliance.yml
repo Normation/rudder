@@ -2471,3 +2471,59 @@ response:
         ]
       }
     }
+---
+description: Get a directive compliance
+method: GET
+url: /secure/api/compliance/directives/e9a1a909-2490-4fc9-95c3-9d0aa01717c9?level=3
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getDirectiveComplianceId",
+      "result" : "success",
+      "data" : {
+        "directiveCompliance" : {
+          "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+          "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+          "compliance" : 100.0,
+          "mode" : "full-compliance",
+          "policyMode" : "default",
+          "complianceDetails" : {
+            "successAlreadyOK" : 100.0
+          },
+          "rules" : [
+            {
+              "id" : "br1",
+              "name" : "R1",
+              "compliance" : 100.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "components" : []
+            },
+            {
+              "id" : "r1",
+              "name" : "R1",
+              "compliance" : 100.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "components" : []
+            },
+            {
+              "id" : "br4",
+              "name" : "R4",
+              "compliance" : 100.0,
+              "policyMode" : "enforce",
+              "complianceDetails" : {
+                "successAlreadyOK" : 100.0
+              },
+              "components" : []
+            }
+          ],
+          "nodes" : []
+        }
+      }
+    }

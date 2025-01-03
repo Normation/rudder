@@ -627,6 +627,7 @@ class ComplianceAPIService(
                        } else {
                          Seq().succeed
                        }
+      ruleIds        = rules.map(_.id).toSet
       t2            <- currentTimeMillis
       _             <- TimingDebugLoggerPure.trace(s"getByDirectivesCompliance - getAllRules in ${t2 - t1} ms")
       nodeFacts     <- nodeFactRepos.getAll()
@@ -650,7 +651,12 @@ class ComplianceAPIService(
       globalPolicyMode <- getGlobalPolicyMode
 
       reportsByRule = reportsByNode.flatMap {
-                        case (_, status) => status.reports.get(PolicyTypeName.rudderBase).map(_.reports).getOrElse(Nil)
+                        case (_, status) =>
+                          status.reports
+                            .get(PolicyTypeName.rudderBase)
+                            .map(_.reports)
+                            .getOrElse(Set.empty)
+                            .filter(r => ruleIds.contains(r.ruleId))
                       }.groupBy(_.ruleId)
       t7           <- currentTimeMillis
       _            <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - group reports by rules in ${t7 - t6} ms")
@@ -680,34 +686,43 @@ class ComplianceAPIService(
         directive <- directives
       } yield {
         // We will compute compliance for each rule for the current Directive
-        val rulesCompliance = for {
-          (ruleId, ruleReports) <- reportsByRule.toSeq
+        val rulesCompliance = reportsByRule
+          .flatMap[ByDirectiveByRuleCompliance] {
+            case (ruleId, ruleReports) =>
+              // We will filter rules that truly have directive reports
+              ruleReports.flatMap(ruleReport => ruleReport.directives.get(directive.id).map(ruleReport -> _)) match {
+                case Nil                  => Option.empty[ByDirectiveByRuleCompliance]
+                case ruleDirectiveReports =>
+                  // We will now gather our report by component for the current Directive
+                  val reportsByComponents = (for {
+                    ruleDirectiveReport          <- ruleDirectiveReports
+                    (ruleReport, directiveReport) = ruleDirectiveReport
+                    nodeId                        = ruleReport.nodeId
+                    component                    <- directiveReport.components
+                  } yield {
+                    (nodeId, component)
+                  }).groupBy(_._2.componentName).toSeq
 
-          // We will now gather our report by component for the current Directive
-          reportsByComponents = (for {
-                                  ruleReport       <- ruleReports
-                                  nodeId            = ruleReport.nodeId
-                                  directiveReports <- ruleReport.directives.get(directive.id).toList
-                                  component        <- directiveReports.components
-                                } yield {
-                                  (nodeId, component)
-                                }).groupBy(_._2.componentName).toSeq
+                  val componentsCompliance = reportsByComponents.flatMap {
+                    case (compName, reports) => components(nodeFacts)(compName, reports.toList)
+                  }
 
-        } yield {
-          val componentsCompliance = reportsByComponents.flatMap(c => components(nodeFacts)(c._1, c._2.toList))
+                  val ruleName          = rules.find(_.id == ruleId).map(_.name).getOrElse(s"Unknown rule (${ruleId.serialize})")
+                  val componentsDetails = if (computedLevel <= 3) Seq() else componentsCompliance
 
-          val ruleName          = rules.find(_.id == ruleId).map(_.name).getOrElse("")
-          val componentsDetails = if (computedLevel <= 3) Seq() else componentsCompliance
+                  Some(
+                    ByDirectiveByRuleCompliance(
+                      ruleId,
+                      ruleName,
+                      ComplianceLevel.sum(componentsCompliance.map(_.compliance)),
+                      policyModeByRules.get(ruleId).flatten,
+                      componentsDetails
+                    )
+                  )
+              }
+          }
+          .toSeq
 
-          ByDirectiveByRuleCompliance(
-            ruleId,
-            ruleName,
-            ComplianceLevel.sum(componentsCompliance.map(_.compliance)),
-            policyModeByRules.get(ruleId).flatten,
-            componentsDetails
-          )
-        }
-        // level = ComplianceLevel.sum(reportsByDir.map(_.compliance))
         ByDirectiveCompliance(
           directive.id,
           directive.name,
@@ -916,7 +931,7 @@ class ComplianceAPIService(
                           status.reports
                             .get(PolicyTypeName.rudderBase)
                             .map(_.reports)
-                            .getOrElse(Nil)
+                            .getOrElse(Set.empty)
                             .filter(r =>
                               (isGlobalCompliance || rules.keySet.contains(r.ruleId)) && currentGroupNodeIds.contains(r.nodeId)
                             )
@@ -1015,7 +1030,7 @@ class ComplianceAPIService(
           val reports  = status.reports
             .get(PolicyTypeName.rudderBase)
             .map(_.reports)
-            .getOrElse(Nil)
+            .getOrElse(Set.empty)
             .filter(r => isGlobalCompliance || rules.keySet.contains(r.ruleId))
             .toSeq
             .sortBy(_.ruleId.serialize)
