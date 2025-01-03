@@ -3082,7 +3082,7 @@ class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeG
   val inventoryDitService: InventoryDitService =
     new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
   val getSubGroupChoices = new DefaultSubGroupComparatorRepository(mockNodeGroups.groupsRepo)
-  val nodeQueryData      = new NodeQueryCriteriaData(() => getSubGroupChoices)
+  val nodeQueryData      = new NodeQueryCriteriaData(() => getSubGroupChoices, null)
   val ditQueryDataImpl   = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, nodeQueryData)
   val queryParser        = CmdbQueryParser.jsonStrictParser(ditQueryDataImpl.criteriaMap.toMap)
 
