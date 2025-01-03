@@ -1315,6 +1315,7 @@ object RudderConfig extends Loggable {
   val updateTechniqueLibrary:              UpdateTechniqueLibrary                     = rci.updateTechniqueLibrary
   val techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService      = rci.techniqueCompilationStatusService
   val userPropertyService:                 UserPropertyService                        = rci.userPropertyService
+  val instanceIdService:                   InstanceIdService                          = rci.instanceIdService
   val userRepository:                      UserRepository                             = rci.userRepository
   val userService:                         UserService                                = rci.userService
   val woApiAccountRepository:              WoApiAccountRepository                     = rci.woApiAccountRepository
@@ -2442,7 +2443,7 @@ object RudderConfigInit {
      * than the accepted ones.
      */
     lazy val getSubGroupChoices = new DefaultSubGroupComparatorRepository(roLdapNodeGroupRepository)
-    lazy val nodeQueryData      = new NodeQueryCriteriaData(() => getSubGroupChoices)
+    lazy val nodeQueryData      = new NodeQueryCriteriaData(() => getSubGroupChoices, instanceIdService)
     lazy val ditQueryDataImpl   = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, nodeQueryData)
     lazy val queryParser        = CmdbQueryParser.jsonStrictParser(Map.empty[String, ObjectCriterion] ++ ditQueryDataImpl.criteriaMap)
     lazy val queryRawParser     = CmdbQueryParser.jsonRawParser(Map.empty[String, ObjectCriterion] ++ ditQueryDataImpl.criteriaMap)
@@ -3643,7 +3644,7 @@ object RudderConfigInit {
             pendingNodesDitImpl,
             nodeDit,
             rudderDit,
-            new NodeQueryCriteriaData(() => subGroup)
+            new NodeQueryCriteriaData(() => subGroup, instanceIdService)
           ),
           ldapEntityMapper
         )

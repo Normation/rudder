@@ -47,6 +47,8 @@ import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.CriterionComposition.*
 import com.normation.rudder.facts.nodes.*
+import com.normation.rudder.services.servers.InstanceId
+import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -57,6 +59,8 @@ import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
 import zio.*
 import zio.syntax.*
+import zio.test.ZIOSpecDefault
+import zio.test.junit.ZTestJUnitRunner
 
 /*
  * Test query parsing.
@@ -91,7 +95,8 @@ class TestNodeFactQueryProcessor {
 
     override def getGroups: IOResult[Chunk[SubGroupChoice]] = Chunk.fromIterable(groups.keys).succeed
   }
-  val queryData = new NodeQueryCriteriaData(() => subGroupComparatorRepo)
+  val instanceIdService = new InstanceIdService(InstanceId("test-instance-id"))
+  val queryData = new NodeQueryCriteriaData(() => subGroupComparatorRepo, instanceIdService)
 
   // load all nodes that in resources: node-facts/*.json
 //  java.lang.Runtime.getRuntime.gc()
@@ -1346,6 +1351,54 @@ class TestNodeFactQueryProcessor {
     testQueries(q1 :: q2 :: q3 :: q4 :: q5 :: Nil, doInternalQueryTest = true)
   }
 
+  @Test def nodeInstanceId(): Unit = {
+    val q1 = TestQuery(
+      "q1", // select all nodes when the instance ID is the one of the service
+      parser(s"""
+      { "select":"node", "composition":"And", "where":[
+        { "objectType":"node", "attribute":"instanceId", "comparator":"eq", "value":"${instanceIdService.instanceId.value}" },
+        { "objectType":"node", "attribute":"state", "comparator":"eq", "value":"initializing" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(7) :: Nil
+    )
+
+    val q2 = TestQuery(
+      "q2", // do not find any nodes when the instance ID is not the defined one
+      parser("""
+      { "select":"node", "composition":"And", "where":[
+        { "objectType":"node", "attribute":"instanceId", "comparator":"eq", "value":"unknown-instance-id" },
+        { "objectType":"node", "attribute":"state", "comparator":"eq", "value":"initializing" }
+      ] }
+      """).openOrThrowException("For tests"),
+      Nil
+    )
+
+    val q3 = TestQuery(
+      "q3", // OR : instance ID criterion should return all results when true
+      parser(s"""
+      { "select":"node", "composition":"Or", "where":[
+        { "objectType":"node", "attribute":"instanceId", "comparator":"eq", "value":"${instanceIdService.instanceId.value}" },
+        { "objectType":"node", "attribute":"state", "comparator":"eq", "value":"enabled" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s
+    )
+
+    val q4 = TestQuery(
+      "q4", // OR : instance ID criterion should be ignored when false
+      parser("""
+      { "select":"node", "composition":"Or", "where":[
+        { "objectType":"node", "attribute":"instanceId", "comparator":"eq", "value":"unknown-instance-id" },
+        { "objectType":"node", "attribute":"state", "comparator":"eq", "value":"initializing" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(7) :: Nil
+    )
+
+    testQueries(q1 :: q2 :: q3 :: q4 :: Nil, doInternalQueryTest = true)
+  }
+
   @Test def testLdapAndNodeInfoQuery(): Unit = {
     val q1 = TestQuery(
       "q1", // select nodes with user.accepted = true and environment variable SHELL=/bin/sh
@@ -1451,4 +1504,82 @@ class TestNodeFactQueryProcessor {
   }
 
   @After def after(): Unit = {}
+}
+
+@RunWith(classOf[ZTestJUnitRunner])
+class TestNodeFactAlgebra extends ZIOSpecDefault {
+  import TestNodeFactAlgebra.*
+  import zio.test.*
+  import zio.test.Assertion.*
+
+  override def spec: Spec[TestEnvironment & Scope, Any] = {
+    // testing the values of the boolean algebra
+    suite("MonoidWithZero")(
+      test("MonoidAnd special values") {
+        // && : neutral == true, zero = false
+        assert(MonoidAnd.neutral.value)(equalTo(true))
+        assert(MonoidAnd.zero.value)(equalTo(false))
+      },
+      test("MonoidOr special values") {
+        // || : neutral == false, zero = true
+        assert(MonoidOr.neutral.value)(equalTo(false))
+        assert(MonoidOr.zero.value)(equalTo(true))
+      },
+      test("compose with special values") {
+        check(algebraGen, coreNodeFactMatcherGen("a")) {
+          case (alg, a) =>
+            // neutral · a = a
+            // a · neutral = a
+            // zero · a = zero
+            // a · zero = zero
+            assert(alg.compose(alg.neutral, a))(equalTo(a))
+            assert(alg.compose(a, alg.neutral))(equalTo(a))
+            assert(alg.compose(alg.zero, a))(equalTo(alg.zero))
+            assert(alg.compose(a, alg.zero))(equalTo(alg.zero))
+        }
+      },
+
+      /**
+    * - Associativity
+    * - Commutativity
+    */
+      suite("algebraLaws")(
+        // equality is only on matching function, not on identity
+        test("associativity") {
+
+          check(algebraGen, coreNodeFactMatcherGen("a"), coreNodeFactMatcherGen("b"), coreNodeFactMatcherGen("c")) {
+            case (alg, a, b, c) =>
+              // Associativity
+              // a · (b · c) = (a · b) · c
+              val lhs = alg.compose(a, alg.compose(b, c))
+              val rhs = alg.compose(alg.compose(a, b), c)
+              assert(runMatcher(lhs))(equalTo(runMatcher(rhs)))
+          }
+        },
+        test("commutativity") {
+
+          check(algebraGen, coreNodeFactMatcherGen("a"), coreNodeFactMatcherGen("b")) {
+            case (alg, a, b) =>
+              // Associativity
+              // a · b = b . a
+              val lhs = alg.compose(a, b)
+              val rhs = alg.compose(b, a)
+              assert(runMatcher(lhs))(equalTo(runMatcher(rhs)))
+          }
+        }
+      )
+    )
+  }
+
+}
+private object TestNodeFactAlgebra {
+  import zio.test.Gen
+
+  val algebraGen:                           Gen[Any, MonoidWithZero]      =
+    Gen.fromIterable(List(MonoidAnd, MonoidOr))
+  def coreNodeFactMatcherGen(name: String): Gen[Any, CoreNodeFactMatcher] =
+    Gen.boolean.map(matches => CoreNodeFactMatcher(name, _ => matches.succeed))
+
+  // run without any node fact, as we only use contant values in tests
+  def runMatcher(matcher: NodeFactMatcher): Boolean = matcher.matches(null).runNow
 }

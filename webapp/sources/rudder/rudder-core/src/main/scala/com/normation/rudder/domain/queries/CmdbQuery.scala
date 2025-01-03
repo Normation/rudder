@@ -49,6 +49,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.services.queries.*
+import com.normation.rudder.services.servers.InstanceId
 import com.unboundid.ldap.sdk.*
 import enumeratum.Enum
 import enumeratum.EnumEntry
@@ -474,7 +475,7 @@ case object StringComparator extends TStringComparator {
   override val comparators = BaseComparators.comparators
 
   override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = comparator match {
-    // for equals and not equals, check value for jocker
+    // for equals and not equals, check value for joker
     case Equals    => escapedFilter(attributeName, value)
     case NotEquals => NOT(escapedFilter(attributeName, value))
     case NotExists => NOT(HAS(attributeName))
@@ -729,6 +730,22 @@ case object EditorComparator extends LDAPCriterionType {
     if (editors.contains(v)) Right(v) else Left(Inconsistency(s"Invalide editor : '${v}'"))
 
   override def toLDAP(value: String): PureResult[String] = Right(value)
+}
+
+/**
+ * A type for comparators that do not require the value to be encoded into LDAP
+ */
+sealed trait NonLdapCriterionType extends CriterionType
+
+case class InstanceIdComparator(instanceId: InstanceId) extends NonLdapCriterionType with TStringComparator {
+  override def comparators:                                    Seq[BaseComparator] = Equals :: NotEquals :: Nil
+  def matches(value: String, comparator: CriterionComparator): PureResult[Boolean] = {
+    comparator match {
+      case Equals    => Right(value.equalsIgnoreCase(instanceId.value))
+      case NotEquals => Right(!value.equalsIgnoreCase(instanceId.value))
+      case _         => Left(Unexpected(s"Instance ID comparator only supports : ${comparators.map(_.id).mkString(",")}"))
+    }
+  }
 }
 
 /*

@@ -66,11 +66,42 @@ import zio.syntax.*
  * - the different case (node, root, invert, etc)
  * - the query criteria
  *
+ * There are evaluations of constant values, and evaluations based on NodeFact attributes
+ *
  * NodeFactMatcher is a group for AND and for OR
  */
-final case class NodeFactMatcher(debugString: String, matches: CoreNodeFact => IOResult[Boolean])
+sealed trait NodeFactMatcher {
+  def debugString: String
+  def matches:     CoreNodeFact => IOResult[Boolean]
+
+  /**
+    * Ignore specific const value and algebraic properties, to compose the matcher at the end
+    */
+  def unconst: CoreNodeFactMatcher = this match {
+    case c: CoreNodeFactMatcher => c
+    case c: ConstMatcher        => CoreNodeFactMatcher(c.debugString, c.matches)
+  }
+}
+
+final case class CoreNodeFactMatcher(debugString: String, matches: CoreNodeFact => IOResult[Boolean]) extends NodeFactMatcher
+
+/**
+  * Sub-type for zero and absorbing values matcher.
+  * Types are needed because composition of matcher has specific logic
+  * for zero and absorbing matcher elements.
+  */
+sealed abstract class ConstMatcher(debugString: String, value: Boolean) extends NodeFactMatcher {
+  override def matches: CoreNodeFact => IOResult[Boolean] = _ => value.succeed
+}
+
+final case class NeutralMatcher(debugString: String, value: Boolean)   extends ConstMatcher(debugString, value)
+final case class AbsorbingMatcher(debugString: String, value: Boolean) extends ConstMatcher(debugString, value)
 
 object NodeFactMatcher {
+  def apply(debugString: String, matches: CoreNodeFact => IOResult[Boolean]): CoreNodeFactMatcher = {
+    CoreNodeFactMatcher(debugString, matches)
+  }
+
   val nodeAndRelayMatcher: NodeFactMatcher = {
     val s = "only matches node and relay"
     NodeFactMatcher(
@@ -85,54 +116,77 @@ object NodeFactMatcher {
   }
 }
 
-trait Group {
-  def compose(a: NodeFactMatcher, b: NodeFactMatcher): NodeFactMatcher
-  def inverse(a: NodeFactMatcher): NodeFactMatcher
-  def zero: NodeFactMatcher
-}
-object GroupAnd extends Group {
-  def compose(a: NodeFactMatcher, b: NodeFactMatcher): NodeFactMatcher = {
-    (a, b) match {
-      case (`zero`, _) => b
-      case (_, `zero`) => a
-      case _           => NodeFactMatcher(s"(${a.debugString}) && (${b.debugString})", (n: CoreNodeFact) => (a.matches(n) && b.matches(n)))
-    }
-  }
+/**
+  * Algebra for criterion composition : special elements of the set are
+  * characterized by their type.
+  *
+  * It has a neutral element, since it is also a monoid.
+  * It has an absorbing element on its operation, which zeroes out other elements.
+  *
+  * For now we have one for boolean &&, another for ||,
+  * in the future we could use a single Ring to be able to compose operations.
+  */
+sealed private[queries] trait MonoidWithZero {
+  // neutral and zero elements needs to be unique values, to use them for comparison
+  val neutral: NeutralMatcher
+  val zero:    AbsorbingMatcher
+
+  def debugOperation: String
+  def operation(a: NodeFactMatcher, b: NodeFactMatcher): CoreNodeFact => IOResult[Boolean]
 
   def inverse(a: NodeFactMatcher): NodeFactMatcher =
     NodeFactMatcher(s"!(${a.debugString})", (n: CoreNodeFact) => a.matches(n).map(!_))
 
-  val zero: NodeFactMatcher = NodeFactMatcher("and0_true", _ => true.succeed)
-}
-
-object GroupOr extends Group {
   def compose(a: NodeFactMatcher, b: NodeFactMatcher): NodeFactMatcher = {
     (a, b) match {
-      case (`zero`, _) => b
-      case (_, `zero`) => a
-      case _           => NodeFactMatcher(s"(${a.debugString}) || (${b.debugString})", (n: CoreNodeFact) => (a.matches(n) || b.matches(n)))
+      case (l: ConstMatcher, r) =>
+        l match {
+          case _:   NeutralMatcher   => r
+          case abs: AbsorbingMatcher => abs
+        }
+      case (l, r: ConstMatcher) =>
+        r match {
+          case _:   NeutralMatcher   => l
+          case abs: AbsorbingMatcher => abs
+        }
+      case _                    =>
+        NodeFactMatcher(
+          s"(${a.debugString}) ${debugOperation} (${b.debugString})",
+          (n: CoreNodeFact) => operation(a, b)(n)
+        )
     }
   }
+}
 
-  def inverse(a: NodeFactMatcher): NodeFactMatcher =
-    NodeFactMatcher(s"!(${a.debugString})", (n: CoreNodeFact) => a.matches(n).map(!_))
+private[queries] object MonoidAnd extends MonoidWithZero {
+  val neutral = NeutralMatcher("and1_true", value = true)
+  val zero    = AbsorbingMatcher("and0_false", value = false)
+  val debugOperation: String = "&&"
+  def operation(a: NodeFactMatcher, b: NodeFactMatcher) = (cnf) => a.matches(cnf) && b.matches(cnf)
+}
 
-  val zero: NodeFactMatcher = NodeFactMatcher("or0_false", _ => false.succeed)
+private[queries] object MonoidOr extends MonoidWithZero {
+  val neutral = NeutralMatcher("or1_false", value = false)
+  val zero    = AbsorbingMatcher("or0_true", value = true)
+  val debugOperation: String = "||"
+  def operation(a: NodeFactMatcher, b: NodeFactMatcher) = (cnf) => a.matches(cnf) || b.matches(cnf)
 }
 
 /*
  * A case class to sort a list of criterion lines into the different kind we know about:
+ * - application-level values
  * - core node fact
  * - sub group
  * - ldap (historical)
  */
 final case class CriterionLines(
+    global:       Chunk[CriterionLine],
     coreNodeFact: Chunk[CriterionLine],
     subGroup:     Chunk[CriterionLine],
     ldap:         Chunk[CriterionLine]
 )
 object CriterionLines {
-  def empty: CriterionLines = CriterionLines(Chunk.empty, Chunk.empty, Chunk.empty)
+  def empty: CriterionLines = CriterionLines(Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
 }
 
 class NodeFactQueryProcessor(
@@ -214,13 +268,16 @@ class NodeFactQueryProcessor(
    * - LdapQuery (we want to have all lines of that kind grouped in a new query)
    */
   def analyzeQuery(query: Query)(implicit qc: QueryContext): IOResult[NodeFactMatcher] = {
-    val group = if (query.composition == CriterionComposition.And) GroupAnd else GroupOr
+    val group = if (query.composition == CriterionComposition.And) MonoidAnd else MonoidOr
 
     // we need a better pattern matching (extensible would be better) in place of `isInstanceOf`
     // we prefer coreNodeFact matcher on top of LDAP, since the former is quick in cache, the latter needs IO
     val sortedLinesIO = ZIO.foldLeft(query.criteria)(CriterionLines.empty) {
       case (lines, l) =>
         l match {
+          // application-level values should always come first
+          case _ if l.attribute.cType.isInstanceOf[NonLdapCriterionType]            =>
+            lines.modify(_.global).using(_.appended(l)).succeed
           // if possible, always use that one for performance reason
           case _ if l.attribute.nodeCriterionMatcher != UnsupportedByNodeMinimalApi =>
             lines.modify(_.coreNodeFact).using(_.appended(l)).succeed
@@ -240,23 +297,51 @@ class NodeFactQueryProcessor(
     for {
       // build matcher for criterion lines
       sortedLines  <- sortedLinesIO
+      globalLines   = globalValueMatcher(group)(sortedLines.global)
       subgroupLines = subGroupMatcher(sortedLines.subGroup, groupRepo)
       ldapLines     = ldapMatcher(sortedLines.ldap, query)
       nodeLines     = nodeFactMatcher(sortedLines.coreNodeFact)
-      lineResult   <- ZIO.foldLeft(subgroupLines ++ ldapLines ++ nodeLines)(group.zero) {
+      lineResult   <- ZIO.foldLeft(globalLines ++ subgroupLines ++ ldapLines ++ nodeLines)(group.neutral: NodeFactMatcher) {
                         case (matcher, line) =>
                           line.map(group.compose(matcher, _))
                       }
     } yield {
       // inverse now if needed, because we don't want to return root if not asked *even* when inverse is present
-      val inv = if (query.transform == ResultTransformation.Invert) group.inverse(lineResult) else lineResult
-      // finally, filter out root if need
-      val res = {
-        if (query.returnType == QueryReturnType.NodeAndRootServerReturnType) inv
-        else GroupAnd.compose(NodeFactMatcher.nodeAndRelayMatcher, inv)
+      val inv         = if (query.transform == ResultTransformation.Invert) group.inverse(lineResult) else lineResult
+      // finally, we filter out the root node if needed, and we do not want global values match to still match root :
+      val nodeMatcher = inv.unconst
+      val res         = {
+        if (query.returnType == QueryReturnType.NodeAndRootServerReturnType) nodeMatcher
+        else MonoidAnd.compose(NodeFactMatcher.nodeAndRelayMatcher, nodeMatcher)
       }
       res
     }
+  }
+
+  private def globalValueMatcher(group: MonoidWithZero)(lines: Seq[CriterionLine]): Seq[IOResult[ConstMatcher]] = {
+    // we need to process criterion line specifically according to type, to compare with global application values
+    lines.flatMap(c => {
+      c.attribute.cType match {
+        case instanceIdComparator: InstanceIdComparator =>
+          Some(
+            instanceIdComparator
+              .matches(c.value, c.comparator)
+              .map(isMatching => {
+                def debugString =
+                  s"[instanceId(${instanceIdComparator.instanceId.value}) ${c.comparator.id} ${c.value} : ${isMatching}]"
+                def continueMatcher: NeutralMatcher   = group.neutral.copy(debugString = debugString)
+                def stopMatcher:     AbsorbingMatcher = group.zero.copy(debugString = debugString)
+
+                if (group.zero.value == isMatching)
+                  stopMatcher
+                else
+                  continueMatcher
+              })
+              .toIO
+          )
+        case _ => None
+      }
+    })
   }
 
   // here, we have two kinds of processing:
@@ -265,7 +350,7 @@ class NodeFactQueryProcessor(
   // - one is "on all node at once": it is when an external service is the oracle and can decide what node
   //   matches its criteria. This is the case for the node-group matcher for example.
   // For now, we have to check the criterion to know, each external service is a special case
-  def ldapMatcher(lines: Seq[CriterionLine], q: Query): Seq[IOResult[NodeFactMatcher]] = {
+  private def ldapMatcher(lines: Seq[CriterionLine], q: Query): Seq[IOResult[NodeFactMatcher]] = {
     // for LDAP, we rebuild a false query with only these lines and no transformation
     if (lines.nonEmpty) {
       val ldapQuery = q.modify(_.transform).setTo(ResultTransformation.Identity).modify(_.criteria).setTo(lines.toList)
@@ -283,7 +368,7 @@ class NodeFactQueryProcessor(
     } else Seq()
   }
 
-  def nodeFactMatcher(lines: Seq[CriterionLine]): Seq[IOResult[NodeFactMatcher]] = {
+  private def nodeFactMatcher(lines: Seq[CriterionLine]): Seq[IOResult[NodeFactMatcher]] = {
     lines.map { c =>
       NodeFactMatcher(
         s"[${c.objectType.objectType}.${c.attribute.name} ${c.comparator.id} ${c.value}]",
@@ -292,7 +377,7 @@ class NodeFactQueryProcessor(
     }
   }
 
-  def subGroupMatcher(
+  private def subGroupMatcher(
       lines:     Seq[CriterionLine],
       groupRepo: SubGroupComparatorRepository
   )(implicit qc: QueryContext): Seq[IOResult[NodeFactMatcher]] = {

@@ -925,7 +925,19 @@ object SearchNodeComponent {
               attrs*
             )
         }
-      case _                                          => AsForm.default
+
+      case InstanceIdComparator(instanceId) =>
+        AsForm {
+          case (value, func, attrs) =>
+            // empty value is not allowed so the input is filled with the current instance ID as default
+            val defaultOrValue = if (value.isEmpty) instanceId.value else value
+            SHtml.text(
+              defaultOrValue,
+              func,
+              attrs*
+            )
+        }
+      case _                                => AsForm.default
     }
   }
 }
