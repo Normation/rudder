@@ -122,17 +122,19 @@ object GroupOr extends Group {
 
 /*
  * A case class to sort a list of criterion lines into the different kind we know about:
+ * - application-level values
  * - core node fact
  * - sub group
  * - ldap (historical)
  */
 final case class CriterionLines(
+    global:       Chunk[CriterionLine],
     coreNodeFact: Chunk[CriterionLine],
     subGroup:     Chunk[CriterionLine],
     ldap:         Chunk[CriterionLine]
 )
 object CriterionLines {
-  def empty: CriterionLines = CriterionLines(Chunk.empty, Chunk.empty, Chunk.empty)
+  def empty: CriterionLines = CriterionLines(Chunk.empty, Chunk.empty, Chunk.empty, Chunk.empty)
 }
 
 class NodeFactQueryProcessor(
@@ -221,6 +223,9 @@ class NodeFactQueryProcessor(
     val sortedLinesIO = ZIO.foldLeft(query.criteria)(CriterionLines.empty) {
       case (lines, l) =>
         l match {
+          // application-level values should always come first
+          case _ if l.attribute.cType.isInstanceOf[NonLdapCriterionType]            =>
+            lines.modify(_.global).using(_.appended(l)).succeed
           // if possible, always use that one for performance reason
           case _ if l.attribute.nodeCriterionMatcher != UnsupportedByNodeMinimalApi =>
             lines.modify(_.coreNodeFact).using(_.appended(l)).succeed
@@ -240,10 +245,11 @@ class NodeFactQueryProcessor(
     for {
       // build matcher for criterion lines
       sortedLines  <- sortedLinesIO
+      globalLines   = globalValueMatcher(group)(sortedLines.global)
       subgroupLines = subGroupMatcher(sortedLines.subGroup, groupRepo)
       ldapLines     = ldapMatcher(sortedLines.ldap, query)
       nodeLines     = nodeFactMatcher(sortedLines.coreNodeFact)
-      lineResult   <- ZIO.foldLeft(subgroupLines ++ ldapLines ++ nodeLines)(group.zero) {
+      lineResult   <- ZIO.foldLeft(globalLines ++ subgroupLines ++ ldapLines ++ nodeLines)(group.zero) {
                         case (matcher, line) =>
                           line.map(group.compose(matcher, _))
                       }
@@ -259,13 +265,32 @@ class NodeFactQueryProcessor(
     }
   }
 
+  private def globalValueMatcher(group: Group)(lines: Seq[CriterionLine]): Seq[IOResult[NodeFactMatcher]] = {
+    // we need to process criterion line specifically according to type, to compare with global application values
+    lines.flatMap(c => {
+      c.attribute.cType match {
+        case instanceIdComparator: InstanceIdComparator =>
+          def debugString     = s"[instanceId(${instanceIdComparator.instanceId.value}) ${c.comparator.id} ${c.value}]"
+          def positiveMatcher = group.zero.copy(debugString = debugString)
+          def negativeMatcher = group.inverse(positiveMatcher)
+          Some(
+            (if (instanceIdComparator.matches(c.value))
+               positiveMatcher
+             else
+               negativeMatcher).succeed
+          )
+        case _ => None
+      }
+    })
+  }
+
   // here, we have two kinds of processing:
   // - one is testing on a node by node basis: this is the main case, where we want to know if a node
   //   matches of not a bunch of criteria regarding its inventory/properties
   // - one is "on all node at once": it is when an external service is the oracle and can decide what node
   //   matches its criteria. This is the case for the node-group matcher for example.
   // For now, we have to check the criterion to know, each external service is a special case
-  def ldapMatcher(lines: Seq[CriterionLine], q: Query): Seq[IOResult[NodeFactMatcher]] = {
+  private def ldapMatcher(lines: Seq[CriterionLine], q: Query): Seq[IOResult[NodeFactMatcher]] = {
     // for LDAP, we rebuild a false query with only these lines and no transformation
     if (lines.nonEmpty) {
       val ldapQuery = q.modify(_.transform).setTo(ResultTransformation.Identity).modify(_.criteria).setTo(lines.toList)
@@ -283,7 +308,7 @@ class NodeFactQueryProcessor(
     } else Seq()
   }
 
-  def nodeFactMatcher(lines: Seq[CriterionLine]): Seq[IOResult[NodeFactMatcher]] = {
+  private def nodeFactMatcher(lines: Seq[CriterionLine]): Seq[IOResult[NodeFactMatcher]] = {
     lines.map { c =>
       NodeFactMatcher(
         s"[${c.objectType.objectType}.${c.attribute.name} ${c.comparator.id} ${c.value}]",
@@ -292,7 +317,7 @@ class NodeFactQueryProcessor(
     }
   }
 
-  def subGroupMatcher(
+  private def subGroupMatcher(
       lines:     Seq[CriterionLine],
       groupRepo: SubGroupComparatorRepository
   )(implicit qc: QueryContext): Seq[IOResult[NodeFactMatcher]] = {

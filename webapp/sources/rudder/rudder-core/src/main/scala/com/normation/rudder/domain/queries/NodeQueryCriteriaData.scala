@@ -61,6 +61,7 @@ import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoNodeGroupRepository
+import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.utils.DateFormaterService
 import java.util.function.Predicate
 import java.util.regex.Pattern
@@ -91,7 +92,7 @@ class DefaultSubGroupComparatorRepository(repo: RoNodeGroupRepository) extends S
 }
 
 // groupRepo must be `=> ` to avoid cyclic dep
-class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository) {
+class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository, instanceIdService: InstanceIdService) {
 
   implicit class IterableToChunk[A](it: Iterable[A]) {
     def toChunk: Chunk[A] = Chunk.fromIterable(it)
@@ -256,7 +257,9 @@ class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository) {
           A_POLICY_SERVER_UUID,
           StringComparator,
           NodeCriterionMatcherString(_.rudderSettings.policyServerId.value.wrap)
-        )
+        ),
+        // this one is not an LDAP constant but a global value in the application memory space
+        Criterion("instanceId", InstanceIdComparator(instanceIdService.instanceId), UnsupportedByNodeMinimalApi)
       )
     ),
     ObjectCriterion(

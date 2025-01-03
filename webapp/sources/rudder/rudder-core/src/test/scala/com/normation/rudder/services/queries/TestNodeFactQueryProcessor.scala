@@ -91,7 +91,7 @@ class TestNodeFactQueryProcessor {
 
     override def getGroups: IOResult[Chunk[SubGroupChoice]] = Chunk.fromIterable(groups.keys).succeed
   }
-  val queryData = new NodeQueryCriteriaData(() => subGroupComparatorRepo)
+  val queryData = new NodeQueryCriteriaData(() => subGroupComparatorRepo, null)
 
   // load all nodes that in resources: node-facts/*.json
 //  java.lang.Runtime.getRuntime.gc()
