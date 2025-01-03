@@ -7,6 +7,7 @@ use clap::{Parser, Subcommand};
 
 use crate::{doc::Format, DEFAULT_AGENT_PATH};
 use rudder_cli::logs::OutputFormat;
+use rudder_commons::Target;
 
 /// Compile Rudder policies
 #[derive(Parser, Debug)]
@@ -46,6 +47,10 @@ pub enum Command {
         /// Load a library from the given path
         #[arg(short, long, action = clap::ArgAction::Append)]
         library: Vec<PathBuf>,
+
+        /// Select a specific target platform
+        #[arg(long)]
+        target: Option<Target>,
     },
 
     /// Build the technique
@@ -69,6 +74,10 @@ pub enum Command {
         /// Add ids to the source technique. This will also reformat the file.
         #[arg(long)]
         store_ids: bool,
+
+        /// Select a specific target platform
+        #[arg(long)]
+        target: Option<Target>,
     },
 
     /// Run the provided technique with the provided tests cases
