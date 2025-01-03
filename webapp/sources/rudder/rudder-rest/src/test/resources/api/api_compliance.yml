@@ -2503,16 +2503,6 @@ response:
               "components" : []
             },
             {
-              "id" : "r1",
-              "name" : "R1",
-              "compliance" : 100.0,
-              "policyMode" : "enforce",
-              "complianceDetails" : {
-                "successAlreadyOK" : 100.0
-              },
-              "components" : []
-            },
-            {
               "id" : "br4",
               "name" : "R4",
               "compliance" : 100.0,
