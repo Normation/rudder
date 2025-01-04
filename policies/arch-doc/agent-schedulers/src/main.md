@@ -1,14 +1,10 @@
 ---
 title: "Rudder agent schedulers"
-#subtitle: "Extending the agent"
 author: Alexis Mousset
-lang: en
-region: US
-date: "datetime(year: 2024, month: 09, day: 23)"
 abstract: This document describes all the scheduling processes used for events happening on the agents, as of Rudder 8.1.7/8.2.0.
 ...
 
-# Rudder agent schedulers
+# Introduction
 
 This document describes all the scheduling processes used for events happening on the agents. It does not cover events
 happening inside the server services (`webapp`, `relayd`, etc.). The main goal of these scheduling systems is to avoid
@@ -16,10 +12,10 @@ running anything synchronously over the nodes, as it could result in performance
 time to stop a change or action breaking the systems before everything is impacted. There are two types of schedulers: a
 main one triggering the agent, and others, inside the policies, that schedule events in specific agent runs.
 
-## Agent schedulers
+# Agent schedulers
 
-The Rudder agents are programs designed to be un regularly on a system. The agent scheduling configuration is done
-either globally or overridden by node, in the Web application. The parameters are:
+The Rudder agents are programs designed to be run regularly on a system. The agent scheduling configuration is
+either made globally or overridden by node, in the Web application. The parameters are:
 
 * A run frequency, with a limited set of possible values:
     * 5, 10, 15, 20 or 30 minutes
@@ -44,10 +40,10 @@ And in the Web interface:
 Policy server (root and relays) are excluded from these settings' effect and use a hard-coded schedule, as they need to
 run frequently to ensure smooth operation of the Rudder infrastructure:
 
-* _root server_: 5 minutes frequency, start at 0 minutes, 0 minutes of splay time
+* _root server_: 5-minute frequency, start at 0 minutes, 0 minutes of splay time.
 * _relay servers_:
-    * Before 8.1.7/8.2.0 : like root servers
-    * After 8.1.7/8.2.0: 5 minutes frequency, start at 2 minutes, 2 minutes of splay time
+    * Before 8.1.7/8.2.0: like root servers.
+    * After 8.1.7/8.2.0: 5-minute frequency, start at 2 minutes, 2 minutes of splay time.
 
 The values are exposed as generic system variables:
 
@@ -63,11 +59,11 @@ Plus additional variables targeting specific agents:
 
 See the following section for more details about how they are used by the agents.
 
-### Windows agent run
+## Windows agent run
 
 The agent runs are scheduled using Windows' built-in task scheduler ("`taskschd`").
 
-#### Splay computation
+### Splay computation
 
 As the Windows scheduler does not provide stable splaying capabilities we use in Rudder, but only a completely random
 option, we create the splay as part of the policy generation in the Web application (in the `ComputeSchedule` object).
@@ -84,15 +80,15 @@ def computeSplayTime(nodeId: String, interval: Duration, maxSplaytime: Duration)
 }
 ```
 
-This function takes a max value for the splay which is actually the run frequency, to prevent outputting splay times
+This function takes a max value for the splay, which is actually the run frequency, to prevent outputting splay times
 longer that the run frequency.
 
-#### Task configuration
+### Task configuration
 
 The configuration format is specific for Windows, as it gets inserted into the task configuration directly. Note that we
 don't use
 the [newer PowerShell-based interface](https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/?view=windowsserver2022-ps)
-as we require compatibility with older system, so we use
+as we require compatibility with older systems, so we use
 the [XML-based interface](https://learn.microsoft.com/en-us/windows/win32/taskschd/taskschedulerschema-repetition-triggerbasetype-element).
 This excerpt is taken from `Rudder-Agent.xml.mustache`:
 
@@ -115,7 +111,7 @@ The important parameters:
 
 * `Interval`: Specifies the amount of time between each restart of the task. The format for this string is
   `P<days>DT<hours>H<minutes>M<seconds>S` (for example, `PT5M` is 5 minutes, `PT1H` is 1 hour, and `PT20M` is 20
-  minutes). Here we pass directly the splay time in minutes.
+  minutes). Here we pass the splay time in minutes.
 * `StartBoundary`: The date and time when the trigger is activated. The date and time must be in the following format:
   `YYYY-MM-DDTHH:MM:SS(+-)HH:MM`. As our schedules are all shorter than a day, we hard code the start day in the task.
 * `ExecutionTimeLimit`: Limits the agent run to 2 hours before killing the process.
@@ -134,7 +130,7 @@ def formatStartTime(startTime: LocalTime): String = {
 }
 ```
 
-#### Inventory scheduling
+### Inventory scheduling
 
 ```xml
 
@@ -157,12 +153,12 @@ This task uses a different type of scheduling, with a daily run using a `Calenda
   inventory process starts at (actually a bit after) midnight.
 * `ExecutionTimeLimit`: this is the maximal run time before the task is killed. For the inventory, this value is 2
   hours.
-* `RandomDelay`: The delay time that is randomly added to the start time of the trigger. The format for this string is
+* `RandomDelay`: The delay time, which is randomly added to the start time of the trigger. The format for this string is
   the same as the `RepetitionInterval`. It is actually a number chosen independently at each trigger, and not stable in
-  time like the usual Rudder splay. Here its value is 2 hours which means the inventories run between midnight and 2
+  time like the usual Rudder splay. Here its value is 2 hours, which means the inventories run between midnight and 2
   a.m., while Linux inventories run between midnight and 6 a.m.
 
-### Linux agent run
+## Linux agent run
 
 The Linux agent is scheduled by the `cf-execd` daemon, part of CFEngine (named `rudder-cf-execd` in Rudder), run as a
 system service (usually via systemd). It runs in background, and wakes up every minute to check if the agent should be
@@ -177,7 +173,7 @@ body executor control {
 }
 ```
 
-* `schedule`: The list should contain class expressions comprised of classes which are visible to the `cf-execd` daemon.
+* `schedule`: The list should contain class expressions comprising classes visible to the `cf-execd` daemon.
   In principle, any defined class expression will cause the daemon to wake up and schedule the execution of the
   `cf-agent`). In practice, the classes listed in the list are usually date- and time-based.
     * A general rule for scaling of small updates is to set the splay time to `run interval-1 minutes` for up a few
@@ -192,7 +188,7 @@ body executor control {
 * The `exec_command` does not include any delay and runs the agent immediately through the shell wrapper. The
   `ifelapsed` valued are ignored since the wrapper uses the `-K` option to ignore locks.
 
-With a 15 minutes frequency and a 7 minutes splay, the Web application generates:
+With a 15-minute frequency and a 7-minute splay, the Web application generates:
 
 ```
 body executor control {
@@ -203,11 +199,11 @@ body executor control {
 
 The schedule class expressions list is generated directly in the CFEngine syntax in the Web application (in the
 `ComputeSchedule` object), and templated into `promises.cf`. It generates the list of `MinXX` or `HrXX.MinYY` classes
-with the required start and frequency, depending if the schedule is expressed in minutes or hours.
+with the required start and frequency, whether the schedule is expressed in minutes or hours.
 
-The `cf-execd` daemon is responsible for computing the local splay value, based on system information and the maximum
+The `cf-execd` daemon is responsible for computing the local splay value, based on system information, and the maximum
 value provided in the policies. The splay uses the system's hostname as seen by the kernel, its IP (resolved from
-hostname) and the current user ID (in Rudder, always 0), to provide a stable value, then hashes these to get a uniform
+hostname), and the current user ID (in Rudder, always 0), to provide a stable value, then hashes these to get a uniform
 distribution. The hash function used
 is [Jenkins' one-at-a-time](https://en.wikipedia.org/wiki/Jenkins_hash_function#one-at-a-time), which is enough to
 provide uniformity (and we don't ask for more).
@@ -231,9 +227,9 @@ ExecdConfig *ExecdConfigNew(int configured_splaytime) {
 and run the agent if needed. In this case the agent is run in a separate thread and does not impact the scheduling. When
 waking at a scheduled minute, `cf-execd` will wait for the computed splay in seconds before actually running the agent.
 
-Below is an example of the agent start times over an hour (3600 seconds) on a big Rudder instance. The nodes have a 15
-minutes schedule with a 7 minutes splay time, and there are tens of relays. We can see the 5 minutes schedule of the
-relays and root server, plus the 15 minutes schedule of the nodes uniformly splayed over 7 minutes.
+Below is an example of the agent start times over an hour (3600 seconds) on a big Rudder instance. The nodes have a
+15-minute schedule with a 7-minute splay time, and there are tens of relays. We can see the 5-minute schedule of the
+relays and root server, plus the 15-minute schedule of the nodes uniformly splayed over 7 minutes.
 
 ![](images/histogram.png)
 
@@ -263,7 +259,7 @@ if [ "${splays}" != "" ];then
 fi
 ```
 
-#### [Bug 25505](https://issues.rudder.io/issues/25505) - 2024-09-20
+### [Bug 25505](https://issues.rudder.io/issues/25505) - 2024-09-20
 
 There was a change in the `cf-execd` scheduling in Rudder 8.1.7 and 8.2.0 to fix a bug (CFEngine
 commit[fa6474c](https://github.com/cfengine/core/commit/fa6474c3f8495258ba16eeb701895ff73858a637)) that made around 0.1%
@@ -277,7 +273,7 @@ But without this "poor man's splay" of one minute, all the relays would now trig
 of overloading the root server (or an underlying hypervisor). We hence decided to also add a 2 minutes splay to relays,
 and add a 1-minute shift of start time, which is also likely a good idea regardless of the bug fix.
 
-#### Inventory scheduling
+### Inventory scheduling
 
 The inventory is scheduled inside the policies, using the `schedule_simple` method described below. It hence relies on
 the agent schedule as primary "heartbeat". We also choose to run an inventory each day, even if the agent starts for the
@@ -292,7 +288,7 @@ schedule_simple(# Frequency of the agent runs, required to compute the target sc
                 "catchup");
 ```
 
-#### Agent check scheduler
+### Agent check scheduler
 
 To provide a fallback mechanism in case `cf-execd` fails to run the agent, we also set up a cron job responsible from
 triggering the agent. It tries to follow the run schedule with some awk-based computations to avoid causing problems
@@ -336,12 +332,12 @@ SLEEP_DURATION=$(awk -v m="$MAX_SLEEP" 'BEGIN{srand(); print int(rand()*m)}')
 sleep $SLEEP_DURATION
 ```
 
-## In-policies schedulers
+# In-policies schedulers
 
 These "secondary" schedulers rely on the regular agent runs to wake the scheduler up and allow triggering actions. They
 are hence limited to the agent run frequency resolution.
 
-### System update campaigns
+## System update campaigns
 
 The campaign scheduling parameters are defined as part of the campaign:
 
@@ -414,17 +410,19 @@ As the server does not know when an event is scheduled, the campaigns API provid
 to inform the server about the chosen start date, containing a RFC3339-formatted UTC timestamp:
 
 ```rust
-let schedule_datetime = match schedule {
-FullSchedule::Immediate => Utc::now(),
-FullSchedule::Scheduled( ref s) => {
-scheduler::splayed_start(s.start, s.end, s.agent_frequency, s.node_id.as_str()) ?
+fn run() {
+    let schedule_datetime = match schedule {
+        FullSchedule::Immediate => Utc::now(),
+        FullSchedule::Scheduled(ref s) => {
+            scheduler::splayed_start(s.start, s.end, s.agent_frequency, s.node_id.as_str())?
+        }
+    };
+    // ...
+    let report = ScheduleReport::new(schedule_datetime);
 }
-};
-// ...
-let report = ScheduleReport::new(schedule_datetime);
 ```
 
-### In the Linux policies
+## In the Linux policies
 
 The method library provides a few way for scheduling events part of the policies, only on Linux:
 
@@ -450,9 +448,9 @@ bundle agent ncf_splay {
 }
 ```
 
-## System schedulers
+# System schedulers
 
-### `systemd.timer`
+## `systemd.timer`
 
 The [scheduling features of systemd](https://www.freedesktop.org/software/systemd/man/latest/systemd.timer.html) could
 match most of our needs. However, it would only support a (large) subset of our Linux agent target (not the old versions
@@ -471,16 +469,16 @@ or non-systemd based distributions).
   between all local timer units.
 * `Persistent`: persists the latest run time to allow catching up if the calendar target was missed.
 
-### `cron`
+## `cron`
 
 `cron` does not have built-in features for splaying commands and only supports calendar-based schedules. However, it can
 be extended using shell wrappers around the commands.
 
-## Conclusion
+# Conclusion
 
 The different agent scheduling systems are quite inconsistent, but seem to work well enough to cover our current needs.
 
-### Simple improvements
+## Simple improvements
 
 * The computation of next inventory schedule is wrong as the hash used in the time lib was changed from md5 to sha256.
   This confirms this implementation is very fragile.
@@ -496,7 +494,7 @@ The different agent scheduling systems are quite inconsistent, but seem to work 
 * The cron fallback on Linux could be replaced by a systemd timer in most cases, with a simpler and likely more reliable
   configuration.
 
-### Other topics
+## Other topics
 
 We should decide if we actually want to keep agent scheduling local, or if we want the server to decide everything
 centrally. The Windows agent run splay could easily be implemented as part of the F# library for example, and the Linux
@@ -512,4 +510,3 @@ by Zach Holman).
 Finally, we have a project of writing a `cf-execd`-like daemon in Rust that would also replace the remote trigger
 feature of `cf-serverd` and could be used both on the Linux and Windows agent, which currently does not support remote
 run. This could allow making all agent-side schedulers more consistent, with an API fitting our needs.
-

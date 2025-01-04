@@ -1,6 +1,6 @@
 // Pandoc template for rudder reports in typst. Using the ilm template.
 
-#let ilm-version = "1.4.0"
+#let ilm-version =   "1.4.0"
 #import "@preview/ilm:1.4.0": *
 
 // Default to en_US if no language is specified.
@@ -57,6 +57,7 @@ $endif$
 $if(bibliography)$
   bibliography: bibliography("$bibliography$", full: true),
 $endif$
+  chapter-pagebreak: false,
   figure-index: (enabled: false),
   table-index: (enabled: false),
   listing-index: (enabled: false),

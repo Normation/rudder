@@ -25,7 +25,9 @@ versions:
 
 # Build an intermediary Markdown file, including rendered diagrams (C4+Mermaid).
 markdown: clean
-	if [ -f ${src_dir}/workspace.dsl ]; then structurizr export --workspace ${src_dir}/workspace.dsl --output ${src_dir} --format mermaid >/dev/null; fi
+	if [ -f ${src_dir}/workspace.dsl ]; then \
+        structurizr export --workspace ${src_dir}/workspace.dsl --output ${src_dir} --format mermaid >/dev/null; \
+    fi
 	find ${src_dir} -name "*.mmd" -exec mmdc --input {} --output {}.png >/dev/null \;
 	cp -r ${src_dir} ${dest_dir}
 	# SVG output does not work well, fallback to png
@@ -33,11 +35,17 @@ markdown: clean
 
 # Build the typst source file
 typst: markdown
-	pandoc --standalone --from markdown ${tmp}-mm.md --to typst --metadata version="$(version)" --metadata pandoc_version="$(pandoc_version)" --template=../rudder.typ.template --output ${tmp}.typ
+	pandoc --standalone --from markdown ${tmp}-mm.md --to typst \
+	       --metadata version="$(version)" \
+           --metadata pandoc_version="$(pandoc_version)" \
+           --template=../rudder.typ.template --output ${tmp}.typ
 
 # Build the HTML output
 html: markdown
-	pandoc --standalone --from markdown ${tmp}-mm.md --to html5 --metadata date="`date -u --rfc-3339=date`" --output ${out}.html
+	pandoc --standalone --from markdown ${tmp}-mm.md --to html5 \
+           --metadata date="`date -u --rfc-3339=date`" \
+           --citeproc \
+           --output ${out}.html
 
 # Build the PDF
 pdf: typst

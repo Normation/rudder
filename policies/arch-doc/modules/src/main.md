@@ -1,5 +1,5 @@
 ---
-title: "Rudder agent modules"
+title: "Rudder modules"
 author: Alexis Mousset
 bibliography:
   - modules.bib
@@ -239,7 +239,11 @@ maintenance d'état over HTTP
 => pas notre domaine, sisteminitiative très intéressant sur ces sujets.
 notamment capacités de modélisation. des choses à apprendre.
 
-## Security
+## Patch management
+
+## Vulnerability management
+
+A complete
 
 # Prior art & solution space
 
@@ -252,6 +256,7 @@ The tools we will mention here besides Rudder are:
 - [Chef InSpec](https://community.chef.io/tools/chef-inspec): a compliance tool developed by Chef.
 - [OpenSCAP](https://www.open-scap.org/): a compliance tool developed by Red Hat.
 - [Ansible](https://www.redhat.com/en/ansible-collaborative): The current leader in the field, with a simpler approach.
+- [SaltStack](https://www.saltstack.com/): A more event-driven approach.
 - [DSCv3](https://learn.microsoft.com/en-us/powershell/dsc/overview?view=dsc-3.0): The new version of Desired State
   Configuration in Windows.
 
@@ -904,6 +909,8 @@ A resource:
 An ambiguity has already existed when talking about extending our agent
 with "Linux modules" for Rudder, which could be understood as "Linux kernel modules".
 
+Will be agent resources for now, but the agent part may change.
+
 ## Rust
 
 A script (Powershell) based agent is good as a first version as it
@@ -1072,6 +1079,8 @@ TODO : possibilité pour chaque module de
 # Implementation
 
 ## Principles
+
+### Reliability
 
 ### Measure
 
@@ -1652,7 +1661,3 @@ cybersec needs it
 
 ce qui consomme trop d'énergie ne tient pas
 cf discussion de mark burgess vs cloud
-
-mutability is cool.
-we can't make it disappear, especially when seeing
-and infra as a living thing.

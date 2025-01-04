@@ -1,21 +1,18 @@
 ---
 title: "Rudder Linux agent logger v4.1"
-author: Alexis Mousset - Rudder
-lang: en
-region: US
-date: "datetime(year: 2024, month: 11, day: 12)"
+author: Alexis Mousset
 abstract: This document describes the current behavior of the execution model of our CFEngine policies, and the evolutions in the "logger v4.1" project for Rudder 8.3.
 ...
 
-# Rudder Linux agent runtime model - logger v4.1
+# Introduction
 
 Making CFEngine execute all parts of the policies and send all reports has been a constant fight in Rudder development.
 This is due to the way we bend the execution model, and to our custom reporting tooling. This document describes a new
 iteration of workarounds, hopefully more reliably than previous ones.
 
-## Context: CFEngine, ncf & Rudder
+# Context: CFEngine, ncf & Rudder
 
-### The CFEngine runtime model
+## The CFEngine runtime model
 
 ```cfengine
 bundle agent do_things {
@@ -40,7 +37,7 @@ The passes evaluate promises types in a hard-coded order, called _normal orderin
 that a promise will only be evaluated once. If the agent encounters the same promise twice, it will skip it the second
 time.
 
-### The Rudder runtime model - `ncf`
+## The Rudder runtime model - `ncf`
 
 In the early days, Rudder techniques used to be implemented in "standard" CFEngine. To allow the users to build their
 own policies, a new type of techniques was introduced, `ncf`/the technique editor. The model used in `ncf`, the library
@@ -57,7 +54,7 @@ This model has several drawbacks:
 But it has the big quality of providing a simpler representation of configuration, allowing the creation of the visual
 editor, and the YAML technique format.
 
-### `ncf` reporting
+## `ncf` reporting
 
 One of the big problems is that we need to carry a lot of data to be able to make the expected reporting. And this data
 is not passed by CFEngine in its promises, so we need to carry it in the global execution context. We do so by storing
@@ -65,23 +62,23 @@ the data in a `report_data` storage bundle, and we provide methods to update the
 will output reports. This technique is also used for storing other important context, like the dry-run information (
 providing the policy modes feature).
 
-#### Logger v1
+### Logger v1
 
 It was a dark age, with CSV files containing information about reports to be made. _No further explanation shall be
 made._
 
-#### Logger v2
+### Logger v2
 
 It relied on what is now called the `old_class_prefix`, i.e. a class uses for outcomes in original `ncf`. It is not used
 anymore.
 
-#### Logger v3 (Rudder 4.3+)
+### Logger v3 (Rudder 4.3+)
 
 Adds a new class prefix that contains all parameter values., named `class_prefix`. The old class prefix is kept (as it
 is used in the techniques themselves as conditions), under the `old_class_prefix` name. It is also used as fallback is
 the new class prefix is too long (as conditions are limited to 4k characters).
 
-#### Logger v4 (Rudder 7.1+)
+### Logger v4 (Rudder 7.1+)
 
 This logger introduced in Rudder 7.1 is centered around the concept of `report_id`. It also embraces the `report_data`
 storage, with context setting APIs for providing the required user information (about techniques, directives, etc.) and
@@ -97,7 +94,7 @@ The API made of:
 There is one remaining problem with it: iterators breaks the expectation that `report_id` is unique, and merges the
 outcome classes of different calls to the same method.
 
-## Logger v4.1
+# Logger v4.1
 
 The goal of the 4.1 logger is to address the iterator problem with minimal impact, and to document things (at last). It
 is made possible by the Rudder 8.2 server version which enforces the usage of `rudderc` to generate techniques. We can
@@ -113,7 +110,7 @@ We have three very distinct contexts:
 When calling a method, we need to give it enough unicity through context, and the library code also needs to provide
 enough unicity for the internal operations.
 
-### User code
+## User code
 
 The `report_id` is encoded directly in the generated bundle names. What is needed to be able to ensure we properly run
 all methods with iterator parameters is enough uniqueness. To consider the most "extreme" case, we can configure a
@@ -163,7 +160,7 @@ To sum things up, the user code guarantees:
 * That every time we change context to the lib, the `report_data.index` variable will have a different value
 * All iterators have evaluated in a previous level
 
-### Library code
+## Library code
 
 The main goal here is to avoid having to modify all methods and make a fix contained in the logger v4 implementation. We
 actually only need to make `method_id`, used everywhere as uniqueness source in the logger v4 methods, more unique to
@@ -175,7 +172,7 @@ We have a few constraints:
 * We can't add parameters to methods
 * We want to avoid having to modify all methods as much as possible.
 
-#### Reporting
+### Reporting
 
 The reporting is now based on three main context variables:
 
@@ -189,7 +186,7 @@ The reporting is now based on three main context variables:
         * Note: the name of the methods are arbitrary and set by the policy developer.
     * Used to copy classes between inner and outer methods.
 
-#### Report ID
+### Report ID
 
 The `report_id` is a UUID generated on the serveur side for each component (= each method call). It is unique, and
 allows matching the received reports against what is expected. It solves a lot of issues, but leaves two problems in
@@ -201,7 +198,7 @@ logger v4.0:
   when calling methods from other methods.
     * We need to construct intermediary class prefixes for inner methods. Here comes the `method_id`.
 
-#### Method ID
+### Method ID
 
 The method ID is used to overcome the `report_id`'s limitations. It starts with the `report_id` value, and is expanded
 with additional unicity and specificity values.
@@ -216,16 +213,16 @@ improves separation with business data). The method ID has two goals:
 * Provide a stable base for passing outcome classes
     * In order for it to stay stable, the library code MUST NOT increment the index, and leave it only to the user code.
 
-## Future
+# Future
 
 Once all methods use the v4 logger, we will be able to start relying on the `report_id` for outcome classes, removing
 the dependency on the class parameter value.
 
-## Annex: Using the v4.1 logger
+# Annex: Using the v4.1 logger
 
 This section is a developer documentation for the v4.1 logger. It explains how to port methods to using it.
 
-### Simple method
+## Simple method
 
 A simple method looks like:
 
@@ -256,7 +253,7 @@ The only required things are:
 Note: You should not use `report_id` directly as it prevents reusing the method from another method. The class copy from
 `method_id` to `report_id` is handled by the logger itself.
 
-### Method chaining
+## Method chaining
 
 A method that just calls another one works like this:
 
@@ -298,7 +295,7 @@ It requires:
         * Pop the method name from `method_id`
     * End the method call with a normal call to `log_rudder_v4`.
 
-### Complex method chaining
+## Complex method chaining
 
 A method that calls another method and uses its output uses the same process as described above, but without calling
 `call_method_classes_caller`, and by manually copying or defined the wanted classes.
