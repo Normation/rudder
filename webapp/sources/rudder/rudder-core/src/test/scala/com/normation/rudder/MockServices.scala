@@ -282,6 +282,7 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
   val systemVariableService = new SystemVariableServiceImpl(
     systemVariableServiceSpec,
     policyServerManagementService,
+    instanceIdService = null,
     toolsFolder = "tools_folder",
     policyDistribCfenginePort = 5309,
     policyDistribHttpsPort = 443,

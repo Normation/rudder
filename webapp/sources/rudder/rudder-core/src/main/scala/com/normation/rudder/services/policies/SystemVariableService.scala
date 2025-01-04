@@ -58,6 +58,7 @@ import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.RudderAgent
 import com.normation.rudder.reports.*
+import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.zio.*
@@ -119,7 +120,8 @@ object SystemVariableService {
 
 class SystemVariableServiceImpl(
     systemVariableSpecService:     SystemVariableSpecService,
-    policyServerManagementService: PolicyServerManagementService, // Variables definitions
+    policyServerManagementService: PolicyServerManagementService,
+    instanceIdService:             InstanceIdService, // Variables definitions
 
     toolsFolder:               String,
     policyDistribCfenginePort: Int,
@@ -159,6 +161,8 @@ class SystemVariableServiceImpl(
       )
   }
   val reportsDbUrl:  String = reportsDbUri.replace(s"""jdbc:postgresql://""", s"""postgresql://${reportsDbUser}@""")
+
+  val instanceId: SystemVariable = systemVariableSpecService.get("INSTANCE_ID").toVariable(Seq(instanceIdService.instanceId))
 
   val varToolsFolder:                SystemVariable = systemVariableSpecService.get("TOOLS_FOLDER").toVariable(Seq(toolsFolder))
   val varWebdavUser:                 SystemVariable = systemVariableSpecService.get("DAVUSER").toVariable(Seq(webdavUser))
