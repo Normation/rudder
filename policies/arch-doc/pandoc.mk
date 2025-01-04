@@ -11,6 +11,8 @@ out_release := ${dest_dir}/${name}-${version}
 out := ${out_release}-pre
 tmp := ${dest_dir}/${file}
 
+pandoc_version=$(shell pandoc --version | head -n1 | cut -f2 -d' ')
+
 all: pdf html
 
 versions:
@@ -31,7 +33,7 @@ markdown: clean
 
 # Build the typst source file
 typst: markdown
-	pandoc --standalone --from markdown ${tmp}-mm.md --to typst --template=../rudder.typ.template --output ${tmp}.typ
+	pandoc --standalone --from markdown ${tmp}-mm.md --to typst --metadata version="$(version)" --metadata pandoc_version="$(pandoc_version)" --template=../rudder.typ.template --output ${tmp}.typ
 
 # Build the HTML output
 html: markdown

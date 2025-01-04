@@ -3,17 +3,11 @@ title: "Rudder agent modules"
 author: Alexis Mousset
 bibliography:
   - modules.bib
+url: https://github.com/Normation/rudder/tree/master/policies/arch-doc/modules
 abstract: Configuration management primitives appear like a solved topic now, and current major solutions have converged to pretty similar choices 10+ years ago. However, new needs are becoming more prominent, like observability, auditing and self-auditing abilities, in a context of growing attention for security topics. Could we benefit from reconsidering some of these design choices now to better address them? We will navigate through the solution space of configuration management low-level implementations (resource/promise/etc.), and explore what we can modify to provide new promising features. It will also cover implementation and programming language choices, from C to Python, Ruby, and Rust, and how these choices participate in shaping our tools strengths and weaknesses. It will feature some examples from ongoing work in Rudder, as well as other projects (mgmt, Jet, etc.)
 ...
 
-# Rudder agent modules
-
-_Extending the agent_
-
-This document lives
-in [the Rudder repository](https://github.com/Normation/rudder/tree/master/policies/arch-doc/modules).
-
-## Introduction
+# Introduction
 
 Since a few years, Rudder has taken an important shift towards security
 posture management. This includes, more specifically, audit features around
@@ -56,9 +50,9 @@ We'll then cover the design of the **Rudder modules** and the choices we made fo
 We'll finish by illustrating it with implementation details of the first two
 module type, system-updates and augeas.
 
-## Problem space
+# Problem space
 
-### Configuration management
+## Configuration management
 
 DevOps / Automation
 
@@ -135,7 +129,7 @@ format du fichier de conf.
 
 explique l'échec ? tentative d'abstraction douteuse ?
 
-#### Configuration surface of a Linux system
+### Configuration surface of a Linux system
 
 - A kernel, including a lot of runtime config
 
@@ -149,7 +143,7 @@ explique l'échec ? tentative d'abstraction douteuse ?
 
 - States everywhere
 
-### Audit
+## Audit
 
 Tools and frameworks for compliance automation such as OpenSCAP, Chef InSpec, and CIS-CAT.
 
@@ -160,7 +154,9 @@ Nobody has _really_ tried to make an audit & enforce tool.
 Msotly for business reasons.
 We are trying to achieve it now.
 
-We are trying to achieve it now.
+Separation of duty, different teams
+
+a certain value to this separation (if something is not crrectly seen in enforce, aidit will miss it!)
 
 the declarative model doesn't give you any real visibility to the \*true\* state of the resource.
 It gives you fantastic visibility into your \*intended\* state, but basically zero into reality.
@@ -180,7 +176,7 @@ On veut:
 * voir ce qui ne va pas
 * décider de comment le corriger (ou pas)
 
-### Immutable infrastructure
+## Immutable infrastructure
 
 Cloud does not mean immutable.
 
@@ -232,7 +228,7 @@ guys are dead, right?” It was awful.
 - E.g. Rust aims at managing mutability better instead of preventing
   it
 
-### API management
+## API management
 
 Cloud
 
@@ -243,15 +239,15 @@ maintenance d'état over HTTP
 => pas notre domaine, sisteminitiative très intéressant sur ces sujets.
 notamment capacités de modélisation. des choses à apprendre.
 
-### Security
+## Security
 
-## Prior art & solution space
+# Prior art & solution space
 
 The tools we will mention here besides Rudder are:
 
 - [CFEngine](https://cfengine.com): the oldest of the bunch, and the one that started the
   configuration management trend in 1993.
-- [Puppet](https://www.puppet.com/): CFEngine's successor in a way.
+- [Puppet](https://www.puppet.com/): CFEngine's successor in a way. Probably the best industrialized solution.
 - [Chef Automate](https://community.chef.io/): Puppet's competitor, with a more developer-oriented approach.
 - [Chef InSpec](https://community.chef.io/tools/chef-inspec): a compliance tool developed by Chef.
 - [OpenSCAP](https://www.open-scap.org/): a compliance tool developed by Red Hat.
@@ -274,7 +270,18 @@ The tools we will mention here besides Rudder are:
 - [mgmt](https://mgmtconfig.com): A new configuration management tool, event-based.
 - [Jet](https://web.archive.org/web/20240314161735/https://jetporch.org/): A quickly stopped project.
 
-### Agent/Agentless
+## Inventory / Facts
+
+- [Facter](https://puppet.com/docs/facter/latest/facter.html): Puppet's inventory tool.
+
+Two approaches:
+
+- Inventory tools
+
+    - Facter, Ansible facts, etc.
+    - Inventory a la rudder
+
+## Agent/Agentless
 
 The most visible difference.
 
@@ -290,7 +297,7 @@ The most visible difference.
 this may be how certain agent-based software implemented agentless...
 but i won't give any names.
 
-### Code vs. Data / Imperative vs. Declarative
+## Code vs. Data / Imperative vs. Declarative
 
 - Configuration data can be declarative or a program
     - Not different at the lowest level
@@ -302,7 +309,7 @@ If there wasn’t for Chef, there’d be no Pulumi. Right? There’d be no CDK. 
 in a real programming language…”
 Chef was the first of those, really, that wasn’t just writing scripts, you know? But it all stands on each other.
 
-### Language for implementation
+## Language for implementation
 
 - Properties given by the tech stack
 
@@ -314,6 +321,7 @@ Chef was the first of those, really, that wasn’t just writing scripts, you kno
 
     - Participates to shape the community
 
+@cantrillPlatformReflectionValues2017
 
 - Write the resources in language used for the policies
 
@@ -327,33 +335,36 @@ Chef was the first of those, really, that wasn’t just writing scripts, you kno
 
     - Can limit user ability to hack the system
 
-#### Language in infra software
+### Language in infra software
 
-- C
+The first generating on configuration management software was written in C, as it was
+common in the 1990s:
 
-- Ruby
+- C: CFEngine.
 
-- Python
+Interpreted languages were then the norm for a long time:
 
-- Go
+- Ruby: The second generation after CFEngine, Puppet and Chef
+- Python: The third generation, Ansible and SaltStack
 
-- C++
+Compiled languages are now making a comeback:
 
-- Rust
+- C++: Puppet's facter 3, rewritten from Ruby. It ended up being re-re-written in Ruby eventually, as the project of
+  porting the agent to C++ was abandoned.
+    - Core in C++ and everything else in Ruby. Bad idea?
+    - We're considering doing the opposite, with Rust for leaves.
+- Go: mgmt
+- Rust: DSCv3, Jet
 
 C is terrible security-wise high privilege + networking + C = problems
-
 python has really low entry cost
-
 ruby is for developers looking for a certain esthetics
 
 Rust/C++ slow to evolve but fast
-
 I think Rust makes sense for infra automatio today
-
 with the main drawback of making it harder to contribute
 
-#### Impact
+### Impact
 
 - System administrators are not developers
 
@@ -363,9 +374,9 @@ with the main drawback of making it harder to contribute
 
 - *Worse is better*?
 
-### Autonomous vs. imperative
+## Autonomous vs. imperative
 
-### Types or strings everywhere / Static vs. dynamic
+## Types or strings everywhere / Static vs. dynamic
 
 shifting problems left
 
@@ -373,7 +384,7 @@ Eliminate
 possible errors early ("0x755" vs "755" vs decimal "755" vs o755 vs
 "o755")
 
-### Engine
+## Engine
 
 - Config Mgmgt = an engine passing parameters to resources providers
 
@@ -425,7 +436,9 @@ reactive vs imperative
 
 graph vs sequence
 
-### Extensibility / Resource API
+## Extensibility / Resource API
+
+Puppet has resource type vs. provider.
 
 - Hardcoded resources may be hard to add
 
@@ -434,7 +447,7 @@ graph vs sequence
 - Sometimes a "language" version (library) and a "data" version (YAML,
   etc.)
 
-#### Rudder
+### Rudder
 
 When we don't use the native CFEngine (on Unix) or DSC (on Powershell)
 resource implementation we rely on:
@@ -453,7 +466,7 @@ resource implementation we rely on:
 
 These are far from ideal.
 
-#### CFEngine
+### CFEngine
 
 **Promises**
 
@@ -516,7 +529,7 @@ the process is spawned lazily at first usage and kept until the end of
 the agent run. Note that the protocol is strictly synchronous and
 sequential and no pipelining is possible.
 
-#### mgmt
+### mgmt
 
 mgmt is the newest configuration management agent implementation and is
 the only event-based configuration management agent.
@@ -613,7 +626,7 @@ parametrize a lot:
 - Structure can also read arbitrary YAML data
 - Composing resources
 
-#### Ansible
+### Ansible
 
 - `AnsibleModule` library for Python
 
@@ -673,7 +686,7 @@ Links:
 - <https://docs.ansible.com/ansible/latest/user_guide/playbooks_debugger.html#resolving-errors-in-the-debugger>
 - <https://docs.ansible.com/ansible/latest/dev_guide/developing_modules_general.html#creating-a-module>
 
-#### Jet
+### Jet
 
 While Jet will allow you to write "external" modules in any language
 that can speak JSON, as I wrote in my last post, core modules in Jet
@@ -715,7 +728,7 @@ what it is doing, as that logic is *outside* the module. The
 request/response paradigm is a bit like a webserver with different HTTP
 methods, but it's not really a webserver.
 
-### Connectivity between resources
+## Connectivity between resources
 
 - Are resources connected?
 
@@ -729,14 +742,14 @@ methods, but it's not really a webserver.
 
 - Can a resource get information from nother resource
 
-### Target system APIs
+## Target system APIs
 
-#### Jet
+### Jet
 
 Jet had an interesting approach.
 The only configuration interface was a POSIX shell, locally or remotely.
 
-### Target policy model
+## Target policy model
 
 no related to modules, but do you want an "openstack techniques"
 totally abstracted?
@@ -744,7 +757,7 @@ Is it worth it?
 
 (we think it's not)
 
-### Reporting
+## Reporting
 
 When the module does something, it must also return what it did. If the
 system says "I have changed things", it must list the changes, and we
@@ -774,9 +787,9 @@ Or is it juste enough data to allow the server to make sense out of what the age
 
 - No news is **not** good news?
 
-#### OpenSCAP
+### OpenSCAP
 
-#### InSpec
+### InSpec
 
 Below is an example of what is done by InSpec, a compliance tool
 developed as an RSpec/ServerSpec wrapper, to add context to controlled
@@ -797,7 +810,7 @@ control 'sshd-8' do
 end
 ```
 
-### Generic vs. Powerful
+## Generic vs. Powerful
 
 - To what extent to we generalize?
 
@@ -812,11 +825,11 @@ end
 
 package vs apt
 
-### AI?
+## AI?
 
 This is required mention for any software project in 2025.
 
-## Rudder module design
+# Rudder module design
 
 We want a progressive transition, so it needs to be pluggable
 with current agent(s).
@@ -876,7 +889,7 @@ service("crond").disabled().stopped()
 service("crond").restart()
 ```
 
-### Terminology
+## Terminology
 
 The best name would probably be "resources", but we already use this name
 for files attached to a policy (e.g. configuration files, templates,
@@ -891,7 +904,7 @@ A resource:
 An ambiguity has already existed when talking about extending our agent
 with "Linux modules" for Rudder, which could be understood as "Linux kernel modules".
 
-### Rust
+## Rust
 
 A script (Powershell) based agent is good as a first version as it
 allowed us to get things running cheaply, but it will likely not be as
@@ -930,7 +943,7 @@ A strong bet.
 
 Our users won't generally be able to write it.
 
-### Policies / User interface
+## Policies / User interface
 
 Data (YAML) and not a programming language.
 
@@ -955,7 +968,24 @@ global convergent
 
 or the current imperative shit
 
-### Runtime model
+puppet has a localized modue api
+japanese error messages
+
+## Command-line user interface
+
+TODO explain !
+
+specialized CLI for modules!!
+
+## Persistence
+
+Basically, SQLite.
+
+We also considered lmdb.
+
+Or maybe something Rust-native.
+
+## Runtime model
 
 LSP-like?
 
@@ -980,7 +1010,7 @@ le niveau local est le seul qui puisse bien le faire
 
 cf. burgess
 
-#### The Language Server Protocol example
+### The Language Server Protocol example
 
 - A standard for implementing IDE features for a language
 
@@ -1003,7 +1033,13 @@ low having a custom api brings a lot of value
 
 we have a binary that implement one or more interfaces
 
-### Inventory
+## Inventory
+
+for now on touche pas
+
+mais dans le futur, la logique voudrait que les modules fassent de l'inventaire.
+
+Le "facter" rudder pourrait ainsi être un module.
 
 pas un inventaire qui fait module
 mais un module avec une feature inventaire
@@ -1033,11 +1069,19 @@ TODO : possibilité pour chaque module de
 (state == "installed") && (version >= 4.3.0)
 ```
 
-## Implementation
+# Implementation
 
-### Principles
+## Principles
 
-#### Performances
+### Measure
+
+we need to take reality into account
+
+measure stuff, probe, etc.
+
+### Schemas and API stability
+
+### Performances
 
 in-line with the choice of rust
 
@@ -1045,7 +1089,7 @@ un ordre de magnitude par rapport à CFEngine (au global)
 
 In the domain, it should not be neglected as it can be a key feature.
 
-#### State machines
+### State machines
 
 des state machines autant que possible
 pour gérer les états complexes.
@@ -1081,7 +1125,7 @@ Les lens c'est le COMMENT. le checkApply c'est le QUOI.
 
 leveraging lenses to provide a more structured way to interact with the system
 
-### APIs
+## APIs
 
 api d'inventaire intégrée pour prober des trucs par défaut.
 
@@ -1104,7 +1148,20 @@ pub enum Outcome {
 }
 ```
 
-### CFEngine integration
+## Libraries
+
+As we use Rust we get access to:
+
+* Native Rust libraries
+    * For example [`sysinfo`](https://crates.io/crates/sysinfo) for multi-platform system information.
+    * The [`windows`](https://crates.io/crates/windows) crate, maintained by Microsoft, giving native access to Windows
+      APIs
+* C libraries (FFI)
+    * On Linux, cover most of the system interface
+
+Which garantee a good performance and a good integration with the rest of the system.
+
+## CFEngine integration
 
 - We hadd to add an intermediate API, permitted by the JSON arbitrary
   data passed
@@ -1154,9 +1211,9 @@ sequenceDiagram
     CFEngine -> CFEngine: report
 ```
 
-### Logging / observabilty?
+## Logging / observabilty?
 
-### Distribution
+## Distribution
 
 A fundamental question is how to distribute the module files. As they
 are binaries, we need different files for the different target systems,
@@ -1181,16 +1238,16 @@ mutualize modules into fewer binaries.
 
 FIXME: mutualize modules in single file
 
-### Secrets
+## Secrets
 
 Secrets are a big issue in configuration management. They are needed for
 many resources, and we need to handle them securely.
 
-## Example 1: The Augeas module
+# Example 1: The Augeas module
 
-### The file edition and audit problems
+## The file edition and audit problems
 
-#### File edition
+### File edition
 
 Rudder has supported file editing for a long time, mainly through CFEngine's
 [`edit_line`](https://docs.cfengine.com/docs/3.24/reference-promise-types-files-edit_line.html) bundles.
@@ -1244,7 +1301,7 @@ associated risk and cost.
 It is also common different parts of a configuration file need to be
 maintained by different teams or tools. In this case, file editions are often the only option.
 
-#### File audit
+### File audit
 
 Additionally, Rudder has seen a growing need for auditing configuration files, a use case
 not well-supported by the current system. In particular, we need to be able to audit against
@@ -1254,7 +1311,7 @@ We also want to be able to report the current state of the system when auditing,
 something not well-supported. As the audit mode in CFEngine is implemented on the basis of a dry-run feature
 thought for testing changes, it does not allow collecting information about the current state.
 
-### Augeas to the rescue
+## Augeas to the rescue
 
 [Augeas](https://augeas.net/) is a Linux configuration editing tool and library that allows programs to read and modify
 configuration files in their native formats. It parses various config file formats into a tree
@@ -1299,7 +1356,7 @@ Our file management story would, eventually, be re-built on:
 * A templating module for whole file content management, supporting Mustache, MiniJinja and Jinja2.
 * An `rsync` based solution for file copies
 
-#### How Augeas works
+### How Augeas works
 
 The main concept of Augeas is to map the configuration files to an in-memory tree.
 The tree is built by parsing the files with a lens, which is a set of rules to parse and write
@@ -1312,12 +1369,12 @@ Lenses are implemented using a custom language, which is an ML-like language.
 The data extractions and modifications are done using a DSL based on XPATH
 expressions.
 
-### The module
+## The module
 
 Once we settle on Augeas to address our file edition needs, and decide to make it available
 through ou module API, we still have some open questions.
 
-#### Rust bindings
+### Rust bindings
 
 There was an [official Rust bindings repository](https://github.com/hercules-team/rust-augeas), but not maintained
 for a long time and missing important parts.
@@ -1332,7 +1389,7 @@ This makes potential external contributions way easier.
 We kept the original Apache 2.0 license for the added code, in consistence with other non-Rudder-specific libraries we
 maintain.
 
-#### Packaging
+### Packaging
 
 We have several options: build the library statically in the module, use the system library and lenses whenever
 possible, or build dynamically but always embed the library and lenses.
@@ -1345,7 +1402,7 @@ skip loading the system lenses.
 We also build Augeas on all systems where the last version is not available, also to
 ensure a consistent experience, as the lens library is part of the core business of Rudder.
 
-#### Performance
+### Performance
 
 Below are some metrics for the different ways to run Augeas, based on `augtool` options, for
 the simple task of getting the Augeas version. They show the cost of loading
@@ -1382,7 +1439,7 @@ at each call is unacceptable: tens or hundreds of calls to augeas in a policy, w
 would lead to adding tens of seconds to the run time.
 We want Rudder to be snappy and keep the "continuous" aspect practical.
 
-#### Usage
+### Usage
 
 The main goal it to make the module's API as approchable as possible, and especially focus
 on the policy development and debugging use cases.
@@ -1395,7 +1452,7 @@ and provide a way to use it in the best conditions.
 We'll also build upon the existing Puppet resource, as it's a well-known and well-documented
 way to use Augeas.
 
-##### User stories
+#### User stories
 
 _As a system administrator, I want to be able to edit configuration files on my systems, in a reliable and
 auditable way, so that I can maintain my infrastructure in a consistent state._
@@ -1425,7 +1482,7 @@ Auditer avec des templates ça ne marche pas.
 
 augeas vs jinja
 
-### Conclusion
+## Conclusion
 
 L'audit demande plus de sémantique que la configuration.
 Pour savoir si c'est bon, on ne peut pas faire une comparaison
@@ -1461,17 +1518,27 @@ mais un jour une syntaxe générale.
 augprint pour afficher un fichier actuel avec
 des commandes IDEMPOTENTES
 
-## Example 2: The system updates module
+# Example 2: The system updates module
 
-## Perspectives
+## Persistence
 
-### A new Rudder agent
+## The CLI
+
+# Perspectives
+
+## A new Rudder agent
 
 rootless
 agentless
 saas
 
-#### Replacing CFEngine
+virtual agents
+
+The puppet device application manages certificates, collects facts, retrieves and applies catalogs, and stores reports
+for a device. Devices that cannot run Puppet applications require a Puppet agent to act as a proxy that runs the puppet
+device subcommand.
+
+### Replacing CFEngine
 
 sandwich project : https://www.notion.so/rudderio/Remove-CFEngine-10c8750cc483805ea5a1f7a327badb95
 
@@ -1479,14 +1546,14 @@ A runner for modules, working directly with YAML, bypassing rudderc's compilatio
 only using it for linting
 (but reusing a part of its internals).
 
-#### A new runner
+### A new runner
 
 Variables, etc.
 New context.
 
 New syntax ??
 
-#### Reporting v2
+### Reporting v2
 
 Current Rudder reporting is based on reports explicitly printed by the
 policies, with a custom format, containing, for each element (identified
@@ -1553,13 +1620,15 @@ would probably:
 We could implement the now format progressively, and relayd could parse
 different reporting formats in the same version.
 
-### Other directions
+## Other directions
 
 - NixOS/NixOps, Guix
 
     - Controlled mutability
 
 - Microkernel
+
+    - Separate admin plane @buerConfigurationConfigurationManagement2019
 
 - Specialized systems
 
@@ -1571,7 +1640,7 @@ different reporting formats in the same version.
 
         - Specialized use case
 
-## Conclusion
+# Conclusion
 
 We are late to the party, but we are trying to do it rightn, and the world is changing.
 

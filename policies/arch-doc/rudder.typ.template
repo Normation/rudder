@@ -1,5 +1,6 @@
-// Template for rudder reports. Using the ilm template.
+// Pandoc template for rudder reports in typst. Using the ilm template.
 
+#let ilm-version = "1.4.0"
 #import "@preview/ilm:1.4.0": *
 
 // Default to en_US if no language is specified.
@@ -13,14 +14,48 @@ $else$
 #set text(lang: "en", region: "US")
 $endif$
 
+#let today = datetime.today()
+
+#let preface = [
+    *About this document*
+
+    Copyright © #today.year() Rudder.
+    This document is licensed under #link("https://creativecommons.org/licenses/by-sa/4.0/legalcode.txt")[CC BY-SA 4.0].
+
+    Version $version$, built on #datetime.today().display().
+
+    $if(url)$
+        The sources are available #link("$url$")[online].
+    $endif$
+
+    #v(1em)
+
+    *Typesetting*
+
+    This document was built using:
+
+    - the #link("https://pandoc.org/")[_pandoc_] ($pandoc_version$) document converter,
+    - the #link("https://typst.app/")[_typst_] (#sys.version) typesetting system with
+      the #link("https://typst.app/universe/package/ilm/")[_ilm_] (#ilm-version) report template,
+    - and the #link("https://github.com/alerque/libertinus")[_Libertinus Serif_] and
+      #link("https://typeof.net/Iosevka/")[_Iosevka_] fonts.
+]
+
+// Limit the depth of the table of contents to 2.
+#let table-of-contents = outline(depth: 2)
+
 #show: ilm.with(
   title: [$title$],
+$if(author)$
   author: "$author$",
+$endif$
   paper-size: "a4",
-  date: datetime.today(),
+  date: today,
   abstract: [$abstract$],
+  preface: preface,
+  table-of-contents: table-of-contents,
 $if(bibliography)$
-  bibliography: bibliography("$bibliography$"),
+  bibliography: bibliography("$bibliography$", full: true),
 $endif$
   figure-index: (enabled: false),
   table-index: (enabled: false),
