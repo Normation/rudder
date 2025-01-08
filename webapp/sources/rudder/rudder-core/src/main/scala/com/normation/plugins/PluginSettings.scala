@@ -38,9 +38,17 @@
 package com.normation.plugins
 
 import better.files.File
-import com.normation.errors.IOResult
+import com.normation.errors.*
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
+import com.normation.rudder.hooks.Cmd
+import com.normation.rudder.hooks.RunNuCommand
 import com.normation.utils.DateFormaterService
+import com.normation.utils.Version
+import enumeratum.Enum
+import enumeratum.EnumEntry
+import enumeratum.EnumEntry.*
+import io.scalaland.chimney.Transformer
+import io.scalaland.chimney.syntax.*
 import java.time.ZonedDateTime
 import java.util.Properties
 import org.joda.time.DateTime
@@ -130,12 +138,12 @@ object JsonGlobalPluginLimits {
   }
 }
 
-trait JsonPluginStatus   {
+trait PluginSystemStatus  {
   def value: String
 }
-object JsonPluginStatus  {
-  case object Enabled  extends JsonPluginStatus { override val value: String = "enabled"  }
-  case object Disabled extends JsonPluginStatus { override val value: String = "disabled" }
+object PluginSystemStatus {
+  case object Enabled  extends PluginSystemStatus { override val value: String = "enabled"  }
+  case object Disabled extends PluginSystemStatus { override val value: String = "disabled" }
 }
 
 final case class JsonPluginDetails(
@@ -144,13 +152,13 @@ final case class JsonPluginDetails(
     shortName:     String,
     description:   String,
     version:       String,
-    status:        JsonPluginStatus,
+    status:        PluginSystemStatus,
     statusMessage: Option[String],
     license:       Option[PluginLicenseInfo]
 )
-object JsonPluginDetails {
-  implicit val encoderPluginStatusRest: JsonEncoder[JsonPluginStatus]  = JsonEncoder[String].contramap(_.value)
-  implicit val encoderPluginDetails:    JsonEncoder[JsonPluginDetails] = DeriveJsonEncoder.gen
+object JsonPluginDetails  {
+  implicit val encoderPluginSystemStatusRest: JsonEncoder[PluginSystemStatus] = JsonEncoder[String].contramap(_.value)
+  implicit val encoderPluginDetails:          JsonEncoder[JsonPluginDetails]  = DeriveJsonEncoder.gen
 }
 
 /*
@@ -171,7 +179,7 @@ final case class PluginLicenseInfo(
 )
 object PluginLicenseInfo {
   import DateFormaterService.json.encoderDateTime
-  implicit val encoderPluginLicenseInfo: JsonEncoder[PluginLicenseInfo] = DeriveJsonEncoder.gen
+  implicit val encoder: JsonEncoder[PluginLicenseInfo] = DeriveJsonEncoder.gen
 }
 
 trait PluginSettingsService {
@@ -186,8 +194,8 @@ class FilePluginSettingsService(pluginConfFile: File, readSetupDone: IOResult[Bo
   /**
     * Watch the rudder_setup_done setting to see if the plugin settings has been setup.
     * It has the side effect of updating the `rudder_setup_done` setting.
-    * 
-    * @return the boolean with the semantics of : 
+    *
+    * @return the boolean with the semantics of :
     *  rudder_setup_done && !(is_setting_default || is_setting_empty)
     * and false when the plugin settings are not set, and setup is not done
     */
@@ -272,4 +280,267 @@ class FilePluginSettingsService(pluginConfFile: File, readSetupDone: IOResult[Bo
               })
     } yield {}
   }
+}
+
+sealed trait PluginType extends Lowercase
+object PluginType       extends Enum[PluginType] {
+  case object Webapp      extends PluginType
+  case object Integration extends PluginType
+
+  override def values: IndexedSeq[PluginType] = findValues
+}
+
+sealed trait JsonPluginSystemStatus extends Lowercase
+object JsonPluginSystemStatus       extends Enum[JsonPluginSystemStatus] {
+  case object Enabled     extends JsonPluginSystemStatus
+  case object Disabled    extends JsonPluginSystemStatus
+  case object Uninstalled extends JsonPluginSystemStatus
+
+  override def values: IndexedSeq[JsonPluginSystemStatus] = findValues
+}
+
+/**
+ * An error enumeration to identify plugin management errors and the associated messages
+ */
+sealed trait PluginManagementError {
+  def kind:       PluginManagementError.Kind
+  def displayMsg: String
+}
+object PluginManagementError       {
+  sealed trait Kind extends EnumEntry with Dotcase
+  object Kind       extends Enum[Kind] {
+    case object LicenseExpiredError        extends Kind
+    case object LicenseNearExpirationError extends Kind
+    case object AbiVersionError            extends Kind
+    override def values: IndexedSeq[Kind] = findValues
+  }
+
+  /**
+    * Sum type for license expiration error with disjoined cases
+    */
+  sealed trait LicenseExpirationError    extends PluginManagementError
+  case object LicenseExpiredError        extends LicenseExpirationError {
+    override def kind:       Kind.LicenseExpiredError.type = Kind.LicenseExpiredError
+    override def displayMsg: String                        = "Plugin license error require your attention"
+  }
+  case object LicenseNearExpirationError extends LicenseExpirationError {
+    override def kind:       Kind.LicenseNearExpirationError.type = Kind.LicenseNearExpirationError
+    override def displayMsg: String                               = "Plugin license near expiration"
+  }
+
+  final case class RudderAbiVersionError(rudderFullVersion: String) extends PluginManagementError {
+    override def kind:       Kind.AbiVersionError.type = Kind.AbiVersionError
+    override def displayMsg: String                    =
+      s"This plugin was not built for current Rudder ABI version ${rudderFullVersion}. You should update it to avoid code incompatibilities."
+  }
+
+  def fromRudderPackagePlugin(
+      plugin: RudderPackagePlugin
+  )(implicit rudderFullVersion: String, abiVersion: Version): List[PluginManagementError] = {
+    List(
+      validateAbiVersion(rudderFullVersion, abiVersion),
+      plugin.license.flatMap(l => validateLicenseExpiration(l.endDate))
+    ).flatten
+  }
+
+  private def validateAbiVersion(rudderFullVersion: String, abiVersion: Version): Option[RudderAbiVersionError] = {
+    if (rudderFullVersion != abiVersion.toVersionString)
+      Some(RudderAbiVersionError(rudderFullVersion))
+    else
+      None
+  }
+
+  /**
+   * license near expiration : 1 month before now.
+   */
+  private def validateLicenseExpiration(endDate: DateTime): Option[LicenseExpirationError] = {
+    if (endDate.isBeforeNow()) {
+      Some(LicenseExpiredError)
+    } else if (endDate.minusMonths(1).isBeforeNow())
+      Some(LicenseNearExpirationError)
+    else
+      None
+  }
+
+}
+
+final case class JsonPluginSystemDetails(
+    id:            String,
+    name:          String,
+    description:   String,
+    version:       String,
+    status:        JsonPluginSystemStatus,
+    statusMessage: Option[String],
+    abiVersion:    Version,
+    pluginType:    PluginType,
+    errors:        List[JsonPluginManagementError],
+    license:       Option[PluginLicenseInfo]
+)
+
+final case class JsonPluginManagementError(
+    error:   String,
+    message: String
+)
+object JsonPluginManagementError {
+  implicit val transformer: Transformer[PluginManagementError, JsonPluginManagementError] = {
+    Transformer
+      .define[PluginManagementError, JsonPluginManagementError]
+      .withFieldComputed(_.error, _.kind.entryName)
+      .withFieldComputed(_.message, _.displayMsg)
+      .buildTransformer
+  }
+}
+
+object JsonPluginSystemDetails {
+  implicit val encoderPluginSystemStatusRest: JsonEncoder[JsonPluginSystemStatus]    = JsonEncoder[String].contramap(_.entryName)
+  implicit val encoderPluginType:             JsonEncoder[PluginType]                = JsonEncoder[String].contramap(_.entryName)
+  implicit val encoderPluginManagementError:  JsonEncoder[JsonPluginManagementError] =
+    DeriveJsonEncoder.gen[JsonPluginManagementError]
+  implicit val encoderVersion:                JsonEncoder[Version]                   = JsonEncoder[String].contramap(_.toVersionString)
+  implicit val encoderPluginSystemDetails:    JsonEncoder[JsonPluginSystemDetails]   = DeriveJsonEncoder.gen[JsonPluginSystemDetails]
+}
+
+@jsonMemberNames(SnakeCase)
+final case class RudderPackagePlugin(
+    name:          String,
+    version:       Option[String], // version is only available when installed
+    latestVersion: String,
+    installed:     Boolean,
+    enabled:       Boolean,
+    webappPlugin:  Boolean,
+    description:   String,
+    license:       Option[RudderPackagePlugin.LicenseInfo]
+)
+object RudderPackagePlugin     {
+  // types for passing implicits
+  final case class Licensee(value: String)      extends AnyVal
+  final case class SoftwareId(value: String)    extends AnyVal
+  final case class MinVersion(value: String)    extends AnyVal
+  final case class MaxVersion(value: String)    extends AnyVal
+  final case class MaxNodes(value: Option[Int]) extends AnyVal
+
+  // License representation is limited to these fields in rudder package
+  @jsonMemberNames(SnakeCase)
+  final case class LicenseInfo(
+      startDate: DateTime,
+      endDate:   DateTime
+  )
+  object LicenseInfo {
+    import DateFormaterService.json.decoderDateTime
+    implicit val decoder: JsonDecoder[LicenseInfo] = DeriveJsonDecoder.gen[LicenseInfo]
+    implicit def transformer(implicit
+        licensee:   Licensee,
+        softwareId: SoftwareId,
+        minVersion: MinVersion,
+        maxVersion: MaxVersion,
+        maxNodes:   MaxNodes
+    ): Transformer[LicenseInfo, PluginLicenseInfo] = {
+      Transformer
+        .define[LicenseInfo, PluginLicenseInfo]
+        .withFieldConst(_.licensee, licensee.value)
+        .withFieldConst(_.softwareId, softwareId.value)
+        .withFieldConst(_.minVersion, minVersion.value)
+        .withFieldConst(_.maxVersion, maxVersion.value)
+        .withFieldConst(_.maxNodes, maxNodes.value)
+        .withFieldConst(_.others, Map.empty[String, String])
+        .buildTransformer
+    }
+  }
+
+  implicit val decoder: JsonDecoder[RudderPackagePlugin] = DeriveJsonDecoder.gen[RudderPackagePlugin]
+
+  /**
+    * When joining plugin information from rudder package and global information from registered plugins,
+    * we can return needed plugin details
+    */
+  implicit def transformer(implicit
+      rudderFullVersion: String,
+      abiVersion:        Version,
+      transformLicense:  Transformer[LicenseInfo, PluginLicenseInfo]
+  ): Transformer[RudderPackagePlugin, JsonPluginSystemDetails] = {
+    val _ = transformLicense // variable is used below
+    Transformer
+      .define[RudderPackagePlugin, JsonPluginSystemDetails]
+      .withFieldComputed(_.id, _.name)
+      .withFieldComputed(
+        _.status,
+        p => {
+          (p.installed, p.enabled) match {
+            case (true, true)  => JsonPluginSystemStatus.Enabled
+            case (true, false) => JsonPluginSystemStatus.Disabled
+            case (false, _)    => JsonPluginSystemStatus.Uninstalled
+          }
+        }
+      )
+      .withFieldComputed(_.version, l => l.version.getOrElse(l.latestVersion))
+      .withFieldConst(_.abiVersion, abiVersion) // field is computed upstream
+      .withFieldComputed(_.pluginType, p => if (p.webappPlugin) PluginType.Webapp else PluginType.Integration)
+      .withFieldConst(_.statusMessage, None)
+      .withFieldComputed(
+        _.errors,
+        PluginManagementError.fromRudderPackagePlugin(_).map(_.transformInto[JsonPluginManagementError])
+      )
+      .buildTransformer
+  }
+}
+
+/**
+  * A service that encapsulate rudder package operations and its representation of plugins.
+  */
+trait RudderPackageService {
+  def listAllPlugins(): IOResult[Chunk[RudderPackagePlugin]]
+
+  def installPlugins(plugins: Chunk[String]): IOResult[Unit]
+
+  def removePlugins(plugins:           Chunk[String]): IOResult[Unit]
+  def changePluginSystemStatus(status: PluginSystemStatus, plugins: Chunk[String]): IOResult[Unit]
+}
+
+/*
+ * We assume that command in config is in format: `/path/to/main/command args1 args2 etc`
+ */
+class RudderPackageCmdService(configCmdLine: String) extends RudderPackageService {
+
+  val configCmdRes = configCmdLine.split(" ").toList match {
+    case Nil       => Left(Unexpected(s"Invalid command for rudder package from configuration: '${configCmdLine}'"))
+    case h :: tail => Right((h, tail))
+  }
+
+  override def listAllPlugins(): IOResult[Chunk[RudderPackagePlugin]] = {
+    for {
+      configCmd   <- configCmdRes.toIO
+      cmd          = Cmd(configCmd._1, configCmd._2 ::: "list" :: "--all" :: "--format=json" :: Nil, Map.empty, None)
+      packagesCmd <- RunNuCommand.run(cmd)
+      result      <- packagesCmd.await
+      _           <- ZIO.when(result.code != 0) {
+                       Inconsistency(
+                         s"An error occurred while listing packages with '${cmd.display}':\n code: ${result.code}\n stderr: ${result.stderr}\n stdout: ${result.stdout}"
+                       ).fail
+                     }
+
+      plugins <- result.stdout.fromJson[Chunk[RudderPackagePlugin]].toIO.chainError("Could not parse plugins definition")
+    } yield {
+      plugins
+    }
+  }
+
+  override def installPlugins(plugins: Chunk[String]): IOResult[Unit] = ???
+
+  override def removePlugins(plugins: Chunk[String]): IOResult[Unit] = ???
+
+  override def changePluginSystemStatus(status: PluginSystemStatus, plugins: Chunk[String]): IOResult[Unit] = ???
+
+}
+
+/**
+  * A service to manage plugins, it is an abstraction over system administration of plugins
+  */
+trait PluginSystemService {
+
+  def list(): IOResult[Chunk[JsonPluginSystemDetails]]
+
+  def install(plugins:     Chunk[String]): IOResult[Unit]
+  def remove(plugins:      Chunk[String]): IOResult[Unit]
+  def updateStatus(status: PluginSystemStatus, plugins: Chunk[String]): IOResult[Unit]
+
 }

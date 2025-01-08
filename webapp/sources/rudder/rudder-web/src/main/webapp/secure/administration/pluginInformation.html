@@ -1,68 +1,32 @@
 <lift:surround with="common-layout" at="content">
 
-  <head>
-    <title>Rudder - Plugins Management</title>
-    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-plugins.css"
-      media="screen" />
-  </head>
+  <head_merge></head_merge>
+  <title>Plugins</title>
+  <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-plugins.css"
+    media="screen">
+  <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-plugins.js"></script>
+  </head_merge>
 
-  <div class="rudder-template one-col">
-    <div class="template-main">
-      <div class="main-container">
-        <div class="main-header">
-          <div class="header-title">
-            <h1>Plugins</h1>
-          </div>
-          <div class="header-description">
-            <p>
-              Plugins can extend Rudder’s base functionality to add extra features. They can be either open source or
-              proprietary (this is up to the plugin author).
-            </p>
-            <p>
-              Learn about available plugins on our <a href="https://www.rudder.io/software/plugins/">website</a>, or
-              directly
-              <a href="https://repository.rudder.io/plugins/">download free plugins</a>.
-            </p>
-          </div>
-        </div>
-        <div class="main-navbar">
-          <ul class="ui-tabs-nav"></ul>
-        </div>
-        <div class="main-details">
-          <div class="lift:administration.PluginManagement.display">
-            <div class="rudder-package-doc callout-fade callout-info">
-              <div class="marker"><span class="glyphicon glyphicon-info-sign"></span></div>
-                <p>Plugins are managed by the Rudder package manager.</p>
-                <p>
-                  You can consult the list of plugins with the command <b>rudder package list --all</b><br />
-                  To consult the list of plugins already installed you can use the command <b>rudder package list</b><br />
-                  Finally you can install a plugin with the command <b>rudder package install plugin-name</b><br />
-                </p>
-                <p>Rudder package manager comes with more commands, to consult the help use the command <b>rudder package help</b></p>
-            </div>
-            <div class="inner-portlet plugin">
-              <h3 class="title-section" data-plugin="name">[Here comes the plugins name]</h3>
-              <p class="description" data-plugin="description">[Here comes the plugin description]</p>
-              <ul class="plugin-details">
-                <li><b>Plugin ID:</b> <span data-plugin="fullid">[Here comes the plugin full id]</span></li>
-                <li><b>Plugin version:</b> <span data-plugin="version">[Here comes the plugin version]</li>
-                <li><b>Rudder ABI version:</b> <span data-plugin="rudderVersion">[Here comes the rudder version used by
-                    the plugin]</span>
-                  <span data-plugin="versionWarning">[warning message if patch version of the plugin is not the same as
-                    Rudder]</span>
-                </li>
-              </ul>
+  <div id="plugins"></div>
 
-              <div class="plugin-description" class="pluginpadd">
-                <span data-plugin="statusInformation">[Here comes optionnal information about plugin
-                  status/license]</span>
-              </div>
+  <script>
+    $(document).ready(function () {
+      var main = document.getElementById("plugins")
+      var initValues = {
+        contextPath: contextPath
+      };
+      var app = Elm.Plugins.init({ node: main, flags: initValues });
+      app.ports.errorNotification.subscribe(function (message) {
+        createErrorNotification(message);
+      });
+      app.ports.copy.subscribe(function (str) {
+        copy(str);
+      });
+      app.ports.copyJson.subscribe(function (value) {
+        let str = JSON.stringify(value, null, 2);
+        copy(str);
+      });
+    })
+  </script>
 
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
 </lift:surround>
