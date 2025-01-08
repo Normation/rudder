@@ -14,6 +14,7 @@
       "jar-files": [
         "/opt/rudder/share/plugins/dsc/dsc.jar"
       ],
+      "requires-license": false,
       "content": {
         "files.txz": "/opt/rudder/share/plugins",
         "agent-policy.txz": "/var/rudder/configuration-repository",
@@ -250,6 +251,7 @@
       "content": {
         "files.txz": "/opt/rudder/"
       },
+      "requires-license": false,
       "files": [
         "/opt/rudder//",
         "/opt/rudder//share/",
@@ -272,6 +274,7 @@
       "content": {
         "files.txz": "/opt/rudder/share/plugins"
       },
+      "requires-license": true,
       "files": [
         "/opt/rudder/share/plugins/",
         "/opt/rudder/share/plugins/aix/",
@@ -288,6 +291,7 @@
       "build-date": "2023-10-13T10:03:34+00:00",
       "build-commit": "2abc53fb8b2d1c667a91b1a1da2f941a99872cdf",
       "jar-files": [],
+      "requires-license": false,
       "content": {
         "files.txz": "/opt/rudder/share/plugins"
       }

@@ -17,6 +17,7 @@ use crate::{
     webapp::Webapp,
 };
 
+#[derive(Clone)]
 pub struct ListOutput {
     inner: Vec<ListEntry>,
 }
@@ -36,6 +37,7 @@ struct ListEntry {
     /// Only true for enabled web plugins
     enabled: bool,
     webapp_plugin: bool,
+    requires_license: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -81,7 +83,11 @@ impl ListOutput {
                                 "expired".to_string()
                             }
                         })
-                        .unwrap_or("".to_string())
+                        .unwrap_or(if e.requires_license {
+                            "no license".to_string()
+                        } else {
+                            "".to_string()
+                        })
                         .cell(),
                     e.description.unwrap_or("".to_string()).cell(),
                 ]
@@ -105,10 +111,9 @@ impl ListOutput {
         Ok(())
     }
 
-    fn json(&self) -> Result<()> {
+    fn json(&self) -> Result<String> {
         let out = serde_json::to_string(&self.inner)?;
-        println!("{}", out);
-        Ok(())
+        Ok(out)
     }
 
     pub fn new(
@@ -149,6 +154,7 @@ impl ListOutput {
                 version: Some(p.metadata.version.to_string()),
                 latest_version,
                 webapp_plugin: p.metadata.is_webapp(),
+                requires_license: p.metadata.requires_license,
                 enabled,
                 installed: true,
                 description: p.metadata.description.clone(),
@@ -171,6 +177,7 @@ impl ListOutput {
                             version: None,
                             latest_version: Some(p.metadata.version.to_string()),
                             webapp_plugin: p.metadata.is_webapp(),
+                            requires_license: p.metadata.requires_license,
                             installed: false,
                             enabled: false,
                             description: p.metadata.description.clone(),
@@ -189,7 +196,7 @@ impl ListOutput {
 
     pub fn display(self, format: Format) -> Result<()> {
         match format {
-            Format::Json => self.json()?,
+            Format::Json => println!("{}", self.json()?),
             Format::Human => self.human_table()?,
         }
         Ok(())
@@ -198,16 +205,19 @@ impl ListOutput {
 
 #[cfg(test)]
 mod tests {
-    use std::path::{Path, PathBuf};
-
     use super::ListOutput;
     use crate::{
         cli::Format, database::Database, license::Licenses, repo_index::RepoIndex,
         versions::RudderVersion, webapp::Webapp,
     };
+    use pretty_assertions::assert_eq;
+    use std::{
+        fs::read_to_string,
+        path::{Path, PathBuf},
+    };
 
     #[test]
-    fn it_lists_plugins() {
+    fn it_lists_plugins_as_json() {
         let w = Webapp::new(
             PathBuf::from("tests/webapp_xml/example.xml"),
             RudderVersion::from_path("./tests/versions/rudder-server-version").unwrap(),
@@ -221,6 +231,12 @@ mod tests {
         .unwrap();
         let l = Licenses::from_path(Path::new("tests/licenses")).unwrap();
         let out = ListOutput::new(true, false, &l, &d, Some(&r), &w).unwrap();
-        out.display(Format::Human).unwrap();
+        out.clone().display(Format::Json).unwrap();
+
+        let json_ref: serde_json::Value =
+            serde_json::from_str(&read_to_string("tests/cli/cli-list-out.json").unwrap()).unwrap();
+        let json: serde_json::Value = serde_json::from_str(&out.json().unwrap()).unwrap();
+
+        assert_eq!(json, json_ref);
     }
 }
