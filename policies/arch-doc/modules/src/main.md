@@ -897,69 +897,83 @@ service("crond").restart()
 ## Terminology
 
 The best name would probably be "resources", but we already use this name
-for files attached to a policy (e.g. configuration files, templates,
-etc.). So we went to `modules` which is more generic.
+for files attached to a policy (e.g., configuration files, templates,
+etc.).
+So we went for `modules` which is more generic and
+not already used in Rudder.
+
+An ambiguity has already been found when talking about extending our agent
+with "Linux modules" for Rudder, which could be understood as "Linux kernel modules".
+We can avoid this by using the term "Rudder agent modules" instead in a Linux
+system context.
+
+## Definition
+
+Modules are all agent modules for now, but this could change as some point
+(with virtual agents, etc.).
 
 A resource:
 
-- is a configurable object on the system, through states
-- Can be subject to actions (sometimes)
-- Can be interrogated for current state (mesure/probe)
-
-An ambiguity has already existed when talking about extending our agent
-with "Linux modules" for Rudder, which could be understood as "Linux kernel modules".
-
-Will be agent resources for now, but the agent part may change.
+- Represents a specific part of a system
+- Can be subject to state enforcement
+- Can be subject to actions
+- Can be interrogated for current state
 
 ## Rust
 
-A script (Powershell) based agent is good as a first version as it
-allowed us to get things running cheaply, but it will likely not be as
-maintainable, extensible and reliable as a "real" agent implemented in a
-proper programming language.
+Our set of requirements for choosing a target language are:
 
-Which language would make sense?
+- Performance: We want it to be on-par with the current Linux agent implemented in C.
+- Safety: We want to avoid the common pitfalls of C.
+- Ecosystem: We want to be able to use existing libraries and tools.
+- Portability: We want to be able to run on all platforms supported by Rudder.
+- Reliability: We want to enjoy the benefits of a modern language, with a strong type system and good error handling,
+  matching our other stacks (Scala & Elm).
 
-- F# (or another .NET language), for seamless integration with
-  Powershell
+We could consider using two languages, one for the engine and one for the resource
+implementations as the needs are a bit different.
+For now the core is already there (CFEngine on Linux,
+F#/Powershell on Windows), so we can focus on the resources for now.
 
-- Rust for consistency with other Rudder part, performance and
-  potential convergence with other platforms
+This lead to the choice of Rust for the resources. It matches most of our
+needs, and we also enjoy using it in other parts of Rudder.
 
-An intermediary option would be to add a library for usage in the
-current Powershell implementation. This would allow to implement common
-function outside of the script, and use it as a base for a future agent
-implementation.
+The possible drawbacks are:
 
-Then the key change is to allow switching control flow from a generated
-script calling resources to resources callable by an executor. The
-interface could be either .NET or data (JSON like CFEngine or Ansible).
+- The learning curve for developers
+    - In particular, it makes external contributions harder (and given the profile of our users, mostly impossible)
+- The [limited portability](https://doc.rust-lang.org/nightly/rustc/platform-support.html)
+    - No support for AIX, Solaris, etc.
+    - No support for [older versions](https://blog.rust-lang.org/2022/08/01/Increasing-glibc-kernel-requirements.html)
+      of operating systems we sometimes need to support. It basically follows the maintenance policy of the enterprise
+      distributions.
 
-The choice of language used to develop the configuration management
-primitives themselves, and the policies are defining. We'll focus here on
-the primitives, but it is not splittable from the policies themselves,
-as having a common language for both can be a key choice.
+Rust is already used for successful infrastructure software:
 
-Rust.
-
-Already used in some infra tools Great for this context
-
-Matching our other stacks (Scala & Elm).
-
-A strong bet.
-
-Our users won't generally be able to write it.
+* AWS relies heavily on it (Firecracker, etc.)
+* Azure is using it for some of its services
+* etc.
 
 ## Policies / User interface
 
-Data (YAML) and not a programming language.
+It the resource level, passing data is enough, and the engine itself could
+use data structures, or a DSL to describe the policies.
 
-Does not presumate of the higher level API as it could rely on a program
-or state.
+But resources are not totally isolated, and some global features
+can require changes in the resources.
+This includes the ability to group resources, to have a shared state, etc.
 
-rudder n'a aucun graphe global, tout est local
-pas de résolution
-communication minimale
+Rudder has no global graph and evaluates everything sequentially.
+The only communication between methods are outcome classes.
+
+So for now we will keep the sequential isolated evaluation of resources.
+
+Eventually, we want to expose the modules to the users as a set
+of parameters, like other tools do. The current function-like approach
+does not fit our needs, as it is either too rigid (or requires way to many methods to cover
+all use cases).
+We will also keep the modules exposed as methods for now as it allows us to continue
+evolving the modules interface without breaking user-visible content.
 
 si on veut un graphe global ça a un impact sur les ressources (cf mgmt)
 
@@ -980,9 +994,19 @@ japanese error messages
 
 ## Command-line user interface
 
-TODO explain !
+The main use case of the modules is to be called from the agent as part of its run.
+But apart from that, users have other needs.
+The first one is to develop their policies.
+In most cases it is pretty straightforward,
+but msome parts can require some trial and retry (templating, file editions, etc.).
 
-specialized CLI for modules!!
+Another common special case is debugging.
+The information returned by the agent
+may not be enough to understand exactly what happens, and users resort to
+running commands interactively.
+
+As a consequence, modules will also need to expose command line interfaces
+for the users, besides what is exposed to the agent.
 
 ## Persistence
 
@@ -1082,6 +1106,10 @@ TODO : possibilité pour chaque module de
 
 ### Reliability
 
+We are not creating a new tool in the void, but writing a replacement
+for a production-grade tool. This means that we need to be very careful
+about the reliability of the system.
+
 ### Measure
 
 we need to take reality into account
@@ -1090,13 +1118,37 @@ measure stuff, probe, etc.
 
 ### Schemas and API stability
 
-### Performances
+As the modules are part of an agent, we need to be very careful about
+the stability of the API. We need to be able to add new features without
+breaking existing modules, and we need to be able to update the agent
+without breaking existing policies.
 
-in-line with the choice of rust
+This is achieved by:
 
-un ordre de magnitude par rapport à CFEngine (au global)
+- A clear separation between the agent and the modules
+- A clear separation between the agent and the policies
+- A clear separation between the modules and the policies
+- Using enforced schemas for the module APIs
 
-In the domain, it should not be neglected as it can be a key feature.
+### Performance
+
+Adding a new layer of abstraction can have a performance cost.
+We need to be careful about this, and make sure the performance is
+at least in line with the current agent.
+
+Even if the agent side is not often used interactlively,
+the performance of the agent is important as it
+limits how it can be used. For exemple, the "continuous"
+aspect of the agent is important and only possible with
+a fast agent.
+
+But besides monitoring and maintaining performance, we can also
+consider making the agent faster. CFEngine has always
+been the fastest agent, without any real competition,
+so it has not been a priority.
+But given some improvements we could make
+in the agent, it is likely possible to
+significantly improve the performance of the agent.
 
 ### State machines
 
@@ -1166,23 +1218,60 @@ As we use Rust we get access to:
     * The [`windows`](https://crates.io/crates/windows) crate, maintained by Microsoft, giving native access to Windows
       APIs
 * C libraries (FFI)
-    * On Linux, cover most of the system interface
+    * On Linux, they cover most of the system interface
 
-Which garantee a good performance and a good integration with the rest of the system.
+Which guarantees a good performance and a good integration with the rest of the system.
 
 ## CFEngine integration
 
-- We hadd to add an intermediate API, permitted by the JSON arbitrary
-  data passed
+The module API is designed to be compatible with CFEngine's custom
+promise type API.
+This allows us to use the modules in CFEngine
+while keeping them agnostic of the agent, by using a small shim
+to translate the CFEngine protocol to the module API.
 
-    - The first level in the parameters JSON is interpreted by the
-      library
+The general workflow is:
 
-    - A subkey is passed to the resource implementation
+- The agent starts.
+- When it encounters a module in the policy, it spawns a new process to handle it.
+- The agent sends JSON over stdin, and reads JSON on stdout for each promise of the type.
+- The agent sends a termination request to the module when reaching the end of the policy.
 
-    - Allows passing metadata (machine ID, public key, temp dir, etc.)
+This provides good performance, as the module process is spawned lazily and kept until the end of the agent run.
+The JSON API is synchronous and sequential, with no pipelining.
 
-    - Not a problem as we compile `.cf` policies from YAML
+To make the module API independent of the agent, we add a layer around the module API to handle some generic parameters.
+This is made possible by the layer of policy generation in `rudderc`,
+which allows us to add metadata to the module parameters automatically.
+
+This looks like this:
+
+```rust
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Default)]
+pub struct Parameters {
+    /// Where to store temporary files
+    pub temporary_dir: PathBuf,
+    /// Where to store file backups
+    pub backup_dir: PathBuf,
+    /// Where to store persistent state files
+    pub state_dir: PathBuf,
+    /// Unique node identifier
+    pub node_id: String,
+    /// Agent run frequency in minutes
+    pub agent_frequency_minutes: usize,
+    /// Version of the Rudder module protocol
+    pub(crate) rudder_module_protocol: usize,
+    // Only passed if warn
+    pub(crate) action_policy: ActionPolicy,
+
+    /// Module type parameters
+    pub data: Map<String, Value>,
+}
+```
+
+The module receives these parameters, and then parses the `data` field to get the actual parameters for the resource.
+
+A visual representation of the sequence of events:
 
 ```mermaid
 sequenceDiagram
@@ -1251,6 +1340,14 @@ FIXME: mutualize modules in single file
 
 Secrets are a big issue in configuration management. They are needed for
 many resources, and we need to handle them securely.
+
+We need a generic way to handle secrets, that can be used by all
+modules.
+
+A simple idea we'll adopt from now is to pass a parameter to each module
+call.
+It will instruct the module not to output the potentially
+sensitive data in the logs.
 
 # Example 1: The Augeas module
 
@@ -1529,7 +1626,22 @@ des commandes IDEMPOTENTES
 
 # Example 2: The system updates module
 
+The system updates module is a very different beast from the Augeas module.
+It is not really a classic configuration management task,
+as we don't manage a desired state but run _desired actions_ instead.
+
+This implies a different way to think about the module, and a different way to design it.
+
+But it is also interesting as it is a target for our modules to better handle actions,
+especially being able to report on them efficiently.
+
 ## Persistence
+
+We need to store information about the actions taken, both to act as a locking
+mechanism and to be able to report on them.
+
+As described in the previous section, we use SQLite for this. The module is
+responsible for creating and maintaining the database and its schema.
 
 ## The CLI
 

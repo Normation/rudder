@@ -5,6 +5,7 @@ use std::ffi::OsStr;
 use std::ops::Deref;
 
 pub mod comparator;
+mod ip;
 mod parser;
 pub mod repl;
 pub mod script;

@@ -1,6 +1,6 @@
 # Run commands on all documents.
 
-TOP_TARGETS := all release clean html pdf
+TOP_TARGETS := all release clean lint html pdf
 
 SUB_DIRS := $(wildcard */.)
 

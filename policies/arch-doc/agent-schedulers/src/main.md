@@ -265,13 +265,13 @@ There was a change in the `cf-execd` scheduling in Rudder 8.1.7 and 8.2.0 to fix
 commit[fa6474c](https://github.com/cfengine/core/commit/fa6474c3f8495258ba16eeb701895ff73858a637)) that made around 0.1%
 of agent runs being skipped. It was discovered on a customer's large Rudder instance, so we back-ported the fix to 8.1.
 The problem was that the target resolution of`cf-execd`being one minute, the main loop would wait exactly one minute
-between checks. When starting very close to the beginning or the end of a minute, the 60 seconds sleep could make the
+between checks. When starting very close to the beginning, or the end of a minute, the 60-second sleep could make the
 schedule check totally skip one specific minute, hence skipping a run in some cases.
 The exact second the check was done was drifting over time, producing a random skip pattern. With the fix, the daemon
-sleeps for the amount of seconds until the beginning of every minute (around mm:02), which prevents skipping a minute.
+sleeps for the number of seconds until the beginning of every minute (around mm:02), which prevents skipping a minute.
 But without this "poor man's splay" of one minute, all the relays would now trigger at the exact same time, with a risk
-of overloading the root server (or an underlying hypervisor). We hence decided to also add a 2 minutes splay to relays,
-and add a 1-minute shift of start time, which is also likely a good idea regardless of the bug fix.
+of overloading the root server (or an underlying hypervisor). We hence decided to also add a 2-minute splay to relays,
+and add a 1-minute shift of start time, which is also likely a good idea regardless of the bugfix.
 
 ### Inventory scheduling
 
@@ -311,13 +311,13 @@ bundle agent setup_cronjob
 }
 ```
 
-and the cron script template contains something along the lines of:
+And the cron script template contains something like:
 
 ```
 {{{vars.setup_cronjob.cron_prefix}}} root /opt/rudder/bin/rudder agent check -q >> /var/log/rudder/agent-check/check.log 2>&1
 ```
 
-On a system with a 5 minutes schedule, it gives:
+On a system with a 5-minute schedule, it gives:
 
 ```
 0,5,10,15,20,25,30,35,40,45,50,55 * * * * root /opt/rudder/bin/rudder agent check -q >> /var/log/rudder/agent-check/check.log 2>&1
@@ -354,7 +354,7 @@ The actual end date for the scheduler is not the end of the window, as we want t
 upgrades finishing after the end of the window. Given the amount of time taken by system upgrades, and the opposite need
 to allow small windows, we settled on 5 minutes + one agent schedule period. The agent schedule allows avoiding missing
 the upgrade if the schedule ends up close to the end of the window.
-The node ID is used to uniformly splay the upgrades across nodes. To avoid relying on the assumption the node ID are
+The node ID is used to uniformly splay the upgrades across nodes. To avoid relying on the assumption the node IDs are
 uniform (they are unique but depending on the UUID types and method of generation they may not be uniformly
 distributed), we add a simple hash ([FNV](https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function) on
 Linux, [MD5](https://en.wikipedia.org/wiki/MD5) on Windows) to ensure uniformity of the scheduling.
@@ -458,12 +458,12 @@ or non-systemd based distributions).
 
 * There are two types of schedules:
     * `OnActiveSec`, `OnBootSec`, etc.: These are monotonic timers, independent of wall-clock time and timezones.
-    * `OnCalendar`: Defines realtime (i.e. wallclock) timers with calendar event expressions.
+    * `OnCalendar`: Defines realtime (i.e., wallclock) timers with calendar event expressions.
 * `RandomizedDelaySec`: Delay the timer by a randomly selected, evenly distributed amount of time between 0 and the
   specified time value.
 * `FixedRandomDelay`: Takes a boolean argument. When enabled, the randomized offset specified by `RandomizedDelaySec=`
   is reused for all firings of the same timer. For a given timer unit, the offset depends on the machine ID, user
-  identifier and timer name. The machine ID works like the Rudder node ID (i.e. a UUID unique to each system).
+  identifier and timer name. The machine ID works like the Rudder node ID (i.e., a UUID unique to each system).
 * `AccuracySec`: The resolution of the scheduler, by default 1 minute to optimize power consumption. Within this time
   window, the expiry time will be placed at a host-specific, randomized, but stable position that is synchronized
   between all local timer units.
@@ -481,12 +481,12 @@ The different agent scheduling systems are quite inconsistent, but seem to work 
 ## Simple improvements
 
 * The computation of next inventory schedule is wrong as the hash used in the time lib was changed from md5 to sha256.
-  This confirms this implementation is very fragile.
+  This confirms this implementation is feeble.
 * Splay the Windows inventories on a longer duration, and maybe make it stable too. Currently, they run between midnight
   and 2 a.m, at a different time each day.
 * Add a uniform hash to the Windows agent splay to only require ID uniqueness and not uniformity (which could not be the
-  case in case of custom ID generation for example).
-* Use more uniqueness than the hostname for the scheduler methods and the Windows splay, as it could become an issue
+  case in case of custom ID generation, for example).
+* Use more uniqueness than the hostname for the scheduler methods, and the Windows splay, as it could become an issue
   when running on cloned systems.
 * Replace the usage of MD5 in the Windows system upgrade technique. While it is only used for its output uniformity (and
   is not a security issue) it is flagged by security code scanners and might also be unavailable on FIPS-enabled
@@ -497,15 +497,17 @@ The different agent scheduling systems are quite inconsistent, but seem to work 
 ## Other topics
 
 We should decide if we actually want to keep agent scheduling local, or if we want the server to decide everything
-centrally. The Windows agent run splay could easily be implemented as part of the F# library for example, and the Linux
+centrally.
+The Windows agent run splay could easily be implemented as part of the F# library, for example, and the Linux
 splaying could be implemented on the server as well.
 
 There is also a topic about time representations (including time zones), which are not consistently handled in Rudder.
 For anything happening inside Rudder (and not related to the user's systems), using UTC times everywhere, with RFC3339
 formatting when serialized as string, is probably the best option. For an introduction to why time is a really hard
 problem, read the
-excellent "[UTC is enough for everyone ...right?](https://zachholman.com/talk/utc-is-enough-for-everyone-right)" page (
-by Zach Holman).
+excellent
+"[UTC is enough for everyone ...right?](https://zachholman.com/talk/utc-is-enough-for-everyone-right)" page (by Zach
+Holman).
 
 Finally, we have a project of writing a `cf-execd`-like daemon in Rust that would also replace the remote trigger
 feature of `cf-serverd` and could be used both on the Linux and Windows agent, which currently does not support remote

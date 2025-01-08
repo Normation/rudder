@@ -30,9 +30,9 @@ impl Runner {
         let parameters = serde_json::from_value(parameters)?;
 
         let result = module.init();
-        if result.is_err() {
-            return result;
-        }
+        //if result.is_err() {
+        //    return result;
+        //}
 
         let result = module.validate(&parameters);
         if result.is_err() {

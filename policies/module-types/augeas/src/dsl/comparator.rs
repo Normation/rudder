@@ -9,14 +9,8 @@ use std::fmt::Debug;
 use std::num::{ParseFloatError, ParseIntError};
 use std::str::FromStr;
 
-// FIXME: add
-// - support for arrays
-// - support for IP ranges
-// - support for type validation (IP, int)
+// https://github.com/jprochazk/garde?tab=readme-ov-file#available-validation-rules
 // - password complexity checks
-// - compare str len
-
-// TODO consider https://github.com/jprochazk/garde
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NumComparator {
@@ -73,7 +67,7 @@ pub struct NumericComparison {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Comparison {
     Num(NumericComparison),
-    Str(StrComparison),
+    Str(StrValidation),
 }
 
 #[derive(PartialEq, Copy, Clone)]
@@ -159,7 +153,7 @@ pub enum StrComparator {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct StrComparison {
+pub struct StrValidation {
     comparator: StrComparator,
     value: String,
 }
@@ -176,7 +170,7 @@ impl FromStr for StrComparator {
     }
 }
 
-impl StrComparison {
+impl StrValidation {
     pub fn matches(&self, value: &str) -> bool {
         let is_equal = value == self.value;
         match self.comparator {
@@ -328,7 +322,7 @@ mod tests {
 
     #[test]
     fn test_str_comparison() {
-        let c = StrComparison {
+        let c = StrValidation {
             comparator: StrComparator::Equal,
             value: "foo".to_string(),
         };
@@ -339,7 +333,7 @@ mod tests {
         let r = c.matches("bar");
         assert!(!r);
 
-        let c = StrComparison {
+        let c = StrValidation {
             comparator: StrComparator::NotEqual,
             value: "foo".to_string(),
         };

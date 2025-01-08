@@ -4,9 +4,7 @@
 use crate::dsl::script::Expression;
 use nom::branch::alt;
 use nom::bytes::complete::{is_not, tag};
-use nom::character::complete::{
-    alpha1, char, line_ending, multispace0, not_line_ending, space0,
-};
+use nom::character::complete::{alpha1, char, line_ending, multispace0, not_line_ending, space0};
 use nom::combinator::{eof, map_res, not, opt};
 use nom::error::VerboseError;
 use nom::multi::{many0, separated_list0};
@@ -147,6 +145,42 @@ fn cmd_match_not_equal(input: &str) -> IResult<&str, Expression, VerboseError<&s
     Ok((input, Expression::MatchNotEqual(path.into(), value)))
 }
 
+fn cmd_match_size(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
+    let (input, path) = arg(input)?;
+    let (input, _) = tag("!=")(input)?;
+    let (input, cmp) = map_res(arg, |p| p.parse())(input)?;
+    let (input, i) = map_res(arg, |p| p.parse::<usize>())(input)?;
+    Ok((input, Expression::MatchSize(path.into(), cmp, i)))
+}
+
+fn cmd_values_include(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
+    let (input, path) = arg(input)?;
+    let (input, _) = tag("include")(input)?;
+    let (input, value) = arg(input)?;
+    Ok((input, Expression::ValuesInclude(path.into(), value)))
+}
+
+fn cmd_values_not_include(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
+    let (input, path) = arg(input)?;
+    let (input, _) = tag("not_include")(input)?;
+    let (input, value) = arg(input)?;
+    Ok((input, Expression::ValuesNotInclude(path.into(), value)))
+}
+
+fn cmd_values_equal(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
+    let (input, path) = arg(input)?;
+    let (input, _) = tag("==")(input)?;
+    let (input, value) = arg_array(input)?;
+    Ok((input, Expression::ValuesEqual(path.into(), value)))
+}
+
+fn cmd_values_not_equal(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
+    let (input, path) = arg(input)?;
+    let (input, _) = tag("!=")(input)?;
+    let (input, value) = arg_array(input)?;
+    Ok((input, Expression::ValuesNotEqual(path.into(), value)))
+}
+
 fn cmd_generic(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
     let (input, cmd) = not_line_ending(input)?;
     Ok((input, Expression::GenericAugeas(cmd)))
@@ -167,7 +201,18 @@ fn expression(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
         "rename" => cmd_rename(i),
         "defvar" => cmd_defvar(i),
         "defnode" => cmd_defnode(i),
-        "match" => alt((cmd_match_include, cmd_match_not_include))(i),
+        "match" => alt((
+            cmd_match_include,
+            cmd_match_not_include,
+            cmd_match_equal,
+            cmd_match_not_equal,
+        ))(i),
+        "values" => alt((
+            cmd_values_include,
+            cmd_values_not_include,
+            cmd_values_equal,
+            cmd_values_not_equal,
+        ))(i),
         "save" => Ok((i, Expression::Save)),
         "quit" => Ok((i, Expression::Quit)),
         "load" => Ok((i, Expression::Load)),

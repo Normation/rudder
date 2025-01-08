@@ -40,6 +40,13 @@ typst: markdown
            --metadata pandoc_version="$(pandoc_version)" \
            --template=../rudder.typ.template --output ${tmp}.typ
 
+# Build the LaTeX source file
+latex: markdown
+	pandoc --standalone --from markdown ${tmp}-mm.md --to latex \
+	       --metadata version="$(version)" \
+           --metadata pandoc_version="$(pandoc_version)" \
+           --output ${tmp}.tex
+
 # Build the HTML output
 html: markdown
 	pandoc --standalone --from markdown ${tmp}-mm.md --to html5 \
@@ -48,8 +55,14 @@ html: markdown
            --output ${out}.html
 
 # Build the PDF
-pdf: typst
+pdf: pdf-typst
+
+pdf-typst: typst
 	typst compile --root ${dest_dir} ${tmp}.typ ${out}.pdf
+
+pdf-latex: latex
+	cd ${dest_dir} && lualatex ${file}.tex
+	mv ${tmp}.pdf ${out}.pdf
 
 # Build a PDF release, including version in file name and
 # additional compression.
