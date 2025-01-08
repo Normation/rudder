@@ -84,7 +84,11 @@ impl ListOutput {
                             }
                         })
                         .unwrap_or(if e.requires_license {
-                            "missing".to_string()
+                            if e.installed {
+                                "missing".to_string()
+                            } else {
+                                "no available".to_string()
+                            }
                         } else {
                             "".to_string()
                         })
