@@ -84,7 +84,7 @@ impl ListOutput {
                             }
                         })
                         .unwrap_or(if e.requires_license {
-                            "no license".to_string()
+                            "missing".to_string()
                         } else {
                             "".to_string()
                         })
