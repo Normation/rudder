@@ -5,7 +5,7 @@ use crate::dsl::script::Expression;
 use nom::branch::alt;
 use nom::bytes::complete::{is_not, tag};
 use nom::character::complete::{alpha1, char, line_ending, multispace0, not_line_ending, space0};
-use nom::combinator::{eof, map_res, not, opt};
+use nom::combinator::{cut, eof, map_res, not, opt};
 use nom::error::VerboseError;
 use nom::multi::{many0, separated_list0};
 use nom::sequence::delimited;
@@ -42,6 +42,7 @@ pub fn arg(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
         delimited(char('\''), is_not("'\r\n"), char('\'')),
         is_not("\"' \t\r\n"),
     ))(input)?;
+    let (input, _) = space0(input)?;
     Ok((input, arg))
 }
 
@@ -153,6 +154,18 @@ fn cmd_match_size(input: &str) -> IResult<&str, Expression, VerboseError<&str>> 
     Ok((input, Expression::MatchSize(path.into(), cmp, i)))
 }
 
+fn cmd_match(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
+    let (input, path) = arg(input)?;
+
+    let (res, i) = alt((
+        cmd_match_include,
+        cmd_match_not_include,
+        cmd_match_equal,
+        cmd_match_not_equal,
+    ))(input)?;
+    Ok((res, i))
+}
+
 fn cmd_values_include(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
     let (input, path) = arg(input)?;
     let (input, _) = tag("include")(input)?;
@@ -201,18 +214,13 @@ fn expression(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
         "rename" => cmd_rename(i),
         "defvar" => cmd_defvar(i),
         "defnode" => cmd_defnode(i),
-        "match" => alt((
-            cmd_match_include,
-            cmd_match_not_include,
-            cmd_match_equal,
-            cmd_match_not_equal,
-        ))(i),
-        "values" => alt((
+        "match" => cmd_match(i),
+        "values" => cut(alt((
             cmd_values_include,
             cmd_values_not_include,
             cmd_values_equal,
             cmd_values_not_equal,
-        ))(i),
+        )))(i),
         "save" => Ok((i, Expression::Save)),
         "quit" => Ok((i, Expression::Quit)),
         "load" => Ok((i, Expression::Load)),
@@ -407,6 +415,14 @@ mod tests {
     }
 
     #[test]
+    fn test_values_include() {
+        let input = "values /path/to/node include value";
+        let expected = Expression::ValuesInclude("/path/to/node".into(), "value");
+        let result = expression(input).unwrap();
+        assert_eq!(result.1, expected);
+    }
+
+    #[test]
     fn test_script_parser() {
         let input = r#"
             # This is a comment
@@ -421,6 +437,8 @@ mod tests {
 
             print /path/to/node
             quit
+
+            values /path/to/node include value
 
             ins  label  before        /path/to/node
             mv /path/to/node /new/path
@@ -438,6 +456,7 @@ mod tests {
             Expression::Touch("/path/to/node".into()),
             Expression::GenericAugeas("print /path/to/node"),
             Expression::Quit,
+            Expression::ValuesInclude("/path/to/node".into(), "value"),
             Expression::Insert("label", Position::Before, "/path/to/node".into()),
             Expression::Move("/path/to/node".into(), "/new/path".into()),
             Expression::Rename("/path/to/node".into(), "new_label"),

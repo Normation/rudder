@@ -2,17 +2,13 @@
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
 use crate::dsl::comparator::{Comparison, NumComparator};
-use crate::dsl::ip::IpRangeChecker;
+use crate::dsl::value_type::ValueType;
 use crate::dsl::{parser, AugPath, Sub, Value};
 use anyhow::{anyhow, bail, Result};
-use bytesize::ByteSize;
-use ipnet::{Ipv4Net, Ipv6Net};
 use nom::Finish;
 use raugeas::{Augeas, Position};
 use rudder_module_type::{rudder_debug, rudder_trace};
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::path::Path;
-use std::str::FromStr;
 
 /// The mode of the interpreter.
 ///
@@ -361,6 +357,8 @@ pub enum Expression<'a> {
     MatchEqual(AugPath<'a>, Vec<&'a str>),
     MatchNotEqual(AugPath<'a>, Vec<&'a str>),
     /// Check the value at the path has a given type
+    ///
+    /// Uses the "is" keyword.
     HasType(AugPath<'a>, ValueType),
     /// String length
     StrLen(AugPath<'a>, NumComparator, usize),
@@ -371,143 +369,6 @@ pub enum Expression<'a> {
     /// (Re)load the tree.
     Load,
 }
-
-#[derive(Debug, PartialEq)]
-pub enum ValueType {
-    /// A byte size, like 1MB or 1GB
-    BytesSize,
-    /// An IP address
-    Ip,
-    /// An IPv4 address
-    Ipv4,
-    /// An IPv6 address
-    Ipv6,
-    /// An IP range with a mask
-    IpRange,
-    /// An IPv4 range with a mask
-    Ipv4Range,
-    /// An IPv6 range with a mask
-    Ipv6Range,
-    /// An integer
-    Int,
-    /// A positive integer
-    Uint,
-    /// A floating point number
-    Float,
-    /// A boolean
-    Bool,
-}
-
-impl FromStr for ValueType {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self> {
-        match s.to_lowercase().as_str() {
-            "bytes" => Ok(Self::BytesSize),
-            "ip" => Ok(Self::Ip),
-            "ipv4" => Ok(Self::Ipv4),
-            "ipv6" => Ok(Self::Ipv6),
-            "ip_range" => Ok(Self::IpRange),
-            "ipv4_range" => Ok(Self::Ipv4Range),
-            "ipv6_range" => Ok(Self::Ipv6Range),
-            "int" => Ok(Self::Int),
-            "uint" => Ok(Self::Uint),
-            "float" => Ok(Self::Float),
-            "bool" => Ok(Self::Bool),
-            _ => bail!("Invalid value type: {}", s),
-        }
-    }
-}
-
-impl ValueType {
-    /// Returns an error if the value is not valid.
-    pub fn check(&self, value: &str) -> Result<()> {
-        match self {
-            Self::BytesSize => {
-                value
-                    .parse::<ByteSize>()
-                    .map_err(|e| anyhow!("Invalid byte size: {}", e))?;
-            }
-            Self::Ip => {
-                value
-                    .parse::<IpAddr>()
-                    .map_err(|e| anyhow!("Invalid IP address: {}", e))?;
-            }
-            Self::Ipv4 => {
-                value
-                    .parse::<Ipv4Addr>()
-                    .map_err(|e| anyhow!("Invalid IPv4 address: {}", e))?;
-            }
-            Self::Ipv6 => {
-                value
-                    .parse::<Ipv6Addr>()
-                    .map_err(|e| anyhow!("Invalid IPv6 address: {}", e))?;
-            }
-            Self::IpRange => {
-                if IpRangeChecker::is_ipv6(value) {
-                    value
-                        .parse::<Ipv6Net>()
-                        .map_err(|e| anyhow!("Invalid IPv4 range: {}", e))?;
-                } else {
-                    value
-                        .parse::<Ipv4Net>()
-                        .map_err(|e| anyhow!("Invalid IPv6 range: {}", e))?;
-                }
-            }
-            Self::Ipv4Range => {
-                value
-                    .parse::<Ipv4Net>()
-                    .map_err(|e| anyhow!("Invalid IPv4 range: {}", e))?;
-            }
-            Self::Ipv6Range => {
-                value
-                    .parse::<Ipv6Net>()
-                    .map_err(|e| anyhow!("Invalid IPv6 range: {}", e))?;
-            }
-            Self::Int => {
-                if value.parse::<isize>().is_err() {
-                    bail!("Invalid integer: {}", value);
-                }
-            }
-            Self::Uint => {
-                if value.parse::<usize>().is_err() {
-                    bail!("Invalid unsigned integer: {}", value);
-                }
-            }
-            Self::Float => {
-                if value.parse::<f64>().is_err() {
-                    bail!("Invalid float: {}", value);
-                }
-            }
-            Self::Bool => {
-                let bool_value: Result<bool, _> = value.parse();
-                bool_value.map_err(|_| anyhow!("Invalid boolean: {}", value))?;
-            }
-        }
-        Ok(())
-    }
-}
-
-/*
-ifonly:
-    get <AUGEAS_PATH> <COMPARATOR> <STRING>
-    values <MATCH_PATH> include <STRING>
-    values <MATCH_PATH> not_include <STRING>
-    values <MATCH_PATH> == <AN_ARRAY>
-    values <MATCH_PATH> != <AN_ARRAY>
-    match <MATCH_PATH> size <COMPARATOR> <INT>
-    match <MATCH_PATH> include <STRING>
-    match <MATCH_PATH> not_include <STRING>
-    match <MATCH_PATH> == <AN_ARRAY>
-    match <MATCH_PATH> != <AN_ARRAY>
-
-where:
-    AUGEAS_PATH is a valid path scoped by the context
-    MATCH_PATH is a valid match syntax scoped by the context
-    COMPARATOR is one of >, >=, !=, ==, <=, or <
-                         ~ for regex match, !~ for regex not match
-
-*/
 
 #[derive(Debug, PartialEq, Copy, Clone)]
 enum ExprType {

@@ -5,10 +5,12 @@ use std::ffi::OsStr;
 use std::ops::Deref;
 
 pub mod comparator;
+mod interpreter;
 mod ip;
 mod parser;
 pub mod repl;
 pub mod script;
+mod value_type;
 
 pub type Value<'a> = &'a str;
 pub type Sub<'a> = &'a str;
