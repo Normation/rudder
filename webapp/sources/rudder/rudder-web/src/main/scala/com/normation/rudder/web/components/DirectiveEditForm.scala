@@ -97,7 +97,8 @@ class DirectiveEditForm(
     onSuccessCallback:       (Either[Directive, ChangeRequestId]) => JsCmd,
     onMigrationCallback:     (Directive, Option[Directive]) => JsCmd,
     onFailureCallback:       () => JsCmd = { () => Noop },
-    onRemoveSuccessCallBack: () => JsCmd = { () => Noop }
+    onRemoveSuccessCallBack: () => JsCmd = { () => Noop },
+    displayTechniqueDetails: ActiveTechniqueId => JsCmd = { _ => Noop }
 ) extends DispatchSnippet with Loggable {
 
   import DirectiveEditForm.*
@@ -206,7 +207,7 @@ class DirectiveEditForm(
       ).display
     }
 
-    val versionSelect               = if (isADirectiveCreation) {
+    val versionSelect   = if (isADirectiveCreation) {
       <div id="version" class="row wbBaseField form-group">
         <label for="version" class="col-sm-12 wbBaseFieldLabel">Technique version</label>
         <div  class="col-sm-12"><input  name="version" class="form-control" readonly="" value={
@@ -214,31 +215,38 @@ class DirectiveEditForm(
       }/></div>
       </div>
     } else { directiveVersion.toForm_! }
-    val currentVersion              = showDeprecatedVersion(directive.techniqueVersion)
+    val currentVersion  = showDeprecatedVersion(directive.techniqueVersion)
     // It is always a Full, but in case add a warning
-    val versionSelectId             = directiveVersion.uniqueFieldId match {
+    val versionSelectId = directiveVersion.uniqueFieldId match {
       case Full(id) => id
       case _        =>
         logger.warn("could not find id for migration select version")
         "id_not_found"
     }
+
     val (disableMessage, enableBtn) = (activeTechnique.isEnabled, directive._isEnabled) match {
       case (false, false) =>
         (
           "This Directive and its Technique are disabled.",
           <span>
             {SHtml.ajaxSubmit("Enable Directive", () => onSubmitDisable(DGModAction.Enable), ("class", "btn btn-sm btn-default"))}
-            <a class="btn btn-sm btn-default" href={
-            s"/secure/administration/techniqueLibraryManagement/#${activeTechnique.techniqueName.value}"
-          }>Edit Technique</a>
+            {
+            SHtml.ajaxSubmit(
+              "Enable Technique",
+              () => displayTechniqueDetails(activeTechnique.id),
+              ("class", "btn btn-sm btn-default")
+            )
+          }
           </span>
         )
       case (false, true)  =>
         (
           "The Technique of this Directive is disabled.",
-          <a class="btn btn-sm btn-default" href={
-            s"/secure/administration/techniqueLibraryManagement/#${activeTechnique.techniqueName.value}"
-          }>Edit Technique</a>
+          SHtml.ajaxSubmit(
+            "Enable Technique",
+            () => displayTechniqueDetails(activeTechnique.id),
+            ("class", "btn btn-sm btn-default")
+          )
         )
       case (true, false)  =>
         (
