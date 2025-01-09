@@ -37,6 +37,7 @@
 
 // --- MODULES
 @use 'rudder-variables' as *;
+@use 'sass:color';
 
 /* =====  GENERAL  ===== */
 .btn.btn-dsc.active{
@@ -92,7 +93,7 @@
   background-color: #85b711;
 }
 .btn.btn-outline-primary{
-  color: #337ab7;
+  color: $rudder-primary;
   transition-property: background-color, color;
   transition-duration: .2s;
 }
@@ -234,7 +235,7 @@ body > .ng-toast {
 }
 .techniques-list-container > ul > li.active > div.col,
 .techniques-list-container > ul > li:hover > div.col{
-  color: #337ab7;
+  color: $rudder-primary;
 }
 .techniques-list-container > ul > li > div.item{
   padding: 6px 8px;
@@ -244,7 +245,7 @@ body > .ng-toast {
   flex: 1;
 }
 .techniques-list-container > ul > li.active > div.item{
-  border-left-color: #337ab7;
+  border-left-color: $rudder-primary;
 }
 .techniques-list-container > ul > li > div.col-auto{
   padding: 6px 15px;
@@ -258,7 +259,7 @@ body > .ng-toast {
 }
 .techniques-list-container > ul > li > div.col-auto:hover {
   color: #fff;
-  background-color: #337ab7;
+  background-color: $rudder-primary;
 }
 .techniques-list-container > ul > li > div.col-auto:hover > i{
   opacity: 1;
@@ -296,7 +297,7 @@ ul.tabs-list{
 ul.tabs-list > li{
   padding: 6px 0px;
   position: relative;
-  color: #337ab7;
+  color: $rudder-primary;
   cursor: pointer;
   margin-right: 15px
 }
@@ -317,10 +318,14 @@ ul.tabs-list > li.active{
 	color: #041922;
 }
 ul.tabs-list > li.active:before{
-  background-color: #337ab7 !important;
+  background-color: $rudder-primary !important;
 }
 ul.tabs-list > li > .badge{
   margin-left: 4px;
+
+  &.has-foreach{
+    background-color: $rudder-primary !important;
+  }
 }
 ul.tabs-list > li > .badge.empty{
   opacity: .4;
@@ -566,7 +571,7 @@ ul.files-list.parameters > li > .param > div.form-group ~ div.form-group {
   padding-left:5px;
 }
 ul.files-list > li > .border{
-  background-color: #337ab7;
+  background-color: $rudder-primary;
   opacity: .6;
   position: absolute;
   top: -1px;
@@ -634,7 +639,7 @@ ul.files-list > li .icon-info{
   transition-duration: .2s;
 }
 ul.files-list > li:hover .icon-info{
-  color: #337ab7;
+  color: $rudder-primary;
 }
 ul.files-list > li > span.target-remove,
 ul.files-list > li > span.warning-sign{
@@ -733,7 +738,7 @@ ul.files-list > li > .remove-item:hover{
   display: block;
 }
 .resources-uncommitted .fas{
-  color: #337ab7;
+  color: $rudder-primary;
 }
 .btn-manage{
   margin-bottom: 20px;
@@ -893,7 +898,7 @@ button.btn.clipboard:hover {
 #categories-list > li > a{
   display: block;
   padding: 6px 15px;
-  color: #337ab7;
+  color: $rudder-primary;
   text-decoration: none !important;
   cursor: pointer;
 }
@@ -1077,7 +1082,7 @@ ul li.hide-method {
   bottom: 0;
   left: 0;
   width: 3px;
-  background-color: #337ab7;
+  background-color: $rudder-primary;
   z-index: 100;
 }
 .card-method.showMethodBlock .method .method-info .method-condition,
@@ -1108,7 +1113,7 @@ ul li.hide-method {
   flex: 1;
 }
 .method .method-name i{
-  color: #337ab7;
+  color: $rudder-primary;
 }
 .method .tooltip-icon{
   opacity: 0;
@@ -1128,7 +1133,7 @@ ul li.hide-method {
 }
 .method-condition > label{
   display: inline-block;
-  color: #337ab7;
+  color: $rudder-primary;
   margin: 0 4px 0 0;
 }
 .method-info.closed .method-condition > label{
@@ -1152,7 +1157,7 @@ ul li.hide-method {
   position: relative;
   display: flex;
   align-items: center;
-  color: #337ab7;
+  color: $rudder-primary;
   border-left: 1px solid #d6deef;
   cursor: pointer;
   padding: 10px;
@@ -1171,7 +1176,7 @@ ul li.hide-method {
   left: -5px;
   opacity: 0;
   top: calc(50% - 5px);
-  background-color: #337ab7;
+  background-color: $rudder-primary;
   z-index: 999;
 }
 .method-details .btn.show-doc:before{
@@ -1183,7 +1188,7 @@ ul li.hide-method {
   opacity: 0;
   right: 0;
   top: calc(50% - 5px);
-  background-color: #337ab7;
+  background-color: $rudder-primary;
   z-index: 999;
   transition-duration: .2s;
   transition-property: background-color;
@@ -1193,7 +1198,7 @@ ul li.hide-method {
 }
 .method.doc-opened .show-doc,
 .active > .method > .edit-method{
-  background-color: #337ab7;
+  background-color: $rudder-primary;
   color: #fff !important;
 }
 .method.doc-opened .show-doc:before,
@@ -1521,6 +1526,14 @@ ul li.hide-method {
   font-weight:500;
   min-width: 0px;
   cursor: default;
+
+  &.gm-foreach{
+    background-color: $rudder-primary !important;
+    opacity: 1;
+    & > .counter{
+        background-color: color.scale($rudder-primary, $lightness: -20%);
+    }
+  }
 }
 
 .gm-labels.left .gm-label.rudder-label {
@@ -1598,6 +1611,33 @@ ul li.hide-method {
 .unknown-gm-icon {
   color:#da291c;
 }
+
+/* FOREACH TAB */
+.group-key{
+  width: 400px;
+}
+.foreach-keys {
+
+  & > span {
+    background-color: $rudder-bg-light-gray;
+
+    .fa {
+      color: $rudder-txt-secondary;
+    }
+  }
+}
+.table-foreach-container{
+  .table-foreach{
+    width: fit-content;
+    th{
+      background-color: $rudder-bg-light-gray;
+      &:not(:last-child){
+        min-width: 100px;
+      }
+    }
+  }
+}
+
 
 /* YAML editor */
 textarea.yaml-editor {

@@ -609,7 +609,7 @@ showChildren model block ui techniqueUi parentId =
             (case call of
               Call _ c ->
                 let
-                  methodUi = Maybe.withDefault (MethodCallUiInfo Closed CallParameters Unchanged) (Dict.get c.id.value techniqueUi.callsUI)
+                  methodUi = Maybe.withDefault (MethodCallUiInfo Closed CallParameters Unchanged (ForeachUI False False (defaultNewForeach c.foreachName c.foreach))) (Dict.get c.id.value techniqueUi.callsUI)
                   currentDragChild = case DragDrop.currentlyDraggedObject model.dnd of
                     Just (Move x) -> getId x == c.id
                     Nothing -> True
