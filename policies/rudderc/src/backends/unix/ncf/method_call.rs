@@ -180,15 +180,9 @@ pub fn method_call(
             call_parameters.push(cfengine_canonify_condition(condition.as_ref()));
             method_parameters.push("method_call_condition".to_string())
         }
-        Condition::NotDefined => {
+        Condition::NotDefined | Condition::Defined => {
             if m.resolved_foreach_state.is_some() {
-                call_parameters.push(cfengine_canonify_condition("false"));
-                method_parameters.push("method_call_condition".to_string())
-            }
-        }
-        Condition::Defined => {
-            if m.resolved_foreach_state.is_some() {
-                call_parameters.push(cfengine_canonify_condition("true"));
+                call_parameters.push(cfengine_canonify_condition(condition.as_ref()));
                 method_parameters.push("method_call_condition".to_string())
             }
         }
