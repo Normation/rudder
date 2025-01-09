@@ -41,6 +41,7 @@ import bootstrap.liftweb.ClassPathResource
 import bootstrap.liftweb.ConfigResource
 import bootstrap.liftweb.FileSystemResource
 import bootstrap.liftweb.RudderProperties
+import com.normation.errors.IOResult
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
@@ -51,8 +52,10 @@ import com.normation.utils.Separator.Minus
 import com.normation.utils.VersionPart.*
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
+import io.scalaland.chimney.syntax.*
 import net.liftweb.sitemap.Menu
 import scala.xml.NodeSeq
+import zio.Chunk
 
 final case class PluginVersion private (rudderAbi: Version, pluginVersion: Version) {
 
@@ -133,10 +136,10 @@ object RudderPluginDef {
   implicit class ToJsonPluginDetails(plugin: RudderPluginDef) {
     def toJsonPluginDetails: JsonPluginDetails = {
       val (status, licence, msg) = plugin.status.current match {
-        case PluginStatusInfo.EnabledNoLicense       => (JsonPluginStatus.Enabled, None, None)
-        case PluginStatusInfo.EnabledWithLicense(i)  => (JsonPluginStatus.Enabled, Some(i), None)
-        case PluginStatusInfo.Disabled(msg, None)    => (JsonPluginStatus.Disabled, None, Some(msg))
-        case PluginStatusInfo.Disabled(msg, Some(i)) => (JsonPluginStatus.Disabled, Some(i), Some(msg))
+        case PluginStatusInfo.EnabledNoLicense       => (PluginSystemStatus.Enabled, None, None)
+        case PluginStatusInfo.EnabledWithLicense(i)  => (PluginSystemStatus.Enabled, Some(i), None)
+        case PluginStatusInfo.Disabled(msg, None)    => (PluginSystemStatus.Disabled, None, Some(msg))
+        case PluginStatusInfo.Disabled(msg, Some(i)) => (PluginSystemStatus.Disabled, Some(i), Some(msg))
       }
       JsonPluginDetails(
         plugin.id,
@@ -355,4 +358,77 @@ trait RudderPluginDef {
  */
 trait RudderPluginModule {
   def pluginDef: RudderPluginDef
+}
+
+/**
+  * Implementation of service to manage plugin installed on the system.
+  * Uses information from registered plugin joined with rudder package plugins to get plugin details
+  */
+class PluginSystemServiceImpl(
+    rudderPackageService: RudderPackageService,
+    pluginDefs:           => Map[PluginName, RudderPluginDef],
+    rudderFullVersion:    String
+) extends PluginSystemService {
+
+  override def list(): IOResult[Chunk[JsonPluginSystemDetails]] = {
+    for {
+      rudderPackagePlugins <- rudderPackageService.listAllPlugins()
+    } yield {
+      rudderPackagePlugins
+        .map(p => {
+          implicit val rudderVersion: String = rudderFullVersion
+          pluginDefs
+            .get(PluginName("rudder-plugin-" + p.name)) // rudder package name does not have the prefix used in names
+            .flatMap(pluginDef => {
+              val details = pluginDef.toJsonPluginDetails
+              implicit val abiVersion: Version = pluginDef.version.rudderAbi
+
+              // plugin listed from rudder package but with no license information :
+              // - we can parse version, or else return one that is different
+              details.license.map(license => {
+                implicit val softwareId: RudderPackagePlugin.SoftwareId = RudderPackagePlugin.SoftwareId(license.softwareId)
+                implicit val minVersion: RudderPackagePlugin.MinVersion = RudderPackagePlugin.MinVersion(license.minVersion)
+                implicit val maxVersion: RudderPackagePlugin.MaxVersion = RudderPackagePlugin.MaxVersion(license.maxVersion)
+                implicit val maxNodes:   RudderPackagePlugin.MaxNodes   = RudderPackagePlugin.MaxNodes(license.maxNodes)
+
+                p.transformInto[JsonPluginSystemDetails]
+              })
+            })
+            .getOrElse {
+              // default implicits
+              import defaultValues.*
+              p.transformInto[JsonPluginSystemDetails]
+            }
+        })
+    }
+  }
+
+  override def install(plugins: Chunk[String]): IOResult[Unit] = ???
+
+  override def remove(plugins: Chunk[String]): IOResult[Unit] = ???
+
+  override def updateStatus(status: PluginSystemStatus, plugins: Chunk[String]): IOResult[Unit] = ???
+
+  private def unknownLicensee = RudderPackagePlugin.Licensee("unknown")
+
+  // Licensee can be the first value from licensed plugins, as it is supposed to be global
+  // When there are no licenced plugin, for display purpose we fallback to "unknown"
+  implicit def licensee: RudderPackagePlugin.Licensee = {
+    pluginDefs.values
+      .flatMap(_.toJsonPluginDetails.license)
+      .headOption
+      .map(l => RudderPackagePlugin.Licensee(l.licensee))
+      .getOrElse(unknownLicensee)
+  }
+
+  private object defaultValues {
+    import RudderPackagePlugin.*
+
+    implicit val softwareId: SoftwareId = SoftwareId("")
+    implicit val minVersion: MinVersion = MinVersion("0.0.0-0.0.0")
+    implicit val maxVersion: MaxVersion = MaxVersion("99.99.0-99.99.0")
+    implicit val maxNodes:   MaxNodes   = MaxNodes(None)
+    implicit val abiVersion: Version    = Version(0, PartType.Numeric(1), List.empty)
+  }
+
 }

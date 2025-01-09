@@ -1051,6 +1051,14 @@ object RudderParsedProperties {
     }
   }
 
+  val RUDDER_PACKAGE_CMD: String = {
+    try {
+      config.getString("rudder.package.cmd")
+    } catch {
+      case ex: ConfigException => "/opt/rudder/bin/rudder package"
+    }
+  }
+
   // Comes with the rudder-server packages
   val GENERIC_METHODS_SYSTEM_LIB: String = {
     try {
@@ -1546,6 +1554,13 @@ object RudderConfigInit {
       root / "opt" / "rudder" / "etc" / "rudder-pkg" / "rudder-pkg.conf",
       configService.rudder_setup_done().chainError("Could not get 'setup done' property"),
       (done: Boolean) => configService.set_rudder_setup_done(value = done).chainError("Could not get 'setup done' property")
+    )
+
+    lazy val rudderPackageService = new RudderPackageCmdService(RUDDER_PACKAGE_CMD)
+    lazy val pluginSystemService  = new PluginSystemServiceImpl(
+      rudderPackageService,
+      PluginsInfo.plugins,
+      rudderFullVersion
     )
 
     /////////////////////////////////////////////////
@@ -2249,6 +2264,7 @@ object RudderConfigInit {
         ),
         new InventoryApi(restExtractorService, inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
         new PluginApi(restExtractorService, pluginSettingsService, PluginsInfo.pluginInfos.succeed),
+        new PluginInternalApi(pluginSystemService),
         new RecentChangesAPI(recentChangesService, restExtractorService),
         new RulesInternalApi(ruleInternalApiService, ruleApiService13),
         new GroupsInternalApi(groupInternalApiService),

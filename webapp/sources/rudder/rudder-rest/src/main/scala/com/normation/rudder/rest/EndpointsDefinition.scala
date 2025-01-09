@@ -644,6 +644,27 @@ object PluginApi       extends Enum[PluginApi] with ApiModuleProvider[PluginApi]
   def values = findValues
 }
 
+sealed trait PluginInternalApi extends EnumEntry with EndpointSchema with InternalApi with SortIndex     {
+  override def dataContainer: Option[String] = Some("plugins")
+}
+object PluginInternalApi       extends Enum[PluginInternalApi] with ApiModuleProvider[PluginInternalApi] {
+
+  case object ListPlugins extends PluginInternalApi with ZeroParam with StartsAtVersion20 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "List all plugins"
+    val (action, path) = GET / "pluginsinternal"
+  }
+  // case object UpdatePluginsSettings extends PluginApi with ZeroParam with StartsAtVersion14 with SortIndex {
+  //   val z:                      Int            = implicitly[Line].value
+  //   override def dataContainer: Option[String] = None
+  //   val description    = "Update plugin system settings"
+  //   val (action, path) = POST / "plugins" / "settings"
+  // }
+  def endpoints: List[PluginInternalApi] = values.toList.sortBy(_.z)
+
+  def values = findValues
+}
+
 sealed trait TechniqueApi     extends EnumEntry with EndpointSchema with SortIndex {
   override def dataContainer: Some[String] = Some("techniques")
 }

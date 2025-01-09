@@ -694,6 +694,14 @@ rudder.hooks.ignore-suffixes= .swp, ~, .bak, \
  .rpmnew  , .rpmsave  , .rpmorig
 
 ########################
+# Rudder commands ########################################################
+########################
+
+# Rudder package specific command to manage plugins using system shell commands
+#
+rudder.package.cmd=/opt/rudder/bin/rudder package
+
+########################
 # Relayd reload command ########################################################
 ########################
 

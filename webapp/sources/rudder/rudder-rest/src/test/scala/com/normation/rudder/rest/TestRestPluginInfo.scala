@@ -39,8 +39,8 @@ package com.normation.rudder.rest
 
 import com.normation.plugins.JsonPluginDetails
 import com.normation.plugins.JsonPluginsDetails
-import com.normation.plugins.JsonPluginStatus
 import com.normation.plugins.PluginLicenseInfo
+import com.normation.plugins.PluginSystemStatus
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.lift.PluginApi
@@ -79,7 +79,7 @@ class TestRestPluginInfo extends Specification {
         "free-plugin",
         "A description for the free plugin",
         "2.3.0",
-        JsonPluginStatus.Enabled,
+        PluginSystemStatus.Enabled,
         None,
         None
       ),
@@ -89,7 +89,7 @@ class TestRestPluginInfo extends Specification {
         "limited-plugin",
         "A description for the limited plugin",
         "4.4.0",
-        JsonPluginStatus.Enabled,
+        PluginSystemStatus.Enabled,
         None,
         Some(
           PluginLicenseInfo(
@@ -110,7 +110,7 @@ class TestRestPluginInfo extends Specification {
         "disabled-plugin",
         "A description for the disabled plugin",
         "1.3.5",
-        JsonPluginStatus.Disabled,
+        PluginSystemStatus.Disabled,
         Some(
           "This license for 'rudder-plugin-disabled-plugin' is disabled to '50' nodes but Rudder currently manages '132' nodes."
         ),
