@@ -96,6 +96,7 @@ type ReportingLogic = WorstReport WorstReportKind | WeightedReport | FocusReport
 
 type PolicyMode = Audit | Enforce
 
+
 type alias MethodBlock =
   { id : CallId
   , component : String
@@ -103,6 +104,8 @@ type alias MethodBlock =
   , reportingLogic : ReportingLogic
   , calls : List MethodElem
   , policyMode : Maybe PolicyMode
+  , foreachName : Maybe String
+  , foreach : Maybe (Dict String (List String))
   }
 
 type alias MethodCall =
@@ -113,6 +116,14 @@ type alias MethodCall =
   , component  : String
   , disableReporting : Bool
   , policyMode : Maybe PolicyMode
+  , foreachName : Maybe String
+  , foreach : Maybe (Dict String (List String))
+  }
+
+type alias NewForeach =
+  { foreachName : String
+  , foreach : Dict String (List String)
+  , newKey : String
   }
 
 type alias CallParameter =
@@ -198,7 +209,6 @@ type alias TreeFilters =
   , folded : List String
   }
 
-
 type MethodFilterState = FilterOpened | FilterClosed
 type ValidationState error = Unchanged | ValidState | InvalidState (List error)
 type TechniqueNameError = EmptyName | AlreadyTakenName
@@ -211,7 +221,9 @@ type alias MethodCallUiInfo =
   { mode       : MethodCallMode
   , tab        : MethodCallTab
   , validation : ValidationState MethodCallParamError
+  , newForeach : NewForeach
   }
+
 type alias MethodBlockUiInfo =
   { mode       : MethodCallMode
   , tab        : MethodBlockTab
@@ -236,7 +248,7 @@ type alias TechniqueEditInfo =
   ,  result : Result String ()
   }
 
-type MethodCallTab = CallParameters | CallConditions | Result | CallReporting
+type MethodCallTab = CallParameters | CallConditions | Result | CallReporting | ForEach
 type MethodBlockTab = BlockConditions | BlockReporting | Children
 type MethodCallMode = Opened | Closed
 type Tab = General | Parameters | Resources | Output | None
