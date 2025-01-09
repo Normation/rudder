@@ -173,9 +173,19 @@ pub fn method_call(
         "args".to_string(),
         "class_prefix".to_string(),
     ];
-    if let Condition::Expression(_) = condition {
-        call_parameters.push(cfengine_canonify_condition(condition.as_ref()));
-        method_parameters.push("method_call_condition".to_string())
+    // If the item is a result of a foreach loop, we must assume that one of the branch could define
+    // a condition, and so, each branch should call the bundle using the method_call_condition
+    match condition {
+        Condition::Expression(_) => {
+            call_parameters.push(cfengine_canonify_condition(condition.as_ref()));
+            method_parameters.push("method_call_condition".to_string())
+        }
+        Condition::NotDefined | Condition::Defined => {
+            if m.resolved_foreach_state.is_some() {
+                call_parameters.push(cfengine_canonify_condition(condition.as_ref()));
+                method_parameters.push("method_call_condition".to_string())
+            }
+        }
     }
 
     call_parameters.append(&mut parameters);
