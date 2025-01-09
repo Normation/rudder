@@ -503,6 +503,7 @@ mod tests {
                     String::from("/opt/rudder/share/plugins"),
                 )]),
                 jar_files: vec![],
+                requires_license: false,
             },
         };
         a.insert(addon.metadata.name.clone(), addon).unwrap();

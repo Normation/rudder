@@ -49,6 +49,11 @@ pub struct Metadata {
     pub content: HashMap<String, String>,
     #[serde(default)]
     pub jar_files: Vec<String>,
+    #[serde(default)]
+    /// Does the plugin reauire a valid license.
+    ///
+    /// Default is false.
+    pub requires_license: bool,
 }
 
 // Used by the "show" command
