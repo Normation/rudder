@@ -377,22 +377,22 @@ mod tests {
         assert_eq!(res, r);
 
         let c = "${var}";
-        let r = "([Rudder.Condition]::canonify([Rudder.Datastate]::Render('{{' + @'\n\
+        let r = "([Rudder.Condition]::canonify([Rudder.Datastate]::Render('{{{' + @'\n\
                 vars.var\n\
-                '@ + '}}')))";
+                '@ + '}}}')))";
         let res = canonify_condition(c).unwrap();
         assert_eq!(res, r);
 
         let c = "${my_cond}.debian|${sys.${plouf}}";
-        let r = r#"([Rudder.Condition]::canonify(([Rudder.Datastate]::Render('{{' + @'
+        let r = r#"([Rudder.Condition]::canonify(([Rudder.Datastate]::Render('{{{' + @'
 vars.my_cond
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
 .debian|
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.
-'@ + [Rudder.Datastate]::Render('{{' + @'
+'@ + [Rudder.Datastate]::Render('{{{' + @'
 vars.plouf
-'@ + '}}') + '}}'))))"#;
+'@ + '}}}') + '}}}'))))"#;
         let res = canonify_condition(c).unwrap();
         assert_eq!(res, r);
     }
@@ -463,9 +463,9 @@ a simple test
         assert_eq!(
             "@'
 a less simple 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.plouf.plouf
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
  test
 '@",
             parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
@@ -480,9 +480,9 @@ vars.plouf.plouf
         assert_eq!(
             "@'
 a less simple 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.technique_id.param1
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
  test
 '@",
             parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
@@ -497,9 +497,9 @@ vars.technique_id.param1
         assert_eq!(
             "@'
 a less simple 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.plouf.param1
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
  test
 '@",
             parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
@@ -514,9 +514,9 @@ vars.plouf.param1
         assert_eq!(
             "@'
 a less simple 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.param1or2
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
  test
 '@",
             parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
@@ -531,9 +531,9 @@ vars.param1or2
         assert_eq!(
             "@'
 a less simple 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.host
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
  test
 '@",
             parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
@@ -548,9 +548,9 @@ vars.sys.host
         assert_eq!(
             "@'
 a less simple 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.const.n
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
  test
 '@",
             parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
