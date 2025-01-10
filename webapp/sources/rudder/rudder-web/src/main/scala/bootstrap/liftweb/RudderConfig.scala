@@ -2346,12 +2346,14 @@ object RudderConfigInit {
     //// everything was private
     ////////////////////////////////////////////////////////////////////
 
+    lazy val systemTokenSecret = ApiTokenSecret.generate(tokenGenerator, suffix = "system")
+
     lazy val roLDAPApiAccountRepository = new RoLDAPApiAccountRepository(
       rudderDitImpl,
       roLdap,
       ldapEntityMapper,
-      tokenGenerator,
-      ApiAuthorization.allAuthz.acl // for system token
+      ApiAuthorization.allAuthz.acl, // for system token
+      systemTokenSecret.toHash()
     )
     lazy val roApiAccountRepository: RoApiAccountRepository = roLDAPApiAccountRepository
 
@@ -3422,7 +3424,7 @@ object RudderConfigInit {
         uuidGen
       ),
       new CreateSystemToken(
-        roLDAPApiAccountRepository.systemAPIAccount.token,
+        systemTokenSecret,
         root / "var" / "rudder" / "run",
         RestAuthenticationFilter.API_TOKEN_HEADER
       ),
