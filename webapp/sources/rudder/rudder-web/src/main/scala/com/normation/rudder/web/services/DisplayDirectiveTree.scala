@@ -130,7 +130,7 @@ object DisplayDirectiveTree extends Loggable {
 
       usedDirectiveIds: Seq[(DirectiveUid, Int)],
       onClickCategory:  Option[FullActiveTechniqueCategory => JsCmd],
-      onClickTechnique: Option[(FullActiveTechniqueCategory, FullActiveTechnique) => JsCmd],
+      onClickTechnique: Option[FullActiveTechnique => JsCmd],
       onClickDirective: Option[(FullActiveTechniqueCategory, FullActiveTechnique, Directive) => JsCmd],
       createDirective:  Option[(Technique, FullActiveTechnique) => JsCmd],
       addEditLink:      Boolean,
@@ -145,8 +145,6 @@ object DisplayDirectiveTree extends Loggable {
         category: FullActiveTechniqueCategory,
         nodeId:   String
     ): JsTreeNode = new JsTreeNode {
-
-      private val localOnClickTechnique = onClickTechnique.map(_.curried(category))
 
       private val localOnClickDirective = onClickDirective.map(_.curried(category))
 
@@ -190,7 +188,7 @@ object DisplayDirectiveTree extends Loggable {
             })
             // We want our technique sorty by human name, default to bundle name in case we don't have any version but that should not happen
             .sortBy(at => at.newestAvailableTechnique.map(_.name).getOrElse(at.techniqueName.value))
-            .map(at => displayActiveTechnique(at, localOnClickTechnique, localOnClickDirective))
+            .map(at => displayActiveTechnique(at, onClickTechnique, localOnClickDirective))
       )
 
       override val attrs =
