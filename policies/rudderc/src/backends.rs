@@ -28,6 +28,34 @@ pub mod metadata;
 pub mod unix;
 pub mod windows;
 
+/// List resources in directory
+///
+/// Note: We only support UTF-8 file names.
+pub fn list_resources(path: &Path) -> Result<Vec<String>> {
+    if path.is_dir() {
+        WalkDir::new(path)
+            // We need a stable order
+            .sort_by_file_name()
+            .into_iter()
+            // Only select files
+            .filter(|r| r.as_ref().map(|e| e.file_type().is_file()).unwrap_or(true))
+            .map(|e| {
+                e.map(|e| {
+                    e.path()
+                        // relative path
+                        .strip_prefix(path)
+                        .unwrap()
+                        .to_string_lossy()
+                        .to_string()
+                })
+                .map_err(|e| e.into())
+            })
+            .collect::<Result<Vec<String>, Error>>()
+    } else {
+        Ok(vec![])
+    }
+}
+
 /// A backend is something that can generate final code for a given language from an IR
 pub trait Backend {
     // For now, we only generate one file content
@@ -35,37 +63,21 @@ pub trait Backend {
     // The `standalone` parameter generates wrapping code (hopefully) allowing to run the generated file
     // without a Rudder server.
     fn generate(&self, policy: Technique, resources: &Path, standalone: bool) -> Result<String>;
+}
 
-    /// List resources in directory
-    ///
-    /// Note: We only support UTF-8 file names.
-    fn list_resources(path: &Path) -> Result<Vec<String>>
-    where
-        Self: Sized,
-    {
-        if path.is_dir() {
-            WalkDir::new(path)
-                // We need a stable order
-                .sort_by_file_name()
-                .into_iter()
-                // Only select files
-                .filter(|r| r.as_ref().map(|e| e.file_type().is_file()).unwrap_or(true))
-                .map(|e| {
-                    e.map(|e| {
-                        e.path()
-                            // relative path
-                            .strip_prefix(path)
-                            .unwrap()
-                            .to_string_lossy()
-                            .to_string()
-                    })
-                    .map_err(|e| e.into())
-                })
-                .collect::<Result<Vec<String>, Error>>()
-        } else {
-            Ok(vec![])
-        }
-    }
+/// A backend is something that can generate final code for a given language from an IR
+pub trait MetadataBackend {
+    // For now, we only generate one file content
+    //
+    // The `standalone` parameter generates wrapping code (hopefully) allowing to run the generated file
+    // without a Rudder server.
+    fn generate(
+        &self,
+        policy: Technique,
+        resources: &Path,
+        standalone: bool,
+        targets: &[Target],
+    ) -> Result<String>;
 }
 
 /// Select the right backend
