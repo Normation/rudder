@@ -58,7 +58,6 @@ import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.properties.PropertyProvider
-import com.normation.rudder.repository.json.DataExtractor
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.*
 import com.unboundid.ldap.sdk.DN
@@ -174,12 +173,9 @@ class LDAPDiffMapper(
                          case A_SERIALIZED_TAGS  =>
                            for {
                              d    <- diff
-                             tags <- mod.getOptValue() match {
-                                       case Some(v) => DataExtractor.CompleteJson.unserializeTags(v).map(_.tags).toPureResult
-                                       case None    => Right(Set[Tag]())
-                                     }
+                             tags <- Tags.parse(mod.getOptValue())
                            } yield {
-                             d.copy(modTags = Some(SimpleDiff(oldCr.tags.tags, tags)))
+                             d.copy(modTags = Some(SimpleDiff(oldCr.tags.tags, tags.tags)))
                            }
                          case x                  => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
                        }
@@ -336,10 +332,7 @@ class LDAPDiffMapper(
                            case A_SERIALIZED_TAGS     =>
                              for {
                                d    <- diff
-                               tags <- mod.getOptValue() match {
-                                         case Some(v) => DataExtractor.CompleteJson.unserializeTags(v).toPureResult
-                                         case None    => Right(Tags(Set()))
-                                       }
+                               tags <- Tags.parse(mod.getOptValue())
                              } yield {
                                d.copy(modTags = Some(SimpleDiff(oldPi.tags, tags)))
                              }

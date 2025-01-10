@@ -75,7 +75,6 @@ import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.reports.*
-import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.*
@@ -766,14 +765,7 @@ class LDAPEntityMapper(
         priority         = e.getAsInt(A_PRIORITY).getOrElse(0)
         isEnabled        = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         isSystem         = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
-        tags            <- e(A_SERIALIZED_TAGS) match {
-                             case None       => Right(Tags(Set()))
-                             case Some(tags) =>
-                               CompleteJson
-                                 .unserializeTags(tags)
-                                 .toPureResult
-                                 .chainError(s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}")
-                           }
+        tags            <- Tags.parse(e(A_SERIALIZED_TAGS)).chainError(s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}")
       } yield {
         Directive(
           DirectiveId(DirectiveUid(id), ParseRev(e(A_REV_ID))),
@@ -812,7 +804,7 @@ class LDAPEntityMapper(
     entry.resetValuesTo(A_IS_ENABLED, directive.isEnabled.toLDAPString)
     entry.resetValuesTo(A_IS_SYSTEM, directive.isSystem.toLDAPString)
     directive.policyMode.foreach(mode => entry.resetValuesTo(A_POLICY_MODE, mode.name))
-    entry.resetValuesTo(A_SERIALIZED_TAGS, net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(directive.tags)))
+    entry.resetValuesTo(A_SERIALIZED_TAGS, directive.tags.toJson)
     entry
   }
 
@@ -858,14 +850,7 @@ class LDAPEntityMapper(
     if (e.isA(OC_RULE)) {
       for {
         id   <- e.required(A_RULE_UUID)
-        tags <- e(A_SERIALIZED_TAGS) match {
-                  case None       => Right(Tags(Set()))
-                  case Some(tags) =>
-                    CompleteJson
-                      .unserializeTags(tags)
-                      .toPureResult
-                      .chainError(s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}")
-                }
+        tags <- Tags.parse(e(A_SERIALIZED_TAGS)).chainError(s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}")
       } yield {
         val targets      = for {
           target           <- e.valuesFor(A_RULE_TARGET)
@@ -925,7 +910,7 @@ class LDAPEntityMapper(
     entry.resetValuesTo(A_DIRECTIVE_UUID, rule.directiveIds.map(_.serialize).toSeq*)
     entry.resetValuesTo(A_DESCRIPTION, rule.shortDescription)
     entry.resetValuesTo(A_LONG_DESCRIPTION, rule.longDescription.toString)
-    entry.resetValuesTo(A_SERIALIZED_TAGS, net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(rule.tags)))
+    entry.resetValuesTo(A_SERIALIZED_TAGS, rule.tags.toJson)
 
     entry
   }

@@ -56,6 +56,7 @@ import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 import scala.collection.MapView
 import scala.util.Random
+import zio.json.*
 
 @RunWith(classOf[JUnitRunner])
 class ComplianceLineTest extends Specification with JsonSpecMatcher {
@@ -66,8 +67,10 @@ class ComplianceLineTest extends Specification with JsonSpecMatcher {
   val nodes:       MapView[NodeId, CoreNodeFact] = mockCompliance.nodeFactRepo.getAll().runNow
   val directives:  FullActiveTechniqueCategory   = mockDirectives.directiveRepo.getFullDirectiveLibrary().runNow
 
-  val stableRandom = new Random(42)
-  def freshName(): String = stableRandom.nextLong().toString
+  implicit object StableRandom extends ProvideNextName {
+    val stableRandom = new Random(42)
+    override def nextName: String = stableRandom.nextLong().toString
+  }
 
   "compliance lines serialisation" >> {
     val nodeId = NodeId("n1")
@@ -83,8 +86,7 @@ class ComplianceLineTest extends Specification with JsonSpecMatcher {
         GlobalPolicyMode(Enforce, PolicyModeOverrides.Always),
         true
       )
-      .json(freshName _)
-      .toJsCmd
+      .toJson
 
     lines must equalsJsonSemantic(
       """[
@@ -125,14 +127,14 @@ class ComplianceLineTest extends Specification with JsonSpecMatcher {
         |                "compliance":[[0,0.0],[0,0.0], [1, 100.0], [0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0]
         |                ],
         |                "compliancePercent":100.0,
-        |                "jsid":"-5025562857975149833"
+        |                "jsid":"-5843495416241995736"
         |              }
         |            ],
         |            "noExpand":false,
-        |            "jsid":"-5843495416241995736"
+        |            "jsid":"5111195811822994797"
         |          }
         |        ],
-        |        "jsid":"5694868678511409995",
+        |        "jsid":"-1782466964123969572",
         |        "isSystem":false,
         |        "policyMode":"audit",
         |        "explanation":"The <i><b>Node</b></i> is configured to <b class=\"text-Enforce\">enforce</b> but is overridden to <b>audit</b> by this <i><b>Directive</b></i>. ",
@@ -144,7 +146,7 @@ class ComplianceLineTest extends Specification with JsonSpecMatcher {
         |        ]
         |      }
         |    ],
-        |    "jsid":"5111195811822994797",
+        |    "jsid":"5086654115216342560",
         |    "isSystem":false,
         |    "policyMode":"audit",
         |    "explanation":"The <i><b>Node</b></i> is configured to <b class=\"text-Enforce\">enforce</b> but is overridden to <b>audit</b> by all <i><b>Directives</b></i>. ",
@@ -187,21 +189,21 @@ class ComplianceLineTest extends Specification with JsonSpecMatcher {
         |                "compliance":[[0,0.0],[0,0.0],[0,0.0], [1, 100.0], [0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0]
         |                ],
         |                "compliancePercent":100.0,
-        |                "jsid":"-6169532649852302182"
+        |                "jsid":"-4004755535478349341"
         |              }
         |            ],
         |            "noExpand":false,
-        |            "jsid":"-1782466964123969572"
+        |            "jsid":"8051837266862454915"
         |          }
         |        ],
-        |        "jsid":"6802844026563419272",
+        |        "jsid":"7130900098642117381",
         |        "isSystem":false,
         |        "policyMode":"enforce",
         |        "explanation":"<b>Enforce</b> is forced by this <i><b>Node</b></i> mode",
         |        "tags":[]
         |      }
         |    ],
-        |    "jsid":"5086654115216342560",
+        |    "jsid":"-7482923245497525943",
         |    "isSystem":false,
         |    "policyMode":"enforce",
         |    "explanation":"<b>enforce</b> mode is forced by this <i><b>Node</b></i>",
@@ -244,21 +246,21 @@ class ComplianceLineTest extends Specification with JsonSpecMatcher {
         |                "compliance":[[0,0.0],[0,0.0],[0,0.0],[0,0.0], [1, 100.0], [0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0],[0,0.0]
         |                ],
         |                "compliancePercent":0.0,
-        |                "jsid":"8552898714322622292"
+        |                "jsid":"-3210362905434573697"
         |              }
         |            ],
         |            "noExpand":false,
-        |            "jsid":"-4004755535478349341"
+        |            "jsid":"-7610621359446545191"
         |          }
         |        ],
-        |        "jsid":"-1488139573943419793",
+        |        "jsid":"-7912908803613548926",
         |        "isSystem":false,
         |        "policyMode":"enforce",
         |        "explanation":"<b>Enforce</b> is forced by this <i><b>Node</b></i> mode",
         |        "tags":[]
         |      }
         |    ],
-        |    "jsid":"8051837266862454915",
+        |    "jsid":"-4565385657661118002",
         |    "isSystem":false,
         |    "policyMode":"enforce",
         |    "explanation":"<b>enforce</b> mode is forced by this <i><b>Node</b></i>",

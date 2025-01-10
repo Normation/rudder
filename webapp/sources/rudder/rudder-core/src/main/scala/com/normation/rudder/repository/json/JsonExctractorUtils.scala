@@ -39,7 +39,6 @@ package com.normation.rudder.repository.json
 
 import cats.*
 import cats.implicits.*
-import com.normation.rudder.domain.policies.JsonTagExtractor
 import com.normation.utils.Control.*
 import net.liftweb.common.*
 import net.liftweb.json.*
@@ -133,7 +132,7 @@ trait JsonExtractorUtils[A[_]] {
   }
 }
 
-trait DataExtractor[T[_]] extends JsonTagExtractor[T]
+trait DataExtractor[T[_]] extends JsonExtractorUtils[T]
 object DataExtractor {
 
   object OptionnalJson extends DataExtractor[Option] {

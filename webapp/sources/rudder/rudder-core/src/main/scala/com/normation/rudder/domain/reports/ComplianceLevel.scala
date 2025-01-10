@@ -40,24 +40,22 @@ package com.normation.rudder.domain.reports
 import com.normation.rudder.domain.reports.ComplianceLevel.PERCENT_PRECISION
 import com.normation.rudder.domain.reports.CompliancePrecision.Level0
 import com.normation.rudder.domain.reports.CompliancePrecision.Level2
+import io.scalaland.chimney.*
 import net.liftweb.common.*
-import net.liftweb.http.js.JE
-import net.liftweb.http.js.JE.JsArray
-import net.liftweb.json.JsonAST.JInt
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonAST.JValue
 import zio.Chunk
 import zio.json.*
+import zio.json.ast.*
+import zio.json.ast.Json.*
 
 /**
- * That file define a "compliance level" object, which store all the kind of reports we can get and
+ * That file defines a "compliance level" object, which store all the kind of reports we can get and
  * compute percentage on them.
  *
  * Percent are stored a double from 0 to 100 with two relevant digits so 12.34% is actually stored
  * as Double(12.34) (not 0.1234)
  *
  * Since use only two digits in percent, we only have a 10e-4 precision, but we nonetheless NEVER EVER
- * want to make 1 error among 20000 success reports disapear by being rounded to 0.
+ * want to make 1 error among 20000 success reports disappear by being rounded to 0.
  * So we accept that we have a minimum for all percent, `MIN_PC`, and whatever the real number, it
  * will be returned as that minimum.
  *
@@ -65,7 +63,7 @@ import zio.json.*
  * It also mean that any transformation or computation on compliance must always be done on level, never
  * compliance percent, which are just a model for human convenience, but is false.
  *
- * This class should always be instanciated with CompliancePercent.fromLevels` to ensure sum is 100%
+ * This class should always be instantiated with CompliancePercent.fromLevels` to ensure sum is 100%
  * The rounding algorithm is:
  * - sort levels by number of reports, less first, sum them to get total number of reports
  * - for each level except the last one (most number):
@@ -95,47 +93,24 @@ final case class CompliancePercent(
   val compliance: Double = success + repaired + notApplicable + compliant + auditNotApplicable
 }
 
-final case class ComplianceSerializable(
-    applying:                   Option[Double],
-    successNotApplicable:       Option[Double],
-    successAlreadyOK:           Option[Double],
-    successRepaired:            Option[Double],
-    error:                      Option[Double],
-    auditCompliant:             Option[Double],
-    auditNonCompliant:          Option[Double],
-    auditError:                 Option[Double],
-    auditNotApplicable:         Option[Double],
-    unexpectedUnknownComponent: Option[Double],
-    unexpectedMissingComponent: Option[Double],
-    noReport:                   Option[Double],
-    reportsDisabled:            Option[Double],
-    badPolicyMode:              Option[Double]
-)
-
-object ComplianceSerializable {
-  def fromPercent(compliancePercent: CompliancePercent): ComplianceSerializable = {
-    ComplianceSerializable(
-      if (compliancePercent.pending == 0) None else Some(compliancePercent.pending),
-      if (compliancePercent.notApplicable == 0) None else Some(compliancePercent.notApplicable),
-      if (compliancePercent.success == 0) None else Some(compliancePercent.success),
-      if (compliancePercent.repaired == 0) None else Some(compliancePercent.repaired),
-      if (compliancePercent.error == 0) None else Some(compliancePercent.error),
-      if (compliancePercent.compliant == 0) None else Some(compliancePercent.compliant),
-      if (compliancePercent.nonCompliant == 0) None else Some(compliancePercent.nonCompliant),
-      if (compliancePercent.auditError == 0) None else Some(compliancePercent.auditError),
-      if (compliancePercent.auditNotApplicable == 0) None else Some(compliancePercent.auditNotApplicable),
-      if (compliancePercent.unexpected == 0) None else Some(compliancePercent.unexpected),
-      if (compliancePercent.missing == 0) None else Some(compliancePercent.missing),
-      if (compliancePercent.noAnswer == 0) None else Some(compliancePercent.noAnswer),
-      if (compliancePercent.reportsDisabled == 0) None else Some(compliancePercent.reportsDisabled),
-      if (compliancePercent.badPolicyMode == 0) None else Some(compliancePercent.badPolicyMode)
-    )
-  }
-}
-
 object CompliancePercent {
 
-  // a correspondance array between worse order in `ReportType` and the order of fields in `ComplianceLevel`
+  implicit val transformComplianceSerializable: Transformer[CompliancePercent, ComplianceSerializable] = {
+    Transformer
+      .define[CompliancePercent, ComplianceSerializable]
+      .withFieldRenamed(_.pending, _.applying)
+      .withFieldRenamed(_.notApplicable, _.successNotApplicable)
+      .withFieldRenamed(_.success, _.successAlreadyOK)
+      .withFieldRenamed(_.repaired, _.successRepaired)
+      .withFieldRenamed(_.compliant, _.auditCompliant)
+      .withFieldRenamed(_.nonCompliant, _.auditNonCompliant)
+      .withFieldRenamed(_.unexpected, _.unexpectedUnknownComponent)
+      .withFieldRenamed(_.missing, _.unexpectedMissingComponent)
+      .withFieldRenamed(_.noAnswer, _.noReport)
+      .buildTransformer
+  }
+
+  // a mapping array between worse order in `ReportType` and the order of fields in `ComplianceLevel`
   val WORSE_ORDER: Array[Int] = {
     import ReportType.*
     Array(
@@ -188,7 +163,7 @@ object CompliancePercent {
     if (total == 0) { // special case: let it be 0
       CompliancePercent()(precision)
     } else {
-      // these depends on the precision
+      // these depend on the precision
       val diviser = divisers(precision.precision)
       val hundred = hundreds(precision.precision)
 
@@ -236,7 +211,7 @@ object CompliancePercent {
     if (total == 0) { // special case: let it be 0
       0
     } else {
-      // these depends on the precision
+      // these depend on the precision
       val diviser = divisers(precision.precision)
       val hundred = hundreds(precision.precision)
 
@@ -314,7 +289,7 @@ object CompliancePercent {
   }
 
   def sortLevelsWithoutPending(c: ComplianceLevel): List[(Int, Int)] = {
-    // we want to compare accordingly to `ReportType.getWorsteType` but I don't see any
+    // we want to compare accordingly to `ReportType.getWorstType` but I don't see any
     // way to do it directly since we don't use the same order in compliance.
     // So we map index of a compliance element to it's worse type order and compare by index
 
@@ -391,7 +366,8 @@ final case class ComplianceLevel(
     pending + success + repaired + error + unexpected + missing + noAnswer + notApplicable + reportsDisabled + compliant + auditNotApplicable + nonCompliant + auditError + badPolicyMode
   lazy val total_ok: Int = success + repaired + notApplicable + compliant + auditNotApplicable
 
-  def withoutPending:                                                     ComplianceLevel   = this.copy(pending = 0, reportsDisabled = 0)
+  def withoutPending: ComplianceLevel = this.copy(pending = 0, reportsDisabled = 0)
+
   def computePercent(precision: CompliancePrecision = PERCENT_PRECISION): CompliancePercent =
     CompliancePercent.fromLevels(this, precision)
 
@@ -446,6 +422,21 @@ object CompliancePrecision       {
 }
 object ComplianceLevel           {
 
+  implicit val transformComplianceSerializable: Transformer[ComplianceLevel, ComplianceLevelSerialisation] = {
+    Transformer
+      .define[ComplianceLevel, ComplianceLevelSerialisation]
+      .withFieldRenamed(_.pending, _.applying)
+      .withFieldRenamed(_.notApplicable, _.successNotApplicable)
+      .withFieldRenamed(_.success, _.successAlreadyOK)
+      .withFieldRenamed(_.repaired, _.successRepaired)
+      .withFieldRenamed(_.compliant, _.auditCompliant)
+      .withFieldRenamed(_.nonCompliant, _.auditNonCompliant)
+      .withFieldRenamed(_.unexpected, _.unexpectedUnknownComponent)
+      .withFieldRenamed(_.missing, _.unexpectedMissingComponent)
+      .withFieldRenamed(_.noAnswer, _.noReport)
+      .buildTransformer
+  }
+
   def PERCENT_PRECISION = Level2
 
   def compute(reports: Iterable[ReportType]): ComplianceLevel = {
@@ -468,23 +459,21 @@ object ComplianceLevel           {
       var auditError         = 0
       var badPolicyMode      = 0
 
-      reports.foreach { report =>
-        report match {
-          case EnforceNotApplicable => notApplicable += 1
-          case EnforceSuccess       => success += 1
-          case EnforceRepaired      => repaired += 1
-          case EnforceError         => error += 1
-          case Unexpected           => unexpected += 1
-          case Missing              => missing += 1
-          case NoAnswer             => noAnswer += 1
-          case Pending              => pending += 1
-          case Disabled             => reportsDisabled += 1
-          case AuditCompliant       => compliant += 1
-          case AuditNotApplicable   => auditNotApplicable += 1
-          case AuditNonCompliant    => nonCompliant += 1
-          case AuditError           => auditError += 1
-          case BadPolicyMode        => badPolicyMode += 1
-        }
+      reports.foreach {
+        case EnforceNotApplicable => notApplicable += 1
+        case EnforceSuccess       => success += 1
+        case EnforceRepaired      => repaired += 1
+        case EnforceError         => error += 1
+        case Unexpected           => unexpected += 1
+        case Missing              => missing += 1
+        case NoAnswer             => noAnswer += 1
+        case Pending              => pending += 1
+        case Disabled             => reportsDisabled += 1
+        case AuditCompliant       => compliant += 1
+        case AuditNotApplicable   => auditNotApplicable += 1
+        case AuditNonCompliant    => nonCompliant += 1
+        case AuditError           => auditError += 1
+        case BadPolicyMode        => badPolicyMode += 1
       }
       ComplianceLevel(
         pending = pending,
@@ -560,79 +549,126 @@ object ComplianceLevel           {
   }
 }
 
+// for serialization
+
+// utility class to always have the same names in JSON,
+// even if we are refactoring ComplianceLevel at some point
+
+// Remove 0 (and neg values) by changing them into None
+// Ensure that only some are written. All intermediary objects are removed (ie it's the same as mapping int/double)
+final class OptPosNum(val value: Option[Num])
+object OptPosNum {
+  val none = new OptPosNum(None)
+
+  def apply(i: Int):                  OptPosNum = if (i <= 0) none else new OptPosNum(Some(Num(i)))
+  def apply(i: Double):               OptPosNum = if (i <= 0) none else new OptPosNum(Some(Num(i)))
+  def apply(i: java.math.BigDecimal): OptPosNum = if (i.signum() <= 0) none else new OptPosNum(Some(Num(i)))
+
+  implicit def encoderOptPosNum: JsonEncoder[OptPosNum] = JsonEncoder.option[Num].contramap(_.value)
+  implicit def decoderOptPosNum: JsonDecoder[OptPosNum] =
+    JsonDecoder.option[Num].map(x => OptPosNum.apply(x.map(_.value).getOrElse(java.math.BigDecimal.ZERO)))
+
+  implicit val transformDouble: Iso[Double, OptPosNum] = Iso[Double, OptPosNum](
+    (src: Double) => OptPosNum(src),
+    (src: OptPosNum) => src.value.map(_.value.doubleValue()).getOrElse(0)
+  )
+
+  implicit val transformInt: Iso[Int, OptPosNum] = Iso[Int, OptPosNum](
+    (src: Int) => OptPosNum(src),
+    (src: OptPosNum) => src.value.map(_.value.intValue()).getOrElse(0)
+  )
+
+}
+
+/*
+ * This one is the one that is serialized to JSON when we don't use the Array[Array[Int]].
+ * The field names must be the one expected by API/client side. Order matters. Name matters.
+ */
+final case class ComplianceSerializable(
+    applying:                   OptPosNum,
+    successNotApplicable:       OptPosNum,
+    successAlreadyOK:           OptPosNum,
+    successRepaired:            OptPosNum,
+    error:                      OptPosNum,
+    auditCompliant:             OptPosNum,
+    auditNonCompliant:          OptPosNum,
+    auditError:                 OptPosNum,
+    auditNotApplicable:         OptPosNum,
+    unexpectedUnknownComponent: OptPosNum,
+    unexpectedMissingComponent: OptPosNum,
+    noReport:                   OptPosNum,
+    reportsDisabled:            OptPosNum,
+    badPolicyMode:              OptPosNum
+)
+
+object ComplianceSerializable {
+
+  // A ComplianceSerializable with all field set to OptPosNum.none
+  def empty = {
+    import shapeless.syntax.sized.*
+    val x = Array.fill(14)(OptPosNum.none).toList
+    ComplianceSerializable.apply.tupled(x.sized(14).map(_.tupled).get)
+  }
+
+  implicit val codecComplianceSerializable:     JsonCodec[ComplianceSerializable]                      = DeriveJsonCodec.gen
+  implicit val transformComplianceSerializable: Transformer[ComplianceSerializable, CompliancePercent] = {
+    Transformer
+      .define[ComplianceSerializable, CompliancePercent]
+      .withFieldConst(_.precision, Level0)
+      .withFieldRenamed(_.applying, _.pending)
+      .withFieldRenamed(_.successNotApplicable, _.notApplicable)
+      .withFieldRenamed(_.successAlreadyOK, _.success)
+      .withFieldRenamed(_.successRepaired, _.repaired)
+      .withFieldRenamed(_.auditCompliant, _.compliant)
+      .withFieldRenamed(_.auditNonCompliant, _.nonCompliant)
+      .withFieldRenamed(_.unexpectedUnknownComponent, _.unexpected)
+      .withFieldRenamed(_.unexpectedMissingComponent, _.missing)
+      .withFieldRenamed(_.noReport, _.noAnswer)
+      .buildTransformer
+  }
+}
+
+final case class ComplianceLevelSerialisation(
+    applying:                   OptPosNum,
+    successNotApplicable:       OptPosNum,
+    successAlreadyOK:           OptPosNum,
+    successRepaired:            OptPosNum,
+    error:                      OptPosNum,
+    auditCompliant:             OptPosNum,
+    auditNonCompliant:          OptPosNum,
+    auditError:                 OptPosNum,
+    auditNotApplicable:         OptPosNum,
+    unexpectedUnknownComponent: OptPosNum,
+    unexpectedMissingComponent: OptPosNum,
+    noReport:                   OptPosNum,
+    reportsDisabled:            OptPosNum,
+    badPolicyMode:              OptPosNum
+)
+
 object ComplianceLevelSerialisation {
-  import net.liftweb.json.JsonDSL.*
 
-  // utility class to alway have the same names in JSON,
-  // even if we are refactoring ComplianceLevel at some point
-  // also remove 0
-  private def toJObject(
-      pending:            Number,
-      success:            Number,
-      repaired:           Number,
-      error:              Number,
-      unexpected:         Number,
-      missing:            Number,
-      noAnswer:           Number,
-      notApplicable:      Number,
-      reportsDisabled:    Number,
-      compliant:          Number,
-      auditNotApplicable: Number,
-      nonCompliant:       Number,
-      auditError:         Number,
-      badPolicyMode:      Number
-  ) = {
-    def POS(n: Number) = if (n.doubleValue <= 0) None else Some(JE.Num(n))
+  implicit val codecComplianceLevelSerialisation: JsonCodec[ComplianceLevelSerialisation] = DeriveJsonCodec.gen
 
-    (
-      ("pending"              -> POS(pending))
-      ~ ("success"            -> POS(success))
-      ~ ("repaired"           -> POS(repaired))
-      ~ ("error"              -> POS(error))
-      ~ ("unexpected"         -> POS(unexpected))
-      ~ ("missing"            -> POS(missing))
-      ~ ("noAnswer"           -> POS(noAnswer))
-      ~ ("notApplicable"      -> POS(notApplicable))
-      ~ ("reportsDisabled"    -> POS(reportsDisabled))
-      ~ ("compliant"          -> POS(compliant))
-      ~ ("auditNotApplicable" -> POS(auditNotApplicable))
-      ~ ("nonCompliant"       -> POS(nonCompliant))
-      ~ ("auditError"         -> POS(auditError))
-      ~ ("badPolicyMode"      -> POS(badPolicyMode))
-    )
+  implicit val transformComplianceLevelSerialisation: Transformer[ComplianceLevelSerialisation, ComplianceLevel] = {
+    Transformer
+      .define[ComplianceLevelSerialisation, ComplianceLevel]
+      .withFieldRenamed(_.applying, _.pending)
+      .withFieldRenamed(_.successNotApplicable, _.notApplicable)
+      .withFieldRenamed(_.successAlreadyOK, _.success)
+      .withFieldRenamed(_.successRepaired, _.repaired)
+      .withFieldRenamed(_.auditCompliant, _.compliant)
+      .withFieldRenamed(_.auditNonCompliant, _.nonCompliant)
+      .withFieldRenamed(_.unexpectedUnknownComponent, _.unexpected)
+      .withFieldRenamed(_.unexpectedMissingComponent, _.missing)
+      .withFieldRenamed(_.noReport, _.noAnswer)
+      .buildTransformer
   }
 
-  private def parse[T](json: JValue, convert: BigInt => T) = {
-    def N(n: JValue): T = convert(n match {
-      case JInt(i) => i
-      case _       => 0
-    })
-
-    (
-      N(json \ "pending"),
-      N(json \ "success"),
-      N(json \ "repaired"),
-      N(json \ "error"),
-      N(json \ "unexpected"),
-      N(json \ "missing"),
-      N(json \ "noAnswer"),
-      N(json \ "notApplicable"),
-      N(json \ "reportsDisabled"),
-      N(json \ "compliant"),
-      N(json \ "auditNotApplicable"),
-      N(json \ "nonCompliant"),
-      N(json \ "auditError"),
-      N(json \ "badPolicyMode")
-    )
-  }
-
-  def parseLevel(json: JValue): ComplianceLevel = {
-    (ComplianceLevel.apply _).tupled(parse(json, (i: BigInt) => i.intValue))
-  }
-
-  // transform the compliance percent to a list with a given order:
-  // pc_reportDisabled, pc_notapplicable, pc_success, pc_repaired,
-  // pc_error, pc_pending, pc_noAnswer, pc_missing, pc_unknown
+  // transform the compliance percent to an array with a given order:
+  // reportDisabled, notapplicable, success, repaired,
+  // error, pending, noAnswer, missing, unexpected,
+  // auditNotApplicable, compliant, nonCompliant, auditError,
+  // badPolicyMode
   object array {
     implicit val complianceLevelArrayEncoder: JsonEncoder[ComplianceLevel] = {
       JsonEncoder[Chunk[(Int, Double)]].contramap(compliance => {
@@ -673,83 +709,36 @@ object ComplianceLevelSerialisation {
   // same as in "array" but in old lift-json AST, should be removed soon
   implicit class ComplianceLevelToJs(val compliance: ComplianceLevel) extends AnyVal {
 
-    def toJsArray: JsArray = {
+    def toJsArray: Json.Arr = {
       val pc = compliance.computePercent()
-      JsArray(
-        JsArray(compliance.reportsDisabled, JE.Num(pc.reportsDisabled)), //  0
+      Arr(
+        Arr(Num(compliance.reportsDisabled), Num(pc.reportsDisabled)), //  0
 
-        JsArray(compliance.notApplicable, JE.Num(pc.notApplicable)), //  1
+        Arr(Num(compliance.notApplicable), Num(pc.notApplicable)), //  1
 
-        JsArray(compliance.success, JE.Num(pc.success)), //  2
+        Arr(Num(compliance.success), Num(pc.success)), //  2
 
-        JsArray(compliance.repaired, JE.Num(pc.repaired)), //  3
+        Arr(Num(compliance.repaired), Num(pc.repaired)), //  3
 
-        JsArray(compliance.error, JE.Num(pc.error)), //  4
+        Arr(Num(compliance.error), Num(pc.error)), //  4
 
-        JsArray(compliance.pending, JE.Num(pc.pending)), //  5
+        Arr(Num(compliance.pending), Num(pc.pending)), //  5
 
-        JsArray(compliance.noAnswer, JE.Num(pc.noAnswer)), //  6
+        Arr(Num(compliance.noAnswer), Num(pc.noAnswer)), //  6
 
-        JsArray(compliance.missing, JE.Num(pc.missing)), //  7
+        Arr(Num(compliance.missing), Num(pc.missing)), //  7
 
-        JsArray(compliance.unexpected, JE.Num(pc.unexpected)), //  8
+        Arr(Num(compliance.unexpected), Num(pc.unexpected)), //  8
 
-        JsArray(compliance.auditNotApplicable, JE.Num(pc.auditNotApplicable)), //  9
+        Arr(Num(compliance.auditNotApplicable), Num(pc.auditNotApplicable)), //  9
 
-        JsArray(compliance.compliant, JE.Num(pc.compliant)), // 10
+        Arr(Num(compliance.compliant), Num(pc.compliant)), // 10
 
-        JsArray(compliance.nonCompliant, JE.Num(pc.nonCompliant)), // 11
+        Arr(Num(compliance.nonCompliant), Num(pc.nonCompliant)), // 11
 
-        JsArray(compliance.auditError, JE.Num(pc.auditError)), // 12
+        Arr(Num(compliance.auditError), Num(pc.auditError)), // 12
 
-        JsArray(compliance.badPolicyMode, JE.Num(pc.badPolicyMode)) // 13
-      )
-    }
-
-    def toJson: JObject = {
-      import compliance.*
-      toJObject(
-        pending,
-        success,
-        repaired,
-        error,
-        unexpected,
-        missing,
-        noAnswer,
-        notApplicable,
-        reportsDisabled,
-        compliant,
-        auditNotApplicable,
-        nonCompliant,
-        auditError,
-        badPolicyMode
-      )
-    }
-  }
-
-  // transform a compliace percent to JSON.
-  // here, we are using attributes contrary to compliance level,
-  // and we only keep the one > 0 (we want the result to be
-  // human-readable and to aknolewdge the fact that there may be
-  // new fields.
-  implicit class CompliancePercentToJs(val c: CompliancePercent) extends AnyVal {
-    def toJson: JObject = {
-      import c.*
-      toJObject(
-        pending,
-        success,
-        repaired,
-        error,
-        unexpected,
-        missing,
-        noAnswer,
-        notApplicable,
-        reportsDisabled,
-        compliant,
-        auditNotApplicable,
-        nonCompliant,
-        auditError,
-        badPolicyMode
+        Arr(Num(compliance.badPolicyMode), Num(pc.badPolicyMode)) // 13
       )
     }
   }

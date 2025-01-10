@@ -72,6 +72,7 @@ import org.apache.commons.text.StringEscapeUtils
 import scala.xml.*
 import zio.ZIO
 import zio.json.*
+import zio.json.ast.*
 import zio.syntax.*
 
 object NodeGroupForm {
@@ -276,8 +277,8 @@ class NodeGroupForm(
     _.name
   )
 
-  private def showComplianceForGroup(progressBarSelector: String, optComplianceArray: Option[JsArray]) = {
-    val complianceHtml = optComplianceArray.map(js => s"buildComplianceBar(${js.toJsCmd})").getOrElse("\"No report\"")
+  private def showComplianceForGroup(progressBarSelector: String, optComplianceArray: Option[Json.Arr]) = {
+    val complianceHtml = optComplianceArray.map(js => s"buildComplianceBar(${js.toJson})").getOrElse("\"No report\"")
     Script(JsRaw(s"""$$("${progressBarSelector}").html(${complianceHtml});"""))
   }
 
@@ -489,7 +490,7 @@ class NodeGroupForm(
     intro ++ tabProperties
   }
 
-  private def loadComplianceBar(isGlobalCompliance: Boolean): Option[JsArray] = {
+  private def loadComplianceBar(isGlobalCompliance: Boolean): Option[Json.Arr] = {
     val target = nodeGroup match {
       case Left(value)  => value
       case Right(value) => GroupTarget(value.id)

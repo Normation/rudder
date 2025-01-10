@@ -1,8 +1,7 @@
 package com.normation.rudder.web.components
 
-import com.normation.rudder.domain.policies.JsonTagSerialisation
+import com.normation.box.*
 import com.normation.rudder.domain.policies.Tags
-import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.web.ChooseTemplate
 import net.liftweb.common.*
 import net.liftweb.http.SHtml
@@ -12,15 +11,16 @@ import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 import scala.xml.NodeSeq
+import zio.json.*
 
 class TagsEditForm(tags: Tags, objectId: String) extends Loggable {
 
   val templatePath: List[String] = List("templates-hidden", "components", "ComponentTags")
   def tagsTemplate: NodeSeq      = ChooseTemplate(templatePath, "tag-form")
 
-  val jsTags: String = net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(tags))
+  val jsTags: String = tags.toJson
 
-  def parseResult(s: String): Box[Tags] = CompleteJson.unserializeTags(s)
+  def parseResult(s: String): Box[Tags] = s.fromJson[Tags].toBox
 
   def tagsForm(controllerId: String, appId: String, update: Box[Tags] => Unit, isRule: Boolean): NodeSeq = {
 
