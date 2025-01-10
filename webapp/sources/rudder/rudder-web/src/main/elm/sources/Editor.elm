@@ -140,9 +140,8 @@ subscriptions model =
                   )
         ]
 
-
 defaultMethodUiInfo  =
-  MethodCallUiInfo Closed CallParameters Unchanged
+  MethodCallUiInfo Closed CallParameters Unchanged (NewForeach "" Dict.empty "")
 defaultBlockUiInfo =
   MethodBlockUiInfo Closed Children Unchanged False
 
@@ -425,7 +424,7 @@ update msg model =
                         updateCallUi = \optCui ->
                           let
                             b = case optCui of
-                              Nothing -> MethodCallUiInfo Closed CallParameters Unchanged
+                              Nothing -> defaultMethodUiInfo
                               Just cui -> cui
 
 
@@ -586,7 +585,7 @@ update msg model =
       if model.hasWriteRights then
       let
         disableReporting = False
-        newCall = MethodCall newId method.id (List.map (\p -> CallParameter p.name [Value ""]) method.parameters) (Condition Nothing "") "" disableReporting Nothing
+        newCall = MethodCall newId method.id (List.map (\p -> CallParameter p.name [Value ""]) method.parameters) (Condition Nothing "") "" disableReporting Nothing Nothing Nothing
         newModel =
           case model.mode of
             TechniqueDetails t o ui editInfo ->
@@ -604,7 +603,7 @@ update msg model =
     AddBlock newId ->
       if model.hasWriteRights then
       let
-        newCall = MethodBlock newId "" (Condition Nothing "") WeightedReport [] Nothing
+        newCall = MethodBlock newId "" (Condition Nothing "") WeightedReport [] Nothing Nothing Nothing
         newModel =
           case model.mode of
             TechniqueDetails t o ui editInfo ->
@@ -731,7 +730,6 @@ update msg model =
           h :: t ->
             update h {newModel  | recClone = t}
 
-
     MethodCallModified method ->
       case model.mode of
         TechniqueDetails t s ui editInfo ->
@@ -752,7 +750,6 @@ update msg model =
             updatedStoreTechnique newModel
         _ -> (model,Cmd.none)
 
-
     MethodCallParameterModified call paramId newValue ->
       let
         newModel =
@@ -768,7 +765,7 @@ update msg model =
                 updateCallUi = \optCui ->
                   let
                     base = case optCui of
-                            Nothing -> MethodCallUiInfo Closed CallParameters Unchanged
+                            Nothing -> defaultMethodUiInfo
                             Just cui -> cui
                     filterValidation = case base.validation of
                                          InvalidState err -> let
@@ -816,12 +813,12 @@ update msg model =
             (baseCalls, newElem) =
               case draggedItemId of
                 Move b ->  ( removeElem (getId >> (==) (getId b)) t.elems, b)
-                NewBlock -> (t.elems, Block Nothing (MethodBlock (CallId "") "" (Condition Nothing "") WeightedReport [] Nothing))
+                NewBlock -> (t.elems, Block Nothing (MethodBlock (CallId "") "" (Condition Nothing "") WeightedReport [] Nothing Nothing Nothing))
                 NewMethod method ->
                  let
                    disableReporting = False
                  in
-                   (t.elems, Call Nothing (MethodCall (CallId "") method.id (List.map (\p -> CallParameter p.name [Value ""]) method.parameters) (Condition Nothing "") "" disableReporting  Nothing))
+                   (t.elems, Call Nothing (MethodCall (CallId "") method.id (List.map (\p -> CallParameter p.name [Value ""]) method.parameters) (Condition Nothing "") "" disableReporting  Nothing Nothing Nothing))
             updatedCalls =
               case dropTarget of
                 StartList ->

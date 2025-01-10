@@ -205,8 +205,8 @@ showMethod ui method mode dnd =
     methodUi =
       case mode of
         TechniqueDetails _ _ techUiInfo _ ->
-          Maybe.withDefault (MethodCallUiInfo Closed CallParameters Unchanged) (Dict.get method.id.value techUiInfo.callsUI)
-        _  -> (MethodCallUiInfo Closed CallParameters Unchanged)
+          Maybe.withDefault (MethodCallUiInfo Closed CallParameters Unchanged (NewForeach "" Dict.empty "")) (Dict.get method.id.value techUiInfo.callsUI)
+        _  -> (MethodCallUiInfo Closed CallParameters Unchanged (NewForeach "" Dict.empty ""))
   in
     element "li"
     |> appendChild

@@ -14,6 +14,7 @@ import Dom exposing (..)
 import Json.Decode
 import VirtualDom
 
+import Rules.ViewUtils exposing (onCustomClick)
 import Editor.DataTypes exposing (..)
 import Editor.MethodConditions exposing (..)
 import Editor.MethodElemUtils exposing (..)
@@ -364,19 +365,142 @@ showMethodTab model method parentId call uiInfo=
           ]
         ]
       ]
+    ForEach     ->
+      let
+        newForeach = uiInfo.newForeach
+        tabContent = case call.foreachName of
+          Nothing ->
+            let
+              newKeys = Dict.keys newForeach.foreach
+                |> List.map (\k ->
+                  span[class "d-inline-flex align-items-center ps-2 me-2"]
+                  [ text k
+                  , i[ class "fa fa-times p-2 cursorPointer", onCustomClick (UIMethodAction call.id {uiInfo | newForeach = {newForeach | foreach = (Dict.remove k uiInfo.newForeach.foreach)}}) ][]
+                  ]
+                )
+            in
+              div[]
+              [ div [class "form-group col-12 col-md-6 col-lg-4 mb-3"]
+                [ label [for "foreachName", class "form-label"]
+                  [ text "Foreach name"
+                  ]
+                , input
+                  [ type_ "text"
+                  , class "form-control"
+                  , id "foreachName"
+                  , placeholder "item"
+                  , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                  , onFocus DisableDragDrop
+                  , value uiInfo.newForeach.foreachName
+                  , onInput  (\s -> UIMethodAction call.id {uiInfo | newForeach = {newForeach | foreachName = s}})
+                  ]
+                  []
+                ]
+              , div [class "form-group col-12 col-md-6 col-lg-4"]
+                [ label [for "foreachKeys", class "form-label"]
+                  [ text "Foreach keys"
+                  ]
+                , div [class "input-group"]
+                  [ input
+                    [ type_ "text"
+                    , class "form-control"
+                    , placeholder "name, version..."
+                    , id "foreachKeys"
+                    , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                    , onFocus DisableDragDrop
+                    , value uiInfo.newForeach.newKey
+                    , onInput  (\s -> UIMethodAction call.id {uiInfo | newForeach = {newForeach | newKey = s}})
+                    ][]
+                  , button
+                    [ class "btn btn-default"
+                    , type_ "button"
+                    , onCustomClick (UIMethodAction call.id {uiInfo | newForeach = {newForeach | newKey = "", foreach = (Dict.insert uiInfo.newForeach.newKey [] uiInfo.newForeach.foreach)}})
+                    , disabled (String.isEmpty uiInfo.newForeach.newKey)
+                    ]
+                    [ i[class "fa fa-plus-circle"][]
+                    ]
+                  ]
+                ]
+              , div [class "col-12 col-md-6 col-lg-8 foreach-keys mt-2 mb-3"] ( newKeys )
+              , div []
+                [ button[class "btn btn-default me-3", onCustomClick (UIMethodAction call.id {uiInfo | newForeach = (NewForeach "" Dict.empty "")}) ]
+                  [ text "Reset"
+                  , i[class "fa fa-undo ms-1"][]
+                  ]
+                , button
+                  [ class "btn btn-primary"
+                  , disabled ((String.isEmpty uiInfo.newForeach.foreachName) || (Dict.isEmpty uiInfo.newForeach.foreach))
+                  , onCustomClick (MethodCallModified (Call (Just call.id) {call | foreachName = Just newForeach.foreachName, foreach = Just newForeach.foreach }))
+                  ]
+                  [ text "Add foreach"
+                  , i[class "fa fa-check ms-1"][]
+                  ]
+                ]
+              ]
+          Just foreachName ->
+            let
+              keys = case call.foreach of
+                Just f -> Dict.keys f
+                Nothing -> []
+
+              header = keys
+                |> List.map (\k -> th[][text k])
+            in
+              div[]
+              [ div [class "row mb-3 form-group"]
+                [ label [for "inputEmail3", class "col-auto col-form-label"]
+                    [ text "Foreach name: " ]
+                , div [class "col d-flex align-items-center"]
+                  [ text foreachName
+                  , i[class "fa fa-edit ms-2"][]
+                  , i[class "fa fa-times ms-2", onCustomClick (MethodCallModified (Call (Just call.id) {call | foreachName = Nothing, foreach = Nothing }))][]
+                  ]
+                ]
+              , table[class "table table-bordered table-foreach"]
+                [ thead[]
+                  [ tr[] (header)
+                  ]
+                ]
+              ]
+      in
+        div [ class "tab-result" ]
+          [ tabContent
+          ]
 
 methodDetail: Method -> MethodCall -> Maybe CallId -> MethodCallUiInfo -> Model -> Html Msg
 methodDetail method call parentId ui model =
   let
     activeClass = (\c -> if c == ui.tab then "active" else "" )
+    (nbForeach, foreachClass) = case call.foreachName of
+      Nothing ->
+        ( "0"
+        , ""
+        )
+      Just f ->
+        let
+          nb = case call.foreach of
+              Just foreach -> String.fromInt (Dict.size foreach) --TODO : To improve
+              Nothing -> "0"
+        in
+          ( nb
+          , " has-foreach"
+          )
+
   in
   div [ class "method-details" ] [
     div [] [
       ul [ class "tabs-list"] [
         li [ class (activeClass CallParameters),  stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallParameters}, True)) ] [text "Parameters"] -- click select param tabs, class active if selected
       , li [ class (activeClass CallConditions),stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallConditions}, True)) ] [text "Conditions"]
-      , li [class (activeClass Result), stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = Result}, True))] [text "Result conditions"]
-      , li [class (activeClass CallReporting), stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallReporting}, True)) ] [text "Reporting"]
+      , li [ class (activeClass Result), stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = Result}, True))] [text "Result conditions"]
+      , li [ class (activeClass CallReporting), stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallReporting}, True)) ] [text "Reporting"]
+      , li [ class (activeClass ForEach), stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = ForEach}, True)) ]
+        [ text "Foreach"
+        , span[class ("badge" ++ foreachClass)]
+          [ text nbForeach
+          , i[class "fa fa-retweet ms-1"][]
+          ]
+        ]
       ]
     , div [ class "tabs" ] [ (showMethodTab model method parentId call ui) ]
     ]
@@ -511,6 +635,36 @@ callBody model ui techniqueUi call pid =
           Just Audit -> "label-audit"
           Just Enforce -> "label-enforce"
 
+    appendForeachLabel =
+      let
+        nbForeach = case call.foreach of
+          Just foreach -> String.fromInt (Dict.size foreach) --TODO : To improve
+          Nothing -> "0"
+
+        labelTxt = case call.foreachName of
+          Nothing -> ""
+          Just f  -> "foreach ${" ++ f ++ ".x}"
+
+      in
+        appendChildConditional
+          ( element "div"
+            |> addClass ("gm-label rudder-label gm-foreach d-inline-flex ps-0 overflow-hidden")
+            |> appendChild
+              ( element "span"
+                |> addClass "counter px-1 me-1"
+                |> appendText nbForeach
+                |> appendChild
+                  ( element "i"
+                    |> addClass "fa fa-retweet"
+                  )
+              )
+            |> appendChild
+              ( element "span"
+                |> appendText labelTxt
+              )
+          )
+          ( Maybe.Extra.isJust call.foreachName )
+
     appendLeftLabels = appendChild
                          ( element "div"
                            |> addClass ("gm-labels left")
@@ -524,6 +678,7 @@ callBody model ui techniqueUi call pid =
                                 |> addClass ("gm-label rudder-label gm-label-name " ++ methodNameLabelClass)
                                 |> appendText method.name
                               )
+                           |> appendForeachLabel
                          )
     appendRightLabels = appendChild
       ( case ui.mode of
