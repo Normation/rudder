@@ -403,11 +403,18 @@ class PluginSystemServiceImpl(
     }
   }
 
-  override def install(plugins: Chunk[String]): IOResult[Unit] = ???
+  override def install(plugins: Chunk[PluginId]): IOResult[Unit] = {
+    // install all plugins, rudder package already handles installed ones
+    rudderPackageService.installPlugins(plugins.map(_.transformInto[String]))
+  }
 
-  override def remove(plugins: Chunk[String]): IOResult[Unit] = ???
+  override def remove(plugins: Chunk[PluginId]): IOResult[Unit] = {
+    rudderPackageService.removePlugins(plugins.map(_.transformInto[String]))
+  }
 
-  override def updateStatus(status: PluginSystemStatus, plugins: Chunk[String]): IOResult[Unit] = ???
+  override def updateStatus(status: PluginSystemStatus, plugins: Chunk[PluginId]): IOResult[Unit] = {
+    rudderPackageService.changePluginSystemStatus(status, plugins.map(_.transformInto[String]))
+  }
 
   private def unknownLicensee = RudderPackagePlugin.Licensee("unknown")
 

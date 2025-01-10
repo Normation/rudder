@@ -649,18 +649,30 @@ sealed trait PluginInternalApi extends EnumEntry with EndpointSchema with Intern
 }
 object PluginInternalApi       extends Enum[PluginInternalApi] with ApiModuleProvider[PluginInternalApi] {
 
-  case object ListPlugins extends PluginInternalApi with ZeroParam with StartsAtVersion20 with SortIndex {
+  case object ListPlugins         extends PluginInternalApi with ZeroParam with StartsAtVersion21 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "List all plugins"
     val (action, path) = GET / "pluginsinternal"
   }
-  // case object UpdatePluginsSettings extends PluginApi with ZeroParam with StartsAtVersion14 with SortIndex {
-  //   val z:                      Int            = implicitly[Line].value
-  //   override def dataContainer: Option[String] = None
-  //   val description    = "Update plugin system settings"
-  //   val (action, path) = POST / "plugins" / "settings"
-  // }
+  case object InstallPlugins      extends PluginInternalApi with ZeroParam with StartsAtVersion21 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Install plugins"
+    val (action, path) = POST / "pluginsinternal" / "install"
+    override def dataContainer: Option[String] = None
+  }
+  case object RemovePlugins       extends PluginInternalApi with ZeroParam with StartsAtVersion21 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Remove plugins"
+    val (action, path) = POST / "pluginsinternal" / "remove"
+    override def dataContainer: Option[String] = None
+  }
   def endpoints: List[PluginInternalApi] = values.toList.sortBy(_.z)
+  case object ChangePluginsStatus extends PluginInternalApi with OneParam with StartsAtVersion21 with SortIndex  {
+    val z: Int = implicitly[Line].value
+    val description    = "Change the status of plugins"
+    val (action, path) = POST / "pluginsinternal" / "{status}"
+    override def dataContainer: Option[String] = None
+  }
 
   def values = findValues
 }

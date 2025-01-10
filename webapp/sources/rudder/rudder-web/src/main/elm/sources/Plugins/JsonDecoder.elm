@@ -3,29 +3,30 @@ module Plugins.JsonDecoder exposing (..)
 import Json.Decode as D exposing (..)
 import Json.Decode.Pipeline exposing (optional, required)
 import Plugins.DataTypes exposing (..)
-import Time.TimeZone exposing (TimeZone)
-import Time.ZonedDateTime exposing (ZonedDateTime)
-import Time.TimeZones exposing (utc)
 import Time.Iso8601
 import Time.Iso8601ErrorMsg
+import Time.TimeZone exposing (TimeZone)
+import Time.TimeZones exposing (utc)
+import Time.ZonedDateTime exposing (ZonedDateTime)
 
 
 decodeGetPluginInfos : Decoder (List PluginInfo)
 decodeGetPluginInfos =
-  at [ "data", "plugins" ] (list decodePluginInfo)
+    at [ "data", "plugins" ] (list decodePluginInfo)
+
 
 decodePluginInfo : Decoder PluginInfo
 decodePluginInfo =
- D.succeed PluginInfo
-    |> required "id" string
-    |> required "name" string
-    |> required "description" string
-    |> required "abiVersion" string
-    |> required "version" string
-    |> required "pluginType" decodePluginType
-    |> required "errors" (list decodePluginError)
-    |> required "status" decodePluginStatus
-    |> optional "license" (maybe decodeLicenseInfo) Nothing
+    D.succeed PluginInfo
+        |> required "id" string
+        |> required "name" string
+        |> required "description" string
+        |> required "abiVersion" string
+        |> required "version" string
+        |> required "pluginType" decodePluginType
+        |> required "errors" (list decodePluginError)
+        |> required "status" decodePluginStatus
+        |> optional "license" (maybe decodeLicenseInfo) Nothing
 
 
 decodePluginType : Decoder PluginType
@@ -75,14 +76,23 @@ decodeLicenseInfo =
         |> required "endDate" decodeDateTime
 
 
+
 -- Defaults to UTC
+
+
 decodeDateTime : Decoder ZonedDateTime
 decodeDateTime =
-  andThen (\d ->
+    andThen
+        (\d ->
             case d of
-              Ok r -> succeed r
-              Err e -> fail (String.join "\n" <| List.map (Time.Iso8601ErrorMsg.renderText "" ) e)
-          ) (map (Time.Iso8601.toZonedDateTime utc) string)
+                Ok r ->
+                    succeed r
+
+                Err e ->
+                    fail (String.join "\n" <| List.map (Time.Iso8601ErrorMsg.renderText "") e)
+        )
+        (map (Time.Iso8601.toZonedDateTime utc) string)
+
 
 decodePluginError : Decoder PluginError
 decodePluginError =

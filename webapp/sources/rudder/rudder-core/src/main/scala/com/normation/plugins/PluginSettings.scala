@@ -138,12 +138,15 @@ object JsonGlobalPluginLimits {
   }
 }
 
-trait PluginSystemStatus  {
+sealed trait PluginSystemStatus {
   def value: String
 }
-object PluginSystemStatus {
+object PluginSystemStatus       {
   case object Enabled  extends PluginSystemStatus { override val value: String = "enabled"  }
   case object Disabled extends PluginSystemStatus { override val value: String = "disabled" }
+
+  implicit val transformerJson: Transformer[PluginSystemStatus, JsonPluginSystemStatus] =
+    Transformer.derive[PluginSystemStatus, JsonPluginSystemStatus]
 }
 
 final case class JsonPluginDetails(
@@ -156,7 +159,7 @@ final case class JsonPluginDetails(
     statusMessage: Option[String],
     license:       Option[PluginLicenseInfo]
 )
-object JsonPluginDetails  {
+object JsonPluginDetails        {
   implicit val encoderPluginSystemStatusRest: JsonEncoder[PluginSystemStatus] = JsonEncoder[String].contramap(_.value)
   implicit val encoderPluginDetails:          JsonEncoder[JsonPluginDetails]  = DeriveJsonEncoder.gen
 }
@@ -309,14 +312,20 @@ sealed trait PluginManagementError {
 object PluginManagementError       {
   sealed trait Kind extends EnumEntry with Dotcase
   object Kind       extends Enum[Kind] {
+    case object LicenseNeededError         extends Kind
     case object LicenseExpiredError        extends Kind
     case object LicenseNearExpirationError extends Kind
     case object AbiVersionError            extends Kind
     override def values: IndexedSeq[Kind] = findValues
   }
 
+  case object LicenseNeededError extends PluginManagementError {
+    override def kind:       Kind.LicenseNeededError.type = Kind.LicenseNeededError
+    override def displayMsg: String                       = "A license is needed for the plugin"
+  }
+
   /**
-    * Sum type for license expiration error with disjoined cases
+    * Sum type for license expiration error with case disjunction
     */
   sealed trait LicenseExpirationError    extends PluginManagementError
   case object LicenseExpiredError        extends LicenseExpirationError {
@@ -339,6 +348,7 @@ object PluginManagementError       {
   )(implicit rudderFullVersion: String, abiVersion: Version): List[PluginManagementError] = {
     List(
       validateAbiVersion(rudderFullVersion, abiVersion),
+      validateLicenseNeeded(plugin.requiresLicense, plugin.license),
       plugin.license.flatMap(l => validateLicenseExpiration(l.endDate))
     ).flatten
   }
@@ -346,6 +356,16 @@ object PluginManagementError       {
   private def validateAbiVersion(rudderFullVersion: String, abiVersion: Version): Option[RudderAbiVersionError] = {
     if (rudderFullVersion != abiVersion.toVersionString)
       Some(RudderAbiVersionError(rudderFullVersion))
+    else
+      None
+  }
+
+  private def validateLicenseNeeded(
+      requiresLicense: Boolean,
+      license:         Option[RudderPackagePlugin.LicenseInfo]
+  ): Option[LicenseNeededError.type] = {
+    if (requiresLicense && license.isEmpty)
+      Some(LicenseNeededError)
     else
       None
   }
@@ -364,11 +384,29 @@ object PluginManagementError       {
 
 }
 
+case class PluginId(value: String) extends AnyVal
+object PluginId                  {
+  implicit val decoder:     JsonDecoder[PluginId]         = JsonDecoder[String].mapOrFail(parse)
+  implicit val transformer: Transformer[PluginId, String] = Transformer.derive[PluginId, String]
+
+  private val pluginIdRegex = """^(\p{Alnum}[\p{Alnum}-_]*)$""".r
+
+  /**
+    * Ensure that plugin ID is alpha-num and hyphen
+    */
+  def parse(s: String): Either[String, PluginId] = {
+    s match {
+      case pluginIdRegex(_) => Right(PluginId(s))
+      case _                => Left(s"Invalid plugin ID: '$s'. Plugin ID must be alphanumeric with hyphens.")
+    }
+  }
+}
+
 final case class JsonPluginSystemDetails(
-    id:            String,
+    id:            PluginId,
     name:          String,
     description:   String,
-    version:       String,
+    version:       Option[String],
     status:        JsonPluginSystemStatus,
     statusMessage: Option[String],
     abiVersion:    Version,
@@ -392,6 +430,7 @@ object JsonPluginManagementError {
 }
 
 object JsonPluginSystemDetails {
+  implicit val encoderPluginId:               JsonEncoder[PluginId]                  = JsonEncoder[String].contramap(_.value)
   implicit val encoderPluginSystemStatusRest: JsonEncoder[JsonPluginSystemStatus]    = JsonEncoder[String].contramap(_.entryName)
   implicit val encoderPluginType:             JsonEncoder[PluginType]                = JsonEncoder[String].contramap(_.entryName)
   implicit val encoderPluginManagementError:  JsonEncoder[JsonPluginManagementError] =
@@ -402,14 +441,15 @@ object JsonPluginSystemDetails {
 
 @jsonMemberNames(SnakeCase)
 final case class RudderPackagePlugin(
-    name:          String,
-    version:       Option[String], // version is only available when installed
-    latestVersion: String,
-    installed:     Boolean,
-    enabled:       Boolean,
-    webappPlugin:  Boolean,
-    description:   String,
-    license:       Option[RudderPackagePlugin.LicenseInfo]
+    name:            String,
+    version:         Option[String],
+    latestVersion:   Option[String],
+    installed:       Boolean,
+    enabled:         Boolean,
+    webappPlugin:    Boolean,
+    requiresLicense: Boolean,
+    description:     String,
+    license:         Option[RudderPackagePlugin.LicenseInfo]
 )
 object RudderPackagePlugin     {
   // types for passing implicits
@@ -461,7 +501,7 @@ object RudderPackagePlugin     {
     val _ = transformLicense // variable is used below
     Transformer
       .define[RudderPackagePlugin, JsonPluginSystemDetails]
-      .withFieldComputed(_.id, _.name)
+      .withFieldComputed(_.id, p => PluginId(p.name))
       .withFieldComputed(
         _.status,
         p => {
@@ -472,7 +512,7 @@ object RudderPackagePlugin     {
           }
         }
       )
-      .withFieldComputed(_.version, l => l.version.getOrElse(l.latestVersion))
+      .withFieldComputed(_.version, l => l.version.orElse(l.latestVersion)) // version : only when installed
       .withFieldConst(_.abiVersion, abiVersion) // field is computed upstream
       .withFieldComputed(_.pluginType, p => if (p.webappPlugin) PluginType.Webapp else PluginType.Integration)
       .withFieldConst(_.statusMessage, None)
@@ -524,11 +564,47 @@ class RudderPackageCmdService(configCmdLine: String) extends RudderPackageServic
     }
   }
 
-  override def installPlugins(plugins: Chunk[String]): IOResult[Unit] = ???
+  override def installPlugins(plugins: Chunk[String]): IOResult[Unit] = {
+    for {
+      configCmd   <- configCmdRes.toIO
+      cmd          = Cmd(configCmd._1, configCmd._2 ::: "install" :: plugins.toList, Map.empty, None)
+      packagesCmd <- RunNuCommand.run(cmd)
+      result      <- packagesCmd.await
+      _           <- ZIO.when(result.code != 0) {
+                       Inconsistency(
+                         s"An error occurred while installing plugins with '${cmd.display}':\n code: ${result.code}\n stderr: ${result.stderr}\n stdout: ${result.stdout}"
+                       ).fail
+                     }
+    } yield ()
+  }
 
-  override def removePlugins(plugins: Chunk[String]): IOResult[Unit] = ???
+  override def removePlugins(plugins: Chunk[String]): IOResult[Unit] = {
+    for {
+      configCmd   <- configCmdRes.toIO
+      cmd          = Cmd(configCmd._1, configCmd._2 ::: "remove" :: plugins.toList, Map.empty, None)
+      packagesCmd <- RunNuCommand.run(cmd)
+      result      <- packagesCmd.await
+      _           <- ZIO.when(result.code != 0) {
+                       Inconsistency(
+                         s"An error occurred while removing plugins with '${cmd.display}':\n code: ${result.code}\n stderr: ${result.stderr}\n stdout: ${result.stdout}"
+                       ).fail
+                     }
+    } yield ()
+  }
 
-  override def changePluginSystemStatus(status: PluginSystemStatus, plugins: Chunk[String]): IOResult[Unit] = ???
+  override def changePluginSystemStatus(status: PluginSystemStatus, plugins: Chunk[String]): IOResult[Unit] = {
+    for {
+      configCmd   <- configCmdRes.toIO
+      cmd          = Cmd(configCmd._1, configCmd._2 ::: status.value :: plugins.toList, Map.empty, None)
+      packagesCmd <- RunNuCommand.run(cmd)
+      result      <- packagesCmd.await
+      _           <- ZIO.when(result.code != 0) {
+                       Inconsistency(
+                         s"An error occurred while changin plugin status to ${status.value} with '${cmd.display}':\n code: ${result.code}\n stderr: ${result.stderr}\n stdout: ${result.stdout}"
+                       ).fail
+                     }
+    } yield ()
+  }
 
 }
 
@@ -539,8 +615,41 @@ trait PluginSystemService {
 
   def list(): IOResult[Chunk[JsonPluginSystemDetails]]
 
-  def install(plugins:     Chunk[String]): IOResult[Unit]
-  def remove(plugins:      Chunk[String]): IOResult[Unit]
-  def updateStatus(status: PluginSystemStatus, plugins: Chunk[String]): IOResult[Unit]
+  def install(plugins:     Chunk[PluginId]): IOResult[Unit]
+  def remove(plugins:      Chunk[PluginId]): IOResult[Unit]
+  def updateStatus(status: PluginSystemStatus, plugins: Chunk[PluginId]): IOResult[Unit]
 
+}
+
+/**
+  * Implementation for tests, will do any operation without any error
+  */
+class InMemoryPluginSystemService(ref: Ref[Map[PluginId, JsonPluginSystemDetails]]) extends PluginSystemService {
+  override def list(): UIO[Chunk[JsonPluginSystemDetails]] = {
+    ref.get.map(m => Chunk.fromIterable(m.values))
+  }
+
+  override def install(plugins: Chunk[PluginId]): UIO[Unit] = {
+    updatePluginStatus(JsonPluginSystemStatus.Enabled, plugins)
+  }
+
+  override def remove(plugins: Chunk[PluginId]): UIO[Unit] = {
+    updatePluginStatus(JsonPluginSystemStatus.Uninstalled, plugins)
+  }
+
+  override def updateStatus(status: PluginSystemStatus, plugins: Chunk[PluginId]): UIO[Unit] = {
+    updatePluginStatus(status.transformInto[JsonPluginSystemStatus], plugins)
+  }
+
+  private def updatePluginStatus(status: JsonPluginSystemStatus, plugins: Chunk[PluginId]) = {
+    ref.update(m => m ++ plugins.flatMap(id => m.get(id).map(p => id -> p.copy(status = status))))
+  }
+}
+
+object InMemoryPluginSystemService {
+  def make(initialPlugins: List[JsonPluginSystemDetails]): UIO[InMemoryPluginSystemService] = {
+    for {
+      ref <- Ref.make(initialPlugins.map(p => p.id -> p).toMap)
+    } yield new InMemoryPluginSystemService(ref)
+  }
 }
