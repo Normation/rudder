@@ -28,6 +28,7 @@ rudder_module_type = { path = "../../rudder-module-type" }
 #raugeas = { git = "https://github.com/Normation/raugeas.git" }
 raugeas = "0.3.0"
 rustyline = "15"
+zxcvbn = "3"
 
 [dev-dependencies]
 rudder_commons_test = { path = "../../rudder-commons-test" }

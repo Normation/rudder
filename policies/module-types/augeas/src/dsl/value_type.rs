@@ -5,6 +5,8 @@ use crate::dsl::ip::IpRangeChecker;
 use anyhow::{anyhow, bail};
 use bytesize::ByteSize;
 use ipnet::{Ipv4Net, Ipv6Net};
+use std::fmt;
+use std::fmt::Display;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 
@@ -52,6 +54,25 @@ impl FromStr for ValueType {
             "bool" => Ok(Self::Bool),
             _ => bail!("Invalid value type: {}", s),
         }
+    }
+}
+
+impl Display for ValueType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Self::BytesSize => "bytes",
+            Self::Ip => "ip",
+            Self::Ipv4 => "ipv4",
+            Self::Ipv6 => "ipv6",
+            Self::IpRange => "ip_range",
+            Self::Ipv4Range => "ipv4_range",
+            Self::Ipv6Range => "ipv6_range",
+            Self::Int => "int",
+            Self::Uint => "uint",
+            Self::Float => "float",
+            Self::Bool => "bool",
+        };
+        write!(f, "{}", s)
     }
 }
 

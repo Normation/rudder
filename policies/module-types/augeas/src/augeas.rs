@@ -69,13 +69,15 @@ impl Augeas {
         root: Option<&Path>,
         load_paths: &[T],
     ) -> anyhow::Result<raugeas::Augeas> {
-        Self::new_aug(root, load_paths, false, LoadMode::LensesOnly)
+        // Enable span tracking for better error messages.
+        Self::new_aug(root, load_paths, false, true, LoadMode::LensesOnly)
     }
 
     pub fn new_aug<T: AsRef<Path>>(
         root: Option<&Path>,
         load_paths: &[T],
         type_check_lenses: bool,
+        enable_span: bool,
         load_mode: LoadMode,
     ) -> anyhow::Result<raugeas::Augeas> {
         let mut flags = Flags::NONE;
@@ -92,6 +94,11 @@ impl Augeas {
                 rudder_debug!("Not loading lenses on startup");
                 flags.insert(Flags::NO_MODULE_AUTOLOAD);
             }
+        }
+
+        if enable_span {
+            rudder_debug!("Enabling span tracking");
+            flags.insert(Flags::ENABLE_SPAN);
         }
 
         if type_check_lenses {

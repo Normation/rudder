@@ -2,9 +2,12 @@
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
 use crate::dsl::script::Expression;
+use crate::dsl::value_type::ValueType;
 use nom::branch::alt;
-use nom::bytes::complete::{is_not, tag};
-use nom::character::complete::{alpha1, char, line_ending, multispace0, not_line_ending, space0};
+use nom::bytes::complete::{escaped, is_not, tag};
+use nom::character::complete::{
+    alpha1, alphanumeric1, char, line_ending, multispace0, not_line_ending, one_of, space0,
+};
 use nom::combinator::{cut, eof, map_res, not, opt};
 use nom::error::VerboseError;
 use nom::multi::{many0, separated_list0};
@@ -30,9 +33,12 @@ pub fn arg_array(input: &str) -> IResult<&str, Vec<&str>, VerboseError<&str>> {
     Ok((input, args))
 }
 
+// static const char *const escape_chars = "\a\b\t\n\v\f\r";
+
 /// Read a path or a value.
 ///
-/// It can contain spaces, in which case it must be quoted.
+/// It can contain spaces, in which case it must be quoted, either with single or double quotes.
+// FIXME: handle escaped quotes
 pub fn arg(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
     let (input, _) = space0(input)?;
     // either a quoted string or an unquoted string
@@ -46,6 +52,7 @@ pub fn arg(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
     Ok((input, arg))
 }
 
+/// Read a command, same as an argument but only alphanumeric characters.
 fn cmd(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
     let (input, cmd) = alpha1(input)?;
     let (input, _) = space0(input)?;
@@ -118,80 +125,65 @@ fn cmd_defnode(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
     Ok((input, Expression::DefineNode(name, path.into(), value)))
 }
 
-fn cmd_match_include(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
+fn cmd_is_type(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
+    let (input, value_type) = map_res(arg, |p| p.parse::<ValueType>())(input)?;
     let (input, path) = arg(input)?;
-    let (input, _) = tag("include")(input)?;
-    let (input, value) = arg(input)?;
-    Ok((input, Expression::MatchInclude(path.into(), value)))
-}
 
-fn cmd_match_not_include(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    let (input, _) = tag("not_include")(input)?;
-    let (input, value) = arg(input)?;
-    Ok((input, Expression::MatchNotInclude(path.into(), value)))
-}
-
-fn cmd_match_equal(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    let (input, _) = tag("==")(input)?;
-    let (input, value) = arg_array(input)?;
-    Ok((input, Expression::MatchEqual(path.into(), value)))
-}
-
-fn cmd_match_not_equal(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    let (input, _) = tag("!=")(input)?;
-    let (input, value) = arg_array(input)?;
-    Ok((input, Expression::MatchNotEqual(path.into(), value)))
-}
-
-fn cmd_match_size(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    let (input, _) = tag("!=")(input)?;
-    let (input, cmp) = map_res(arg, |p| p.parse())(input)?;
-    let (input, i) = map_res(arg, |p| p.parse::<usize>())(input)?;
-    Ok((input, Expression::MatchSize(path.into(), cmp, i)))
+    Ok((input, Expression::HasType(path.into(), value_type)))
 }
 
 fn cmd_match(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
     let (input, path) = arg(input)?;
+    let (input, sub_cmd) = arg(input)?;
 
-    let (res, i) = alt((
-        cmd_match_include,
-        cmd_match_not_include,
-        cmd_match_equal,
-        cmd_match_not_equal,
-    ))(input)?;
-    Ok((res, i))
+    match sub_cmd {
+        "include" => {
+            let (input, value) = arg(input)?;
+            Ok((input, Expression::MatchInclude(path.into(), value)))
+        }
+        "not_include" => {
+            let (input, value) = arg(input)?;
+            Ok((input, Expression::MatchNotInclude(path.into(), value)))
+        }
+        "==" => {
+            let (input, value) = arg_array(input)?;
+            Ok((input, Expression::MatchEqual(path.into(), value)))
+        }
+        "!=" => {
+            let (input, value) = arg_array(input)?;
+            Ok((input, Expression::MatchNotEqual(path.into(), value)))
+        }
+        "len" => {
+            let (input, cmp) = map_res(arg, |p| p.parse())(input)?;
+            let (input, i) = map_res(arg, |p| p.parse::<usize>())(input)?;
+            Ok((input, Expression::MatchSize(path.into(), cmp, i)))
+        }
+        _ => todo!(),
+    }
 }
-
-fn cmd_values_include(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
+fn cmd_values(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
     let (input, path) = arg(input)?;
-    let (input, _) = tag("include")(input)?;
-    let (input, value) = arg(input)?;
-    Ok((input, Expression::ValuesInclude(path.into(), value)))
-}
+    let (input, sub_cmd) = arg(input)?;
 
-fn cmd_values_not_include(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    let (input, _) = tag("not_include")(input)?;
-    let (input, value) = arg(input)?;
-    Ok((input, Expression::ValuesNotInclude(path.into(), value)))
-}
-
-fn cmd_values_equal(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    let (input, _) = tag("==")(input)?;
-    let (input, value) = arg_array(input)?;
-    Ok((input, Expression::ValuesEqual(path.into(), value)))
-}
-
-fn cmd_values_not_equal(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    let (input, _) = tag("!=")(input)?;
-    let (input, value) = arg_array(input)?;
-    Ok((input, Expression::ValuesNotEqual(path.into(), value)))
+    match sub_cmd {
+        "include" => {
+            let (input, value) = arg(input)?;
+            Ok((input, Expression::ValuesInclude(path.into(), value)))
+        }
+        "not_include" => {
+            let (input, value) = arg(input)?;
+            Ok((input, Expression::ValuesNotInclude(path.into(), value)))
+        }
+        "==" => {
+            let (input, value) = arg_array(input)?;
+            Ok((input, Expression::ValuesEqual(path.into(), value)))
+        }
+        "!=" => {
+            let (input, value) = arg_array(input)?;
+            Ok((input, Expression::ValuesNotEqual(path.into(), value)))
+        }
+        _ => todo!(),
+    }
 }
 
 fn cmd_generic(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
@@ -215,12 +207,8 @@ fn expression(input: &str) -> IResult<&str, Expression, VerboseError<&str>> {
         "defvar" => cmd_defvar(i),
         "defnode" => cmd_defnode(i),
         "match" => cmd_match(i),
-        "values" => cut(alt((
-            cmd_values_include,
-            cmd_values_not_include,
-            cmd_values_equal,
-            cmd_values_not_equal,
-        )))(i),
+        "values" => cmd_values(i),
+        "is" => cmd_is_type(i),
         "save" => Ok((i, Expression::Save)),
         "quit" => Ok((i, Expression::Quit)),
         "load" => Ok((i, Expression::Load)),
@@ -242,18 +230,20 @@ fn line(input: &str) -> IResult<&str, Option<Expression>, VerboseError<&str>> {
 pub fn script(input: &str) -> IResult<&str, Vec<Expression>, VerboseError<&str>> {
     // many0 -> allow empty changes (only comments, etc.)
     let (input, changes) = many0(line)(input)?;
-    let changes = changes.into_iter().flatten().collect();
+    let exprs = changes.into_iter().flatten().collect();
     let (input, _) = multispace0(input)?;
     let (input, _) = eof(input)?;
-    Ok((input, changes))
+    Ok((input, exprs))
 }
 
 #[cfg(test)]
 mod tests {
     use crate::dsl::parser::{arg_array, expression, line, script};
     use crate::dsl::script::*;
+    use crate::dsl::value_type::ValueType;
     use raugeas::Position;
 
+    #[test]
     fn test_match_include() {
         let input = "match /files/etc include token";
         let expected = Expression::MatchInclude("/files/etc".into(), "token");
@@ -261,6 +251,7 @@ mod tests {
         assert_eq!(result.1, expected);
     }
 
+    #[test]
     fn test_match_not_include() {
         let input = "match /files/etc not_include token";
         let expected = Expression::MatchNotInclude("/files/etc".into(), "token");
@@ -268,6 +259,7 @@ mod tests {
         assert_eq!(result.1, expected);
     }
 
+    #[test]
     fn test_arg_array() {
         let input = "[arg1, 'arg2', \"arg3\"]";
         let expected = vec!["arg1", "arg2", "arg3"];
@@ -275,6 +267,7 @@ mod tests {
         assert_eq!(result.1, expected);
     }
 
+    #[test]
     fn test_cmd_generic() {
         let input = "generic command";
         let expected = Expression::GenericAugeas("generic command");
@@ -434,6 +427,8 @@ mod tests {
             clear /path/to/node # another command
             clearm /path/to/nodes "sub node"
             touch /path/to/node
+            
+            is uint /path/to/node
 
             print /path/to/node
             quit
@@ -454,6 +449,7 @@ mod tests {
             Expression::Clear("/path/to/node".into()),
             Expression::ClearMultiple("/path/to/nodes".into(), "sub node"),
             Expression::Touch("/path/to/node".into()),
+            Expression::HasType("/path/to/node".into(), ValueType::Uint),
             Expression::GenericAugeas("print /path/to/node"),
             Expression::Quit,
             Expression::ValuesInclude("/path/to/node".into(), "value"),

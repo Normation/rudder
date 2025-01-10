@@ -5,10 +5,12 @@ use crate::dsl::comparator::{Comparison, NumComparator};
 use crate::dsl::value_type::ValueType;
 use crate::dsl::{parser, AugPath, Sub, Value};
 use anyhow::{anyhow, bail, Result};
+use miette::{miette, LabeledSpan, NamedSource, Severity};
 use nom::Finish;
 use raugeas::{Augeas, Position};
 use rudder_module_type::{rudder_debug, rudder_trace};
 use std::path::Path;
+use zxcvbn::Score;
 
 /// The mode of the interpreter.
 ///
@@ -79,6 +81,7 @@ impl InterpreterOut {
         }
     }
 
+    /// Fails on error, returns the output otherwise.
     pub fn from_aug_res(res: raugeas::Result<()>) -> Result<Self> {
         match res {
             Ok(()) => Ok(Self::new(InterpreterOutcome::Ok, String::new(), false)),
@@ -86,6 +89,7 @@ impl InterpreterOut {
         }
     }
 
+    /// Don't fail on error, just store it.
     // FIXME: check res structured type
     pub fn from_check_res(res: Result<String>) -> Result<Self> {
         match res {
@@ -134,6 +138,8 @@ pub enum CheckMode {
 /// Interpreter for the extended Augeas DSL.
 pub struct Interpreter<'a> {
     aug: &'a mut Augeas,
+    // enable experimental methods
+    // experimental: bool,
 }
 
 impl<'a> Interpreter<'a> {
@@ -280,6 +286,17 @@ impl<'a> Interpreter<'a> {
                 }
                 todo!()
             }
+            Expression::HasType(path, value_type) => {
+                let value = self.aug.get(path).unwrap().unwrap();
+                if value_type.check(&value).is_ok() {
+                    rudder_debug!("type of {value} is {value_type}");
+                } else {
+                    let span = self.aug.span(path).unwrap().unwrap();
+
+                    rudder_debug!("type of {value} is NOT {value_type}");
+                }
+                InterpreterOut::ok()
+            }
             Expression::GenericAugeas(cmd) => {
                 let (_num, out) = self.aug.srun(cmd)?;
                 InterpreterOut::from_out(out)
@@ -361,7 +378,13 @@ pub enum Expression<'a> {
     /// Uses the "is" keyword.
     HasType(AugPath<'a>, ValueType),
     /// String length
+    ///
+    /// Warning: do no use for passwords as the value will be displayed.
     StrLen(AugPath<'a>, NumComparator, usize),
+    /// Minimal score
+    PasswordScore(AugPath<'a>, Score),
+    /// Minimal LUDS values
+    PasswordLUDS(AugPath<'a>, u8, u8, u8, u8, u8),
     /// Save the changes to the tree.
     Save,
     /// Quit the script.
@@ -412,6 +435,7 @@ impl Expression<'_> {
             | Expression::HasType(..)
             | Expression::StrLen(..) => ExprType::Read,
             Expression::Save | Expression::Quit => ExprType::Effect,
+            _ => todo!(),
         }
     }
 }

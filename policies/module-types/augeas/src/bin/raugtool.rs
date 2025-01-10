@@ -64,6 +64,12 @@ pub struct Cli {
     )]
     type_check_lenses: bool,
 
+    #[options(
+        long = "span",
+        help = "load span positions for nodes related to a file"
+    )]
+    span: bool,
+
     /// Do not load any files into the tree on startup.
     #[options(
         short = "L",
@@ -97,6 +103,7 @@ impl Cli {
             opts.root.as_deref(),
             &opts.lens_paths,
             opts.type_check_lenses,
+            opts.span,
             load_mode,
         )?;
 

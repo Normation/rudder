@@ -733,6 +733,17 @@ what it is doing, as that logic is *outside* the module. The
 request/response paradigm is a bit like a webserver with different HTTP
 methods, but it's not really a webserver.
 
+## Backup/Rollback
+
+Rollback is, except for a few cases, simply not possible.
+We work on a huge mutable state, and we can't just revert things.
+There is a theoretical proof of this by Mark Burgess @burgessSystemRollbackTotalised2011.
+The only realistic approach is to define a new target state,
+and apply it.
+
+Backups are a way to allow limited and controlled rollback in specific cases,
+especially for files.
+
 ## Connectivity between resources
 
 - Are resources connected?
@@ -1587,6 +1598,64 @@ Auditer avec des templates ça ne marche pas.
 * auditer ma conf ssh
 
 augeas vs jinja
+
+### The command-line interface
+
+We provide a CLI for the module, to allow users to test their scripts and to debug them.
+It closely follows the `augtool` CLI, with the same options and commands, including
+a REPL mode.
+
+### Backups
+
+We do backups of the files before editing them, to allow for easy rollback
+of the file content. We use the CFEngine's backup system
+to play well with our existing tooling around it (`rudder agent restore`, etc.).
+
+This means we write the backups file into TODO.
+
+### Atomic writes
+
+Like with other file edition methods, we want to be able to make changes as an
+atomic operation, to avoid transient invalid or unwanted file content.
+This also allows avoiding applying divergent configurations, as the module
+is able to check it converges to a stable state.
+
+We follow this pattern, as Augeas works in memory and commits to disk only
+when instructed to.
+This means we expect the users to make all the changes they want to make
+on a file in a single method. This is a challenge for reporting as we need to
+make the reports about different control points in a single report.
+
+### The checks
+
+We have some experience with file content auditing, mainly from experience with various
+customers.
+The checks are often simple, but can get quite tricky easily.
+
+#### Password complexity
+
+We provide dedicated features for checking password fields in files.
+This is both for hiding the values contrary to other fields
+and to provide dedicated features.
+
+There are three main ways to check for a passwords strength:
+
+* Require minimal number of characters, total and in different classes (lowercase, uppercase, digits, special
+  characters)
+* Use a dictionary of known weak passwords
+* Estimate the password strength by estimating its entropy level
+
+We chose to expose the first way through a dedicated interface, especially as a
+lot of regulatory guidelines still rely on it.
+
+W e support, as the main mechanism, the usage of the `zxcvbn` library to estimate the password strength.
+It is focused on providing strong yet more usable checks, by avoiding rejecting strong
+passwords due to arbitrary rules, and also prevent weak passwords that could match
+the usual rules but are still weak.
+
+It provides a unified score for the password based on a dictionary check and entropy estimation, and we can set a
+threshold for the score. It also provides an explanation
+of the cause of the score, which can be used to provide useful feedback to the user.
 
 ## Conclusion
 
