@@ -29,9 +29,9 @@
     try {
         $componentKey = @'
 /tmp/
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.param_in_condition.file
-'@ + '}}'))
+'@ + '}}}'))
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("file_check_exists_" + $componentKey)))
             ComponentKey = $componentKey
@@ -77,9 +77,9 @@ vars.param_in_condition.file
         
         $class = ([Rudder.Condition]::canonify(@'
 file_check_exists__tmp_
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.param_in_condition.file
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
 _kept
 '@))
         if ([Rudder.Datastate]::Evaluate($class)) {

@@ -27,30 +27,30 @@
 
     $reportId=$reportIdBase + "a86ce2e5-d5b6-45cc-87e8-c11cca71d966"
     try {
-        $componentKey = ([Rudder.Datastate]::Render('{{' + @'
+        $componentKey = ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.host
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
  . | / 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.
-'@ + [Rudder.Datastate]::Render('{{' + @'
+'@ + [Rudder.Datastate]::Render('{{{' + @'
 vars.host
-'@ + '}}') + '}}')) + @'
+'@ + '}}}') + '}}}')) + @'
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = ([Rudder.Datastate]::Render('{{' + @'
+            ComponentName = ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.host
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
  . | / 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.
-'@ + [Rudder.Datastate]::Render('{{' + @'
+'@ + [Rudder.Datastate]::Render('{{{' + @'
 vars.host
-'@ + '}}') + '}}')) + @'
+'@ + '}}}') + '}}}')) + @'
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@
@@ -60,27 +60,27 @@ vars.host
             TechniqueName = $techniqueName
         }
         
-        $class = ([Rudder.Condition]::canonify(([Rudder.Datastate]::Render('{{' + @'
+        $class = ([Rudder.Condition]::canonify(([Rudder.Datastate]::Render('{{{' + @'
 vars.my_cond
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
 .debian|
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.
-'@ + [Rudder.Datastate]::Render('{{' + @'
+'@ + [Rudder.Datastate]::Render('{{{' + @'
 vars.plouf
-'@ + '}}') + '}}'))))
+'@ + '}}}') + '}}}'))))
         if ([Rudder.Datastate]::Evaluate($class)) {
             $methodParams = @{
                 Architecture = ''
-                Name = ([Rudder.Datastate]::Render('{{' + @'
+                Name = ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.host
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
  . | / 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.
-'@ + [Rudder.Datastate]::Render('{{' + @'
+'@ + [Rudder.Datastate]::Render('{{{' + @'
 vars.host
-'@ + '}}') + '}}')) + @'
+'@ + '}}}') + '}}}')) + @'
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@
@@ -117,30 +117,30 @@ if(Get-Service "Zabbix agent") { write-output "exists" }
 
     $reportId=$reportIdBase + "a86ce2e5-d5b6-45cc-87e8-c11cca71d977"
     try {
-        $componentKey = ([Rudder.Datastate]::Render('{{' + @'
+        $componentKey = ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.host
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
  . | / 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.
-'@ + [Rudder.Datastate]::Render('{{' + @'
+'@ + [Rudder.Datastate]::Render('{{{' + @'
 vars.host
-'@ + '}}') + '}}')) + @'
+'@ + '}}}') + '}}}')) + @'
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = ([Rudder.Datastate]::Render('{{' + @'
+            ComponentName = ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.host
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
  . | / 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.
-'@ + [Rudder.Datastate]::Render('{{' + @'
+'@ + [Rudder.Datastate]::Render('{{{' + @'
 vars.host
-'@ + '}}') + '}}')) + @'
+'@ + '}}}') + '}}}')) + @'
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@
@@ -152,15 +152,15 @@ vars.host
         
         $methodParams = @{
             Architecture = ''
-            Name = ([Rudder.Datastate]::Render('{{' + @'
+            Name = ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.host
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
  . | / 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.
-'@ + [Rudder.Datastate]::Render('{{' + @'
+'@ + [Rudder.Datastate]::Render('{{{' + @'
 vars.host
-'@ + '}}') + '}}')) + @'
+'@ + '}}}') + '}}}')) + @'
  ' '' ''' $ $$ " "" \ \\😋aà3
 	
 '@

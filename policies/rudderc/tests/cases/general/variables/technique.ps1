@@ -47,27 +47,27 @@ true
 foo foobar
 # With parameter
 foo 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.test_windows.content
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
  foobar
 # With a var looking like a parameter
 foo 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.contentbis
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
 
 # With a const
 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.const.n
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
 
 # With node properties
 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.node.properties.name.key
-'@ + '}}'))
+'@ + '}}}'))
             Path = @'
 /some/path
 '@

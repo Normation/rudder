@@ -82,9 +82,9 @@ htop
     try {
         $componentKey = @'
 /bin/true "# 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.node.inventory.os.fullName
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
 "
 '@
         $reportParams = @{
@@ -102,9 +102,9 @@ vars.node.inventory.os.fullName
             $methodParams = @{
                 Name = @'
 /bin/true "# 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.node.inventory.os.fullName
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
 "
 '@
                 

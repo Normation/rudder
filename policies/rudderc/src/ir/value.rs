@@ -64,7 +64,7 @@ pub fn known_vars() -> &'static serde_yaml::Value {
 }
 
 fn nustache_render(s: &str) -> String {
-    format!("[Rudder.Datastate]::Render('{{{{' + {} + '}}}}')", s)
+    format!("[Rudder.Datastate]::Render('{{{{{{' + {} + '}}}}}}')", s)
 }
 
 /// Rudder variable expression.
@@ -806,9 +806,9 @@ mod tests {
             a.fmt(Target::Windows),
             r###"@'
 /bin/true "# 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.node.inventory.os.fullName
-'@ + '}}')) + @'
+'@ + '}}}')) + @'
 "
 '@"###
         );
@@ -820,18 +820,18 @@ vars.node.inventory.os.fullName
         assert_eq!(b.fmt(Target::Unix), "${node.properties[a][b]}");
         assert_eq!(
             b.fmt(Target::Windows),
-            r#"[Rudder.Datastate]::Render('{{' + @'
+            r#"[Rudder.Datastate]::Render('{{{' + @'
 vars.node.properties.a.b
-'@ + '}}')"#
+'@ + '}}}')"#
         );
 
         let c: Expression = Expression::Sys(vec![Expression::Scalar("host".to_string())]);
         assert_eq!(c.fmt(Target::Unix), "${sys.host}");
         assert_eq!(
             c.fmt(Target::Windows),
-            r#"[Rudder.Datastate]::Render('{{' + @'
+            r#"[Rudder.Datastate]::Render('{{{' + @'
 vars.sys.host
-'@ + '}}')"#
+'@ + '}}}')"#
         );
 
         let cc: Expression = Expression::Sequence(vec![Expression::Scalar("host".to_string())]);
@@ -850,13 +850,13 @@ host
         assert_eq!(d.fmt(Target::Unix), "${node.properties[inner${sys.host}]}");
         assert_eq!(
             d.fmt(Target::Windows),
-            r#"[Rudder.Datastate]::Render('{{' + @'
+            r#"[Rudder.Datastate]::Render('{{{' + @'
 vars.node.properties.
 '@ + @'
 inner
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.host
-'@ + '}}')) + '}}')"#
+'@ + '}}}')) + '}}}')"#
         );
 
         let dd = Expression::NodeProperty(vec![Expression::Sequence(vec![
@@ -867,15 +867,15 @@ vars.sys.host
         ])]);
         assert_eq!(
             dd.fmt(Target::Windows),
-            r#"[Rudder.Datastate]::Render('{{' + @'
+            r#"[Rudder.Datastate]::Render('{{{' + @'
 vars.node.properties.
 '@ + @'
 inner
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.
 '@ + @'
 host
-'@ + '}}')) + '}}')"#
+'@ + '}}}')) + '}}}')"#
         );
         assert_eq!(dd.fmt(Target::Unix), "${node.properties[inner${sys.host}]}");
 
@@ -886,7 +886,7 @@ host
         assert_eq!(ee.fmt(Target::Unix), "${node.properties[interfaces][eth0]}");
         assert_eq!(
             ee.fmt(Target::Windows),
-            r#"[Rudder.Datastate]::Render('{{' + @'
+            r#"[Rudder.Datastate]::Render('{{{' + @'
 vars.node.properties.
 '@ + @'
 interfaces
@@ -894,7 +894,7 @@ interfaces
 .
 '@ + @'
 eth0
-'@ + '}}')"#
+'@ + '}}}')"#
         );
 
         let e = Expression::NodeProperty(vec![
@@ -914,17 +914,17 @@ eth0
         ]);
         assert_eq!(
             e.fmt(Target::Windows),
-            r#"[Rudder.Datastate]::Render('{{' + @'
+            r#"[Rudder.Datastate]::Render('{{{' + @'
 vars.node.properties.
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.node.properties.
 '@ + @'
 inner
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.
 '@ + @'
 host
-'@ + '}}')) + ([Rudder.Datastate]::Render('{{' + @'
+'@ + '}}}')) + ([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.
 '@ + @'
 interfaces
@@ -932,11 +932,11 @@ interfaces
 .
 '@ + @'
 eth0
-'@ + '}}')) + '}}')) + @'
+'@ + '}}}')) + '}}}')) + @'
 .
 '@ + @'
 tutu
-'@ + '}}')"#
+'@ + '}}}')"#
         );
         assert_eq!(
             e.fmt(Target::Unix),
@@ -950,13 +950,13 @@ tutu
         ])])]);
         assert_eq!(
             e.fmt(Target::Windows),
-            r#"([Rudder.Datastate]::Render('{{' + @'
+            r#"([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.
 '@ + @'
 host
-'@ + '}}')) + '}}'))"#
+'@ + '}}}')) + '}}}'))"#
                 .to_string()
         );
         let e = Expression::GenericVar(vec![
@@ -965,9 +965,9 @@ host
         ]);
         assert_eq!(
             e.fmt(Target::Windows),
-            r#"[Rudder.Datastate]::Render('{{' + @'
+            r#"[Rudder.Datastate]::Render('{{{' + @'
 vars.bundle.plouf.key
-'@ + '}}')"#
+'@ + '}}}')"#
                 .to_string()
         );
         assert_eq!(e.fmt(Target::Unix), "${bundle.plouf[key]}".to_string());
@@ -980,9 +980,9 @@ vars.bundle.plouf.key
             f.fmt(Target::Windows),
             r#"@'
 bundle.plouf is 
-'@ + ([Rudder.Datastate]::Render('{{' + @'
+'@ + ([Rudder.Datastate]::Render('{{{' + @'
 vars.bundle.plouf
-'@ + '}}'))"#
+'@ + '}}}'))"#
                 .to_string()
         );
     }
