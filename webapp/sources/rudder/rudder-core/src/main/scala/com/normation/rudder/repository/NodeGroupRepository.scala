@@ -245,11 +245,6 @@ trait RoNodeGroupRepository {
   def getAll(): IOResult[Seq[NodeGroup]]
 
   /**
-   * Get all node groups by ids
-   */
-  def getAllByIds(ids: Seq[NodeGroupId]): IOResult[Seq[NodeGroup]]
-
-  /**
    * Get all the node group id and the set of ndoes within
    * Goal is to be more efficient
    */
@@ -276,6 +271,14 @@ trait RoNodeGroupRepository {
   def getGroupsByCategory(includeSystem: Boolean = false)(implicit
       qc: QueryContext
   ): IOResult[SortedMap[List[NodeGroupCategoryId], CategoryAndNodeGroup]]
+
+  /**
+   * Get all node groups grouped by their direct parent category.
+   * Group ids can be filtered, by default return all groups with an empty filter.
+   */
+  def getGroupsByCategoryByIds(ids: Seq[NodeGroupId] = Seq.empty, includeSystem: Boolean = false)(implicit
+      qc: QueryContext
+  ): IOResult[Map[NodeGroupCategory, Seq[NodeGroup]]]
 
   /**
    * Retrieve all groups that have at least one of the given
