@@ -941,6 +941,8 @@ Our set of requirements for choosing a target language are:
 - Reliability: We want to enjoy the benefits of a modern language, with a strong type system and good error handling,
   matching our other stacks (Scala & Elm).
 
+And also, obviously, we would rather reuse a language we already use in Rudder.
+
 We could consider using two languages, one for the engine and one for the resource
 implementations as the needs are a bit different.
 For now the core is already there (CFEngine on Linux,
@@ -948,6 +950,11 @@ F#/Powershell on Windows), so we can focus on the resources for now.
 
 This lead to the choice of Rust for the resources. It matches most of our
 needs, and we also enjoy using it in other parts of Rudder.
+The usage of Rust in Rudder until now was limited to the server:
+
+* `relayd` (since 2019, Rudder 6.0): A network service to relay messages between the server and the agents.
+* `rudderc` (since 2023, Rudder 8.0): A transpiler for transforming the Rudder policy language to the agent language.
+* `rudder-package` (since 2024, Rudder 8.1): The package manager for Rudder plugins.
 
 The possible drawbacks are:
 
@@ -965,7 +972,7 @@ Rust is already used for successful infrastructure software:
 * Azure is using it for some of its services
 * etc.
 
-## Policies / User interface
+## Policies & user interface
 
 It the resource level, passing data is enough, and the engine itself could
 use data structures, or a DSL to describe the policies.

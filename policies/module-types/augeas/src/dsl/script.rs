@@ -215,41 +215,41 @@ impl<'a> Interpreter<'a> {
         ))
     }
 
-    fn eval(&mut self, expr: &Expression) -> Result<InterpreterOut> {
+    fn eval(&mut self, expr: &Expr) -> Result<InterpreterOut> {
         rudder_trace!("Running expression: {:?}", expr);
         match expr {
-            Expression::Set(path, value) => InterpreterOut::from_aug_res(self.aug.set(path, value)),
-            Expression::SetMultiple(path, sub, value) => {
+            Expr::Set(path, value) => InterpreterOut::from_aug_res(self.aug.set(path, value)),
+            Expr::SetMultiple(path, sub, value) => {
                 let n = self.aug.setm(path, sub, value)?;
                 rudder_debug!("setm: modified {n} nodes");
                 InterpreterOut::ok()
             }
-            Expression::Remove(path) => {
+            Expr::Remove(path) => {
                 let n = self.aug.rm(path)?;
                 rudder_debug!("rm: removed {n} nodes");
                 InterpreterOut::ok()
             }
-            Expression::Clear(path) => InterpreterOut::from_aug_res(self.aug.clear(path)),
-            Expression::ClearMultiple(path, sub) => {
+            Expr::Clear(path) => InterpreterOut::from_aug_res(self.aug.clear(path)),
+            Expr::ClearMultiple(path, sub) => {
                 let n = self.aug.clearm(path, sub)?;
                 rudder_debug!("clearm: cleared {n} nodes");
                 InterpreterOut::ok()
             }
-            Expression::Touch(path) => InterpreterOut::from_aug_res(self.aug.touch(path)),
-            Expression::Insert(label, position, path) => {
+            Expr::Touch(path) => InterpreterOut::from_aug_res(self.aug.touch(path)),
+            Expr::Insert(label, position, path) => {
                 InterpreterOut::from_aug_res(self.aug.insert(path, label, *position))
             }
-            Expression::Move(path, other) => InterpreterOut::from_aug_res(self.aug.mv(path, other)),
-            Expression::Copy(path, other) => InterpreterOut::from_aug_res(self.aug.cp(path, other)),
-            Expression::Rename(path, label) => {
+            Expr::Move(path, other) => InterpreterOut::from_aug_res(self.aug.mv(path, other)),
+            Expr::Copy(path, other) => InterpreterOut::from_aug_res(self.aug.cp(path, other)),
+            Expr::Rename(path, label) => {
                 let n = self.aug.rename(path, label)?;
                 rudder_debug!("rename: renamed {n} nodes");
                 InterpreterOut::ok()
             }
-            Expression::DefineVar(name, path) => {
+            Expr::DefineVar(name, path) => {
                 InterpreterOut::from_aug_res(self.aug.defvar(name, path))
             }
-            Expression::DefineNode(name, path, value) => {
+            Expr::DefineNode(name, path, value) => {
                 let created = self.aug.defnode(name, path, value)?;
                 if created {
                     rudder_debug!("defnode: 1 node was created");
@@ -258,35 +258,35 @@ impl<'a> Interpreter<'a> {
                 }
                 InterpreterOut::ok()
             }
-            Expression::MatchInclude(path, value) => {
+            Expr::MatchInclude(path, value) => {
                 let matches = self.aug.matches(path)?;
                 if !matches.iter().any(|v| v == value) {
                     todo!()
                 }
                 todo!()
             }
-            Expression::MatchNotInclude(path, value) => {
+            Expr::MatchNotInclude(path, value) => {
                 let matches = self.aug.matches(path)?;
                 if !matches.iter().any(|v| v == value) {
                     todo!()
                 }
                 todo!()
             }
-            Expression::MatchEqual(path, value) => {
+            Expr::MatchEqual(path, value) => {
                 let matches = self.aug.matches(path)?;
                 if matches == *value {
                     todo!()
                 }
                 todo!()
             }
-            Expression::MatchNotEqual(path, value) => {
+            Expr::MatchNotEqual(path, value) => {
                 let matches = self.aug.matches(path)?;
                 if matches != *value {
                     todo!()
                 }
                 todo!()
             }
-            Expression::HasType(path, value_type) => {
+            Expr::HasType(path, value_type) => {
                 let value = self.aug.get(path).unwrap().unwrap();
                 if value_type.check(&value).is_ok() {
                     rudder_debug!("type of {value} is {value_type}");
@@ -297,13 +297,13 @@ impl<'a> Interpreter<'a> {
                 }
                 InterpreterOut::ok()
             }
-            Expression::GenericAugeas(cmd) => {
+            Expr::GenericAugeas(cmd) => {
                 let (_num, out) = self.aug.srun(cmd)?;
                 InterpreterOut::from_out(out)
             }
-            Expression::Save => InterpreterOut::from_aug_res(self.aug.save()),
-            Expression::Load => InterpreterOut::from_aug_res(self.aug.load()),
-            Expression::Quit => InterpreterOut::ok_quit(),
+            Expr::Save => InterpreterOut::from_aug_res(self.aug.save()),
+            Expr::Load => InterpreterOut::from_aug_res(self.aug.load()),
+            Expr::Quit => InterpreterOut::ok_quit(),
             _ => todo!(),
         }
     }
@@ -319,7 +319,7 @@ impl<'a> Interpreter<'a> {
 ///       development and debugging.
 #[derive(Debug, PartialEq)]
 pub struct Script<'a> {
-    expressions: Vec<Expression<'a>>,
+    expressions: Vec<Expr<'a>>,
 }
 
 impl<'a> Script<'a> {
@@ -335,56 +335,56 @@ impl<'a> Script<'a> {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Expression<'a> {
+pub enum Expr<'src> {
     /// A generic augeas command, not parsed.
-    GenericAugeas(&'a str),
+    GenericAugeas(&'src str),
     /// Sets the value VALUE at location PATH
-    Set(AugPath<'a>, Value<'a>),
+    Set(AugPath<'src>, Value<'src>),
     /// Sets multiple nodes (matching SUB relative to PATH) to VALUE
-    SetMultiple(AugPath<'a>, Sub<'a>, Value<'a>),
+    SetMultiple(AugPath<'src>, Sub<'src>, Value<'src>),
     /// Removes the node at location PATH
-    Remove(AugPath<'a>),
+    Remove(AugPath<'src>),
     /// Sets the node at PATH to NULL, creating it if needed
-    Clear(AugPath<'a>),
+    Clear(AugPath<'src>),
     /// Sets multiple nodes (matching SUB relative to PATH) to NULL
-    ClearMultiple(AugPath<'a>, Sub<'a>),
+    ClearMultiple(AugPath<'src>, Sub<'src>),
     /// Creates PATH with the value NULL if it does not exist
-    Touch(AugPath<'a>),
+    Touch(AugPath<'src>),
     /// Inserts an empty node LABEL either before or after PATH.
-    Insert(Value<'a>, Position, AugPath<'a>),
+    Insert(Value<'src>, Position, AugPath<'src>),
     /// Moves a node at PATH to the new location OTHER PATH
-    Move(AugPath<'a>, AugPath<'a>),
+    Move(AugPath<'src>, AugPath<'src>),
     /// Copies a node at PATH to the new location OTHER PATH
-    Copy(AugPath<'a>, AugPath<'a>),
+    Copy(AugPath<'src>, AugPath<'src>),
     /// Rename a node at PATH to a new LABEL
-    Rename(AugPath<'a>, Value<'a>),
+    Rename(AugPath<'src>, Value<'src>),
     /// Sets Augeas variable $NAME to PATH
-    DefineVar(Value<'a>, AugPath<'a>),
+    DefineVar(Value<'src>, AugPath<'src>),
     /// Sets Augeas variable $NAME to PATH, creating it with VALUE if needed
-    DefineNode(Value<'a>, AugPath<'a>, Value<'a>),
+    DefineNode(Value<'src>, AugPath<'src>, Value<'src>),
     // Comparison contains both the typed value and the comparator
-    Compare(AugPath<'a>, Comparison),
-    ValuesInclude(AugPath<'a>, &'a str),
-    ValuesNotInclude(AugPath<'a>, &'a str),
-    ValuesEqual(AugPath<'a>, Vec<&'a str>),
-    ValuesNotEqual(AugPath<'a>, Vec<&'a str>),
-    MatchSize(AugPath<'a>, NumComparator, usize),
-    MatchInclude(AugPath<'a>, &'a str),
-    MatchNotInclude(AugPath<'a>, &'a str),
-    MatchEqual(AugPath<'a>, Vec<&'a str>),
-    MatchNotEqual(AugPath<'a>, Vec<&'a str>),
+    Compare(AugPath<'src>, Comparison),
+    ValuesInclude(AugPath<'src>, &'src str),
+    ValuesNotInclude(AugPath<'src>, &'src str),
+    ValuesEqual(AugPath<'src>, Vec<&'src str>),
+    ValuesNotEqual(AugPath<'src>, Vec<&'src str>),
+    MatchSize(AugPath<'src>, NumComparator, usize),
+    MatchInclude(AugPath<'src>, &'src str),
+    MatchNotInclude(AugPath<'src>, &'src str),
+    MatchEqual(AugPath<'src>, Vec<&'src str>),
+    MatchNotEqual(AugPath<'src>, Vec<&'src str>),
     /// Check the value at the path has a given type
     ///
     /// Uses the "is" keyword.
-    HasType(AugPath<'a>, ValueType),
+    HasType(AugPath<'src>, ValueType),
     /// String length
     ///
     /// Warning: do no use for passwords as the value will be displayed.
-    StrLen(AugPath<'a>, NumComparator, usize),
+    StrLen(AugPath<'src>, NumComparator, usize),
     /// Minimal score
-    PasswordScore(AugPath<'a>, Score),
+    PasswordScore(AugPath<'src>, Score),
     /// Minimal LUDS values
-    PasswordLUDS(AugPath<'a>, u8, u8, u8, u8, u8),
+    PasswordLUDS(AugPath<'src>, u8, u8, u8, u8, u8),
     /// Save the changes to the tree.
     Save,
     /// Quit the script.
@@ -403,38 +403,38 @@ enum ExprType {
     Effect,
 }
 
-impl Expression<'_> {
+impl Expr<'_> {
     fn expr_type(&self) -> ExprType {
         match self {
             // We only guarantee that the generic augeas command does not modify the system.
             // There are both read and write commands there.
-            Expression::GenericAugeas(..) => ExprType::Write,
-            Expression::DefineVar(..)
-            | Expression::DefineNode(..)
-            | Expression::Set(..)
-            | Expression::SetMultiple(..)
-            | Expression::Remove(..)
-            | Expression::Clear(..)
-            | Expression::ClearMultiple(..)
-            | Expression::Touch(..)
-            | Expression::Insert(..)
-            | Expression::Move(..)
-            | Expression::Copy(..)
-            | Expression::Load
-            | Expression::Rename(..) => ExprType::Write,
-            Expression::MatchEqual(..)
-            | Expression::MatchNotEqual(..)
-            | Expression::MatchInclude(..)
-            | Expression::MatchNotInclude(..)
-            | Expression::MatchSize(..)
-            | Expression::ValuesEqual(..)
-            | Expression::ValuesNotEqual(..)
-            | Expression::ValuesInclude(..)
-            | Expression::Compare(..)
-            | Expression::ValuesNotInclude(..)
-            | Expression::HasType(..)
-            | Expression::StrLen(..) => ExprType::Read,
-            Expression::Save | Expression::Quit => ExprType::Effect,
+            Expr::GenericAugeas(..) => ExprType::Write,
+            Expr::DefineVar(..)
+            | Expr::DefineNode(..)
+            | Expr::Set(..)
+            | Expr::SetMultiple(..)
+            | Expr::Remove(..)
+            | Expr::Clear(..)
+            | Expr::ClearMultiple(..)
+            | Expr::Touch(..)
+            | Expr::Insert(..)
+            | Expr::Move(..)
+            | Expr::Copy(..)
+            | Expr::Load
+            | Expr::Rename(..) => ExprType::Write,
+            Expr::MatchEqual(..)
+            | Expr::MatchNotEqual(..)
+            | Expr::MatchInclude(..)
+            | Expr::MatchNotInclude(..)
+            | Expr::MatchSize(..)
+            | Expr::ValuesEqual(..)
+            | Expr::ValuesNotEqual(..)
+            | Expr::ValuesInclude(..)
+            | Expr::Compare(..)
+            | Expr::ValuesNotInclude(..)
+            | Expr::HasType(..)
+            | Expr::StrLen(..) => ExprType::Read,
+            Expr::Save | Expr::Quit => ExprType::Effect,
             _ => todo!(),
         }
     }

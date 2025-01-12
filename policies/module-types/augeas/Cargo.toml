@@ -17,7 +17,7 @@ iprange = { version = "0.6" }
 nom = "7"
 miette = { version = "7.4.0", features = ["fancy"] }
 thiserror = "2"
-chumsky = "1.0.0-alpha.7"
+chumsky = { version = "1.0.0-alpha.7", features = ["pratt", "label"] }
 ariadne = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -25,7 +25,6 @@ serde-inline-default = "0.2"
 similar = "2.6.0"
 regex = "1.11.1"
 rudder_module_type = { path = "../../rudder-module-type" }
-#raugeas = { git = "https://github.com/Normation/raugeas.git" }
 raugeas = "0.3.0"
 rustyline = "15"
 zxcvbn = "3"

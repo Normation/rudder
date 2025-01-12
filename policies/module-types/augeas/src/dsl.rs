@@ -9,6 +9,7 @@ mod error;
 mod interpreter;
 mod ip;
 mod parser;
+mod parser_chumsky;
 mod password;
 pub mod repl;
 pub mod script;
@@ -18,7 +19,7 @@ pub type Value<'a> = &'a str;
 pub type Sub<'a> = &'a str;
 
 /// A path in the Augeas tree.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct AugPath<'a> {
     inner: &'a str,
 }
