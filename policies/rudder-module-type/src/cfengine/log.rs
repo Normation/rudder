@@ -173,7 +173,7 @@ impl PartialOrd<LevelFilter> for Level {
 static MAX_LOG_LEVEL_FILTER: AtomicUsize = AtomicUsize::new(0);
 
 #[inline]
-pub(crate) fn set_max_level(level: LevelFilter) {
+pub fn set_max_level(level: LevelFilter) {
     MAX_LOG_LEVEL_FILTER.store(level as usize, Ordering::SeqCst)
 }
 
