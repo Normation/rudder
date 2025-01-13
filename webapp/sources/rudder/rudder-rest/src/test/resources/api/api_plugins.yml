@@ -23,7 +23,8 @@ response:
             "description" : "Add new authentication backends",
             "version" : "8.3.0-2.4.1",
             "status" : "enabled",
-            "abiVersion" : "2.4.1",
+            "pluginVersion" : "2.4.1",
+            "abiVersion" : "8.3.0",
             "pluginType" : "webapp",
             "errors" : [
               {
@@ -48,7 +49,8 @@ response:
             "description" : "Manage known vulnerabilities in system components",
             "version" : "8.3.0-2.10",
             "status" : "enabled",
-            "abiVersion" : "2.10",
+            "pluginVersion" : "2.10",
+            "abiVersion" : "8.3.0",
             "pluginType" : "webapp",
             "errors" : [
               {
@@ -63,7 +65,8 @@ response:
             "description" : "Integration with Zabbix (monitoring tool)",
             "version" : "8.3.0-2.1",
             "status" : "uninstalled",
-            "abiVersion" : "2.1",
+            "pluginVersion" : "2.1",
+            "abiVersion" : "8.3.0",
             "pluginType" : "integration",
             "errors" : []
           }
@@ -127,7 +130,8 @@ response:
             "description" : "Add new authentication backends",
             "version" : "8.3.0-2.4.1",
             "status" : "enabled",
-            "abiVersion" : "2.4.1",
+            "pluginVersion" : "2.4.1",
+            "abiVersion" : "8.3.0",
             "pluginType" : "webapp",
             "errors" : [
               {
@@ -152,7 +156,8 @@ response:
             "description" : "Manage known vulnerabilities in system components",
             "version" : "8.3.0-2.10",
             "status" : "enabled",
-            "abiVersion" : "2.10",
+            "pluginVersion" : "2.10",
+            "abiVersion" : "8.3.0",
             "pluginType" : "webapp",
             "errors" : [
               {
@@ -167,7 +172,8 @@ response:
             "description" : "Integration with Zabbix (monitoring tool)",
             "version" : "8.3.0-2.1",
             "status" : "enabled",
-            "abiVersion" : "2.1",
+            "pluginVersion" : "2.1",
+            "abiVersion" : "8.3.0",
             "pluginType" : "integration",
             "errors" : []
           }
@@ -215,7 +221,8 @@ response:
             "description" : "Add new authentication backends",
             "version" : "8.3.0-2.4.1",
             "status" : "enabled",
-            "abiVersion" : "2.4.1",
+            "pluginVersion" : "2.4.1",
+            "abiVersion" : "8.3.0",
             "pluginType" : "webapp",
             "errors" : [
               {
@@ -240,7 +247,8 @@ response:
             "description" : "Manage known vulnerabilities in system components",
             "version" : "8.3.0-2.10",
             "status" : "enabled",
-            "abiVersion" : "2.10",
+            "pluginVersion" : "2.10",
+            "abiVersion" : "8.3.0",
             "pluginType" : "webapp",
             "errors" : [
               {
@@ -255,7 +263,8 @@ response:
             "description" : "Integration with Zabbix (monitoring tool)",
             "version" : "8.3.0-2.1",
             "status" : "uninstalled",
-            "abiVersion" : "2.1",
+            "pluginVersion" : "2.1",
+            "abiVersion" : "8.3.0",
             "pluginType" : "integration",
             "errors" : []
           }
@@ -303,7 +312,8 @@ response:
             "description" : "Add new authentication backends",
             "version" : "8.3.0-2.4.1",
             "status" : "disabled",
-            "abiVersion" : "2.4.1",
+            "pluginVersion" : "2.4.1",
+            "abiVersion" : "8.3.0",
             "pluginType" : "webapp",
             "errors" : [
               {
@@ -328,7 +338,8 @@ response:
             "description" : "Manage known vulnerabilities in system components",
             "version" : "8.3.0-2.10",
             "status" : "enabled",
-            "abiVersion" : "2.10",
+            "pluginVersion" : "2.10",
+            "abiVersion" : "8.3.0",
             "pluginType" : "webapp",
             "errors" : [
               {
@@ -343,7 +354,8 @@ response:
             "description" : "Integration with Zabbix (monitoring tool)",
             "version" : "8.3.0-2.1",
             "status" : "uninstalled",
-            "abiVersion" : "2.1",
+            "pluginVersion" : "2.1",
+            "abiVersion" : "8.3.0",
             "pluginType" : "integration",
             "errors" : []
           }
@@ -391,7 +403,8 @@ response:
             "description" : "Add new authentication backends",
             "version" : "8.3.0-2.4.1",
             "status" : "enabled",
-            "abiVersion" : "2.4.1",
+            "pluginVersion" : "2.4.1",
+            "abiVersion" : "8.3.0",
             "pluginType" : "webapp",
             "errors" : [
               {
@@ -416,7 +429,8 @@ response:
             "description" : "Manage known vulnerabilities in system components",
             "version" : "8.3.0-2.10",
             "status" : "enabled",
-            "abiVersion" : "2.10",
+            "pluginVersion" : "2.10",
+            "abiVersion" : "8.3.0",
             "pluginType" : "webapp",
             "errors" : [
               {
@@ -431,7 +445,8 @@ response:
             "description" : "Integration with Zabbix (monitoring tool)",
             "version" : "8.3.0-2.1",
             "status" : "uninstalled",
-            "abiVersion" : "2.1",
+            "pluginVersion" : "2.1",
+            "abiVersion" : "8.3.0",
             "pluginType" : "integration",
             "errors" : []
           }

@@ -5,14 +5,29 @@ import Json.Decode.Pipeline exposing (optional, required)
 import Plugins.DataTypes exposing (..)
 import Time.Iso8601
 import Time.Iso8601ErrorMsg
-import Time.TimeZone exposing (TimeZone)
 import Time.TimeZones exposing (utc)
 import Time.ZonedDateTime exposing (ZonedDateTime)
 
 
-decodeGetPluginInfos : Decoder (List PluginInfo)
-decodeGetPluginInfos =
-    at [ "data", "plugins" ] (list decodePluginInfo)
+decodeGetPluginsInfo : Decoder PluginsInfo
+decodeGetPluginsInfo =
+    at [ "data" ] decodePluginsInfo
+
+
+decodePluginsInfo : Decoder PluginsInfo
+decodePluginsInfo =
+    D.succeed PluginsInfo
+        |> required "license" decodeLicenseGlobalInfo
+        |> required "plugins" (list decodePluginInfo)
+
+
+decodeLicenseGlobalInfo : Decoder LicenseGlobalInfo
+decodeLicenseGlobalInfo =
+    D.succeed LicenseGlobalInfo
+        |> optional "licensees" (maybe (list string)) Nothing
+        |> optional "startDate" (maybe decodeDateTime) Nothing
+        |> optional "endDate" (maybe decodeDateTime) Nothing
+        |> optional "maxNodes" (maybe int) Nothing
 
 
 decodePluginInfo : Decoder PluginInfo
@@ -22,6 +37,7 @@ decodePluginInfo =
         |> required "name" string
         |> required "description" string
         |> required "abiVersion" string
+        |> required "pluginVersion" string
         |> required "version" string
         |> required "pluginType" decodePluginType
         |> required "errors" (list decodePluginError)

@@ -1,0 +1,245 @@
+/*
+*************************************************************************************
+* Copyright 2024 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
+
+@use 'rudder-variables' as *;
+
+@import "../../node_modules/bootstrap/scss/functions";
+@import "../../node_modules/bootstrap/scss/variables";
+@import "../../node_modules/bootstrap/scss/mixins";
+
+.rudder-template .template-main {
+  flex: auto !important;
+}
+
+.plugin:first-child h3.title-section {
+  margin-top: 0;
+}
+
+.plugin h3.title-section:before {
+  content: "\f12e";
+  display: inline-block;
+  font: normal normal normal 14px/1;
+  font-family: "Font Awesome 5 Free";
+  font-weight: 900;
+  font-size: inherit;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  margin-right: 6px;
+  color: #04192277;
+}
+
+.plugin .description {
+  color: #738195;
+}
+
+.license-card {
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #e1e3e6;
+  border-left: 4px solid #337ab7;
+  max-width: 780px;
+  padding: 10px;
+
+  & .license-info {
+
+    & .license-info-title {
+      font-size: $h4-font-size;
+      color: #337ab7;
+      margin-top: 0;
+      padding-right: 40px;
+      position: relative;
+
+      & .license-icon {
+        font-size: 50px;
+        position: absolute;
+        top: 0;
+        right: 0;
+      }
+    }
+
+    & .license-info-title+p {
+      padding-right: 40px;
+    }
+
+    & p:last-child,
+    & dl:last-child {
+      margin-bottom: 0;
+    }
+
+    & dl {
+      margin-bottom: 10px;
+    }
+  }
+}
+
+
+.plugins-container {
+  & .plugins-actions {
+    border-bottom: 2px solid #d6deef !important; // in combination with datatable classes
+
+    & .btn {
+      font-size: 0.8em;
+      border-radius: 0.3em;
+      min-width: 4.8rem;
+    }
+  }
+
+  & .plugins-list {
+    padding-left: 1rem;
+    padding-right: 1rem;
+
+    & .plugin-card {
+      &:not(:first-child):not(:last-child) {
+        margin: 10px 0;
+      }
+
+      &.plugin-card-missing-license {
+        background-color: $rudder-bg-light-gray;
+      }
+
+      & .badge.float-end {
+        border-top-left-radius: 0;
+        border-bottom-right-radius: 0;
+        text-transform: uppercase;
+        padding: 0.3rem 0.6rem;
+      }
+
+      & .form-check label {
+        cursor: pointer;
+      }
+
+      & .plugin-name {
+        font-size: 1rem;
+        font-weight: 500;
+      }
+
+      & .plugin-description {
+        font-size: 0.8rem;
+        color: $rudder-txt-secondary;
+      }
+
+      & .plugin-version {
+        font-size: 0.72rem;
+        font-weight: 300;
+      }
+
+      & .plugin-errors {
+        margin-top: 0.5rem;
+
+        & .callout-fade {
+          &:not(:last-child) {
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+          }
+
+          &:last-child {
+            margin-bottom: 0;
+          }
+        }
+      }
+    }
+  }
+}
+
+
+/* === License warning === */
+.license-card.warning {
+  border-left-color: #EF9600;
+  background-color: #EF96000d;
+}
+
+.license-card.warning .license-info h4 {
+  color: #EF9600;
+}
+
+.license-card.warning p.txt-warning {
+  color: #ef8004;
+  font-weight: bold;
+  margin-top: 6px;
+}
+
+/* === License danger === */
+.license-card.critical {
+  border-left-color: #C80004;
+  background-color: #ff040908;
+}
+
+.txt-critical {
+  color: #9e0205 !important;
+}
+
+.license-card.critical .license-info h4 {
+  color: #C80004;
+}
+
+/* === LICENSE DETAILS === */
+.table-license tr>td {
+  padding: 2px 3px;
+}
+
+.table-license tr>td:first-child {
+  font-weight: bold;
+  text-align: right;
+  padding-left: 0;
+}
+
+.table-license tr>td:last-child {
+  padding-left: 10px;
+}
+
+.tooltip>.tooltip-inner {
+  padding: 0px !important;
+}
+
+.rudder-package-doc {
+  margin-top: 25px;
+}
+
+.pluginpadd {
+  padding: 0 10px;
+}
+
+.badge-plugin-version {
+  margin-left: 15px;
+  display: inline-block;
+  background-color: #FFEAD1;
+  color: #EF9600;
+  padding: 5px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: bold;
+}
