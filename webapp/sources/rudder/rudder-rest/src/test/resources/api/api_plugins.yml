@@ -1,0 +1,400 @@
+description: List all plugins
+method: GET
+url: /secure/api/pluginsinternal
+response:
+  code: 200
+  content: >-
+    {
+      "action":"listPlugins",
+      "result":"success",
+      "data":{
+        "plugins" : [
+          {
+            "id" : "auth-backends",
+            "name" : "authentication backends",
+            "description" : "Add new authentication backends",
+            "version" : "8.3.0-2.4.1",
+            "status" : "enabled",
+            "abiVersion" : "2.4.1",
+            "pluginType" : "webapp",
+            "errors" : [
+              {
+                "error" : "license.near.expiration.error",
+                "message" : "Plugin license near expiration"
+              }
+            ],
+            "license" : {
+              "licensee" : "test-licensee",
+              "softwareId" : "test-softwareId",
+              "minVersion" : "0.0.0-0.0.0",
+              "maxVersion" : "99.99.0-99.99.0",
+              "startDate" : "2025-01-10T20:53:20Z",
+              "endDate" : "2025-01-10T20:53:20Z",
+              "maxNodes" : 1000000,
+              "additionalInfo" : {}
+            }
+          },
+          {
+            "id" : "cve",
+            "name" : "cve",
+            "description" : "Manage known vulnerabilities in system components",
+            "version" : "8.3.0-2.10",
+            "status" : "enabled",
+            "abiVersion" : "2.10",
+            "pluginType" : "webapp",
+            "errors" : [
+              {
+                "error" : "license.needed.error",
+                "message" : "A license is needed for the plugin"
+              }
+            ]
+          },
+          {
+            "id" : "zabbix",
+            "name" : "zabbix",
+            "description" : "Integration with Zabbix (monitoring tool)",
+            "version" : "8.3.0-2.1",
+            "status" : "uninstalled",
+            "abiVersion" : "2.1",
+            "pluginType" : "integration",
+            "errors" : []
+          }
+        ]
+      }
+    }
+---
+description: Install plugins
+method: POST
+url: /secure/api/pluginsinternal/install
+headers:
+  - "Content-Type: application/json"
+body: >-
+  ["zabbix"]
+response:
+  code: 200
+  content: >-
+    {
+      "action":"installPlugins",
+      "result":"success"
+    }
+---
+description: Fail to parse unsafe plugin id to install
+method: POST
+url: /secure/api/pluginsinternal/install
+headers:
+  - "Content-Type: application/json"
+body: >-
+  ["auth-backends; cat /etc/shadow"]
+response:
+  code: 500
+  content: >-
+    {
+      "action":"installPlugins",
+      "result":"error",
+      "errorDetails":"Could not install plugins; cause was: Could not parse the list of plugins to install; cause was: Unexpected: [0](Invalid plugin ID: 'auth-backends; cat /etc/shadow'. Plugin ID must be alphanumeric with hyphens.)"
+    }
+---
+description: List all plugins after install
+method: GET
+url: /secure/api/pluginsinternal
+response:
+  code: 200
+  content: >-
+    {
+      "action":"listPlugins",
+      "result":"success",
+      "data":{
+        "plugins" : [
+          {
+            "id" : "auth-backends",
+            "name" : "authentication backends",
+            "description" : "Add new authentication backends",
+            "version" : "8.3.0-2.4.1",
+            "status" : "enabled",
+            "abiVersion" : "2.4.1",
+            "pluginType" : "webapp",
+            "errors" : [
+              {
+                "error" : "license.near.expiration.error",
+                "message" : "Plugin license near expiration"
+              }
+            ],
+            "license" : {
+              "licensee" : "test-licensee",
+              "softwareId" : "test-softwareId",
+              "minVersion" : "0.0.0-0.0.0",
+              "maxVersion" : "99.99.0-99.99.0",
+              "startDate" : "2025-01-10T20:53:20Z",
+              "endDate" : "2025-01-10T20:53:20Z",
+              "maxNodes" : 1000000,
+              "additionalInfo" : {}
+            }
+          },
+          {
+            "id" : "cve",
+            "name" : "cve",
+            "description" : "Manage known vulnerabilities in system components",
+            "version" : "8.3.0-2.10",
+            "status" : "enabled",
+            "abiVersion" : "2.10",
+            "pluginType" : "webapp",
+            "errors" : [
+              {
+                "error" : "license.needed.error",
+                "message" : "A license is needed for the plugin"
+              }
+            ]
+          },
+          {
+            "id" : "zabbix",
+            "name" : "zabbix",
+            "description" : "Integration with Zabbix (monitoring tool)",
+            "version" : "8.3.0-2.1",
+            "status" : "enabled",
+            "abiVersion" : "2.1",
+            "pluginType" : "integration",
+            "errors" : []
+          }
+        ]
+      }
+    }
+---
+description: Remove plugins after install
+method: POST
+url: /secure/api/pluginsinternal/remove
+headers:
+  - "Content-Type: application/json"
+body: >-
+  ["zabbix"]
+response:
+  code: 200
+  content: >-
+    {
+      "action":"removePlugins",
+      "result":"success"
+    }
+---
+description: List all plugins after remove
+method: GET
+url: /secure/api/pluginsinternal
+response:
+  code: 200
+  content: >-
+    {
+      "action":"listPlugins",
+      "result":"success",
+      "data":{
+        "plugins" : [
+          {
+            "id" : "auth-backends",
+            "name" : "authentication backends",
+            "description" : "Add new authentication backends",
+            "version" : "8.3.0-2.4.1",
+            "status" : "enabled",
+            "abiVersion" : "2.4.1",
+            "pluginType" : "webapp",
+            "errors" : [
+              {
+                "error" : "license.near.expiration.error",
+                "message" : "Plugin license near expiration"
+              }
+            ],
+            "license" : {
+              "licensee" : "test-licensee",
+              "softwareId" : "test-softwareId",
+              "minVersion" : "0.0.0-0.0.0",
+              "maxVersion" : "99.99.0-99.99.0",
+              "startDate" : "2025-01-10T20:53:20Z",
+              "endDate" : "2025-01-10T20:53:20Z",
+              "maxNodes" : 1000000,
+              "additionalInfo" : {}
+            }
+          },
+          {
+            "id" : "cve",
+            "name" : "cve",
+            "description" : "Manage known vulnerabilities in system components",
+            "version" : "8.3.0-2.10",
+            "status" : "enabled",
+            "abiVersion" : "2.10",
+            "pluginType" : "webapp",
+            "errors" : [
+              {
+                "error" : "license.needed.error",
+                "message" : "A license is needed for the plugin"
+              }
+            ]
+          },
+          {
+            "id" : "zabbix",
+            "name" : "zabbix",
+            "description" : "Integration with Zabbix (monitoring tool)",
+            "version" : "8.3.0-2.1",
+            "status" : "uninstalled",
+            "abiVersion" : "2.1",
+            "pluginType" : "integration",
+            "errors" : []
+          }
+        ]
+      }
+    }
+---
+description: Disable a plugin
+method: POST
+url: /secure/api/pluginsinternal/disable
+headers:
+  - "Content-Type: application/json"
+body: >-
+  ["auth-backends"]
+response:
+  code: 200
+  content: >-
+    {
+      "action":"changePluginsStatus",
+      "result":"success"
+    }
+---
+description: List all plugins after disable
+method: GET
+url: /secure/api/pluginsinternal
+response:
+  code: 200
+  content: >-
+    {
+      "action":"listPlugins",
+      "result":"success",
+      "data":{
+        "plugins" : [
+          {
+            "id" : "auth-backends",
+            "name" : "authentication backends",
+            "description" : "Add new authentication backends",
+            "version" : "8.3.0-2.4.1",
+            "status" : "disabled",
+            "abiVersion" : "2.4.1",
+            "pluginType" : "webapp",
+            "errors" : [
+              {
+                "error" : "license.near.expiration.error",
+                "message" : "Plugin license near expiration"
+              }
+            ],
+            "license" : {
+              "licensee" : "test-licensee",
+              "softwareId" : "test-softwareId",
+              "minVersion" : "0.0.0-0.0.0",
+              "maxVersion" : "99.99.0-99.99.0",
+              "startDate" : "2025-01-10T20:53:20Z",
+              "endDate" : "2025-01-10T20:53:20Z",
+              "maxNodes" : 1000000,
+              "additionalInfo" : {}
+            }
+          },
+          {
+            "id" : "cve",
+            "name" : "cve",
+            "description" : "Manage known vulnerabilities in system components",
+            "version" : "8.3.0-2.10",
+            "status" : "enabled",
+            "abiVersion" : "2.10",
+            "pluginType" : "webapp",
+            "errors" : [
+              {
+                "error" : "license.needed.error",
+                "message" : "A license is needed for the plugin"
+              }
+            ]
+          },
+          {
+            "id" : "zabbix",
+            "name" : "zabbix",
+            "description" : "Integration with Zabbix (monitoring tool)",
+            "version" : "8.3.0-2.1",
+            "status" : "uninstalled",
+            "abiVersion" : "2.1",
+            "pluginType" : "integration",
+            "errors" : []
+          }
+        ]
+      }
+    }
+---
+description: Enable a plugin
+method: POST
+url: /secure/api/pluginsinternal/enable
+headers:
+  - "Content-Type: application/json"
+body: >-
+  ["auth-backends"]
+response:
+  code: 200
+  content: >-
+    {
+      "action":"changePluginsStatus",
+      "result":"success"
+    }
+---
+description: List all plugins after enable
+method: GET
+url: /secure/api/pluginsinternal
+response:
+  code: 200
+  content: >-
+    {
+      "action":"listPlugins",
+      "result":"success",
+      "data":{
+        "plugins" : [
+          {
+            "id" : "auth-backends",
+            "name" : "authentication backends",
+            "description" : "Add new authentication backends",
+            "version" : "8.3.0-2.4.1",
+            "status" : "enabled",
+            "abiVersion" : "2.4.1",
+            "pluginType" : "webapp",
+            "errors" : [
+              {
+                "error" : "license.near.expiration.error",
+                "message" : "Plugin license near expiration"
+              }
+            ],
+            "license" : {
+              "licensee" : "test-licensee",
+              "softwareId" : "test-softwareId",
+              "minVersion" : "0.0.0-0.0.0",
+              "maxVersion" : "99.99.0-99.99.0",
+              "startDate" : "2025-01-10T20:53:20Z",
+              "endDate" : "2025-01-10T20:53:20Z",
+              "maxNodes" : 1000000,
+              "additionalInfo" : {}
+            }
+          },
+          {
+            "id" : "cve",
+            "name" : "cve",
+            "description" : "Manage known vulnerabilities in system components",
+            "version" : "8.3.0-2.10",
+            "status" : "enabled",
+            "abiVersion" : "2.10",
+            "pluginType" : "webapp",
+            "errors" : [
+              {
+                "error" : "license.needed.error",
+                "message" : "A license is needed for the plugin"
+              }
+            ]
+          },
+          {
+            "id" : "zabbix",
+            "name" : "zabbix",
+            "description" : "Integration with Zabbix (monitoring tool)",
+            "version" : "8.3.0-2.1",
+            "status" : "uninstalled",
+            "abiVersion" : "2.1",
+            "pluginType" : "integration",
+            "errors" : []
+          }
+        ]
+      }
+    }

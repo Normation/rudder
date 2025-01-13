@@ -69,7 +69,7 @@ trait PluginStatus {
           case Some(i) => s"'${i.softwareId}' "
           case None    => ""
         }
-        ApplicationLoggerPure.Plugin.logEffect.warn(s"Plugin ${name}is disabled: ${reason}")
+        ApplicationLoggerPure.Plugin.logEffect.warn(s"Plugin ${name} is disabled: ${reason}")
         false
     }
   }
