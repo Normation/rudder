@@ -255,7 +255,7 @@ class RoleApiMapping(mapper: AuthorizationApiMapping) {
   // get the access control list from the user rights.
   // Always succeeds,
   def getApiAclFromRights(rights: Rights): List[ApiAclElement] = {
-    // we have two shortbreakers, no rights and all rigts
+    // we have two shortbreakers, no rights and all rights
     if (rights.authorizationTypes.contains(AuthorizationType.NoRights)) {
       Nil
     } else if (rights.authorizationTypes.contains(AuthorizationType.AnyRights)) {
