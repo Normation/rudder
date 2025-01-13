@@ -89,6 +89,9 @@ object RudderJsonResponse {
 
     def success[A](schema: ResponseSchema, id: Option[String], data: A): JsonRudderApiResponse[A] =
       JsonRudderApiResponse(schema.action, id, "success", Some(data), None)
+
+    def success[A](schema: ResponseSchema, id: Option[String]): JsonRudderApiResponse[A] =
+      JsonRudderApiResponse(schema.action, id, "success", None, None)
   }
 
   //////////////////////////// Lift JSON response ////////////////////////////
@@ -170,6 +173,12 @@ object RudderJsonResponse {
         generic.success(JsonRudderApiResponse.success(schema, None, Map(key -> objs)))
     }
   }
+  def successZero(schema: ResponseSchema)(implicit
+      prettify: Boolean
+  ): LiftJsonResponse[JsonRudderApiResponse[String]] = {
+    implicit val enc: JsonEncoder[JsonRudderApiResponse[String]] = DeriveJsonEncoder.gen
+    generic.success(JsonRudderApiResponse.success(schema, None))
+  }
   def successZero(schema: ResponseSchema, msg: String)(implicit
       prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[String]] = {
@@ -235,7 +244,7 @@ object RudderJsonResponse {
       }
     }
 
-    implicit class ToLiftResponseOne[A](result: IOResult[A])    {
+    implicit class ToLiftResponseOne[A](result: IOResult[A])  {
       // ADT that matches error or success to determine the id value to use/compute
       sealed trait IdTrace {
         // if no computed id is given, we use the constant one
@@ -296,8 +305,27 @@ object RudderJsonResponse {
           .runNow
       }
     }
-    // when you don't have any parameter, just a response
-    implicit class ToLiftResponseZero(result: IOResult[String]) {
+    // when you don't have any response, just a success
+    implicit class ToLiftResponseZero(result: IOResult[Unit]) {
+      def toLiftResponseZero(params: DefaultParams, schema: ResponseSchema): LiftResponse = {
+        implicit val prettify = params.prettify
+        result
+          .fold(
+            err => {
+              ApiLogger.ResponseError.info(err.fullMsg)
+              internalError(None, schema, err.fullMsg)
+            },
+            _ => successZero(schema)
+          )
+          .runNow
+      }
+      def toLiftResponseZero(params: DefaultParams, schema: EndpointSchema): LiftResponse = {
+        toLiftResponseZero(params, ResponseSchema.fromSchema(schema))
+      }
+    }
+
+    // when you don't have any parameter, just a message as response
+    implicit class ToLiftResponseZeroString(result: IOResult[String]) {
       def toLiftResponseZero(params: DefaultParams, schema: ResponseSchema): LiftResponse = {
         implicit val prettify = params.prettify
         result

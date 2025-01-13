@@ -13,7 +13,7 @@ type alias PluginInfo =
     , abiVersion : String
     , version : String
     , pluginType : PluginType
-    , errors: List PluginError
+    , errors : List PluginError
     , status : PluginStatus
     , license : Maybe LicenseInfo
     }
@@ -43,6 +43,7 @@ type alias PluginError =
     { error : String
     , message : String
     }
+
 
 type alias Model =
     { contextPath : String

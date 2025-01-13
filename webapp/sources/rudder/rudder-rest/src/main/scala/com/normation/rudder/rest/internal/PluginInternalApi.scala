@@ -37,21 +37,27 @@
 
 package com.normation.rudder.rest.lift
 
+import com.normation.errors.Inconsistency
+import com.normation.plugins.PluginId
 import com.normation.plugins.PluginSettings
 import com.normation.plugins.PluginSystemService
+import com.normation.plugins.PluginSystemStatus
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.PluginInternalApi as API
+import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.rest.implicits.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
+import zio.Chunk
 import zio.json.DeriveJsonDecoder
 import zio.json.DeriveJsonEncoder
 import zio.json.JsonDecoder
 import zio.json.JsonEncoder
+import zio.syntax.*
 
 class PluginInternalApi(
     pluginService: PluginSystemService
@@ -60,7 +66,12 @@ class PluginInternalApi(
   def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints.map { case API.ListPlugins => ListPlugins }
+    API.endpoints.map {
+      case API.ListPlugins         => ListPlugins
+      case API.InstallPlugins      => InstallPlugins
+      case API.RemovePlugins       => RemovePlugins
+      case API.ChangePluginsStatus => ChangePluginsStatus
+    }
   }
 
   implicit val encoder: JsonEncoder[PluginSettings] = DeriveJsonEncoder.gen[PluginSettings]
@@ -72,28 +83,62 @@ class PluginInternalApi(
       pluginService
         .list()
         .chainError("Could not get plugins list")
-        .tapError(err => ApplicationLoggerPure.error(err.fullMsg))
+        .tapError(err => ApplicationLoggerPure.Plugin.error(err.fullMsg))
         .toLiftResponseList(params, schema)
     }
 
   }
 
-  // object UpdatePluginSettings extends LiftApiModule0 {
-  //   val schema: API.UpdatePluginsSettings.type = API.UpdatePluginsSettings
-  //   val restExtractor = restExtractorService
-  //   def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-  //     import com.normation.errors.*
-  //     ({
-  //       for {
-  //         json <- req.fromJson[PluginSettings].toIO
-  //         _    <- pluginSettingsService.writePluginSettings(json)
+  object InstallPlugins extends LiftApiModule0 {
+    val schema:                                                                                                API.InstallPlugins.type = API.InstallPlugins
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse            = {
+      ({
+        for {
+          plugins <- req.fromJson[Chunk[PluginId]].toIO.chainError("Could not parse the list of plugins to install")
+          _       <- pluginService.install(plugins).tapError(err => ApplicationLoggerPure.Plugin.error(err.fullMsg))
+        } yield ()
+      }).chainError("Could not install plugins")
+        .toLiftResponseZero(params, schema)
+    }
+  }
 
-  //       } yield {
-  //         json.copy(password = None, proxyPassword = None)
+  object RemovePlugins extends LiftApiModule0 {
+    val schema:                                                                                                API.RemovePlugins.type = API.RemovePlugins
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse           = {
+      ({
+        for {
+          plugins <- req.fromJson[Chunk[PluginId]].toIO.chainError("Could not parse the list of plugins to remove")
+          _       <- pluginService.remove(plugins)
+        } yield ()
+      }).chainError("Could not remove plugins")
+        .tapError(err => ApplicationLoggerPure.error(err.fullMsg))
+        .toLiftResponseZero(params, schema)
+    }
+  }
 
-  //       }
-  //     }).toLiftResponseOne(params, schema, None)
-  //   }
-  // }
+  object ChangePluginsStatus extends LiftApiModuleString {
+    val schema: API.ChangePluginsStatus.type = API.ChangePluginsStatus
+    def process(
+        version:    ApiVersion,
+        path:       ApiPath,
+        s:          String,
+        req:        Req,
+        params:     DefaultParams,
+        authzToken: AuthzToken
+    ): LiftResponse = {
+      ({
+        for {
+          status  <- s match {
+                       case "enable"  => PluginSystemStatus.Enabled.succeed
+                       case "disable" => PluginSystemStatus.Disabled.succeed
+                       case _         => Inconsistency(s"Unknown plugin status, valid status are enable/disabled").fail
+                     }
+          plugins <- req.fromJson[Chunk[PluginId]].toIO.chainError("Could not parse the list of plugins to remove")
+          _       <- pluginService.updateStatus(status, plugins).tapError(err => ApplicationLoggerPure.Plugin.error(err.fullMsg))
+        } yield ()
+      }).chainError(s"Could not change plugin status to '${s}'")
+        .toLiftResponseZero(params, schema)
+    }
+  }
 
 }

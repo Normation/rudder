@@ -55,8 +55,16 @@ import com.normation.inventory.domain.Linux
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.RockyLinux
 import com.normation.inventory.domain.Version as IVersion
+import com.normation.plugins.InMemoryPluginSystemService
 import com.normation.plugins.JsonPluginDetails
+import com.normation.plugins.JsonPluginManagementError
+import com.normation.plugins.JsonPluginSystemDetails
+import com.normation.plugins.JsonPluginSystemStatus
+import com.normation.plugins.PluginId
+import com.normation.plugins.PluginLicenseInfo
+import com.normation.plugins.PluginManagementError
 import com.normation.plugins.PluginSystemStatus
+import com.normation.plugins.PluginType
 import com.normation.rudder.*
 import com.normation.rudder.api.ApiAuthorization as ApiAuthz
 import com.normation.rudder.api.ApiVersion
@@ -169,6 +177,7 @@ import com.normation.rudder.web.services.DirectiveFieldFactory
 import com.normation.rudder.web.services.EventLogDetailsGenerator
 import com.normation.rudder.web.services.Section2FieldService
 import com.normation.rudder.web.services.Translator
+import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import doobie.*
@@ -974,10 +983,10 @@ class RestTestSetUp {
   }
 
   // name that one for version API
-  val parameterApi = new ParameterApi(zioJsonExtractor, parameterApiService14)
+  val parameterApi         = new ParameterApi(zioJsonExtractor, parameterApiService14)
   // info is special and should be based on all api and version, but to avoid change at each tests/version, build
   // it with static values
-  val infoApi      = {
+  val infoApi              = {
     val infoVersion = ApiVersion(19, deprecated = true) ::
       ApiVersion(20, deprecated = false) ::
       Nil
@@ -985,6 +994,68 @@ class RestTestSetUp {
     val endpoints   = schemas.flatMap(new RudderEndpointDispatcher(LiftApiProcessingLogger).withVersion(_, infoVersion))
     new InfoApi(infoVersion, endpoints)
   }
+  val pluginsSystemService = InMemoryPluginSystemService
+    .make(
+      JsonPluginSystemDetails(
+        PluginId("auth-backends"),
+        "authentication backends",
+        "Add new authentication backends",
+        Some("8.3.0-2.4.1"),
+        JsonPluginSystemStatus.Enabled,
+        None,
+        ParseVersion.parse("2.4.1").getOrElse(throw new Exception("bad version in test")),
+        PluginType.Webapp,
+        List(
+          JsonPluginManagementError(
+            PluginManagementError.LicenseNearExpirationError.kind.entryName,
+            PluginManagementError.LicenseNearExpirationError.displayMsg
+          )
+        ),
+        Some(
+          PluginLicenseInfo(
+            "test-licensee",
+            "test-softwareId",
+            "0.0.0-0.0.0",
+            "99.99.0-99.99.0",
+            DateTime.parse("2025-01-10T21:53:20+01:00"),
+            DateTime.parse("2025-01-10T21:53:20+01:00"),
+            Some(1_000_000),
+            Map.empty
+          )
+        )
+      ) ::
+      JsonPluginSystemDetails(
+        PluginId("cve"),
+        "cve",
+        "Manage known vulnerabilities in system components",
+        Some("8.3.0-2.10"),
+        JsonPluginSystemStatus.Enabled,
+        None,
+        ParseVersion.parse("2.10").getOrElse(throw new Exception("bad version in test")),
+        PluginType.Webapp,
+        List(
+          JsonPluginManagementError(
+            PluginManagementError.LicenseNeededError.kind.entryName,
+            PluginManagementError.LicenseNeededError.displayMsg
+          )
+        ),
+        None
+      ) ::
+      JsonPluginSystemDetails(
+        PluginId("zabbix"),
+        "zabbix",
+        "Integration with Zabbix (monitoring tool)",
+        Some("8.3.0-2.1"),
+        JsonPluginSystemStatus.Uninstalled,
+        None,
+        ParseVersion.parse("2.1").getOrElse(throw new Exception("bad version in test")),
+        PluginType.Integration,
+        List.empty,
+        None
+      )
+      :: Nil
+    )
+    .runNow
 
   val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema with SortIndex]] = List(
     systemApi,
@@ -1050,7 +1121,8 @@ class RestTestSetUp {
       () => mockUserManagement.authBackendProviders
     ),
     infoApi,
-    eventLogApi
+    eventLogApi,
+    new PluginInternalApi(pluginsSystemService)
   )
 
   val apiVersions: List[ApiVersion] = {
