@@ -8,6 +8,14 @@ response:
       "action":"listPlugins",
       "result":"success",
       "data":{
+        "license" : {
+          "licensees" : [
+            "test-licensee"
+          ],
+          "startDate" : "2025-01-10T21:53:20+01:00",
+          "endDate" : "2025-01-10T21:53:20+01:00",
+          "maxNodes" : 1000000
+        },
         "plugins" : [
           {
             "id" : "auth-backends",
@@ -104,6 +112,14 @@ response:
       "action":"listPlugins",
       "result":"success",
       "data":{
+        "license" : {
+          "licensees" : [
+            "test-licensee"
+          ],
+          "startDate" : "2025-01-10T21:53:20+01:00",
+          "endDate" : "2025-01-10T21:53:20+01:00",
+          "maxNodes" : 1000000
+        },
         "plugins" : [
           {
             "id" : "auth-backends",
@@ -184,6 +200,14 @@ response:
       "action":"listPlugins",
       "result":"success",
       "data":{
+        "license" : {
+          "licensees" : [
+            "test-licensee"
+          ],
+          "startDate" : "2025-01-10T21:53:20+01:00",
+          "endDate" : "2025-01-10T21:53:20+01:00",
+          "maxNodes" : 1000000
+        },
         "plugins" : [
           {
             "id" : "auth-backends",
@@ -264,6 +288,14 @@ response:
       "action":"listPlugins",
       "result":"success",
       "data":{
+        "license" : {
+          "licensees" : [
+            "test-licensee"
+          ],
+          "startDate" : "2025-01-10T21:53:20+01:00",
+          "endDate" : "2025-01-10T21:53:20+01:00",
+          "maxNodes" : 1000000
+        },
         "plugins" : [
           {
             "id" : "auth-backends",
@@ -344,6 +376,14 @@ response:
       "action":"listPlugins",
       "result":"success",
       "data":{
+        "license" : {
+          "licensees" : [
+            "test-licensee"
+          ],
+          "startDate" : "2025-01-10T21:53:20+01:00",
+          "endDate" : "2025-01-10T21:53:20+01:00",
+          "maxNodes" : 1000000
+        },
         "plugins" : [
           {
             "id" : "auth-backends",

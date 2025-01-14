@@ -42,6 +42,7 @@ import bootstrap.liftweb.ConfigResource
 import bootstrap.liftweb.FileSystemResource
 import bootstrap.liftweb.RudderProperties
 import com.normation.errors.IOResult
+import com.normation.plugins.RudderPackageService.CredentialError
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
@@ -370,36 +371,14 @@ class PluginSystemServiceImpl(
     rudderFullVersion:    String
 ) extends PluginSystemService {
 
-  override def list(): IOResult[Chunk[JsonPluginSystemDetails]] = {
+  override def list(): IOResult[Either[CredentialError, Chunk[JsonPluginSystemDetails]]] = {
     for {
+      optError             <- rudderPackageService.updateBase()
       rudderPackagePlugins <- rudderPackageService.listAllPlugins()
     } yield {
-      rudderPackagePlugins
-        .map(p => {
-          implicit val rudderVersion: String = rudderFullVersion
-          pluginDefs
-            .get(PluginName("rudder-plugin-" + p.name)) // rudder package name does not have the prefix used in names
-            .flatMap(pluginDef => {
-              val details = pluginDef.toJsonPluginDetails
-              implicit val abiVersion: Version = pluginDef.version.rudderAbi
-
-              // plugin listed from rudder package but with no license information :
-              // - we can parse version, or else return one that is different
-              details.license.map(license => {
-                implicit val softwareId: RudderPackagePlugin.SoftwareId = RudderPackagePlugin.SoftwareId(license.softwareId)
-                implicit val minVersion: RudderPackagePlugin.MinVersion = RudderPackagePlugin.MinVersion(license.minVersion)
-                implicit val maxVersion: RudderPackagePlugin.MaxVersion = RudderPackagePlugin.MaxVersion(license.maxVersion)
-                implicit val maxNodes:   RudderPackagePlugin.MaxNodes   = RudderPackagePlugin.MaxNodes(license.maxNodes)
-
-                p.transformInto[JsonPluginSystemDetails]
-              })
-            })
-            .getOrElse {
-              // default implicits
-              import defaultValues.*
-              p.transformInto[JsonPluginSystemDetails]
-            }
-        })
+      optError.toLeft(
+        rudderPackagePlugins.map(mergePluginDef(_))
+      )
     }
   }
 
@@ -438,4 +417,29 @@ class PluginSystemServiceImpl(
     implicit val abiVersion: Version    = Version(0, PartType.Numeric(1), List.empty)
   }
 
+  private def mergePluginDef(p: RudderPackagePlugin) = {
+    implicit val rudderVersion: String = rudderFullVersion
+    pluginDefs
+      .get(PluginName("rudder-plugin-" + p.name)) // rudder package name does not have the prefix used in names
+      .flatMap(pluginDef => {
+        val details = pluginDef.toJsonPluginDetails
+        implicit val abiVersion: Version = pluginDef.version.rudderAbi
+
+        // plugin listed from rudder package but with no license information :
+        // - we can parse version, or else return one that is different
+        details.license.map(license => {
+          implicit val softwareId: RudderPackagePlugin.SoftwareId = RudderPackagePlugin.SoftwareId(license.softwareId)
+          implicit val minVersion: RudderPackagePlugin.MinVersion = RudderPackagePlugin.MinVersion(license.minVersion)
+          implicit val maxVersion: RudderPackagePlugin.MaxVersion = RudderPackagePlugin.MaxVersion(license.maxVersion)
+          implicit val maxNodes:   RudderPackagePlugin.MaxNodes   = RudderPackagePlugin.MaxNodes(license.maxNodes)
+
+          p.transformInto[JsonPluginSystemDetails]
+        })
+      })
+      .getOrElse {
+        // default implicits
+        import defaultValues.*
+        p.transformInto[JsonPluginSystemDetails]
+      }
+  }
 }

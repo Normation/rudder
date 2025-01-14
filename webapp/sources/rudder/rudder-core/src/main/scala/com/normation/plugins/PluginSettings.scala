@@ -39,8 +39,10 @@ package com.normation.plugins
 
 import better.files.File
 import com.normation.errors.*
+import com.normation.plugins.RudderPackageService.*
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.hooks.Cmd
+import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.RunNuCommand
 import com.normation.utils.DateFormaterService
 import com.normation.utils.Version
@@ -101,40 +103,61 @@ object JsonPluginsDetails {
  * Global limit information about plugins (the most restrictive)
  */
 final case class JsonGlobalPluginLimits(
-    licensees: Option[Chunk[String]],
+    licensees: Option[NonEmptyChunk[String]],
     // for now, min/max version is not used and is always 00-99
     startDate: Option[ZonedDateTime],
     endDate:   Option[ZonedDateTime],
     maxNodes:  Option[Int]
-)
+) {
+  import JsonGlobalPluginLimits.*
+  def combine(that: JsonGlobalPluginLimits): JsonGlobalPluginLimits = {
+    // for efficiency : check equality and hash first before field comparison,
+    // as it will mostly be the case because license information should be similar
+    if (this == that) this
+    else {
+      JsonGlobalPluginLimits(
+        comp[NonEmptyChunk[String]](this.licensees, that.licensees, _ ++ _),
+        comp[ZonedDateTime](this.startDate, that.startDate, (x, y) => if (x.isAfter(y)) x else y),
+        comp[ZonedDateTime](this.endDate, that.endDate, (x, y) => if (x.isBefore(y)) x else y),
+        comp[Int](this.maxNodes, that.maxNodes, (x, y) => if (x < y) x else y)
+      )
+    }
+  }
+}
 object JsonGlobalPluginLimits {
   import DateFormaterService.JodaTimeToJava
   import DateFormaterService.json.encoderZonedDateTime
   implicit val encoderGlobalPluginLimits: JsonEncoder[JsonGlobalPluginLimits] = DeriveJsonEncoder.gen
 
+  def fromLicenseInfo(info: PluginLicenseInfo): JsonGlobalPluginLimits = {
+    JsonGlobalPluginLimits(
+      Some(NonEmptyChunk(info.licensee)),
+      Some(info.startDate.toJava),
+      Some(info.endDate.toJava),
+      info.maxNodes
+    )
+  }
+
   def empty = JsonGlobalPluginLimits(None, None, None, None)
   // from a list of plugins, create the global limits
   def getGlobalLimits(licenses: Seq[PluginLicenseInfo]): Option[JsonGlobalPluginLimits] = {
-    def comp[A](a: Option[A], b: Option[A], compare: (A, A) => A): Option[A] = (a, b) match {
-      case (None, None)       => None
-      case (Some(x), None)    => Some(x)
-      case (None, Some(y))    => Some(y)
-      case (Some(x), Some(y)) => Some(compare(x, y))
-    }
+    NonEmptyChunk
+      .fromIterableOption(licenses)
+      .map(getGlobalLimits(_))
+      .flatMap(r => Option.when(r != empty)(r))
+  }
 
-    val limits = licenses.foldLeft(empty) {
-      case (lim, lic) =>
-        JsonGlobalPluginLimits(
-          lim.licensees match {
-            case Some(l) => Some(l.appended(lic.licensee).distinct.sorted)
-            case None    => Some(Chunk(lic.licensee))
-          }, // I'm not sure what we want here nor its meaning
-          comp[ZonedDateTime](lim.startDate, Some(lic.startDate.toJava), (x, y) => if (x.isAfter(y)) x else y),
-          comp[ZonedDateTime](lim.endDate, Some(lic.endDate.toJava), (x, y) => if (x.isBefore(y)) x else y),
-          comp[Int](lim.maxNodes, lic.maxNodes, (x, y) => if (x < y) x else y)
-        )
-    }
-    if (limits == empty) None else Some(limits)
+  def getGlobalLimits(licenses: NonEmptyChunk[PluginLicenseInfo]): JsonGlobalPluginLimits = {
+    val res                     = licenses.reduceMapLeft(fromLicenseInfo) { case (lim, lic) => lim.combine(fromLicenseInfo(lic)) }
+    val sortedDistinctLicensees = res.licensees.map(_.sorted.distinct).flatMap(NonEmptyChunk.fromChunk)
+    res.copy(licensees = sortedDistinctLicensees)
+  }
+
+  private def comp[A](a: Option[A], b: Option[A], compare: (A, A) => A): Option[A] = (a, b) match {
+    case (None, None)       => None
+    case (Some(x), None)    => Some(x)
+    case (None, Some(y))    => Some(y)
+    case (Some(x), Some(y)) => Some(compare(x, y))
   }
 }
 
@@ -300,6 +323,8 @@ object JsonPluginSystemStatus       extends Enum[JsonPluginSystemStatus] {
   case object Uninstalled extends JsonPluginSystemStatus
 
   override def values: IndexedSeq[JsonPluginSystemStatus] = findValues
+
+  implicit val encoder: JsonEncoder[JsonPluginSystemStatus] = JsonEncoder[String].contramap(_.entryName)
 }
 
 /**
@@ -387,6 +412,7 @@ object PluginManagementError       {
 case class PluginId(value: String) extends AnyVal
 object PluginId                  {
   implicit val decoder:     JsonDecoder[PluginId]         = JsonDecoder[String].mapOrFail(parse)
+  implicit val encoder:     JsonEncoder[PluginId]         = JsonEncoder[String].contramap(_.value)
   implicit val transformer: Transformer[PluginId, String] = Transformer.derive[PluginId, String]
 
   private val pluginIdRegex = """^(\p{Alnum}[\p{Alnum}-_]*)$""".r
@@ -402,6 +428,20 @@ object PluginId                  {
   }
 }
 
+final case class JsonPluginsSystemDetails(
+    license: Option[JsonGlobalPluginLimits],
+    plugins: Chunk[JsonPluginSystemDetails]
+)
+object JsonPluginsSystemDetails  {
+  import JsonPluginSystemDetails.*
+
+  implicit val encoder: JsonEncoder[JsonPluginsSystemDetails] = DeriveJsonEncoder.gen[JsonPluginsSystemDetails]
+
+  def buildDetails(plugins: Chunk[JsonPluginSystemDetails]): JsonPluginsSystemDetails = {
+    val limits = JsonGlobalPluginLimits.getGlobalLimits(plugins.flatMap(_.license))
+    JsonPluginsSystemDetails(limits, plugins)
+  }
+}
 final case class JsonPluginSystemDetails(
     id:            PluginId,
     name:          String,
@@ -430,13 +470,12 @@ object JsonPluginManagementError {
 }
 
 object JsonPluginSystemDetails {
-  implicit val encoderPluginId:               JsonEncoder[PluginId]                  = JsonEncoder[String].contramap(_.value)
-  implicit val encoderPluginSystemStatusRest: JsonEncoder[JsonPluginSystemStatus]    = JsonEncoder[String].contramap(_.entryName)
-  implicit val encoderPluginType:             JsonEncoder[PluginType]                = JsonEncoder[String].contramap(_.entryName)
-  implicit val encoderPluginManagementError:  JsonEncoder[JsonPluginManagementError] =
+  implicit val encoderPluginId:              JsonEncoder[PluginId]                  = JsonEncoder[String].contramap(_.value)
+  implicit val encoderPluginType:            JsonEncoder[PluginType]                = JsonEncoder[String].contramap(_.entryName)
+  implicit val encoderPluginManagementError: JsonEncoder[JsonPluginManagementError] =
     DeriveJsonEncoder.gen[JsonPluginManagementError]
-  implicit val encoderVersion:                JsonEncoder[Version]                   = JsonEncoder[String].contramap(_.toVersionString)
-  implicit val encoderPluginSystemDetails:    JsonEncoder[JsonPluginSystemDetails]   = DeriveJsonEncoder.gen[JsonPluginSystemDetails]
+  implicit val encoderVersion:               JsonEncoder[Version]                   = JsonEncoder[String].contramap(_.toVersionString)
+  implicit val encoderPluginSystemDetails:   JsonEncoder[JsonPluginSystemDetails]   = DeriveJsonEncoder.gen[JsonPluginSystemDetails]
 }
 
 @jsonMemberNames(SnakeCase)
@@ -528,12 +567,36 @@ object RudderPackagePlugin     {
   * A service that encapsulate rudder package operations and its representation of plugins.
   */
 trait RudderPackageService {
+  import RudderPackageService.*
+
+  def updateBase(): IOResult[Option[CredentialError]]
+
   def listAllPlugins(): IOResult[Chunk[RudderPackagePlugin]]
 
   def installPlugins(plugins: Chunk[String]): IOResult[Unit]
 
   def removePlugins(plugins:           Chunk[String]): IOResult[Unit]
   def changePluginSystemStatus(status: PluginSystemStatus, plugins: Chunk[String]): IOResult[Unit]
+}
+
+object RudderPackageService {
+
+  val ERROR_CODE: Int = 1
+
+  // see PluginSettings : the url and credentials configuration could cause errors :
+  final case class CredentialError(msg: String) extends RudderError
+
+  object CredentialError {
+    private val regex = "^.*ERROR.* (Received an HTTP 401 Unauthorized error.*)$".r
+
+    def fromResult(cmdResult: CmdResult): Option[CredentialError] = {
+      (cmdResult.code, cmdResult.stderr.strip) match { // do not forget to strip stderr
+        case (ERROR_CODE, regex(err)) => Some(CredentialError(err))
+        case _                        => None
+      }
+    }
+  }
+
 }
 
 /*
@@ -546,66 +609,75 @@ class RudderPackageCmdService(configCmdLine: String) extends RudderPackageServic
     case h :: tail => Right((h, tail))
   }
 
+  override def updateBase(): IOResult[Option[CredentialError]] = {
+    // In case of error we need to check the result
+    for {
+      res          <- runCmd("update" :: Nil)
+      (cmd, result) = res
+      err           = CredentialError.fromResult(result)
+      _            <- ZIO.when(result.code != 0 && err.isEmpty) {
+                        Inconsistency(
+                          s"An error occurred while updating plugins list with '${cmd.display}':\n code: ${result.code}\n stderr: ${result.stderr}\n stdout: ${result.stdout}"
+                        ).fail
+                      }
+    } yield {
+      err
+    }
+  }
+
   override def listAllPlugins(): IOResult[Chunk[RudderPackagePlugin]] = {
     for {
-      configCmd   <- configCmdRes.toIO
-      cmd          = Cmd(configCmd._1, configCmd._2 ::: "list" :: "--all" :: "--format=json" :: Nil, Map.empty, None)
-      packagesCmd <- RunNuCommand.run(cmd)
-      result      <- packagesCmd.await
-      _           <- ZIO.when(result.code != 0) {
-                       Inconsistency(
-                         s"An error occurred while listing packages with '${cmd.display}':\n code: ${result.code}\n stderr: ${result.stderr}\n stdout: ${result.stdout}"
-                       ).fail
-                     }
-
-      plugins <- result.stdout.fromJson[Chunk[RudderPackagePlugin]].toIO.chainError("Could not parse plugins definition")
+      result  <- runCmdOrFail("list" :: "--all" :: "--format=json" :: Nil)(
+                   s"An error occurred while listing packages"
+                 )
+      plugins <- result.stdout
+                   .fromJson[Chunk[RudderPackagePlugin]]
+                   .toIO
+                   .chainError("Could not parse plugins definition")
     } yield {
       plugins
     }
   }
 
   override def installPlugins(plugins: Chunk[String]): IOResult[Unit] = {
-    for {
-      configCmd   <- configCmdRes.toIO
-      cmd          = Cmd(configCmd._1, configCmd._2 ::: "install" :: plugins.toList, Map.empty, None)
-      packagesCmd <- RunNuCommand.run(cmd)
-      result      <- packagesCmd.await
-      _           <- ZIO.when(result.code != 0) {
-                       Inconsistency(
-                         s"An error occurred while installing plugins with '${cmd.display}':\n code: ${result.code}\n stderr: ${result.stderr}\n stdout: ${result.stdout}"
-                       ).fail
-                     }
-    } yield ()
+    runCmdOrFail("install" :: plugins.toList)(
+      s"An error occurred while installing plugins"
+    ).unit
   }
 
   override def removePlugins(plugins: Chunk[String]): IOResult[Unit] = {
-    for {
-      configCmd   <- configCmdRes.toIO
-      cmd          = Cmd(configCmd._1, configCmd._2 ::: "remove" :: plugins.toList, Map.empty, None)
-      packagesCmd <- RunNuCommand.run(cmd)
-      result      <- packagesCmd.await
-      _           <- ZIO.when(result.code != 0) {
-                       Inconsistency(
-                         s"An error occurred while removing plugins with '${cmd.display}':\n code: ${result.code}\n stderr: ${result.stderr}\n stdout: ${result.stdout}"
-                       ).fail
-                     }
-    } yield ()
+    runCmdOrFail("remove")(
+      s"An error occurred while removing plugins"
+    ).unit
   }
 
   override def changePluginSystemStatus(status: PluginSystemStatus, plugins: Chunk[String]): IOResult[Unit] = {
-    for {
-      configCmd   <- configCmdRes.toIO
-      cmd          = Cmd(configCmd._1, configCmd._2 ::: status.value :: plugins.toList, Map.empty, None)
-      packagesCmd <- RunNuCommand.run(cmd)
-      result      <- packagesCmd.await
-      _           <- ZIO.when(result.code != 0) {
-                       Inconsistency(
-                         s"An error occurred while changin plugin status to ${status.value} with '${cmd.display}':\n code: ${result.code}\n stderr: ${result.stderr}\n stdout: ${result.stdout}"
-                       ).fail
-                     }
-    } yield ()
+    runCmdOrFail(status.value :: plugins.toList)(
+      s"An error occurred while changin plugin status to ${status.value}"
+    ).unit
   }
 
+  private def runCmd(params: List[String]):                         IOResult[(Cmd, CmdResult)] = {
+    for {
+      configCmd   <- configCmdRes.toIO
+      cmd          = Cmd(configCmd._1, configCmd._2 ::: params, Map.empty, None)
+      packagesCmd <- RunNuCommand.run(cmd)
+      result      <- packagesCmd.await
+    } yield {
+      (cmd, result)
+    }
+  }
+  private def runCmdOrFail(params: String*)(errorMsg: String):      IOResult[CmdResult]        = {
+    runCmdOrFail(params.toList)(errorMsg)
+  }
+  private def runCmdOrFail(params: List[String])(errorMsg: String): IOResult[CmdResult]        = {
+    runCmd(params).reject {
+      case (cmd, result) if result.code != 0 =>
+        Inconsistency(
+          s"${errorMsg} with '${cmd.display}':\n code: ${result.code}\n stderr: ${result.stderr}\n stdout: ${result.stdout}"
+        )
+    }.map(_._2)
+  }
 }
 
 /**
@@ -613,7 +685,7 @@ class RudderPackageCmdService(configCmdLine: String) extends RudderPackageServic
   */
 trait PluginSystemService {
 
-  def list(): IOResult[Chunk[JsonPluginSystemDetails]]
+  def list(): IOResult[Either[CredentialError, Chunk[JsonPluginSystemDetails]]]
 
   def install(plugins:     Chunk[PluginId]): IOResult[Unit]
   def remove(plugins:      Chunk[PluginId]): IOResult[Unit]
@@ -625,8 +697,8 @@ trait PluginSystemService {
   * Implementation for tests, will do any operation without any error
   */
 class InMemoryPluginSystemService(ref: Ref[Map[PluginId, JsonPluginSystemDetails]]) extends PluginSystemService {
-  override def list(): UIO[Chunk[JsonPluginSystemDetails]] = {
-    ref.get.map(m => Chunk.fromIterable(m.values))
+  override def list(): UIO[Either[CredentialError, Chunk[JsonPluginSystemDetails]]] = {
+    ref.get.map(m => Right(Chunk.fromIterable(m.values)))
   }
 
   override def install(plugins: Chunk[PluginId]): UIO[Unit] = {
