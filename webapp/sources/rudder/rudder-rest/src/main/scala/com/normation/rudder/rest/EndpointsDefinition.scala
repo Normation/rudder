@@ -653,6 +653,7 @@ object PluginInternalApi       extends Enum[PluginInternalApi] with ApiModulePro
     val z: Int = implicitly[Line].value
     val description    = "List all plugins"
     val (action, path) = GET / "pluginsinternal"
+    override def dataContainer: Option[String] = None
   }
   case object InstallPlugins      extends PluginInternalApi with ZeroParam with StartsAtVersion21 with SortIndex {
     val z: Int = implicitly[Line].value

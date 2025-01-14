@@ -76,7 +76,9 @@ object RudderJsonResponse {
       errorDetails: Option[String]
   )
   object JsonRudderApiResponse {
-    def error(id: Option[String], schema: ResponseSchema, message: String): JsonRudderApiResponse[Unit] =
+    def error(id: Option[String], schema: ResponseSchema, errorDetails: Option[String]): JsonRudderApiResponse[Unit] =
+      JsonRudderApiResponse(schema.action, id, "error", None, errorDetails)
+    def error(id: Option[String], schema: ResponseSchema, message: String):              JsonRudderApiResponse[Unit] =
       JsonRudderApiResponse(schema.action, id, "error", None, Some(message))
 
     def genericError[A](
@@ -122,17 +124,22 @@ object RudderJsonResponse {
     def fromSchema(schema: EndpointSchema): ResponseSchema = ResponseSchema(schema.name, schema.dataContainer)
   }
 
+  sealed trait ResponseError
+  final case class UnauthorizedError(errorMsg: Option[String]) extends ResponseError
+
   //////////////////////////// utility methods to build responses ////////////////////////////
 
   object generic {
     // generic response, not in rudder normalized format - use it if you want an ad-hoc json response.
-    def success[A](json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]):        LiftJsonResponse[A] =
+    def success[A](json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]):           LiftJsonResponse[A] =
       LiftJsonResponse(json, prettify, 200)
-    def internalError[A](json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]):  LiftJsonResponse[A] =
+    def internalError[A](json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]):     LiftJsonResponse[A] =
       LiftJsonResponse(json, prettify, 500)
-    def notFoundError[A](json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]):  LiftJsonResponse[A] =
+    def unauthorizedError[A](json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]): LiftJsonResponse[A] =
+      LiftJsonResponse(json, prettify, 401)
+    def notFoundError[A](json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]):     LiftJsonResponse[A] =
       LiftJsonResponse(json, prettify, 404)
-    def forbiddenError[A](json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]): LiftJsonResponse[A] =
+    def forbiddenError[A](json: A)(implicit prettify: Boolean, encoder: JsonEncoder[A]):    LiftJsonResponse[A] =
       LiftJsonResponse(json, prettify, 404)
   }
 
@@ -211,6 +218,11 @@ object RudderJsonResponse {
         implicit val enc: JsonEncoder[JsonRudderApiResponse[A]] = DeriveJsonEncoder.gen
         generic.internalError(JsonRudderApiResponse.genericError(id, schema, obj, errorMsg))
     }
+  }
+  def unauthorizedError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(implicit
+      prettify: Boolean
+  ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
+    generic.unauthorizedError(JsonRudderApiResponse.error(id, schema, errorMsg))
   }
   def notFoundError(id: Option[String], schema: ResponseSchema, errorMsg: String)(implicit
       prettify: Boolean
@@ -303,6 +315,43 @@ object RudderJsonResponse {
             }
           )
           .runNow
+      }
+
+      // to create responses with specific API errors, we provide syntax using evidence on type A : Either[_, _]
+      def toLiftResponseOneEither[B: JsonEncoder](
+          params: DefaultParams,
+          schema: ResponseSchema,
+          id:     IdTrace
+      )(implicit ev: A <:< Either[ResponseError, B]): LiftResponse = {
+        implicit val prettify = params.prettify
+        result
+          .fold(
+            err => {
+              ApiLogger.ResponseError.info(err.fullMsg)
+              internalError(None, schema, err.fullMsg)
+            },
+            either => {
+              ev.apply(either) match {
+                case Left(e)  =>
+                  e match {
+                    case UnauthorizedError(errorMsg) => unauthorizedError(id.error, schema, errorMsg)
+                  }
+                case Right(b) =>
+                  successOne[B](schema, b, id.success(either))
+              }
+            }
+          )
+          .runNow
+      }
+      def toLiftResponseOneEither[B: JsonEncoder](params: DefaultParams, schema: EndpointSchema, id: Option[String])(implicit
+          ev: A <:< Either[ResponseError, B]
+      ): LiftResponse = {
+        toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), ConstIdTrace(id))(JsonEncoder[B], ev)
+      }
+      def toLiftResponseOneEither[B: JsonEncoder](params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(implicit
+          ev: A <:< Either[ResponseError, B]
+      ): LiftResponse = {
+        toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), SuccessIdTrace(id))(JsonEncoder[B], ev)
       }
     }
     // when you don't have any response, just a success
