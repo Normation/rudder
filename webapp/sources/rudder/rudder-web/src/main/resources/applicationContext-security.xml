@@ -51,12 +51,13 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 <!--    </global-method-security>-->
     <beans:bean id="userSessionInvalidationFilter" class="bootstrap.liftweb.UserSessionInvalidationFilter" />
 
+
     <http pattern="/style/**" security="none"/>
     <http pattern="/images/**" security="none"/>
     <http pattern="/javascript/**" security="none"/>
     <http pattern="/cache-**" security="none"/>
 
-    <http pattern="/api/**" create-session="stateless" entry-point-ref="restAuthenticationEntryPoint">
+    <http pattern="/api/**" create-session="stateless" entry-point-ref="restAuthenticationEntryPoint" name="publicApiSecurityFilter">
       <intercept-url pattern='/**' access="hasRole('ROLE_REMOTE')" />
       <custom-filter position="BASIC_AUTH_FILTER" ref="restAuthenticationFilter" />
       <csrf disabled="true"/>
