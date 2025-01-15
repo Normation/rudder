@@ -1004,6 +1004,7 @@ class RestTestSetUp {
         JsonPluginSystemStatus.Enabled,
         None,
         ParseVersion.parse("2.4.1").getOrElse(throw new Exception("bad version in test")),
+        ParseVersion.parse("8.3.0").getOrElse(throw new Exception("bad version in test")),
         PluginType.Webapp,
         List(
           JsonPluginManagementError(
@@ -1032,6 +1033,7 @@ class RestTestSetUp {
         JsonPluginSystemStatus.Enabled,
         None,
         ParseVersion.parse("2.10").getOrElse(throw new Exception("bad version in test")),
+        ParseVersion.parse("8.3.0").getOrElse(throw new Exception("bad version in test")),
         PluginType.Webapp,
         List(
           JsonPluginManagementError(
@@ -1049,6 +1051,7 @@ class RestTestSetUp {
         JsonPluginSystemStatus.Uninstalled,
         None,
         ParseVersion.parse("2.1").getOrElse(throw new Exception("bad version in test")),
+        ParseVersion.parse("8.3.0").getOrElse(throw new Exception("bad version in test")),
         PluginType.Integration,
         List.empty,
         None

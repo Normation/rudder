@@ -36,8 +36,8 @@
  */
 package com.normation.plugins
 
+import com.normation.plugins.RudderPackagePlugin.AbiVersion
 import com.normation.utils.ParseVersion
-import com.normation.utils.Version
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
@@ -47,10 +47,10 @@ import org.specs2.runner.JUnitRunner
 class PluginSettingTest extends Specification {
 
   "PluginManagementError" should {
-    implicit val rudderVersion:    String  = "8.3.0"
+    implicit val rudderVersion:    String     = "8.3.0"
     // a valid one is the rudder version, override implicit in needed tests cases
-    implicit val pluginAbiVersion: Version =
-      ParseVersion.parse(rudderVersion).getOrElse(throw new Exception("bad version in test"))
+    implicit val pluginAbiVersion: AbiVersion =
+      AbiVersion(ParseVersion.parse(rudderVersion).getOrElse(throw new Exception("bad version in test")))
 
     "list errors from rudder package plugin" in {
 
@@ -110,7 +110,7 @@ class PluginSettingTest extends Specification {
 
         val errors = PluginManagementError.fromRudderPackagePlugin(plugin)(
           rudderVersion,
-          ParseVersion.parse("9.9.9").getOrElse(throw new Exception("bad version in test"))
+          AbiVersion(ParseVersion.parse("9.9.9").getOrElse(throw new Exception("bad version in test")))
         )
         errors must containTheSameElementsAs(
           List(
@@ -141,7 +141,7 @@ class PluginSettingTest extends Specification {
 
         val errors = PluginManagementError.fromRudderPackagePlugin(plugin)(
           rudderVersion,
-          ParseVersion.parse("9.9.9").getOrElse(throw new Exception("bad version in test"))
+          AbiVersion(ParseVersion.parse("9.9.9").getOrElse(throw new Exception("bad version in test")))
         )
         errors must containTheSameElementsAs(
           List(

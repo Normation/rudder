@@ -16,6 +16,9 @@
         contextPath: contextPath
       };
       var app = Elm.Plugins.init({ node: main, flags: initValues });
+      app.ports.successNotification.subscribe(function (message) {
+        createSuccessNotification(message);
+      });
       app.ports.errorNotification.subscribe(function (message) {
         createErrorNotification(message);
       });
