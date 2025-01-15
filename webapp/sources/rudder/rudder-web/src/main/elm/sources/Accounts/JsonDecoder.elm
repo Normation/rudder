@@ -1,6 +1,7 @@
 module Accounts.JsonDecoder exposing (..)
 
 import Accounts.DataTypes as TenantMode exposing (..)
+import Accounts.DataTypes as Token exposing (..)
 import Accounts.DatePickerUtils exposing (stringToPosix)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
@@ -26,7 +27,7 @@ decodeAccount datePickerInfo =
         |> required "kind" string
         |> required "enabled" bool
         |> required "creationDate" string
-        |> required "token" string
+        |> required "token" (string |> andThen toToken)
         |> required "tokenGenerationDate" string
         |> required "expirationDateDefined" bool
         |> optional "expirationDate"
@@ -54,9 +55,19 @@ decodeAcl =
         |> required "verb" string
 
 
+parseToken : String -> ( Token )
+parseToken str =
+  case str of
+    "2" -> Token.Hashed
+    "1" -> Token.ClearText
+    _   -> Token.New str
+
+toToken : String -> Decoder Token
+toToken str =
+    succeed (parseToken str)
+
 
 -- the string for a tenant mode is '*', '-', or a comma separated list of non-empty string
-
 
 parseTenants : String -> ( TenantMode, Maybe (List String) )
 parseTenants str =
