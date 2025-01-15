@@ -772,6 +772,6 @@ bundle agent ncf_augeas(script, if_script, context, path, show_diff, lens)
           "context": "${context}",
           "path": "${path}",
           "show_diff": ${show_diff},
-          "lens": "${lens}",
+          "lens": "${lens}"
         }');
 }
