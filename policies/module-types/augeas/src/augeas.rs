@@ -4,7 +4,6 @@
 use crate::dsl::script::{
     CheckMode, Interpreter, InterpreterOut, InterpreterOutcome, InterpreterPerms,
 };
-use crate::report::diff;
 use crate::{AugeasParameters, RUDDER_LENS_LIB};
 use anyhow::bail;
 use raugeas::{Flags, SaveMode};
@@ -222,23 +221,20 @@ impl Augeas {
                 &p.script,
             )?;
 
+            /*
             if already_exists {
+                dbg!(&p.path);
+
                 // FIXME : bug in preview??
-                dbg!("ONE");
-
                 let content_after1 = interpreter.preview(&p.path)?.unwrap();
-
-                dbg!("ONE");
 
                 interpreter.run(
                     InterpreterPerms::ReadWriteTree,
                     CheckMode::StackErrors,
                     &p.script,
                 )?;
-                dbg!("ONE");
 
                 let content_after2 = interpreter.preview(&p.path)?.unwrap();
-                dbg!("ONE");
 
                 if content_after1 != content_after2 {
                     let diff = diff(&content_after1, &content_after2);
@@ -246,8 +242,10 @@ impl Augeas {
                 }
             }
 
-            // FIXME: comment détecter les non-convergences sur les nouveaux fichiers ??
-            // peut-être pas possible
+
+             */
+
+            // FIXME: try to detect non-convergence on new files too.
 
             // TODO check:
             // - if running twice changes the result (or triggers checks)
@@ -347,7 +345,7 @@ mod tests {
         let r = augeas
             .handle_check_apply(
                 arguments(
-                    format!("set /files{}/1 \"world\"", f.display()),
+                    dbg!(format!("set /files{}/1 \"world\"", f.display())),
                     f.clone(),
                     Some(lens.to_string()),
                 ),

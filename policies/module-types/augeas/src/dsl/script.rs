@@ -5,7 +5,6 @@ use crate::dsl::comparator::{Comparison, NumComparator};
 use crate::dsl::value_type::ValueType;
 use crate::dsl::{parser, AugPath, Sub, Value};
 use anyhow::{anyhow, bail, Result};
-use miette::{miette, LabeledSpan, NamedSource, Severity};
 use nom::Finish;
 use raugeas::{Augeas, Position};
 use rudder_module_type::{rudder_debug, rudder_trace};
@@ -291,8 +290,6 @@ impl<'a> Interpreter<'a> {
                 if value_type.check(&value).is_ok() {
                     rudder_debug!("type of {value} is {value_type}");
                 } else {
-                    let span = self.aug.span(path).unwrap().unwrap();
-
                     rudder_debug!("type of {value} is NOT {value_type}");
                 }
                 InterpreterOut::ok()

@@ -27,15 +27,19 @@ impl Runner {
         mode: PolicyMode,
         parameters: Value,
     ) -> Result<(), anyhow::Error> {
+        dbg!(&self.agent_info.node_id);
+
         let parameters = serde_json::from_value(parameters)?;
 
-        let result = module.init();
+        let _result = module.init();
+        // FIXME: make it a std Result.
         //if result.is_err() {
         //    return result;
         //}
 
         let result = module.validate(&parameters);
         if result.is_err() {
+            dbg!(&result);
             return result;
         }
 

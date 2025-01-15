@@ -22,8 +22,9 @@ pub enum PasswordPolicy {
     Score(Score),
     /// Minimum length of the password and different character classes.
     ///
+    /// TLUDS:
     /// total length, lowercase, uppercase, digits, special characters
-    TLUDS(u8, u8, u8, u8, u8),
+    Criteria(u8, u8, u8, u8, u8),
 }
 
 impl PasswordPolicy {
@@ -54,13 +55,13 @@ impl PasswordPolicy {
                         entropy.score(),
                         s,
                         feedback
-                            .map(|f| Self::format_feedback(f))
+                            .map(Self::format_feedback)
                             .unwrap_or("".to_string())
                     );
                     return Err(anyhow::anyhow!(message));
                 }
             }
-            PasswordPolicy::TLUDS(t, l, u, d, s) => {
+            PasswordPolicy::Criteria(t, l, u, d, s) => {
                 if password.len() < *t as usize {
                     return Err(anyhow::anyhow!(
                         "The password is too short: {} < {}",
@@ -89,7 +90,7 @@ impl PasswordPolicy {
                     }
                 }
                 if *d > 0u8 {
-                    let d_count = password.chars().filter(|c| c.is_digit(10)).count();
+                    let d_count = password.chars().filter(|c| c.is_ascii_digit()).count();
                     if d_count < *d as usize {
                         return Err(anyhow::anyhow!(
                             "The password does not contain enough digits: {} < {}",

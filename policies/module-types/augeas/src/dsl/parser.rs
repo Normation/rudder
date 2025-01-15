@@ -4,11 +4,9 @@
 use crate::dsl::script::Expr;
 use crate::dsl::value_type::ValueType;
 use nom::branch::alt;
-use nom::bytes::complete::{escaped, is_not, tag};
-use nom::character::complete::{
-    alpha1, alphanumeric1, char, line_ending, multispace0, not_line_ending, one_of, space0,
-};
-use nom::combinator::{cut, eof, map_res, not, opt};
+use nom::bytes::complete::{is_not, tag};
+use nom::character::complete::{alpha1, char, line_ending, multispace0, not_line_ending, space0};
+use nom::combinator::{eof, map_res, not, opt};
 use nom::error::VerboseError;
 use nom::multi::{many0, separated_list0};
 use nom::sequence::delimited;
@@ -238,7 +236,7 @@ pub fn script(input: &str) -> IResult<&str, Vec<Expr>, VerboseError<&str>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::dsl::parser::{arg_array, expression, line, script};
+    use crate::dsl::parser::{expression, line, script};
     use crate::dsl::script::*;
     use crate::dsl::value_type::ValueType;
     use raugeas::Position;
@@ -256,14 +254,6 @@ mod tests {
         let input = "match /files/etc not_include token";
         let expected = Expr::MatchNotInclude("/files/etc".into(), "token");
         let result = expression(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_arg_array() {
-        let input = "[arg1, 'arg2', \"arg3\"]";
-        let expected = vec!["arg1", "arg2", "arg3"];
-        let result = arg_array(input).unwrap();
         assert_eq!(result.1, expected);
     }
 

@@ -15,7 +15,7 @@ use crate::{cfengine::CfengineRunner, parameters::Parameters};
 pub mod cfengine;
 pub mod os_release;
 pub mod parameters;
-mod runner;
+pub mod runner;
 
 /// Information about the module type to pass to the library
 ///

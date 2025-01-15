@@ -9,11 +9,11 @@ use crate::dsl::comparator::{Comparison, NumComparator};
 use crate::dsl::value_type::ValueType;
 use crate::dsl::{AugPath, Sub};
 use ariadne::{sources, Color, Label, Report, ReportKind};
+use chumsky::prelude::*;
 use chumsky::Parser;
-use chumsky::{input::BorrowInput, prelude::*};
 use raugeas::Position;
 use std::collections::HashMap;
-use std::{env, fmt, fs};
+use std::fmt;
 use zxcvbn::Score;
 
 pub type Span = SimpleSpan;
@@ -282,13 +282,6 @@ fn parser<'a>() -> impl Parser<'a, &'a str, Vec<Spanned<Expr<'a>>>, extra::Err<R
         .ignore_then(string.clone())
         .map(|path: &str| Expr::Touch(path.into()))
         .boxed();
-    let insert = just("insert")
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone())
-        .then(string.clone())
-        .map(|((label, pos), path): ((&str, Position), &str)| Expr::Insert(label, pos, path.into()))
-        .boxed();
     let move_ = just("move")
         .padded()
         .ignore_then(string.clone())
@@ -307,144 +300,14 @@ fn parser<'a>() -> impl Parser<'a, &'a str, Vec<Spanned<Expr<'a>>>, extra::Err<R
         .then(string.clone())
         .map(|(path, label): (&str, &str)| Expr::Rename(path.into(), label))
         .boxed();
-    let compare = just("compare")
-        .padded()
-        .ignore_then(string.clone())
-        .then(NumComparator::parser())
-        .map(|(path, comp): (&str, NumComparator)| Expr::Compare(path.into(), comp))
-        .boxed();
-    let values_include = just("values_include")
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone())
-        .map(|(path, value): (&str, &str)| Expr::ValuesInclude(path.into(), value))
-        .boxed();
-    let values_not_include = just("values_not_include")
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone())
-        .map(|(path, value): (&str, &str)| Expr::ValuesNotInclude(path.into(), value))
-        .boxed();
-    let values_equal = just("values_equal")
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone().repeated())
-        .map(|(path, values): (&str, Vec<&str>)| Expr::ValuesEqual(path.into(), values))
-        .boxed();
-    let values_not_equal = just("values_not_equal")
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone().repeated())
-        .map(|(path, values): (&str, Vec<&str>)| Expr::ValuesNotEqual(path.into(), values))
-        .boxed();
-    let match_include = just("match_include")
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone())
-        .map(|(path, value): (&str, &str)| Expr::MatchInclude(path.into(), value))
-        .boxed();
-    let match_not_include = just("match_not_include")
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone())
-        .map(|(path, value): (&str, &str)| Expr::MatchNotInclude(path.into(), value))
-        .boxed();
-    let match_equal = just("match_equal")
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone().repeated().to_slice().collect())
-        .map(|(path, values): (&str, Vec<&str>)| Expr::MatchEqual(path.into(), values))
-        .boxed();
-    let match_not_equal = just("match_not_equal")
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone().repeated())
-        .map(|(path, values): (&str, Vec<&str>)| Expr::MatchNotEqual(path.into(), values))
-        .boxed();
-    let match_size = just("match_size")
-        .padded()
-        .ignore_then(string.clone())
-        .then(NumComparator::parser())
-        .then(
-            text::digits(10)
-                .to_slice()
-                .map(|s: &str| s.parse().unwrap()),
-        )
-        .map(|((path, comp), size): (&str, NumComparator, usize)| {
-            Expr::MatchSize(path.into(), comp, size)
-        })
-        .boxed();
-    let has_type = just("has_type")
-        .padded()
-        .ignore_then(string.clone())
-        .then(ValueType::parser())
-        .map(|(path, ty): (&str, ValueType)| Expr::HasType(path.into(), ty))
-        .boxed();
-    let str_len = just("str_len")
-        .padded()
-        .ignore_then(string.clone())
-        .then(NumComparator::parser())
-        .then(
-            text::digits(10)
-                .to_slice()
-                .map(|s: &str| s.parse().unwrap()),
-        )
-        .map(|(path, comp, size): (&str, NumComparator, usize)| {
-            Expr::StrLen(path.into(), comp, size)
-        })
-        .boxed();
-    let password_score = just("password_score")
-        .padded()
-        .ignore_then(string.clone())
-        .then(
-            text::digits(10)
-                .to_slice()
-                .map(|s: &str| s.parse().unwrap()),
-        )
-        .map(|(path, score): (&str, Score)| Expr::PasswordScore(path.into(), score))
-        .boxed();
-    let password_luds = just("password_luds")
-        .padded()
-        .ignore_then(string.clone())
-        .then(
-            text::digits(10)
-                .to_slice()
-                .map(|s: &str| s.parse().unwrap()),
-        )
-        .then(
-            text::digits(10)
-                .to_slice()
-                .map(|s: &str| s.parse().unwrap()),
-        )
-        .then(
-            text::digits(10)
-                .to_slice()
-                .map(|s: &str| s.parse().unwrap()),
-        )
-        .then(
-            text::digits(10)
-                .to_slice()
-                .map(|s: &str| s.parse().unwrap()),
-        )
-        .then(
-            text::digits(10)
-                .to_slice()
-                .map(|s: &str| s.parse().unwrap()),
-        )
-        .map(|(((path, l), u), d, s, n): (&str, u8, u8, u8, u8, u8)| {
-            Expr::PasswordLUDS(path.into(), l, u, d, s, n)
-        })
-        .boxed();
 
-    let cmd = text::ascii::ident().map(|ident: &str| match ident {
-        "save" => Expr::Save,
-        "quit" => Expr::Quit,
-        "load" => Expr::Load,
-        _ => todo!(),
-    });
+    let save = just("save").to(Expr::Save).boxed();
+    let quit = just("quit").to(Expr::Quit).boxed();
+    let load = just("load").to(Expr::Load).boxed();
 
     choice((
-        set, setm, defnode, defvar, remove, clear, clearm, touch, cmd,
+        set, setm, defnode, defvar, move_, remove, copy, rename, clear, clearm, touch, save, quit,
+        load,
     ))
     .map_with(|expr, e| (expr, e.span()))
     .padded_by(comment.repeated())
