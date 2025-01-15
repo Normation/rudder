@@ -1,51 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2024 Normation SAS
+// SPDX-FileCopyrightText: 2024 Normation SAS ;
 
-mod augeas;
-mod dsl;
-mod parameters;
+use anyhow::Result;
 
-use crate::parameters::AugeasParameters;
-use anyhow::{bail, Result};
-use augeas::Augeas;
-use rudder_module_type::cfengine::called_from_agent;
-use rudder_module_type::{
-    parameters::Parameters, run_module, CheckApplyResult, ModuleType0, ModuleTypeMetadata,
-    PolicyMode, ValidateResult,
-};
-use serde_json::Value;
+// transofrmer un diff en conf augeas??
+// outil pour savoir comment écrire le set ??
+// ou pour prendre l'état d'un fichier ?
 
-pub const RUDDER_LENS_LIB: &str = "/var/rudder/lib/lenses";
+// voir si les span peuvent ider à faire du debug/reporting
 
-impl ModuleType0 for Augeas {
-    fn metadata(&self) -> ModuleTypeMetadata {
-        let meta = include_str!("../rudder_module_type.yml");
-        let docs = include_str!("../README.md");
-        ModuleTypeMetadata::from_metadata(meta)
-            .expect("invalid metadata")
-            .documentation(docs)
-    }
+// diff de valeur pour les audits TODO
 
-    fn validate(&self, parameters: &Parameters) -> ValidateResult {
-        let parameters: AugeasParameters =
-            serde_json::from_value(Value::Object(parameters.data.clone()))?;
-        parameters.validate(None)
-    }
+// implémenter une commande pour le diff!
+// intercepter le help et le modifier!
 
-    fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
-        let p: AugeasParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
-        p.validate(Some(mode))?;
+// Pourquoi pas du srun : pour pouvoir interrompre au premier problème
 
-        self.handle_check_apply(p, mode)
-    }
-}
+// très important!
+// https://github.com/hercules-team/augeas/issues/68
+// https://github.com/dominikh/go-augeas/blob/master/augeas.go
+
+// diff de valeur d'audit expected vs constraint
+
+// diff de valeur sur les set ??
+
+// observabilité d'augeas !
 
 fn main() -> Result<(), anyhow::Error> {
-    let promise_type = Augeas::new()?;
-
-    if called_from_agent() {
-        run_module(promise_type)
-    } else {
-        bail!("Only agent mode is supported, use 'augtool' for manual testing")
-    }
+    rudder_module_augeas::entry()
 }
