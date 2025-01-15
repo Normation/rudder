@@ -1,6 +1,5 @@
 mod os_release;
 pub mod packages;
-mod properties;
 
 use std::{env, fs, fs::read_to_string, path::PathBuf, process::Command, str};
 

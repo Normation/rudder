@@ -16,7 +16,6 @@
 #
 #####################################################################################
 
-
 bundle edit_line ncf_insert_block(block)
 {
   insert_lines:
@@ -741,4 +740,38 @@ body file_select date_pattern(age, pattern)
     mtime       => irange("0", ago(0,0,"${age}",0,0,0));
     leaf_name   => { "${pattern}" };
     file_result => "leaf_name.mtime";
+}
+
+########################################################################
+# Custom promise type                                                  #
+########################################################################
+
+promise agent augeas
+{
+  path => "/opt/rudder/bin/rudder-module-augeas";
+}
+
+bundle agent ncf_augeas(script, if_script, context, path, show_diff, lens)
+{
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  pass2.!pass3::
+    augeas:
+      "${report_data.method_id}"
+        rudder_module_protocol  => "0",
+        state_dir               => "/var/rudder/system-update/",
+        node_id                 => "${g.uuid}",
+        agent_frequency_minutes => "${g.agent_run_interval}",
+        classes                 => classes_generic("${report_data.method_id}"),
+        data                    => parsejson('{
+          "script": "${script}",
+          "if_script": "${if_script}",
+          "context": "${context}",
+          "path": "${path}",
+          "show_diff": ${show_diff},
+          "lens": "${lens}"
+        }');
 }

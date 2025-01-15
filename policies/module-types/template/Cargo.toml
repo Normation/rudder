@@ -1,7 +1,7 @@
 [package]
 name = "rudder-module-template"
 version = "0.0.0-dev"
-description = "Directory management"
+description = "Template management"
 authors.workspace = true
 edition.workspace = true
 homepage.workspace = true

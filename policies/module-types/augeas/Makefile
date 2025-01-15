@@ -1,1 +1,5 @@
-../../../rust.makefile
+include ../../../rust.makefile
+
+check: lint
+	cargo test
+
