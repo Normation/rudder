@@ -311,7 +311,7 @@ showTechnique model technique origin ui editInfo =
                       case call of
                        Call parentId c ->
                          let
-                           methodUi = Maybe.withDefault (MethodCallUiInfo Closed CallParameters Unchanged) (Dict.get c.id.value ui.callsUI    )
+                           methodUi = Maybe.withDefault (MethodCallUiInfo Closed CallParameters Unchanged (ForeachUI False False (defaultNewForeach c.foreachName c.foreach))) (Dict.get c.id.value ui.callsUI)
                          in
                            showMethodCall model methodUi ui parentId c
                        Block parentId b ->

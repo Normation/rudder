@@ -14,7 +14,9 @@ import Dom.DragDrop as DragDrop
 
 import Compliance.Utils exposing (buildTooltipContent)
 
+
 import Editor.DataTypes exposing (..)
+import Editor.MethodElemUtils exposing (defaultNewForeach)
 
 
 --
@@ -205,14 +207,14 @@ showMethod ui method mode dnd =
     methodUi =
       case mode of
         TechniqueDetails _ _ techUiInfo _ ->
-          Maybe.withDefault (MethodCallUiInfo Closed CallParameters Unchanged) (Dict.get method.id.value techUiInfo.callsUI)
-        _  -> (MethodCallUiInfo Closed CallParameters Unchanged)
+          Maybe.withDefault (MethodCallUiInfo Closed CallParameters Unchanged (ForeachUI False False (defaultNewForeach Nothing Nothing))) (Dict.get method.id.value techUiInfo.callsUI)
+        _  -> (MethodCallUiInfo Closed CallParameters Unchanged (ForeachUI False False (defaultNewForeach Nothing Nothing)))
   in
     element "li"
     |> appendChild
        ( element "div"
        |> DragDrop.makeDraggable dnd (NewMethod method) dragDropMessages
-       |> addAttributeList  attributes   --ng-class="{'used':isUsed(method)
+       |> addAttributeList attributes
        |> appendChildList
           [ element "div"
             |> addClass "cursorMove"

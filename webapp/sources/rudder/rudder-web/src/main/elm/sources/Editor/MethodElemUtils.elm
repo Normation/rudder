@@ -1,7 +1,6 @@
 module Editor.MethodElemUtils exposing (..)
 
-import Html exposing (Html, label)
-import Html.Attributes exposing (class)
+import Dict exposing (Dict)
 import List.Extra
 
 import Editor.DataTypes exposing (..)
@@ -122,3 +121,21 @@ policyModeValue pm =
         Nothing -> "default"
         Just Audit -> "audit"
         Just Enforce -> "enforce"
+
+defaultNewForeach : Maybe String -> Maybe (List (Dict String String)) -> NewForeach
+defaultNewForeach foreachName foreach =
+  let
+    (newKeys, newItem) = case foreach of
+      Nothing -> ([], Dict.empty)
+      Just f ->
+        let
+          keys = f
+            |> List.concatMap (\k -> Dict.keys k)
+            |> List.Extra.unique
+          items = keys
+            |> List.map(\k -> (k, ""))
+            |> Dict.fromList
+        in
+          (keys, items)
+  in
+    NewForeach (Maybe.withDefault "" foreachName) newKeys "" newItem
