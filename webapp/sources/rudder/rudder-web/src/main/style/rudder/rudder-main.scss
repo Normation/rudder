@@ -2866,10 +2866,9 @@ $node-logo-size: 50px;
   &.windows2012r2,
   &.windows2016,
   &.windows2016r2,
-  &.windows2019{
-    background-image: url(../../images/os/windows-2012-logo.svg);
-  }
-  &.windows2022{
+  &.windows2019,
+  &.windows2022,
+  &.windows2025{
     background-image: url(../../images/os/windows-2012-logo.svg);
   }
   &.aix{
