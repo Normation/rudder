@@ -201,6 +201,7 @@ object LDAPConstants {
   val A_OS_WIN_2016_R2     = "Windows2016R2"
   val A_OS_WIN_2019        = "Windows2019"
   val A_OS_WIN_2022        = "Windows2022"
+  val A_OS_WIN_2025        = "Windows2025"
   val A_OS_UNKNOWN_LINUX   = "Unknown Linux version"
   val A_OS_DEBIAN          = "Debian"
   val A_OS_KALI            = "Kali"

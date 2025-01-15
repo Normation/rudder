@@ -773,6 +773,7 @@ class InventoryMapper(
           case Windows2016R2 => win.addValues(A_OS_NAME, A_OS_WIN_2016_R2)
           case Windows2019   => win.addValues(A_OS_NAME, A_OS_WIN_2019)
           case Windows2022   => win.addValues(A_OS_NAME, A_OS_WIN_2022)
+          case Windows2025   => win.addValues(A_OS_NAME, A_OS_WIN_2025)
           case _             => win.addValues(A_OS_NAME, A_OS_UNKNOWN_WINDOWS)
         }
         win.setOpt(userDomain, A_WIN_USER_DOMAIN, (x: String) => x)
@@ -926,6 +927,7 @@ class InventoryMapper(
                            case A_OS_WIN_2016_R2 => Windows2016R2
                            case A_OS_WIN_2019    => Windows2019
                            case A_OS_WIN_2022    => Windows2022
+                           case A_OS_WIN_2025    => Windows2025
                            case _                => UnknownWindowsType
                          }
                          val userDomain          = entry(A_WIN_USER_DOMAIN)
