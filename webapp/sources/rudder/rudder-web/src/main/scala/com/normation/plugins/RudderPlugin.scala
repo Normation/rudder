@@ -414,7 +414,6 @@ class PluginSystemServiceImpl(
     implicit val minVersion: MinVersion = MinVersion("0.0.0-0.0.0")
     implicit val maxVersion: MaxVersion = MaxVersion("99.99.0-99.99.0")
     implicit val maxNodes:   MaxNodes   = MaxNodes(None)
-    implicit val abiVersion: Version    = Version(0, PartType.Numeric(1), List.empty)
   }
 
   private def mergePluginDef(p: RudderPackagePlugin) = {
@@ -423,7 +422,9 @@ class PluginSystemServiceImpl(
       .get(PluginName("rudder-plugin-" + p.name)) // rudder package name does not have the prefix used in names
       .flatMap(pluginDef => {
         val details = pluginDef.toJsonPluginDetails
-        implicit val abiVersion: Version = pluginDef.version.rudderAbi
+        implicit val abiVersion:    RudderPackagePlugin.AbiVersion    = RudderPackagePlugin.AbiVersion(pluginDef.version.rudderAbi)
+        implicit val pluginVersion: RudderPackagePlugin.PluginVersion =
+          RudderPackagePlugin.PluginVersion(pluginDef.version.pluginVersion)
 
         // plugin listed from rudder package but with no license information :
         // - we can parse version, or else return one that is different
@@ -439,6 +440,15 @@ class PluginSystemServiceImpl(
       .getOrElse {
         // default implicits
         import defaultValues.*
+
+        // we need to attempt to parse versions from latest available version
+        val bothVersions   = p.latestVersion.flatMap(PluginVersion.from)
+        def defaultVersion = Version(0, PartType.Numeric(0), List.empty)
+        implicit val abiVersion:    RudderPackagePlugin.AbiVersion    =
+          RudderPackagePlugin.AbiVersion(bothVersions.map(_.rudderAbi).getOrElse(defaultVersion))
+        implicit val pluginVersion: RudderPackagePlugin.PluginVersion =
+          RudderPackagePlugin.PluginVersion(bothVersions.map(_.pluginVersion).getOrElse(defaultVersion))
+
         p.transformInto[JsonPluginSystemDetails]
       }
   }

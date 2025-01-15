@@ -370,7 +370,7 @@ object PluginManagementError       {
 
   def fromRudderPackagePlugin(
       plugin: RudderPackagePlugin
-  )(implicit rudderFullVersion: String, abiVersion: Version): List[PluginManagementError] = {
+  )(implicit rudderFullVersion: String, abiVersion: RudderPackagePlugin.AbiVersion): List[PluginManagementError] = {
     List(
       validateAbiVersion(rudderFullVersion, abiVersion),
       validateLicenseNeeded(plugin.requiresLicense, plugin.license),
@@ -378,8 +378,11 @@ object PluginManagementError       {
     ).flatten
   }
 
-  private def validateAbiVersion(rudderFullVersion: String, abiVersion: Version): Option[RudderAbiVersionError] = {
-    if (rudderFullVersion != abiVersion.toVersionString)
+  private def validateAbiVersion(
+      rudderFullVersion: String,
+      abiVersion:        RudderPackagePlugin.AbiVersion
+  ): Option[RudderAbiVersionError] = {
+    if (rudderFullVersion != abiVersion.value.toVersionString)
       Some(RudderAbiVersionError(rudderFullVersion))
     else
       None
@@ -449,6 +452,7 @@ final case class JsonPluginSystemDetails(
     version:       Option[String],
     status:        JsonPluginSystemStatus,
     statusMessage: Option[String],
+    pluginVersion: Version,
     abiVersion:    Version,
     pluginType:    PluginType,
     errors:        List[JsonPluginManagementError],
@@ -492,11 +496,13 @@ final case class RudderPackagePlugin(
 )
 object RudderPackagePlugin     {
   // types for passing implicits
-  final case class Licensee(value: String)      extends AnyVal
-  final case class SoftwareId(value: String)    extends AnyVal
-  final case class MinVersion(value: String)    extends AnyVal
-  final case class MaxVersion(value: String)    extends AnyVal
-  final case class MaxNodes(value: Option[Int]) extends AnyVal
+  final case class Licensee(value: String)       extends AnyVal
+  final case class SoftwareId(value: String)     extends AnyVal
+  final case class MinVersion(value: String)     extends AnyVal
+  final case class MaxVersion(value: String)     extends AnyVal
+  final case class MaxNodes(value: Option[Int])  extends AnyVal
+  final case class AbiVersion(value: Version)    extends AnyVal
+  final case class PluginVersion(value: Version) extends AnyVal
 
   // License representation is limited to these fields in rudder package
   @jsonMemberNames(SnakeCase)
@@ -534,7 +540,8 @@ object RudderPackagePlugin     {
     */
   implicit def transformer(implicit
       rudderFullVersion: String,
-      abiVersion:        Version,
+      abiVersion:        AbiVersion,
+      pluginVersion:     PluginVersion,
       transformLicense:  Transformer[LicenseInfo, PluginLicenseInfo]
   ): Transformer[RudderPackagePlugin, JsonPluginSystemDetails] = {
     val _ = transformLicense // variable is used below
@@ -552,7 +559,8 @@ object RudderPackagePlugin     {
         }
       )
       .withFieldComputed(_.version, l => l.version.orElse(l.latestVersion)) // version : only when installed
-      .withFieldConst(_.abiVersion, abiVersion) // field is computed upstream
+      .withFieldConst(_.abiVersion, abiVersion.value)       // field is computed upstream
+      .withFieldConst(_.pluginVersion, pluginVersion.value) // field is computed upstream
       .withFieldComputed(_.pluginType, p => if (p.webappPlugin) PluginType.Webapp else PluginType.Integration)
       .withFieldConst(_.statusMessage, None)
       .withFieldComputed(

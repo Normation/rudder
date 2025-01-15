@@ -12,8 +12,11 @@ subscriptions model =
 init : { contextPath : String } -> ( Model, Cmd Msg )
 init flags =
     let
+        initUI =
+            UI [] Nothing
+
         initModel =
-            Model flags.contextPath []
+            Model flags.contextPath noGlobalLicense [] initUI
     in
     ( initModel
     , getPluginInfos initModel
