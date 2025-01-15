@@ -44,7 +44,7 @@ impl ModuleType0 for Augeas {
 
         self.handle_check_apply(p, mode)
 
-        // FIXME : reporting structuré, sérialisé ici
+        // FIXME : structured reporting, serialize late
         //         also to be used tests!
     }
 }
