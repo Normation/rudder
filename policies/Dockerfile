@@ -19,7 +19,7 @@ RUN <<EOF
 set -e
 wget https://github.com/PowerShell/PowerShell/releases/download/v7.4.0/powershell_7.4.0-1.deb_amd64.deb
 apt-get install ./powershell_7.4.0-1.deb_amd64.deb
-apt-get update && apt-get install -y rsync msitools libapt-pkg-dev libaugeas-dev
+apt-get update && apt-get install -y rsync msitools libapt-pkg-dev libaugeas-dev clang
 # ignore postinst failures
 curl https://repository.rudder.io/tools/rudder-setup | sed 's/rudder agent \(.*\)/rudder agent \1 \| true/g' | bash -s setup-agent $RUDDER_VER
 pwsh -Command Install-Module -Name PSScriptAnalyzer -RequiredVersion $PSANALYZER_VERSION -Scope AllUsers -Confirm:\$false -Force
