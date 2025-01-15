@@ -38,6 +38,7 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.errors.Inconsistency
+import com.normation.plugins.JsonPluginsSystemDetails
 import com.normation.plugins.PluginId
 import com.normation.plugins.PluginSettings
 import com.normation.plugins.PluginSystemService
@@ -49,6 +50,7 @@ import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.PluginInternalApi as API
 import com.normation.rudder.rest.RudderJsonRequest.*
+import com.normation.rudder.rest.RudderJsonResponse
 import com.normation.rudder.rest.implicits.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
@@ -84,7 +86,8 @@ class PluginInternalApi(
         .list()
         .chainError("Could not get plugins list")
         .tapError(err => ApplicationLoggerPure.Plugin.error(err.fullMsg))
-        .toLiftResponseList(params, schema)
+        .map(_.left.map(c => RudderJsonResponse.UnauthorizedError(Some(c.fullMsg))).map(JsonPluginsSystemDetails.buildDetails))
+        .toLiftResponseOneEither[JsonPluginsSystemDetails](params, schema, None)
     }
 
   }
