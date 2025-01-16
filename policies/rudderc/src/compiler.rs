@@ -244,7 +244,7 @@ fn check_block(block: &Block) -> Result<()> {
                 if &r.id == id {
                     true
                 } else {
-                    r.items.iter().map(|r| is_id_child(r, id)).any(|t| t)
+                    r.items.iter().any(|r| is_id_child(r, id))
                 }
             }
             ItemKind::Method(r) => &r.id == id,

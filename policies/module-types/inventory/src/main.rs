@@ -1,3 +1,6 @@
+#![allow(clippy::regex_creation_in_loops)]
+#![allow(dead_code)]
+
 mod os_release;
 pub mod packages;
 
