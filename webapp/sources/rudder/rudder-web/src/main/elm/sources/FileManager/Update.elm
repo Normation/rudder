@@ -136,9 +136,13 @@ update msg model = case msg of
       | showContextMenu = False
       }
       , Cmd.batch
-      <| map (File.Download.url << (++) (model.downloadsUrl  ++ "?action=download&path=" ++ (getDirPath model.dir)) << .name)
+      <| map (download model.downloadsUrl model.dir)
       <| filter (.type_ >> (/=) "dir") model.selected
     )
+  Downloaded fileMeta (Ok bytes) ->
+    (model, File.Download.bytes fileMeta.name fileMeta.type_ bytes)
+  Downloaded fileMeta (Err err) ->
+    (model, processApiError ("downloading file " ++ fileMeta.name) err)
   Cut -> ({ model | clipboardDir = (getDirPath model.dir), clipboardFiles = model.selected, showContextMenu = False }, Cmd.none)
   Paste -> if (getDirPath model.dir) == model.clipboardDir
     then ({ model | clipboardFiles = [], showContextMenu = False }, Cmd.none)
