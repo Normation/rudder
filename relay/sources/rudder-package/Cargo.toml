@@ -36,14 +36,14 @@ cli-table = "0.4.7"
 sequoia-openpgp = "1"
 spinners = "4.1.1"
 rudder_cli = { path = "../../../policies/rudder-cli" }
-itertools = "0.13"
+itertools = "0.14"
 
 [build-dependencies]
 clap = { version = "4.5.11", features = ["derive"] }
 clap_complete = "4.5.10"
 
 [dev-dependencies]
-rstest = "0.23.0"
+rstest = "0.24.0"
 assert-json-diff = "2.0.2"
 dir-diff = "0.3.2"
 pretty_assertions = "1.4.0"

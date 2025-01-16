@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
+#![allow(clippy::regex_creation_in_loops)]
+
 pub mod logs;
 pub mod methods;
 pub mod report;
