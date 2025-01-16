@@ -2,12 +2,11 @@ module Rules.ViewRuleDetails exposing (..)
 
 import Compliance.Utils exposing (badgePolicyMode)
 import Html exposing (Html, a, button, div, h1, i, li, p, span, text, ul)
-import Html.Attributes exposing (attribute, class, disabled, id, style, title, type_)
+import Html.Attributes exposing (attribute, class, id, style, type_)
 import Html.Events exposing (onClick)
 import List exposing (filter, length, member)
 import List.Extra
 import Maybe.Extra
-import Rules.ApiCalls exposing (..)
 import Rules.DataTypes exposing (..)
 import Rules.ViewTabContent exposing (tabContent)
 import Rules.ViewUtils exposing (btnSave, countRecentChanges, getGroupsNbResourcesBadge, getNbResourcesBadge, getRuleNbGroups, getRuleNbNodes)

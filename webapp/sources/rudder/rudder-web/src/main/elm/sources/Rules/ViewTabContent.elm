@@ -1,17 +1,12 @@
 module Rules.ViewTabContent exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
-import List
-import List.Extra
 import Rules.DataTypes exposing (..)
 import Rules.ViewRepairedReports exposing (technicalLogsTab)
 import Rules.ViewTabDirectives exposing (directivesTab)
 import Rules.ViewTabGroups exposing (groupsTab)
 import Rules.ViewTabInformation exposing (informationTab)
 import Rules.ViewTabNodes exposing (nodesTab)
-import Ui.Datatable exposing (Category, SortOrder(..), getSubElems)
 
 
 

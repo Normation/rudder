@@ -10,7 +10,6 @@ import List.Extra
 import Maybe.Extra exposing (isNothing)
 import NaturalOrdering as N
 import Rules.ApiCalls exposing (..)
-import Rules.ChangeRequest exposing (ChangeRequestSettings)
 import Rules.DataTypes exposing (..)
 import Rules.ViewCategoryDetails exposing (..)
 import Rules.ViewRuleDetails exposing (..)

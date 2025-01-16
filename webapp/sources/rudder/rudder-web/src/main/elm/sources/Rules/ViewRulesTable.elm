@@ -1,7 +1,7 @@
 module Rules.ViewRulesTable exposing (..)
 
 import Compliance.Html exposing (buildComplianceBar)
-import Compliance.Utils exposing (badgePolicyMode, defaultComplianceFilter, getAllComplianceValues)
+import Compliance.Utils exposing (defaultComplianceFilter, getAllComplianceValues)
 import Html exposing (Html, div, i, span, td, text, tr)
 import Html.Attributes exposing (attribute, class, colspan, title)
 import Html.Events exposing (onClick)
@@ -11,6 +11,7 @@ import Rules.DataTypes exposing (..)
 import Rules.ViewUtils exposing (..)
 import String
 import Ui.Datatable exposing (SortOrder(..), filterSearch)
+import Ui.Utils exposing (badgePolicyMode)
 
 
 
