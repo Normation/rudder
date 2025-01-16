@@ -22,6 +22,7 @@ import Compliance.DataTypes exposing (..)
 import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance, defaultComplianceFilter)
 import Compliance.Html exposing (buildComplianceBar)
 import Ui.Datatable exposing (SortOrder(..), filterSearch, Category, getSubElems, getAllElems)
+import Ui.Utils exposing (badgePolicyMode)
 
 
 --
