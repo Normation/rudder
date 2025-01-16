@@ -357,6 +357,7 @@ filtersView model =
   let 
     filters = model.ui.ruleFilters
     complianceFilters = model.ui.complianceFilters
+    complianceScope = model.complianceScope
     isGlobalMode = isGlobalCompliance model
   in 
     div [class "table-header extra-filters"]
@@ -398,6 +399,8 @@ filtersView model =
           [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
           , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
           ]
+        , button [class "btn btn-default btn-sm btn-refresh", onClick (RefreshCompliance complianceScope)]
+          [ i [class "fa fa-refresh"][] ]
         ]
       , displayComplianceFilters complianceFilters UpdateComplianceFilters
       ]

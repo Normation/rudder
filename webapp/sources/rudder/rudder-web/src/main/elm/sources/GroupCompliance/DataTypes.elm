@@ -94,6 +94,7 @@ type Msg
   | GetPolicyModeResult (Result Error String)
   | GetGroupComplianceResult (Result Error GroupCompliance)
   --| Export (Result Error String) --TODO: later
+  | RefreshCompliance ComplianceScope
   | CallApi  (Model -> Cmd Msg)
   | LoadCompliance ComplianceScope
 
