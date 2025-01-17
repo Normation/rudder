@@ -367,7 +367,7 @@ showMethodTab model method parentId call uiInfo=
           ]
         ]
       ]
-    ForEach     ->
+    ForEach ->
       let
         foreachUI = uiInfo.foreachUI
         newForeach = foreachUI.newForeach
@@ -469,8 +469,21 @@ showMethodTab model method parentId call uiInfo=
                             val = case Dict.get k f of
                               Just v -> v
                               Nothing -> ""
+
+                            updateForeachVal : String -> List (Dict String String) -> Dict String String -> Maybe (List (Dict String String))
+                            updateForeachVal newVal list currentForeach =
+                              Just (List.Extra.updateIf (\i -> i == currentForeach) (\i -> Dict.update k (always (Just newVal)) i) list)
                           in
-                            td[][span[][text val]]
+                            td[]
+                              [ input
+                                [ type_ "text"
+                                , value val
+                                , class "form-control input-sm"
+                                , onInput(\s ->
+                                  (MethodCallModified (Call (Just call.id) {call | foreach = (updateForeachVal s foreach f) }))
+                                )
+                                ][]
+                              ]
                         )
                       actionBtns =
                         [ td[class "text-center"]

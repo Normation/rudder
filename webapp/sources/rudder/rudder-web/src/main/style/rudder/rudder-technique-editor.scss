@@ -1635,6 +1635,16 @@ ul li.hide-method {
         min-width: 100px;
       }
     }
+    td{
+      vertical-align: middle;
+      padding: 6px;
+    }
+    tr.item-foreach.new{
+      border-top: 2px solid $rudder-border-color-default !important;
+      td{
+        background-color: $rudder-bg-light-gray !important;
+      }
+    }
   }
 }
 
