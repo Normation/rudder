@@ -3283,8 +3283,7 @@ dependencies = [
 [[package]]
 name = "raugeas"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42af285eec9192e9882b0683c03de6128a99509c830e589de8e075e9f5990937"
+source = "git+https://github.com/Normation/raugeas#331e4368d0dd9e6cc191dd8904a2814658cf2de4"
 dependencies = [
  "bitflags 2.8.0",
  "libc",
@@ -3294,8 +3293,7 @@ dependencies = [
 [[package]]
 name = "raugeas_sys"
 version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae9dc7ba072353d6dff50ade0ffc23a679c7f645ac0c21ae7edb7efa22f8a1f9"
+source = "git+https://github.com/Normation/raugeas#331e4368d0dd9e6cc191dd8904a2814658cf2de4"
 dependencies = [
  "bindgen 0.70.1",
  "pkg-config",
