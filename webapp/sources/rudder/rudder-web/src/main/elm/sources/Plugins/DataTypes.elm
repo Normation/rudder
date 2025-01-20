@@ -5,6 +5,7 @@ import Http
 import Http.Detailed
 import Json.Encode exposing (Value)
 import List.Extra
+import Ordering exposing (Ordering)
 import Time.ZonedDateTime exposing (ZonedDateTime)
 
 
@@ -68,8 +69,14 @@ type alias PluginError =
 
 type alias UI =
     { selected : List PluginId
+    , modalState : ModalState
     , settingsError : Maybe ( String, String ) -- message, details
     }
+
+
+type ModalState
+    = OpenModal RequestType
+    | NoModal
 
 
 type alias Model =
@@ -98,6 +105,7 @@ type Msg
     = CallApi (Model -> Cmd Msg)
     | ApiGetPlugins (Result (Http.Detailed.Error String) ( Http.Metadata, PluginsInfo ))
     | ApiPostPlugins (Result (Http.Detailed.Error Bytes) RequestType)
+    | SetModalState ModalState
     | Copy String
     | CopyJson Value
     | CheckSelection Select
@@ -171,3 +179,14 @@ noGlobalLicense =
     , endDate = Nothing
     , maxNodes = Nothing
     }
+
+
+pluginStatusOrdering : Ordering PluginStatus
+pluginStatusOrdering =
+    Ordering.explicit [ Enabled, Disabled, Uninstalled ]
+
+
+pluginDefaultOrdering : Ordering PluginInfo
+pluginDefaultOrdering =
+    Ordering.byFieldWith pluginStatusOrdering .status
+        |> Ordering.breakTiesWith (Ordering.byField .name)

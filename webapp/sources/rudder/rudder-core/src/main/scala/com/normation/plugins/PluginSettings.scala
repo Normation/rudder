@@ -39,6 +39,8 @@ package com.normation.plugins
 
 import better.files.File
 import com.normation.errors.*
+import com.normation.plugins.PluginSystemStatus.Disabled
+import com.normation.plugins.PluginSystemStatus.Enabled
 import com.normation.plugins.RudderPackageService.*
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.hooks.Cmd
@@ -660,7 +662,11 @@ class RudderPackageCmdService(configCmdLine: String) extends RudderPackageServic
   }
 
   override def changePluginSystemStatus(status: PluginSystemStatus, plugins: Chunk[String]): IOResult[Unit] = {
-    runCmdOrFail(status.value :: plugins.toList)(
+    val action = status match {
+      case Enabled  => "enable"
+      case Disabled => "disable"
+    }
+    runCmdOrFail(action :: plugins.toList)(
       s"An error occurred while changin plugin status to ${status.value}"
     ).unit
   }

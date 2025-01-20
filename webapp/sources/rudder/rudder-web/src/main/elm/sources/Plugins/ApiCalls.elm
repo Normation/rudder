@@ -62,3 +62,19 @@ changePluginStatus requestType plugins model =
         , timeout = Nothing
         , tracker = Nothing
         }
+
+
+requestTypeAction : RequestType -> Model -> Cmd Msg
+requestTypeAction t model =
+    case t of
+        Install ->
+            installPlugins model.ui.selected model
+
+        Uninstall ->
+            removePlugins model.ui.selected model
+
+        Enable ->
+            changePluginStatus Enable model.ui.selected model
+
+        Disable ->
+            changePluginStatus Disable model.ui.selected model

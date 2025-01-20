@@ -1,13 +1,15 @@
 module Plugins.View exposing (..)
 
 import Html exposing (Html, a, button, div, h1, h2, h3, i, input, label, li, p, pre, span, table, tbody, td, text, tr, ul)
-import Html.Attributes exposing (attribute, checked, class, for, href, id, target, type_)
+import Html.Attributes exposing (attribute, checked, class, disabled, for, href, id, style, target, type_)
 import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onCheck, onClick)
 import List.Extra
-import Plugins.ApiCalls exposing (changePluginStatus, installPlugins, removePlugins)
+import Maybe.Extra
+import Plugins.ApiCalls exposing (..)
 import Plugins.DataTypes exposing (..)
 import Plugins.JsonEncoder exposing (..)
+import String.Extra
 import Time.DateTime
 import Time.Iso8601
 import Time.ZonedDateTime
@@ -54,6 +56,7 @@ view model =
                     [ div [ class "main-container" ] [ content ]
                     ]
                 ]
+            , displayModal model
             ]
         ]
 
@@ -124,12 +127,12 @@ checkAll =
            )
 
 
-actionButtons : Model -> List (Html Msg)
-actionButtons model =
-    [ button [ class "btn btn-default me-1", onClick (CallApi (installPlugins model.ui.selected)) ] [ text "Install", i [ class "fa fa-plus-circle ms-1" ] [] ]
-    , button [ class "btn btn-default mx-1", onClick (CallApi (removePlugins model.ui.selected)) ] [ text "Uninstall", i [ class "fa fa-minus-circle ms-1" ] [] ]
-    , button [ class "btn btn-default mx-1", onClick (CallApi (changePluginStatus Enable model.ui.selected)) ] [ text "Enable", i [ class "fa fa-check-circle ms-1" ] [] ]
-    , button [ class "btn btn-default ms-1", onClick (CallApi (changePluginStatus Disable model.ui.selected)) ] [ text "Disable", i [ class "fa fa-ban ms-1" ] [] ]
+actionButtons : List (Html Msg)
+actionButtons =
+    [ button [ class "btn btn-default me-1", onClick (SetModalState (OpenModal Install)) ] [ text "Install", i [ class "fa fa-plus-circle ms-1" ] [] ]
+    , button [ class "btn btn-default mx-1", onClick (SetModalState (OpenModal Uninstall)) ] [ text "Uninstall", i [ class "fa fa-minus-circle ms-1" ] [] ]
+    , button [ class "btn btn-default mx-1", onClick (SetModalState (OpenModal Enable)) ] [ text "Enable", i [ class "fa fa-check-circle ms-1" ] [] ]
+    , button [ class "btn btn-default ms-1", onClick (SetModalState (OpenModal Disable)) ] [ text "Disable", i [ class "fa fa-ban ms-1" ] [] ]
     ]
 
 
@@ -140,7 +143,7 @@ pluginsSection model =
             model.ui.selected
 
         plugins =
-            model.plugins
+            List.sortWith pluginDefaultOrdering model.plugins
 
         isSelectAll =
             not (List.length plugins == List.length selected)
@@ -160,80 +163,15 @@ pluginsSection model =
                 ]
             , input [ id "select-plugins", type_ "checkbox", class "btn-check", checked (not isSelectAll), onCheck checkAll ] []
             ]
-
-        actionHtml =
-            actionButtons model
-
-        pluginBadge p =
-            case p.status of
-                Enabled ->
-                    [ div [ class "position-absolute top-0 end-0" ] [ span [ class "badge float-end bg-success text-light" ] [ text "Installed" ] ] ]
-
-                Disabled ->
-                    [ div [ class "position-absolute top-0 end-0" ] [ span [ class "badge float-end bg-muted text-light" ] [ text "Disabled" ] ] ]
-
-                Uninstalled ->
-                    []
-
-        pluginCardBgClass p =
-            -- only for missing license
-            p.errors
-                |> List.Extra.find (\{ error } -> error == "license.needed.error")
-                |> Maybe.map (\_ -> "plugin-card-missing-license")
-
-        pluginErrorCalloutClass err =
-            case err of
-                "license.near.expiration.error" ->
-                    Just "warning"
-
-                "abi.version.error" ->
-                    Just "warning"
-
-                "license.expired.error" ->
-                    Just "danger"
-
-                _ ->
-                    Nothing
-
-        pluginErrorCallouts p =
-            p.errors
-                |> List.filterMap (\err -> pluginErrorCalloutClass err.error |> Maybe.map (\cls -> ( err, cls )))
-                |> List.map (\( err, cls ) -> div [ class ("callout-fade callout-" ++ cls) ] [ i [ class ("me-1 fa fa-" ++ err.error) ] [], text err.message ])
-                |> (\e ->
-                        if List.isEmpty e then
-                            Nothing
-
-                        else
-                            Just e
-                   )
-
-        displayPlugin p =
-            div [ class <| "plugin-card card " ++ Maybe.withDefault "" (pluginCardBgClass p) ]
-                [ div [ class "card-body" ]
-                    [ div [ class "form-check p-0 d-flex" ]
-                        ([ input [ id p.id, type_ "checkbox", class "mx-2", checked (List.member p.id selected), onCheck (checkOne p.id) ] []
-                         , label [ class "d-flex flex-column mx-2", for p.id ]
-                            [ div [ class "d-flex align-items-baseline" ]
-                                [ h3 [ class "plugin-name card-title" ] [ text p.name ]
-                                , span [ class "plugin-version ms-2" ] [ text ("v" ++ p.pluginVersion) ]
-                                ]
-                            , div [ class "plugin-description card-text" ] [ text p.description ]
-                            , pluginErrorCallouts p |> Maybe.map (div [ class "plugin-errors d-flex flex-column" ]) |> Maybe.withDefault (text "")
-                            ]
-                         ]
-                            ++ pluginBadge p
-                        )
-                    ]
-                ]
     in
     div [ class "main-table" ]
         [ div [ class "table-container plugins-container" ]
             [ div [ class "dataTables_wrapper_top table-filter plugins-actions" ]
                 [ div [ class "start" ] selectHtml
-                , div [ class "end" ] actionHtml
+                , div [ class "end" ] actionButtons
                 ]
             , h2 [ class "fs-5 p-3 m-0" ] [ text "Features" ]
-            , div [ class "plugins-list" ] (List.map displayPlugin plugins)
+            , div [ class "plugins-list" ] (List.map (displayPlugin model) plugins)
             ]
         ]
 
@@ -306,3 +244,150 @@ displaySettingsErrorOrHtml model orHtml =
 
         Nothing ->
             orHtml
+
+
+findLicenseNeededError : List PluginError -> Maybe PluginError
+findLicenseNeededError =
+    List.Extra.find (\{ error } -> error == "license.needed.error")
+
+
+pluginBadge : PluginInfo -> List (Html msg)
+pluginBadge p =
+    case ( p.status, findLicenseNeededError p.errors ) of
+        ( Enabled, _ ) ->
+            [ div [ class "position-absolute top-0 end-0" ] [ span [ class "badge float-end bg-success" ] [ text "Installed" ] ] ]
+
+        ( _, Just _ ) ->
+            [ div [ class "position-absolute top-0 end-0" ] [ span [ class "badge float-end text-dark" ] [ i [ class "fa fa-info-circle me-1" ] [], text "Missing license" ] ] ]
+
+        ( Disabled, _ ) ->
+            [ div [ class "position-absolute top-0 end-0" ] [ span [ class "badge float-end" ] [ text "Disabled" ] ] ]
+
+        ( Uninstalled, _ ) ->
+            []
+
+
+pluginCardBgClass : PluginInfo -> Maybe String
+pluginCardBgClass p =
+    case ( p.status, findLicenseNeededError p.errors ) of
+        ( Disabled, _ ) ->
+            Just "plugin-card-disabled"
+
+        ( _, Just _ ) ->
+            Just "plugin-card-missing-license"
+
+        _ ->
+            Nothing
+
+
+pluginErrorCalloutClass : PluginError -> Maybe String
+pluginErrorCalloutClass err =
+    case err.error of
+        "license.near.expiration.error" ->
+            Just "warning"
+
+        "abi.version.error" ->
+            Just "warning"
+
+        "license.expired.error" ->
+            Just "danger"
+
+        _ ->
+            Nothing
+
+
+pluginErrorCallouts : PluginInfo -> Maybe (List (Html msg))
+pluginErrorCallouts p =
+    p.errors
+        |> List.filterMap (\err -> pluginErrorCalloutClass err |> Maybe.map (\cls -> ( err, cls )))
+        |> List.map (\( err, cls ) -> div [ class ("callout-fade callout-" ++ cls) ] [ i [ class ("me-1 fa fa-" ++ cls) ] [], text err.message ])
+        |> (\e ->
+                if List.isEmpty e then
+                    Nothing
+
+                else
+                    Just e
+           )
+
+
+pluginInputCheck : Model -> PluginInfo -> List (Html Msg)
+pluginInputCheck model p =
+    let
+        -- plugin cannot be selected
+        isDisabled =
+            Maybe.Extra.isJust <| findLicenseNeededError p.errors
+    in
+    if isDisabled then
+        [ input [ id p.id, type_ "checkbox", class "d-none", disabled True ] [], i [ class "fa fa-info-circle text-muted fs-5 mx-2" ] [] ]
+
+    else
+        [ input [ id p.id, type_ "checkbox", class "mx-2", checked (List.member p.id model.ui.selected), onCheck (checkOne p.id) ] [] ]
+
+
+displayPlugin : Model -> PluginInfo -> Html Msg
+displayPlugin model p =
+    div [ class <| "plugin-card card " ++ Maybe.withDefault "" (pluginCardBgClass p) ]
+        [ div [ class "card-body" ]
+            [ div [ class "form-check p-0 d-flex align-items-center" ]
+                (pluginInputCheck model p
+                    ++ label [ class "d-flex flex-column mx-2", for p.id ]
+                        [ div [ class "d-flex align-items-baseline" ]
+                            [ h3 [ class "plugin-name card-title" ] [ text p.name ]
+                            , span [ class "plugin-version ms-2" ] [ text ("v" ++ p.pluginVersion) ]
+                            ]
+                        , div [ class "card-text" ]
+                            [ div [ class "plugin-description" ] [ text p.description ]
+                            , Maybe.withDefault (text "") <|
+                                Maybe.map (div [ class "plugin-errors d-flex flex-column" ]) <|
+                                    pluginErrorCallouts p
+                            ]
+                        ]
+                    :: pluginBadge p
+                )
+            ]
+        ]
+
+
+buildModal : String -> Html Msg -> Msg -> Html Msg
+buildModal title body saveAction =
+    div [ class "modal modal-account fade show", style "display" "block" ]
+        [ div [ class "modal-backdrop fade show", onClick (SetModalState NoModal) ] []
+        , div [ class "modal-dialog modal-dialog-scrollable" ]
+            [ div [ class "modal-content" ]
+                [ div [ class "modal-header" ]
+                    [ h2 [ class "fs-5 modal-title" ] [ text title ]
+                    , button [ type_ "button", class "btn-close", onClick (SetModalState NoModal) ] []
+                    ]
+                , div [ class "modal-body" ]
+                    [ body
+                    ]
+                , div [ class "modal-footer" ]
+                    [ button [ type_ "button", class "btn btn-default", onClick (SetModalState NoModal) ] [ text "Close" ]
+                    , button [ type_ "button", class "btn btn-success", onClick saveAction ] [ text "Confirm" ]
+                    ]
+                ]
+            ]
+        ]
+
+
+modalTitle : RequestType -> String
+modalTitle requestType =
+    String.Extra.toSentenceCase (requestTypeText requestType) ++ " plugins"
+
+
+modalBody : RequestType -> Model -> Html Msg
+modalBody requestType model =
+    div [ class "callout-fade callout-warning" ]
+        [ p [] [ i [ class "fa fa-warning me-2" ] [], text <| "Rudder may restart to " ++ requestTypeText requestType ++ " " ++ String.Extra.pluralize "plugin" "plugins" (List.length model.ui.selected) ++ " :" ]
+        , ul [ class "list-group m-0" ] (List.map (\p -> li [ class "list-group-item" ] [ text p ]) model.ui.selected)
+        ]
+
+
+displayModal : Model -> Html Msg
+displayModal model =
+    case model.ui.modalState of
+        NoModal ->
+            text ""
+
+        OpenModal requestType ->
+            buildModal (modalTitle requestType) (modalBody requestType model) (CallApi (requestTypeAction requestType))
