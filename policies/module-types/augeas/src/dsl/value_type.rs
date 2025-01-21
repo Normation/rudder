@@ -5,10 +5,12 @@ use crate::dsl::ip::IpRangeChecker;
 use anyhow::{anyhow, bail};
 use bytesize::ByteSize;
 use ipnet::{Ipv4Net, Ipv6Net};
-use std::fmt;
-use std::fmt::Display;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-use std::str::FromStr;
+use std::{
+    fmt,
+    fmt::Display,
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+    str::FromStr,
+};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ValueType {
