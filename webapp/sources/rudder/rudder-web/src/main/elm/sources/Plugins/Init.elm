@@ -16,7 +16,7 @@ init flags =
             UI [] NoModal Nothing
 
         initModel =
-            Model flags.contextPath noGlobalLicense [] initUI
+            Model flags.contextPath Nothing [] initUI
     in
     ( initModel
     , getPluginInfos initModel

@@ -922,13 +922,7 @@ class Boot extends Loggable {
         Nil
       case Right(plugins) =>
         val scalaKeys = scalaPlugins.keySet
-        // log parsing errors
-        plugins.collect { case Left(e) => e }.foreach { e =>
-          PluginLogger.error(
-            s"Error when parsing plugin information from index file '${RudderConfig.jsonPluginDefinition.index.pathAsString}': ${e.fullMsg}"
-          )
-        }
-        plugins.collect { case Right(p) if (!scalaKeys.contains(p.name) && p.jars.isEmpty) => p }.map { p =>
+        plugins.collect { case p if (!scalaKeys.contains(p.name) && p.jars.isEmpty) => p }.map { p =>
           val sn = p.name.replace("rudder-plugin-", "")
           new RudderPluginDef {
             override def displayName = sn.capitalize

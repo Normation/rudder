@@ -69,6 +69,7 @@ class PluginInternalApi(
 
   def getLiftEndpoints(): List[LiftApiModule] = {
     API.endpoints.map {
+      case API.UpdatePluginsIndex  => UpdatePluginsIndex
       case API.ListPlugins         => ListPlugins
       case API.InstallPlugins      => InstallPlugins
       case API.RemovePlugins       => RemovePlugins
@@ -79,6 +80,19 @@ class PluginInternalApi(
   implicit val encoder: JsonEncoder[PluginSettings] = DeriveJsonEncoder.gen[PluginSettings]
   implicit val decoder: JsonDecoder[PluginSettings] = DeriveJsonDecoder.gen[PluginSettings]
 
+  object UpdatePluginsIndex extends LiftApiModule0 {
+    val schema:                                                                                                API.UpdatePluginsIndex.type = API.UpdatePluginsIndex
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                = {
+      pluginService
+        .updateIndex()
+        .chainError("Could not update plugins index")
+        .tapError(err => ApplicationLoggerPure.Plugin.error(err.fullMsg))
+        .map(_.map(err => RudderJsonResponse.UnauthorizedError(Some(err.msg))).toLeft(()))
+        .toLiftResponseZeroEither(params, schema, None)
+    }
+
+  }
+
   object ListPlugins extends LiftApiModule0 {
     val schema:                                                                                                API.ListPlugins.type = API.ListPlugins
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse         = {
@@ -86,8 +100,8 @@ class PluginInternalApi(
         .list()
         .chainError("Could not get plugins list")
         .tapError(err => ApplicationLoggerPure.Plugin.error(err.fullMsg))
-        .map(_.left.map(c => RudderJsonResponse.UnauthorizedError(Some(c.fullMsg))).map(JsonPluginsSystemDetails.buildDetails))
-        .toLiftResponseOneEither[JsonPluginsSystemDetails](params, schema, None)
+        .map(JsonPluginsSystemDetails.buildDetails)
+        .toLiftResponseOne(params, schema, None)
     }
 
   }

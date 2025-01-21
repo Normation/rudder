@@ -17,7 +17,7 @@ decodeGetPluginsInfo =
 decodePluginsInfo : Decoder PluginsInfo
 decodePluginsInfo =
     D.succeed PluginsInfo
-        |> required "license" decodeLicenseGlobalInfo
+        |> optional "license" (maybe decodeLicenseGlobalInfo) Nothing
         |> required "plugins" (list decodePluginInfo)
 
 
@@ -26,7 +26,7 @@ decodeLicenseGlobalInfo =
     D.succeed LicenseGlobalInfo
         |> optional "licensees" (maybe (list string)) Nothing
         |> optional "startDate" (maybe decodeDateTime) Nothing
-        |> optional "endDate" (maybe decodeDateTime) Nothing
+        |> optional "endDates" (maybe (list decodeDateCount)) Nothing
         |> optional "maxNodes" (maybe int) Nothing
 
 
@@ -98,16 +98,23 @@ decodeLicenseInfo =
 
 decodeDateTime : Decoder ZonedDateTime
 decodeDateTime =
-    andThen
-        (\d ->
-            case d of
-                Ok r ->
-                    succeed r
+    map (Time.Iso8601.toZonedDateTime utc) string
+        |> andThen
+            (\d ->
+                case d of
+                    Ok r ->
+                        succeed r
 
-                Err e ->
-                    fail (String.join "\n" <| List.map (Time.Iso8601ErrorMsg.renderText "") e)
-        )
-        (map (Time.Iso8601.toZonedDateTime utc) string)
+                    Err e ->
+                        fail (String.join "\n" <| List.map (Time.Iso8601ErrorMsg.renderText "") e)
+            )
+
+
+decodeDateCount : Decoder DateCount
+decodeDateCount =
+    D.succeed DateCount
+        |> required "date" decodeDateTime
+        |> required "count" int
 
 
 decodePluginError : Decoder PluginError

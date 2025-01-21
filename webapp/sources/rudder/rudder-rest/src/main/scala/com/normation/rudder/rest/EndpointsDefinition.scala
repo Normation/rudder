@@ -649,6 +649,12 @@ sealed trait PluginInternalApi extends EnumEntry with EndpointSchema with Intern
 }
 object PluginInternalApi       extends Enum[PluginInternalApi] with ApiModuleProvider[PluginInternalApi] {
 
+  case object UpdatePluginsIndex  extends PluginInternalApi with ZeroParam with StartsAtVersion21 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Update plugins index and licenses"
+    val (action, path) = POST / "pluginsinternal" / "update"
+    override def dataContainer: Option[String] = None
+  }
   case object ListPlugins         extends PluginInternalApi with ZeroParam with StartsAtVersion21 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "List all plugins"

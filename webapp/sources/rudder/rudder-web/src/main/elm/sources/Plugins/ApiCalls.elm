@@ -1,6 +1,6 @@
 module Plugins.ApiCalls exposing (..)
 
-import Http exposing (emptyBody, expectJson, header, request)
+import Http exposing (emptyBody, header, request)
 import Http.Detailed as Detailed
 import Plugins.DataTypes exposing (..)
 import Plugins.JsonDecoder exposing (decodeGetPluginsInfo)
@@ -10,6 +10,19 @@ import Plugins.JsonEncoder exposing (encodePluginIds)
 getUrl : Model -> String -> String
 getUrl m url =
     m.contextPath ++ "/secure/api" ++ url
+
+
+updateIndex : Model -> Cmd Msg
+updateIndex model =
+    request
+        { method = "POST"
+        , headers = [ header "X-Requested-With" "XMLHttpRequest" ]
+        , url = getUrl model "/pluginsinternal/update"
+        , body = emptyBody
+        , expect = Detailed.expectWhatever <| ApiPostPlugins << Result.map (\_ -> UpdateIndex)
+        , timeout = Nothing
+        , tracker = Nothing
+        }
 
 
 getPluginInfos : Model -> Cmd Msg
@@ -78,3 +91,6 @@ requestTypeAction t model =
 
         Disable ->
             changePluginStatus Disable model.ui.selected model
+
+        UpdateIndex ->
+            updateIndex model

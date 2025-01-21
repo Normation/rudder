@@ -39,11 +39,11 @@ package com.normation.plugins
 
 import better.files.File
 import com.normation.errors.*
+import io.scalaland.chimney.Transformer
+import io.scalaland.chimney.syntax.*
 import java.nio.charset.StandardCharsets
-import net.liftweb.json.*
 import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
-import zio.*
+import zio.json.*
 import zio.syntax.*
 
 /*
@@ -52,17 +52,43 @@ import zio.syntax.*
  */
 
 // this is only used internally but liftweb can't hand it if not top level
-final protected case class JsonPluginFile(plugins: Map[String, JValue])
+final protected case class JsonPluginFile(plugins: Map[String, JsonPluginRaw])
+protected object JsonPluginFile {
+  implicit val decoder: JsonDecoder[JsonPluginFile] = DeriveJsonDecoder.gen[JsonPluginFile]
+}
 
-// this is only used internally but liftweb can't hand it if not top level
+/**
+  * The external json format of a plugin in the index file.
+  * 
+  * Optional fields are there to obtain empty lists when mapping none
+  */
 final protected case class JsonPluginRaw(
     name:           String,
-    version:        String,
-    files:          List[String],
-    `jar-files`:    List[String],
+    version:        PluginVersion,
+    files:          Option[List[String]],
+    `jar-files`:    Option[List[String]],
     `build-commit`: String,
-    `build-date`:   String
+    `build-date`:   DateTime
 )
+protected object JsonPluginRaw {
+  import com.normation.utils.DateFormaterService.json.*
+  implicit val pluginVersionDecoder: JsonDecoder[PluginVersion] = {
+    JsonDecoder[String].mapOrFail(version =>
+      PluginVersion.from(version).toRight(s"Version is not a valid plugin version: ${version}")
+    )
+  }
+  implicit val decoder:              JsonDecoder[JsonPluginRaw] = DeriveJsonDecoder.gen[JsonPluginRaw]
+
+  implicit val transformer: Transformer[JsonPluginRaw, JsonPluginDef] = {
+    Transformer
+      .define[JsonPluginRaw, JsonPluginDef]
+      .withFieldComputed(_.files, _.files.getOrElse(List.empty))
+      .withFieldComputed(_.jars, _.`jar-files`.getOrElse(List.empty))
+      .withFieldRenamed(_.`build-commit`, _.buildCommit)
+      .withFieldRenamed(_.`build-date`, _.buildDate)
+      .buildTransformer
+  }
+}
 
 final case class JsonPluginDef(
     name:        String,
@@ -75,11 +101,10 @@ final case class JsonPluginDef(
 
 /*
  * The service in charge of reading the package file with plugin info.
- * By convention, in Rudder, path = /var/rudder/packages/index.json
+ * By convention, in Rudder, its path is at /var/rudder/packages/index.json
  */
-class ReadPluginPackageInfo(path: String) {
-
-  val index: File = File(path)
+class ReadPluginPackageInfo(val index: File) {
+  import ReadPluginPackageInfo.*
 
   def check: IOResult[Boolean] = {
     IOResult.attempt {
@@ -93,40 +118,18 @@ class ReadPluginPackageInfo(path: String) {
     }
   }
 
-  def parseFile(json: String): IOResult[JsonPluginFile] = {
-    IOResult.attempt {
-      implicit val formats = net.liftweb.json.DefaultFormats
-      JsonParser.parse(json).extract[JsonPluginFile]
-    }
-  }
-
-  def decodeOne(plugin: JValue): IOResult[JsonPluginDef] = {
-    implicit val formats = net.liftweb.json.DefaultFormats
-    for {
-      p       <- IOResult.attempt(plugin.extract[JsonPluginRaw])
-      date    <- IOResult.attempt(DateTime.parse(p.`build-date`, ISODateTimeFormat.dateTimeNoMillis()))
-      version <- PluginVersion.from(p.version).notOptional(s"Version for '${p.name}' is not a valid plugin version: ${p.version}")
-    } yield {
-      JsonPluginDef(p.name, version, p.files, p.`jar-files`, p.`build-commit`, date)
-    }
-  }
-
-  def decode(plugin: JsonPluginFile): IOResult[List[Either[RudderError, JsonPluginDef]]] = {
-    ZIO.foreach(plugin.plugins.toList) {
-      case (name, jvalue) =>
-        decodeOne(jvalue).mapError(err => Chained(s"Error when decoding plugin information for entry '${name}'", err)).either
-    }
-  }
-
-  def parseJson(json: String): IOResult[List[Either[RudderError, JsonPluginDef]]] = {
-    parseFile(json).flatMap(decode)
-  }
-
-  def getInfo(): IOResult[List[Either[RudderError, JsonPluginDef]]] = {
+  def getInfo(): IOResult[List[JsonPluginDef]] = {
     IOResult.attempt(index.exists).flatMap { exists =>
-      if (exists) check *> readIndex().flatMap(parseJson)
-      else List().succeed
+      if (exists) {
+        check *> readIndex()
+          .flatMap(parseJsonPluginFileDefs(_).toIO)
+      } else List.empty.succeed
     }
   }
 
+}
+
+object ReadPluginPackageInfo {
+  def parseJsonPluginFileDefs(s: String): Either[String, List[JsonPluginDef]] =
+    s.fromJson[JsonPluginFile].map(_.plugins.values.toList.map(_.transformInto[JsonPluginDef]))
 }

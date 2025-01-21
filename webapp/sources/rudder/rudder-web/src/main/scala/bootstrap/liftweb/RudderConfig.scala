@@ -2189,7 +2189,8 @@ object RudderConfigInit {
       Nil
     }
 
-    lazy val jsonPluginDefinition = new ReadPluginPackageInfo("/var/rudder/packages/index.json")
+    lazy val pluginsIndexFile     = root / "var" / "rudder" / "packages" / "index.json"
+    lazy val jsonPluginDefinition = new ReadPluginPackageInfo(pluginsIndexFile)
 
     lazy val resourceFileService = new GitResourceFileService(gitConfigRepo)
     lazy val apiDispatcher       = new RudderEndpointDispatcher(LiftApiProcessingLogger)
