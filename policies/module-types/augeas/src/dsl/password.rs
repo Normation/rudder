@@ -5,9 +5,9 @@
 //!
 //! We never display the values of the passwords.
 
-use anyhow::Result;
-use zxcvbn::feedback::Feedback;
-use zxcvbn::{zxcvbn, Score};
+use anyhow::{anyhow, Result};
+use secrecy::{ExposeSecret, SecretString};
+use zxcvbn::{feedback::Feedback, zxcvbn, Score};
 
 /// Password complexity policy.
 ///
@@ -19,105 +19,116 @@ pub enum PasswordPolicy {
     /// * https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/wheeler
     ///
     /// Any score less than 3 should be considered too weak.
-    Score(Score),
+    MinScore(Score),
     /// Minimum length of the password and different character classes.
     ///
     /// TLUDS:
     /// total length, lowercase, uppercase, digits, special characters
-    Criteria(u8, u8, u8, u8, u8),
+    CharsCriteria(u8, u8, u8, u8, u8),
 }
 
 impl PasswordPolicy {
     fn format_feedback(feedback: &Feedback) -> String {
-        format!(
-            "{} {}",
-            feedback
-                .warning()
-                .map(|w| w.to_string())
-                .unwrap_or("".to_string()),
-            feedback
-                .suggestions()
-                .iter()
-                .map(ToString::to_string)
-                .collect::<Vec<String>>()
-                .join(" ")
-        )
+        feedback
+            .warning()
+            .map(|w| w.to_string())
+            .unwrap_or("".to_string())
+            .to_string()
     }
 
-    pub fn check(&self, password: &str) -> Result<()> {
+    pub fn check(&self, password: SecretString) -> Result<String> {
         match self {
-            PasswordPolicy::Score(s) => {
-                let entropy = zxcvbn(password, &[]);
-                if entropy.score() < *s {
-                    let feedback = entropy.feedback();
-                    let message = format!(
-                        "The score is too low: {} < {}. {}",
-                        entropy.score(),
-                        s,
-                        feedback
+            PasswordPolicy::MinScore(min_score) => {
+                let entropy = zxcvbn(password.expose_secret(), &[]);
+                let score = entropy.score();
+                let guesses_log10 = entropy.guesses_log10();
+                let guesses_log10_int = guesses_log10.round() as u8;
+                if score < *min_score {
+                    Err(anyhow!(
+                        "The password is too weak: score {score} < {min_score} (requires ~10^{guesses_log10_int} guesses). {}",
+                         entropy.feedback()
                             .map(Self::format_feedback)
                             .unwrap_or("".to_string())
-                    );
-                    return Err(anyhow::anyhow!(message));
+                    ))
+                } else {
+                    Ok(format!(
+                        "The password is strong enough: score {score} >= {min_score} (requires ~10^{guesses_log10_int} guesses)"
+                    ))
                 }
             }
-            PasswordPolicy::Criteria(t, l, u, d, s) => {
-                if password.len() < *t as usize {
-                    return Err(anyhow::anyhow!(
-                        "The password is too short: {} < {}",
-                        password.len(),
-                        t
-                    ));
+            PasswordPolicy::CharsCriteria(t, l, u, d, s) => {
+                let mut errors = vec![];
+
+                let password_len = password.expose_secret().len();
+                if password_len < *t as usize {
+                    errors.push(format!("it is too short: {} < {}", password_len, t));
                 }
                 if *l > 0u8 {
-                    let l_count = password.chars().filter(|c| c.is_lowercase()).count();
+                    let l_count = password
+                        .expose_secret()
+                        .chars()
+                        .filter(|c| c.is_lowercase())
+                        .count();
                     if l_count < *l as usize {
-                        return Err(anyhow::anyhow!(
-                            "The password does not contain enough lowercase characters: {} < {}",
-                            l_count,
-                            l
+                        errors.push(format!(
+                            "it does not contain enough lowercase characters: {} < {}",
+                            l_count, l
                         ));
                     }
                 }
                 if *u > 0u8 {
-                    let u_count = password.chars().filter(|c| c.is_uppercase()).count();
+                    let u_count = password
+                        .expose_secret()
+                        .chars()
+                        .filter(|c| c.is_uppercase())
+                        .count();
                     if u_count < *u as usize {
-                        return Err(anyhow::anyhow!(
-                            "The password does not contain enough uppercase characters: {} < {}",
-                            u_count,
-                            u
+                        errors.push(format!(
+                            "it does not contain enough uppercase characters: {} < {}",
+                            u_count, u
                         ));
                     }
                 }
                 if *d > 0u8 {
-                    let d_count = password.chars().filter(|c| c.is_ascii_digit()).count();
+                    let d_count = password
+                        .expose_secret()
+                        .chars()
+                        .filter(|c| c.is_ascii_digit())
+                        .count();
                     if d_count < *d as usize {
-                        return Err(anyhow::anyhow!(
-                            "The password does not contain enough digits: {} < {}",
-                            d_count,
-                            d
+                        errors.push(format!(
+                            "it does not contain enough digits: {} < {}",
+                            d_count, d
                         ));
                     }
                 }
                 if *s > 0u8 {
-                    let s_count = password.chars().filter(|c| !c.is_alphanumeric()).count();
+                    let s_count = password
+                        .expose_secret()
+                        .chars()
+                        .filter(|c| !c.is_alphanumeric())
+                        .count();
                     if s_count < *s as usize {
-                        return Err(anyhow::anyhow!(
-                            "The password does not contain enough special characters: {} < {}",
-                            s_count,
-                            s
+                        errors.push(format!(
+                            "it does not contain enough special characters: {} < {}",
+                            s_count, s
                         ));
                     }
                 }
+
+                if errors.is_empty() {
+                    Ok("The password is strong enough".to_string())
+                } else {
+                    Err(anyhow!("The password is too weak: {}", errors.join(", ")))
+                }
             }
         }
-        Ok(())
     }
 }
 
 impl Default for PasswordPolicy {
     fn default() -> Self {
-        PasswordPolicy::Score(Score::Three)
+        PasswordPolicy::MinScore(Score::Three)
     }
 }
 
@@ -132,17 +143,19 @@ mod tests {
 
         assert_eq!(
             PasswordPolicy::format_feedback(f),
-            "This is a top-10 common password. Add another word or two. Uncommon words are better."
-                .to_string()
+            "This is a top-10 common password.".to_string()
         );
     }
 
     #[test]
     fn test_password_policy_score() {
-        let p = PasswordPolicy::Score(Score::Three);
+        let p = PasswordPolicy::MinScore(Score::Three);
         assert_eq!(
-            p.check("password").err().unwrap().to_string(),
-            "The score is too low: 0 < 3. This is a top-10 common password. Add another word or two. Uncommon words are better.".to_string()
+            p.check("password".into())
+                .err()
+                .unwrap()
+                .to_string(),
+            "The password is too weak: score 0 < 3 (requires ~10^0 guesses). This is a top-10 common password.".to_string()
         );
     }
 }

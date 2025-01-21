@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::dsl::script::{
+use crate::dsl::interpreter::{
     CheckMode, Interpreter, InterpreterOut, InterpreterOutcome, InterpreterPerms,
 };
 use anyhow::Result;

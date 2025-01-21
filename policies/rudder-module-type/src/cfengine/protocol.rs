@@ -271,7 +271,7 @@ mod tests {
 
     #[test]
     fn it_parses_validate_requests() {
-        let val = r#"{"filename":"/tmp/test.cf","line_number": 42,"promise_type":"git","attributes":{"rudder_module_protocol": "0","temporary_dir": "","backup_dir": "/backup", "data": { "repo":"https://github.com/cfengine/masterfiles"} },"log_level":"info","operation":"validate_promise","promiser":"/tmp/masterfiles"}"#;
+        let val = r#"{"filename":"/tmp/test.cf","line_number": 42,"promise_type":"git","attributes":{"rudder_module_protocol": "0","temporary_dir": "","node_id": "","backup_dir": "/backup", "data": { "repo":"https://github.com/cfengine/masterfiles"} },"log_level":"info","operation":"validate_promise","promiser":"/tmp/masterfiles"}"#;
         let mut data = Map::new();
         data.insert(
             "repo".to_string(),
@@ -279,13 +279,14 @@ mod tests {
         );
         let params = Parameters {
             data,
-            node_id: "test".to_string(),
+            node_id: "".to_string(),
             temporary_dir: "".into(),
             backup_dir: "/backup".into(),
             rudder_module_protocol: 0,
             action_policy: ActionPolicy::Fix,
             agent_frequency_minutes: 5,
-            state_dir: Default::default(),
+            state_dir: "/var/rudder/cfengine-community/state/".into(),
+            report_id: None,
         };
         let ref_val = ValidateRequest {
             operation: ValidateOperation::ValidatePromise,
@@ -301,13 +302,13 @@ mod tests {
             ref_val
         );
 
-        let val = "{\"attributes\":{\"data\":{\"path\":\"/tmp/.tmpEX81Uv/test\",\"state\":\"present\"},\"rudder_module_protocol\":\"0\"},\"filename\":\"./tests/test.cf\",\"line_number\":15,\"log_level\":\"notice\",\"operation\":\"validate_promise\",\"promise_type\":\"directory\",\"promiser\":\"test\"}";
+        let val = "{\"attributes\":{\"data\":{\"path\":\"/tmp/.tmpEX81Uv/test\",\"state\":\"present\"},\"rudder_module_protocol\":\"0\",\"node_id\":\"\"},\"filename\":\"./tests/test.cf\",\"line_number\":15,\"log_level\":\"notice\",\"operation\":\"validate_promise\",\"promise_type\":\"directory\",\"promiser\":\"test\"}";
         serde_json::from_str::<ValidateRequest>(val).unwrap();
     }
 
     #[test]
     fn it_parses_evaluate_requests() {
-        let val = r#"{"filename":"/tmp/test.cf","line_number": 42,"promise_type":"git","attributes":{"rudder_module_protocol": "0","temporary_dir": "","backup_dir": "/backup", "data": { "repo":"https://github.com/cfengine/masterfiles"} },"log_level":"info","operation":"evaluate_promise","promiser":"/tmp/masterfiles"}"#;
+        let val = r#"{"filename":"/tmp/test.cf","line_number": 42,"promise_type":"git","attributes":{"rudder_module_protocol": "0","temporary_dir": "","backup_dir": "/backup", "node_id": "test", "data": { "repo":"https://github.com/cfengine/masterfiles"} },"log_level":"info","operation":"evaluate_promise","promiser":"/tmp/masterfiles"}"#;
         let mut data = Map::new();
         data.insert(
             "repo".to_string(),
@@ -321,7 +322,8 @@ mod tests {
             rudder_module_protocol: 0,
             action_policy: ActionPolicy::Fix,
             agent_frequency_minutes: 5,
-            state_dir: Default::default(),
+            state_dir: "/var/rudder/cfengine-community/state/".into(),
+            report_id: None,
         };
         let ref_val = EvaluateRequest {
             operation: EvaluateOperation::EvaluatePromise,

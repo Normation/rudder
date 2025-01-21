@@ -8,8 +8,7 @@
 use anyhow::{bail, Result};
 use ipnet::{Ipv4Net, Ipv6Net};
 use iprange::{IpRange, ToNetwork};
-use std::fmt::Display;
-use std::net::IpAddr;
+use std::{fmt::Display, net::IpAddr};
 
 pub struct IpRangeChecker {
     ipv4: IpRange<Ipv4Net>,
@@ -96,7 +95,7 @@ impl IpRangeChecker {
         if self.is_in_range(ip)? {
             Ok(())
         } else {
-            bail!("IP '{}' is not in the configured ranges ({})", ip, self)
+            bail!("IP '{ip}' is not in the configured ranges ({self})")
         }
     }
 }

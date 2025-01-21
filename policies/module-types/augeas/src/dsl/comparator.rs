@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use anyhow::bail;
-use anyhow::{Error, Result};
+use anyhow::{bail, Error, Result};
 use bytesize::ByteSize;
 use regex::Regex;
-use std::fmt::Debug;
-use std::num::{ParseFloatError, ParseIntError};
-use std::str::FromStr;
-
+use std::{
+    fmt::{Debug, Display},
+    num::{ParseFloatError, ParseIntError},
+    str::FromStr,
+};
 // https://github.com/jprochazk/garde?tab=readme-ov-file#available-validation-rules
 // - password complexity checks
 
@@ -30,7 +30,7 @@ pub enum NumComparator {
 
 impl NumComparator {
     /// Computes `a comparator b`.
-    fn numeric_compare<T: PartialEq + PartialOrd>(&self, a: &T, b: &T) -> bool {
+    pub fn numeric_compare<T: PartialEq + PartialOrd>(&self, a: &T, b: &T) -> bool {
         match self {
             NumComparator::GreaterThan => a.gt(b),
             NumComparator::GreaterThanOrEqual => a.ge(b),
@@ -38,6 +38,19 @@ impl NumComparator {
             NumComparator::Equal => a.eq(b),
             NumComparator::LessThanOrEqual => a.lt(b),
             NumComparator::LessThan => a.le(b),
+        }
+    }
+}
+
+impl Display for NumComparator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            NumComparator::GreaterThan => write!(f, ">"),
+            NumComparator::GreaterThanOrEqual => write!(f, ">="),
+            NumComparator::NotEqual => write!(f, "!="),
+            NumComparator::Equal => write!(f, "=="),
+            NumComparator::LessThanOrEqual => write!(f, "<="),
+            NumComparator::LessThan => write!(f, "<"),
         }
     }
 }
@@ -50,7 +63,7 @@ impl FromStr for NumComparator {
             ">" => Ok(NumComparator::GreaterThan),
             ">=" => Ok(NumComparator::GreaterThanOrEqual),
             "!=" => Ok(NumComparator::NotEqual),
-            "==" => Ok(NumComparator::Equal),
+            "=" | "==" => Ok(NumComparator::Equal),
             "<=" => Ok(NumComparator::LessThanOrEqual),
             "<" => Ok(NumComparator::LessThan),
             _ => bail!("Invalid comparator '{}'", s),
@@ -80,9 +93,9 @@ pub enum Number {
 impl Debug for Number {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Number::Int(n) => write!(f, "int:{}", n),
-            Number::Float(n) => write!(f, "float:{}", n),
-            Number::Bytes(n) => write!(f, "bytes:{}", n),
+            Number::Int(n) => write!(f, "int:{n}"),
+            Number::Float(n) => write!(f, "float:{n}"),
+            Number::Bytes(n) => write!(f, "bytes:{n}"),
         }
     }
 }
@@ -102,7 +115,7 @@ impl FromStr for Number {
                         let num_bytes: Result<ByteSize, String> = s.parse();
                         match num_bytes {
                             Ok(n) => Ok(Number::Bytes(n)),
-                            Err(_) => bail!("Invalid number '{}'", s),
+                            Err(_) => bail!("Invalid number '{s}'"),
                         }
                     }
                 }
@@ -150,12 +163,14 @@ impl NumericComparison {
 pub enum StrComparator {
     Equal,
     NotEqual,
+    Match,
+    NotMatch,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct StrValidation {
-    comparator: StrComparator,
-    value: String,
+    pub(crate) comparator: StrComparator,
+    pub(crate) value: String,
 }
 
 impl FromStr for StrComparator {
@@ -165,17 +180,27 @@ impl FromStr for StrComparator {
         match s {
             "==" => Ok(StrComparator::Equal),
             "!=" => Ok(StrComparator::NotEqual),
-            _ => bail!("Invalid string comparator '{}'", s),
+            "~" | "=~" => Ok(StrComparator::Match),
+            "!~" => Ok(StrComparator::NotMatch),
+            _ => bail!("Invalid string comparator '{s}'"),
         }
     }
 }
 
 impl StrValidation {
     pub fn matches(&self, value: &str) -> bool {
-        let is_equal = value == self.value;
         match self.comparator {
-            StrComparator::NotEqual => !is_equal,
-            StrComparator::Equal => is_equal,
+            StrComparator::Equal => value == self.value,
+            StrComparator::NotEqual => value != self.value,
+            _ => {
+                // FIXME unwrap
+                let re = Regex::new(&self.value).unwrap();
+                match self.comparator {
+                    StrComparator::Match => re.is_match(value),
+                    StrComparator::NotMatch => !re.is_match(value),
+                    _ => unreachable!(),
+                }
+            }
         }
     }
 }
@@ -190,28 +215,6 @@ pub enum RegexComparator {
 pub struct RegexComparison {
     comparator: RegexComparator,
     re: Regex,
-}
-
-impl FromStr for RegexComparator {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "~" | "=~" => Ok(RegexComparator::Match),
-            "!~" => Ok(RegexComparator::NotMatch),
-            _ => bail!("Invalid regex comparator '{}'", s),
-        }
-    }
-}
-
-impl RegexComparison {
-    pub fn matches(&self, value: &str) -> bool {
-        let is_match = self.re.is_match(value);
-        match self.comparator {
-            RegexComparator::Match => is_match,
-            RegexComparator::NotMatch => !is_match,
-        }
-    }
 }
 
 #[cfg(test)]
@@ -347,9 +350,9 @@ mod tests {
 
     #[test]
     fn test_regex_comparison() {
-        let c = RegexComparison {
-            comparator: RegexComparator::Match,
-            re: r"\d+".parse().unwrap(),
+        let c = StrValidation {
+            comparator: StrComparator::Match,
+            value: r"\d+".to_string(),
         };
 
         let r = c.matches("34");
@@ -358,9 +361,9 @@ mod tests {
         let r = c.matches("bar");
         assert!(!r);
 
-        let c = RegexComparison {
-            comparator: RegexComparator::NotMatch,
-            re: r"\d+".parse().unwrap(),
+        let c = StrValidation {
+            comparator: StrComparator::NotMatch,
+            value: r"\d+".to_string(),
         };
 
         let r = c.matches("34");

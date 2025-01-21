@@ -31,6 +31,9 @@ pub struct Parameters {
     #[serde(default)]
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub(crate) rudder_module_protocol: usize,
+    /// Opaque ID for reports matching
+    #[serde(default)]
+    pub report_id: Option<String>,
     /// Module type parameters
     pub data: Map<String, Value>,
     // Only passed if warn

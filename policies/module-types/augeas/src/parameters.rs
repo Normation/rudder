@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
 use anyhow::{bail, Result};
+use bytesize::ByteSize;
 use serde::{Deserialize, Serialize};
 use serde_inline_default::serde_inline_default;
 use serde_with::serde_as;
@@ -31,7 +32,7 @@ pub struct AugeasParameters {
     ///
     /// Enabled by default. Disable for files containing secrets.
     #[serde_inline_default(true)]
-    pub show_diff: bool,
+    pub show_file_content: bool,
     /// A lens to use.
     ///
     /// If not passed, all lenses are loaded, and the `path` is used
@@ -41,6 +42,20 @@ pub struct AugeasParameters {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde_as(as = "NoneAsEmptyString")]
     pub lens: Option<String>,
+
+    //pub must_exist: Option<bool>,
+    /// Maximal allowed file size for loading.
+    #[serde_inline_default(ByteSize::mb(10))]
+    pub max_file_size: ByteSize,
+
+    /// Where to write the report.
+    ///
+    /// If not set, no report is written.
+    ///
+    /// This is needed as the custom promise type protocol only supports the outcome status and logs.
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub report_file: Option<PathBuf>,
 }
 
 impl AugeasParameters {
