@@ -68,43 +68,22 @@ impl Augeas {
         root: Option<&Path>,
         load_paths: &[T],
     ) -> anyhow::Result<raugeas::Augeas> {
+        let mut flags = Flags::NONE;
+        rudder_debug!("Loading lenses on startup");
+        flags.insert(Flags::NO_LOAD);
+        rudder_debug!("Enabling span tracking");
+        flags.insert(Flags::ENABLE_SPAN);
+
         // Enable span tracking for better error messages.
-        Self::new_aug(root, load_paths, false, true, LoadMode::LensesOnly)
+        Self::new_aug(root, load_paths, flags)
     }
 
     pub fn new_aug<T: AsRef<Path>>(
         root: Option<&Path>,
         load_paths: &[T],
-        type_check_lenses: bool,
-        enable_span: bool,
-        load_mode: LoadMode,
+        // FIXME take Flags directly
+        flags: Flags,
     ) -> anyhow::Result<raugeas::Augeas> {
-        let mut flags = Flags::NONE;
-
-        match load_mode {
-            LoadMode::All => {
-                rudder_debug!("Loading all files into the tree on startup");
-            }
-            LoadMode::LensesOnly => {
-                rudder_debug!("Loading lenses on startup");
-                flags.insert(Flags::NO_LOAD);
-            }
-            LoadMode::Nothing => {
-                rudder_debug!("Not loading lenses on startup");
-                flags.insert(Flags::NO_MODULE_AUTOLOAD);
-            }
-        }
-
-        if enable_span {
-            rudder_debug!("Enabling span tracking");
-            flags.insert(Flags::ENABLE_SPAN);
-        }
-
-        if type_check_lenses {
-            rudder_debug!("Type checking lenses");
-            flags.insert(Flags::TYPE_CHECK);
-        }
-
         // Load from the given paths plus the default one.
         let load_paths = std::iter::once(RUDDER_LENS_LIB.into())
             .chain(load_paths.iter().map(|p| p.as_ref().to_string_lossy()))

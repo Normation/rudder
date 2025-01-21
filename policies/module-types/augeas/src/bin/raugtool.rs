@@ -8,13 +8,26 @@
 
 use anyhow::Result;
 use gumdrop::Options;
+use raugeas::Flags;
 use rudder_module_augeas::augeas::{Augeas, LoadMode};
 use rudder_module_augeas::dsl::repl;
 use rudder_module_augeas::dsl::script::Interpreter;
 use rudder_module_augeas::{CRATE_NAME, CRATE_VERSION};
 use rudder_module_type::cfengine::log::{set_max_level, LevelFilter};
+use rudder_module_type::rudder_debug;
 use std::env;
 use std::path::PathBuf;
+/*
+TODO: implement
+
+ -b, --backup           preserve originals of modified files with
+                        extension '.augsave'
+ -n, --new              save changes in files with extension '.augnew',
+                        leave original unchanged
+ -i, --interactive      run an interactive shell after evaluating
+                        the commands in STDIN and FILE
+ --timing               after executing each command, show how long it took
+*/
 
 #[derive(Debug, Options)]
 pub struct Cli {
@@ -22,6 +35,8 @@ pub struct Cli {
     help: bool,
     #[options(help = "be verbose")]
     verbose: bool,
+    #[options(no_short, help = "print version information and exit")]
+    version: bool,
     /// Prefix to add.
     ///
     /// By default,
@@ -37,16 +52,46 @@ pub struct Cli {
     /// The root of the filesystem to use for augeas.
     ///
     /// WARNING: Should not be used in most cases.
+    #[options(help = "use root as the root of the filesystem")]
     root: Option<PathBuf>,
+
+    #[options(
+        meta = "PATH",
+        short = "f",
+        long = "file",
+        help = "read commands from file"
+    )]
+    file: Option<PathBuf>,
+
+    #[options(help = "echo commands when reading from a file")]
+    echo: bool,
+
+    #[options(
+        short = "l",
+        long = "load-file",
+        meta = "PATH",
+        help = "load individual file in the tree"
+    )]
+    load_file: Option<PathBuf>,
+
+    #[options(
+        short = "s",
+        long = "autosave",
+        help = "automatically save at the end of instructions"
+    )]
+    auto_save: bool,
+
     /// Additional load paths for lenses.
     ///
     /// `/var/rudder/lib/lenses` is always added.
     #[options(
         short = "i",
         long = "include",
+        meta = "PATH",
         help = "additional load paths for lenses"
     )]
     lens_paths: Vec<PathBuf>,
+
     /// A lens to use.
     ///
     /// If not passed, all lenses are loaded, and the `path` is used
@@ -64,10 +109,7 @@ pub struct Cli {
     )]
     type_check_lenses: bool,
 
-    #[options(
-        long = "span",
-        help = "load span positions for nodes related to a file"
-    )]
+    #[options(no_short, help = "load span positions for nodes related to a file")]
     span: bool,
 
     /// Do not load any files into the tree on startup.
@@ -77,6 +119,21 @@ pub struct Cli {
         help = "do not load any files into the tree on startup"
     )]
     dont_load_tree: bool,
+
+    /// Do not load any files into the tree on startup.
+    #[options(
+        short = "S",
+        long = "nostdinc",
+        help = "do not search the builtin default directories for modules"
+    )]
+    no_std_includes: bool,
+
+    #[options(
+        meta = "XFM",
+        help = "add a file transform; uses the 'transform' command syntax, e.g. -t 'Fstab incl /etc/fstab.bak'"
+    )]
+    transform: Option<String>,
+
     /// Do not autoload modules from the search path.
     #[options(
         short = "A",
@@ -99,23 +156,50 @@ impl Cli {
             (true, true) => LoadMode::All,
         };
 
-        let mut aug = Augeas::new_aug(
-            opts.root.as_deref(),
-            &opts.lens_paths,
-            opts.type_check_lenses,
-            opts.span,
-            load_mode,
-        )?;
+        let mut flags = Flags::NONE;
+        match load_mode {
+            LoadMode::All => {
+                rudder_debug!("Loading all files into the tree on startup");
+            }
+            LoadMode::LensesOnly => {
+                rudder_debug!("Loading lenses on startup");
+                flags.insert(Flags::NO_LOAD);
+            }
+            LoadMode::Nothing => {
+                rudder_debug!("Not loading lenses on startup");
+                flags.insert(Flags::NO_MODULE_AUTOLOAD);
+            }
+        }
 
-        // FIXME handle other parameters
+        if opts.span {
+            rudder_debug!("Enabling span tracking");
+            flags.insert(Flags::ENABLE_SPAN);
+        }
 
-        println!("Rudder Augeas. Type 'quit' to leave.");
-        println!(
+        if opts.type_check_lenses {
+            rudder_debug!("Type checking lenses");
+            flags.insert(Flags::TYPE_CHECK);
+        }
+
+        let mut aug = Augeas::new_aug(opts.root.as_deref(), &opts.lens_paths, flags)?;
+
+        let version = format!(
             "{} {} (augeas: {})",
             CRATE_NAME,
             CRATE_VERSION,
             aug.version()?
         );
+
+        if opts.version {
+            // FIXME load minimal aug
+            println!("{}", version);
+            return Ok(());
+        }
+
+        // FIXME handle other parameters
+
+        println!("Rudder Augeas. Type 'quit' to leave.");
+        println!("{}", version);
         let mut interpreter = Interpreter::new(&mut aug);
         repl::start(&mut interpreter)
     }
