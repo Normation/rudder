@@ -28,13 +28,6 @@ pub struct Augeas {
     load_paths: Vec<PathBuf>,
 }
 
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub enum LoadMode {
-    All,
-    LensesOnly,
-    Nothing,
-}
-
 impl Augeas {
     /// Create a new Augeas module.
     pub fn new_module(root: Option<PathBuf>, load_paths: Vec<PathBuf>) -> anyhow::Result<Self> {
@@ -84,11 +77,21 @@ impl Augeas {
         // FIXME take Flags directly
         flags: Flags,
     ) -> anyhow::Result<raugeas::Augeas> {
+        // Consider Rudder lib as part of the standard lib.
+        let rudder_lib = if flags.contains(Flags::NO_STD_INCLUDE) {
+            None
+        } else {
+            Some(RUDDER_LENS_LIB.into())
+        };
+
         // Load from the given paths plus the default one.
-        let load_paths = std::iter::once(RUDDER_LENS_LIB.into())
-            .chain(load_paths.iter().map(|p| p.as_ref().to_string_lossy()))
+        let load_paths = load_paths
+            .iter()
+            .map(|p| p.as_ref().to_string_lossy())
+            .chain(rudder_lib.into_iter())
             .collect::<Vec<Cow<str>>>()
             .join(":");
+
         rudder_debug!("Loading lenses from: {}", load_paths);
         let aug = raugeas::Augeas::init(root, load_paths, flags)?;
 

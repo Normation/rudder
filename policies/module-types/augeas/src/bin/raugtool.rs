@@ -9,23 +9,16 @@
 use anyhow::Result;
 use gumdrop::Options;
 use raugeas::Flags;
-use rudder_module_augeas::augeas::{Augeas, LoadMode};
+use rudder_module_augeas::augeas::Augeas;
 use rudder_module_augeas::dsl::repl;
 use rudder_module_augeas::dsl::script::Interpreter;
 use rudder_module_augeas::{CRATE_NAME, CRATE_VERSION};
 use rudder_module_type::cfengine::log::{set_max_level, LevelFilter};
-use rudder_module_type::rudder_debug;
-use std::env;
 use std::path::PathBuf;
+use std::{env, fs};
 /*
 TODO: implement
 
- -b, --backup           preserve originals of modified files with
-                        extension '.augsave'
- -n, --new              save changes in files with extension '.augnew',
-                        leave original unchanged
- -i, --interactive      run an interactive shell after evaluating
-                        the commands in STDIN and FILE
  --timing               after executing each command, show how long it took
 */
 
@@ -109,6 +102,12 @@ pub struct Cli {
     )]
     type_check_lenses: bool,
 
+    #[options(help = "preserve originals of modified files with extension '.augsave'")]
+    backup: bool,
+
+    #[options(help = "save changes in files with extension '.augnew', leave original unchanged")]
+    new: bool,
+
     #[options(no_short, help = "load span positions for nodes related to a file")]
     span: bool,
 
@@ -128,6 +127,9 @@ pub struct Cli {
     )]
     no_std_includes: bool,
 
+    #[options(help = "run an interactive shell after evaluating the commands in STDIN and FILE")]
+    interactive: bool,
+
     #[options(
         meta = "XFM",
         help = "add a file transform; uses the 'transform' command syntax, e.g. -t 'Fstab incl /etc/fstab.bak'"
@@ -143,63 +145,71 @@ pub struct Cli {
     dont_load_lenses: bool,
 }
 
+/// Version string for stdout
+///
+/// ```
+/// rudder-module-augeas 8.3.0 (augeas: 1.14.1)
+/// ```
+fn version(augeas_version: String) -> String {
+    format!(
+        "{} {} (augeas: {})",
+        CRATE_NAME, CRATE_VERSION, augeas_version
+    )
+}
+
 impl Cli {
     pub fn run() -> Result<()> {
         let opts = Self::parse_args_default_or_exit();
         if opts.verbose {
             println!("Parsed options: {:#?}", &opts);
         }
-
-        let load_mode = match (!opts.dont_load_lenses, !opts.dont_load_tree) {
-            (false, _) => LoadMode::Nothing,
-            (true, false) => LoadMode::LensesOnly,
-            (true, true) => LoadMode::All,
-        };
-
-        let mut flags = Flags::NONE;
-        match load_mode {
-            LoadMode::All => {
-                rudder_debug!("Loading all files into the tree on startup");
-            }
-            LoadMode::LensesOnly => {
-                rudder_debug!("Loading lenses on startup");
-                flags.insert(Flags::NO_LOAD);
-            }
-            LoadMode::Nothing => {
-                rudder_debug!("Not loading lenses on startup");
-                flags.insert(Flags::NO_MODULE_AUTOLOAD);
-            }
-        }
-
-        if opts.span {
-            rudder_debug!("Enabling span tracking");
-            flags.insert(Flags::ENABLE_SPAN);
-        }
-
-        if opts.type_check_lenses {
-            rudder_debug!("Type checking lenses");
-            flags.insert(Flags::TYPE_CHECK);
-        }
-
-        let mut aug = Augeas::new_aug(opts.root.as_deref(), &opts.lens_paths, flags)?;
-
-        let version = format!(
-            "{} {} (augeas: {})",
-            CRATE_NAME,
-            CRATE_VERSION,
-            aug.version()?
-        );
-
         if opts.version {
-            // FIXME load minimal aug
+            // load minimal augeas
+            let flags = Flags::NO_MODULE_AUTOLOAD;
+            let aug = Augeas::new_aug::<&str>(None, &[], flags)?;
+            let version = version(aug.version()?);
             println!("{}", version);
             return Ok(());
         }
 
-        // FIXME handle other parameters
+        let mut flags = Flags::NONE;
+        if opts.dont_load_lenses {
+            flags.insert(Flags::NO_MODULE_AUTOLOAD);
+        }
+        if opts.dont_load_tree {
+            flags.insert(Flags::NO_LOAD);
+        }
+        if opts.span {
+            flags.insert(Flags::ENABLE_SPAN);
+        }
+        if opts.type_check_lenses {
+            flags.insert(Flags::TYPE_CHECK);
+        }
+        if opts.no_std_includes {
+            flags.insert(Flags::NO_STD_INCLUDE);
+        }
+        if opts.new {
+            flags.insert(Flags::SAVE_NEW_FILE);
+        }
+        if opts.backup {
+            flags.insert(Flags::SAVE_BACKUP);
+        }
+
+        let mut aug = Augeas::new_aug(opts.root.as_deref(), &opts.lens_paths, flags)?;
+
+        // FIXME read from stdin
+
+        if let Some(f) = opts.file {
+            let script = fs::read_to_string(f)?;
+            // FIXME hande echo
+            aug.srun(script)?;
+
+            if !opts.interactive {
+                return Ok(());
+            }
+        }
 
         println!("Rudder Augeas. Type 'quit' to leave.");
-        println!("{}", version);
         let mut interpreter = Interpreter::new(&mut aug);
         repl::start(&mut interpreter)
     }
