@@ -47,7 +47,9 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
@@ -56,12 +58,17 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.services.policies.DontCare
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.DirectiveEditForm
+import com.normation.rudder.web.components.DisplayColumn
+import com.normation.rudder.web.components.RuleGrid
 import com.normation.rudder.web.services.AgentCompat
 import com.normation.rudder.web.services.DisplayDirectiveTree
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
+import enumeratum.Enum
+import enumeratum.EnumEntry
 import net.liftweb.common.*
 import net.liftweb.common.Box.*
 import net.liftweb.http.*
@@ -98,10 +105,12 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private val techniqueRepository = RudderConfig.techniqueRepository
   private val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()
   private val getRules            = () => RudderConfig.roRuleRepository.getAll()
+  private val getGroups           = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
   private val uuidGen             = RudderConfig.stringUuidGenerator
   private val linkUtil            = RudderConfig.linkUtil
   private val configService       = RudderConfig.configService
   private val configRepo          = RudderConfig.configurationRepository
+  private val dependencyService   = RudderConfig.dependencyAndDeletionService
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
     case "head"                 => { _ => head() }
@@ -259,109 +268,143 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     case _        => <div id={htmlId_policyConf}></div>
   }
 
-  def initTechniqueDetails(): MemoizeTransform = SHtml.memoize {
-    "#techniqueDetails *" #> (currentTechnique match {
-      case None =>
-        ".main-header [class+]" #> "no-header" &
-        "#details *" #> {
-          <div>
-            <style>
-              #policyConfiguration{{
-              display:none;
-              }}
-            </style>
-            <div class="jumbotron">
-              <h1>Directives</h1>
-              <p>A directive is an instance of a technique, which allows to set values for the parameters of the latter.</p>
-              <p>Each directive can have a unique name, and should be completed with a short and a long description, and a collection of parameters for the variables defined by the technique.</p>
-              <p>Techniques are often available in several versions, numbered X.Y, X being the major version number and Y the minor version number:</p>
-              <ol>
-                <li><b>Bugs</b> are fixed in all existing versions of Rudder techniques. Make sure you update your Rudder packages frequently.</li>
-                <li>A new <b>minor</b> technique version is created for any new features</li>
-                <li>A new <b>major</b> version is created for any <b>architectural change</b> (such as refactoring)</li>
-              </ol>
-              <p>You can find your own techniques written in the technique editor in the <b>User Techniques</b> category.</p>
-            </div>
-            </div>
-        }
-
-      case Some((fullActiveTechnique, version)) =>
-        fullActiveTechnique.techniques.get(version) match {
+  def initTechniqueDetails(): MemoizeTransform = {
+    SHtml.memoize {
+      "#techniqueDetails *" #> (
+        currentTechnique match {
           case None =>
-            val m = s"There was an error when trying to read version ${version.debugString} of the technique." +
-              "Please check if that version exists on the filesystem and is correctly registered in the technique library."
-
-            logger.error(m)
-
-            "*" #> {
-              <div id="techniqueDetails">
-              <div class="p-2">
-              <p class="error">{m}</p>
-              </div>
-              </div>
+            ".main-header [class+]" #> "no-header" &
+            "#details *" #> {
+              <div>
+                  <style>
+                    #policyConfiguration{{
+                    display:none;
+                    }}
+                  </style>
+                  <div class="jumbotron">
+                    <h1>Directives</h1>
+                    <p>A directive is an instance of a technique, which allows to set values for the parameters of the latter.</p>
+                    <p>Each directive can have a unique name, and should be completed with a short and a long description, and a collection of parameters for the variables defined by the technique.</p>
+                    <p>Techniques are often available in several versions, numbered X.Y, X being the major version number and Y the minor version number:</p>
+                    <ol>
+                      <li>
+                        <b>Bugs</b>
+                        are fixed in all existing versions of Rudder techniques. Make sure you update your Rudder packages frequently.</li>
+                      <li>A new
+                        <b>minor</b>
+                        technique version is created for any new features</li>
+                      <li>A new
+                        <b>major</b>
+                        version is created for any
+                        <b>architectural change</b>
+                        (such as refactoring)</li>
+                    </ol>
+                    <p>You can find your own techniques written in the technique editor in the
+                      <b>User Techniques</b>
+                      category.</p>
+                  </div>
+                </div>
             }
 
-          case Some(technique) =>
-            /*
-             * We want to filter technique to only show the one
-             * with registered acceptation date time.
-             * Also sort by version, reverse
-             */
+          case Some((fullActiveTechnique, version)) =>
+            fullActiveTechnique.techniques.get(version) match {
+              case None =>
+                val m = s"There was an error when trying to read version ${version.debugString} of the technique." +
+                  "Please check if that version exists on the filesystem and is correctly registered in the technique library."
 
-            val validTechniqueVersions = fullActiveTechnique.techniques.map {
-              case (v, t) =>
-                fullActiveTechnique.acceptationDatetimes.get(v) match {
-                  case Some(timeStamp) => Some((v, t, timeStamp))
-                  case None            =>
-                    logger.error(
-                      "Inconsistent technique version state for technique with ID '%s' and its version '%s': ".format(
-                        fullActiveTechnique.techniqueName,
-                        v.debugString
-                      ) +
-                      "that version was not correctly registered into Rudder and can not be use for now."
-                    )
-                    logger.info(
-                      "A workaround is to remove that version manually from Rudder (move the directory for that version of the technique out " +
-                      "of your configuration-repository directory (for example in /tmp) and 'git commit' the modification), " +
-                      "reload the technique library, then add back the version back (move it back at its place, 'git add' the directory, 'git commit' the" +
-                      "modification), and reload the technique library again."
-                    )
+                logger.error(m)
 
-                    None
+                "*" #> {
+                  <div id="techniqueDetails">
+                    <div class="deca p-2">
+                      <p class="error">
+                        {m}
+                      </p>
+                    </div>
+                  </div>
                 }
-            }.toSeq.flatten.sortBy(_._1)
-            ".main-container [class-]" #> "no-header" &
-            "#directiveIntro " #> {
-              currentDirectiveSettingForm.get.map(piForm => (".directive *" #> piForm.directive.name))
-            } &
-            "#techniqueName" #> <span>{technique.name} {
-              if (fullActiveTechnique.isEnabled) NodeSeq.Empty
-              else <span class="badge-disabled"></span>
-            }</span> &
-            "#techniqueID *" #> technique.id.name.value &
+
+              case Some(technique) =>
+                /*
+                 * We want to filter technique to only show the one
+                 * with registered acceptation date time.
+                 * Also sort by version, reverse
+                 */
+
+                val validTechniqueVersions = fullActiveTechnique.techniques.map {
+                  case (v, t) =>
+                    fullActiveTechnique.acceptationDatetimes.get(v) match {
+                      case Some(timeStamp) => Some((v, t, timeStamp))
+                      case None            =>
+                        logger.error(
+                          "Inconsistent technique version state for technique with ID '%s' and its version '%s': ".format(
+                            fullActiveTechnique.techniqueName,
+                            v.debugString
+                          ) +
+                          "that version was not correctly registered into Rudder and can not be use for now."
+                        )
+                        logger.info(
+                          "A workaround is to remove that version manually from Rudder (move the directory for that version of the technique out " +
+                          "of your configuration-repository directory (for example in /tmp) and 'git commit' the modification), " +
+                          "reload the technique library, then add back the version back (move it back at its place, 'git add' the directory, 'git commit' the" +
+                          "modification), and reload the technique library again."
+                        )
+
+                        None
+                    }
+                }.toSeq.flatten.sortBy(_._1)
+                ".main-container [class-]" #> "no-header" &
+                "#directiveIntro " #> {
+                  currentDirectiveSettingForm.get.map(piForm => (".directive *" #> piForm.directive.name))
+                } &
+                "#techniqueName" #> <span>
+                    {technique.name}{
+                  if (fullActiveTechnique.isEnabled) NodeSeq.Empty
+                  else <span class="badge-disabled"></span>
+                }
+                  </span> &
+                "#techniqueID *" #> technique.id.name.value &
             "#techniqueDocumentation [class]" #> (if (technique.longDescription.isEmpty) "d-none" else "") &
-            "#techniqueLongDescription *" #> Script(
-              JsRaw(
-                s"""generateMarkdown(${Str(technique.longDescription).toJsCmd}, "#techniqueLongDescription");"""
-              ) // JsRaw ok, escaped
-            ) &
-            "#techniqueDescription" #> technique.description &
-            "#isSingle *" #> showIsSingle(technique) &
-            "#isDisabled" #> {
-              if (!fullActiveTechnique.isEnabled) {
-                <div class="main-alert alert alert-warning">
-                 <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
-                 This Technique is disabled.
-                 <a class="btn btn-sm btn-default" href={
-                  s"/secure/administration/techniqueLibraryManagement/#${fullActiveTechnique.techniqueName.value}"
-                }>Edit Technique</a>
-               </div>
-              } else NodeSeq.Empty
-            } &
-            "#techniqueversion-app *+" #> showVersions(fullActiveTechnique, validTechniqueVersions)
+                "#techniqueLongDescription *" #> Script(
+                  JsRaw(
+                    s"""generateMarkdown(${Str(technique.longDescription).toJsCmd}, "#techniqueLongDescription");"""
+                  ) // JsRaw ok, escaped
+                ) &
+                "#techniqueDescription" #> technique.description &
+                "#isSingle *" #> showIsSingle(technique) &
+                "#isDisabled" #> {
+                  def showPopup(nextStatus: NextStatus): JsCmd = {
+                    SetHtml(
+                      "showTechniqueValidationPopup",
+                      showTechniquePopup("showTechniqueValidationPopup", fullActiveTechnique, nextStatus)
+                    )
+                  }
+
+                  if (!fullActiveTechnique.isEnabled) {
+                    <div class="main-alert alert alert-warning">
+                        <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+                        This Technique is disabled.
+                        {
+                      SHtml.ajaxButton("Enable", () => showPopup(NextStatus.Enabled), ("class", "btn btn-sm btn-default mx-2"))
+                    }
+                    </div>
+                  } else {
+                    <div class="main-alert alert alert-success">
+                        <i class="fa fa-check" aria-hidden="true"></i>
+                        This Technique is enabled.
+                        {
+                      SHtml.ajaxButton("Disable", () => showPopup(NextStatus.Disabled), ("class", "btn btn-sm btn-default mx-2"))
+                    }
+                    </div>
+                  }
+                } &
+                "#techniqueversion-app *+" #> showVersions(fullActiveTechnique, validTechniqueVersions)
+            }
         }
-    })
+      )
+    }
   }
+
   private val (monoMessage, multiMessage, limitedMessage) = {
     (
       "A unique directive derived from that technique can be deployed on a given server.",
@@ -481,6 +524,95 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         )
       ) // JsRaw ok, escaped
     )
+  }
+
+  // validation / warning pop-up when enabling a technique
+
+  def showTechniquePopup(popupId: String, technique: FullActiveTechnique, nextStatus: NextStatus): NodeSeq = {
+    def closePopup(): JsCmd = SetHtml(popupId, NodeSeq.Empty)
+
+    dependencyService
+      .techniqueDependencies(technique.id, getGroups().toBox, DontCare)
+      .map(_.rules.values) match {
+      case box: EmptyBox =>
+        box match {
+          case Empty => // no more log
+          case f: Failure => ApplicationLogger.error(f.msg)
+        }
+        <div class="main-alert alert alert-error">
+          Error when trying to retrieve information about technique status change. Please contact your administrator.
+        </div>
+
+      case Full(rules) =>
+        val showDependentRules = {
+          if (rules.size <= 0) NodeSeq.Empty
+          else {
+            val noDisplay = DisplayColumn.Force(display = false)
+            val cmp       = new RuleGrid(
+              "technique_status_popup_grid",
+              None,
+              showCheckboxColumn = false,
+              directiveApplication = None,
+              columnCompliance = noDisplay,
+              graphRecentChanges = noDisplay
+            )
+            cmp.rulesGridWithUpdatedInfo(Some(rules.toSeq), showActionsColumn = false, isPopup = true)
+          }
+        }
+
+        (
+          "#validationForm" #> { (xml: NodeSeq) => SHtml.ajaxForm(xml) } andThen
+          "#changeStatus" #> (SHtml.ajaxSubmit(
+            nextStatus.action,
+            () =>
+              DirectiveManagement.setEnabled(
+                technique.id,
+                technique.techniqueName.value,
+                nextStatus.booleanValue,
+                () => {
+                  (closePopup() & updateDirectiveLibrary() & onClickActiveTechnique(
+                    technique.copy(isEnabled = nextStatus.booleanValue)
+                  ))
+                }
+              ),
+            ("class" -> "btn-danger")
+          ) % ("id" -> "createDirectiveSaveButton") % ("tabindex" -> "3"))
+        )(<div>
+          <div class="modal-backdrop fade show"></div>
+          <div id="validationContainer"  class="modal modal-lg fade show" style="display: block">
+            <div id="validationForm">
+              <div class="modal-dialog">
+                  <div class="modal-content">
+                      <div class="modal-header">
+                          <h5 id="dialogTitle" class="modal-title">
+                              {s"${nextStatus.action} technique '${technique.techniqueName.value}'"}
+                          </h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick={
+          closePopup()
+        }></button>
+                      </div>
+                      <div class="modal-body">
+                          <div id="explanationMessageZone">
+                            {
+          s"Technique '${technique.techniqueName.value}' will be ${nextStatus.entryName.toLowerCase}. Any item related to it will be impacted."
+        }
+                          </div>
+                          <div id="disableItemDependencies">
+                              {showDependentRules}
+                          </div>
+                      </div>
+                      <div class="modal-footer">
+                          <button type="button" class="btn btn-default" data-bs-dismiss="modal" onclick={
+          closePopup()
+        }>Cancel</button>
+                          <button id="changeStatus" class="btn">[Submit Draft]</button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+    </div>)
+    }
   }
 
   ///////////// finish migration pop-up ///////////////
@@ -668,7 +800,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         isADirectiveCreation = isADirectiveCreation,
         onSuccessCallback = directiveEditFormSuccessCallBack(),
         onMigrationCallback = (dir, optDir) => updateDirectiveForm(Left(dir), optDir) & displayFinishMigrationPopup,
-        onRemoveSuccessCallBack = () => onRemoveSuccessCallBack()
+        onRemoveSuccessCallBack = () => onRemoveSuccessCallBack(),
+        displayTechniqueDetails = onClickTechnique
       )
     }
 
@@ -750,13 +883,17 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     JsRaw(s"""this.window.location.hash = "#" + JSON.stringify(${json})""".stripMargin)
   }
 
-  private def onClickActiveTechnique(cat: FullActiveTechniqueCategory, fullActiveTechnique: FullActiveTechnique): JsCmd = {
+  private def onClickActiveTechnique(fullActiveTechnique: FullActiveTechnique): JsCmd = {
     currentTechnique = fullActiveTechnique.newestAvailableTechnique.map(fat => (fullActiveTechnique, fat.id.version))
     currentDirectiveSettingForm.set(Empty)
     // Update UI
     Replace(html_techniqueDetails, techniqueDetails.applyAgain()) &
     Replace(htmlId_policyConf, showDirectiveDetails()) &
     JsRaw("""initBsTooltips();""") // JsRaw ok, const
+  }
+
+  private def onClickTechnique(id: ActiveTechniqueId): JsCmd = {
+    onClickActiveTechnique(directiveLibrary.runNow.allActiveTechniques(id))
   }
 
 }
@@ -771,4 +908,46 @@ object DirectiveManagement {
   val htmlId_currentActiveTechniqueActions = "currentActiveTechniqueActions"
   val html_addPiInActiveTechnique          = "addNewDirective"
   val html_techniqueDetails                = "techniqueDetails"
+
+  def setEnabled(activeTechniqueId: ActiveTechniqueId, name: String, status: Boolean, successCallback: () => JsCmd): JsCmd = {
+    val msg = (if (status) "Enable" else "Disable") ++ "technique from directive library screen"
+    RudderConfig.woDirectiveRepository
+      .changeStatus(
+        activeTechniqueId,
+        status,
+        ModificationId(RudderConfig.stringUuidGenerator.newUuid),
+        CurrentUser.actor,
+        Some(msg)
+      )
+      .either
+      .runNow match {
+      case Left(err) =>
+        JsRaw(
+          s"""createErrorNotification("Error when changing status of technique ${name}: ${err.fullMsg}")"""
+        ).cmd // JsRaw ok, no user inputs
+      case Right(_)  =>
+        val msg = s"Technique '${name} was correctly ${if (status) "enabled" else "disabled"}"
+        JsRaw(
+          s"""createSuccessNotification("${msg}")"""
+        ).cmd & // JsRaw ok, no user inputs
+        successCallback()
+    }
+  }
+}
+
+sealed trait NextStatus extends EnumEntry        {
+  def action:       String
+  def booleanValue: Boolean
+}
+object NextStatus       extends Enum[NextStatus] {
+  final case object Enabled  extends NextStatus {
+    val action       = "Enable"
+    val booleanValue = true
+  }
+  final case object Disabled extends NextStatus {
+    val action       = "Disable"
+    val booleanValue = false
+  }
+
+  override def values: IndexedSeq[NextStatus] = findValues
 }

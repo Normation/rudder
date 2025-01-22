@@ -58,15 +58,15 @@
               The Directive <b class="directive">[Directive]</b> is based on following Technique:
             </div>
             <div id="isDisabled">[Disabled Technique]</div>
-            <div>
+            <div class="my-2">
               <h4>Description</h4>
                 <span id="techniqueDescription">[technique.description]</span>
             </div>
-            <div>
+            <div class="my-2">
               <h4 style="margin-top:0;">Technique ID</h4>
               <span id="techniqueID">[technique.techniqueName]</span>
             </div>
-            <div id="techniqueDocumentation">
+            <div id="techniqueDocumentation" class="my-2">
               <h4 class="toggle-doc" onclick="$(this).toggleClass('doc-hidden')">Documentation<i class="fa fa-chevron-down"></i></h4>
               <div class="markdown">
                 <span id="techniqueLongDescription">[technique.documentation]</span>
@@ -134,4 +134,5 @@
   });
   initBsTooltips();
 </script>
+<div id="showTechniqueValidationPopup"></div>
 </lift:surround>

@@ -250,8 +250,8 @@ class DependencyAndDeletionServiceImpl(
       }
     }
 
-    // group by target, and check if target status is enable
-    // if the target is disable, we can't change the rule status anyhow
+    // group by target, and check if target status is enabled
+    // if the target is disabled, we can't change the rule status anyhow
     ZIO
       .foreach(switchableCr) {
         case (rule, targets) =>
