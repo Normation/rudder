@@ -22,11 +22,13 @@ use std::process;
 use std::{
     fs::create_dir_all,
     path::{Path, PathBuf},
+    process::ExitCode,
 };
 
 use anyhow::{anyhow, bail, Context, Result};
 use clap::Parser;
 use cli::Args;
+use repository::RepositoryError;
 use rudder_cli::custom_panic_hook_ignore_sigpipe;
 use tracing::{debug, error, info, warn};
 
@@ -69,7 +71,7 @@ fn am_i_root() -> Result<bool> {
 }
 
 /// CLI entry point
-pub fn run() -> Result<()> {
+pub fn run() -> Result<ExitCode> {
     custom_panic_hook_ignore_sigpipe();
 
     // Read CLI args
@@ -84,14 +86,20 @@ pub fn run() -> Result<()> {
     );
     if let Err(ref e) = log_r {
         eprintln!("{:?}", e);
-        return log_r;
+        return Ok(ExitCode::FAILURE);
     }
 
     let r = run_inner(args);
-    if let Err(ref e) = r {
-        error!("{:?}", e);
+    match r {
+        Err(ref e) => {
+            error!("{:?}", e);
+            match e.downcast_ref::<RepositoryError>() {
+                Some(err) => Ok(ExitCode::from(err)),
+                None => Ok(ExitCode::FAILURE),
+            }
+        }
+        Ok(()) => Ok(ExitCode::SUCCESS),
     }
-    r
 }
 
 pub fn run_inner(args: Args) -> Result<()> {

@@ -4,6 +4,7 @@
 use std::{
     fs::{self, File},
     path::{Path, PathBuf},
+    process::ExitCode,
 };
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -24,6 +25,31 @@ use crate::{
 };
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
+
+#[derive(Debug)]
+pub enum RepositoryError {
+    InvalidCredentials(anyhow::Error),
+    Unauthorized(anyhow::Error),
+}
+impl std::fmt::Display for RepositoryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidCredentials(err) => write!(f, "{}", err),
+            Self::Unauthorized(err) => write!(f, "{}", err),
+        }
+    }
+}
+
+impl std::error::Error for RepositoryError {}
+
+impl From<&RepositoryError> for ExitCode {
+    fn from(value: &RepositoryError) -> Self {
+        match value {
+            RepositoryError::InvalidCredentials(_) => ExitCode::from(2),
+            RepositoryError::Unauthorized(_) => ExitCode::from(3),
+        }
+    }
+}
 
 #[derive(Clone)]
 pub struct Repository {
@@ -78,13 +104,21 @@ impl Repository {
         }
         let res = req.send()?;
 
-        // Special error messages for common errors
+        // Special error messages and codes for common errors
         match res.status() {
-            StatusCode::UNAUTHORIZED => bail!("Received an HTTP 401 Unauthorized error when trying to get {}. Please check your credentials in the configuration.", path),
-            StatusCode::FORBIDDEN => bail!("Received an HTTP 403 Forbidden error when trying to get {}. Please check your credentials in the configuration.", path),
-            StatusCode::NOT_FOUND => bail!("Received an HTTP 404 Not found error when trying to get {}. Please check your configuration.", path),
-            _ => ()
-        }
+            StatusCode::UNAUTHORIZED => {
+                let e = anyhow!("Invalid credentials, please check your credentials in the configuration (received HTTP {:?}).", res.status());
+                bail!(RepositoryError::InvalidCredentials(e))
+            }
+            StatusCode::FORBIDDEN | StatusCode::NOT_FOUND => {
+                let e = anyhow!(
+                    "Unauthorized download from Rudder repository (received HTTP {:?}).",
+                    res.status()
+                );
+                bail!(RepositoryError::Unauthorized(e))
+            }
+            _ => (),
+        };
 
         Ok(res.error_for_status()?)
     }
