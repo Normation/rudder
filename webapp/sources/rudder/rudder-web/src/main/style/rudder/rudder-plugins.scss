@@ -41,6 +41,11 @@
 @import "../../node_modules/bootstrap/scss/variables";
 @import "../../node_modules/bootstrap/scss/mixins";
 
+// Limit the size of spinner in loading buttons
+$spinner-width-sm: 1.3rem;
+$spinner-height-sm: $spinner-width-sm;
+@import "../../node_modules/bootstrap/scss/spinners";
+
 .rudder-template .template-main {
   flex: auto !important;
 }

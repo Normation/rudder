@@ -149,7 +149,7 @@ final class CheckFileDescriptorLimit(val nodeFactRepository: NodeFactRepository)
       res        <- fdLimitCmd.await
       _          <- ZIO.when(res.code != 0) {
                       Inconsistency(
-                        s"An error occurred while getting file descriptor soft limit with command '${cmd.display}':\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
+                        s"An error occurred while getting file descriptor soft limit with command '${cmd.display}':\n ${res.debugString(sep = "\n ")}"
                       ).fail
                     }
       limit      <- IOResult.attempt(res.stdout.trim.toLong)

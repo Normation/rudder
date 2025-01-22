@@ -82,7 +82,24 @@ import zio.syntax.*
 final case class Cmd(cmdPath: String, parameters: List[String], environment: Map[String, String], cwdPath: Option[String]) {
   def display: String = s"${cmdPath} ${parameters.mkString(" ")}"
 }
-final case class CmdResult(code: Int, stdout: String, stderr: String)
+final case class CmdResult(code: Int, stdout: String, stderr: String)                                                      {
+
+  /**
+    * Display the attributes of this result, by default each on a new line with indentation
+    */
+  def debugString(sep: String = "\n "): String = s"code: ${code}${sep}stderr: ${stderr}${sep}stdout: ${stdout}"
+
+  /**
+    * Strips the stdout and stderr of the result, may be useful when matching with a regex or for display purpose
+    */
+  def strip: CmdResult = transform(_.strip)
+
+  /**
+    * Apply some transformation (e.g. sanitizing on stdout and stderr)
+    */
+  def transform(f: String => String): CmdResult = copy(stdout = f(stdout), stderr = f(stderr))
+
+}
 
 object RunNuCommand {
 

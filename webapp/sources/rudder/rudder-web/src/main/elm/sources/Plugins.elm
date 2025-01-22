@@ -1,18 +1,18 @@
 port module Plugins exposing (update)
 
--- fakeData
-
 import Browser
-import Bytes exposing (Bytes)
-import Bytes.Decode
+import Browser.Navigation
+import Http
 import Http.Detailed as Detailed
 import Json.Decode exposing (..)
 import List exposing (drop, head)
-import Plugins.ApiCalls exposing (getPluginInfos)
+import Plugins.ApiCalls exposing (getPluginInfos, requestTypeAction)
 import Plugins.DataTypes exposing (..)
 import Plugins.Init exposing (init, subscriptions)
 import Plugins.View exposing (view)
+import Process
 import String exposing (join, split)
+import Task
 
 
 
@@ -48,28 +48,37 @@ update msg model =
         CallApi apiCall ->
             ( model, apiCall model )
 
+        RequestApi t ->
+            ( withLoading True model, requestTypeAction t model )
+
         ApiGetPlugins res ->
             case res of
                 Ok ( _, { license, plugins } ) ->
-                    ( { model | license = license, plugins = plugins }, Cmd.none )
+                    ( withLoading False { model | license = license, plugins = plugins }, Cmd.none )
 
                 Err err ->
-                    processApiErrorString "Error while fetching information" err model
+                    processApiError "Error while getting the list of plugins." err model
 
         -- We want to update all plugins information every time the index is updated
-        ApiPostPlugins (Ok UpdateIndex) ->
-            ( model, Cmd.batch [ successNotification ("Plugin " ++ requestTypeText UpdateIndex ++ " successful"), getPluginInfos model ] )
+        ApiPostPlugins UpdateIndex (Ok _) ->
+            ( withLoading False model, Cmd.batch [ successNotification "Plugins list successfully updated.", getPluginInfos model ] )
 
-        ApiPostPlugins res ->
+        ApiPostPlugins UpdateIndex (Err err) ->
+            processApiError "Error while trying to get the updated the list of plugins." err model
+
+        ApiPostPlugins t res ->
             case res of
-                Ok t ->
-                    ( model, successNotification ("Plugin " ++ requestTypeText t ++ " successful") )
+                Ok _ ->
+                    ( withLoading False model, successNotification ("Plugin " ++ requestTypeText t ++ " successful.") )
 
                 Err err ->
-                    processApiErrorBytes "Error while fetching information" err model
+                    processApiError ("Error while trying to " ++ requestTypeText t) err model
 
         SetModalState modalState ->
             ( { model | ui = (\ui -> { ui | modalState = modalState }) model.ui }, Cmd.none )
+
+        ReloadPage ->
+            ( model, Browser.Navigation.reload )
 
         Copy s ->
             ( model, copy s )
@@ -81,23 +90,36 @@ update msg model =
             ( processSelect s model, Cmd.none )
 
 
-
--- UpdateUI newUI ->
---     ({model | ui = newUI}, Cmd.none)
-
-
-processSpecificApiError : (a -> String) -> Detailed.Error a -> Model -> Maybe ( Model, Cmd Msg )
-processSpecificApiError errDetails err model =
+processSpecificApiError : String -> Detailed.Error String -> Model -> Maybe ( Model, Cmd Msg )
+processSpecificApiError msg err model =
     case err of
         Detailed.BadStatus metadata body ->
             case metadata.statusCode of
                 401 ->
                     Just
                         ( withSettingsError
-                            ( "There are credentials error related to plugin management. Please refresh the page after you update your configuration.", decodeErrorContent (errDetails body) )
+                            ( "There are credentials errors related to plugin management. Please refresh the list of plugins after you update your configuration credentials.", decodeErrorContent body )
                             model
-                        , Cmd.none
+                        , errorNotification msg
                         )
+
+                403 ->
+                    Just
+                        ( withSettingsError
+                            ( "There are configuration errors related to plugin management. Please refresh the list of plugins after you update your configuration URL or check your access.", decodeErrorContent body )
+                            model
+                        , errorNotification msg
+                        )
+
+                502 ->
+                    -- Bad Gateway may indicate that the server has probably restarted meanwhile to apply changes on plugins
+                    Just
+                        ( model, Cmd.batch [ waitAndReload 5000, successNotification "This page will reload automatically in a few seconds" ] )
+
+                503 ->
+                    -- Service Unavailable may indicate that the server has probably restarted meanwhile to apply changes on plugins
+                    Just
+                        ( model, Cmd.batch [ waitAndReload 5000, successNotification "This page will reload automatically in a few seconds" ] )
 
                 _ ->
                     Nothing
@@ -106,8 +128,8 @@ processSpecificApiError errDetails err model =
             Nothing
 
 
-processApiError : (a -> String) -> String -> Detailed.Error a -> Model -> ( Model, Cmd Msg )
-processApiError errDetails msg err model =
+processApiError : String -> Detailed.Error String -> Model -> ( Model, Cmd Msg )
+processApiError msg err model =
     let
         message =
             case err of
@@ -121,19 +143,14 @@ processApiError errDetails msg err model =
                     "Unable to reach the server, check your network connection"
 
                 Detailed.BadStatus _ body ->
-                    errDetails body
+                    decodeErrorContent body
 
                 Detailed.BadBody _ _ m ->
                     m
     in
     -- specific error override other ones which no longer need to be processed
-    processSpecificApiError errDetails err model
+    processSpecificApiError msg err model
         |> Maybe.withDefault ( model, errorNotification (msg ++ ", details: \n" ++ message) )
-
-
-processApiErrorString : String -> Detailed.Error String -> Model -> ( Model, Cmd Msg )
-processApiErrorString msg err model =
-    processApiError decodeErrorContent msg err model
 
 
 decodeErrorContent : String -> String
@@ -143,17 +160,6 @@ decodeErrorContent body =
             decodeErrorDetails body
     in
     title ++ "\n" ++ errors
-
-
-processApiErrorBytes : String -> Detailed.Error Bytes -> Model -> ( Model, Cmd Msg )
-processApiErrorBytes msg err model =
-    let
-        -- this 2048 chars should fit the notification box
-        f =
-            Bytes.Decode.decode (Bytes.Decode.string 2048)
-                >> Maybe.withDefault "Unknown error"
-    in
-    processApiError f msg err model
 
 
 decodeErrorDetails : String -> ( String, String )
@@ -182,3 +188,9 @@ decodeErrorDetails json =
 
         Just s ->
             ( s, join " \n " (drop 1 (List.map (\err -> "\t ‣ " ++ err) errors)) )
+
+
+waitAndReload : Float -> Cmd Msg
+waitAndReload millis =
+    Process.sleep millis
+        |> Task.perform (\_ -> ReloadPage)

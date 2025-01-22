@@ -42,7 +42,7 @@ import bootstrap.liftweb.ConfigResource
 import bootstrap.liftweb.FileSystemResource
 import bootstrap.liftweb.RudderProperties
 import com.normation.errors.IOResult
-import com.normation.plugins.RudderPackageService.CredentialError
+import com.normation.plugins.RudderPackageService.PluginSettingsError
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
@@ -370,7 +370,7 @@ class PluginSystemServiceImpl(
     pluginDefs:           => Map[PluginName, RudderPluginDef],
     rudderFullVersion:    String
 ) extends PluginSystemService {
-  override def updateIndex(): IOResult[Option[CredentialError]] = {
+  override def updateIndex(): IOResult[Option[PluginSettingsError]] = {
     rudderPackageService.update()
   }
 
