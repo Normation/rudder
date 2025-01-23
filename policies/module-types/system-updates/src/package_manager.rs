@@ -197,6 +197,19 @@ impl PackageManager {
             _ => bail!("Unknown package manager for OS: '{}'", id),
         })
     }
+
+    /// Split by line and null char, remove empty lines.
+    fn parse_services(i: &[String]) -> Vec<String> {
+        i.iter()
+            .flat_map(|l| l.split('\0'))
+            .flat_map(|s| match s.trim() {
+                "" => None,
+                // Apparently it can happen on CentOS7, very likely a bug. See #26194.
+                ".service" => None,
+                service => Some(service.to_string()),
+            })
+            .collect()
+    }
 }
 
 /// A generic interface of a Linux package manager
@@ -342,5 +355,22 @@ mod tests {
         reference.sort();
 
         assert_eq!(result, reference);
+    }
+
+    #[test]
+    fn test_parse_services() {
+        let i = vec![
+            "".to_string(),
+            "foo  ".to_string(),
+            " bar".to_string(),
+            "baz.service".to_string(),
+            ".service".to_string(),
+            "ser1\0ser2".to_string(),
+            "".to_string(),
+        ];
+        std::assert_eq!(
+            PackageManager::parse_services(&i),
+            vec!["foo", "bar", "baz.service", "ser1", "ser2"]
+        );
     }
 }
