@@ -379,4 +379,59 @@ mod tests {
         assert_eq!(parser().parse("save\n ").unwrap()[0].0, Expr::Save);
         assert_eq!(parser().parse("save # stuff").unwrap()[0].0, Expr::Save);
     }
+
+    #[test]
+    fn test_script() {
+        let input = r#"
+            # This is a comment
+            set /path/to/node value
+            setm /path/to/nodes 'sub node' value
+            rm /path/to/node
+            # other comment
+
+            clear /path/to/node # another command
+            clearm /path/to/nodes "sub node"
+            touch /path/to/node
+
+            is uint /path/to/node
+
+            print /path/to/node
+            quit
+
+            values /path/to/node include value
+
+            ins  label  before        /path/to/node
+            mv /path/to/node /new/path
+            rename /path/to/node new_label
+            defvar name /path/to/node
+            defnode name /path/to/node value
+
+        "#;
+        let expected = vec![
+            Expr::Set("/path/to/node".into(), "value"),
+            Expr::SetMultiple("/path/to/nodes".into(), "sub node", "value"),
+            Expr::Remove("/path/to/node".into()),
+            Expr::Clear("/path/to/node".into()),
+            Expr::ClearMultiple("/path/to/nodes".into(), "sub node"),
+            Expr::Touch("/path/to/node".into()),
+            Expr::HasType("/path/to/node".into(), ValueType::Uint),
+            Expr::GenericAugeas("print /path/to/node"),
+            Expr::Quit,
+            Expr::ValuesInclude("/path/to/node".into(), "value"),
+            Expr::Insert("label", Position::Before, "/path/to/node".into()),
+            Expr::Move("/path/to/node".into(), "/new/path".into()),
+            Expr::Rename("/path/to/node".into(), "new_label"),
+            Expr::DefineVar("name", "/path/to/node".into()),
+            Expr::DefineNode("name", "/path/to/node".into(), "value"),
+        ];
+        assert_eq!(
+            parser()
+                .parse(input)
+                .unwrap()
+                .into_iter()
+                .map(|e| e.0)
+                .collect::<Vec<Expr>>(),
+            expected
+        );
+    }
 }

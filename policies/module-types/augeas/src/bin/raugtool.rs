@@ -18,8 +18,8 @@ use std::path::PathBuf;
 use std::{env, fs};
 /*
 TODO: implement
-
  --timing               after executing each command, show how long it took
+Time: 565 ms after each command
 */
 
 #[derive(Debug, Options)]
@@ -161,6 +161,7 @@ impl Cli {
     pub fn run() -> Result<()> {
         let opts = Self::parse_args_default_or_exit();
         if opts.verbose {
+            set_max_level(LevelFilter::Debug);
             println!("Parsed options: {:#?}", &opts);
         }
         if opts.version {
@@ -217,7 +218,5 @@ impl Cli {
 
 fn main() -> Result<(), anyhow::Error> {
     env::set_var("LC_ALL", "C");
-    // FIXME: allow changing the level display
-    set_max_level(LevelFilter::Trace);
     Cli::run()
 }

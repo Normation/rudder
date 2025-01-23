@@ -62,19 +62,17 @@ impl Augeas {
         load_paths: &[T],
     ) -> anyhow::Result<raugeas::Augeas> {
         let mut flags = Flags::NONE;
-        rudder_debug!("Loading lenses on startup");
         flags.insert(Flags::NO_LOAD);
-        rudder_debug!("Enabling span tracking");
+        // Enable span tracking for better error messages.
+        // As we never load the whole tree, the cost is negligible.
         flags.insert(Flags::ENABLE_SPAN);
 
-        // Enable span tracking for better error messages.
         Self::new_aug(root, load_paths, flags)
     }
 
     pub fn new_aug<T: AsRef<Path>>(
         root: Option<&Path>,
         load_paths: &[T],
-        // FIXME take Flags directly
         flags: Flags,
     ) -> anyhow::Result<raugeas::Augeas> {
         // Consider Rudder lib as part of the standard lib.
@@ -144,6 +142,7 @@ impl Augeas {
         if let Some(e) = aug.tree_error(format!("/augeas/{}", p.path.display()))? {
             bail!("Error loading target file '{}': {}", p.path.display(), e);
             // TODO: some errors might not be fatal?
+            // FIXME: use ariadne here, wait for 0.5
         }
 
         let context: Cow<str> = if let Some(c) = p.context.as_deref() {
