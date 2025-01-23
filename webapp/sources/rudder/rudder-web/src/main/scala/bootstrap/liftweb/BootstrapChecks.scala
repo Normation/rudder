@@ -66,9 +66,22 @@ trait BootstrapChecks {
 
 object BootstrapLogger extends NamedZioLogger {
   final override def loggerName: String = "bootchecks"
+
+  object Early extends NamedZioLogger {
+    final override def loggerName: String = "bootchecks.early"
+
+    object DB extends NamedZioLogger {
+      final override def loggerName: String = "bootchecks.early.db"
+    }
+
+    object LDAP extends NamedZioLogger {
+      final override def loggerName: String = "bootchecks.early.ldap"
+    }
+  }
 }
 
-class SequentialImmediateBootStrapChecks(_checkActions: BootstrapChecks*) extends BootstrapChecks {
+class SequentialImmediateBootStrapChecks(sequenceName: String, logger: NamedZioLogger, _checkActions: BootstrapChecks*)
+    extends BootstrapChecks {
 
   private val checkActions = collection.mutable.Buffer[BootstrapChecks](_checkActions*)
 
@@ -86,22 +99,25 @@ class SequentialImmediateBootStrapChecks(_checkActions: BootstrapChecks*) extend
     .appendSeparator(" ")
     .appendMillis()
     .appendSuffix(" ms")
-    .toFormatter();
+    .toFormatter()
 
   @throws(classOf[UnavailableException])
-  override def checks(): Unit = checkActions.zipWithIndex.foreach {
-    case (check, i) =>
-      val start = System.currentTimeMillis
-      val msg   = if (BootstrapLogger.logEffect.isDebugEnabled) {
-        s"[#${i}] ${check.description}"
-      } else {
-        s"${check.description}"
-      }
-      BootstrapLogger.logEffect.info(msg)
-      check.checks()
-      BootstrapLogger.logEffect.debug(
-        msg + s": OK in [${formatter.print(new Duration(System.currentTimeMillis - start).toPeriod)}] ms"
-      )
+  override def checks(): Unit = {
+    logger.logEffect.info(s"Starting bootchecks for ${sequenceName}")
+    checkActions.zipWithIndex.foreach {
+      case (check, i) =>
+        val start = System.currentTimeMillis
+        val msg   = if (logger.logEffect.isDebugEnabled) {
+          s"[#${i}] ${check.description}"
+        } else {
+          s"${check.description}"
+        }
+        logger.logEffect.info(msg)
+        check.checks()
+        logger.logEffect.debug(
+          msg + s": OK in [${formatter.print(new Duration(System.currentTimeMillis - start).toPeriod)}] ms"
+        )
+    }
   }
 
 }
