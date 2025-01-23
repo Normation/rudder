@@ -6,6 +6,7 @@ use std::process::Command;
 use anyhow::Result;
 
 use crate::output::{CommandBehavior, CommandCapture};
+use crate::package_manager::PackageManager;
 use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
@@ -126,11 +127,30 @@ impl LinuxPackageManager for YumPackageManager {
         let (r, o, e) = (res.inner, res.stdout, res.stderr);
         let res = match r {
             Ok(_) => {
-                let services = o.iter().map(|s| s.trim().to_string()).collect();
+                let services = PackageManager::parse_services(&o);
                 Ok(services)
             }
             Err(e) => Err(e),
         };
         ResultOutput::new_output(res, o, e)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::package_manager::PackageSpec;
+
+    #[test]
+    fn test_package_spec_as_argument() {
+        let p = PackageSpec {
+            name: "foo".to_string(),
+            version: Some("1.0".to_string()),
+            architecture: Some("x86_64".to_string()),
+        };
+        assert_eq!(
+            YumPackageManager::package_spec_as_argument(&p),
+            "foo-1.0.x86_64"
+        );
     }
 }
