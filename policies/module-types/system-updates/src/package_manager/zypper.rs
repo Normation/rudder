@@ -6,6 +6,7 @@ use std::process::Command;
 use anyhow::Result;
 
 use crate::output::{CommandBehavior, CommandCapture};
+use crate::package_manager::PackageManager;
 use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
@@ -135,7 +136,7 @@ impl LinuxPackageManager for ZypperPackageManager {
         let (r, o, e) = (res.inner, res.stdout, res.stderr);
         let res = match r {
             Ok(_) => {
-                let services = o.iter().map(|s| s.trim().to_string()).collect();
+                let services = PackageManager::parse_services(&o);
                 Ok(services)
             }
             Err(e) => Err(e),
