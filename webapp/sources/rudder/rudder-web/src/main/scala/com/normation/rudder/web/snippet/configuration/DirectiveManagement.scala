@@ -364,7 +364,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                 }
                   </span> &
                 "#techniqueID *" #> technique.id.name.value &
-            "#techniqueDocumentation [class]" #> (if (technique.longDescription.isEmpty) "d-none" else "") &
+                "#techniqueDocumentation [class]" #> (if (technique.longDescription.isEmpty) "d-none" else "") &
                 "#techniqueLongDescription *" #> Script(
                   JsRaw(
                     s"""generateMarkdown(${Str(technique.longDescription).toJsCmd}, "#techniqueLongDescription");"""
