@@ -886,10 +886,10 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private def onClickActiveTechnique(fullActiveTechnique: FullActiveTechnique): JsCmd = {
     currentTechnique = fullActiveTechnique.newestAvailableTechnique.map(fat => (fullActiveTechnique, fat.id.version))
     currentDirectiveSettingForm.set(Empty)
-    // Update UI
+    // Update UI and reset hash location : we do not have hash for techniques, see https://issues.rudder.io/issues/26206
     Replace(html_techniqueDetails, techniqueDetails.applyAgain()) &
     Replace(htmlId_policyConf, showDirectiveDetails()) &
-    JsRaw("""initBsTooltips();""") // JsRaw ok, const
+    JsRaw("""this.window.location.hash = ""; initBsTooltips();""".stripMargin) // JsRaw ok, const
   }
 
   private def onClickTechnique(id: ActiveTechniqueId): JsCmd = {
