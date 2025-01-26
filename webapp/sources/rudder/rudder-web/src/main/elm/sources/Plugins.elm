@@ -63,6 +63,9 @@ update msg model =
                 Err err ->
                     processApiErrorBytes "Error while fetching information" err model
 
+        SetModalState modalState ->
+            ( { model | ui = (\ui -> { ui | modalState = modalState }) model.ui }, Cmd.none )
+
         Copy s ->
             ( model, copy s )
 

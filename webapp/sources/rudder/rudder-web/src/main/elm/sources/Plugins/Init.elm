@@ -13,7 +13,7 @@ init : { contextPath : String } -> ( Model, Cmd Msg )
 init flags =
     let
         initUI =
-            UI [] Nothing
+            UI [] NoModal Nothing
 
         initModel =
             Model flags.contextPath noGlobalLicense [] initUI

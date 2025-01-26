@@ -108,11 +108,13 @@
 
 
 .plugins-container {
+  $default-font-size: 0.86em;
+
   & .plugins-actions {
-    border-bottom: 2px solid #d6deef !important; // in combination with datatable classes
+    border-bottom: 2px solid $rudder-border-color-default !important; // in combination with datatable classes
 
     & .btn {
-      font-size: 0.8em;
+      font-size: $default-font-size;
       border-radius: 0.3em;
       min-width: 4.8rem;
     }
@@ -127,19 +129,33 @@
         margin: 10px 0;
       }
 
-      &.plugin-card-missing-license {
+      &.plugin-card-disabled {
         background-color: $rudder-bg-light-gray;
       }
 
+      &.plugin-card-missing-license {
+        opacity: 95%;
+
+        & .badge.float-end {
+          background-color: #D6DEEF;
+        }
+      }
+
       & .badge.float-end {
+        font-size: $default-font-size;
         border-top-left-radius: 0;
         border-bottom-right-radius: 0;
         text-transform: uppercase;
-        padding: 0.3rem 0.6rem;
+        padding: 0.3rem 0.8rem;
+        font-weight: 600;
       }
 
       & .form-check label {
         cursor: pointer;
+      }
+
+      & .card-text {
+        font-size: $default-font-size;
       }
 
       & .plugin-name {
@@ -148,7 +164,6 @@
       }
 
       & .plugin-description {
-        font-size: 0.8rem;
         color: $rudder-txt-secondary;
       }
 
@@ -158,12 +173,14 @@
       }
 
       & .plugin-errors {
-        margin-top: 0.5rem;
+        $el-margin: 0.5rem;
+
+        margin-top: $el-margin;
 
         & .callout-fade {
           &:not(:last-child) {
-            margin-top: 0.5rem;
-            margin-bottom: 0.5rem;
+            margin-top: $el-margin;
+            margin-bottom: $el-margin;
           }
 
           &:last-child {
