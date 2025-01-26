@@ -876,9 +876,16 @@ function initBsTooltips(){
   return tooltipTriggerList.map(function (tooltipTriggerEl) {
     let dataTrigger = $(tooltipTriggerEl).attr('data-bs-trigger');
     let trigger = dataTrigger === undefined ? 'hover' : dataTrigger;
+    tooltipTriggerEl.addEventListener('hide.bs.tooltip', () => {
+      removeBsTooltips();
+    });
+    tooltipTriggerEl.addEventListener('show.bs.tooltip', () => {
+      removeBsTooltips()
+    });
     return new bootstrap.Tooltip(tooltipTriggerEl,{container : "body", html : true, trigger : trigger});
   });
 }
+
 function removeBsTooltips(){
   document.querySelectorAll(".tooltip").forEach(e => e.remove());
 }
