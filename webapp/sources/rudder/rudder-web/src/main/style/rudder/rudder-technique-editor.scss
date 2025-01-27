@@ -1613,11 +1613,7 @@ ul li.hide-method {
 }
 
 /* FOREACH TAB */
-.group-key{
-  width: 400px;
-}
 .foreach-keys {
-
   & > span {
     background-color: $rudder-bg-light-gray;
 
@@ -1633,6 +1629,16 @@ ul li.hide-method {
       background-color: $rudder-bg-light-gray;
       &:not(:last-child){
         min-width: 100px;
+      }
+    }
+    td{
+      vertical-align: middle;
+      padding: 6px;
+    }
+    tr.item-foreach.new{
+      border-top: 2px solid $rudder-border-color-default !important;
+      td{
+        background-color: $rudder-bg-light-gray !important;
       }
     }
   }

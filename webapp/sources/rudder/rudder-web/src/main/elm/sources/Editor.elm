@@ -669,7 +669,7 @@ update msg model =
                                                           Just uiBlock -> Just { uiBlock | validation = blockState}
                                                           Nothing -> Just (MethodBlockUiInfo Closed Children blockState False)
                  in
-                  { ui | blockUI = Dict.update block.id.value updateBlockState ui.blockUI  }
+                  { ui | blockUI = Dict.update block.id.value updateBlockState ui.blockUI }
                 Call _ _ -> {ui | callsUI = Dict.update callId.value (Maybe.map (always newMethodUi )) ui.callsUI }
             newModel = {model | mode = TechniqueDetails {t | elems = updateElemIf (getId >> (==) (getId method) ) (always method) t.elems} s newUi editInfo}
           in
