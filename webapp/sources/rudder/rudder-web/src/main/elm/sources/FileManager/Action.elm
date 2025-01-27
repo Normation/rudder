@@ -15,6 +15,9 @@ import Url.Builder exposing (string, toQuery, QueryParameter)
 
 import FileManager.Model exposing (..)
 import FileManager.Util exposing (getDirPath)
+import Http exposing (expectBytesResponse)
+import Bytes exposing (Bytes)
+import Bytes.Decode
 
 get :  String -> Decoder a -> (Result Http.Error a -> msg) -> Cmd msg
 get url decoder handler =
@@ -133,6 +136,35 @@ headList decoder =
       [] -> fail ""
       x :: _ -> succeed x
     ) decoder
+
+download : String -> List String -> FileMeta -> Cmd Msg
+download api dir file =
+  let
+    -- capture the bytes of the response if status is good, else just return the err
+    resolve toResult response =
+      case response of
+        Http.BadUrl_ url_ ->
+          Err (Http.BadUrl url_)
+        Http.Timeout_ ->
+          Err Http.Timeout
+        Http.NetworkError_ ->
+          Err Http.NetworkError
+        Http.BadStatus_ metadata _ ->
+          Err (Http.BadStatus metadata.statusCode)
+        Http.GoodStatus_ _ body ->
+          Result.mapError Http.BadBody (toResult body)
+  in
+    request
+      { method = "GET"
+      , headers = [header "X-Requested-With" "XMLHttpRequest"]
+      , url = api ++ "?action=download&path=" ++ (getDirPath dir) ++ file.name
+      , body = emptyBody
+      , expect = expectBytesResponse (Downloaded file) (resolve Ok)
+      , timeout = Nothing
+      , tracker = Nothing
+      }
+  
+  
 
 getContent : String  -> String -> String -> Cmd Msg
 getContent api dir name =
