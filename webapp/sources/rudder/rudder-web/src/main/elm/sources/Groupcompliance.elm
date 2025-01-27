@@ -128,6 +128,14 @@ update msg model =
     --    Err err ->
     --      processApiError "Export directive compliance" err model
 
+    RefreshCompliance complianceScope ->
+      let
+        getCompliance = case complianceScope of
+          GlobalCompliance -> getGlobalGroupCompliance
+          TargetedCompliance -> getTargetedGroupCompliance
+      in
+      (model, getCompliance model)
+
     LoadCompliance complianceScope ->
       let
         ui = model.ui

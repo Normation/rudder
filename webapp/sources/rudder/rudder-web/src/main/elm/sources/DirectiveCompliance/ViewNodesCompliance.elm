@@ -53,6 +53,8 @@ displayNodesComplianceTable model =
             [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
             , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
             ]
+          , button [class "btn btn-sm btn-primary btn-refresh", onClick (CallApi getDirectiveCompliance)]
+            [ i [class "fa fa-refresh"][] ]
           ]
         , displayComplianceFilters complianceFilters UpdateComplianceFilters
         ]

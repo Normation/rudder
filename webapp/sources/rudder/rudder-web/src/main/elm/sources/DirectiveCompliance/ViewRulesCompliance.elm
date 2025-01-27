@@ -52,8 +52,12 @@ displayRulesComplianceTable model =
           [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
           , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
           ]
-        , button [class "btn btn-sm btn-primary btn-export", onClick (CallApi getCSVExport) ]
-          [ text "Export " , i [ class "fa fa-download" ] [] ]
+        , div [class "ms-auto my-auto"]
+          [ button [class "btn btn-sm btn-primary btn-export me-2", onClick (CallApi getCSVExport) ]
+            [ text "Export " , i [ class "fa fa-download" ] [] ]
+          , button [class "btn btn-sm btn-default btn-refresh", onClick (CallApi getDirectiveCompliance)]
+            [ i [class "fa fa-refresh"][] ]
+          ]
         ]
       , displayComplianceFilters complianceFilters UpdateComplianceFilters
       ]
