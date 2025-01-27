@@ -5,12 +5,14 @@ mod filter;
 mod progress;
 
 use crate::output::{CommandBehavior, CommandCapture};
-use crate::package_manager::apt::progress::AptAcquireProgress;
 use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
     package_manager::{
-        apt::filter::{Distribution, PackageFileFilter},
+        apt::{
+            filter::{Distribution, PackageFileFilter},
+            progress::RudderAptAcquireProgress,
+        },
         LinuxPackageManager, PackageId, PackageInfo, PackageList, PackageManager, PackageSpec,
     },
 };
@@ -28,15 +30,7 @@ use rust_apt::{
     progress::{AcquireProgress, InstallProgress},
     Cache, PackageSort,
 };
-use std::{
-    collections::HashMap,
-    env,
-    fs::File,
-    io::{Read, Seek},
-    path::Path,
-    process::Command,
-};
-use stdio_override::{StdoutOverride, StdoutOverrideGuard};
+use std::{collections::HashMap, env, os::fd::AsRawFd, path::Path, process::Command};
 
 /// References:
 /// * https://www.debian.org/doc/manuals/debian-faq/uptodate.en.html
@@ -212,41 +206,19 @@ impl AptPackageManager {
     }
 }
 
-// Catch stdout/stderr from the library
-pub struct OutputCatcher {
-    out_file: File,
-    out_guard: StdoutOverrideGuard,
-}
-
-impl OutputCatcher {
-    pub fn new() -> Self {
-        let out_file = MemFile::create_default("stdout").unwrap().into_file();
-        let out_guard = StdoutOverride::override_raw(out_file.try_clone().unwrap()).unwrap();
-        Self {
-            out_file,
-            out_guard,
-        }
-    }
-
-    pub fn read(mut self) -> String {
-        drop(self.out_guard);
-        let mut out = String::new();
-        self.out_file.rewind().unwrap();
-        self.out_file.read_to_string(&mut out).unwrap();
-        out
-    }
-}
-
 impl LinuxPackageManager for AptPackageManager {
     fn update_cache(&mut self) -> ResultOutput<()> {
         let cache = self.cache();
 
         if let Ok(o) = cache.inner {
-            let mut progress = AcquireProgress::new(AptAcquireProgress::new());
-            let catch = OutputCatcher::new();
+            let mem_file_acquire = MemFile::create_default("update-acquire").unwrap();
+            let mut progress = AcquireProgress::new(RudderAptAcquireProgress::new(
+                mem_file_acquire.try_clone().unwrap(),
+            ));
             let mut r = Self::apt_errors_to_output(o.update(&mut progress));
-            let out = catch.read();
-            r.stdout(out);
+
+            let acquire_out = RudderAptAcquireProgress::read_mem_file(mem_file_acquire);
+            r.stdout(acquire_out);
             r
         } else {
             cache.clear_ok()
@@ -313,13 +285,23 @@ impl LinuxPackageManager for AptPackageManager {
             }
 
             // Do the changes
-            let mut acquire_progress = AcquireProgress::new(AptAcquireProgress::new());
-            let mut install_progress = InstallProgress::default();
-            let catch = OutputCatcher::new();
+            let mem_file_acquire = MemFile::create_default("upgrade-acquire").unwrap();
+            let mut acquire_progress = AcquireProgress::new(RudderAptAcquireProgress::new(
+                mem_file_acquire.try_clone().unwrap(),
+            ));
+
+            let mem_file_install = MemFile::create_default("upgrade-install").unwrap();
+            let mut install_progress = InstallProgress::fd(mem_file_install.as_raw_fd());
+
             let mut res_commit =
                 Self::apt_errors_to_output(c.commit(&mut acquire_progress, &mut install_progress));
-            let out = catch.read();
-            res_commit.stdout(out);
+
+            let acquire_out = RudderAptAcquireProgress::read_mem_file(mem_file_acquire);
+            res_commit.stdout(acquire_out);
+
+            let install_out = RudderAptAcquireProgress::read_mem_file(mem_file_install);
+            res_commit.stdout(install_out);
+
             res_resolve.step(res_commit)
         } else {
             cache.clear_ok()
@@ -393,15 +375,5 @@ NEEDRESTART-SESS: amousset @ user manager service";
             apt.parse_services_to_restart(lines2.as_slice()).unwrap(),
             expected2
         );
-    }
-
-    #[test]
-    // Needs "-- --nocapture --ignored" to run in tests as cargo test also messes with stdout/stderr
-    #[ignore]
-    fn it_captures_stdout() {
-        let catch = OutputCatcher::new();
-        println!("plouf");
-        let out = catch.read();
-        assert_eq!(out, "plouf\n".to_string());
     }
 }

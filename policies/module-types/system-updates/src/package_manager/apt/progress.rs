@@ -1,27 +1,48 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use rust_apt::error::pending_error;
-use rust_apt::progress::DynAcquireProgress;
-use rust_apt::raw::{AcqTextStatus, ItemDesc, ItemState, PkgAcquire};
-use rust_apt::util::{time_str, unit_str, NumSys};
+use memfile::MemFile;
+use rust_apt::{
+    error::pending_error,
+    progress::DynAcquireProgress,
+    raw::{AcqTextStatus, ItemDesc, ItemState, PkgAcquire},
+    util::{time_str, unit_str, NumSys},
+};
+use std::io::{BufWriter, Read, Seek, SeekFrom, Write};
 
 /// Reimplement `rust_apt`'s progress without interactivity.
 ///
 /// Try to stay consistent with APT's output, but allow some divergence.
 
 /// This struct mimics the output of `apt update`.
-#[derive(Default, Debug)]
-pub struct AptAcquireProgress {}
+#[derive(Debug)]
+pub struct RudderAptAcquireProgress {
+    /// Enforce MemFile as we won't properly handle IO errors
+    writer: BufWriter<MemFile>,
+}
 
-impl AptAcquireProgress {
+impl RudderAptAcquireProgress {
     /// Returns a new default progress instance.
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(out_file: MemFile) -> Self {
+        let writer = BufWriter::new(out_file);
+        Self { writer }
+    }
+
+    pub fn read_mem_file(mut file: MemFile) -> String {
+        let mut acquire_out = String::new();
+        file.seek(SeekFrom::Start(0)).unwrap();
+        file.read_to_string(&mut acquire_out).unwrap();
+        acquire_out
+    }
+
+    #[cfg(test)]
+    pub fn simulate(&mut self, s: &str) {
+        write!(self.writer, "{}", s).unwrap();
+        self.writer.flush().unwrap();
     }
 }
 
-impl DynAcquireProgress for AptAcquireProgress {
+impl DynAcquireProgress for RudderAptAcquireProgress {
     /// Used to send the pulse interval to the apt progress class.
     ///
     /// Pulse Interval is in microseconds.
@@ -41,7 +62,13 @@ impl DynAcquireProgress for AptAcquireProgress {
     ///
     /// Prints out the short description and the expected size.
     fn hit(&mut self, item: &ItemDesc) {
-        println!("\rHit:{} {}", item.owner().id(), item.description());
+        write!(
+            self.writer,
+            "\rHit:{} {}",
+            item.owner().id(),
+            item.description()
+        )
+        .unwrap();
     }
 
     /// Called when an Item has started to download
@@ -55,7 +82,7 @@ impl DynAcquireProgress for AptAcquireProgress {
             string.push_str(&format!(" [{}]", unit_str(file_size, NumSys::Decimal)));
         }
 
-        println!("{string}");
+        write!(self.writer, "{string}").unwrap();
     }
 
     /// Called when an Item fails to download.
@@ -68,18 +95,18 @@ impl DynAcquireProgress for AptAcquireProgress {
 
         match item.owner().status() {
             ItemState::StatIdle | ItemState::StatDone => {
-                println!("\rIgn: {desc}");
+                write!(self.writer, "\rIgn: {desc}").unwrap();
                 if error_text.is_empty() {
                     show_error = false;
                 }
             }
             _ => {
-                println!("\rErr: {desc}");
+                write!(self.writer, "\rErr: {desc}").unwrap();
             }
         }
 
         if show_error {
-            println!("\r{error_text}");
+            write!(self.writer, "\r{error_text}").unwrap();
         }
     }
 
@@ -117,14 +144,32 @@ impl DynAcquireProgress for AptAcquireProgress {
         }
 
         if owner.fetched_bytes() != 0 {
-            println!(
+            write!(
+                self.writer,
                 "Fetched {} in {} ({}/s)",
                 unit_str(owner.fetched_bytes(), NumSys::Decimal),
                 time_str(owner.elapsed_time()),
                 unit_str(owner.current_cps(), NumSys::Decimal)
-            );
+            )
+            .unwrap();
         } else {
-            println!("Nothing to fetch.");
+            write!(self.writer, "Nothing to fetch.").unwrap();
         }
+        self.writer.flush().unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use memfile::MemFile;
+
+    #[test]
+    fn test_apt_progress() {
+        let file = MemFile::create_default("update-acquire").unwrap();
+        let mut progress = RudderAptAcquireProgress::new(file.try_clone().unwrap());
+        progress.simulate("toto");
+        let acquire_out = RudderAptAcquireProgress::read_mem_file(file);
+        assert_eq!(acquire_out, "toto".to_string());
     }
 }
