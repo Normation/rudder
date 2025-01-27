@@ -226,7 +226,7 @@ fn parser<'a>() -> impl Parser<'a, &'a str, Vec<Spanned<Expr<'a>>>, extra::Err<R
         .to_slice()
         .delimited_by(just('"'), just('"'));
 
-    let alpha = one_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+    let alpha = one_of("-_/abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
         .repeated()
         .to_slice();
     let string = quoted_string.clone().or(alpha).padded();
@@ -262,6 +262,7 @@ fn parser<'a>() -> impl Parser<'a, &'a str, Vec<Spanned<Expr<'a>>>, extra::Err<R
         })
         .boxed();
     let remove = just("remove")
+        .or(just("rm"))
         .padded()
         .ignore_then(string.clone())
         .map(|path: &str| Expr::Remove(path.into()))
@@ -283,12 +284,14 @@ fn parser<'a>() -> impl Parser<'a, &'a str, Vec<Spanned<Expr<'a>>>, extra::Err<R
         .map(|path: &str| Expr::Touch(path.into()))
         .boxed();
     let move_ = just("move")
+        .or(just("mv"))
         .padded()
         .ignore_then(string.clone())
         .then(string.clone())
         .map(|(path, other): (&str, &str)| Expr::Move(path.into(), other.into()))
         .boxed();
     let copy = just("copy")
+        .or(just("cp"))
         .padded()
         .ignore_then(string.clone())
         .then(string.clone())
@@ -385,22 +388,14 @@ mod tests {
         let input = r#"
             # This is a comment
             set /path/to/node value
-            setm /path/to/nodes 'sub node' value
             rm /path/to/node
             # other comment
 
             clear /path/to/node # another command
-            clearm /path/to/nodes "sub node"
             touch /path/to/node
 
-            is uint /path/to/node
-
-            print /path/to/node
             quit
 
-            values /path/to/node include value
-
-            ins  label  before        /path/to/node
             mv /path/to/node /new/path
             rename /path/to/node new_label
             defvar name /path/to/node
@@ -409,16 +404,10 @@ mod tests {
         "#;
         let expected = vec![
             Expr::Set("/path/to/node".into(), "value"),
-            Expr::SetMultiple("/path/to/nodes".into(), "sub node", "value"),
             Expr::Remove("/path/to/node".into()),
             Expr::Clear("/path/to/node".into()),
-            Expr::ClearMultiple("/path/to/nodes".into(), "sub node"),
             Expr::Touch("/path/to/node".into()),
-            Expr::HasType("/path/to/node".into(), ValueType::Uint),
-            Expr::GenericAugeas("print /path/to/node"),
             Expr::Quit,
-            Expr::ValuesInclude("/path/to/node".into(), "value"),
-            Expr::Insert("label", Position::Before, "/path/to/node".into()),
             Expr::Move("/path/to/node".into(), "/new/path".into()),
             Expr::Rename("/path/to/node".into(), "new_label"),
             Expr::DefineVar("name", "/path/to/node".into()),

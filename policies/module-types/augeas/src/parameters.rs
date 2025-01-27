@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
 use anyhow::{bail, Result};
+use bytesize::ByteSize;
 use serde::{Deserialize, Serialize};
 use serde_inline_default::serde_inline_default;
 use serde_with::serde_as;
@@ -41,6 +42,10 @@ pub struct AugeasParameters {
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde_as(as = "NoneAsEmptyString")]
     pub lens: Option<String>,
+
+    /// Maximal allowed file size for loading.
+    #[serde_inline_default(ByteSize::mb(10))]
+    pub max_file_size: ByteSize,
 }
 
 impl AugeasParameters {

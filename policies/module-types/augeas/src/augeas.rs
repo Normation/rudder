@@ -6,6 +6,7 @@ use crate::dsl::script::{
 };
 use crate::{AugeasParameters, RUDDER_LENS_LIB};
 use anyhow::bail;
+use bytesize::ByteSize;
 use raugeas::{Flags, SaveMode};
 use rudder_module_type::{rudder_debug, rudder_error, CheckApplyResult, Outcome, PolicyMode};
 use std::borrow::Cow;
@@ -113,12 +114,13 @@ impl Augeas {
             // Avoid memory exhaustion by not loading the file if it is too big.
             // NOTE: this is not a security feature, as we don't defend against TOCTOU attacks.
             let size = p.path.metadata()?.size();
-            // 10MB is a reasonable limit for config file.
-            if size > 10_000_000 {
+            let b_size = ByteSize::b(size);
+            if b_size > p.max_file_size {
                 bail!(
-                    "File too big to load: {} ({}B > 10MB)",
+                    "File is too big to be loaded: {} ({} > {})",
                     p.path.display(),
-                    size
+                    b_size,
+                    p.max_file_size
                 );
             }
             rudder_debug!("Target {} already exists", p.path.display());
@@ -281,13 +283,19 @@ mod tests {
     use std::path::PathBuf;
     use tempfile::tempdir;
 
-    fn arguments(script: String, path: PathBuf, lens: Option<String>) -> AugeasParameters {
+    fn arguments(
+        script: String,
+        path: PathBuf,
+        lens: Option<String>,
+        size_mb: u64,
+    ) -> AugeasParameters {
         AugeasParameters {
             script,
             path,
             lens,
             show_diff: true,
             context: Some("".to_string()),
+            max_file_size: ByteSize::mb(size_mb),
             ..Default::default()
         }
     }
@@ -305,6 +313,7 @@ mod tests {
                     format!("set /files{}/0 \"hello world\"", f.display()),
                     f.clone(),
                     Some(lens.to_string()),
+                    10,
                 ),
                 PolicyMode::Enforce,
             )
@@ -329,6 +338,7 @@ mod tests {
                     dbg!(format!("set /files{}/1 \"world\"", f.display())),
                     f.clone(),
                     Some(lens.to_string()),
+                    10,
                 ),
                 PolicyMode::Enforce,
             )
@@ -336,5 +346,30 @@ mod tests {
         assert_eq!(r, Outcome::repaired("5 success".to_string()));
         let content = read_to_string(&f).unwrap();
         assert_eq!(content.trim(), "world");
+    }
+
+    #[test]
+    fn it_stops_on_files_too_big() {
+        let mut augeas = Augeas::new_module(None, vec![]).unwrap();
+        let d = tempdir().unwrap().into_path();
+        let f = d.join("test");
+        let lens = "Simplelines";
+
+        fs::write(&f, "hello").unwrap();
+
+        let r = augeas
+            .handle_check_apply(
+                arguments(
+                    dbg!(format!("set /files{}/1 \"world\"", f.display())),
+                    f.clone(),
+                    Some(lens.to_string()),
+                    0,
+                ),
+                PolicyMode::Enforce,
+            )
+            .err()
+            .unwrap();
+        assert!(r.to_string().starts_with("File is too big to be loaded"));
+        assert!(r.to_string().ends_with(" (5 B > 0 B)"));
     }
 }

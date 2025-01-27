@@ -10,7 +10,7 @@ license.workspace = true
 
 [dependencies]
 anyhow = "1"
-bytesize = { version = "1.3.0" }
+bytesize = { version = "1.3.0", features = ["serde"] }
 gumdrop = "0.8.1"
 ipnet = "2.0.0"
 iprange = { version = "0.6" }
