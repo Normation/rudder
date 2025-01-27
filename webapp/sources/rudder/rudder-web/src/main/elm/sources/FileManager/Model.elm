@@ -8,6 +8,7 @@ import FileManager.Vec exposing (..)
 import Dict exposing (Dict)
 
 import Ui.Datatable exposing (TableFilters)
+import Bytes exposing (Bytes)
 
 type alias Flags =
   { api: String
@@ -84,6 +85,7 @@ type Msg
   | FileUpdate FileUpdateError
   | Name String
   | Download
+  | Downloaded FileMeta (Result Http.Error Bytes)
   | Cut
   | Paste
   | Delete
