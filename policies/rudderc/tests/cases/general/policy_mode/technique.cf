@@ -17,6 +17,10 @@ bundle agent test_audit {
   classes:
     "rudder_increment_guard" expression => "any";
 
+    "pass3" expression => "pass2";
+    "pass2" expression => "pass1";
+    "pass1" expression => "any";
+
   methods:
     "index_${local_index}_0" usebundle => call_test_audit_46b8025a_0b06_485c_9127_50e4258ee7e6("In audit mode", "/tmp/1", "46b8025a-0b06-485c-9127-50e4258ee7e6", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true");
 
