@@ -124,6 +124,11 @@ impl Backend for Unix {
             )]);
         };
         main_bundle.add_promise_group(vec![
+            Promise::class_expression("pass3", "pass2"),
+            Promise::class_expression("pass2", "pass1"),
+            Promise::class_expression("pass1", "any"),
+        ]);
+        main_bundle.add_promise_group(vec![
             Promise::slist(
                 "args",
                 technique

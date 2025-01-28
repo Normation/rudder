@@ -9,10 +9,17 @@ bundle agent param_in_condition(file) {
     "full_class_prefix" string => canonify("param_in_condition_${report_param}");
     "class_prefix"      string => string_head("${full_class_prefix}", "1000");
 
-  methods:
-    "9e763779-9f33-44bc-ad73-1c5d5732301c_${report_data.directive_id}" usebundle => call_param_in_condition_9e763779_9f33_44bc_ad73_1c5d5732301c("Check if a file exists", "/tmp/${file}", "9e763779-9f33-44bc-ad73-1c5d5732301c", @{args}, "${class_prefix}", "/tmp/${file}");
+  classes:
+    "pass3" expression => "pass2";
+    "pass2" expression => "pass1";
+    "pass1" expression => "any";
 
-    "e8362340-dc50-4231-9b7f-748b51e9fa07_${report_data.directive_id}" usebundle => call_param_in_condition_e8362340_dc50_4231_9b7f_748b51e9fa07("Execute only if...", "echo \"May be executed or not\"", "e8362340-dc50-4231-9b7f-748b51e9fa07", @{args}, "${class_prefix}", concat("file_check_exists__tmp_",canonify("${file}"),"_kept"), "echo \"May be executed or not\"");
+  methods:
+    "9e763779-9f33-44bc-ad73-1c5d5732301c_${report_data.directive_id}" usebundle => call_param_in_condition_9e763779_9f33_44bc_ad73_1c5d5732301c("Check if a file exists", "/tmp/${file}", "9e763779-9f33-44bc-ad73-1c5d5732301c", @{args}, "${class_prefix}", "/tmp/${file}"),
+                                             if => "pass3";
+
+    "e8362340-dc50-4231-9b7f-748b51e9fa07_${report_data.directive_id}" usebundle => call_param_in_condition_e8362340_dc50_4231_9b7f_748b51e9fa07("Execute only if...", "echo \"May be executed or not\"", "e8362340-dc50-4231-9b7f-748b51e9fa07", @{args}, "${class_prefix}", concat("file_check_exists__tmp_",canonify("${file}"),"_kept"), "echo \"May be executed or not\""),
+                                             if => "pass3";
 
 }
 bundle agent call_param_in_condition_9e763779_9f33_44bc_ad73_1c5d5732301c(c_name, c_key, report_id, args, class_prefix, path) {
