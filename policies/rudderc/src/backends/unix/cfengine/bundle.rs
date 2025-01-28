@@ -5,7 +5,11 @@ use std::{collections::HashMap, fmt};
 
 use crate::backends::unix::cfengine::promise::{Promise, PromiseType, LONGEST_ATTRIBUTE_LEN};
 
-const NORMAL_ORDERING: [PromiseType; 2] = [PromiseType::Vars, PromiseType::Methods];
+const NORMAL_ORDERING: [PromiseType; 3] = [
+    PromiseType::Vars,
+    PromiseType::Classes,
+    PromiseType::Methods,
+];
 
 /// ID that must be unique for each technique instance. Combined with a simple index,
 /// it allows enforcing all methods are called, even with identical parameters.

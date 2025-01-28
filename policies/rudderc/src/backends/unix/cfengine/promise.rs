@@ -8,6 +8,7 @@ use crate::backends::unix::cfengine::{bundle::UNIQUE_ID, quoted};
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum PromiseType {
     Vars,
+    Classes,
     Methods,
 }
 
@@ -18,6 +19,7 @@ impl fmt::Display for PromiseType {
             "{}",
             match self {
                 PromiseType::Vars => "vars",
+                PromiseType::Classes => "classes",
                 PromiseType::Methods => "methods",
             }
         )
@@ -31,11 +33,13 @@ pub enum AttributeType {
     If,
     String,
     Slist,
+    Expression,
 }
 
-const ATTRIBUTES_ORDERING: [AttributeType; 5] = [
+const ATTRIBUTES_ORDERING: [AttributeType; 6] = [
     AttributeType::UseBundle,
     AttributeType::String,
+    AttributeType::Expression,
     AttributeType::Slist,
     AttributeType::Unless,
     AttributeType::If,
@@ -52,6 +56,11 @@ impl PromiseType {
                 AttributeType::If,
                 AttributeType::String,
                 AttributeType::Slist,
+            ],
+            PromiseType::Classes => vec![
+                AttributeType::Unless,
+                AttributeType::If,
+                AttributeType::Expression,
             ],
             PromiseType::Methods => vec![
                 AttributeType::Unless,
@@ -75,6 +84,7 @@ impl fmt::Display for AttributeType {
                 AttributeType::If => "if",
                 AttributeType::String => "string",
                 AttributeType::Slist => "slist",
+                AttributeType::Expression => "expression",
             }
         )
     }
@@ -133,7 +143,7 @@ impl Promise {
             .attribute(AttributeType::String, value.as_ref())
     }
 
-    /// Shortcut for building an slist variable with a list of values to be quoted
+    /// Shortcut for building a slist variable with a list of values to be quoted
     pub fn slist<T: Into<String>, S: AsRef<str>>(name: T, values: Vec<S>) -> Self {
         Promise::new(PromiseType::Vars, None, None, name).attribute(
             AttributeType::Slist,
@@ -146,6 +156,12 @@ impl Promise {
                     .join(", ")
             ),
         )
+    }
+
+    /// Shortcut for building a class expression
+    pub fn class_expression<T: Into<String>, S: AsRef<str>>(name: T, value: S) -> Self {
+        Promise::new(PromiseType::Classes, None, None, name)
+            .attribute(AttributeType::Expression, quoted(value.as_ref()))
     }
 
     /// Shortcut for calling a bundle with parameters
@@ -170,7 +186,7 @@ impl Promise {
     /// Shortcut to add a condition expression
     pub fn if_condition<T: AsRef<str>>(mut self, condition: T) -> Self {
         self.attributes
-            .insert(AttributeType::If, format!("\"{}\"", condition.as_ref()));
+            .insert(AttributeType::If, quoted(condition.as_ref()).to_string());
         self
     }
 
