@@ -2,10 +2,10 @@
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
 use crate::dsl::comparator::{Comparison, NumComparator};
+use crate::dsl::parser::Expr;
 use crate::dsl::value_type::ValueType;
 use crate::dsl::{parser, AugPath, Sub, Value};
-use anyhow::{anyhow, bail, Result};
-use nom::Finish;
+use anyhow::{bail, Result};
 use raugeas::{Augeas, Position};
 use rudder_module_type::{rudder_debug, rudder_trace};
 use std::path::Path;
@@ -316,78 +316,13 @@ impl<'a> Interpreter<'a> {
 ///       development and debugging.
 #[derive(Debug, PartialEq)]
 pub struct Script<'a> {
-    expressions: Vec<Expr<'a>>,
+    pub(crate) expressions: Vec<Expr<'a>>,
 }
 
 impl<'a> Script<'a> {
     pub fn from(input: &'a str) -> Result<Script<'a>> {
-        let (_, changes) = parser::script(input)
-            .finish()
-            // We can't keep the verbose error as it contains references to the input.
-            .map_err(|e| anyhow!(format!("{}", e)))?;
-        Ok(Script {
-            expressions: changes,
-        })
+        parser::parse_script(input)
     }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Expr<'src> {
-    /// A generic augeas command, not parsed.
-    GenericAugeas(&'src str),
-    /// Sets the value VALUE at location PATH
-    Set(AugPath<'src>, Value<'src>),
-    /// Sets multiple nodes (matching SUB relative to PATH) to VALUE
-    SetMultiple(AugPath<'src>, Sub<'src>, Value<'src>),
-    /// Removes the node at location PATH
-    Remove(AugPath<'src>),
-    /// Sets the node at PATH to NULL, creating it if needed
-    Clear(AugPath<'src>),
-    /// Sets multiple nodes (matching SUB relative to PATH) to NULL
-    ClearMultiple(AugPath<'src>, Sub<'src>),
-    /// Creates PATH with the value NULL if it does not exist
-    Touch(AugPath<'src>),
-    /// Inserts an empty node LABEL either before or after PATH.
-    Insert(Value<'src>, Position, AugPath<'src>),
-    /// Moves a node at PATH to the new location OTHER PATH
-    Move(AugPath<'src>, AugPath<'src>),
-    /// Copies a node at PATH to the new location OTHER PATH
-    Copy(AugPath<'src>, AugPath<'src>),
-    /// Rename a node at PATH to a new LABEL
-    Rename(AugPath<'src>, Value<'src>),
-    /// Sets Augeas variable $NAME to PATH
-    DefineVar(Value<'src>, AugPath<'src>),
-    /// Sets Augeas variable $NAME to PATH, creating it with VALUE if needed
-    DefineNode(Value<'src>, AugPath<'src>, Value<'src>),
-    // Comparison contains both the typed value and the comparator
-    Compare(AugPath<'src>, Comparison),
-    ValuesInclude(AugPath<'src>, &'src str),
-    ValuesNotInclude(AugPath<'src>, &'src str),
-    ValuesEqual(AugPath<'src>, Vec<&'src str>),
-    ValuesNotEqual(AugPath<'src>, Vec<&'src str>),
-    MatchSize(AugPath<'src>, NumComparator, usize),
-    MatchInclude(AugPath<'src>, &'src str),
-    MatchNotInclude(AugPath<'src>, &'src str),
-    MatchEqual(AugPath<'src>, Vec<&'src str>),
-    MatchNotEqual(AugPath<'src>, Vec<&'src str>),
-    /// Check the value at the path has a given type
-    ///
-    /// Uses the "is" keyword.
-    HasType(AugPath<'src>, ValueType),
-    /// String length
-    ///
-    /// Warning: do no use for passwords as the value will be displayed.
-    StrLen(AugPath<'src>, NumComparator, usize),
-    /// Minimal score
-    PasswordScore(AugPath<'src>, Score),
-    /// Minimal LUDS values
-    PasswordLUDS(AugPath<'src>, u8, u8, u8, u8, u8),
-    /// Save the changes to the tree.
-    Save,
-    /// Quit the script.
-    Quit,
-    /// (Re)load the tree.
-    Load,
 }
 
 #[derive(Debug, PartialEq, Copy, Clone)]
