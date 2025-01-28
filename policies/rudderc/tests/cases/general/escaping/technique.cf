@@ -18,6 +18,10 @@ bundle agent escaping(server) {
   classes:
     "rudder_increment_guard" expression => "any";
 
+    "pass3" expression => "pass2";
+    "pass2" expression => "pass1";
+    "pass1" expression => "any";
+
   methods:
     "index_${local_index}_0" usebundle => call_escaping_a86ce2e5_d5b6_45cc_87e8_c11cca71d966("${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3
 	", "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3

@@ -17,6 +17,10 @@ bundle agent test_windows(content) {
   classes:
     "rudder_increment_guard" expression => "any";
 
+    "pass3" expression => "pass2";
+    "pass2" expression => "pass1";
+    "pass1" expression => "any";
+
   methods:
     "index_${local_index}_0" usebundle => call_test_windows_d982a7e6_494a_40a5_aea1_7d9a185eed61("File content", "/some/path", "d982a7e6-494a-40a5-aea1-7d9a185eed61", @{args}, "${class_prefix}", "/some/path", "# Raw string
 foo foobar
