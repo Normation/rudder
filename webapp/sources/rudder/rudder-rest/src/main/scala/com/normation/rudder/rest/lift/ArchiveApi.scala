@@ -495,8 +495,10 @@ class ZipArchiveBuilderService(
                          techniqueRevisionRepo.getTechniqueCategoryMetadata(p, v.rev).map {
                            case None       => m
                            case Some(data) =>
-                             m + (dirPath    -> Zippable(dirPath, None))
-                             + (filePathJson -> Zippable(filePathJson, Some(getJsonZippableContent(data.toJsonPretty))))
+                             m + (dirPath -> Zippable(dirPath, None)) + (filePathJson -> Zippable(
+                               filePathJson,
+                               Some(getJsonZippableContent(data.toJsonPretty))
+                             ))
                          }
                        }
                      }
