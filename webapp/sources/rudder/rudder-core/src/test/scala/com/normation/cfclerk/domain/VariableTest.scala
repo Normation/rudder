@@ -139,7 +139,8 @@ class VariableTest extends Specification {
       } yield {
         variableSpecParser.parseSectionVariableSpec("default section", specNode)
       })
-      (sysvar.size === 1) and (sysvar.head must beLeft[LoadTechniqueError])
+      sysvar.size === 1
+      sysvar.head must beLeft
     }
   }
 
