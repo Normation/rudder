@@ -448,8 +448,8 @@ class InventoryMover(
     IOResult
       .attempt(File(rejectPath).writeText(s"""${date}
                                              |${result.msg.replaceAll("; cause was:", "\ncause was:")}\n""".stripMargin))
-      .catchAll(err => InventoryProcessingLogger.error(s"Error when writing rejection log file ${rejectPath}: ${err.fullMsg}"))
       .unit
+      .catchAll(err => InventoryProcessingLogger.error(s"Error when writing rejection log file ${rejectPath}: ${err.fullMsg}"))
   }
 
   def moveFiles(inventory: File, signature: File, result: InventoryProcessStatus): UIO[Unit] = {

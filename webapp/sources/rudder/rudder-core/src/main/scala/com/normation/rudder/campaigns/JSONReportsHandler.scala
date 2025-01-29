@@ -90,7 +90,7 @@ case class JSONReportsAnalyser(reportsRepository: ReportsRepository, propRepo: R
                         propRepo.updateReportHandlerLastId(highestId)
                       case Some(maxIdReport) =>
                         CampaignLogger.debug(s"Found ${reports.size} json reports, update parsed id to max id ${maxIdReport._1 + 1}") *>
-                        ZIO.foreach(reports)(r => handle(r._2)).catchAll(err => CampaignLogger.error(err.fullMsg)) *>
+                        ZIO.foreach(reports)(r => handle(r._2)).unit.catchAll(err => CampaignLogger.error(err.fullMsg)) *>
                         propRepo.updateReportHandlerLastId(maxIdReport._1 + 1)
                     }
       t4         <- currentTimeMillis

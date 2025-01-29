@@ -102,12 +102,14 @@ class CleanupUsers(
         .foldZIO(
           err => logger.error(s"Error when disabling user accounts inactive since '${disableInactive.render}': ${err.fullMsg}"),
           disabledUsers => {
-            ZIO.unless(disabledUsers.isEmpty)(
-              logger.warn(
-                s"Following users status changed to 'disabled' because they were inactive since '${disableInactive.render}': '${disabledUsers
-                    .mkString("', '")}'"
+            ZIO
+              .unless(disabledUsers.isEmpty)(
+                logger.warn(
+                  s"Following users status changed to 'disabled' because they were inactive since '${disableInactive.render}': '${disabledUsers
+                      .mkString("', '")}'"
+                )
               )
-            )
+              .unit
           }
         )
     _    <- userRepository
@@ -121,9 +123,11 @@ class CleanupUsers(
               .foldZIO(
                 err => logger.error(s"Error when deleting user accounts inactive since '${deleteInactive.render}': ${err.fullMsg}"),
                 deletedUsers => {
-                  ZIO.unless(deletedUsers.isEmpty)(
-                    logger.info(s"Following users status changed from 'disabled' to 'deleted': '${deletedUsers.mkString("', '")}'")
-                  )
+                  ZIO
+                    .unless(deletedUsers.isEmpty)(
+                      logger.info(s"Following users status changed from 'disabled' to 'deleted': '${deletedUsers.mkString("', '")}'")
+                    )
+                    .unit
                 }
               )
     _    <- userRepository
@@ -136,12 +140,14 @@ class CleanupUsers(
               .foldZIO(
                 err => logger.error(s"Error when purging user accounts deleted since '${purgeDeleted.render}': ${err.fullMsg}"),
                 purgedUsers => {
-                  ZIO.unless(purgedUsers.isEmpty)(
-                    logger.info(
-                      s"Users were purged from the database because they were configured to be purged ${purgeDeleted.render} after deletion. Users list is : '${purgedUsers
-                          .mkString("', '")}'"
+                  ZIO
+                    .unless(purgedUsers.isEmpty)(
+                      logger.info(
+                        s"Users were purged from the database because they were configured to be purged ${purgeDeleted.render} after deletion. Users list is : '${purgedUsers
+                            .mkString("', '")}'"
+                      )
                     )
-                  )
+                    .unit
                 }
               )
     dos   = d.minus(purgeSessions.toMillis)
