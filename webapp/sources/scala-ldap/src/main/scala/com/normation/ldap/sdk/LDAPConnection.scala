@@ -374,19 +374,21 @@ sealed class RoLDAPConnection(
   override def getTreeFilter(dn: DN, filter: Filter, attributes: String*): LDAPIOResult[Option[LDAPTree]] = {
     blocking {
       backed.search(dn.toString, Sub.toUnboundid, filter, attributes*)
-    } flatMap { all =>
-      if (all.getEntryCount() > 0) {
-        // build the tree
-        ZIO.fromEither(LDAPTree(all.getSearchEntries.asScala.map(x => LDAPEntry(x)))).asSome
-      } else ZIO.none
-    } catchAll { x =>
-      (x: @unchecked) match {
-        // a no such object error simply means that the required LDAP tree is not in the directory
-        case e: LDAPSearchException if (NO_SUCH_OBJECT == e.getResultCode) => None.succeed
-        case e: LDAPException                                              =>
-          LDAPRudderError.BackendException(s"Can not get tree '${dn.toString}': ${e.getDiagnosticMessage}", e).fail
-      }
-    }
+    }.refineToOrDie[LDAPException]
+      .foldZIO(
+        failure = {
+          // a no such object error simply means that the required LDAP tree is not in the directory
+          case e: LDAPSearchException if (NO_SUCH_OBJECT == e.getResultCode) => ZIO.none
+          case e: LDAPException                                              =>
+            LDAPRudderError.BackendException(s"Can not get tree '${dn.toString}': ${e.getDiagnosticMessage}", e).fail
+        },
+        all => {
+          if (all.getEntryCount() > 0) {
+            // build the tree
+            ZIO.fromEither(LDAPTree(all.getSearchEntries.asScala.map(x => LDAPEntry(x)))).asSome
+          } else ZIO.none
+        }
+      )
   }
 
 }
