@@ -140,7 +140,7 @@ object LDAPTree {
    * All entries in the list safe one (the one that will become the root of the tree)
    * must have a direct parent in other entries.
    */
-  def apply(entries: Iterable[LDAPEntry]):                              Either[LDAPRudderError, LDAPTree]           = {
+  def apply(entries: Iterable[LDAPEntry]):                              Either[LDAPRudderError.Consistency, LDAPTree] = {
     if (null == entries || entries.isEmpty) {
       Left(LDAPRudderError.Consistency(s"You can't create a Tree from an empty list of entries"))
     }
@@ -182,7 +182,7 @@ object LDAPTree {
    * The comparison is strict, so that:
    * - if
    */
-  def diff(source: LDAPTree, target: LDAPTree, removeMissing: Boolean): Either[Consistency, List[TreeModification]] = {
+  def diff(source: LDAPTree, target: LDAPTree, removeMissing: Boolean): Either[Consistency, List[TreeModification]]   = {
     if (source.root.dn != target.root.dn) {
       Left(
         Consistency(s"DN of the two LDAP tree's root are different: ${source.root.dn.toString()} <> ${target.root.dn.toString()}")
