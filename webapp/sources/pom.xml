@@ -184,7 +184,7 @@ limitations under the License.
               -Xlint:_,-nullary-unit,-missing-interpolator -Yno-adapted-args -Ywarn-dead-code -Ywarn-extra-implicit -Ywarn-inaccessible
               -Ywarn-infer-any -Ywarn-nullary-override -Ywarn-numeric-widen -Ywarn-unused:imports -Ywarn-unused:locals -Ywarn-unused:privates
             -->
-            <arg>-Xsource:3</arg>
+            <arg>-Xsource:3-cross</arg>
             <arg>-deprecation</arg>                  <!-- Emit warning and location for usages of deprecated APIs. -->
             <arg>-explaintypes</arg>                 <!-- Explain type errors in more detail. -->
             <arg>-feature</arg>                      <!-- Emit warning and location for usages of features that should be imported explicitly. -->
