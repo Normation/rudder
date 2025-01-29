@@ -377,8 +377,8 @@ sealed class RoLDAPConnection(
     } flatMap { all =>
       if (all.getEntryCount() > 0) {
         // build the tree
-        LDAPTree(all.getSearchEntries.asScala.map(x => LDAPEntry(x))).map(Some(_))
-      } else None.succeed
+        ZIO.fromEither(LDAPTree(all.getSearchEntries.asScala.map(x => LDAPEntry(x)))).asSome
+      } else ZIO.none
     } catchAll { x =>
       (x: @unchecked) match {
         // a no such object error simply means that the required LDAP tree is not in the directory

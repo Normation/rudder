@@ -23,7 +23,6 @@ package com.normation.ldap.sdk
 import cats.implicits.*
 import com.normation.ldap.ldif.ToLDIFRecords
 import com.normation.ldap.ldif.ToLDIFString
-import com.normation.ldap.sdk.LDAPIOResult.*
 import com.normation.ldap.sdk.LDAPRudderError.Consistency
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
@@ -31,7 +30,6 @@ import com.unboundid.ldif.LDIFRecord
 import org.slf4j.Logger
 import scala.collection.mutable.Buffer
 import scala.collection.mutable.HashMap
-import zio.syntax.*
 
 /*
  * An LDAP tree of entries.
@@ -142,15 +140,15 @@ object LDAPTree {
    * All entries in the list safe one (the one that will become the root of the tree)
    * must have a direct parent in other entries.
    */
-  def apply(entries: Iterable[LDAPEntry]):                              LDAPIOResult[LDAPTree]                      = {
+  def apply(entries: Iterable[LDAPEntry]):                              Either[LDAPRudderError, LDAPTree]           = {
     if (null == entries || entries.isEmpty) {
-      LDAPRudderError.Consistency(s"You can't create a Tree from an empty list of entries").fail
+      Left(LDAPRudderError.Consistency(s"You can't create a Tree from an empty list of entries"))
     }
     // verify that there is no duplicates
     else if (entries.map(_.dn).toSet.size != entries.size) {
       val s   = entries.map(_.dn).toSet
       val res = entries.map(_.dn).filter(x => !s.contains(x))
-      LDAPRudderError.Consistency(s"Some entries have the same dn, what is forbiden: ${res.toString}").fail
+      Left(LDAPRudderError.Consistency(s"Some entries have the same dn, what is forbiden: ${res.toString}"))
     } else {
       val used = Buffer[DN]()
       /*
@@ -173,8 +171,8 @@ object LDAPTree {
 
       if (used.size < entries.size - 1) {
         val s = entries.map(_.dn).filter(x => !used.contains(x))
-        LDAPRudderError.Consistency(s"Some entries have no parents: ${s.toString()}").fail
-      } else root.succeed
+        Left(LDAPRudderError.Consistency(s"Some entries have no parents: ${s.toString()}"))
+      } else Right(root)
     }
   }
   /*
