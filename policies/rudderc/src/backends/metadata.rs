@@ -208,6 +208,7 @@ impl TryFrom<(ir::Technique, &Path)> for Technique {
         Ok(Technique {
             name: src.name.clone(),
             description: src.description.unwrap_or(src.name),
+            policy_types: src.policy_types,
             long_description: src.documentation,
             // false is for legacy techniques, we only use the modern reporting
             use_method_reporting: true,
@@ -225,6 +226,8 @@ struct Technique {
     #[serde(rename = "@name")]
     name: String,
     description: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    policy_types: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     long_description: Option<String>,
     #[serde(rename = "USEMETHODREPORTING")]
@@ -580,6 +583,7 @@ mod tests {
             use_method_reporting: true,
             multi_instance: true,
             policy_generation: "separated-with-parameters".to_string(),
+            policy_types: vec!["custom_policy_type".to_string(), "another_type".to_string()],
             agent,
             sections,
         };
