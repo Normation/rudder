@@ -435,6 +435,15 @@
       "title": "technique format",
       "type": "number"
     },
+    "policy_type": {
+      "title": "policy type",
+      "description": "Policy type of the technique, if any",
+      "markdownDescription": "Policy type of the technique, will be translated as a ```POLICY_TYPES``` XML tag in the technique metadata",
+      "type": "string",
+      "examples": [
+        "security-benchmarks"
+      ]
+    },
     "id": {
       "type": "string",
       "title": "id",
