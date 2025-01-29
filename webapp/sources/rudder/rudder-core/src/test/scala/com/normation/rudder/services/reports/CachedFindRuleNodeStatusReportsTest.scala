@@ -236,10 +236,10 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     // these one are not expired (but false)
     val okId = finder.reports.keySet
 
-    (n1 must beEqualTo(Map())) and
-    (n2 must beEqualTo(finder.reports.filter(x => okId.contains(x._1)))) and
+    n1 must beEqualTo(Map())
+    n2 must beEqualTo(finder.reports.filter(x => okId.contains(x._1)))
     // second time, only the node with changing status (pending and compute) are invalidated
-    (finder.updated.size must beEqualTo(9 + 2))
+    finder.updated.size must beEqualTo(9 + 2)
   }
 
   "When run are expired but we keep compliance, we keep compliance in repo" >> {
@@ -305,8 +305,8 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     // let a chance for zio to exec again to find back expired
     Thread.sleep(1000)
 
-    (n1 must beEqualTo(Map())) and
-    (n2 must beEqualTo(finder.reports)) and
-    (finder.updated.size must beEqualTo(9)) // second time, only expired are invalidate: none here
+    n1 must beEqualTo(Map())
+    n2 must beEqualTo(finder.reports)
+    finder.updated.size must beEqualTo(9) // second time, only expired are invalidate: none here
   }
 }
