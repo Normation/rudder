@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2025 Normation SAS
+get:
+  summary: Get summary report of campaign
+  description: Get a summarized CSV report of a system update result
+  operationId: getSystemUpdateSummaryReport
+  parameters:
+    - $ref: ../../components/parameters/campaign-event-id-path.yml
+  responses:
+    "200":
+      description: CSV report for campaign result
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: |
+            "Node Name","Campaign Name","Campaign Result","Operating system name","Operating system service pack","Execution date","Updated packages"
+            "node1","campaign1","Success","Debian 12","None","2024-12-30T10:00:00.000Z","123"
+  tags:
+    - 🧩 System update campaigns
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/systemUpdate/summaryReport.sh
