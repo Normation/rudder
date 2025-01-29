@@ -43,7 +43,7 @@ object LDAPRudderError {
     override def fullMsg: String = s"${msg}; LDAP result was: ${result.getResultString}"
   }
 
-  final case class Consistancy(msg: String) extends LDAPRudderError
+  final case class Consistency(msg: String) extends LDAPRudderError
 
   // accumulated errors from multiple independent action
   final case class Accumulated(errors: NonEmptyList[RudderError]) extends LDAPRudderError {
@@ -65,13 +65,13 @@ object LDAPIOResult {
   implicit class StrictOption[T](opt: LDAPIOResult[Option[T]]) {
     def notOptional(msg: String): ZIO[Any, LDAPRudderError, T] = opt.flatMap(_ match {
       case Some(x) => x.succeed
-      case None    => LDAPRudderError.Consistancy(msg).fail
+      case None    => LDAPRudderError.Consistency(msg).fail
     })
   }
 
   // same than above for a Rudder error from a string
   implicit class ToFailureMsg(e: String) {
-    def fail: IO[LDAPRudderError.Consistancy, Nothing] = ZIO.fail(LDAPRudderError.Consistancy(e))
+    def fail: IO[LDAPRudderError.Consistency, Nothing] = ZIO.fail(LDAPRudderError.Consistency(e))
   }
 
   implicit class ValidatedToLdapError[T](res: ZIO[Any, NonEmptyList[LDAPRudderError], List[T]]) {
@@ -81,7 +81,7 @@ object LDAPIOResult {
   implicit class EitherToLdapError[T](res: Either[RudderError, T]) {
     def toLdapResult: LDAPIOResult[T] = {
       res match {
-        case Left(error) => LDAPRudderError.Consistancy(error.msg).fail
+        case Left(error) => LDAPRudderError.Consistency(error.msg).fail
         case Right(x)    => x.succeed
       }
     }

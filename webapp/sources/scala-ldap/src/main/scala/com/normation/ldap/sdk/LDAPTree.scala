@@ -24,7 +24,7 @@ import cats.implicits.*
 import com.normation.ldap.ldif.ToLDIFRecords
 import com.normation.ldap.ldif.ToLDIFString
 import com.normation.ldap.sdk.LDAPIOResult.*
-import com.normation.ldap.sdk.LDAPRudderError.Consistancy
+import com.normation.ldap.sdk.LDAPRudderError.Consistency
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFRecord
@@ -144,13 +144,13 @@ object LDAPTree {
    */
   def apply(entries: Iterable[LDAPEntry]):                              LDAPIOResult[LDAPTree]                      = {
     if (null == entries || entries.isEmpty) {
-      LDAPRudderError.Consistancy(s"You can't create a Tree from an empty list of entries").fail
+      LDAPRudderError.Consistency(s"You can't create a Tree from an empty list of entries").fail
     }
     // verify that there is no duplicates
     else if (entries.map(_.dn).toSet.size != entries.size) {
       val s   = entries.map(_.dn).toSet
       val res = entries.map(_.dn).filter(x => !s.contains(x))
-      LDAPRudderError.Consistancy(s"Some entries have the same dn, what is forbiden: ${res.toString}").fail
+      LDAPRudderError.Consistency(s"Some entries have the same dn, what is forbiden: ${res.toString}").fail
     } else {
       val used = Buffer[DN]()
       /*
@@ -173,7 +173,7 @@ object LDAPTree {
 
       if (used.size < entries.size - 1) {
         val s = entries.map(_.dn).filter(x => !used.contains(x))
-        LDAPRudderError.Consistancy(s"Some entries have no parents: ${s.toString()}").fail
+        LDAPRudderError.Consistency(s"Some entries have no parents: ${s.toString()}").fail
       } else root.succeed
     }
   }
@@ -184,10 +184,10 @@ object LDAPTree {
    * The comparison is strict, so that:
    * - if
    */
-  def diff(source: LDAPTree, target: LDAPTree, removeMissing: Boolean): Either[Consistancy, List[TreeModification]] = {
+  def diff(source: LDAPTree, target: LDAPTree, removeMissing: Boolean): Either[Consistency, List[TreeModification]] = {
     if (source.root.dn != target.root.dn) {
       Left(
-        Consistancy(s"DN of the two LDAP tree's root are different: ${source.root.dn.toString()} <> ${target.root.dn.toString()}")
+        Consistency(s"DN of the two LDAP tree's root are different: ${source.root.dn.toString()} <> ${target.root.dn.toString()}")
       )
     } else {
       // modification on root
