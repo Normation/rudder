@@ -151,11 +151,12 @@ type alias TechniqueParameter =
   }
 
 type alias TechniqueCategory =
-    { id : String
-    , name : String
-    , path : String
-    , subCategories : SubCategories
-    }
+  { id : String
+  , name : String
+  , path : String
+  , subCategories : SubCategories
+  }
+
 type SubCategories = SubCategories (List TechniqueCategory)
 
 allCategories t =
@@ -242,6 +243,7 @@ type alias MethodBlockUiInfo =
   , tab        : MethodBlockTab
   , validation : ValidationState BlockError
   , showChildDetails : Bool
+  , foreachUI  : ForeachUI
   }
 
 type alias TechniqueUiInfo =
@@ -261,8 +263,11 @@ type alias TechniqueEditInfo =
   ,  result : Result String ()
   }
 
-type MethodCallTab = CallParameters | CallConditions | Result | CallReporting | ForEach
-type MethodBlockTab = BlockConditions | BlockReporting | Children
+type UiInfo = CallUiInfo MethodCallUiInfo MethodCall  | BlockUiInfo MethodBlockUiInfo MethodBlock
+
+type MethodCallTab = CallParameters | CallConditions | Result | CallReporting | CallForEach
+
+type MethodBlockTab = BlockConditions | BlockReporting | Children  | BlockForEach
 type MethodCallMode = Opened | Closed
 type Tab = General | Parameters | Resources | Output | None
 type Mode = Introduction | TechniqueDetails Technique TechniqueState TechniqueUiInfo TechniqueEditInfo
@@ -286,12 +291,12 @@ type Msg =
   | CheckOutYaml CheckMode (Result (Http.Detailed.Error String) ( Http.Metadata, String ))
   | UIMethodAction CallId MethodCallUiInfo
   | UIBlockAction CallId MethodBlockUiInfo
-  | UpdateMethodAndUi  CallId MethodCallUiInfo MethodElem
+  | UpdateCallAndUi UiInfo
+  | MethodCallModified MethodElem (Maybe UiInfo)
   | RemoveMethod CallId
   | UpdateEdition TechniqueEditInfo
   | CloneElem  MethodElem CallId
   | MethodCallParameterModified MethodCall ParameterId String
-  | MethodCallModified MethodElem
   | TechniqueParameterModified ParameterId TechniqueParameter
   | TechniqueParameterRemoved ParameterId
   | TechniqueParameterAdded ParameterId
