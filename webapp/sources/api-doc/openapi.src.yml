@@ -355,6 +355,10 @@ paths:
     $ref: paths/systemUpdate/detailedResult.yml
   "/systemUpdate/events/{id}/result":
     $ref: paths/systemUpdate/eventResult.yml
+  "/systemUpdate/events/{id}/report":
+    $ref: paths/systemUpdate/report.yml
+  "/systemUpdate/events/{id}/summaryReport":
+    $ref: paths/systemUpdate/summaryReport.yml
   "/systemUpdate/campaign/{id}/history":
     $ref: paths/systemUpdate/campaignHistory.yml
   "/openscap/report/{nodeId}":
