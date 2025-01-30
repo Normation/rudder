@@ -58,11 +58,10 @@ class TestInstanceIdService extends Specification {
     "make instance" in {
       "with non-existing file without creating the file" in {
         val file = File("/tmp/rudder-test-instance-id-not-exists")
-        (InstanceIdService.make(file, instanceIdGenerator).either.runNow must beRight(
+        InstanceIdService.make(file, instanceIdGenerator).either.runNow must beRight(
           beLike[InstanceIdService](_.instanceId must beEqualTo(instanceIdGenerator.newInstanceId))
-        )) and (
-          file.exists must beFalse
         )
+        file.exists must beFalse
       }
 
       "existing file" in File.temporaryFile("rudder-test-instance-id-", "", None, Attributes.default) { tmpFile =>
