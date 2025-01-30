@@ -37,7 +37,7 @@
 
 package bootstrap.liftweb
 
-import bootstrap.liftweb.checks.migration.CheckUsersFile
+import bootstrap.liftweb.checks.earlyconfig.db.CheckUsersFile
 import com.normation.errors.*
 import com.normation.rudder.Role
 import com.normation.rudder.api.*
@@ -612,7 +612,7 @@ object AuthBackendProviderProperties {
   }
 
   /**
-    * The default properties the ones handled in the config parsing to be the default values: 
+    * The default properties the ones handled in the config parsing to be the default values:
     * - a provider can provide roles and roles are not overriden accross different providers
     * - the rest API token feature for users is allowed
     */
