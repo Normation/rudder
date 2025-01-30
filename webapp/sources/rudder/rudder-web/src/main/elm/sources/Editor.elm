@@ -149,8 +149,14 @@ defaultMethodUiInfo call =
   in
     MethodCallUiInfo Closed CallParameters Unchanged (ForeachUI False False (defaultNewForeach foreachName foreach))
 
-defaultBlockUiInfo =
-  MethodBlockUiInfo Closed Children Unchanged False
+defaultBlockUiInfo : Maybe MethodBlock -> MethodBlockUiInfo
+defaultBlockUiInfo block =
+  let
+    (foreachName, foreach) = case block  of
+      Just b -> (b.foreachName, b.foreach)
+      Nothing -> (Nothing, Nothing)
+  in
+    MethodBlockUiInfo Closed Children Unchanged False (ForeachUI False False (defaultNewForeach foreachName foreach))
 
 selectTechnique: Model -> (Either Technique Draft) -> (Model, Cmd Msg)
 selectTechnique model technique =
@@ -171,7 +177,7 @@ selectTechnique model technique =
         in
         (d.technique, st, Cmd.none)
     callState = (Dict.fromList (List.map (\c -> (c.id.value, (defaultMethodUiInfo (Just c)))) (List.concatMap getAllCalls effectiveTechnique.elems)))
-    blockState = (Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks effectiveTechnique.elems)))
+    blockState = (Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo (Just c))) (List.concatMap getAllBlocks effectiveTechnique.elems)))
     defaultUi = TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
     -- Revalidate state when technique is a Draft
     validateDraftUi s = checkTechniqueUiState state s (List.map techniqueCheckState model.techniques) defaultUi
@@ -312,7 +318,7 @@ update msg model =
         copiedName = technique.name ++ " (Copy)"
         newId = canonifyHelper (Value (String.toLower copiedName))
         callState =  Dict.fromList (List.map (\c -> (c.id.value, (defaultMethodUiInfo (Just c)))) (List.concatMap allMethodCalls technique.elems))
-        blockState =  Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks technique.elems))
+        blockState =  Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo  (Just c))) (List.concatMap getAllBlocks technique.elems))
         ui = TechniqueUiInfo General callState  blockState [] False Unchanged Unchanged Nothing
         editInfo = TechniqueEditInfo "" False (Ok ())
         newModel = { model | mode = TechniqueDetails {technique | name = copiedName, id = TechniqueId newId}  (Clone technique optDraftId internalId) ui editInfo }
@@ -451,7 +457,7 @@ update msg model =
                         let
                           updateCallUi = \optCui ->
                             case optCui of
-                              Nothing -> Just defaultBlockUiInfo
+                              Nothing -> Just (defaultBlockUiInfo (Just b))
                               Just cui -> Just { cui | validation = Unchanged }
                         in
                           { ui | blockUI = Dict.update b.id.value updateCallUi  ui.blockUI }
@@ -620,7 +626,7 @@ update msg model =
             TechniqueDetails t o ui editInfo ->
               let
                 technique =  { t | elems =  t.elems ++ [Block Nothing newCall]  }
-                newUi = { ui | blockUI = Dict.update newId.value (always (Just (MethodBlockUiInfo Opened Children (InvalidState [EmptyComponent]) False)) ) ui.blockUI }
+                newUi = { ui | blockUI = Dict.update newId.value (always (Just (MethodBlockUiInfo Opened Children (InvalidState [EmptyComponent]) False (ForeachUI False False (defaultNewForeach newCall.foreachName newCall.foreach)))) ) ui.blockUI }
               in
               { model | mode = TechniqueDetails technique o newUi editInfo }
             _ -> model
@@ -670,11 +676,31 @@ update msg model =
                    blockState = checkBlockConstraint block
                    updateBlockState = \originUiBlock -> case originUiBlock of
                                                           Just uiBlock -> Just { uiBlock | validation = blockState}
-                                                          Nothing -> Just (MethodBlockUiInfo Closed Children blockState False)
+                                                          Nothing -> Just (MethodBlockUiInfo Closed Children blockState False (ForeachUI False False (defaultNewForeach block.foreachName block.foreach)))
                  in
                   { ui | blockUI = Dict.update block.id.value updateBlockState ui.blockUI }
                 Call _ _ -> {ui | callsUI = Dict.update callId.value (Maybe.map (always newMethodUi )) ui.callsUI }
             newModel = {model | mode = TechniqueDetails {t | elems = updateElemIf (getId >> (==) (getId method) ) (always method) t.elems} s newUi editInfo}
+          in
+            updatedStoreTechnique newModel
+        _ -> (model,Cmd.none)
+
+    UpdateBlockAndUi blockId newElemUi elem ->
+      case model.mode of
+        TechniqueDetails t s ui editInfo ->
+          let
+            newUi =
+              case elem of
+                Block _ block ->
+                 let
+                   blockState = checkBlockConstraint block
+                   updateBlockState = \originUiBlock -> case originUiBlock of
+                                                          Just _ -> Just { newElemUi | validation = blockState}
+                                                          Nothing -> Just (MethodBlockUiInfo Closed Children blockState False (ForeachUI False False (defaultNewForeach block.foreachName block.foreach)))
+                 in
+                   { ui | blockUI = Dict.update blockId.value updateBlockState ui.blockUI }
+                Call _ _ -> ui
+            newModel = {model | mode = TechniqueDetails {t | elems = updateElemIf (getId >> (==) (getId elem) ) (always elem) t.elems} s newUi editInfo}
           in
             updatedStoreTechnique newModel
         _ -> (model,Cmd.none)
@@ -735,7 +761,7 @@ update msg model =
                 technique = { t |  elems = newMethods}
                 newUi = case call of
                           Call _ c  -> { ui | callsUI = Dict.update newId.value (always (Just (defaultMethodUiInfo (Just c)))) ui.callsUI }
-                          Block _ _  -> { ui | blockUI = Dict.update newId.value (always (Just defaultBlockUiInfo)) ui.blockUI }
+                          Block _ b  -> { ui | blockUI = Dict.update newId.value (always (Just (defaultBlockUiInfo (Just b)))) ui.blockUI }
                 m = { model | mode = TechniqueDetails technique o newUi editInfo }
               in
                 case call of
@@ -771,7 +797,7 @@ update msg model =
                    blockState = checkBlockConstraint block
                    updateBlockState = \originUiBlock -> case originUiBlock of
                                                           Just uiBlock -> Just { uiBlock | validation = blockState}
-                                                          Nothing -> Just (MethodBlockUiInfo Closed Children blockState False)
+                                                          Nothing -> Just (MethodBlockUiInfo Closed Children blockState False (ForeachUI False False (defaultNewForeach block.foreachName block.foreach)))
                  in
                   { ui | blockUI = Dict.update block.id.value updateBlockState ui.blockUI  }
                 Call _ _ -> ui
@@ -931,7 +957,7 @@ update msg model =
               Import _ ->
                 let
                   callState = (Dict.fromList (List.map (\c -> (c.id.value, (defaultMethodUiInfo (Just c)))) (List.concatMap getAllCalls technique.elems)))
-                  blockState = (Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks technique.elems)))
+                  blockState = (Dict.fromList (List.map (\c -> (c.id.value, (defaultBlockUiInfo (Just c)))) (List.concatMap getAllBlocks technique.elems)))
                   ui = TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
                   editInfo = TechniqueEditInfo "" False (Ok ())
                 in
@@ -962,7 +988,6 @@ update msg model =
                     (model, Cmd.none)
               EditYaml _ ->
                 (model, Cmd.none)
-
 
           Err e -> (model, Cmd.none)
 

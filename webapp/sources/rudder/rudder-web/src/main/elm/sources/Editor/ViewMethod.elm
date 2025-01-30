@@ -22,6 +22,7 @@ import Editor.MethodConditions exposing (..)
 import Editor.MethodElemUtils exposing (..)
 import Editor.AgentValueParser exposing (..)
 import Editor.ViewMethodsList exposing (getTooltipContent)
+import Editor.ViewTabForeach exposing (foreachLabel)
 
 
 --
@@ -367,7 +368,7 @@ showMethodTab model method parentId call uiInfo=
           ]
         ]
       ]
-    ForEach ->
+    CallForEach ->
       let
         foreachUI = uiInfo.foreachUI
         newForeach = foreachUI.newForeach
@@ -737,7 +738,7 @@ methodDetail method call parentId ui model =
       , li [ class (activeClass CallConditions),stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallConditions}, True)) ] [text "Conditions"]
       , li [ class (activeClass Result), stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = Result}, True))] [text "Result conditions"]
       , li [ class (activeClass CallReporting), stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallReporting}, True)) ] [text "Reporting"]
-      , li [ class (activeClass ForEach), stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = ForEach}, True)) ]
+      , li [ class (activeClass CallForEach), stopPropagationOn "mousedown" (Json.Decode.succeed  (UIMethodAction call.id {ui | tab = CallForEach}, True)) ]
         [ text "Foreach"
         , span[class ("badge" ++ foreachClass)]
           [ text nbForeach
@@ -878,36 +879,6 @@ callBody model ui techniqueUi call pid =
           Just Audit -> "label-audit"
           Just Enforce -> "label-enforce"
 
-    appendForeachLabel =
-      let
-        nbForeach = case call.foreach of
-          Just foreach -> String.fromInt (List.length foreach) --TODO : To improve
-          Nothing -> "0"
-
-        labelTxt = case call.foreachName of
-          Nothing -> ""
-          Just f  -> "foreach ${" ++ f ++ ".x}"
-
-      in
-        appendChildConditional
-          ( element "div"
-            |> addClass ("gm-label rudder-label gm-foreach d-inline-flex ps-0 overflow-hidden")
-            |> appendChild
-              ( element "span"
-                |> addClass "counter px-1 me-1"
-                |> appendText nbForeach
-                |> appendChild
-                  ( element "i"
-                    |> addClass "fa fa-retweet ms-1"
-                  )
-              )
-            |> appendChild
-              ( element "span"
-                |> appendText labelTxt
-              )
-          )
-          ( Maybe.Extra.isJust call.foreachName )
-
     appendLeftLabels = appendChild
                          ( element "div"
                            |> addClass ("gm-labels left")
@@ -921,7 +892,7 @@ callBody model ui techniqueUi call pid =
                                 |> addClass ("gm-label rudder-label gm-label-name " ++ methodNameLabelClass)
                                 |> appendText method.name
                               )
-                           |> appendForeachLabel
+                           |> foreachLabel call.foreachName call.foreach
                          )
     appendRightLabels = appendChild
       ( case ui.mode of

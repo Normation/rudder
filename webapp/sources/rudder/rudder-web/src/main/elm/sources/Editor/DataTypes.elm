@@ -242,6 +242,7 @@ type alias MethodBlockUiInfo =
   , tab        : MethodBlockTab
   , validation : ValidationState BlockError
   , showChildDetails : Bool
+  , foreachUI  : ForeachUI
   }
 
 type alias TechniqueUiInfo =
@@ -261,8 +262,8 @@ type alias TechniqueEditInfo =
   ,  result : Result String ()
   }
 
-type MethodCallTab = CallParameters | CallConditions | Result | CallReporting | ForEach
-type MethodBlockTab = BlockConditions | BlockReporting | Children
+type MethodCallTab = CallParameters | CallConditions | Result | CallReporting | CallForEach
+type MethodBlockTab = BlockConditions | BlockReporting | Children  | BlockForEach
 type MethodCallMode = Opened | Closed
 type Tab = General | Parameters | Resources | Output | None
 type Mode = Introduction | TechniqueDetails Technique TechniqueState TechniqueUiInfo TechniqueEditInfo
@@ -286,7 +287,8 @@ type Msg =
   | CheckOutYaml CheckMode (Result (Http.Detailed.Error String) ( Http.Metadata, String ))
   | UIMethodAction CallId MethodCallUiInfo
   | UIBlockAction CallId MethodBlockUiInfo
-  | UpdateMethodAndUi  CallId MethodCallUiInfo MethodElem
+  | UpdateMethodAndUi CallId MethodCallUiInfo MethodElem
+  | UpdateBlockAndUi CallId MethodBlockUiInfo MethodElem
   | RemoveMethod CallId
   | UpdateEdition TechniqueEditInfo
   | CloneElem  MethodElem CallId

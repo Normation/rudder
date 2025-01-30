@@ -1,18 +1,20 @@
 module Editor.ViewBlock exposing (..)
 
-import Dict
+import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode
 import Dom.DragDrop as DragDrop
 import Dom exposing (..)
+import Maybe.Extra
+
 
 import Editor.DataTypes exposing (..)
 import Editor.MethodConditions exposing (..)
 import Editor.ViewMethod exposing (showMethodCall)
 import Editor.MethodElemUtils exposing (..)
-import Maybe.Extra
+import Editor.ViewTabForeach exposing (foreachLabel, displayTabForeach)
 
 
 appendNodeConditional : Html msg -> Bool -> Element msg -> Element msg
@@ -44,7 +46,15 @@ blockDetail: MethodBlock -> Maybe CallId -> MethodBlockUiInfo -> TechniqueUiInfo
 blockDetail block parentId ui techniqueUi model =
   let
     activeClass = (\c -> if c == ui.tab then "active" else "" )
-
+    (nbForeach, foreachClass) = case block.foreach of
+          Nothing ->
+            ( "0"
+            , ""
+            )
+          Just foreach ->
+            ( String.fromInt (List.length foreach)
+            , " has-foreach"
+            )
     tabsList =
       element "ul"
       |> addClass "tabs-list"
@@ -64,6 +74,13 @@ blockDetail block parentId ui techniqueUi model =
             |> addClass (activeClass BlockReporting)
             |> addActionStopAndPrevent ("click", UIBlockAction block.id {ui | tab = BlockReporting})
             |> appendText "Reporting"
+          , element "li"
+            |> addClass (activeClass BlockForEach)
+            |> addActionStopAndPrevent ("click", UIBlockAction block.id {ui | tab = BlockForEach})
+            |> appendChildList [
+                 element "span" |> appendText "Foreach"
+               , element "span" |> addClass ("badge" ++ foreachClass) |> appendChild(element "span" |> appendText nbForeach |> appendChild(element "i" |> addClass "fa fa-retweet ms-1" ))
+               ]
           ]
 
   in
@@ -308,6 +325,9 @@ showBlockTab model parentId block uiInfo techniqueUi =
                               _ -> element "span"
                             )
 
+    BlockForEach -> displayTabForeach uiInfo.foreachUI block uiInfo
+
+
 buildSelectReporting: String -> String -> (List (Element Msg)) -> String -> Element Msg
 buildSelectReporting id label items value =
   element "div"
@@ -418,6 +438,7 @@ blockBody model parentId block ui techniqueUi =
                                 |> addClass ("gm-label rudder-label gm-label-name ")
                                 |> appendText "Block"
                               )
+                           |> foreachLabel block.foreachName block.foreach
                          )
     appendRightLabels = appendChild
       ( case ui.mode of
@@ -632,7 +653,7 @@ showChildren model block ui techniqueUi parentId =
                    List.reverse (dropTarget :: base)
               Block _ b ->
                 let
-                  methodUi = Maybe.withDefault (MethodBlockUiInfo Closed Children ValidState True) (Dict.get b.id.value techniqueUi.blockUI)
+                  methodUi = Maybe.withDefault (MethodBlockUiInfo Closed Children ValidState True (ForeachUI False False (defaultNewForeach b.foreachName b.foreach))) (Dict.get b.id.value techniqueUi.blockUI)
                 in
                   [ showMethodBlock model techniqueUi methodUi (Just block.id) b ]
             )
