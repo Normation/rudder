@@ -1,15 +1,12 @@
 package bootstrap.liftweb.checks.migration
 
-import com.normation.rudder.MockUserManagement
-
 import bootstrap.liftweb.checks.earlyconfig.db.CheckUsersFile
-
+import com.normation.rudder.MockUserManagement
 import com.normation.zio.UnsafeRun
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.core.AsExecution
-
 import scala.xml.Elem
 
 @RunWith(classOf[JUnitRunner])
