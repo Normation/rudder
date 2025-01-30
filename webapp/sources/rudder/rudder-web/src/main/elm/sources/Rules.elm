@@ -396,14 +396,14 @@ update msg model =
                         message = "Change request #"++ id ++" successfully created."
                         linkUrl = model.contextPath ++ "/secure/plugins/changes/changeRequest/" ++ id
                         linkTxt = "See details of change request #" ++ id
-                        encodeToastInfo =
+                        encodeNotificationInfo =
                           object
                           [ ("message", string message)
                           , ("linkUrl", string linkUrl)
                           , ("linkTxt", string linkTxt)
                           ]
                       in
-                        linkSuccessNotification encodeToastInfo
+                        linkSuccessNotification encodeNotificationInfo
                     Nothing -> defaultNotif
                   else
                   defaultNotif
