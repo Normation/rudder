@@ -37,7 +37,7 @@
 
 package bootstrap.liftweb
 
-import bootstrap.liftweb.checks.migration.CheckUsersFile
+import bootstrap.liftweb.checks.earlyconfig.db.CheckUsersFile
 import com.normation.errors.*
 import com.normation.rudder.Role
 import com.normation.rudder.api.*
