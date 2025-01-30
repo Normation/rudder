@@ -22,7 +22,9 @@ type alias CallId = {value : String}
 
 type alias ParameterId = {value : String}
 
-type alias Draft = { technique : Technique, origin : Maybe Technique, id : String, date : Posix}
+type alias DraftId = {value : String}
+
+type alias Draft = { technique : Technique, origin : Maybe Technique, id : DraftId, date : Posix}
 
 type AgentValue = Value String | Variable (List AgentValue)
 
@@ -149,6 +151,11 @@ allCategorieswithoutRoot m =
 
 type TechniqueState = Creation TechniqueId | Edit Technique | Clone Technique (Maybe TechniqueId) TechniqueId
 
+type alias TechniqueCheckState =
+  { id : TechniqueId
+  , name : String
+  }
+
 type ModalState = DeletionValidation Technique
 
 type DragElement = NewMethod Method | NewBlock | Move MethodElem
@@ -203,7 +210,7 @@ type MethodFilterState = FilterOpened | FilterClosed
 type ValidationState error = Unchanged | ValidState | InvalidState (List error)
 type TechniqueNameError = EmptyName | AlreadyTakenName
 type BlockError = EmptyComponent  | NoFocusError | ConditionError
-type TechniqueIdError = TooLongId | AlreadyTakenId | InvalidStartId
+type TechniqueIdError = TooLongId | AlreadyTakenId
 type MethodCallParamError = ConstraintError { id : ParameterId , message: String }
 type MethodCallConditionError = ReturnCarrigeForbidden
 
@@ -318,3 +325,11 @@ dragDropMessages =
   , dragEnded = MoveCanceled
   , dropped = MoveCompleted
   }
+
+
+techniqueCheckState : Technique -> TechniqueCheckState
+techniqueCheckState { id, name } = { id = id, name = name }
+
+
+draftCheckState : Draft -> TechniqueCheckState
+draftCheckState { id, technique } = { id = id, name = technique.name }
