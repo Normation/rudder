@@ -38,10 +38,12 @@
 package bootstrap.liftweb
 
 import better.files.File.root
-import bootstrap.liftweb.checks.action.*
-import bootstrap.liftweb.checks.consistency.*
-import bootstrap.liftweb.checks.migration.*
-import bootstrap.liftweb.checks.onetimeinit.*
+import bootstrap.liftweb.checks.earlyconfig.db.*
+import bootstrap.liftweb.checks.earlyconfig.ldap.*
+import bootstrap.liftweb.checks.endconfig.action.*
+import bootstrap.liftweb.checks.endconfig.consistency.*
+import bootstrap.liftweb.checks.endconfig.migration.*
+import bootstrap.liftweb.checks.endconfig.onetimeinit.*
 import bootstrap.liftweb.metrics.SystemInfoServiceImpl
 import com.normation.appconfig.*
 import com.normation.box.*
@@ -2624,7 +2626,8 @@ object RudderConfigInit {
     }
     lazy val roLDAPConnectionProvider = roLdap
     lazy val rwLdap                   = {
-      new RWPooledSimpleAuthConnectionProvider(
+
+      val rwLdap = new RWPooledSimpleAuthConnectionProvider(
         host = LDAP_HOST,
         port = LDAP_PORT,
         authDn = LDAP_AUTHDN,
@@ -2636,6 +2639,20 @@ object RudderConfigInit {
         maxConnectionAge = LDAP_MAX_CONNECTION_AGE,
         minDisconnectInterval = LDAP_MIN_DISCONNECT_INTERVAL
       )
+
+      // a sequence and migration that should be executed as soon as we have a connection, and
+      // before other services are init, because perhaps they will need the changes here.
+      val earlyLdapChecks = new SequentialImmediateBootStrapChecks(
+        "early LDAP checks",
+        BootstrapLogger.Early.LDAP,
+        new CheckLdapConnection(rwLdap),
+        new CheckAddSpecialNodeGroupsDescription(rwLdap),
+        new CheckRemoveRuddercSetting(rwLdap)
+      )
+
+      earlyLdapChecks.checks()
+
+      rwLdap
     }
 
     // query processor for accepted nodes
@@ -3182,7 +3199,27 @@ object RudderConfigInit {
       RUDDER_JDBC_MAX_POOL_SIZE,
       JDBC_GET_CONNECTION_TIMEOUT.asScala
     )
-    lazy val doobie                   = new Doobie(dataSourceProvider.datasource)
+    lazy val doobie                   = {
+      val doobie = new Doobie(dataSourceProvider.datasource)
+
+      // a sequence and migration that should be executed as soon as we have a connection, and
+      // before other services are init, because perhaps they will need the changes here.
+      val earlyDbChecks = new SequentialImmediateBootStrapChecks(
+        "early PostgreSQL checks",
+        BootstrapLogger.Early.DB,
+        new CheckPostgreConnection(dataSourceProvider),
+        new CreateTableNodeFacts(doobie),
+        new CheckTableScore(doobie),
+        new CheckTableUsers(doobie),
+        new MigrateEventLogEnforceSchema(doobie),
+        new MigrateChangeValidationEnforceSchema(doobie),
+        new CheckTableReportsExecutionTz(doobie),
+        new DeleteArchiveTables(doobie)
+      )
+
+      earlyDbChecks.checks()
+      doobie
+    }
 
     lazy val parseRules:                  ParseRules with RuleRevisionRepository         = new GitParseRules(
       ruleUnserialisation,
@@ -3361,29 +3398,20 @@ object RudderConfigInit {
      */
 
     lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
+      "post-service instantiation checks",
+      BootstrapLogger,
       new CreateInstanceUuid(instanceUuidPath, instanceIdService),
-      new CheckConnections(dataSourceProvider, rwLdap),
-      new CheckTableScore(doobie),
-      new CheckTableUsers(doobie),
-      new CheckTableNodeLastCompliance(doobie),
-      new MigrateEventLogEnforceSchema(doobie),
-      new MigrateChangeValidationEnforceSchema(doobie),
-      new DeleteArchiveTables(doobie),
       new MigrateNodeAcceptationInventories(
         nodeFactRepository,
-        doobie,
         inventoryHistoryLogRepository,
         inventoryHistoryJdbcRepository,
         KEEP_DELETED_NODE_FACT_DURATION
       ),
-      new CheckTableReportsExecutionTz(doobie),
       new CheckTechniqueLibraryReload(
         techniqueRepositoryImpl,
         uuidGen
       ),
       new CheckTechniqueCompilationStatus(techniqueCompilationCache),
-      new CheckAddSpecialNodeGroupsDescription(rwLdap),
-      new CheckRemoveRuddercSetting(rwLdap),
       new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap),
       new CheckUsersFile(rudderUserListProvider),
       new CheckInitUserTemplateLibrary(
