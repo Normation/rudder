@@ -87,7 +87,7 @@ impl Augeas {
         let load_paths = load_paths
             .iter()
             .map(|p| p.as_ref().to_string_lossy())
-            .chain(rudder_lib.into_iter())
+            .chain(rudder_lib)
             .collect::<Vec<Cow<str>>>()
             .join(":");
 

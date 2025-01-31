@@ -144,6 +144,7 @@ fn parser<'a>() -> impl Parser<'a, &'a str, Vec<Spanned<Expr<'a>>>, extra::Err<R
         .to_slice()
         .delimited_by(just('"'), just('"'));
 
+    // FIXME:
     let alpha = one_of("-_/.1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
         .repeated()
         .to_slice();
@@ -247,9 +248,16 @@ fn parser<'a>() -> impl Parser<'a, &'a str, Vec<Spanned<Expr<'a>>>, extra::Err<R
     let quit = just("quit").to(Expr::Quit).boxed();
     let load = just("load").to(Expr::Load).boxed();
 
+    let generic = none_of("\n\r")
+        .repeated()
+        .to_slice()
+        .padded()
+        .map(|s| Expr::GenericAugeas(s))
+        .boxed();
+
     choice((
         set, setm, defnode, defvar, move_, remove, copy, rename, clear, clearm, touch, save, quit,
-        load,
+        load, generic,
     ))
     .map_with(|expr, e| (expr, e.span()))
     .padded_by(comment.repeated())
@@ -264,21 +272,22 @@ fn failure(
     extra_labels: impl IntoIterator<Item = (String, SimpleSpan)>,
     src: &str,
 ) -> ! {
-    let fname = "example";
-    Report::build(ReportKind::Error, fname, label.1.start)
+    // "File" name for the error message
+    let file_name = "command";
+    Report::build(ReportKind::Error, file_name, label.1.start)
         .with_message(&msg)
         .with_label(
-            Label::new((fname, label.1.into_range()))
+            Label::new((file_name, label.1.into_range()))
                 .with_message(label.0)
                 .with_color(Color::Red),
         )
         .with_labels(extra_labels.into_iter().map(|label2| {
-            Label::new((fname, label2.1.into_range()))
+            Label::new((file_name, label2.1.into_range()))
                 .with_message(label2.0)
                 .with_color(Color::Yellow)
         }))
         .finish()
-        .print(sources([(fname, src)]))
+        .print(sources([(file_name, src)]))
         .unwrap();
     std::process::exit(1)
 }
@@ -359,6 +368,8 @@ mod tests {
             rename /path/to/node new_label
             defvar name /path/to/node
             defnode name /path/to/node value
+            
+            custom command
 
         "#;
         let expected = vec![
@@ -372,6 +383,7 @@ mod tests {
             Expr::Rename("/path/to/node".into(), "new_label"),
             Expr::DefineVar("name", "/path/to/node".into()),
             Expr::DefineNode("name", "/path/to/node".into(), "value"),
+            Expr::GenericAugeas("custom command"),
         ];
         assert_eq!(
             parser()

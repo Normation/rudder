@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::dsl::comparator::{Comparison, NumComparator};
 use crate::dsl::parser::Expr;
-use crate::dsl::value_type::ValueType;
-use crate::dsl::{parser, AugPath, Sub, Value};
+use crate::dsl::parser;
 use anyhow::{bail, Result};
-use raugeas::{Augeas, Position};
+use raugeas::Augeas;
 use rudder_module_type::{rudder_debug, rudder_trace};
 use std::path::Path;
-use zxcvbn::Score;
 
 /// The mode of the interpreter.
 ///
