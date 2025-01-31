@@ -38,10 +38,11 @@
 package bootstrap.liftweb
 
 import com.normation.NamedZioLogger
+import com.normation.errors.IOResult
+import com.normation.utils.DateFormaterService
+import com.normation.zio.*
 import jakarta.servlet.UnavailableException
-import org.joda.time.Duration
-import org.joda.time.format.PeriodFormatter
-import org.joda.time.format.PeriodFormatterBuilder
+import zio.*
 
 /**
  *
@@ -80,44 +81,50 @@ object BootstrapLogger extends NamedZioLogger {
   }
 }
 
-class SequentialImmediateBootStrapChecks(sequenceName: String, logger: NamedZioLogger, _checkActions: BootstrapChecks*)
+class SequentialImmediateBootStrapChecks(sequenceName: String, logger: NamedZioLogger, checkActions: BootstrapChecks*)
     extends BootstrapChecks {
 
-  private val checkActions = collection.mutable.Buffer[BootstrapChecks](_checkActions*)
-
-  def appendBootstrapChecks(check: BootstrapChecks): Unit = {
-    checkActions.append(check)
-  }
-
   override val description = "Sequence of bootstrap checks"
-  val formatter: PeriodFormatter = new PeriodFormatterBuilder()
-    .appendMinutes()
-    .appendSuffix(" m")
-    .appendSeparator(" ")
-    .appendSeconds()
-    .appendSuffix(" s")
-    .appendSeparator(" ")
-    .appendMillis()
-    .appendSuffix(" ms")
-    .toFormatter()
 
+  // only execute once when at class instantiation.
+
+  // keep that method for easy external reference to the class, so that in case of lazy val, the instance
+  // actually get instantiated
   @throws(classOf[UnavailableException])
   override def checks(): Unit = {
-    logger.logEffect.info(s"Starting bootchecks for ${sequenceName}")
-    checkActions.zipWithIndex.foreach {
-      case (check, i) =>
-        val start = System.currentTimeMillis
-        val msg   = if (logger.logEffect.isDebugEnabled) {
-          s"[#${i}] ${check.description}"
-        } else {
-          s"${check.description}"
-        }
-        logger.logEffect.info(msg)
-        check.checks()
-        logger.logEffect.debug(
-          msg + s": OK in [${formatter.print(new Duration(System.currentTimeMillis - start).toPeriod)}] ms"
-        )
-    }
+    pureChecks().runNow
   }
 
+  protected def pureChecks(): UIO[Unit] = {
+    for {
+      _ <- logger.info(s"Starting bootchecks for ${sequenceName}")
+      _ <- ZIO.foreach(checkActions.zipWithIndex) {
+             case (check, i) =>
+               val msg = s"[#${i}] ${check.description}"
+               for {
+                 _ <- logger.info(msg)
+                 r <- IOResult.attempt(check.checks()).catchAll(err => logger.error(s"${msg}: ${err.fullMsg}")).timed
+                 _ <- logger.debug(s"${msg}: OK in [${DateFormaterService.formatJavaDuration(r._1)}]")
+               } yield ()
+           }
+    } yield ()
+  }
+}
+
+/*
+ * Implementation that only execute once the given list of checks, immediately when the class
+ * is instantiated. Used for the most early check, so that we can reference "mostEarlyCheck.check"
+ * where ever it looks like a root of our instantiation dependency graphe.
+ */
+class OnceBootstrapChecks(sequenceName: String, logger: NamedZioLogger, checkActions: BootstrapChecks*)
+    extends SequentialImmediateBootStrapChecks(sequenceName, logger, checkActions*) {
+
+  // execute once when instantiated
+  super.checks()
+
+  // does nothing for checks
+  override def checks(): Unit = {}
+
+  // initialize is less strange than "checks"
+  def initialize(): Unit = {}
 }

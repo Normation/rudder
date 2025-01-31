@@ -53,7 +53,7 @@ class CheckUsersFile(migration: UserFileSecurityLevelMigration) extends Bootstra
 
   override def checks(): Unit = {
     prog
-      .catchAll(err => BootstrapLogger.error(s"Error when trying to check users file: ${err.fullMsg}"))
+      .catchAll(err => BootstrapLogger.Early.DB.error(s"Error when trying to check users file: ${err.fullMsg}"))
       .forkDaemon
       .runNow
   }
@@ -71,12 +71,12 @@ class CheckUsersFile(migration: UserFileSecurityLevelMigration) extends Bootstra
                            allChecks(SecurityLevel.fromPasswordEncoderType(hash))
 
                          case (Left(unknownValue), _) =>
-                           BootstrapLogger.warn(
+                           BootstrapLogger.Early.DB.warn(
                              s"Error when reading users file hash in ${migration.file.name}, value '${unknownValue}' is unknown, falling back to secure authentication method"
                            ) *>
                            migration.enforceModern(userFile)
                          case (_, Left(unknownValue)) =>
-                           BootstrapLogger.warn(
+                           BootstrapLogger.Early.DB.warn(
                              s"Error when reading users file unsafe-hashes in ${migration.file.name}, value '${unknownValue}' is unknown, falling back to safe hashes"
                            ) *>
                            migration.enforceModern(userFile)
