@@ -85,7 +85,7 @@ class TechniqueParser(
             policyTypes        = ((xml \ TECHNIQUE_POLICY_TYPES)) match {
                                    case n if (n.isEmpty) => PolicyTypes.compat(isSystem)
                                    case n                =>
-                                     n.text.split(",").toList match {
+                                     n.flatMap(_.text.split(",").toList).toList match {
                                        case Nil    => PolicyTypes.rudderBase
                                        case h :: t => PolicyTypes.fromStrings(h, t*)
                                      }
