@@ -291,6 +291,7 @@ impl Default for Technique {
             category: None,
             description: Some("A technique".to_string()),
             documentation: None,
+            policy_types: vec![],
             items: vec![],
             params: vec![],
         }
@@ -314,6 +315,9 @@ pub struct Technique {
     pub description: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub documentation: Option<String>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub policy_types: Vec<String>,
     pub items: Vec<ItemKind>,
     #[serde(default)]
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -424,6 +428,8 @@ pub struct DeserTechnique {
     pub description: Option<String>,
     pub documentation: Option<String>,
     #[serde(default)]
+    pub policy_types: Vec<String>,
+    #[serde(default)]
     pub items: Vec<DeserItem>,
     #[serde(default)]
     pub params: Vec<Parameter>,
@@ -456,6 +462,7 @@ impl DeserTechnique {
             category: self.category,
             description: self.description,
             documentation: self.documentation,
+            policy_types: self.policy_types,
             items: items?,
             params: self.params,
         })

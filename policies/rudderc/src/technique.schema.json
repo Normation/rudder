@@ -497,6 +497,12 @@
       "markdownDescription": "```Optional```\n\nTechnique documentation in Markdown format",
       "format": "markdown"
     },
+    "policy_types": {
+      "type": "array",
+      "title": "policy types",
+      "description": "Technique policy types, used in compliance computation",
+      "markdownDescription": "```Optional```\n\nTechnique policy type, used in compliance computation"
+    },
     "tags": {
       "$ref": "#/$defs/tags",
       "description": "Optional key-value metadata",
