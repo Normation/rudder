@@ -232,7 +232,7 @@ decodeDraft =
   maybe (succeed Draft
     |> required "technique" decodeTechnique
     |> optional "origin"  (maybe decodeTechnique) Nothing
-    |> required "id"  string
+    |> required "id"  (map DraftId string)
     |> required "date"  Iso8601.decoder)
 
 decodeErrorDetails : String -> (String, String)

@@ -26,7 +26,7 @@ import Editor.JsonDecoder exposing (decodeDraft, decodeErrorDetails, decodeTechn
 import Editor.MethodConditions exposing (..)
 import Editor.MethodElemUtils exposing (..)
 import Editor.ViewMethod exposing ( accumulateErrorConstraint )
-import Editor.ViewTechnique exposing ( view, checkTechniqueName, checkTechniqueId )
+import Editor.ViewTechnique exposing ( view, checkTechniqueUiState )
 import Editor.ViewTechniqueList exposing (allMethodCalls)
 
 
@@ -104,19 +104,19 @@ updatedStoreTechnique model =
                              (Dict.remove t.id.value model.drafts, clearDraft t.id.value)
                            else
                              let
-                               draft = Draft  t (Just origin) origin.id.value (Time.millisToPosix 0)
+                               draft = Draft  t (Just origin) origin.id (Time.millisToPosix 0)
                              in
-                               (Dict.insert draft.id draft model.drafts, Cmd.batch[initInputs "", clearTooltips "", storeDraft (encodeDraft draft)] )
+                               (Dict.insert draft.id.value draft model.drafts, Cmd.batch[initInputs "", clearTooltips "", storeDraft (encodeDraft draft)] )
             Creation id ->
               let
-               draft = Draft  t Nothing id.value (Time.millisToPosix 0)
+               draft = Draft  t Nothing id (Time.millisToPosix 0)
               in
-                (Dict.insert draft.id draft model.drafts, Cmd.batch[initInputs "", clearTooltips "", storeDraft (encodeDraft draft)] )
+                (Dict.insert draft.id.value draft model.drafts, Cmd.batch[initInputs "", clearTooltips "", storeDraft (encodeDraft draft)] )
             Clone _ _ id ->
               let
-               draft = Draft  t Nothing id.value (Time.millisToPosix 0)
+               draft = Draft  t Nothing id (Time.millisToPosix 0)
               in
-                (Dict.insert draft.id draft model.drafts, Cmd.batch[initInputs "", clearTooltips "", storeDraft (encodeDraft draft)] )
+                (Dict.insert draft.id.value draft model.drafts, Cmd.batch[initInputs "", clearTooltips "", storeDraft (encodeDraft draft)] )
       in
          ({ model | drafts = drafts }, action)
     _ -> (model, Cmd.batch[initInputs "", clearTooltips ""])
@@ -167,12 +167,15 @@ selectTechnique model technique =
         let
          st = case d.origin of
                    Just o -> Clone d.technique Nothing o.id
-                   Nothing -> Creation (TechniqueId d.id)
+                   Nothing -> Creation (TechniqueId d.id.value)
         in
         (d.technique, st, Cmd.none)
     callState = (Dict.fromList (List.map (\c -> (c.id.value, (defaultMethodUiInfo (Just c)))) (List.concatMap getAllCalls effectiveTechnique.elems)))
     blockState = (Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo)) (List.concatMap getAllBlocks effectiveTechnique.elems)))
-    ui = TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
+    defaultUi = TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
+    -- Revalidate state when technique is a Draft
+    validateDraftUi s = checkTechniqueUiState state s (List.map techniqueCheckState model.techniques) defaultUi
+    ui = Either.unpack (\_ -> defaultUi) (draftCheckState >> validateDraftUi) technique
     editInfo = TechniqueEditInfo "" False (Ok ())
   in
     ({ model | mode = TechniqueDetails effectiveTechnique  state ui editInfo } )
@@ -296,7 +299,7 @@ update msg model =
           case model.mode of
             TechniqueDetails _ o ui editInfo ->
 
-              { model | mode = TechniqueDetails {technique | id = techniqueId} o {ui |  nameState = checkTechniqueName technique model, idState = checkTechniqueId o technique model } editInfo }
+              { model | mode = TechniqueDetails {technique | id = techniqueId} o (checkTechniqueUiState o (techniqueCheckState technique) (List.map techniqueCheckState model.techniques) ui) editInfo }
             _ -> model
       in
         updatedStoreTechnique newModel

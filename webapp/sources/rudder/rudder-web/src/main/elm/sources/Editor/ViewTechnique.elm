@@ -26,27 +26,34 @@ import String.Extra
 -- This file deals with the UI of one technique
 --
 
-checkTechniqueId origin technique model =
+checkTechniqueId: TechniqueState -> TechniqueCheckState -> List TechniqueCheckState -> ValidationState TechniqueIdError
+checkTechniqueId origin technique techniques =
   case origin of
     Edit _ -> ValidState
-    _ -> if (List.any (.id >> (==) technique.id) model.techniques) then
+    _ -> if (List.any (.id >> (==) technique.id) techniques) then
            InvalidState [ AlreadyTakenId ]
          else if String.length technique.id.value > 255 then
            InvalidState [ TooLongId ]
-         else if String.startsWith "_" technique.id.value then
-           InvalidState [ InvalidStartId ]
          else
            ValidState
 
-checkTechniqueName technique model =
+checkTechniqueName : TechniqueCheckState -> List TechniqueCheckState -> ValidationState TechniqueNameError
+checkTechniqueName technique techniques =
   if String.isEmpty technique.name then
    InvalidState [ EmptyName ]
   else
-   if List.any (.name >> (==) technique.name) (List.filter (.id >> (/=) technique.id ) model.techniques) then
+   if List.any (.name >> (==) technique.name) (List.filter (.id >> (/=) technique.id ) techniques) then
      InvalidState [ AlreadyTakenName ]
    else
      ValidState
 
+
+checkTechniqueUiState : TechniqueState -> TechniqueCheckState -> List TechniqueCheckState -> TechniqueUiInfo -> TechniqueUiInfo
+checkTechniqueUiState origin technique techniques ui =
+  { ui | idState = checkTechniqueId origin technique techniques, nameState = checkTechniqueName technique techniques }
+
+
+isValidState : ValidationState error -> Bool
 isValidState state =
   case state of
     Unchanged -> True
