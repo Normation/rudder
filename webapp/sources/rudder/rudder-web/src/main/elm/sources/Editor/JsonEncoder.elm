@@ -13,7 +13,7 @@ encodeDraft draft =
   let
     standardData =  [
                      ("technique", encodeTechnique draft.technique)
-                     , ("id", string draft.id)
+                     , ("id", string draft.id.value)
                      , ("date", Iso8601.encode draft.date)
                      ]
     data = case draft.origin of
