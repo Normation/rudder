@@ -26,7 +26,7 @@ decodeAccount datePickerInfo =
         |> required "kind" string
         |> required "enabled" bool
         |> required "creationDate" string
-        |> required "token" string
+        |> optional "token" string ""
         |> required "tokenGenerationDate" string
         |> required "expirationDateDefined" bool
         |> optional "expirationDate"

@@ -107,7 +107,7 @@ final class RoLDAPApiAccountRepository(
       ApiAccountId("rudder-system-api-account"),
       ApiAccountKind.System,
       ApiAccountName("Rudder system account"),
-      ApiToken(ApiToken.generate_secret(tokenGen, "-system")),
+      Some(ApiToken(ApiToken.generate_secret(tokenGen, "-system"))),
       "For internal use",
       isEnabled = true,
       creationDate = DateTime.now,
@@ -152,10 +152,20 @@ final class RoLDAPApiAccountRepository(
   // a hash but a clear text token to avoid accepting the hash as valid token itself.
   //
   override def getByToken(token: ApiToken): IOResult[Option[ApiAccount]] = {
-    if (token.isHashed) {
+    // check that the two token are equals and t2 is system-token OK
+    def sameAndValid(t1: ApiToken, t2: Option[ApiToken]): Boolean = {
+      t2 match {
+        case Some(t) if (t.value.strip().nonEmpty) =>
+          // Constant-time comparison
+          MessageDigest.isEqual(t.value.getBytes(), t1.value.getBytes())
+        case _                                     =>
+          false
+      }
+    }
+
+    if (token.isHashed || token.value.strip().isEmpty) {
       None.succeed
-    } else if (MessageDigest.isEqual(token.value.getBytes(), systemAPIAccount.token.value.getBytes())) {
-      // Constant-time comparison
+    } else if (sameAndValid(token, systemAPIAccount.token)) {
       Some(systemAPIAccount).succeed
     } else {
       val hash = ApiToken.hash(token.value)

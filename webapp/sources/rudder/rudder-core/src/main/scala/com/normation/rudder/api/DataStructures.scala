@@ -348,13 +348,11 @@ object ApiAccountKind       {
  * An API principal
  */
 final case class ApiAccount(
-    id:   ApiAccountId,
-    kind: ApiAccountKind, // Authentication token. It is a mandatory value, and can't be ""
+    id:                  ApiAccountId,
+    kind:                ApiAccountKind,   // Authentication token. It is a mandatory value, and can't be ""
     // If a token should be revoked, use isEnabled = false.
-
-    name: ApiAccountName, // used in event log to know who did actions.
-
-    token:               ApiToken,
+    name:                ApiAccountName,   // used in event log to know who did actions.
+    token:               Option[ApiToken], // if none, then the token can't be used for authentication
     description:         String,
     isEnabled:           Boolean,
     creationDate:        DateTime,

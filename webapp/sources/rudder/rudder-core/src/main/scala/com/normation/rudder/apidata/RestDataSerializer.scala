@@ -621,7 +621,7 @@ object ApiAccountSerialisation {
 
       ("id"                    -> account.id.value) ~
       ("name"                  -> account.name.value) ~
-      ("token"                 -> account.token.value) ~
+      ("token"                 -> account.token.map(_.value)) ~
       ("tokenGenerationDate"   -> DateFormaterService.serialize(account.tokenGenerationDate)) ~
       ("kind"                  -> account.kind.kind.name) ~
       ("description"           -> account.description) ~

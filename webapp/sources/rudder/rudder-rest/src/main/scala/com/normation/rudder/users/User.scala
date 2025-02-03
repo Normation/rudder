@@ -123,7 +123,7 @@ case class RudderUserDetail(
 
   override val (getUsername, getPassword, getAuthorities) = account match {
     case RudderAccount.User(login, password) => (login, password, RudderAuthType.User.grantedAuthorities)
-    case RudderAccount.Api(api)              => (api.name.value, api.token.value, RudderAuthType.Api.grantedAuthorities)
+    case RudderAccount.Api(api)              => (api.name.value, api.token.map(_.value).getOrElse(""), RudderAuthType.Api.grantedAuthorities)
   }
   override val isAccountNonExpired                        = true
   override val isAccountNonLocked                         = true

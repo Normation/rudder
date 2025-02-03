@@ -556,9 +556,9 @@ objectclass ( RudderObjectClasses:106
   SUP top
   STRUCTURAL
   MUST ( apiAccountId $ cn $ creationTimestamp $
-         apiToken $ apiTokenCreationTimestamp)
+         apiTokenCreationTimestamp)
   MAY ( description  $ isEnabled $ apiAccountKind $ apiTenant $
-        apiAuthorizationKind $ apiAcl $ expirationTimestamp ) )
+        apiToken $ apiAuthorizationKind $ apiAcl $ expirationTimestamp ) )
 
 #
 # Parameters

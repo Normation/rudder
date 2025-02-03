@@ -536,7 +536,7 @@ class APIAccountSerialisationImpl(xmlVersion: String) extends APIAccountSerialis
       (
         <id>{account.id.value}</id>
        <name>{account.name.value}</name>
-       <token>{account.token.value}</token>
+       <token>{account.token.getOrElse("")}</token>
        <description>{account.description}</description>
        <isEnabled>{account.isEnabled}</isEnabled>
        <creationDate>{account.creationDate.toString(ISODateTimeFormat.dateTime)}</creationDate>
