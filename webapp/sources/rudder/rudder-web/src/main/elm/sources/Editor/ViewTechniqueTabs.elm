@@ -339,7 +339,6 @@ techniqueTab model technique creation ui =
                                                         \err -> case err of
                                                           TooLongId -> li [ class "text-danger col-md-8" ] [text "Technique IDs longer than 255 characters won't work on most filesystems." ]
                                                           AlreadyTakenId -> li [ class "text-danger col-md-8" ] [ text "Technique ID must be unique." ]
-                                                          InvalidStartId -> li [ class "text-danger col-md-8"] [ text "Technique ID should start with an alphanumeric character." ]
                                                       ) errors)
                              _ -> if String.length technique.id.value > 100 then
                                     span [ class "rudder-text-warning col-md-8 col-md-offset-3" ] [

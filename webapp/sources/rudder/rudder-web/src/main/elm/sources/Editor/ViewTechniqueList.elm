@@ -151,12 +151,12 @@ draftsItem model draft =
   let
     activeClass = case model.mode of
                     TechniqueDetails _ (Clone _ _ id) _ _ ->
-                      if id.value == draft.id then
+                      if id.value == draft.id.value then
                          "jstree-clicked"
                       else
                         ""
                     TechniqueDetails _ (Creation id) _ _ ->
-                      if id.value == draft.id then
+                      if id.value == draft.id.value then
                          "jstree-clicked"
                       else
                         ""
