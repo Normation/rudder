@@ -27,7 +27,8 @@ bundle agent test_audit {
     "1d809592-808e-4177-8351-8b7b7769af69_${report_data.directive_id}" usebundle => call_test_audit_1d809592_808e_4177_8351_8b7b7769af69("In default mode", "/tmp/1", "1d809592-808e-4177-8351-8b7b7769af69", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
                                              if => "pass3";
 
-    "push_policy_mode_for_block_57f54359-2b2e-49f9-ab61-a77705615302" usebundle => push_dry_run_mode("true");
+    "push_policy_mode_for_block_57f54359-2b2e-49f9-ab61-a77705615302" usebundle => push_dry_run_mode("true"),
+                                             if => "pass3";
 
     "ea274579-40fc-4545-b384-8d5576a7c69b_${report_data.directive_id}" usebundle => call_test_audit_ea274579_40fc_4545_b384_8d5576a7c69b("Resolve to audit", "/tmp/1", "ea274579-40fc-4545-b384-8d5576a7c69b", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
                                              if => "pass3";
@@ -38,9 +39,11 @@ bundle agent test_audit {
     "d8def455-cd43-441f-8dba-1ebae3a29389_${report_data.directive_id}" usebundle => call_test_audit_d8def455_cd43_441f_8dba_1ebae3a29389("Resolve to audit", "/tmp/1", "d8def455-cd43-441f-8dba-1ebae3a29389", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
                                              if => "pass3";
 
-    "pop_policy_mode_for_block_57f54359-2b2e-49f9-ab61-a77705615302" usebundle => pop_dry_run_mode();
+    "pop_policy_mode_for_block_57f54359-2b2e-49f9-ab61-a77705615302" usebundle => pop_dry_run_mode(),
+                                             if => "pass3";
 
-    "push_policy_mode_for_block_1ff82fc2-38fc-4324-92ab-3de5fafcdc14" usebundle => push_dry_run_mode("false");
+    "push_policy_mode_for_block_1ff82fc2-38fc-4324-92ab-3de5fafcdc14" usebundle => push_dry_run_mode("false"),
+                                             if => "pass3";
 
     "f9417d97-3a18-4db6-85c3-72e28618bff1_${report_data.directive_id}" usebundle => call_test_audit_f9417d97_3a18_4db6_85c3_72e28618bff1("Resolve to audit", "/tmp/1", "f9417d97-3a18-4db6-85c3-72e28618bff1", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
                                              if => "pass3";
@@ -51,21 +54,26 @@ bundle agent test_audit {
     "cce62a59-bd17-4858-ba06-6ae41f39b15a_${report_data.directive_id}" usebundle => call_test_audit_cce62a59_bd17_4858_ba06_6ae41f39b15a("Resolve to enforce", "/tmp/1", "cce62a59-bd17-4858-ba06-6ae41f39b15a", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
                                              if => "pass3";
 
-    "pop_policy_mode_for_block_1ff82fc2-38fc-4324-92ab-3de5fafcdc14" usebundle => pop_dry_run_mode();
+    "pop_policy_mode_for_block_1ff82fc2-38fc-4324-92ab-3de5fafcdc14" usebundle => pop_dry_run_mode(),
+                                             if => "pass3";
 
-    "push_policy_mode_for_block_7def389a-78d2-4104-b6fc-19c74f14fe93" usebundle => push_dry_run_mode("false");
+    "push_policy_mode_for_block_7def389a-78d2-4104-b6fc-19c74f14fe93" usebundle => push_dry_run_mode("false"),
+                                             if => "pass3";
 
-    "push_policy_mode_for_block_9fca6ca8-ccaa-4688-a5fc-e2a0d9d60165" usebundle => push_dry_run_mode("true");
+    "push_policy_mode_for_block_9fca6ca8-ccaa-4688-a5fc-e2a0d9d60165" usebundle => push_dry_run_mode("true"),
+                                             if => "pass3";
 
     "0a4299dd-0902-48b2-85ee-13dfe6fc3af6_${report_data.directive_id}" usebundle => call_test_audit_0a4299dd_0902_48b2_85ee_13dfe6fc3af6("Resolve to audit", "/tmp/1", "0a4299dd-0902-48b2-85ee-13dfe6fc3af6", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
                                              if => "pass3";
 
-    "pop_policy_mode_for_block_9fca6ca8-ccaa-4688-a5fc-e2a0d9d60165" usebundle => pop_dry_run_mode();
+    "pop_policy_mode_for_block_9fca6ca8-ccaa-4688-a5fc-e2a0d9d60165" usebundle => pop_dry_run_mode(),
+                                             if => "pass3";
 
     "3b8352df-1329-4956-a019-bb9c072bc830_${report_data.directive_id}" usebundle => call_test_audit_3b8352df_1329_4956_a019_bb9c072bc830("Resolve to enforce", "/tmp/1", "3b8352df-1329-4956-a019-bb9c072bc830", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
                                              if => "pass3";
 
-    "pop_policy_mode_for_block_7def389a-78d2-4104-b6fc-19c74f14fe93" usebundle => pop_dry_run_mode();
+    "pop_policy_mode_for_block_7def389a-78d2-4104-b6fc-19c74f14fe93" usebundle => pop_dry_run_mode(),
+                                             if => "pass3";
 
 }
 bundle agent call_test_audit_46b8025a_0b06_485c_9127_50e4258ee7e6(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {

@@ -86,7 +86,7 @@ impl Backend for Unix {
                         r.policy_mode_override,
                         format!("push_policy_mode_for_block_{}", r.id),
                     ) {
-                        calls.push((x, None))
+                        calls.push((x.if_condition("pass3"), None))
                     }
                     for inner in r.items {
                         calls.extend(resolve_module(
@@ -99,7 +99,7 @@ impl Backend for Unix {
                         r.policy_mode_override,
                         format!("pop_policy_mode_for_block_{}", r.id),
                     ) {
-                        calls.push((x, None))
+                        calls.push((x.if_condition("pass3"), None))
                     }
                     Ok(calls)
                 }
