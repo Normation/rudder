@@ -362,6 +362,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                       )
               in
                 Just updatedForeach
+
         -- Actions ============
         removeKey k           = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | foreachKeys = (List.Extra.remove k newForeach.foreachKeys)}}}
         updateNewForeach s    = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | foreachName = s}}}
