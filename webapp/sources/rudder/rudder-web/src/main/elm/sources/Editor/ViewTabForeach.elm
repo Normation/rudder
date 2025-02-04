@@ -47,13 +47,24 @@ foreachLabel foreachName foreach =
       )
       ( Maybe.Extra.isJust foreachName )
 
-displayTabForeach : ForeachUI -> MethodBlock -> MethodBlockUiInfo -> Element Msg
-displayTabForeach foreachUI call uiInfo =
+displayTabForeach : ForeachUI -> MethodElem -> (String -> Msg) -> (String -> Msg) -> (String -> Msg) -> Msg -> Msg -> Msg -> (String -> String -> Msg) -> Msg -> Msg -> Msg -> Msg -> Msg -> Msg -> Element Msg
+displayTabForeach foreachUI elem actionRemoveKey actionUpdateNewForeach actionUpdateNewForeachKey actionAddNewKey actionResetNewForEach actionAddForeach actionUpdateNewItem actionAddNewItem actionSaveNewForeach actionEditForeachName actionSaveEditKeys actionEditForeachKeys actionRemoveForeach =
   let
-    callId = call.id
-    foreachName = call.foreachName
-    foreach = call.foreach
-    -- uiInfo : MethodBloclUiInfo=
+    (callId, foreachName, foreach) = case elem of
+      Call  _ c ->
+        ( c.id
+        , c.foreachName
+        , c.foreach
+        )
+      Block _ b ->
+        ( b.id
+        , b.foreachName
+        , b.foreach
+        )
+    updateForeach maybeForeach = case elem of
+      Call  _ c -> (Call  (Just callId) {c | foreach = maybeForeach})
+      Block _ b -> (Block (Just callId) {b | foreach = maybeForeach})
+
     newForeach = foreachUI.newForeach
 
     newKeys : Bool -> List (Element Msg)
@@ -68,7 +79,7 @@ displayTabForeach foreachUI call uiInfo =
           |> appendChildConditional
             ( element "i"
               |> addClass "fa fa-times p-2 cursorPointer"
-              |> addActionStopAndPrevent ("click", (UIBlockAction callId {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | foreachKeys = (List.Extra.remove k newForeach.foreachKeys)}}}))
+              |> addActionStopAndPrevent ("click", actionRemoveKey k)
             ) edit
       )
 
@@ -106,13 +117,6 @@ displayTabForeach foreachUI call uiInfo =
         case foreachName of
           -- Creation
           Nothing ->
-            let
-              newItem = newForeach.foreachKeys
-                |> List.map (\k -> (k, ""))
-                |> Dict.fromList
-
-              newDefaultForeach = defaultNewForeach foreachName foreach
-            in
               element "div"
                 |> addClass "d-flex row gx-3"
                 |> appendChildList
@@ -137,7 +141,7 @@ displayTabForeach foreachUI call uiInfo =
                               , placeholder "item"
                               , value newForeach.foreachName
                               ]
-                            |> addInputHandler  (\s -> UIBlockAction callId {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | foreachName = s}}})
+                            |> addInputHandler  (\s -> actionUpdateNewForeach s)
                           ]
                       , element "div"
                         |> addClass "form-group"
@@ -159,13 +163,13 @@ displayTabForeach foreachUI call uiInfo =
                                   , onFocus DisableDragDrop
                                   , value newForeach.newKey
                                   ]
-                                |> addInputHandler (\s -> UIBlockAction callId {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | newKey = s}}})
+                                |> addInputHandler (\s -> actionUpdateNewForeachKey s)
                               , element "button"
                                 |> addAttributeList
                                   [ class "btn btn-default"
                                   , type_ "button"
                                   , disabled (String.isEmpty newForeach.newKey)
-                                  , onCustomClick (UIBlockAction callId {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | newKey = "", foreachKeys = (newForeach.newKey :: newForeach.foreachKeys)}}} )
+                                  , onCustomClick actionAddNewKey
                                   ]
                                 |> appendChild (
                                   element "i"
@@ -183,7 +187,7 @@ displayTabForeach foreachUI call uiInfo =
                             |> addAttributeList
                               [ class "btn btn-default me-3"
                               , type_ "button"
-                              , onCustomClick (UIBlockAction callId {uiInfo | foreachUI = {foreachUI | newForeach = newDefaultForeach}})
+                              , onCustomClick actionResetNewForEach
                               ]
                             |> appendText "Reset"
                             |> appendChild (element "i" |> addClass "fa fa-undo ms-1")
@@ -192,7 +196,7 @@ displayTabForeach foreachUI call uiInfo =
                               [ class "btn btn-primary"
                               , type_ "button"
                               , disabled (List.isEmpty newForeach.foreachKeys)
-                              , onCustomClick (UpdateBlockAndUi callId {uiInfo | foreachUI = {foreachUI | newForeach = { newForeach | newItem = newItem}}} (Block (Just callId) {call | foreachName = Just (if String.isEmpty newForeach.foreachName then "item" else newForeach.foreachName), foreach = Just [newItem]}))
+                              , onCustomClick actionAddForeach
                               ]
                             |> appendText "Add foreach"
                             |> appendChild (element "i" |> addClass "fa fa-check ms-1")
@@ -234,7 +238,7 @@ displayTabForeach foreachUI call uiInfo =
                                   , value val
                                   , class "form-control input-sm"
                                   ]
-                                |> addInputHandler  (\s -> MethodCallModified (Block (Just callId) {call | foreach = (updateForeachVal s items f) }))
+                                |> addInputHandler  (\s -> MethodCallModified (updateForeach (updateForeachVal s items f)))
                               )
                           )
                         actionBtns =
@@ -246,7 +250,7 @@ displayTabForeach foreachUI call uiInfo =
                                 [ type_ "button"
                                 , class "btn btn-danger"
                                 , disabled (List.length items <= 1)
-                                , onCustomClick (MethodCallModified (Block (Just callId) {call | foreach = Just (List.Extra.remove f items) }))
+                                , onCustomClick (MethodCallModified (updateForeach (Just (List.Extra.remove f items))))
                                 ]
                               |> appendChild (element "i" |> addClass "fa fa-times")
                             )
@@ -276,7 +280,7 @@ displayTabForeach foreachUI call uiInfo =
                             , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
                             , onFocus DisableDragDrop
                             ]
-                          |> addInputHandler  (\s -> UIBlockAction callId {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | newItem = Dict.update k (always (Just s) ) newForeach.newItem }}})
+                          |> addInputHandler  (\s -> actionUpdateNewItem k s)
                         )
                     )
                   actionBtns =
@@ -293,7 +297,7 @@ displayTabForeach foreachUI call uiInfo =
                           |> addAttributeList
                             [ type_ "button"
                             , class "btn btn-success"
-                            , onCustomClick (UpdateBlockAndUi callId {uiInfo | foreachUI = {foreachUI | newForeach = { newForeach | newItem = newItem}}} (Block (Just callId) {call | foreach = Just newItems}))
+                            , onCustomClick actionAddNewItem
                             ]
                           |> appendChild (element "i" |> addClass "fa fa-plus-circle")
                         )
@@ -367,19 +371,19 @@ displayTabForeach foreachUI call uiInfo =
                                     , onFocus DisableDragDrop
                                     , value newForeach.foreachName
                                     ]
-                                  |> addInputHandler  (\s -> UIBlockAction callId {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | foreachName = s}}})
+                                  |> addInputHandler  (\s -> actionUpdateNewForeach s)
                                 , element "button"
                                   |> addClass "btn btn-default"
                                   |> addAttributeList
                                     [ type_ "button"
-                                    , onCustomClick (UpdateBlockAndUi callId {uiInfo | foreachUI = {foreachUI | editName = False}} (Block (Just callId) {call | foreachName = Just (newForeach.foreachName) }))
+                                    , onCustomClick actionSaveNewForeach
                                     ]
                                   |> appendChild (element "i" |> addClass "fa fa-check")
                                 ]
                             ] foreachUI.editName
                           |> appendChildListConditional
                             [ foreachNameLabel
-                            , element "i" |> addClass "fa fa-edit ms-2" |> addActionStopAndPrevent ("click", UIBlockAction callId {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | foreachName = (Maybe.withDefault "" foreachName)}, editName = True}})
+                            , element "i" |> addClass "fa fa-edit ms-2" |> addActionStopAndPrevent ("click", actionEditForeachName)
                             ] (not foreachUI.editName)
 
                         ]
@@ -407,14 +411,14 @@ displayTabForeach foreachUI call uiInfo =
                                     , onFocus DisableDragDrop
                                     , value newForeach.newKey
                                     ]
-                                  |> addInputHandler (\s -> UIBlockAction callId {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | newKey = s}}})
+                                  |> addInputHandler (\s -> actionUpdateNewForeachKey s)
                                 , element "button"
                                   |> addClass "btn btn-default"
                                   |> addAttributeList
                                     [ type_ "button"
                                     , disabled (String.isEmpty newForeach.newKey)
                                     ]
-                                  |> addActionStopAndPrevent ("click", UIBlockAction callId {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | newKey = "", foreachKeys = (newForeach.newKey :: newForeach.foreachKeys)}}})
+                                  |> addActionStopAndPrevent ("click", actionAddNewKey)
                                   |> appendChild (element "i" |> addClass "fa fa-plus-circle")
                                 , element "button"
                                   |> addClass "btn btn-default ms-2"
@@ -422,7 +426,7 @@ displayTabForeach foreachUI call uiInfo =
                                     [ type_ "button"
                                     , disabled (List.isEmpty newForeach.foreachKeys)
                                     ]
-                                  |> addActionStopAndPrevent ("click", UpdateBlockAndUi callId {uiInfo | foreachUI = {foreachUI | editKeys = False, newForeach = {newForeach | newItem = updatedNewItem}}} (Block (Just callId) {call | foreach = newForeachItems }))
+                                  |> addActionStopAndPrevent ("click", actionSaveEditKeys)
                                   |> appendChild (element "i" |> addClass "fa fa-check")
                                 ]
                           , element "div" |> addClass "foreach-keys mt-2 mb-3" |> appendChildList (newKeys True)
@@ -433,7 +437,7 @@ displayTabForeach foreachUI call uiInfo =
                         |> addClass "col d-flex align-items-center foreach-keys"
                         |> appendChildList ( List.append
                           (newKeys False)
-                          [ (element "i" |> addClass "fa fa-edit ms-2" |> addActionStopAndPrevent ("click" , UIBlockAction callId {uiInfo | foreachUI = {foreachUI | editKeys = True}})) ]
+                          [ (element "i" |> addClass "fa fa-edit ms-2" |> addActionStopAndPrevent ("click" , actionEditForeachKeys)) ]
                         )
                       ) (not foreachUI.editKeys)
 
@@ -449,7 +453,7 @@ displayTabForeach foreachUI call uiInfo =
 
                     , element "button"
                       |> addClass "btn btn-danger mt-2"
-                      |> addActionStopAndPrevent ("click", UpdateBlockAndUi callId {uiInfo | foreachUI = {foreachUI | newForeach = (defaultNewForeach Nothing Nothing)}} (Block (Just callId) {call | foreachName = Nothing, foreach = Nothing }))
+                      |> addActionStopAndPrevent ("click", actionRemoveForeach)
                       |> appendText "Remove iterator"
                       |> appendChild (element "i" |> addClass "fa fa-times ms-1")
                     ]

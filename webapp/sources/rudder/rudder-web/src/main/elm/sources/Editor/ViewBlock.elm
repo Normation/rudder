@@ -1,6 +1,8 @@
 module Editor.ViewBlock exposing (..)
 
+import Set
 import Dict exposing (Dict)
+import Dict.Extra exposing (keepOnly)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
@@ -8,7 +10,7 @@ import Json.Decode
 import Dom.DragDrop as DragDrop
 import Dom exposing (..)
 import Maybe.Extra
-
+import List.Extra
 
 import Editor.DataTypes exposing (..)
 import Editor.MethodConditions exposing (..)
@@ -296,37 +298,87 @@ showBlockTab model parentId block uiInfo techniqueUi =
 
         availableWorst = List.map liWorst [FocusWorst, WorstReportWeightedOne, WorstReportWeightedSum]
       in
-         element "div"
-           |> appendChildList
-                        [ buildSelectReporting "reporting-rule" "Reporting based on:" availableComposition ((compositionText block.reportingLogic) ++ " ")
-                        ]
-                     |> appendChild
-                          ( case block.reportingLogic of
-                              FocusReport value ->
-                                let
-                                   methodElem = findElemIf (\e -> (getId e).value == value) block.calls
-                                   componentValue =
-                                     case methodElem of
-                                       Just elem ->
-                                         let
-                                           name = getComponent elem
-                                         in
-                                         if(String.isEmpty name) then
-                                           case elem of
-                                             Block _ _ -> "< unnamed block > "
-                                             Call _ c -> Maybe.withDefault (c.methodName.value) (Maybe.map .name (Dict.get c.methodName.value model.methods))
-                                         else
-                                           name
-                                       Nothing -> ""
-                                in
-                                buildSelectReporting "reporting-rule-subselect" "Focus reporting on method:" availableFocus componentValue
-                              (WorstReport weight) ->
-                                buildSelectReporting "reporting-rule-subselect" "Select weight of worst case:" availableWorst (labelWorst weight)
-                              _ -> element "span"
-                            )
+        element "div"
+          |> appendChildList
+             [ buildSelectReporting "reporting-rule" "Reporting based on:" availableComposition ((compositionText block.reportingLogic) ++ " ")
+             ]
+          |> appendChild
+            ( case block.reportingLogic of
+              FocusReport value ->
+                let
+                  methodElem = findElemIf (\e -> (getId e).value == value) block.calls
+                  componentValue =
+                    case methodElem of
+                      Just elem ->
+                        let
+                          name = getComponent elem
+                        in
+                        if(String.isEmpty name) then
+                          case elem of
+                            Block _ _ -> "< unnamed block > "
+                            Call _ c -> Maybe.withDefault (c.methodName.value) (Maybe.map .name (Dict.get c.methodName.value model.methods))
+                        else
+                          name
+                      Nothing -> ""
+                in
+                  buildSelectReporting "reporting-rule-subselect" "Focus reporting on method:" availableFocus componentValue
+              (WorstReport weight) ->
+                buildSelectReporting "reporting-rule-subselect" "Select weight of worst case:" availableWorst (labelWorst weight)
+              _ -> element "span"
+            )
 
-    BlockForEach -> displayTabForeach uiInfo.foreachUI block uiInfo
-
+    BlockForEach ->
+      let
+        foreachUI = uiInfo.foreachUI
+        newForeach = foreachUI.newForeach
+        newItem = newForeach.foreachKeys
+          |> List.map (\k -> (k, ""))
+          |> Dict.fromList
+        newItems = case block.foreach of
+          Just f -> List.append f [newForeach.newItem]
+          Nothing -> [newForeach.newItem]
+        newForeachItems =
+          case block.foreach of
+            Nothing -> Nothing
+            Just items ->
+              let
+                newKeysList = newForeach.foreachKeys
+                updatedForeach =
+                  items
+                    |> List.Extra.updateIf (\f -> (Dict.keys f) |> List.any (\k -> List.Extra.notMember k newKeysList) ) -- If an old key is not present anymore, remove it
+                      (\f -> f |> keepOnly (Set.fromList newKeysList) )
+                    |> List.Extra.updateIf (\f -> newKeysList |> List.any (\k -> List.Extra.notMember k (Dict.keys f)) ) -- If a new key is detected, insert it
+                      (\f ->
+                        let
+                          keysList  = Dict.keys f
+                          currentList = Dict.toList f
+                          newList = newKeysList
+                            |> List.Extra.filterNot (\k -> List.member k keysList)
+                            |> List.map (\k -> (k, ""))
+                        in
+                          currentList
+                            |> List.append newList
+                            |> Dict.fromList
+                      )
+              in
+                Just updatedForeach
+        -- Actions ============
+        removeKey k           = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | foreachKeys = (List.Extra.remove k newForeach.foreachKeys)}}}
+        updateNewForeach s    = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | foreachName = s}}}
+        updateNewForeachKey s = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | newKey = s}}}
+        addNewKey             = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | newKey = "", foreachKeys = (newForeach.newKey :: newForeach.foreachKeys)}}}
+        resetNewForeach       = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | newForeach = (defaultNewForeach block.foreachName block.foreach)}}
+        updateNewItem k s     = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | newItem = Dict.update k (always (Just s) ) newForeach.newItem }}}
+        editForeachName       = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | foreachName = (Maybe.withDefault "" block.foreachName)}, editName = True}}
+        editForeachKeys       = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | editKeys = True}}
+        --
+        addForeach            = UpdateBlockAndUi block.id {uiInfo | foreachUI = {foreachUI | newForeach = { newForeach | newItem = newItem}}} (Block (Just block.id) {block | foreachName = Just (if String.isEmpty newForeach.foreachName then "item" else newForeach.foreachName), foreach = Just [newItem]})
+        addNewItem            = UpdateBlockAndUi block.id {uiInfo | foreachUI = {foreachUI | newForeach = { newForeach | newItem = newItem}}} (Block (Just block.id) {block | foreach = Just newItems})
+        saveNewForeach        = UpdateBlockAndUi block.id {uiInfo | foreachUI = {foreachUI | editName = False}} (Block (Just block.id) {block | foreachName = Just (newForeach.foreachName) })
+        saveEditKeys          = UpdateBlockAndUi block.id {uiInfo | foreachUI = {foreachUI | editKeys = False, newForeach = {newForeach | newItem = newItem}}} (Block (Just block.id) {block | foreach = newForeachItems })
+        removeForeach         = UpdateBlockAndUi block.id {uiInfo | foreachUI = {foreachUI | newForeach = (defaultNewForeach Nothing Nothing)}} (Block (Just block.id) {block | foreachName = Nothing, foreach = Nothing })
+      in
+        displayTabForeach foreachUI (Block parentId block) removeKey updateNewForeach updateNewForeachKey addNewKey resetNewForeach addForeach updateNewItem addNewItem saveNewForeach editForeachName saveEditKeys editForeachKeys removeForeach
 
 buildSelectReporting: String -> String -> (List (Element Msg)) -> String -> Element Msg
 buildSelectReporting id label items value =

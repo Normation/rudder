@@ -22,7 +22,7 @@ import Editor.MethodConditions exposing (..)
 import Editor.MethodElemUtils exposing (..)
 import Editor.AgentValueParser exposing (..)
 import Editor.ViewMethodsList exposing (getTooltipContent)
-import Editor.ViewTabForeach exposing (foreachLabel)
+import Editor.ViewTabForeach exposing (foreachLabel, displayTabForeach)
 
 
 --
