@@ -81,7 +81,7 @@ impl Backend for Unix {
                 ItemKind::Block(r) => {
                     let mut calls: Vec<(Promise, Option<Bundle>)> = vec![];
                     if let Some(x) = dry_run_mode::push_policy_mode(r.policy_mode_override) {
-                        calls.push((x, None))
+                        calls.push((x.if_condition("pass3"), None))
                     }
                     for inner in r.items {
                         calls.extend(resolve_module(
@@ -91,7 +91,7 @@ impl Backend for Unix {
                         )?);
                     }
                     if let Some(x) = dry_run_mode::pop_policy_mode(r.policy_mode_override) {
-                        calls.push((x, None))
+                        calls.push((x.if_condition("pass3"), None))
                     }
                     Ok(calls)
                 }
