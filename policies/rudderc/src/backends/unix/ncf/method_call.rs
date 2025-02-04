@@ -189,7 +189,8 @@ pub fn method_call(
     }
 
     call_parameters.append(&mut parameters);
-    let bundle_call = Promise::usebundle(bundle_name.clone(), None, call_parameters);
+    let bundle_call =
+        Promise::usebundle(bundle_name.clone(), None, call_parameters).if_condition("pass3");
 
     // Get everything together
     let mut specific_parameters = parameters_names;
