@@ -31,7 +31,8 @@ foo ${contentbis}
 # With a const
 ${const.n}
 # With node properties
-${node.properties[name][key]}", "true");
+${node.properties[name][key]}", "true"),
+                                    if => "pass3";
 
 }
 bundle agent call_test_windows_d982a7e6_494a_40a5_aea1_7d9a185eed61(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
