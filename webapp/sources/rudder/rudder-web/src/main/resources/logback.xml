@@ -91,21 +91,14 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <appender name="STDOUT" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${WEBAPP_DIR}/webapp.log</file>
         <append>true</append>
-
-        ```
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
           <fileNamePattern>${WEBAPP_DIR}/webapp-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
           <maxHistory>30</maxHistory>
         </rollingPolicy>
-
         <encoder>
           <pattern>%d{[yyyy-MM-dd HH:mm:ssZ]} %-5level %logger - %msg%n%ex{full}</pattern>
         </encoder>
-
-        ```
-
       </appender>
-
     </then>
     <else>
       <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
