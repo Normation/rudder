@@ -954,7 +954,7 @@ class LDAPEntityMapper(
       for {
         id                    <- e.required(A_API_UUID).map(ApiAccountId(_))
         name                  <- e.required(A_NAME).map(ApiAccountName(_))
-        token                 <- e.required(A_API_TOKEN).map(ApiToken(_))
+        token                  = e(A_API_TOKEN).map(ApiToken(_))
         creationDatetime      <- e.requiredAs[GeneralizedTime](_.getAsGTime, A_CREATION_DATETIME)
         tokenCreationDatetime <- e.requiredAs[GeneralizedTime](_.getAsGTime, A_API_TOKEN_CREATION_DATETIME)
         isEnabled              = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
@@ -1050,7 +1050,10 @@ class LDAPEntityMapper(
     mod.resetValuesTo(A_API_UUID, principal.id.value)
     mod.resetValuesTo(A_NAME, principal.name.value)
     mod.resetValuesTo(A_CREATION_DATETIME, GeneralizedTime(principal.creationDate).toString)
-    mod.resetValuesTo(A_API_TOKEN, principal.token.value)
+    principal.token match {
+      case Some(value) => mod.resetValuesTo(A_API_TOKEN, value.value)
+      case None        => mod.deleteAttribute(A_API_TOKEN)
+    }
     mod.resetValuesTo(A_API_TOKEN_CREATION_DATETIME, GeneralizedTime(principal.tokenGenerationDate).toString)
     mod.resetValuesTo(A_DESCRIPTION, principal.description)
     mod.resetValuesTo(A_IS_ENABLED, principal.isEnabled.toLDAPString)

@@ -149,6 +149,16 @@ displayModal model =
 
                           else
                               span [] [ text (": " ++ encodeTenants account.tenantMode account.selectedTenants) ]
+
+                      chooseId =
+                          case model.ui.modalState of
+                              NewAccount ->
+                                  div [ class "form-group" ]
+                                      [ label [ for "newAccount-id" ] [ text "Account ID" ]
+                                      , div [] [ span [ class "small fw-light"] [ text "By default, Rudder uses a generated UUID as account ID, but you can specify your own ID if needed. In that case, no token secret will be generated automatically."] ]
+                                      , input [ id "newAccount-id", placeholder "generated", class "form-control vresize float-none", value account.id, onInput (\s -> UpdateAccountForm { account | id = s }) ] []
+                                      ]
+                              _ -> text ""
                   in
                       div[]
                       [ form
@@ -181,6 +191,7 @@ displayModal model =
                               [ label [ for "newAccount-description" ] [ text "Description" ]
                               , textarea [ id "newAccount-description", class "form-control vresize float-none", value account.description, onInput (\s -> UpdateAccountForm { account | description = s }) ] []
                               ]
+                          , chooseId
                           , div [ class "form-group" ]
                               [ label [ for "newAccount-expiration", class "mb-1" ]
                                   [ text "Expiration date"
@@ -194,7 +205,6 @@ displayModal model =
                                       ]
                                   , if checkIfExpired model.ui.datePickerInfo account then
                                       span [ class "warning-info" ] [ i [ class "fa fa-warning" ] [], text " Expiration date has passed" ]
-
                                     else
                                       text ""
                                   ]
@@ -266,6 +276,16 @@ displayModal model =
                         ]
                     , button [ type_ "button", class ("btn btn-" ++ btnClass), onClick action ] [ text "Confirm" ]
                     )
+            CopyToken "" ->
+                ( "Account created without secret token"
+                , div []
+                    [ div [ class "alert alert-info" ]
+                        [ i [ class "fa fa-exclamation-triangle" ] []
+                        , text "This account doesn't have a token. You can create one with the refresh action"
+                        ]
+                    ]
+                , text ""
+                )
             CopyToken token ->
                 ( "Copy the token"
                 , div []

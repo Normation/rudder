@@ -432,9 +432,9 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.106
   SUP top
   STRUCTURAL
   MUST ( apiAccountId $ cn $ creationTimestamp $
-  apiToken $ apiTokenCreationTimestamp)
-  MAY ( description  $ isEnabled $ apiAccountKind $
-  apiAuthorizationKind $ apiAcl $ expirationTimestamp ) )
+         apiTokenCreationTimestamp)
+  MAY ( description  $ isEnabled $ apiAccountKind $ apiTenant $
+        apiToken $ apiAuthorizationKind $ apiAcl $ expirationTimestamp ) )
 #
 # Parameters
 #

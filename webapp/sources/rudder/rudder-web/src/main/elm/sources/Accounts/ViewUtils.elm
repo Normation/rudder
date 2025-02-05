@@ -113,13 +113,13 @@ displayAccountsTable model =
             td [class "date"][ text (cleanDate a.creationDate) ]
         , td [class "date"][ text expirationDate ]
         , td []
-          [ button 
+          [ button
             [ class "btn btn-default reload-token"
             , title ("Generated: " ++ (cleanDate a.tokenGenerationDate))
             , onClick (ToggleEditPopup (Confirm Regenerate a.name (CallApi (regenerateToken a))))
             ]
             [ span [class "fa fa-repeat"][] ]
-          , button 
+          , button
             [ class "btn btn-default"
             , onClick (ToggleEditPopup (EditAccount a))
             ]
@@ -132,7 +132,7 @@ displayAccountsTable model =
               , label [for inputId, class "toggle-disabled"][text "Disabled"]
               ]
             ]
-          , button 
+          , button
             [ class "btn btn-danger delete-button"
             , onClick (ToggleEditPopup (Confirm Delete a.name (CallApi (deleteAccount a))))
             ]

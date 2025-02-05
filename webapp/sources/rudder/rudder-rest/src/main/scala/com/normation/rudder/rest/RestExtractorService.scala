@@ -53,6 +53,7 @@ import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.repository.*
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.rest.data.*
+import com.normation.rudder.rest.internal.RestApiAccount
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.workflows.WorkflowLevelService

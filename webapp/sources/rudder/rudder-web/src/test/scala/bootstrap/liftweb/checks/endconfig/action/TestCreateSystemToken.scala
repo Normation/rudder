@@ -51,7 +51,7 @@ class TestCreateSystemToken extends Specification {
 
   "When writing the system tokens, we" should {
     "generate proper header and token files" in File.temporaryDirectory("rudder-test-system-token-") { tmpDir =>
-      val check = new CreateSystemToken(apiToken, tmpDir, "x-api-token")
+      val check = new CreateSystemToken(Some(apiToken), tmpDir, "x-api-token")
       check.checks()
 
       val tokenFile = tmpDir / CreateSystemToken.tokenFile

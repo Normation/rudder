@@ -1326,7 +1326,7 @@ class EventLogDetailsGenerator(
   private def apiAccountDetails(xml: NodeSeq, apiAccount: ApiAccount) = (
     "#id" #> apiAccount.id.value &
       "#name" #> apiAccount.name.value &
-      "#token" #> apiAccount.token.value &
+      "#token" #> apiAccount.token.map(_.value).getOrElse("") &
       "#description" #> apiAccount.description &
       "#isEnabled" #> apiAccount.isEnabled &
       "#creationDate" #> DateFormaterService.getDisplayDate(apiAccount.creationDate) &

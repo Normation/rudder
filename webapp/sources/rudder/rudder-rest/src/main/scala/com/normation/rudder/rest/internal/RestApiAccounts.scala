@@ -1,4 +1,40 @@
-package com.normation.rudder.rest
+/*
+ *************************************************************************************
+ * Copyright 2019 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+ *
+ *************************************************************************************
+ */
+package com.normation.rudder.rest.internal
 
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.*
@@ -7,6 +43,9 @@ import com.normation.rudder.api.RoApiAccountRepository
 import com.normation.rudder.api.WoApiAccountRepository
 import com.normation.rudder.apidata.ApiAccountSerialisation.*
 import com.normation.rudder.facts.nodes.NodeSecurityContext
+import com.normation.rudder.rest.ApiAuthorizationLevelService
+import com.normation.rudder.rest.OldInternalApiAuthz
+import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.tenants.TenantService
 import com.normation.rudder.users.UserService
@@ -52,10 +91,15 @@ class RestApiAccounts(
           val filtered = accountSeq.toList
             .map((a) => {
               // Don't send hashes
-              a.copy(token = if (a.token.isHashed) {
-                ApiToken("")
-              } else {
-                a.token
+
+              a.copy(token = a.token match {
+                case Some(t) =>
+                  if (t.isHashed) {
+                    None
+                  } else {
+                    Some(t)
+                  }
+                case None    => None
               })
             })
           val accounts = {
@@ -90,19 +134,29 @@ class RestApiAccounts(
             case Full(restApiAccount) =>
               if (restApiAccount.name.isDefined) {
                 // generate the id for creation
-                val id         = ApiAccountId(uuidGen.newUuid)
-                val now        = DateTime.now
+                val (id, secret, hash) = {
+                  // here, we have two cases: either an ID is provided, and we use it. In that case,
+                  // the token is likely for integration with a third party authentication protocol, and we
+                  // don't generate a hash. Else, we generate both a hash and an id.
+                  restApiAccount.id match {
+                    case Some(id) if (id.value.trim.nonEmpty) =>
+                      (id, None, None)
+                    case _                                    =>
+                      val secret = ApiToken(ApiToken.generate_secret(tokenGenerator))
+                      val hash   = ApiToken(ApiToken.hash(secret.value))
+                      (ApiAccountId(uuidGen.newUuid), Some(secret), Some(hash))
+                  }
+                }
+                val now                = DateTime.now
                 // by default, token expires after one month
-                val expiration = restApiAccount.expiration.getOrElse(Some(now.plusMonths(1)))
-                val acl        = restApiAccount.authz.getOrElse(ApiAuthz.None)
+                val expiration         = restApiAccount.expiration.getOrElse(Some(now.plusMonths(1)))
+                val acl                = restApiAccount.authz.getOrElse(ApiAuthz.None)
 
-                val secret  = ApiToken.generate_secret(tokenGenerator)
-                val hash    = ApiToken.hash(secret)
                 val account = ApiAccount(
                   id,
                   ApiAccountKind.PublicApi(acl, expiration),
                   restApiAccount.name.get,
-                  ApiToken(hash),
+                  hash,
                   restApiAccount.description.getOrElse(""),
                   restApiAccount.enabled.getOrElse(true),
                   now,
@@ -116,7 +170,7 @@ class RestApiAccounts(
                         account
                           .copy(
                             // Send clear text secret
-                            token = ApiToken(secret)
+                            token = secret
                           )
                           .toJson
                       )
@@ -195,8 +249,8 @@ class RestApiAccounts(
         case Right(Some(account)) =>
           writeApi.delete(account.id, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor).either.runNow match {
             case Right(_) =>
-              val filtered = account.copy(token = if (account.token.isHashed) {
-                ApiToken("")
+              val filtered = account.copy(token = if (account.token.map(_.isHashed).getOrElse(true)) {
+                None
               } else {
                 account.token
               })
@@ -231,7 +285,7 @@ class RestApiAccounts(
           val generationDate = DateTime.now
           writeApi
             .save(
-              account.copy(token = ApiToken(newHash), tokenGenerationDate = generationDate),
+              account.copy(token = Some(ApiToken(newHash)), tokenGenerationDate = generationDate),
               ModificationId(uuidGen.newUuid),
               userService.getCurrentUser.actor
             )
@@ -243,7 +297,7 @@ class RestApiAccounts(
                   account
                     .copy(
                       // Send clear text secret
-                      token = ApiToken(newSecret)
+                      token = Some(ApiToken(newSecret))
                     )
                     .toJson
                 )
@@ -274,8 +328,8 @@ class RestApiAccounts(
   def save(account: ApiAccount)(implicit action: String, prettify: Boolean): LiftResponse = {
     writeApi.save(account, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor).either.runNow match {
       case Right(res) =>
-        val filtered = res.copy(token = if (res.token.isHashed) {
-          ApiToken("")
+        val filtered = res.copy(token = if (res.token.map(_.isHashed).getOrElse(true)) {
+          None
         } else {
           res.token
         })
