@@ -166,8 +166,24 @@ Older systems could rely on a CLI-based fallback (which would work like the othe
 
 ### Augeas
 
-`raugeas` currently only support augeas 1.13.0 or newer ([issue](https://github.com/Normation/raugeas/issues/13)). On
+`raugeas` currently only support augeas 1.13.0 or newer ([issue](https://github.com/Normation/raugeas/issues/13)), as we
+need the `preview` method. On
 systems where it is not present, we embed augeas into the agent.
+
+| OS                | `augeas` |
+|-------------------|----------|
+| Debian 11         | 1.12.0   |
+| Debian 12         | 1.14.0   |
+| Ubuntu 20.04 LTS  | 1.12.0   |
+| Ubuntu 22.04 LTS  | 1.13.0   |
+| Ubuntu 24.04 LTS  | 1.14.1   |
+| SLES 12 SP5       | 1.10.1   |
+| SLES 12 SP5       | 1.12.0   |
+| SLES 12 SP6       | 1.14.1   |
+| Amazon Linux 2023 | 1.13.0   |
+| RHEL 8            | 1.12.0   |
+| RHEL 9            | 1.13.0   |
+| RHEL 10           | 1.14.1   |
 
 We could imagine building augeas statically into the module
 directly ([WIP](https://github.com/Normation/raugeas/pull/1)),
