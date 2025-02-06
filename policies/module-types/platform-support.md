@@ -6,6 +6,8 @@ This document is specific to its git branch.
 
 ## Summary
 
+Note: In the following, "RHEL" refers to any RHEL-based distribution, including CentOS, Oracle Linux, etc.
+
 ### Agent components
 
 Here `rudderc` is considered as an agent component as it can be used as a standalone tool for policy
