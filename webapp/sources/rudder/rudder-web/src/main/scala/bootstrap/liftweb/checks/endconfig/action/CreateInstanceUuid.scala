@@ -61,7 +61,7 @@ class CreateInstanceUuid(file: File, instanceIdService: InstanceIdService) exten
           _ <- ApplicationLoggerPure.info(s"Server instance ID has been written into ${file.pathAsString}")
         } yield ()
       )
-      .chainError(s"An error occured when creating instance ID file at ${filePath}")
+      .chainError(s"An error occurred when creating instance ID file at ${filePath}")
       .tapError(err => BootstrapLogger.error(err.fullMsg))
       .runNow
   }

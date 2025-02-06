@@ -71,7 +71,7 @@ class DeleteArchiveTables(
     val sql = sql"""DROP TABLE IF EXISTS """ ++ Fragment.const0(table)
 
     transactIOResult(s"Error when deleting table '${table}'")(xa => sql.update.run.transact(xa)).unit.catchAll(err =>
-      BootstrapLogger.error(err.fullMsg)
+      BootstrapLogger.Early.DB.error(err.fullMsg)
     )
   }
 
@@ -79,7 +79,7 @@ class DeleteArchiveTables(
     val sql = sql"""DROP SEQUENCE IF EXISTS """ ++ Fragment.const0(sequence)
 
     transactIOResult(s"Error when deleting table '${sequence}'")(xa => sql.update.run.transact(xa)).unit.catchAll(err =>
-      BootstrapLogger.error(err.fullMsg)
+      BootstrapLogger.Early.DB.error(err.fullMsg)
     )
   }
 

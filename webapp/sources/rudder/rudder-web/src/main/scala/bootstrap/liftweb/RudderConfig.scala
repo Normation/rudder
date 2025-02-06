@@ -1958,9 +1958,15 @@ object RudderConfigInit {
       )
     }
 
-    lazy val gitFactRepoProvider = GitRepositoryProviderImpl
-      .make(RUDDER_GIT_ROOT_FACT_REPO)
-      .runOrDie(err => new RuntimeException(s"Error when initializing git configuration repository: " + err.fullMsg))
+    lazy val gitFactRepoProvider = {
+      // execute pre connection checks before anything else. Both here and in the other connection to ensure it's
+      // executed before everything.
+      earlyChecks.initialize()
+
+      GitRepositoryProviderImpl
+        .make(RUDDER_GIT_ROOT_FACT_REPO)
+        .runOrDie(err => new RuntimeException(s"Error when initializing git configuration repository: " + err.fullMsg))
+    }
     lazy val gitFactRepoGC       = new GitGC(gitFactRepoProvider, RUDDER_GIT_GC)
     gitFactRepoGC.start()
     lazy val gitFactStorage      = if (RUDDER_GIT_FACT_WRITE_NODES) {
@@ -2627,6 +2633,10 @@ object RudderConfigInit {
     lazy val roLDAPConnectionProvider = roLdap
     lazy val rwLdap                   = {
 
+      // execute pre connection checks before anything else. Both here and in the other connection to ensure it's
+      // executed before everything.
+      earlyChecks.initialize()
+
       val rwLdap = new RWPooledSimpleAuthConnectionProvider(
         host = LDAP_HOST,
         port = LDAP_PORT,
@@ -3200,6 +3210,10 @@ object RudderConfigInit {
       JDBC_GET_CONNECTION_TIMEOUT.asScala
     )
     lazy val doobie                   = {
+      // execute pre connection checks before anything else. Both here and in the other connection to ensure it's
+      // executed before everything.
+      earlyChecks.initialize()
+
       val doobie = new Doobie(dataSourceProvider.datasource)
 
       // a sequence and migration that should be executed as soon as we have a connection, and
@@ -3397,10 +3411,19 @@ object RudderConfigInit {
      * **************************************************
      */
 
+    // These checks are done very early, before even looking for LDAP connection.
+    // They should not use any dependencies that should not be part of the root of dependency tree
+    // for initialisation of services.
+    lazy val earlyChecks = new OnceBootstrapChecks(
+      "pre-LDAP/DB-connection checks",
+      BootstrapLogger.Early,
+      new CreateInstanceUuid(instanceUuidPath, instanceIdService)
+    )
+
+    // These checks are done at the end of service instantiation
     lazy val allBootstrapChecks = new SequentialImmediateBootStrapChecks(
       "post-service instantiation checks",
       BootstrapLogger,
-      new CreateInstanceUuid(instanceUuidPath, instanceIdService),
       new MigrateNodeAcceptationInventories(
         nodeFactRepository,
         inventoryHistoryLogRepository,

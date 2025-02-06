@@ -83,7 +83,7 @@ class MigrateChangeValidationEnforceSchema(
       migrate <- isColumnNullable(table, column).transact(xa) // migrate when column is still nullable
       _       <- if (migrate) alterTableStatement(tableFragment, columnFragment).run.transact(xa)
                  else {
-                   BootstrapLogger.debug(
+                   BootstrapLogger.Early.DB.debug(
                      s"No need to migrate: have already previously migrated table ${table} column ${column} (${msg})"
                    )
                  }
@@ -104,12 +104,12 @@ class MigrateChangeValidationEnforceSchema(
       migrationEffect(_)
         .foldZIO(
           err =>
-            BootstrapLogger.error(
+            BootstrapLogger.Early.DB.error(
               s"Non-fatal error when trying to migrate ${msg}." +
               s"\nThis is a data check and it should not alter the behavior of Rudder." +
               s"\nPlease contact the development team with the following information to help resolving the issue : ${err.getMessage}"
             ),
-          _ => BootstrapLogger.info(s"Migrated ${msg}")
+          _ => BootstrapLogger.Early.DB.info(s"Migrated ${msg}")
         )
     ).forkDaemon
   }

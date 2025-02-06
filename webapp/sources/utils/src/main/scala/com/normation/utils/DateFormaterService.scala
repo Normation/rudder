@@ -45,12 +45,9 @@ import org.joda.time.DateTime
 import org.joda.time.DateTimeFieldType
 import org.joda.time.Duration
 import org.joda.time.chrono.ISOChronology
-import org.joda.time.format.DateTimeFormat
-import org.joda.time.format.DateTimeFormatter
-import org.joda.time.format.DateTimeFormatterBuilder
-import org.joda.time.format.ISODateTimeFormat
-import org.joda.time.format.PeriodFormatterBuilder
+import org.joda.time.format.*
 import scala.util.control.NonFatal
+import zio.*
 import zio.json.*
 
 object DateFormaterService {
@@ -136,7 +133,8 @@ object DateFormaterService {
   def getDisplayDateTimePicker(date: DateTime): String = {
     date.toString(dateFormatTimePicker)
   }
-  private val periodFormatter = new PeriodFormatterBuilder()
+  // for joda time
+  private val jodaPeriodFormatter = new PeriodFormatterBuilder()
     .appendDays()
     .appendSuffix(" day", " days")
     .appendSeparator(", ")
@@ -150,13 +148,26 @@ object DateFormaterService {
     .appendSuffix(" s", " s")
     .toFormatter()
 
-  def formatPeriod(duration: Duration): String = {
-    if (duration.getMillis < 1000) "less than 1 s"
-    else periodFormatter.print(duration.toPeriod(ISOChronology.getInstanceUTC))
+  // for java.time, we don't have any built-in formatter, so we need to do it by hand
+  def formatJavaDuration(d: java.time.Duration): String = {
+    d.render
   }
 
-  def getFormatedPeriod(start: DateTime, end: DateTime): String = {
-    formatPeriod(new Duration(start, end))
+  /*
+   * Format the interval of time between start and end date time, with a
+   * coarse granularity of seconds, and "less than 1 s" for smaller values.
+   */
+  private def broadlyFormatPeriod(duration: Duration): String = {
+    if (duration.getMillis < 1000) "less than 1 s"
+    else jodaPeriodFormatter.print(duration.toPeriod(ISOChronology.getInstanceUTC))
+  }
+
+  /*
+   * Format the interval of time between start and end date time, with a
+   * coarse granularity of seconds, and "less than 1 s" for smaller values.
+   */
+  def getBroadlyFormatedPeriod(start: DateTime, end: DateTime): String = {
+    broadlyFormatPeriod(new Duration(start, end))
   }
 
   /**

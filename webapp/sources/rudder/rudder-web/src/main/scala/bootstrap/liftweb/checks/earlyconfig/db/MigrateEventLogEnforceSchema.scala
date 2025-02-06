@@ -111,7 +111,7 @@ class MigrateEventLogEnforceSchema(
             _       <- if (migrate) {
                          migrateColumnStatement(Fragment.const(colName), defaultValue).run.transact(xa)
                        } else {
-                         BootstrapLogger.debug(
+                         BootstrapLogger.Early.DB.debug(
                            s"No need to migrate: have already previously migrated table ${tableName} column ${colName} (${msg})"
                          )
                        }
@@ -126,12 +126,12 @@ class MigrateEventLogEnforceSchema(
       migrationEffect(_)
         .foldZIO(
           err =>
-            BootstrapLogger.error(
+            BootstrapLogger.Early.DB.error(
               s"Non-fatal error when trying to migrate ${msg}." +
               s"\nThis is a data check and it should not alter the behavior of Rudder." +
               s"\nPlease contact the development team with the following information to help resolving the issue : ${err.getMessage}"
             ),
-          _ => BootstrapLogger.info(s"Migrated ${msg}")
+          _ => BootstrapLogger.Early.DB.info(s"Migrated ${msg}")
         )
     ).forkDaemon
   }
