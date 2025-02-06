@@ -138,7 +138,7 @@ fn multilines_metadata(i: &str) -> IResult<&str, Vec<&str>> {
 fn log_entry(i: &str) -> IResult<&str, LogEntry> {
     let (i, datetime) = line_timestamp(i)?;
     let (i, event_type) = agent_log_level(i)?;
-    let (i, msg) = multilines_metadata(i)?;
+    let (i, msg) = multilines(i)?;
     Ok((
         i,
         LogEntry {
