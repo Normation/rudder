@@ -1,46 +1,60 @@
-# Platform support for Rust modules
+# Platform support for Rust components
 
 Last update: 2025-02-06
 
+This document is specific to its git branch.
+
 ## Summary
 
-| OS                     | Rust support | Rust build | Augeas module  | System updates module |
-|------------------------|--------------|------------|----------------|-----------------------|
-| RHEL < 7               | ❌            | ❌          | ❌              | ❌                     |
-| RHEL 7                 | ✅            | ✅          | ❔  _(bindgen)_ | ✅                     |
-| RHEL 8                 | ✅            | ✅          | ✅              | ✅                     |
-| RHEL 9                 | ✅            | ✅          | ✅              | ✅                     |
-| Amazon Linux 2         | ✅            | ✅          | ❔  _(bindgen)_ | ✅                     |
-| Amazon Linux 2023      | ✅            | ✅          | ✅              | ✅                     |
-| SLES < 12              | ❌            | ❌          | ❌              | ❌                     |
-| SLES 12 < SP5          | ❌            | ❌          | ❌              | ❌                     |
-| SLES 12 SP5            | ✅            | ✅          | ❔ _(bindgen)_  | ✅                     |
-| SLES 15 GA             | ✅            | ✅          | ✅              | ✅                     |
-| SLES 15 SP1            | ✅            | ✅          | ✅              | ✅                     |
-| SLES 15 SP2            | ✅            | ✅          | ✅              | ✅                     |
-| SLES 15 SP3            | ✅            | ✅          | ✅              | ✅                     |
-| SLES 15 SP4            | ✅            | ✅          | ✅              | ✅                     |
-| SLES 15 SP5            | ✅            | ✅          | ✅              | ✅                     |
-| SLES 15 SP6            | ✅            | ✅          | ✅              | ✅                     |
-| Debian < 8             | ❌            | ❌          | ❌              | ❌                     |
-| Debian 8               | ✅            | ❌          | ❔ _(bindgen)_  | ❔ _(fallback-apt)_    |
-| Debian 9               | ✅            | ❌          | ❔ _(bindgen)_  | ❔ _(fallback-apt)_    |
-| Debian 10              | ✅            | ✅          | ✅              | ✅                     |
-| Debian 11              | ✅            | ✅          | ✅              | ✅                     |
-| Debian 12              | ✅            | ✅          | ✅              | ✅                     |
-| Ubuntu < 14.04         | ❌            | ❌          | ❌              | ❌                     |
-| Ubuntu 14.04           | ✅            | ❌          | ❔ _(bindgen)_  | ❔ _(fallback-apt)_    |
-| Ubuntu 16.04           | ✅            | ❌          | ❔ _(bindgen)_  | ❔ _(fallback-apt)_    |
-| Ubuntu 18.04           | ✅            | ✅          | ✅              | ✅                     |
-| Ubuntu 20.04           | ✅            | ✅          | ✅              | ✅                     |
-| Ubuntu 22.04           | ✅            | ✅          | ✅              | ✅                     |
-| Ubuntu 24.04           | ✅            | ✅          | ✅              | ✅                     |
-| Slackware < 14.1       | ❌            | ❌          | ❌              | ❌                     |
-| Slackware >= 14.1      | ✅            | ❌          | ❔ _(bindgen)_  | ❔ _(unimplemented)_   |
-| Windows < 10           | ❌            | ❌          | ❌              | ❌                     |
-| Windows >= 10          | ✅            | ❌          | ❌              | ❔ _(unimplemented)_   |
-| Windows Server < 2016  | ❌            | ❌          | ❌              | ❌                     |
-| Windows Server >= 2016 | ✅            | ❌          | ❌              | ❔ _(unimplemented)_   |
+### Agent components
+
+Here `rudderc` is considered as an agent component as it can be used as a standalone tool for policy
+development on the target systems.
+
+| OS                     | Rust support | Rust build | `augeas` module | `system-updates` module | `rudderc` |
+|------------------------|--------------|------------|-----------------|-------------------------|-----------|
+| RHEL < 7               | ❌            | ❌          | ❌               | ❌                       | ❌         |
+| RHEL 7                 | ✅            | ✅          | ❔  _(bindgen)_  | ✅                       | ❔ _(ci)_  |
+| RHEL 8                 | ✅            | ✅          | ✅               | ✅                       | ✅         |
+| RHEL 9                 | ✅            | ✅          | ✅               | ✅                       | ✅         |
+| Amazon Linux 2         | ✅            | ✅          | ❔  _(bindgen)_  | ✅                       | ❔ _(ci)_  |
+| Amazon Linux 2023      | ✅            | ✅          | ✅               | ✅                       | ✅         |
+| SLES < 12              | ❌            | ❌          | ❌               | ❌                       | ❌         |
+| SLES 12 < SP5          | ❌            | ❌          | ❌               | ❌                       | ❌         |
+| SLES 12 SP5            | ✅            | ✅          | ❔ _(bindgen)_   | ✅                       | ❔ _(ci)_  |
+| SLES 15 GA             | ✅            | ✅          | ✅               | ✅                       | ✅         |
+| SLES 15 SP1            | ✅            | ✅          | ✅               | ✅                       | ✅         |
+| SLES 15 SP2            | ✅            | ✅          | ✅               | ✅                       | ✅         |
+| SLES 15 SP3            | ✅            | ✅          | ✅               | ✅                       | ✅         |
+| SLES 15 SP4            | ✅            | ✅          | ✅               | ✅                       | ✅         |
+| SLES 15 SP5            | ✅            | ✅          | ✅               | ✅                       | ✅         |
+| SLES 15 SP6            | ✅            | ✅          | ✅               | ✅                       | ✅         |
+| Debian < 8             | ❌            | ❌          | ❌               | ❌                       | ❌         |
+| Debian 8               | ✅            | ❌          | ❔ _(bindgen)_   | ❔ _(fallback-apt)_      | ❔ _(ci)_  |
+| Debian 9               | ✅            | ❌          | ❔ _(bindgen)_   | ❔ _(fallback-apt)_      | ❔ _(ci)_  |
+| Debian 10              | ✅            | ✅          | ✅               | ✅                       | ❔ _(ci)_  |
+| Debian 11              | ✅            | ✅          | ✅               | ✅                       | ✅         |
+| Debian 12              | ✅            | ✅          | ✅               | ✅                       | ✅         |
+| Ubuntu < 14.04 LTS     | ❌            | ❌          | ❌               | ❌                       | ❌         |
+| Ubuntu 14.04 LTS       | ✅            | ❌          | ❔ _(bindgen)_   | ❔ _(fallback-apt)_      | ❔ _(ci)_  |
+| Ubuntu 16.04 LTS       | ✅            | ❌          | ❔ _(bindgen)_   | ❔ _(fallback-apt)_      | ❔ _(ci)_  |
+| Ubuntu 18.04 LTS       | ✅            | ✅          | ✅               | ✅                       | ❔ _(ci)_  |
+| Ubuntu 20.04 LTS       | ✅            | ✅          | ✅               | ✅                       | ✅         |
+| Ubuntu 22.04 LTS       | ✅            | ✅          | ✅               | ✅                       | ✅         |
+| Ubuntu 24.04 LTS       | ✅            | ✅          | ✅               | ✅                       | ✅         |
+| Slackware < 14.1       | ❌            | ❌          | ❌               | ❌                       | ❌         |
+| Slackware >= 14.1      | ✅            | ❌          | ❔ _(bindgen)_   | ❔ _(unimplemented)_     | ❔ _(ci)_  |
+| Windows < 10           | ❌            | ❌          | ❌               | ❌                       | ❌         |
+| Windows >= 10          | ✅            | ❌          | ❌               | ❔ _(unimplemented)_     | ❔ _(ci)_  |
+| Windows Server < 2016  | ❌            | ❌          | ❌               | ❌                       | ❌         |
+| Windows Server >= 2016 | ✅            | ❌          | ❌               | ❔ _(unimplemented)_     | ❔ _(ci)_  |
+
+Columns:
+
+* *Rust support*: Is there a supported Rust toolchain for this platform?
+* *Rust build*: Do we currently build any Rust code daily on this platform?
+* *`augeas` module*: Do we support the `augeas` module on this platform?
+* *`system-updates` module*: Do we support the `system-updates` module on this platform?
 
 Legend:
 
@@ -48,14 +62,36 @@ Legend:
 * ❔: Not supported yet, but could with some variable level of effort.
     * _(bindgen)_: Requires a newer version of LLVM on the builder.
     * _(unimplemented)_: Requires work on the module itself to add the feature.
+    * _(ci)_: Assumed to work but not built by the CI.
     * _(fallback-apt)_: Requires a fallback through the APT CLI as we can't
       build the Rust
       bindings.
 * ❌: Not supported, and will not.
 
-## Requirements
+### Server components
 
-As we have split modules, the support is not necessarily homogeneous.
+| OS                | `relayd` | `rudder-package` |
+|-------------------|----------|------------------|
+| RHEL 8            | ✅        | ✅                |
+| RHEL 9            | ✅        | ✅                |
+| Amazon Linux 2023 | ✅        | ✅                |
+| SLES 15 SP4       | ✅        | ✅                |
+| SLES 15 SP5       | ✅        | ✅                |
+| SLES 15 SP6       | ✅        | ✅                |
+| Debian 11         | ✅        | ✅                |
+| Debian 12         | ✅        | ✅                |
+| Ubuntu 22.04 LTS  | ✅        | ✅                |
+| Ubuntu 24.04 LTS  | ✅        | ✅                |
+
+Legend:
+
+* `relayd`: depends on `openssl` (for https & signature), `libpq` (for PostgreSQL).
+    * Windows support would require getting the data currently handled by CFEngine using HTTP.
+* `rudder-package`: depends on `openssl` (for https), `nettle` (used by `sequoia` for GPG, so it also requires bindgen
+  dependencies).
+    * Windows support does not make sense in the current architecture.
+
+## Requirements
 
 ### Rust support
 
@@ -135,8 +171,25 @@ systems where it is not present, we embed augeas into the agent.
 
 We could imagine building augeas statically into the module
 directly ([WIP](https://github.com/Normation/raugeas/pull/1)),
-but this would require us to handle the modules distribution ourselves too,
+but this would require us to handle the modules distribution ourselves too.
 
 The Windows support has apparently never been tested. Even if possible, it would probably require massive work. As
 configuration files on Windows tend
 to be simpler (often INI-like), it is not a priority.
+
+### OpenSSL
+
+We use `openssl` for HTTPS and signature verification, with dynamic linking.
+We chose to avoid Rust-based crypto libraries (`rustls`, etc.) for now to avoid having to embed security-critical
+dependencies in our packages.
+We only embed OpenSSL on systems where a maintained version is not available.
+
+### GPG
+
+`rudder-package` uses the `sequoia` crate starting from 8.3, for GPG operations (older versions use the `gpgv` command).
+It still requires `nettle` for cryptographic operations.
+It was mainly done to work around the difficulty to depend on `gpgv` on Amazon Linux 2023.
+
+### SQLite
+
+The `system-updates` module uses SQLite for its database. It is statically linked and embedded in the module.
