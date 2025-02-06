@@ -168,7 +168,7 @@ pub fn report(i: &str) -> IResult<&str, ParsedReport> {
     let (i, _) = tag("@@")(i)?;
     let (i, report_id) = take_until("@@")(i)?;
     let (i, _) = tag("@@")(i)?;
-    let (i, component) = take_until("@@")(i)?;
+    let (i, component) = multilines_metadata(i)?;
     let (i, _) = tag("@@")(i)?;
     let (i, key_value) = multilines_metadata(i)?;
     let (i, _) = tag("@@")(i)?;
@@ -203,7 +203,7 @@ pub fn report(i: &str) -> IResult<&str, ParsedReport> {
                 } else {
                     report_id.to_string()
                 },
-                component: component.to_string(),
+                component: component.join("\n"),
                 key_value,
                 start_datetime,
                 event_type: event_type.to_string(),
@@ -649,6 +649,66 @@ mod tests {
                     rule_id: "hasPolicyServer-root".into(),
                     directive_id: "common-root".into(),
                     component: "CRON Daemon".into(),
+                    key_value: "None".into(),
+                    event_type: "result_repaired".into(),
+                    msg: "Cron daemon status was repaired".into(),
+                    policy: "Common".into(),
+                    node_id: "root".into(),
+                    report_id: "0".into(),
+                    execution_datetime: DateTime::parse_from_str(
+                        "2018-08-24 15:55:01+00:00",
+                        "%Y-%m-%d %H:%M:%S%z"
+                    )
+                    .unwrap(),
+                },
+                logs: vec![],
+            }
+        );
+
+        // Multiline in component field
+        let report = "2018-08-24T15:55:01+00:00 R: @@Common@@result_repaired@@hasPolicyServer-root@@common-root@@0@@CRON\nDaemon@@None@@2018-08-24 15:55:01 +00:00##root@#Cron daemon status was repaired\r\n";
+        assert_eq!(
+            maybe_report(report).unwrap().1.unwrap(),
+            RawReport {
+                report: Report {
+                    start_datetime: DateTime::parse_from_str(
+                        "2018-08-24 15:55:01+00:00",
+                        "%Y-%m-%d %H:%M:%S%z"
+                    )
+                    .unwrap(),
+                    rule_id: "hasPolicyServer-root".into(),
+                    directive_id: "common-root".into(),
+                    component: "CRON\nDaemon".into(),
+                    key_value: "None".into(),
+                    event_type: "result_repaired".into(),
+                    msg: "Cron daemon status was repaired".into(),
+                    policy: "Common".into(),
+                    node_id: "root".into(),
+                    report_id: "0".into(),
+                    execution_datetime: DateTime::parse_from_str(
+                        "2018-08-24 15:55:01+00:00",
+                        "%Y-%m-%d %H:%M:%S%z"
+                    )
+                    .unwrap(),
+                },
+                logs: vec![],
+            }
+        );
+
+        // Multiline with date in component field
+        let report = "2018-08-24T15:55:01+00:00 R: @@Common@@result_repaired@@hasPolicyServer-root@@common-root@@0@@CRON\n2018-08-24T15:55:01+00:00 Daemon@@None@@2018-08-24 15:55:01 +00:00##root@#Cron daemon status was repaired\r\n";
+        assert_eq!(
+            maybe_report(report).unwrap().1.unwrap(),
+            RawReport {
+                report: Report {
+                    start_datetime: DateTime::parse_from_str(
+                        "2018-08-24 15:55:01+00:00",
+                        "%Y-%m-%d %H:%M:%S%z"
+                    )
+                    .unwrap(),
+                    rule_id: "hasPolicyServer-root".into(),
+                    directive_id: "common-root".into(),
+                    component: "CRON\nDaemon".into(),
                     key_value: "None".into(),
                     event_type: "result_repaired".into(),
                     msg: "Cron daemon status was repaired".into(),
