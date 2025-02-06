@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
 use std::{
-    fs::{self, File},
+    fs::{self, create_dir_all, File},
     path::{Path, PathBuf},
 };
 
@@ -164,6 +164,7 @@ impl Repository {
         if let Some(user) = self.get_username() {
             debug!("Updating licenses");
             let license_folder = Path::new(LICENSES_FOLDER);
+            create_dir_all(license_folder).context("Creating the license folder")?;
             let archive_name = format!("{}-license.tar.gz", user);
             let local_archive_path = &license_folder.join(&archive_name);
             if let Err(e) = self.download_unsafe(
