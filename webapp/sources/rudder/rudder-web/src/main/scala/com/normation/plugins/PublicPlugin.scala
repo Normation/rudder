@@ -138,10 +138,9 @@ trait DefaultPluginDef extends RudderPluginDef {
 
     val updatedMenu = pluginMenuParent
       .foldRight(menus) {
-        // we need to always update the menu with the last provided to allow
-        // changing name based on presence of other plugins
+        // We need to ensure plugin name is managed correctly between plugins
         case (newParent, menu) =>
-          newParent :: menu.filterNot(_.loc.name == newParent.loc.name)
+          if (menu.exists(_.loc.name == newParent.loc.name)) menu else newParent :: menu
       }
       .sortBy(_.loc.name)
 
