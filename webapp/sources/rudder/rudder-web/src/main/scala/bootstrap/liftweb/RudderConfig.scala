@@ -3465,6 +3465,7 @@ object RudderConfigInit {
         techniqueCompilationStatusService,
         gitConfigRepo.rootDirectory.pathAsString
       ),
+      new FixedPathLoggerMigration(),
       new TriggerPolicyUpdate(
         asyncDeploymentAgent,
         uuidGen
