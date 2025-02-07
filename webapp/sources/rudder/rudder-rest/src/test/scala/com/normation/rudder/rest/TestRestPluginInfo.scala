@@ -37,20 +37,22 @@
 
 package com.normation.rudder.rest
 
-import com.normation.plugins.JsonPluginDetails
-import com.normation.plugins.JsonPluginsDetails
-import com.normation.plugins.PluginLicenseInfo
-import com.normation.plugins.PluginSystemStatus
 import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.rest.data.JsonGlobalPluginLimits
+import com.normation.rudder.rest.data.JsonPluginDetails
+import com.normation.rudder.rest.data.JsonPluginInstallStatus
+import com.normation.rudder.rest.data.JsonPluginLicense
+import com.normation.rudder.rest.data.JsonPluginsDetails
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.lift.PluginApi
+import java.time.ZonedDateTime
 import net.liftweb.common.Full
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.mocks.MockHttpServletRequest
-import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
+import zio.NonEmptyChunk
 import zio.syntax.*
 
 // test that the "+" in path is correctly kept as a "+", not changed into " "
@@ -71,7 +73,15 @@ class TestRestPluginInfo extends Specification {
    * - limitedPlugin has limits and is enabled
    * - disabledPlugin has limits and is disabled
    */
-  val pluginInfo = JsonPluginsDetails.buildDetails(
+  val pluginInfo = JsonPluginsDetails(
+    Some(
+      JsonGlobalPluginLimits(
+        Some(NonEmptyChunk("Rudder corporation ltd")),
+        Some(ZonedDateTime.parse("2024-03-03T00:00:00Z")),
+        Some(ZonedDateTime.parse("2024-06-30T12:00:00Z")),
+        Some(50)
+      )
+    ),
     List(
       JsonPluginDetails(
         "freePluginId",
@@ -79,7 +89,7 @@ class TestRestPluginInfo extends Specification {
         "free-plugin",
         "A description for the free plugin",
         "2.3.0",
-        PluginSystemStatus.Enabled,
+        JsonPluginInstallStatus.Enabled,
         None,
         None
       ),
@@ -89,16 +99,16 @@ class TestRestPluginInfo extends Specification {
         "limited-plugin",
         "A description for the limited plugin",
         "4.4.0",
-        PluginSystemStatus.Enabled,
+        JsonPluginInstallStatus.Enabled,
         None,
         Some(
-          PluginLicenseInfo(
+          JsonPluginLicense(
             "Rudder corporation ltd",
             "LimitedPluginId",
             "0.0-0.0",
             "99.99-99.99",
-            DateTime.parse("2024-01-01T00:00:00Z"),
-            DateTime.parse("2024-12-31T23:59:59Z"),
+            ZonedDateTime.parse("2024-01-01T00:00:00Z"),
+            ZonedDateTime.parse("2024-12-31T23:59:59Z"),
             Some(1000),
             Map()
           )
@@ -110,18 +120,18 @@ class TestRestPluginInfo extends Specification {
         "disabled-plugin",
         "A description for the disabled plugin",
         "1.3.5",
-        PluginSystemStatus.Disabled,
+        JsonPluginInstallStatus.Disabled,
         Some(
           "This license for 'rudder-plugin-disabled-plugin' is disabled to '50' nodes but Rudder currently manages '132' nodes."
         ),
         Some(
-          PluginLicenseInfo(
+          JsonPluginLicense(
             "Rudder corporation ltd",
             "DisabledPluginId",
             "0.0-0.0",
             "99.99-99.99",
-            DateTime.parse("2024-03-03T00:00:00Z"),
-            DateTime.parse("2024-06-30T12:00:00Z"),
+            ZonedDateTime.parse("2024-03-03T00:00:00Z"),
+            ZonedDateTime.parse("2024-06-30T12:00:00Z"),
             Some(50),
             Map()
           )

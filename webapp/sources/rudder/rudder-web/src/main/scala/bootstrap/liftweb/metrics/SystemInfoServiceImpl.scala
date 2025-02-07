@@ -42,6 +42,7 @@ import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.PureResult
 import com.normation.inventory.domain.NodeId
+import com.normation.plugins.GlobalPluginsLicenseLimits
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
@@ -113,8 +114,8 @@ class SystemInfoServiceImpl(
       PrivateSystemInfo(
         instanceIdService.instanceId,
         relayInfo(servers.relays.map(_.id), nodes),
-        pi.globalLimits,
-        pi.details
+        pi.globalLicense.map(GlobalPluginsLicenseLimits.from(_)),
+        pi.plugins
       )
     }
   }

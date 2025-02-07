@@ -38,10 +38,8 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.errors.IOResult
-import com.normation.plugins.JsonPluginsDetails
-import com.normation.plugins.JsonPluginsDetails.encoderJsonPluginsDetails
-import com.normation.plugins.PluginSettings
-import com.normation.plugins.PluginSettingsService
+import com.normation.plugins.settings.PluginSettings
+import com.normation.plugins.settings.PluginSettingsService
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
@@ -49,6 +47,7 @@ import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.PluginApi as API
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RudderJsonRequest.ReqToJson
+import com.normation.rudder.rest.data.JsonPluginsDetails
 import com.normation.rudder.rest.implicits.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req

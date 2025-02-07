@@ -38,10 +38,10 @@
 package com.normation.rudder.rest.data
 
 import com.normation.inventory.domain.OsDetails
-import com.normation.plugins.JsonPluginDetails
-import com.normation.plugins.PluginLicenseInfo
+import com.normation.plugins.Plugin
+import com.normation.plugins.PluginLicense
 import com.normation.rudder.metrics.*
-import com.normation.utils.DateFormaterService.*
+import com.normation.utils.Version
 import io.scalaland.chimney.*
 import io.scalaland.chimney.syntax.*
 import java.time.ZonedDateTime
@@ -100,11 +100,9 @@ case class LicenseJson(
     supportedVersions:  String
 )
 object LicenseJson {
-  implicit val transformPluginLicenseInfo: Transformer[PluginLicenseInfo, LicenseJson] = {
+  implicit val transformPluginLicense: Transformer[PluginLicense, LicenseJson] = {
     Transformer
-      .define[PluginLicenseInfo, LicenseJson]
-      .withFieldComputed(_.startDate, _.startDate.toJava)
-      .withFieldComputed(_.endDate, _.endDate.toJava)
+      .define[PluginLicense, LicenseJson]
       .withFieldRenamed(_.maxNodes, _.allowedNodesNumber)
       .withFieldComputed(_.supportedVersions, x => s"[${x.minVersion},${x.maxVersion}]")
       .buildTransformer
@@ -115,10 +113,17 @@ object LicenseJson {
 
 case class PluginJson(id: String, name: String, version: String, abiVersion: String, license: Option[LicenseJson])
 object PluginJson {
-  implicit val transformJsonPluginDetails: Transformer[JsonPluginDetails, PluginJson] = {
+  // Used in both abiVersion and version string
+  private object privImplicits {
+    implicit val transformVersion: Transformer[Version, String] = _.toVersionString
+  }
+  import privImplicits.*
+
+  implicit val transformPlugin: Transformer[Plugin, PluginJson] = {
     Transformer
-      .define[JsonPluginDetails, PluginJson]
-      .withFieldComputed(_.abiVersion, _.version)
+      .define[Plugin, PluginJson]
+      .withFieldRenamed(_.abiVersion, _.abiVersion)
+      .withFieldRenamed(_.pluginVersion, _.version)
       .buildTransformer
   }
 

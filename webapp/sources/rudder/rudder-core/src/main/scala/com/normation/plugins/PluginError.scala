@@ -1,0 +1,128 @@
+/*
+ *************************************************************************************
+ * Copyright 2025 Normation SAS
+ *************************************************************************************
+ *
+ * This file is part of Rudder.
+ *
+ * Rudder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * In accordance with the terms of section 7 (7. Additional Terms.) of
+ * the GNU General Public License version 3, the copyright holders add
+ * the following Additional permissions:
+ * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+ * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+ * Public License version 3, when you create a Related Module, this
+ * Related Module is not considered as a part of the work and may be
+ * distributed under the license agreement of your choice.
+ * A "Related Module" means a set of sources files including their
+ * documentation that, without modification of the Source Code, enables
+ * supplementary functions or services in addition to those offered by
+ * the Software.
+ *
+ * Rudder is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+ *
+ *************************************************************************************
+ */
+package com.normation.plugins
+
+import com.normation.plugins.cli.*
+import enumeratum.*
+import enumeratum.EnumEntry.*
+import java.time.ZonedDateTime
+
+/**
+ * An error enumeration to identify plugin management errors and the associated messages
+ */
+sealed trait PluginError {
+  def kind:       PluginError.Kind
+  def displayMsg: String
+}
+object PluginError       {
+  sealed trait Kind extends EnumEntry with Dotcase
+  object Kind       extends Enum[Kind] {
+    case object LicenseNeededError         extends Kind
+    case object LicenseExpiredError        extends Kind
+    case object LicenseNearExpirationError extends Kind
+    case object AbiVersionError            extends Kind
+    override def values: IndexedSeq[Kind] = findValues
+  }
+
+  case object LicenseNeededError extends PluginError {
+    override def kind:       Kind.LicenseNeededError.type = Kind.LicenseNeededError
+    override def displayMsg: String                       = "A license is needed for the plugin"
+  }
+
+  /**
+    * Sum type for license expiration error with case disjunction
+    */
+  sealed trait LicenseExpirationError    extends PluginError
+  case object LicenseExpiredError        extends LicenseExpirationError {
+    override def kind:       Kind.LicenseExpiredError.type = Kind.LicenseExpiredError
+    override def displayMsg: String                        = "Plugin license error require your attention"
+  }
+  case object LicenseNearExpirationError extends LicenseExpirationError {
+    override def kind:       Kind.LicenseNearExpirationError.type = Kind.LicenseNearExpirationError
+    override def displayMsg: String                               = "Plugin license near expiration"
+  }
+
+  final case class RudderAbiVersionError(rudderFullVersion: String) extends PluginError {
+    override def kind:       Kind.AbiVersionError.type = Kind.AbiVersionError
+    override def displayMsg: String                    =
+      s"This plugin was not built for current Rudder ABI version ${rudderFullVersion}. You should update it to avoid code incompatibilities."
+  }
+
+  def fromRudderPackagePlugin(
+      plugin: RudderPackagePlugin
+  )(implicit rudderFullVersion: String, abiVersion: AbiVersion): List[PluginError] = {
+    List(
+      validateAbiVersion(rudderFullVersion, abiVersion),
+      validateLicenseNeeded(plugin.requiresLicense, plugin.license),
+      plugin.license.flatMap(l => validateLicenseExpiration(l.endDate))
+    ).flatten
+  }
+
+  private def validateAbiVersion(
+      rudderFullVersion: String,
+      abiVersion:        AbiVersion
+  ): Option[RudderAbiVersionError] = {
+    if (rudderFullVersion != abiVersion.value.toVersionString)
+      Some(RudderAbiVersionError(rudderFullVersion))
+    else
+      None
+  }
+
+  private def validateLicenseNeeded(
+      requiresLicense: Boolean,
+      license:         Option[RudderPackagePlugin.LicenseInfo]
+  ): Option[LicenseNeededError.type] = {
+    if (requiresLicense && license.isEmpty)
+      Some(LicenseNeededError)
+    else
+      None
+  }
+
+  /**
+   * license near expiration : 1 month before now.
+   */
+  private def validateLicenseExpiration(endDate: ZonedDateTime): Option[LicenseExpirationError] = {
+    val now = ZonedDateTime.now()
+    if (endDate.isBefore(now)) {
+      Some(LicenseExpiredError)
+    } else if (endDate.minusMonths(1).isBefore(now))
+      Some(LicenseNearExpirationError)
+    else
+      None
+  }
+
+}

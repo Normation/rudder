@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2022 Normation SAS
+ * Copyright 2021 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,37 +35,31 @@
  *************************************************************************************
  */
 
-package com.normation.plugins
+package com.normation.plugins.settings
 
-import com.normation.utils.ParseVersion
-import com.normation.utils.Version
-import org.junit.runner.RunWith
-import org.specs2.mutable.*
-import org.specs2.runner.JUnitRunner
-
-@RunWith(classOf[JUnitRunner])
-class RudderPluginTest extends Specification {
-
-  implicit class ForceParse(s: String) {
-    def toVersion: Version = ParseVersion.parse(s) match {
-      case Left(err) => throw new IllegalArgumentException(s"Can not parse '${s}' as a version in test: ${err}")
-      case Right(v)  => v
-    }
+/**
+  * Rudder plugins are managed by an external service,
+  * which can be setup using the following settings
+  */
+case class PluginSettings(
+    url:           Option[String],
+    username:      Option[String],
+    password:      Option[String],
+    proxyUrl:      Option[String],
+    proxyUser:     Option[String],
+    proxyPassword: Option[String]
+) {
+  def isDefined: Boolean = {
+    // Also, the special case : username="username" is empty
+    val hasDefaultUser = username.contains("username")
+    !isEmpty && !hasDefaultUser
   }
 
-  "Parsing a plugin version" should {
-    "be able to read simple rudder version" in {
-      RudderPluginVersion.from("7.1.0-2.3.0") must_!= (RudderPluginVersion("7.1.0".toVersion, "2.3.0".toVersion))
-    }
-    "automatically add a patch level (eq 0)" in {
-      RudderPluginVersion.from("7.1-2.3") must_!= (RudderPluginVersion("7.1.0".toVersion, "2.3.0".toVersion))
-    }
-    "understand complicated format with rc" in {
-      RudderPluginVersion
-        .from("7.0.0~rc2-SNAPSHOT-2.1-nightly") must_!= (RudderPluginVersion(
-        "7.0.0~rc2-SNAPSHOT".toVersion,
-        "2.1.0-nightly".toVersion
-      ))
-    }
-  }
+  // Strings are in fact non-empty strings
+  private def isEmpty = url.isEmpty &&
+    username.isEmpty &&
+    password.isEmpty &&
+    proxyUrl.isEmpty &&
+    proxyUser.isEmpty &&
+    proxyPassword.isEmpty
 }

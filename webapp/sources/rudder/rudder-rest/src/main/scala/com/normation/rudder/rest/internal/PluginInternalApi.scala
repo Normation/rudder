@@ -38,12 +38,13 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.errors.Inconsistency
-import com.normation.plugins.JsonPluginsSystemDetails
+import com.normation.plugins.GlobalPluginsLicense
 import com.normation.plugins.PluginId
-import com.normation.plugins.PluginSettings
-import com.normation.plugins.PluginSystemService
-import com.normation.plugins.PluginSystemStatus
-import com.normation.plugins.RudderPackageService.PluginSettingsError
+import com.normation.plugins.PluginInstallStatus
+import com.normation.plugins.PluginService
+import com.normation.plugins.PluginsMetadata
+import com.normation.plugins.cli.RudderPackageService.PluginSettingsError
+import com.normation.plugins.settings.PluginSettings
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.rest.ApiModuleProvider
@@ -52,7 +53,9 @@ import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.PluginInternalApi as API
 import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.rest.RudderJsonResponse
+import com.normation.rudder.rest.data.JsonPluginsSystemDetails
 import com.normation.rudder.rest.implicits.*
+import io.scalaland.chimney.syntax.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import zio.Chunk
@@ -63,7 +66,7 @@ import zio.json.JsonEncoder
 import zio.syntax.*
 
 class PluginInternalApi(
-    pluginService: PluginSystemService
+    pluginService: PluginService
 ) extends LiftApiModuleProvider[API] {
 
   def schemas: ApiModuleProvider[API] = API
@@ -87,12 +90,20 @@ class PluginInternalApi(
       pluginService
         .updateIndex()
         .chainError("Could not update plugins index")
-        .tapError(err => ApplicationLoggerPure.Plugin.error(err.fullMsg))
-        .map(_.map {
-          // the corresponding HTTP errors are the following ones
-          case PluginSettingsError.InvalidCredentials(msg) => RudderJsonResponse.UnauthorizedError(Some(msg))
-          case PluginSettingsError.Unauthorized(msg)       => RudderJsonResponse.ForbiddenError(Some(msg))
-        }.toLeft(()))
+        .foldZIO(
+          err => ApplicationLoggerPure.Plugin.error(err.fullMsg) *> err.fail,
+          {
+            // the corresponding HTTP errors are the following ones
+            case Some(PluginSettingsError.InvalidCredentials(msg)) =>
+              Left(RudderJsonResponse.UnauthorizedError(Some(msg))).succeed
+            case Some(PluginSettingsError.Unauthorized(msg))       =>
+              Left(RudderJsonResponse.ForbiddenError(Some(msg))).succeed
+            case Some(err)                                         =>
+              err.fail
+            case None                                              =>
+              Right(()).succeed
+          }
+        )
         .toLiftResponseZeroEither(params, schema, None)
     }
 
@@ -105,7 +116,9 @@ class PluginInternalApi(
         .list()
         .chainError("Could not get plugins list")
         .tapError(err => ApplicationLoggerPure.Plugin.error(err.fullMsg))
-        .map(JsonPluginsSystemDetails.buildDetails)
+        .map(plugins =>
+          PluginsMetadata.fromPlugins[GlobalPluginsLicense.DateCounts](plugins).transformInto[JsonPluginsSystemDetails]
+        )
         .toLiftResponseOne(params, schema, None)
     }
 
@@ -151,8 +164,8 @@ class PluginInternalApi(
       ({
         for {
           status  <- s match {
-                       case "enable"  => PluginSystemStatus.Enabled.succeed
-                       case "disable" => PluginSystemStatus.Disabled.succeed
+                       case "enable"  => PluginInstallStatus.Enabled.succeed
+                       case "disable" => PluginInstallStatus.Disabled.succeed
                        case _         => Inconsistency(s"Unknown plugin status, valid status are enable/disabled").fail
                      }
           plugins <- req.fromJson[Chunk[PluginId]].toIO.chainError("Could not parse the list of plugins to remove")

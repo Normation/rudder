@@ -64,7 +64,7 @@ protected object JsonPluginFile {
   */
 final protected case class JsonPluginRaw(
     name:           String,
-    version:        PluginVersion,
+    version:        RudderPluginVersion,
     files:          Option[List[String]],
     `jar-files`:    Option[List[String]],
     `build-commit`: String,
@@ -72,12 +72,12 @@ final protected case class JsonPluginRaw(
 )
 protected object JsonPluginRaw {
   import com.normation.utils.DateFormaterService.json.*
-  implicit val pluginVersionDecoder: JsonDecoder[PluginVersion] = {
+  implicit val pluginVersionDecoder: JsonDecoder[RudderPluginVersion] = {
     JsonDecoder[String].mapOrFail(version =>
-      PluginVersion.from(version).toRight(s"Version is not a valid plugin version: ${version}")
+      RudderPluginVersion.from(version).toRight(s"Version is not a valid plugin version: ${version}")
     )
   }
-  implicit val decoder:              JsonDecoder[JsonPluginRaw] = DeriveJsonDecoder.gen[JsonPluginRaw]
+  implicit val decoder:              JsonDecoder[JsonPluginRaw]       = DeriveJsonDecoder.gen[JsonPluginRaw]
 
   implicit val transformer: Transformer[JsonPluginRaw, JsonPluginDef] = {
     Transformer
@@ -92,7 +92,7 @@ protected object JsonPluginRaw {
 
 final case class JsonPluginDef(
     name:        String,
-    version:     PluginVersion,
+    version:     RudderPluginVersion,
     files:       List[String],
     jars:        List[String],
     buildCommit: String,

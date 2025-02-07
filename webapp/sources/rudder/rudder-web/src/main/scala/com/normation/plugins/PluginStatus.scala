@@ -44,27 +44,31 @@ import com.normation.rudder.domain.logger.ApplicationLoggerPure
  * enabling of the plugin
  */
 
-sealed trait PluginStatusInfo
-object PluginStatusInfo {
-  case object EnabledNoLicense                                                  extends PluginStatusInfo
-  final case class EnabledWithLicense(i: PluginLicenseInfo)                     extends PluginStatusInfo
-  final case class Disabled(reason: String, details: Option[PluginLicenseInfo]) extends PluginStatusInfo
+sealed trait RudderPluginLicenseStatus
+object RudderPluginLicenseStatus {
+  case object EnabledNoLicense                                              extends RudderPluginLicenseStatus
+  final case class EnabledWithLicense(i: PluginLicense)                     extends RudderPluginLicenseStatus
+  final case class Disabled(reason: String, details: Option[PluginLicense]) extends RudderPluginLicenseStatus
 }
 
+/**
+  * Plugin status in Ruddder determines the status of a plugin,
+  * along with the license information to 
+  */
 trait PluginStatus {
 
   /*
    * What is the CURRENT status of the plugin at the moment of the request
    */
-  def current: PluginStatusInfo
+  def current: RudderPluginLicenseStatus
 
   /*
    * Is the plugin currently enabled (at the moment of the request) ?
    */
   def isEnabled(): Boolean = {
     current match {
-      case PluginStatusInfo.EnabledNoLicense | _: PluginStatusInfo.EnabledWithLicense => true
-      case PluginStatusInfo.Disabled(reason, optInfo)                                 =>
+      case RudderPluginLicenseStatus.EnabledNoLicense | _: RudderPluginLicenseStatus.EnabledWithLicense => true
+      case RudderPluginLicenseStatus.Disabled(reason, optInfo)                                          =>
         val name = optInfo match {
           case Some(i) => s"'${i.softwareId}' "
           case None    => ""
@@ -79,6 +83,6 @@ trait PluginStatus {
  * Default "always enable" status
  */
 object AlwaysEnabledPluginStatus extends PluginStatus {
-  override val current: PluginStatusInfo = PluginStatusInfo.EnabledNoLicense
+  override val current: RudderPluginLicenseStatus = RudderPluginLicenseStatus.EnabledNoLicense
   override def isEnabled() = true
 }
