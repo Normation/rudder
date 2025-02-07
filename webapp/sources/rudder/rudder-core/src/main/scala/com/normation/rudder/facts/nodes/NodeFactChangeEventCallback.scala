@@ -372,10 +372,10 @@ class HistorizeNodeState(
       NodeLoggerPure.Delete.debug(s"  - delete fact about node '${nodeId.value}'") *>
       gitFactStorage
         .changeStatus(nodeId, RemovedInventory)
+        .unit
         .catchAll(err =>
           NodeLoggerPure.info(s"Error when trying to update fact when deleting node '${nodeId.value}': ${err.fullMsg}")
         )
-        .unit
     }
 
     change.event match {

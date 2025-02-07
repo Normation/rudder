@@ -42,7 +42,7 @@ import com.normation.inventory.domain.FullInventory
 import com.normation.ldap.sdk.LDAPEntry
 import com.normation.ldap.sdk.LDAPTree
 import scala.collection.mutable.Buffer
-import zio.syntax.*
+import zio.ZIO
 
 class FullInventoryFromLdapEntriesImpl(
     inventoryDitService: InventoryDitService,
@@ -66,10 +66,10 @@ class FullInventoryFromLdapEntriesImpl(
     }
 
     for {
-      nodeTree   <- LDAPTree(serverElts)
+      nodeTree   <- ZIO.fromEither(LDAPTree(serverElts))
       node       <- mapper.nodeFromTree(nodeTree)
-      optMachine <- if (machineElts.isEmpty) None.succeed
-                    else LDAPTree(machineElts).flatMap(t => mapper.machineFromTree(t).map(m => Some(m)))
+      optMachine <- if (machineElts.isEmpty) ZIO.none
+                    else ZIO.fromEither(LDAPTree(machineElts)).flatMap(mapper.machineFromTree).asSome
     } yield {
       FullInventory(node, optMachine)
     }

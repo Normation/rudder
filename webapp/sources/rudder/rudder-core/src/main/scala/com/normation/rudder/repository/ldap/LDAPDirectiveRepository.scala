@@ -106,7 +106,7 @@ class RoLDAPDirectiveRepository(
           case 1 => Some(piEntries(0)).succeed
           case _ =>
             LDAPRudderError
-              .Consistancy(
+              .Consistency(
                 s"Error, the directory contains multiple occurrence of directive with id '${id.debugString}'. DN: ${piEntries.map(_.dn).mkString("; ")}"
               )
               .fail
@@ -533,7 +533,7 @@ class RoLDAPDirectiveRepository(
                       case 1 => Some(uptEntries(0)).succeed
                       case _ =>
                         LDAPRudderError
-                          .Consistancy(
+                          .Consistency(
                             s"Error, the directory contains multiple occurrence of active " +
                             s"technique with ID '${id}'. DNs involved: ${uptEntries.map(_.dn).mkString("; ")}"
                           )
