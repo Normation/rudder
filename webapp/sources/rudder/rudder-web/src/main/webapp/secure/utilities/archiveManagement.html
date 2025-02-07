@@ -204,5 +204,30 @@
   </div>
 </div>
 
+<div id="archivesPopup" class="modal fade" tabindex="-1" aria-hidden="true" data-bs-backdrop="false" data-bs-dismiss="modal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 id="archivesPopupTitle" class="modal-title"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row space-bottom">
+          <div class="col-xl-12">
+            <h4 class="text-center">
+              You are overwriting the current configuration on <strong>this server</strong>, are you sure you want to continue ?
+            </h4>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
+        <button id="archivesPopupSubmit" type="button" class="btn btn-success" data-bs-dismiss="modal">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 </lift:surround>
 

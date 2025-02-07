@@ -61,7 +61,9 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
+import scala.xml.Elem
 import scala.xml.NodeSeq
+import scala.xml.Text
 
 class Archives extends DispatchSnippet with Loggable {
 
@@ -295,7 +297,7 @@ class Archives extends DispatchSnippet with Loggable {
       }
 
       Replace(formName, outerXml.applyAgain()) &
-      successPopup
+      successNotification
     }
 
     // our process method returns a
@@ -392,17 +394,34 @@ class Archives extends DispatchSnippet with Loggable {
       )
     } &
     ("#" + restoreButtonId) #> {
-      (SHtml.ajaxSubmit(restoreButtonName, restore _, ("id" -> restoreButtonId), ("class", "btn btn-default")) ++
+      (SHtml.ajaxSubmit(
+        restoreButtonName,
+        () => {
+          setConfirmationPopup(
+            restoreButtonName,
+            SHtml.ajaxButton(
+              "Confirm",
+              restore _,
+              ("form"            -> formName),
+              ("class"           -> "btn btn-success"),
+              ("type"            -> "submit"),
+              ("data-bs-dismiss" -> "modal")
+            )
+          )
+        },
+        ("id" -> restoreButtonId),
+        ("class", "btn btn-default")
+      ) ++
       WithNonce.scriptWithNonce(
         Script(
           OnLoad(
             JsRaw(
-              """enableIfNonEmpty("%s", "%s");$("#%s").prop("disabled",true);"""
-                .format(archiveDateSelectId, restoreButtonId, restoreButtonId)
+              s"""enableIfNonEmpty("${archiveDateSelectId}", "${restoreButtonId}");$$("#${restoreButtonId}").prop("disabled",true);"""
             )
           )
-        ) // JsRaw ok, all const values of actionFormBuilder
-      )): NodeSeq
+        )
+      ) // JsRaw ok, all const values of actionFormBuilder
+      ): NodeSeq
     } &
     ("#" + downloadButtonId) #> {
       (SHtml.ajaxSubmit(downloadButtonName, download _, ("id" -> downloadButtonId), ("class", "btn btn-default")) ++
@@ -419,8 +438,14 @@ class Archives extends DispatchSnippet with Loggable {
     }
   }
 
-  ///////////// success pop-up ///////////////
-  private def successPopup: JsCmd = {
+  private def successNotification: JsCmd = {
     JsRaw("""createSuccessNotification()""") // JsRaw ok, const
+  }
+
+  ///////////// pop-ups ///////////////
+  private def setConfirmationPopup(restoreMessage: String, submitElem: Elem): JsCmd = {
+    SetHtml("archivesPopupTitle", Text(restoreMessage)) &
+    Replace("archivesPopupSubmit", submitElem) &
+    JsRaw(s"initBsModal('archivesPopup')")
   }
 }
