@@ -104,14 +104,14 @@ showBlockTab model parentId block uiInfo techniqueUi =
                  let
                    updatedCondition = {condition | os = os }
                  in
-                   li [ onClick (MethodCallModified (Block parentId {block | condition = updatedCondition })), class (osClass os) ] [ a [class "dropdown-item"] [ text (osName os) ] ]
+                   li [ onClick (MethodCallModified (Block parentId {block | condition = updatedCondition }) Nothing), class (osClass os) ] [ a [class "dropdown-item"] [ text (osName os) ] ]
                  )
                osList
         ubuntuLi = List.map (\ubuntuMinor ->
                      let
                        updatedCall = Block parentId { block | condition = {condition | os =  updateUbuntuMinor  ubuntuMinor condition.os } }
                      in
-                       li [ onClick (MethodCallModified updatedCall) ] [ a [class "dropdown-item"] [ text (showUbuntuMinor ubuntuMinor) ] ]
+                       li [ onClick (MethodCallModified updatedCall Nothing) ] [ a [class "dropdown-item"] [ text (showUbuntuMinor ubuntuMinor) ] ]
                    ) [All, ZeroFour, Ten]
         condition = block.condition
         errorOnConditionInput =
@@ -123,7 +123,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                       let
                         updatedCall = Block parentId { block | condition = {condition | os =  f  (String.toInt s) condition.os } }
                       in
-                        MethodCallModified updatedCall
+                        MethodCallModified updatedCall Nothing
         osConditions = element "div"
                        |> addClass "form-group condition-form"
                        |> addAttribute (id "os-form")
@@ -226,7 +226,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                                            let
                                              updatedCondition = {condition | advanced = s }
                                              updatedCall = Block parentId {block | condition = updatedCondition }
-                                           in MethodCallModified updatedCall
+                                           in MethodCallModified updatedCall Nothing
                                          )
                              ] []
                           , errorOnConditionInput
@@ -265,7 +265,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                                  FocusReport _ -> "Focus on one child method report"
                              )
         liCompositionRule =  \rule -> element "li"
-                                           |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = rule }))
+                                           |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = rule }) Nothing)
                                            |> appendChild (element "a" |> addClass "dropdown-item" |> appendText (compositionText rule))
         availableComposition = List.map liCompositionRule [ WeightedReport, FocusReport "", WorstReport WorstReportWeightedSum ]
 
@@ -281,7 +281,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                                      componentValue
                      in
                        element "li"
-                               |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = FocusReport (getId child).value }))
+                               |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = FocusReport (getId child).value }) Nothing)
                                |> appendChild (element "a" |> addClass "dropdown-item" |> appendText component)
 
         availableFocus = List.map liFocus block.calls
@@ -293,7 +293,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                          FocusWorst -> "Focus on the child with worst compliance"
 
         liWorst = \weight -> element "li"
-                    |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = (WorstReport weight) }))
+                    |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = (WorstReport weight) }) Nothing)
                     |> appendChild (element "a" |> addClass "dropdown-item" |> appendText (labelWorst weight))
 
         availableWorst = List.map liWorst [FocusWorst, WorstReportWeightedOne, WorstReportWeightedSum]
@@ -328,58 +328,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
             )
 
     BlockForEach ->
-      let
-        foreachUI = uiInfo.foreachUI
-        newForeach = foreachUI.newForeach
-        newItem = newForeach.foreachKeys
-          |> List.map (\k -> (k, ""))
-          |> Dict.fromList
-        newItems = case block.foreach of
-          Just f -> List.append f [newForeach.newItem]
-          Nothing -> [newForeach.newItem]
-        newForeachItems =
-          case block.foreach of
-            Nothing -> Nothing
-            Just items ->
-              let
-                newKeysList = newForeach.foreachKeys
-                updatedForeach =
-                  items
-                    |> List.Extra.updateIf (\f -> (Dict.keys f) |> List.any (\k -> List.Extra.notMember k newKeysList) ) -- If an old key is not present anymore, remove it
-                      (\f -> f |> keepOnly (Set.fromList newKeysList) )
-                    |> List.Extra.updateIf (\f -> newKeysList |> List.any (\k -> List.Extra.notMember k (Dict.keys f)) ) -- If a new key is detected, insert it
-                      (\f ->
-                        let
-                          keysList  = Dict.keys f
-                          currentList = Dict.toList f
-                          newList = newKeysList
-                            |> List.Extra.filterNot (\k -> List.member k keysList)
-                            |> List.map (\k -> (k, ""))
-                        in
-                          currentList
-                            |> List.append newList
-                            |> Dict.fromList
-                      )
-              in
-                Just updatedForeach
-
-        -- Actions ============
-        removeKey k           = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | foreachKeys = (List.Extra.remove k newForeach.foreachKeys)}}}
-        updateNewForeach s    = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | foreachName = s}}}
-        updateNewForeachKey s = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | newKey = s}}}
-        addNewKey             = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | newKey = "", foreachKeys = (newForeach.newKey :: newForeach.foreachKeys)}}}
-        resetNewForeach       = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | newForeach = (defaultNewForeach block.foreachName block.foreach)}}
-        updateNewItem k s     = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | newItem = Dict.update k (always (Just s) ) newForeach.newItem }}}
-        editForeachName       = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | foreachName = (Maybe.withDefault "" block.foreachName)}, editName = True}}
-        editForeachKeys       = UIBlockAction block.id {uiInfo | foreachUI = {foreachUI | editKeys = True}}
-        --
-        addForeach            = UpdateBlockAndUi block.id {uiInfo | foreachUI = {foreachUI | newForeach = { newForeach | newItem = newItem}}} (Block (Just block.id) {block | foreachName = Just (if String.isEmpty newForeach.foreachName then "item" else newForeach.foreachName), foreach = Just [newItem]})
-        addNewItem            = UpdateBlockAndUi block.id {uiInfo | foreachUI = {foreachUI | newForeach = { newForeach | newItem = newItem}}} (Block (Just block.id) {block | foreach = Just newItems})
-        saveNewForeach        = UpdateBlockAndUi block.id {uiInfo | foreachUI = {foreachUI | editName = False}} (Block (Just block.id) {block | foreachName = Just (newForeach.foreachName) })
-        saveEditKeys          = UpdateBlockAndUi block.id {uiInfo | foreachUI = {foreachUI | editKeys = False, newForeach = {newForeach | newItem = newItem}}} (Block (Just block.id) {block | foreach = newForeachItems })
-        removeForeach         = UpdateBlockAndUi block.id {uiInfo | foreachUI = {foreachUI | newForeach = (defaultNewForeach Nothing Nothing)}} (Block (Just block.id) {block | foreachName = Nothing, foreach = Nothing })
-      in
-        displayTabForeach foreachUI (Block parentId block) removeKey updateNewForeach updateNewForeachKey addNewKey resetNewForeach addForeach updateNewItem addNewItem saveNewForeach editForeachName saveEditKeys editForeachKeys removeForeach
+        displayTabForeach (BlockUiInfo uiInfo block)
 
 buildSelectReporting: String -> String -> (List (Element Msg)) -> String -> Element Msg
 buildSelectReporting id label items value =
@@ -525,21 +474,21 @@ blockBody model parentId block ui techniqueUi =
                                   element "li"
                                    |> appendChild
                                       (element "a"
-                                        |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Nothing }) )
+                                        |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Nothing }) Nothing )
                                         |> addClass "dropdown-item"
                                         |> appendText "None"
                                       )
                                  , element "li"
                                    |> appendChild
                                       (element "a"
-                                        |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Just Audit }) )
+                                        |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Just Audit }) Nothing )
                                         |> addClass "dropdown-item"
                                         |> appendText "Audit"
                                       )
                                  , element "li"
                                    |> appendChild
                                       (element "a"
-                                        |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Just Enforce }) )
+                                        |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Just Enforce }) Nothing )
                                         |> addClass "dropdown-item"
                                         |> appendText "Enforce"
                                       )
@@ -561,7 +510,7 @@ blockBody model parentId block ui techniqueUi =
                                              |> appendText "Name"
                                            , element "input"
                                              |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, type_ "text", name "component", style "width" "100%", class "form-control", value block.component,  placeholder "A friendly name for this component" ]
-                                             |> addInputHandler  (\s -> MethodCallModified (Block parentId {block  | component = s }))
+                                             |> addInputHandler  (\s -> MethodCallModified (Block parentId {block  | component = s }) Nothing)
                                            ]
                                        )
                                 )

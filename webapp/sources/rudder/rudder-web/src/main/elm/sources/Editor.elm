@@ -652,58 +652,35 @@ update msg model =
 
 -- Edit a technique: edit one generic method
 
+    UpdateCallAndUi uiInfo ->
+        let
+            (uiAction, callAction)  = case uiInfo of
+                CallUiInfo methodCallUiInfo call   ->
+                    ( UIMethodAction call.id methodCallUiInfo
+                    , MethodCallModified (Call (Just call.id) call) (Just uiInfo) -- MethodElem (Maybe UiInfo)
+                    )
+                BlockUiInfo methodBlockUiInfo block ->
+                    ( UIBlockAction block.id methodBlockUiInfo
+                    , MethodCallModified (Block (Just block.id) block) (Just uiInfo)
+                    )
+
+            (newModel, newMsg) = update uiAction model
+            (finalModel, finalMsg) = update callAction newModel
+        in
+            (finalModel, Cmd.batch[newMsg, finalMsg])
+
     UIMethodAction callId newMethodUi ->
       let
         newMode =
           case model.mode of
            TechniqueDetails t o ui editInfo->
              let
-               newUi = {ui | callsUI = Dict.update  callId.value (Maybe.map (always newMethodUi )) ui.callsUI }
+               newUi = {ui | callsUI = Dict.update callId.value (Maybe.map (always newMethodUi )) ui.callsUI }
              in
               TechniqueDetails t o newUi editInfo
            m -> m
       in
         ({ model | mode = newMode}, initInputs "" )
-
-    UpdateMethodAndUi callId newMethodUi method ->
-      case model.mode of
-        TechniqueDetails t s ui editInfo ->
-          let
-            newUi =
-              case method of
-                Block _ block ->
-                 let
-                   blockState = checkBlockConstraint block
-                   updateBlockState = \originUiBlock -> case originUiBlock of
-                                                          Just uiBlock -> Just { uiBlock | validation = blockState}
-                                                          Nothing -> Just (MethodBlockUiInfo Closed Children blockState False (ForeachUI False False (defaultNewForeach block.foreachName block.foreach)))
-                 in
-                  { ui | blockUI = Dict.update block.id.value updateBlockState ui.blockUI }
-                Call _ _ -> {ui | callsUI = Dict.update callId.value (Maybe.map (always newMethodUi )) ui.callsUI }
-            newModel = {model | mode = TechniqueDetails {t | elems = updateElemIf (getId >> (==) (getId method) ) (always method) t.elems} s newUi editInfo}
-          in
-            updatedStoreTechnique newModel
-        _ -> (model,Cmd.none)
-
-    UpdateBlockAndUi blockId newElemUi elem ->
-      case model.mode of
-        TechniqueDetails t s ui editInfo ->
-          let
-            newUi =
-              case elem of
-                Block _ block ->
-                 let
-                   blockState = checkBlockConstraint block
-                   updateBlockState = \originUiBlock -> case originUiBlock of
-                                                          Just _ -> Just { newElemUi | validation = blockState}
-                                                          Nothing -> Just (MethodBlockUiInfo Closed Children blockState False (ForeachUI False False (defaultNewForeach block.foreachName block.foreach)))
-                 in
-                   { ui | blockUI = Dict.update blockId.value updateBlockState ui.blockUI }
-                Call _ _ -> ui
-            newModel = {model | mode = TechniqueDetails {t | elems = updateElemIf (getId >> (==) (getId elem) ) (always elem) t.elems} s newUi editInfo}
-          in
-            updatedStoreTechnique newModel
-        _ -> (model,Cmd.none)
 
     UIBlockAction callId newBlockUi ->
       let
@@ -786,21 +763,34 @@ update msg model =
           h :: t ->
             update h {newModel  | recClone = t}
 
-    MethodCallModified method ->
+    MethodCallModified method uiInfo ->
       case model.mode of
         TechniqueDetails t s ui editInfo ->
           let
             newUi =
-              case method of
-                Block id block ->
-                 let
-                   blockState = checkBlockConstraint block
-                   updateBlockState = \originUiBlock -> case originUiBlock of
-                                                          Just uiBlock -> Just { uiBlock | validation = blockState}
-                                                          Nothing -> Just (MethodBlockUiInfo Closed Children blockState False (ForeachUI False False (defaultNewForeach block.foreachName block.foreach)))
-                 in
-                  { ui | blockUI = Dict.update block.id.value updateBlockState ui.blockUI  }
-                Call _ _ -> ui
+              case (method, uiInfo) of
+                ( Block id block, (Just (BlockUiInfo methodBlockUiInfo _))) ->
+                     let
+                       blockState = checkBlockConstraint block
+                       updateBlockState = \originUiBlock -> case originUiBlock of
+                                                              Just _ -> Just { methodBlockUiInfo | validation = blockState}
+                                                              Nothing -> Just (MethodBlockUiInfo Closed Children blockState False (ForeachUI False False (defaultNewForeach block.foreachName block.foreach)))
+                     in
+                      { ui | blockUI = Dict.update block.id.value updateBlockState ui.blockUI  }
+                ( Block id block, Nothing) ->
+                     let
+                       blockState = checkBlockConstraint block
+                       updateBlockState = \originUiBlock -> case originUiBlock of
+                                                              Just uiBlock -> Just { uiBlock | validation = blockState}
+                                                              Nothing -> Just (MethodBlockUiInfo Closed Children blockState False (ForeachUI False False (defaultNewForeach block.foreachName block.foreach)))
+                     in
+                      { ui | blockUI = Dict.update block.id.value updateBlockState ui.blockUI  }
+
+                (Call _ _, (Just (CallUiInfo methodCallUiInfo call))) ->
+                    {ui | callsUI = Dict.update call.id.value (Maybe.map (always methodCallUiInfo )) ui.callsUI }
+                _ -> ui
+
+
             newModel = {model | mode = TechniqueDetails {t | elems = updateElemIf (getId >> (==) (getId method) ) (always method) t.elems} s newUi editInfo}
           in
             updatedStoreTechnique newModel

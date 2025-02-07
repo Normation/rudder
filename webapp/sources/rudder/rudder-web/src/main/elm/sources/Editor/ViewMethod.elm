@@ -20,7 +20,7 @@ import Editor.MethodConditions exposing (..)
 import Editor.MethodElemUtils exposing (..)
 import Editor.AgentValueParser exposing (..)
 import Editor.ViewMethodsList exposing (getTooltipContent)
-import Editor.ViewTabForeach exposing (foreachLabel, displayTabForeach)
+import Editor.ViewTabForeach exposing (..)
 
 
 --
@@ -173,7 +173,7 @@ checkConstraintOnParameter call constraint =
 -}
 
 showMethodTab: Model -> Method -> Maybe CallId ->  MethodCall -> MethodCallUiInfo -> Element Msg
-showMethodTab model method parentId call uiInfo=
+showMethodTab model method parentId call uiInfo =
   case uiInfo.tab of
     CallReporting ->
       element "div"
@@ -191,7 +191,7 @@ showMethodTab model method parentId call uiInfo=
               , type_ "checkbox"
               , name "disable_reporting"
               , checked call.disableReporting
-              , onCheck  (\b -> MethodCallModified (Call parentId {call  | disableReporting = b }))
+              , onCheck  (\b -> MethodCallModified (Call parentId {call  | disableReporting = b }) Nothing)
               ]
           ]
       )
@@ -217,7 +217,7 @@ showMethodTab model method parentId call uiInfo=
             updatedCall = Call parentId { call | condition = {condition | os =  updateUbuntuMinor  ubuntuMinor condition.os } }
           in
             element "li"
-              |> addAction ("click", (MethodCallModified updatedCall))
+              |> addAction ("click", (MethodCallModified updatedCall Nothing))
               |> appendChild (element "a"
                 |> addClass "dropdown-item"
                 |> appendText (showUbuntuMinor ubuntuMinor)
@@ -228,7 +228,7 @@ showMethodTab model method parentId call uiInfo=
           let
             updatedCall = Call parentId { call | condition = {condition | os =  f  (String.toInt s) condition.os } }
           in
-            MethodCallModified updatedCall
+            MethodCallModified updatedCall Nothing
       in
       element "div"
       |> addClass "tab-conditions"
@@ -266,7 +266,7 @@ showMethodTab model method parentId call uiInfo=
                         updatedCondition = {condition | os = os }
                       in
                         element "li"
-                        |> addAction ("click", (MethodCallModified (Call parentId {call | condition = updatedCondition })))
+                        |> addAction ("click", (MethodCallModified (Call parentId {call | condition = updatedCondition }) Nothing))
                         |> addClass (osClass os)
                         |> appendChild ( element "a"
                           |> addClass "dropdown-item"
@@ -362,7 +362,7 @@ showMethodTab model method parentId call uiInfo=
                 let
                   updatedCondition = {condition | advanced = s }
                   updatedCall = Call parentId {call | condition = updatedCondition }
-                in MethodCallModified updatedCall
+                in MethodCallModified updatedCall Nothing
               )
               -- to deactivate plugin "Grammarly" or "Language Tool" from
               -- adding HTML that make disapear textarea (see  https://issues.rudder.io/issues/21172)
@@ -551,60 +551,7 @@ showMethodTab model method parentId call uiInfo=
                 ]
             ]
     CallForEach ->
-      let
-        foreachUI = uiInfo.foreachUI
-        newForeach = foreachUI.newForeach
-        newItem = newForeach.foreachKeys
-          |> List.map (\k -> (k, ""))
-          |> Dict.fromList
-        newItems = case call.foreach of
-          Just f -> List.append f [newForeach.newItem]
-          Nothing -> [newForeach.newItem]
-        newForeachItems =
-          case call.foreach of
-            Nothing -> Nothing
-            Just items ->
-              let
-                newKeysList = newForeach.foreachKeys
-                updatedForeach =
-                  items
-                    |> List.Extra.updateIf (\f -> (Dict.keys f) |> List.any (\k -> List.Extra.notMember k newKeysList) ) -- If an old key is not present anymore, remove it
-                      (\f -> f |> keepOnly (Set.fromList newKeysList) )
-                    |> List.Extra.updateIf (\f -> newKeysList |> List.any (\k -> List.Extra.notMember k (Dict.keys f)) ) -- If a new key is detected, insert it
-                      (\f ->
-                        let
-                          keysList  = Dict.keys f
-                          currentList = Dict.toList f
-                          newList = newKeysList
-                            |> List.Extra.filterNot (\k -> List.member k keysList)
-                            |> List.map (\k -> (k, ""))
-                        in
-                          currentList
-                            |> List.append newList
-                            |> Dict.fromList
-                      )
-              in
-                Just updatedForeach
-        -- Actions ============
-        updateMethodAction      = UIMethodAction call.id
-        updateMethodAndUiAction = UpdateMethodAndUi call.id
-        
-        removeKey k           = updateMethodAction {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | foreachKeys = (List.Extra.remove k newForeach.foreachKeys)}}}
-        updateNewForeach s    = updateMethodAction {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | foreachName = s}}}
-        updateNewForeachKey s = updateMethodAction {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | newKey = s}}}
-        addNewKey             = updateMethodAction {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | newKey = "", foreachKeys = (newForeach.newKey :: newForeach.foreachKeys)}}}
-        resetNewForeach       = updateMethodAction {uiInfo | foreachUI = {foreachUI | newForeach = (defaultNewForeach call.foreachName call.foreach)}}
-        updateNewItem k s     = updateMethodAction {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | newItem = Dict.update k (always (Just s) ) newForeach.newItem }}}
-        editForeachName       = updateMethodAction {uiInfo | foreachUI = {foreachUI | newForeach = {newForeach | foreachName = (Maybe.withDefault "" call.foreachName)}, editName = True}}
-        editForeachKeys       = updateMethodAction {uiInfo | foreachUI = {foreachUI | editKeys = True}}
-
-        addForeach            = updateMethodAndUiAction {uiInfo | foreachUI = {foreachUI | newForeach = { newForeach | newItem = newItem}}} (Call (Just call.id) {call | foreachName = Just (if String.isEmpty newForeach.foreachName then "item" else newForeach.foreachName), foreach = Just [newItem]})
-        addNewItem            = updateMethodAndUiAction {uiInfo | foreachUI = {foreachUI | newForeach = { newForeach | newItem = newItem}}} (Call (Just call.id) {call | foreach = Just newItems})
-        saveNewForeach        = updateMethodAndUiAction {uiInfo | foreachUI = {foreachUI | editName = False}} (Call (Just call.id) {call | foreachName = Just (newForeach.foreachName) })
-        saveEditKeys          = updateMethodAndUiAction {uiInfo | foreachUI = {foreachUI | editKeys = False, newForeach = {newForeach | newItem = newItem}}} (Call (Just call.id) {call | foreach = newForeachItems })
-        removeForeach         = updateMethodAndUiAction {uiInfo | foreachUI = {foreachUI | newForeach = (defaultNewForeach Nothing Nothing)}} (Call (Just call.id) {call | foreachName = Nothing, foreach = Nothing })
-      in
-        displayTabForeach foreachUI (Call parentId call) removeKey updateNewForeach updateNewForeachKey addNewKey resetNewForeach addForeach updateNewItem addNewItem saveNewForeach editForeachName saveEditKeys editForeachKeys removeForeach
+      displayTabForeach (CallUiInfo uiInfo call)
 
 methodDetail: Method -> MethodCall -> Maybe CallId -> MethodCallUiInfo -> Model -> Element Msg
 methodDetail method call parentId ui model =
@@ -836,21 +783,21 @@ callBody model ui techniqueUi call pid =
                                   element "li"
                                    |> appendChild
                                       (element "a"
-                                        |> addAction ("click",  MethodCallModified (Call pid {call  | policyMode = Nothing }) )
+                                        |> addAction ("click",  MethodCallModified (Call pid {call  | policyMode = Nothing }) Nothing )
                                         |> addClass "dropdown-item"
                                         |> appendText "None"
                                       )
                                  , element "li"
                                    |> appendChild
                                       (element "a"
-                                        |> addAction ("click",  MethodCallModified (Call pid {call  | policyMode = Just Audit }) )
+                                        |> addAction ("click",  MethodCallModified (Call pid {call  | policyMode = Just Audit }) Nothing )
                                         |> addClass "dropdown-item"
                                         |> appendText "Audit"
                                       )
                                  , element "li"
                                    |> appendChild
                                       (element "a"
-                                        |> addAction ("click",  MethodCallModified (Call pid {call  | policyMode = Just Enforce }) )
+                                        |> addAction ("click",  MethodCallModified (Call pid {call  | policyMode = Just Enforce }) Nothing )
                                         |> addClass "dropdown-item"
                                         |> appendText "Enforce"
                                       )
@@ -872,7 +819,7 @@ callBody model ui techniqueUi call pid =
                                              |> appendText "Name"
                                            , element "input"
                                              |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, type_ "text", name "component", style "width" "100%", class "form-control", value call.component,  placeholder "A friendly name for this component" ]
-                                             |> addInputHandler  (\s -> MethodCallModified (Call pid {call  | component = s }))
+                                             |> addInputHandler  (\s -> MethodCallModified (Call pid {call  | component = s }) Nothing)
                                            ]
                                        )
                                 )

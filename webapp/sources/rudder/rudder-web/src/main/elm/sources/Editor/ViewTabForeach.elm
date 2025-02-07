@@ -47,23 +47,118 @@ foreachLabel foreachName foreach =
       )
       ( Maybe.Extra.isJust foreachName )
 
-displayTabForeach : ForeachUI -> MethodElem -> (String -> Msg) -> (String -> Msg) -> (String -> Msg) -> Msg -> Msg -> Msg -> (String -> String -> Msg) -> Msg -> Msg -> Msg -> Msg -> Msg -> Msg -> Element Msg
-displayTabForeach foreachUI elem actionRemoveKey actionUpdateNewForeach actionUpdateNewForeachKey actionAddNewKey actionResetNewForEach actionAddForeach actionUpdateNewItem actionAddNewItem actionSaveNewForeach actionEditForeachName actionSaveEditKeys actionEditForeachKeys actionRemoveForeach =
+type alias UpdateUIMsg =
+  { addNewKey           : Msg
+  , removeKey           : String -> Msg
+  , updateNewForeach    : String -> Msg
+  , updateNewForeachKey : String -> Msg
+  , resetNewForeach     : Msg
+  , updateNewItem       : String -> String -> Msg
+  , editForeachName     : Msg
+  , editForeachKeys     : Msg
+  }
+
+type alias UpdateMsg =
+  { addForeach          : Msg
+  , addNewItem          : Msg
+  , saveNewForeach      : Msg
+  , saveEditKeys        : Msg
+  , removeForeach       : Msg
+  }
+
+type alias CallForeach a = { a | foreachName : Maybe String, foreach : Maybe (List (Dict String String)) } -- a = MethodCall OR MethodBlock
+
+type alias InfoForeachUI a = { a | foreachUI : ForeachUI } -- a = MethodCallUiInfo OR MethodBlockUiInfo
+
+getUIMessages : ForeachUI -> ( ForeachUI -> Msg ) -> CallForeach a -> UpdateUIMsg
+getUIMessages f toMsg call =
   let
-    (callId, foreachName, foreach) = case elem of
-      Call  _ c ->
-        ( c.id
-        , c.foreachName
-        , c.foreach
-        )
-      Block _ b ->
-        ( b.id
-        , b.foreachName
-        , b.foreach
-        )
-    updateForeach maybeForeach = case elem of
-      Call  _ c -> (Call  (Just callId) {c | foreach = maybeForeach})
-      Block _ b -> (Block (Just callId) {b | foreach = maybeForeach})
+      newF = f.newForeach
+  in
+      { removeKey             = \k -> toMsg { f | newForeach = {newF | foreachKeys = (List.Extra.remove k newF.foreachKeys)} }
+      , updateNewForeach      = \s -> toMsg { f | newForeach = {newF | foreachName = s}}
+      , updateNewForeachKey   = \s -> toMsg { f | newForeach = {newF | newKey = s}}
+      , addNewKey             = toMsg { f | newForeach = {newF | newKey = "", foreachKeys = (newF.newKey :: newF.foreachKeys)}}
+      , resetNewForeach       = toMsg { f | newForeach = (defaultNewForeach call.foreachName call.foreach)}
+      , updateNewItem         = \k -> \s -> toMsg { f | newForeach = {newF | newItem = Dict.update k (always (Just s) ) newF.newItem }}
+      , editForeachName       = toMsg { f | newForeach = {newF | foreachName = (Maybe.withDefault "" call.foreachName)}, editName = True}
+      , editForeachKeys       = toMsg { f | editKeys = True }
+      }
+
+getUpdateMessages : ForeachUI -> CallForeach a -> (ForeachUI -> CallForeach a -> Msg) -> UpdateMsg
+getUpdateMessages foreachUI call toMsg =
+  let
+    newForeach = foreachUI.newForeach
+    foreach = call.foreach
+
+    newItems = case foreach of
+      Just f -> List.append f [newForeach.newItem]
+      Nothing -> [newForeach.newItem]
+
+    newItem = newForeach.newItem
+      |> Dict.map (\k v -> "")
+
+    newForeachItems =
+         case foreach of
+           Nothing -> Nothing
+           Just items ->
+             let
+               newKeysList = newForeach.foreachKeys
+               updatedForeach =
+                 items
+                   |> List.Extra.updateIf (\f -> (Dict.keys f) |> List.any (\k -> List.Extra.notMember k newKeysList) ) -- If an old key is not present anymore, remove it
+                     (\f -> f |> keepOnly (Set.fromList newKeysList) )
+                   |> List.Extra.updateIf (\f -> newKeysList |> List.any (\k -> List.Extra.notMember k (Dict.keys f)) ) -- If a new key is detected, insert it
+                     (\f ->
+                       let
+                         keysList  = Dict.keys f
+                         currentList = Dict.toList f
+                         newList = newKeysList
+                           |> List.Extra.filterNot (\k -> List.member k keysList)
+                           |> List.map (\k -> (k, ""))
+                       in
+                         currentList
+                           |> List.append newList
+                           |> Dict.fromList
+                     )
+             in
+                Just updatedForeach
+  in
+    { addForeach     = toMsg { foreachUI | newForeach = { newForeach | newItem = newItem}} ( {call | foreachName = Just (if String.isEmpty newForeach.foreachName then "item" else newForeach.foreachName), foreach = Just [newItem]})
+    , addNewItem     = toMsg { foreachUI | newForeach = { newForeach | newItem = newItem}} ( {call | foreach = Just newItems})
+    , saveNewForeach = toMsg { foreachUI | editName = False} ( {call | foreachName = Just (newForeach.foreachName) })
+    , saveEditKeys   = toMsg { foreachUI | editKeys = False, newForeach = {newForeach | newItem = newItem}} ( {call | foreach = newForeachItems })
+    , removeForeach  = toMsg { foreachUI | newForeach = (defaultNewForeach Nothing Nothing)} ( {call | foreachName = Nothing, foreach = Nothing })
+    }
+
+displayTabForeach : UiInfo -> Element Msg
+displayTabForeach uiInfo =
+  let
+
+    {callId, foreachName, foreach, updateForeach, foreachUI, updateUIMsg, updateMsg} = case uiInfo of
+      CallUiInfo methodCallUiInfo call ->
+        { callId = call.id
+        , foreachName = call.foreachName
+        , foreach = call.foreach
+        , updateForeach = \maybeForeach -> (Call  (Just call.id) {call | foreach = maybeForeach})
+        , foreachUI = methodCallUiInfo.foreachUI
+        , updateUIMsg = getUIMessages methodCallUiInfo.foreachUI (\fUI -> UIMethodAction call.id {methodCallUiInfo | foreachUI = fUI}) call -- (\c -> (Call (Just call.id) {call | foreachName = c.foreachName, foreach = c.foreach}))
+        , updateMsg = getUpdateMessages methodCallUiInfo.foreachUI call (\fUI c -> UpdateCallAndUi (CallUiInfo {methodCallUiInfo | foreachUI = fUI} {call | foreachName = c.foreachName, foreach = c.foreach} ))
+        }
+
+      BlockUiInfo methodBlockUiInfo call ->
+        { callId = call.id
+        , foreachName = call.foreachName
+        , foreach = call.foreach
+        , updateForeach = \maybeForeach -> (Block (Just call.id) {call | foreach = maybeForeach})
+        , foreachUI = methodBlockUiInfo.foreachUI
+        , updateUIMsg = getUIMessages methodBlockUiInfo.foreachUI (\fUI -> UIBlockAction call.id {methodBlockUiInfo | foreachUI = fUI}) call -- (\c -> (Block (Just call.id) {call | foreachName = c.foreachName, foreach = c.foreach}))
+        , updateMsg = getUpdateMessages methodBlockUiInfo.foreachUI call (\fUI c -> UpdateCallAndUi (BlockUiInfo {methodBlockUiInfo | foreachUI = fUI} {call | foreachName = c.foreachName, foreach = c.foreach} ))
+        }
+
+    { removeKey, updateNewForeach, updateNewForeachKey, addNewKey, resetNewForeach, updateNewItem, editForeachName, editForeachKeys } = updateUIMsg
+    { addForeach, addNewItem, saveNewForeach, saveEditKeys, removeForeach } = updateMsg
+
 
     newForeach = foreachUI.newForeach
 
@@ -79,7 +174,7 @@ displayTabForeach foreachUI elem actionRemoveKey actionUpdateNewForeach actionUp
           |> appendChildConditional
             ( element "i"
               |> addClass "fa fa-times p-2 cursorPointer"
-              |> addActionStopAndPrevent ("click", actionRemoveKey k)
+              |> addActionStopAndPrevent ("click", removeKey k)
             ) edit
       )
 
@@ -141,7 +236,7 @@ displayTabForeach foreachUI elem actionRemoveKey actionUpdateNewForeach actionUp
                               , placeholder "item"
                               , value newForeach.foreachName
                               ]
-                            |> addInputHandler  (\s -> actionUpdateNewForeach s)
+                            |> addInputHandler  (\s -> updateNewForeach s)
                           ]
                       , element "div"
                         |> addClass "form-group"
@@ -163,13 +258,13 @@ displayTabForeach foreachUI elem actionRemoveKey actionUpdateNewForeach actionUp
                                   , onFocus DisableDragDrop
                                   , value newForeach.newKey
                                   ]
-                                |> addInputHandler (\s -> actionUpdateNewForeachKey s)
+                                |> addInputHandler (\s -> updateNewForeachKey s)
                               , element "button"
                                 |> addAttributeList
                                   [ class "btn btn-default"
                                   , type_ "button"
                                   , disabled (String.isEmpty newForeach.newKey)
-                                  , onCustomClick actionAddNewKey
+                                  , onCustomClick addNewKey
                                   ]
                                 |> appendChild (
                                   element "i"
@@ -187,7 +282,7 @@ displayTabForeach foreachUI elem actionRemoveKey actionUpdateNewForeach actionUp
                             |> addAttributeList
                               [ class "btn btn-default me-3"
                               , type_ "button"
-                              , onCustomClick actionResetNewForEach
+                              , onCustomClick resetNewForeach
                               ]
                             |> appendText "Reset"
                             |> appendChild (element "i" |> addClass "fa fa-undo ms-1")
@@ -196,7 +291,7 @@ displayTabForeach foreachUI elem actionRemoveKey actionUpdateNewForeach actionUp
                               [ class "btn btn-primary"
                               , type_ "button"
                               , disabled (List.isEmpty newForeach.foreachKeys)
-                              , onCustomClick actionAddForeach
+                              , onCustomClick addForeach
                               ]
                             |> appendText "Add foreach"
                             |> appendChild (element "i" |> addClass "fa fa-check ms-1")
@@ -238,7 +333,7 @@ displayTabForeach foreachUI elem actionRemoveKey actionUpdateNewForeach actionUp
                                   , value val
                                   , class "form-control input-sm"
                                   ]
-                                |> addInputHandler  (\s -> MethodCallModified (updateForeach (updateForeachVal s items f)))
+                                |> addInputHandler  (\s -> MethodCallModified (updateForeach (updateForeachVal s items f)) Nothing)
                               )
                           )
                         actionBtns =
@@ -250,7 +345,7 @@ displayTabForeach foreachUI elem actionRemoveKey actionUpdateNewForeach actionUp
                                 [ type_ "button"
                                 , class "btn btn-danger"
                                 , disabled (List.length items <= 1)
-                                , onCustomClick (MethodCallModified (updateForeach (Just (List.Extra.remove f items))))
+                                , onCustomClick (MethodCallModified (updateForeach (Just (List.Extra.remove f items))) Nothing)
                                 ]
                               |> appendChild (element "i" |> addClass "fa fa-times")
                             )
@@ -280,56 +375,23 @@ displayTabForeach foreachUI elem actionRemoveKey actionUpdateNewForeach actionUp
                             , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
                             , onFocus DisableDragDrop
                             ]
-                          |> addInputHandler  (\s -> actionUpdateNewItem k s)
+                          |> addInputHandler  (\s -> updateNewItem k s)
                         )
                     )
                   actionBtns =
-                    let
-                      newItems = case foreach of
-                        Just f -> List.append f [newForeach.newItem]
-                        Nothing -> [newForeach.newItem]
-                      newItem = newForeach.newItem
-                        |> Dict.map (\k v -> "")
-                    in
-                      [ element "td"
-                        |> addClass "text-center"
-                        |> appendChild (element "button"
-                          |> addAttributeList
-                            [ type_ "button"
-                            , class "btn btn-success"
-                            , onCustomClick actionAddNewItem
-                            ]
-                          |> appendChild (element "i" |> addClass "fa fa-plus-circle")
-                        )
-                      ]
+                    [ element "td"
+                      |> addClass "text-center"
+                      |> appendChild (element "button"
+                        |> addAttributeList
+                          [ type_ "button"
+                          , class "btn btn-success"
+                          , onCustomClick addNewItem
+                          ]
+                        |> appendChild (element "i" |> addClass "fa fa-plus-circle")
+                      )
+                    ]
                 in
                   [ element "tr" |> addClass "item-foreach new" |> appendChildList (List.append newValues actionBtns) ]
-
-              newForeachItems =
-                case foreach of
-                  Nothing -> Nothing
-                  Just items ->
-                    let
-                      newKeysList = newForeach.foreachKeys
-                      updatedForeach =
-                        items
-                          |> List.Extra.updateIf (\f -> (Dict.keys f) |> List.any (\k -> List.Extra.notMember k newKeysList) ) -- If an old key is not present anymore, remove it
-                            (\f -> f |> keepOnly (Set.fromList newKeysList) )
-                          |> List.Extra.updateIf (\f -> newKeysList |> List.any (\k -> List.Extra.notMember k (Dict.keys f)) ) -- If a new key is detected, insert it
-                            (\f ->
-                              let
-                                keysList  = Dict.keys f
-                                currentList = Dict.toList f
-                                newList = newKeysList
-                                  |> List.Extra.filterNot (\k -> List.member k keysList)
-                                  |> List.map (\k -> (k, ""))
-                              in
-                                currentList
-                                  |> List.append newList
-                                  |> Dict.fromList
-                            )
-                    in
-                      Just updatedForeach
 
               foreachNameLabel =
                 if String.isEmpty name then
@@ -371,19 +433,19 @@ displayTabForeach foreachUI elem actionRemoveKey actionUpdateNewForeach actionUp
                                     , onFocus DisableDragDrop
                                     , value newForeach.foreachName
                                     ]
-                                  |> addInputHandler  (\s -> actionUpdateNewForeach s)
+                                  |> addInputHandler  (\s -> updateNewForeach s)
                                 , element "button"
                                   |> addClass "btn btn-default"
                                   |> addAttributeList
                                     [ type_ "button"
-                                    , onCustomClick actionSaveNewForeach
+                                    , onCustomClick saveNewForeach
                                     ]
                                   |> appendChild (element "i" |> addClass "fa fa-check")
                                 ]
                             ] foreachUI.editName
                           |> appendChildListConditional
                             [ foreachNameLabel
-                            , element "i" |> addClass "fa fa-edit ms-2" |> addActionStopAndPrevent ("click", actionEditForeachName)
+                            , element "i" |> addClass "fa fa-edit ms-2" |> addActionStopAndPrevent ("click", editForeachName)
                             ] (not foreachUI.editName)
 
                         ]
@@ -411,14 +473,14 @@ displayTabForeach foreachUI elem actionRemoveKey actionUpdateNewForeach actionUp
                                     , onFocus DisableDragDrop
                                     , value newForeach.newKey
                                     ]
-                                  |> addInputHandler (\s -> actionUpdateNewForeachKey s)
+                                  |> addInputHandler (\s -> updateNewForeachKey s)
                                 , element "button"
                                   |> addClass "btn btn-default"
                                   |> addAttributeList
                                     [ type_ "button"
                                     , disabled (String.isEmpty newForeach.newKey)
                                     ]
-                                  |> addActionStopAndPrevent ("click", actionAddNewKey)
+                                  |> addActionStopAndPrevent ("click", addNewKey)
                                   |> appendChild (element "i" |> addClass "fa fa-plus-circle")
                                 , element "button"
                                   |> addClass "btn btn-default ms-2"
@@ -426,7 +488,7 @@ displayTabForeach foreachUI elem actionRemoveKey actionUpdateNewForeach actionUp
                                     [ type_ "button"
                                     , disabled (List.isEmpty newForeach.foreachKeys)
                                     ]
-                                  |> addActionStopAndPrevent ("click", actionSaveEditKeys)
+                                  |> addActionStopAndPrevent ("click", saveEditKeys)
                                   |> appendChild (element "i" |> addClass "fa fa-check")
                                 ]
                           , element "div" |> addClass "foreach-keys mt-2 mb-3" |> appendChildList (newKeys True)
@@ -437,7 +499,7 @@ displayTabForeach foreachUI elem actionRemoveKey actionUpdateNewForeach actionUp
                         |> addClass "col d-flex align-items-center foreach-keys"
                         |> appendChildList ( List.append
                           (newKeys False)
-                          [ (element "i" |> addClass "fa fa-edit ms-2" |> addActionStopAndPrevent ("click" , actionEditForeachKeys)) ]
+                          [ (element "i" |> addClass "fa fa-edit ms-2" |> addActionStopAndPrevent ("click" , editForeachKeys)) ]
                         )
                       ) (not foreachUI.editKeys)
 
@@ -453,7 +515,7 @@ displayTabForeach foreachUI elem actionRemoveKey actionUpdateNewForeach actionUp
 
                     , element "button"
                       |> addClass "btn btn-danger mt-2"
-                      |> addActionStopAndPrevent ("click", actionRemoveForeach)
+                      |> addActionStopAndPrevent ("click", removeForeach)
                       |> appendText "Remove iterator"
                       |> appendChild (element "i" |> addClass "fa fa-times ms-1")
                     ]

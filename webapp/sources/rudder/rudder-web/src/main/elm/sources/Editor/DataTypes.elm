@@ -262,7 +262,10 @@ type alias TechniqueEditInfo =
   ,  result : Result String ()
   }
 
+type UiInfo = CallUiInfo MethodCallUiInfo MethodCall  | BlockUiInfo MethodBlockUiInfo MethodBlock
+
 type MethodCallTab = CallParameters | CallConditions | Result | CallReporting | CallForEach
+
 type MethodBlockTab = BlockConditions | BlockReporting | Children  | BlockForEach
 type MethodCallMode = Opened | Closed
 type Tab = General | Parameters | Resources | Output | None
@@ -285,15 +288,19 @@ type Msg =
   | GetMethods   (Result (Http.Detailed.Error String) ( Http.Metadata, (Dict String Method) ))
   | CheckOutJson CheckMode (Result (Http.Detailed.Error String) ( Http.Metadata, Technique ))
   | CheckOutYaml CheckMode (Result (Http.Detailed.Error String) ( Http.Metadata, String ))
+
   | UIMethodAction CallId MethodCallUiInfo
   | UIBlockAction CallId MethodBlockUiInfo
-  | UpdateMethodAndUi CallId MethodCallUiInfo MethodElem
-  | UpdateBlockAndUi CallId MethodBlockUiInfo MethodElem
+
+  | UpdateCallAndUi UiInfo
+
+  | MethodCallModified MethodElem (Maybe UiInfo)
+   --  MethodCallModified MethodElem
+
   | RemoveMethod CallId
   | UpdateEdition TechniqueEditInfo
   | CloneElem  MethodElem CallId
   | MethodCallParameterModified MethodCall ParameterId String
-  | MethodCallModified MethodElem
   | TechniqueParameterModified ParameterId TechniqueParameter
   | TechniqueParameterRemoved ParameterId
   | TechniqueParameterAdded ParameterId
