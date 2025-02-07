@@ -26,7 +26,6 @@ foreachLabel foreachName foreach =
     labelTxt = case foreachName of
       Nothing -> ""
       Just f  -> "foreach ${" ++ f ++ ".x}"
-
   in
     appendChildConditional
       ( element "div"
@@ -73,17 +72,17 @@ type alias InfoForeachUI a = { a | foreachUI : ForeachUI } -- a = MethodCallUiIn
 getUIMessages : ForeachUI -> ( ForeachUI -> Msg ) -> CallForeach a -> UpdateUIMsg
 getUIMessages f toMsg call =
   let
-      newF = f.newForeach
+    newF = f.newForeach
   in
-      { removeKey             = \k -> toMsg { f | newForeach = {newF | foreachKeys = (List.Extra.remove k newF.foreachKeys)} }
-      , updateNewForeach      = \s -> toMsg { f | newForeach = {newF | foreachName = s}}
-      , updateNewForeachKey   = \s -> toMsg { f | newForeach = {newF | newKey = s}}
-      , addNewKey             = toMsg { f | newForeach = {newF | newKey = "", foreachKeys = (newF.newKey :: newF.foreachKeys)}}
-      , resetNewForeach       = toMsg { f | newForeach = (defaultNewForeach call.foreachName call.foreach)}
-      , updateNewItem         = \k -> \s -> toMsg { f | newForeach = {newF | newItem = Dict.update k (always (Just s) ) newF.newItem }}
-      , editForeachName       = toMsg { f | newForeach = {newF | foreachName = (Maybe.withDefault "" call.foreachName)}, editName = True}
-      , editForeachKeys       = toMsg { f | editKeys = True }
-      }
+    { removeKey             = \k -> toMsg { f | newForeach = {newF | foreachKeys = (List.Extra.remove k newF.foreachKeys)} }
+    , updateNewForeach      = \s -> toMsg { f | newForeach = {newF | foreachName = s}}
+    , updateNewForeachKey   = \s -> toMsg { f | newForeach = {newF | newKey = s}}
+    , addNewKey             = toMsg { f | newForeach = {newF | newKey = "", foreachKeys = (newF.newKey :: newF.foreachKeys)}}
+    , resetNewForeach       = toMsg { f | newForeach = (defaultNewForeach call.foreachName call.foreach)}
+    , updateNewItem         = \k -> \s -> toMsg { f | newForeach = {newF | newItem = Dict.update k (always (Just s) ) newF.newItem }}
+    , editForeachName       = toMsg { f | newForeach = {newF | foreachName = (Maybe.withDefault "" call.foreachName)}, editName = True}
+    , editForeachKeys       = toMsg { f | editKeys = True }
+    }
 
 getUpdateMessages : ForeachUI -> CallForeach a -> (ForeachUI -> CallForeach a -> Msg) -> UpdateMsg
 getUpdateMessages foreachUI call toMsg =
@@ -95,34 +94,35 @@ getUpdateMessages foreachUI call toMsg =
       Just f -> List.append f [newForeach.newItem]
       Nothing -> [newForeach.newItem]
 
-    newItem = newForeach.newItem
-      |> Dict.map (\k v -> "")
+    newItem = newForeach.foreachKeys
+      |> List.map (\k -> (k, ""))
+      |> Dict.fromList
 
     newForeachItems =
-         case foreach of
-           Nothing -> Nothing
-           Just items ->
-             let
-               newKeysList = newForeach.foreachKeys
-               updatedForeach =
-                 items
-                   |> List.Extra.updateIf (\f -> (Dict.keys f) |> List.any (\k -> List.Extra.notMember k newKeysList) ) -- If an old key is not present anymore, remove it
-                     (\f -> f |> keepOnly (Set.fromList newKeysList) )
-                   |> List.Extra.updateIf (\f -> newKeysList |> List.any (\k -> List.Extra.notMember k (Dict.keys f)) ) -- If a new key is detected, insert it
-                     (\f ->
-                       let
-                         keysList  = Dict.keys f
-                         currentList = Dict.toList f
-                         newList = newKeysList
-                           |> List.Extra.filterNot (\k -> List.member k keysList)
-                           |> List.map (\k -> (k, ""))
-                       in
-                         currentList
-                           |> List.append newList
-                           |> Dict.fromList
-                     )
-             in
-                Just updatedForeach
+      case foreach of
+        Nothing -> Nothing
+        Just items ->
+          let
+            newKeysList = newForeach.foreachKeys
+            updatedForeach =
+              items
+                |> List.Extra.updateIf (\f -> (Dict.keys f) |> List.any (\k -> List.Extra.notMember k newKeysList) ) -- If an old key is not present anymore, remove it
+                  (\f -> f |> keepOnly (Set.fromList newKeysList) )
+                |> List.Extra.updateIf (\f -> newKeysList |> List.any (\k -> List.Extra.notMember k (Dict.keys f)) ) -- If a new key is detected, insert it
+                  (\f ->
+                    let
+                      keysList  = Dict.keys f
+                      currentList = Dict.toList f
+                      newList = newKeysList
+                        |> List.Extra.filterNot (\k -> List.member k keysList)
+                        |> List.map (\k -> (k, ""))
+                    in
+                      currentList
+                        |> List.append newList
+                        |> Dict.fromList
+                  )
+          in
+            Just updatedForeach
   in
     { addForeach     = toMsg { foreachUI | newForeach = { newForeach | newItem = newItem}} ( {call | foreachName = Just (if String.isEmpty newForeach.foreachName then "item" else newForeach.foreachName), foreach = Just [newItem]})
     , addNewItem     = toMsg { foreachUI | newForeach = { newForeach | newItem = newItem}} ( {call | foreach = Just newItems})
@@ -158,7 +158,6 @@ displayTabForeach uiInfo =
 
     { removeKey, updateNewForeach, updateNewForeachKey, addNewKey, resetNewForeach, updateNewItem, editForeachName, editForeachKeys } = updateUIMsg
     { addForeach, addNewItem, saveNewForeach, saveEditKeys, removeForeach } = updateMsg
-
 
     newForeach = foreachUI.newForeach
 
@@ -212,95 +211,95 @@ displayTabForeach uiInfo =
         case foreachName of
           -- Creation
           Nothing ->
-              element "div"
-                |> addClass "d-flex row gx-3"
-                |> appendChildList
-                  [ element "div"
-                    |> addClass "col-12 col-md-6"
-                    |> appendChildList
-                      [ element "div"
-                        |> addClass "form-group mb-3"
-                        |> appendChildList
-                          [ element "label"
-                            |> addClass "form-label"
-                            |> addAttribute (for "foreachName")
-                            |> appendText "Iterator name"
-                          , element "input"
-                            |> addAttributeList
-                              [ type_ "text"
-                              , class "form-control"
-                              , id "foreachName"
-                              , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
-                              , stopPropagationOn "click" (Json.Decode.succeed (DisableDragDrop, True))
-                              , onFocus DisableDragDrop
-                              , placeholder "item"
-                              , value newForeach.foreachName
-                              ]
-                            |> addInputHandler  (\s -> updateNewForeach s)
-                          ]
-                      , element "div"
-                        |> addClass "form-group"
-                        |> appendChildList
-                          [ element "label"
-                            |> addClass "form-label"
-                            |> addAttribute (for "foreachKeys")
-                            |> appendText "Iterator keys"
-                          , element "div"
-                            |> addClass "input-group"
-                            |> appendChildList
-                              [ element "input"
-                                |> addAttributeList
-                                  [ type_ "text"
-                                  , class "form-control"
-                                  , id "foreachKeys"
-                                  , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
-                                  , stopPropagationOn "click" (Json.Decode.succeed (DisableDragDrop, True))
-                                  , onFocus DisableDragDrop
-                                  , value newForeach.newKey
-                                  ]
-                                |> addInputHandler (\s -> updateNewForeachKey s)
-                              , element "button"
-                                |> addAttributeList
-                                  [ class "btn btn-default"
-                                  , type_ "button"
-                                  , disabled (String.isEmpty newForeach.newKey)
-                                  , onCustomClick addNewKey
-                                  ]
-                                |> appendChild (
-                                  element "i"
-                                  |> addClass "fa fa-plus-circle"
-                                )
-                              ]
-                          ]
-                      , element "div"
-                        |> addClass "foreach-keys mt-2"
-                        |> appendChildList (newKeys True)
-                      , element "div"
-                        |> addClass "mt-3"
-                        |> appendChildList
-                          [ element "button"
-                            |> addAttributeList
-                              [ class "btn btn-default me-3"
-                              , type_ "button"
-                              , onCustomClick resetNewForeach
-                              ]
-                            |> appendText "Reset"
-                            |> appendChild (element "i" |> addClass "fa fa-undo ms-1")
-                          , element "button"
-                            |> addAttributeList
-                              [ class "btn btn-primary"
-                              , type_ "button"
-                              , disabled (List.isEmpty newForeach.foreachKeys)
-                              , onCustomClick addForeach
-                              ]
-                            |> appendText "Add foreach"
-                            |> appendChild (element "i" |> addClass "fa fa-check ms-1")
-                          ]
-                      ]
-                  , element "div"
-                    |> addClass "col-12 col-md-6"
-                    |> appendChild infoMsg
-                  ]
+            element "div"
+              |> addClass "d-flex row gx-3"
+              |> appendChildList
+                [ element "div"
+                  |> addClass "col-12 col-md-6"
+                  |> appendChildList
+                    [ element "div"
+                      |> addClass "form-group mb-3"
+                      |> appendChildList
+                        [ element "label"
+                          |> addClass "form-label"
+                          |> addAttribute (for "foreachName")
+                          |> appendText "Iterator name"
+                        , element "input"
+                          |> addAttributeList
+                            [ type_ "text"
+                            , class "form-control"
+                            , id "foreachName"
+                            , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                            , stopPropagationOn "click" (Json.Decode.succeed (DisableDragDrop, True))
+                            , onFocus DisableDragDrop
+                            , placeholder "item"
+                            , value newForeach.foreachName
+                            ]
+                          |> addInputHandler  (\s -> updateNewForeach s)
+                        ]
+                    , element "div"
+                      |> addClass "form-group"
+                      |> appendChildList
+                        [ element "label"
+                          |> addClass "form-label"
+                          |> addAttribute (for "foreachKeys")
+                          |> appendText "Iterator keys"
+                        , element "div"
+                          |> addClass "input-group"
+                          |> appendChildList
+                            [ element "input"
+                              |> addAttributeList
+                                [ type_ "text"
+                                , class "form-control"
+                                , id "foreachKeys"
+                                , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
+                                , stopPropagationOn "click" (Json.Decode.succeed (DisableDragDrop, True))
+                                , onFocus DisableDragDrop
+                                , value newForeach.newKey
+                                ]
+                              |> addInputHandler (\s -> updateNewForeachKey s)
+                            , element "button"
+                              |> addAttributeList
+                                [ class "btn btn-default"
+                                , type_ "button"
+                                , disabled (String.isEmpty newForeach.newKey)
+                                , onCustomClick addNewKey
+                                ]
+                              |> appendChild (
+                                element "i"
+                                |> addClass "fa fa-plus-circle"
+                              )
+                            ]
+                        ]
+                    , element "div"
+                      |> addClass "foreach-keys mt-2"
+                      |> appendChildList (newKeys True)
+                    , element "div"
+                      |> addClass "mt-3"
+                      |> appendChildList
+                        [ element "button"
+                          |> addAttributeList
+                            [ class "btn btn-default me-3"
+                            , type_ "button"
+                            , onCustomClick resetNewForeach
+                            ]
+                          |> appendText "Reset"
+                          |> appendChild (element "i" |> addClass "fa fa-undo ms-1")
+                        , element "button"
+                          |> addAttributeList
+                            [ class "btn btn-primary"
+                            , type_ "button"
+                            , disabled (List.isEmpty newForeach.foreachKeys)
+                            , onCustomClick addForeach
+                            ]
+                          |> appendText "Add foreach"
+                          |> appendChild (element "i" |> addClass "fa fa-check ms-1")
+                        ]
+                    ]
+                , element "div"
+                  |> addClass "col-12 col-md-6"
+                  |> appendChild infoMsg
+                ]
 
           -- Edit
           Just name ->
@@ -398,11 +397,6 @@ displayTabForeach uiInfo =
                   element "i" |> appendText "item"
                 else
                   element "span" |> appendText name
-
-              updatedNewItem =
-                newForeach.foreachKeys
-                  |> List.map (\k -> (k, ""))
-                  |> Dict.fromList
             in
               element "div"
               |> addClass "d-flex row gx-3"
@@ -511,6 +505,7 @@ displayTabForeach uiInfo =
                           [ element "thead" |> appendChild (element "tr" |> appendChildList (List.append header [element "th" |> appendText "Action"] ))
                           , element "tbody" |> appendChildList (List.append foreachItems newItemRow)
                           ]
+                      |> appendChild (element "span" |> appendText (Debug.toString newForeach))
                       )
 
                     , element "button"

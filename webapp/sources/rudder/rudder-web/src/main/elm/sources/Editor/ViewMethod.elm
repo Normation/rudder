@@ -695,21 +695,7 @@ callBody model ui techniqueUi call pid =
                      , title "Show documentation"
                      ]
                   |> appendChild docIcon
-{--
-, div [ class "method-details-footer"] [
-          case method.documentation of
-            Just _ ->
-              let
-                classes = "btn btn-sm btn-primary " ++
-                          if List.member method.id model.methodsUI.docsOpen then "doc-opened" else ""
-              in
-                button [ class classes, type_ "button", onClick (ShowDoc call.methodName) ] [
-                  text "Show docs "
-                , i [ class "fa fa-book"] []
-                ]
-            Nothing -> text ""
-        ]
---}
+
     condition = element "div"
                 |> addClass "method-condition flex-form"
                 |> addClassConditional "d-none" (call.condition.os == Nothing && call.condition.advanced == "")

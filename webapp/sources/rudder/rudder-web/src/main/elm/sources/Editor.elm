@@ -653,21 +653,20 @@ update msg model =
 -- Edit a technique: edit one generic method
 
     UpdateCallAndUi uiInfo ->
-        let
-            (uiAction, callAction)  = case uiInfo of
-                CallUiInfo methodCallUiInfo call   ->
-                    ( UIMethodAction call.id methodCallUiInfo
-                    , MethodCallModified (Call (Just call.id) call) (Just uiInfo) -- MethodElem (Maybe UiInfo)
-                    )
-                BlockUiInfo methodBlockUiInfo block ->
-                    ( UIBlockAction block.id methodBlockUiInfo
-                    , MethodCallModified (Block (Just block.id) block) (Just uiInfo)
-                    )
-
-            (newModel, newMsg) = update uiAction model
-            (finalModel, finalMsg) = update callAction newModel
-        in
-            (finalModel, Cmd.batch[newMsg, finalMsg])
+      let
+        (uiAction, callAction)  = case uiInfo of
+          CallUiInfo methodCallUiInfo call ->
+            ( UIMethodAction call.id methodCallUiInfo
+            , MethodCallModified (Call (Just call.id) call) (Just uiInfo)
+            )
+          BlockUiInfo methodBlockUiInfo block ->
+            ( UIBlockAction block.id methodBlockUiInfo
+            , MethodCallModified (Block (Just block.id) block) (Just uiInfo)
+            )
+        (newModel, newMsg) = update uiAction model
+        (finalModel, finalMsg) = update callAction newModel
+      in
+        (finalModel, Cmd.batch[newMsg, finalMsg])
 
     UIMethodAction callId newMethodUi ->
       let

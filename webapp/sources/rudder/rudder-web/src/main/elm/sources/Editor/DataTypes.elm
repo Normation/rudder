@@ -151,11 +151,12 @@ type alias TechniqueParameter =
   }
 
 type alias TechniqueCategory =
-    { id : String
-    , name : String
-    , path : String
-    , subCategories : SubCategories
-    }
+  { id : String
+  , name : String
+  , path : String
+  , subCategories : SubCategories
+  }
+
 type SubCategories = SubCategories (List TechniqueCategory)
 
 allCategories t =
@@ -288,15 +289,10 @@ type Msg =
   | GetMethods   (Result (Http.Detailed.Error String) ( Http.Metadata, (Dict String Method) ))
   | CheckOutJson CheckMode (Result (Http.Detailed.Error String) ( Http.Metadata, Technique ))
   | CheckOutYaml CheckMode (Result (Http.Detailed.Error String) ( Http.Metadata, String ))
-
   | UIMethodAction CallId MethodCallUiInfo
   | UIBlockAction CallId MethodBlockUiInfo
-
   | UpdateCallAndUi UiInfo
-
   | MethodCallModified MethodElem (Maybe UiInfo)
-   --  MethodCallModified MethodElem
-
   | RemoveMethod CallId
   | UpdateEdition TechniqueEditInfo
   | CloneElem  MethodElem CallId
