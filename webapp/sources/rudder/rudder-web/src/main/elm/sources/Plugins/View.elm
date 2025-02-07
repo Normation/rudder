@@ -13,6 +13,7 @@ import String.Extra
 import Time.DateTime
 import Time.Iso8601
 import Time.ZonedDateTime
+import Tuple exposing (first, second)
 
 
 view : Model -> Html Msg
@@ -129,7 +130,8 @@ checkAll =
 
 actionButtons : List (Html Msg)
 actionButtons =
-    [ button [ class "btn btn-default me-1", onClick (SetModalState (OpenModal Install)) ] [ text "Install", i [ class "fa fa-plus-circle ms-1" ] [] ]
+    [ button [ class "btn btn-primary me-1", onClick (CallApi updateIndex) ] [ i [ class "fa fa-refresh me-1" ] [], text "Check for updates" ]
+    , button [ class "btn btn-default mx-1", onClick (SetModalState (OpenModal Install)) ] [ text "Install", i [ class "fa fa-plus-circle ms-1" ] [] ]
     , button [ class "btn btn-default mx-1", onClick (SetModalState (OpenModal Uninstall)) ] [ text "Uninstall", i [ class "fa fa-minus-circle ms-1" ] [] ]
     , button [ class "btn btn-default mx-1", onClick (SetModalState (OpenModal Enable)) ] [ text "Enable", i [ class "fa fa-check-circle ms-1" ] [] ]
     , button [ class "btn btn-default ms-1", onClick (SetModalState (OpenModal Disable)) ] [ text "Disable", i [ class "fa fa-ban ms-1" ] [] ]
@@ -176,71 +178,98 @@ pluginsSection model =
         ]
 
 
-displayMainLicense : Model -> Html Msg
-displayMainLicense model =
-    if model.license == noGlobalLicense then
-        text ""
+displayGlobalLicense : LicenseGlobalInfo -> Html Msg
+displayGlobalLicense license =
+    let
+        licensees =
+            license.licensees |> Maybe.map (String.join ", ") |> Maybe.withDefault "-"
 
-    else
-        let
-            licensees =
-                model.license.licensees |> Maybe.map (String.join ", ") |> Maybe.withDefault "-"
+        dateOf =
+            Time.ZonedDateTime.toDateTime >> Time.DateTime.date >> Time.Iso8601.fromDate
 
-            dateOf =
-                Time.ZonedDateTime.toDateTime >> Time.DateTime.date >> Time.Iso8601.fromDate
+        -- dates needs to be aggregated by date part of datetime
+        aggregateDates : List DateCount -> List ( String, Int )
+        aggregateDates dates =
+            dates
+                |> List.sortBy (.date >> dateOf)
+                |> List.Extra.groupWhile (\x y -> dateOf (.date x) == dateOf (.date y))
+                |> List.map (\( d, ns ) -> ( dateOf d.date, d.count + (List.map .count >> List.sum) ns ))
 
-            validityPeriod =
-                case ( model.license.startDate, model.license.endDate ) of
-                    ( Just start, Just end ) ->
-                        "from " ++ dateOf start ++ " to " ++ dateOf end
+        displayPluginDates ends =
+            String.join ", " (List.map (\( d, n ) -> d ++ " (" ++ String.Extra.pluralize " plugin)" " plugins)" n) ends)
 
-                    _ ->
-                        "-"
+        validityPeriod =
+            case ( license.startDate, license.endDates ) of
+                ( Just start, Just ends ) ->
+                    "from " ++ dateOf start ++ " to " ++ displayPluginDates (aggregateDates ends)
 
-            nbNodes =
-                model.license.maxNodes |> Maybe.map String.fromInt |> Maybe.withDefault "Unlimited"
-        in
-        div [ class "main-license" ]
-            [ div [ attribute "data-plugin" "statusInformation", class "license-card" ]
-                [ div [ id "license-information", class "license-info" ]
-                    [ h2 [ class "license-info-title" ] [ span [] [ text "License information" ], i [ class "license-icon ion ion-ribbon-b" ] [] ]
-                    , p [ class "license-information-details" ] [ text "The following license information are provided" ]
-                    , div [ class "license-information-details" ]
-                        [ table [ class "table-license" ]
-                            [ tbody []
-                                [ tr [] [ td [] [ text "Licensee:" ], td [] [ text licensees ] ]
+                _ ->
+                    "-"
 
-                                -- in individual plugin only
-                                -- , tr [] [ td [] [ text "Supported version:" ], td [] [ text "from 0.0.0-0.0.0 to 99.99.0-99.99.0" ] ]
-                                , tr [] [ td [] [ text "Validity period:" ], td [] [ text validityPeriod ] ]
-                                , tr [] [ td [] [ text "Allowed number of nodes:" ], td [] [ text nbNodes ] ]
-                                ]
+        nbNodes =
+            license.maxNodes |> Maybe.map String.fromInt |> Maybe.withDefault "Unlimited"
+    in
+    div [ class "main-license" ]
+        [ div [ attribute "data-plugin" "statusInformation", class "license-card" ]
+            [ div [ id "license-information", class "license-info" ]
+                [ h2 [ class "license-info-title" ] [ span [] [ text "License information" ], i [ class "license-icon ion ion-ribbon-b" ] [] ]
+                , p [ class "license-information-details" ] [ text "The following license information are provided" ]
+                , div [ class "license-information-details" ]
+                    [ table [ class "table-license" ]
+                        [ tbody []
+                            [ tr [] [ td [] [ text "Licensee:" ], td [] [ text licensees ] ]
+
+                            -- in individual plugin only
+                            -- , tr [] [ td [] [ text "Supported version:" ], td [] [ text "from 0.0.0-0.0.0 to 99.99.0-99.99.0" ] ]
+                            , tr [] [ td [] [ text "Validity period:" ], td [] [ text validityPeriod ] ]
+                            , tr [] [ td [] [ text "Allowed number of nodes:" ], td [] [ text nbNodes ] ]
                             ]
                         ]
                     ]
                 ]
             ]
+        ]
+
+
+displaySettingError : Model -> String -> String -> Html Msg
+displaySettingError model message details =
+    div [ class "callout-fade callout-warning overflow-scroll" ]
+        [ p [] [ i [ class "fa fa-warning" ] [], text message ]
+        , p [] [ a [ target "_blank", href (model.contextPath ++ "/secure/administration/settings") ] [ text "Open Rudder account settings", i [ class "fa fa-external-link ms-1" ] [] ] ]
+        , p []
+            [ button [ class "btn btn-primary me-1", onClick (CallApi updateIndex) ] [ i [ class "fa fa-refresh me-1" ] [], text "Refresh plugins" ]
+            , a [ class "btn btn-default", attribute "data-bs-toggle" "collapse", href "#collapseSettingsError", role "button", attribute "aria-expanded" "false", attribute "aria-controls" "collapseSettingsError" ]
+                [ text "See details" ]
+            ]
+        , div [ class "collapse", id "collapseSettingsError" ]
+            [ div [ class "card card-body" ]
+                [ pre [ class "command-output" ]
+                    [ text details
+                    ]
+                ]
+            ]
+        ]
+
+
+displayMainLicense : Model -> Html Msg
+displayMainLicense model =
+    case model.license of
+        Nothing ->
+            displaySettingError model "No license found" ("Installed plugins : " ++ String.join "," (List.map .id model.plugins))
+
+        Just license ->
+            if license == noGlobalLicense then
+                displaySettingError model "Empty license found" ("Installed plugins : " ++ String.join "," (List.map .id model.plugins))
+
+            else
+                displayGlobalLicense license
 
 
 displaySettingsErrorOrHtml : Model -> Html Msg -> Html Msg
 displaySettingsErrorOrHtml model orHtml =
     case model.ui.settingsError of
         Just ( message, details ) ->
-            div [ class "callout-fade callout-warning overflow-scroll" ]
-                [ p [] [ i [ class "fa fa-warning" ] [], text message ]
-                , p [] [ a [ target "_blank", href (model.contextPath ++ "/secure/administration/settings") ] [ text "Open Rudder account settings", i [ class "fa fa-external-link ms-1" ] [] ] ]
-                , p []
-                    [ a [ class "btn btn-default", attribute "data-bs-toggle" "collapse", href "#collapseSettingsError", role "button", attribute "aria-expanded" "false", attribute "aria-controls" "collapseSettingsError" ]
-                        [ text "See details" ]
-                    ]
-                , div [ class "collapse", id "collapseSettingsError" ]
-                    [ div [ class "card card-body" ]
-                        [ pre [ class "command-output" ]
-                            [ text details
-                            ]
-                        ]
-                    ]
-                ]
+            displaySettingError model message details
 
         Nothing ->
             orHtml

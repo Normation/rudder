@@ -38,6 +38,7 @@
 package com.normation.plugins
 
 import better.files.File
+import cats.Semigroup
 import com.normation.errors.*
 import com.normation.plugins.PluginSystemStatus.Disabled
 import com.normation.plugins.PluginSystemStatus.Enabled
@@ -93,73 +94,153 @@ final case class JsonPluginsDetails(
     details:      Seq[JsonPluginDetails]
 )
 object JsonPluginsDetails {
+  import GlobalPluginsLicense.EndDateImplicits.minZonedDateTime
   implicit val encoderJsonPluginsDetails: JsonEncoder[JsonPluginsDetails] = DeriveJsonEncoder.gen
 
   def buildDetails(plugins: Seq[JsonPluginDetails]): JsonPluginsDetails = {
-    val limits = JsonGlobalPluginLimits.getGlobalLimits(plugins.flatMap(_.license))
-    JsonPluginsDetails(limits, plugins)
+    val global = GlobalPluginsLicense.from[ZonedDateTime](plugins.flatMap(_.license))
+    JsonPluginsDetails(global.map(JsonGlobalPluginLimits.fromGlobalLicense), plugins)
+  }
+}
+
+/**
+  * Base structure for an aggregated view of licenses for multiple plugins.
+  * In this file implementations need different types for the endDate field, and need them to be serializable.
+  * 
+  * We should pay attention to the JsonEncoder of this base structure : we want an encoder for it,
+  * but it should dispatch the encoding to case class structures that are implementing the values.
+  */
+sealed abstract class GlobalPluginsLicense[EndDate](
+    val licensees: Option[NonEmptyChunk[String]],
+    // for now, min/max version is not used and is always 00-99
+    val startDate: Option[ZonedDateTime],
+    val endDate:   Option[EndDate],
+    val maxNodes:  Option[Int]
+) {
+  import GlobalPluginsLicense.*
+
+  // for efficiency : check equality and hash first before field comparison,
+  // as it will mostly be the case because license information should be similar
+  def combine(that: GlobalPluginsLicense[EndDate])(implicit endSemigroup: Semigroup[EndDate]) = {
+    def combineOptField[A](toa: GlobalPluginsLicense[EndDate] => Option[A])(f: (A, A) => A): Option[A] = {
+      implicit val s: Semigroup[A] = Semigroup.instance(f)
+      Semigroup[Option[A]].combine(toa(this), toa(that))
+    }
+    if (this == that) this
+    else {
+      new GlobalPluginsLicense[EndDate](
+        combineOptField(_.licensees)(_ ++ _),
+        combineOptField(_.startDate)((x, y) => if (x.isAfter(y)) x else y),
+        combineOptField(_.endDate)(endSemigroup.combine),
+        combineOptField(_.maxNodes)(_.min(_))
+      ) {}
+    }
+  }
+
+  private[GlobalPluginsLicense] def sortDistinctLicensees: GlobalPluginsLicense[EndDate] = {
+    withLicensees(licensees.map(_.sorted.distinct).flatMap(NonEmptyChunk.fromChunk))
+  }
+
+  protected def withLicensees(licensees: Option[NonEmptyChunk[String]]): GlobalPluginsLicense[EndDate] = {
+    new GlobalPluginsLicense[EndDate](
+      licensees,
+      startDate,
+      endDate,
+      maxNodes
+    ) {}
+  }
+}
+
+object GlobalPluginsLicense {
+  import DateFormaterService.JodaTimeToJava
+
+  /**
+    * Typeclass for proving that a type can be constructed from a Java ZonedDateTime.
+    * This should be a functor to allow building wrapping datastructures but is limited to supported ones for now.
+    */
+  sealed private trait ToEndDate[T] {
+    def fromZonedDateTime(date: ZonedDateTime): T
+  }
+  private object ToEndDate          {
+    def apply[T](implicit ev: ToEndDate[T]) = ev
+
+    implicit val id: ToEndDate[ZonedDateTime] = new ToEndDate[ZonedDateTime] {
+      def fromZonedDateTime(date: ZonedDateTime): ZonedDateTime = date
+    }
+
+    implicit val dateCounts: ToEndDate[DateCounts] = new ToEndDate[DateCounts] {
+      override def fromZonedDateTime(date: ZonedDateTime): DateCounts = DateCounts.one(date)
+    }
+  }
+
+  final case class DateCount(date: ZonedDateTime, count: Int)
+  // Dedicated structure for counts by date. Encoded as json list but using a Map for unicity when grouping by date (could be an opaque type)
+  final case class DateCounts(value: Map[ZonedDateTime, DateCount]) {
+    def values: Iterable[DateCount] = value.values
+  }
+  object DateCounts                                                 {
+    // single date count is has a count of 1, upon aggregation counts will be added
+    def one(date: ZonedDateTime): DateCounts = DateCounts(Map(date -> DateCount(date, 1)))
+
+    implicit object semigroup extends Semigroup[DateCounts] {
+      override def combine(a: DateCounts, b: DateCounts): DateCounts = {
+        DateCounts((a.value.toList ::: b.value.toList).groupBy { case (date, _) => date }.map {
+          case (k, v) => k -> DateCount(k, v.map { case (_, dc) => dc.count }.sum)
+        }.toMap)
+      }
+    }
+  }
+
+  // Instances for aggregating plugin licenses : end date has specific combination logic needing public typeclass instances
+  object EndDateImplicits {
+    // this instance is specifically to take the mininum of dates, for end date
+    implicit val minZonedDateTime: Semigroup[ZonedDateTime] = Semigroup.instance((x, y) => if (x.isBefore(y)) x else y)
+  }
+
+  def fromLicenseInfo[T: ToEndDate: Semigroup](info: PluginLicenseInfo): GlobalPluginsLicense[T] = {
+    new GlobalPluginsLicense[T](
+      Some(NonEmptyChunk(info.licensee)),
+      Some(info.startDate.toJava),
+      Some(ToEndDate[T].fromZonedDateTime(info.endDate.toJava)),
+      info.maxNodes
+    ) {}
+  }
+
+  def from[T: ToEndDate: Semigroup](licenses: Seq[PluginLicenseInfo]): Option[GlobalPluginsLicense[T]] = {
+    NonEmptyChunk
+      .fromIterableOption(licenses)
+      .map(from(_))
+      .flatMap(r => Option.when(r != empty)(r))
+  }
+
+  private def empty = new GlobalPluginsLicense[Unit](None, None, None, None) {}
+
+  private def from[T: ToEndDate: Semigroup](licenses: NonEmptyChunk[PluginLicenseInfo]): GlobalPluginsLicense[T] = {
+    licenses
+      .reduceMapLeft(fromLicenseInfo(_)) { case (lim, lic) => lim.combine(fromLicenseInfo(lic)) }
+      .sortDistinctLicensees
   }
 }
 
 /*
- * Global limit information about plugins (the most restrictive)
+ * Global limit information about plugins (the most restrictive, with the minimum end date )
  */
 final case class JsonGlobalPluginLimits(
-    licensees: Option[NonEmptyChunk[String]],
-    // for now, min/max version is not used and is always 00-99
-    startDate: Option[ZonedDateTime],
-    endDate:   Option[ZonedDateTime],
-    maxNodes:  Option[Int]
-) {
-  import JsonGlobalPluginLimits.*
-  def combine(that: JsonGlobalPluginLimits): JsonGlobalPluginLimits = {
-    // for efficiency : check equality and hash first before field comparison,
-    // as it will mostly be the case because license information should be similar
-    if (this == that) this
-    else {
-      JsonGlobalPluginLimits(
-        comp[NonEmptyChunk[String]](this.licensees, that.licensees, _ ++ _),
-        comp[ZonedDateTime](this.startDate, that.startDate, (x, y) => if (x.isAfter(y)) x else y),
-        comp[ZonedDateTime](this.endDate, that.endDate, (x, y) => if (x.isBefore(y)) x else y),
-        comp[Int](this.maxNodes, that.maxNodes, (x, y) => if (x < y) x else y)
-      )
-    }
-  }
-}
+    override val licensees: Option[NonEmptyChunk[String]],
+    override val startDate: Option[ZonedDateTime],
+    override val endDate:   Option[ZonedDateTime],
+    override val maxNodes:  Option[Int]
+) extends GlobalPluginsLicense[ZonedDateTime](licensees, startDate, endDate, maxNodes)
+
 object JsonGlobalPluginLimits {
-  import DateFormaterService.JodaTimeToJava
   import DateFormaterService.json.encoderZonedDateTime
+
   implicit val encoderGlobalPluginLimits: JsonEncoder[JsonGlobalPluginLimits] = DeriveJsonEncoder.gen
 
-  def fromLicenseInfo(info: PluginLicenseInfo): JsonGlobalPluginLimits = {
-    JsonGlobalPluginLimits(
-      Some(NonEmptyChunk(info.licensee)),
-      Some(info.startDate.toJava),
-      Some(info.endDate.toJava),
-      info.maxNodes
-    )
-  }
-
-  def empty = JsonGlobalPluginLimits(None, None, None, None)
-  // from a list of plugins, create the global limits
-  def getGlobalLimits(licenses: Seq[PluginLicenseInfo]): Option[JsonGlobalPluginLimits] = {
-    NonEmptyChunk
-      .fromIterableOption(licenses)
-      .map(getGlobalLimits(_))
-      .flatMap(r => Option.when(r != empty)(r))
-  }
-
-  def getGlobalLimits(licenses: NonEmptyChunk[PluginLicenseInfo]): JsonGlobalPluginLimits = {
-    val res                     = licenses.reduceMapLeft(fromLicenseInfo) { case (lim, lic) => lim.combine(fromLicenseInfo(lic)) }
-    val sortedDistinctLicensees = res.licensees.map(_.sorted.distinct).flatMap(NonEmptyChunk.fromChunk)
-    res.copy(licensees = sortedDistinctLicensees)
-  }
-
-  private def comp[A](a: Option[A], b: Option[A], compare: (A, A) => A): Option[A] = (a, b) match {
-    case (None, None)       => None
-    case (Some(x), None)    => Some(x)
-    case (None, Some(y))    => Some(y)
-    case (Some(x), Some(y)) => Some(compare(x, y))
+  // upcast the global licenses after aggregation
+  def fromGlobalLicense(license: GlobalPluginsLicense[ZonedDateTime]): JsonGlobalPluginLimits = {
+    import license.*
+    JsonGlobalPluginLimits(licensees, startDate, endDate, maxNodes)
   }
 }
 
@@ -415,7 +496,7 @@ object PluginManagementError       {
 }
 
 case class PluginId(value: String) extends AnyVal
-object PluginId                  {
+object PluginId           {
   implicit val decoder:     JsonDecoder[PluginId]         = JsonDecoder[String].mapOrFail(parse)
   implicit val encoder:     JsonEncoder[PluginId]         = JsonEncoder[String].contramap(_.value)
   implicit val transformer: Transformer[PluginId, String] = Transformer.derive[PluginId, String]
@@ -433,18 +514,64 @@ object PluginId                  {
   }
 }
 
+final case class JsonPluginsLicense(
+    licensees: Option[NonEmptyChunk[String]],
+    startDate: Option[ZonedDateTime],
+    endDates:  Option[GlobalPluginsLicense.DateCounts],
+    maxNodes:  Option[Int]
+)
+object JsonPluginsLicense {
+
+  import DateFormaterService.JodaTimeToJava
+  import GlobalPluginsLicense.*
+
+  implicit val dateFieldEncoder: JsonFieldEncoder[ZonedDateTime] =
+    JsonFieldEncoder[String].contramap(DateFormaterService.serializeZDT)
+
+  implicit val dateCountEncoder:  JsonEncoder[DateCount]          = DeriveJsonEncoder.gen[DateCount]
+  implicit val dateCountsEncoder: JsonEncoder[DateCounts]         = JsonEncoder[Chunk[DateCount]].contramap(m => Chunk.from(m.values))
+  implicit val encoder:           JsonEncoder[JsonPluginsLicense] = DeriveJsonEncoder.gen[JsonPluginsLicense]
+
+  // copy the endDate to endDates
+  def from(global: GlobalPluginsLicenseCounts): JsonPluginsLicense = {
+    import global.*
+    JsonPluginsLicense(licensees, startDate, endDate, maxNodes)
+  }
+}
+
+/**
+  * Global license information about many plugins, aggregated such that :
+  *  - more than 1 distinct licensees can exist for the collection of all plugins
+  *  - end date of plugins licenses are aggregated with counts, so that we know how many plugin license expire at a given date
+  **/
+final case class GlobalPluginsLicenseCounts(
+    override val licensees: Option[NonEmptyChunk[String]],
+    override val startDate: Option[ZonedDateTime],
+    // serves for the aggregation, but the json field is "endDates"
+    override val endDate:   Option[GlobalPluginsLicense.DateCounts],
+    override val maxNodes:  Option[Int]
+) extends GlobalPluginsLicense(licensees, startDate, endDate, maxNodes)
+
+object GlobalPluginsLicenseCounts {
+  // upcast the global licenses after aggregation
+  def fromGlobalLicense(license: GlobalPluginsLicense[GlobalPluginsLicense.DateCounts]): GlobalPluginsLicenseCounts = {
+    import license.*
+    GlobalPluginsLicenseCounts(licensees, startDate, endDate, maxNodes)
+  }
+}
+
 final case class JsonPluginsSystemDetails(
-    license: Option[JsonGlobalPluginLimits],
+    license: Option[JsonPluginsLicense],
     plugins: Chunk[JsonPluginSystemDetails]
 )
-object JsonPluginsSystemDetails  {
+object JsonPluginsSystemDetails   {
   import JsonPluginSystemDetails.*
 
   implicit val encoder: JsonEncoder[JsonPluginsSystemDetails] = DeriveJsonEncoder.gen[JsonPluginsSystemDetails]
 
   def buildDetails(plugins: Chunk[JsonPluginSystemDetails]): JsonPluginsSystemDetails = {
-    val limits = JsonGlobalPluginLimits.getGlobalLimits(plugins.flatMap(_.license))
-    JsonPluginsSystemDetails(limits, plugins)
+    val global = GlobalPluginsLicense.from[GlobalPluginsLicense.DateCounts](plugins.flatMap(_.license))
+    JsonPluginsSystemDetails(global.map(g => JsonPluginsLicense.from(GlobalPluginsLicenseCounts.fromGlobalLicense(g))), plugins)
   }
 }
 final case class JsonPluginSystemDetails(
@@ -465,7 +592,7 @@ final case class JsonPluginManagementError(
     error:   String,
     message: String
 )
-object JsonPluginManagementError {
+object JsonPluginManagementError  {
   implicit val transformer: Transformer[PluginManagementError, JsonPluginManagementError] = {
     Transformer
       .define[PluginManagementError, JsonPluginManagementError]
@@ -579,7 +706,7 @@ object RudderPackagePlugin     {
 trait RudderPackageService {
   import RudderPackageService.*
 
-  def updateBase(): IOResult[Option[CredentialError]]
+  def update(): IOResult[Option[CredentialError]]
 
   def listAllPlugins(): IOResult[Chunk[RudderPackagePlugin]]
 
@@ -619,7 +746,7 @@ class RudderPackageCmdService(configCmdLine: String) extends RudderPackageServic
     case h :: tail => Right((h, tail))
   }
 
-  override def updateBase(): IOResult[Option[CredentialError]] = {
+  override def update(): IOResult[Option[CredentialError]] = {
     // In case of error we need to check the result
     for {
       res          <- runCmd("update" :: Nil)
@@ -699,8 +826,8 @@ class RudderPackageCmdService(configCmdLine: String) extends RudderPackageServic
   */
 trait PluginSystemService {
 
-  def list(): IOResult[Either[CredentialError, Chunk[JsonPluginSystemDetails]]]
-
+  def updateIndex(): IOResult[Option[CredentialError]]
+  def list():        IOResult[Chunk[JsonPluginSystemDetails]]
   def install(plugins:     Chunk[PluginId]): IOResult[Unit]
   def remove(plugins:      Chunk[PluginId]): IOResult[Unit]
   def updateStatus(status: PluginSystemStatus, plugins: Chunk[PluginId]): IOResult[Unit]
@@ -711,8 +838,12 @@ trait PluginSystemService {
   * Implementation for tests, will do any operation without any error
   */
 class InMemoryPluginSystemService(ref: Ref[Map[PluginId, JsonPluginSystemDetails]]) extends PluginSystemService {
-  override def list(): UIO[Either[CredentialError, Chunk[JsonPluginSystemDetails]]] = {
-    ref.get.map(m => Right(Chunk.fromIterable(m.values)))
+  override def updateIndex(): IOResult[Option[CredentialError]] = {
+    ZIO.none
+  }
+
+  override def list(): UIO[Chunk[JsonPluginSystemDetails]] = {
+    ref.get.map(m => Chunk.fromIterable(m.values))
   }
 
   override def install(plugins: Chunk[PluginId]): UIO[Unit] = {

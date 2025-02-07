@@ -256,7 +256,7 @@ object RudderJsonResponse {
       }
     }
 
-    implicit class ToLiftResponseOne[A](result: IOResult[A])  {
+    implicit class ToLiftResponseOne[A](result: IOResult[A]) {
       // ADT that matches error or success to determine the id value to use/compute
       sealed trait IdTrace {
         // if no computed id is given, we use the constant one
@@ -353,6 +353,44 @@ object RudderJsonResponse {
       ): LiftResponse = {
         toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), SuccessIdTrace(id))(JsonEncoder[B], ev)
       }
+
+      // create a response from specific API errors modeled as an Either[ResponseError, Any] (the "zero" is for : "there is nothing on the right")
+      private def toLiftResponseZeroEither(
+          params: DefaultParams,
+          schema: ResponseSchema,
+          id:     IdTrace
+      )(implicit ev: A <:< Either[ResponseError, Any]): LiftResponse = {
+        implicit val prettify = params.prettify
+        result
+          .fold(
+            err => {
+              ApiLogger.ResponseError.info(err.fullMsg)
+              internalError(None, schema, err.fullMsg)
+            },
+            either => {
+              ev.apply(either) match {
+                case Left(e)  =>
+                  e match {
+                    case UnauthorizedError(errorMsg) => unauthorizedError(id.error, schema, errorMsg)
+                  }
+                case Right(_) =>
+                  successZero(schema)
+              }
+            }
+          )
+          .runNow
+      }
+      def toLiftResponseZeroEither(params: DefaultParams, schema: EndpointSchema, id: Option[String])(implicit
+          ev: A <:< Either[ResponseError, Any]
+      ): LiftResponse = {
+        toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), ConstIdTrace(id))(ev)
+      }
+      def toLiftResponseZeroEither(params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(implicit
+          ev: A <:< Either[ResponseError, Any]
+      ): LiftResponse = {
+        toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), SuccessIdTrace(id))(ev)
+      }
+
     }
     // when you don't have any response, just a success
     implicit class ToLiftResponseZero(result: IOResult[Unit]) {

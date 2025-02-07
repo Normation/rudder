@@ -8,6 +8,7 @@ import Bytes.Decode
 import Http.Detailed as Detailed
 import Json.Decode exposing (..)
 import List exposing (drop, head)
+import Plugins.ApiCalls exposing (getPluginInfos)
 import Plugins.DataTypes exposing (..)
 import Plugins.Init exposing (init, subscriptions)
 import Plugins.View exposing (view)
@@ -55,10 +56,14 @@ update msg model =
                 Err err ->
                     processApiErrorString "Error while fetching information" err model
 
+        -- We want to update all plugins information every time the index is updated
+        ApiPostPlugins (Ok UpdateIndex) ->
+            ( model, Cmd.batch [ successNotification ("Plugin " ++ requestTypeText UpdateIndex ++ " successful"), getPluginInfos model ] )
+
         ApiPostPlugins res ->
             case res of
                 Ok t ->
-                    ( model, successNotification ("Plugin " ++ requestTypeText t ++ " successfull, the server should restart") )
+                    ( model, successNotification ("Plugin " ++ requestTypeText t ++ " successful") )
 
                 Err err ->
                     processApiErrorBytes "Error while fetching information" err model

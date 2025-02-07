@@ -370,16 +370,14 @@ class PluginSystemServiceImpl(
     pluginDefs:           => Map[PluginName, RudderPluginDef],
     rudderFullVersion:    String
 ) extends PluginSystemService {
+  override def updateIndex(): IOResult[Option[CredentialError]] = {
+    rudderPackageService.update()
+  }
 
-  override def list(): IOResult[Either[CredentialError, Chunk[JsonPluginSystemDetails]]] = {
-    for {
-      optError             <- rudderPackageService.updateBase()
-      rudderPackagePlugins <- rudderPackageService.listAllPlugins()
-    } yield {
-      optError.toLeft(
-        rudderPackagePlugins.map(mergePluginDef(_))
-      )
-    }
+  override def list(): IOResult[Chunk[JsonPluginSystemDetails]] = {
+    rudderPackageService
+      .listAllPlugins()
+      .map(_.map(mergePluginDef(_)))
   }
 
   override def install(plugins: Chunk[PluginId]): IOResult[Unit] = {

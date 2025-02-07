@@ -10,7 +10,7 @@ import Time.ZonedDateTime exposing (ZonedDateTime)
 
 
 type alias PluginsInfo =
-    { license : LicenseGlobalInfo
+    { license : Maybe LicenseGlobalInfo
     , plugins : List PluginInfo
     }
 
@@ -18,8 +18,14 @@ type alias PluginsInfo =
 type alias LicenseGlobalInfo =
     { licensees : Maybe (List String)
     , startDate : Maybe ZonedDateTime
-    , endDate : Maybe ZonedDateTime
+    , endDates : Maybe (List DateCount)
     , maxNodes : Maybe Int
+    }
+
+
+type alias DateCount =
+    { date : ZonedDateTime
+    , count : Int
     }
 
 
@@ -81,7 +87,7 @@ type ModalState
 
 type alias Model =
     { contextPath : String
-    , license : LicenseGlobalInfo
+    , license : Maybe LicenseGlobalInfo
     , plugins : List PluginInfo
     , ui : UI
     }
@@ -99,6 +105,7 @@ type RequestType
     | Uninstall
     | Enable
     | Disable
+    | UpdateIndex
 
 
 type Msg
@@ -129,6 +136,9 @@ requestTypeText t =
 
         Disable ->
             "disable"
+
+        UpdateIndex ->
+            "index update"
 
 
 processSelect : Select -> Model -> Model
@@ -176,7 +186,7 @@ noGlobalLicense : LicenseGlobalInfo
 noGlobalLicense =
     { licensees = Nothing
     , startDate = Nothing
-    , endDate = Nothing
+    , endDates = Nothing
     , maxNodes = Nothing
     }
 

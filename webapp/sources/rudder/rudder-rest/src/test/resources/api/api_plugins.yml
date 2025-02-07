@@ -13,7 +13,12 @@ response:
             "test-licensee"
           ],
           "startDate" : "2025-01-10T21:53:20+01:00",
-          "endDate" : "2025-01-10T21:53:20+01:00",
+          "endDates" : [
+            {
+              "date" : "2025-01-10T21:53:20+01:00",
+              "count" : 1
+            }
+          ],
           "maxNodes" : 1000000
         },
         "plugins" : [
@@ -120,7 +125,12 @@ response:
             "test-licensee"
           ],
           "startDate" : "2025-01-10T21:53:20+01:00",
-          "endDate" : "2025-01-10T21:53:20+01:00",
+          "endDates" : [
+            {
+              "date" : "2025-01-10T21:53:20+01:00",
+              "count" : 1
+            }
+          ],
           "maxNodes" : 1000000
         },
         "plugins" : [
@@ -211,7 +221,12 @@ response:
             "test-licensee"
           ],
           "startDate" : "2025-01-10T21:53:20+01:00",
-          "endDate" : "2025-01-10T21:53:20+01:00",
+          "endDates" : [
+            {
+              "date" : "2025-01-10T21:53:20+01:00",
+              "count" : 1
+            }
+          ],
           "maxNodes" : 1000000
         },
         "plugins" : [
@@ -302,7 +317,12 @@ response:
             "test-licensee"
           ],
           "startDate" : "2025-01-10T21:53:20+01:00",
-          "endDate" : "2025-01-10T21:53:20+01:00",
+          "endDates" : [
+            {
+              "date" : "2025-01-10T21:53:20+01:00",
+              "count" : 1
+            }
+          ],
           "maxNodes" : 1000000
         },
         "plugins" : [
@@ -393,7 +413,12 @@ response:
             "test-licensee"
           ],
           "startDate" : "2025-01-10T21:53:20+01:00",
-          "endDate" : "2025-01-10T21:53:20+01:00",
+          "endDates" : [
+            {
+              "date" : "2025-01-10T21:53:20+01:00",
+              "count" : 1
+            }
+          ],
           "maxNodes" : 1000000
         },
         "plugins" : [
