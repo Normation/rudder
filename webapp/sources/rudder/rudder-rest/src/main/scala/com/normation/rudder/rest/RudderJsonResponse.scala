@@ -124,8 +124,19 @@ object RudderJsonResponse {
     def fromSchema(schema: EndpointSchema): ResponseSchema = ResponseSchema(schema.name, schema.dataContainer)
   }
 
-  sealed trait ResponseError
+  sealed trait ResponseError {
+    def errorMsg: Option[String]
+    def toLiftErrorResponse(id: Option[String], schema: ResponseSchema)(implicit
+        prettify: Boolean
+    ): LiftResponse = this match {
+      case UnauthorizedError(errorMsg) => unauthorizedError(id, schema, errorMsg)
+      case ForbiddenError(errorMsg)    => forbiddenError(id, schema, errorMsg)
+      case NotFoundError(errorMsg)     => notFoundError(id, schema, errorMsg)
+    }
+  }
   final case class UnauthorizedError(errorMsg: Option[String]) extends ResponseError
+  final case class ForbiddenError(errorMsg: Option[String]) extends ResponseError
+  final case class NotFoundError(errorMsg: Option[String])  extends ResponseError
 
   //////////////////////////// utility methods to build responses ////////////////////////////
 
@@ -224,12 +235,12 @@ object RudderJsonResponse {
   ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
     generic.unauthorizedError(JsonRudderApiResponse.error(id, schema, errorMsg))
   }
-  def notFoundError(id: Option[String], schema: ResponseSchema, errorMsg: String)(implicit
+  def notFoundError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(implicit
       prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
     generic.notFoundError(JsonRudderApiResponse.error(id, schema, errorMsg))
   }
-  def forbiddenError(id: Option[String], schema: ResponseSchema, errorMsg: String)(implicit
+  def forbiddenError(id: Option[String], schema: ResponseSchema, errorMsg: Option[String])(implicit
       prettify: Boolean
   ): LiftJsonResponse[JsonRudderApiResponse[Unit]] = {
     generic.forbiddenError(JsonRudderApiResponse.error(id, schema, errorMsg))
@@ -332,12 +343,8 @@ object RudderJsonResponse {
             },
             either => {
               ev.apply(either) match {
-                case Left(e)  =>
-                  e match {
-                    case UnauthorizedError(errorMsg) => unauthorizedError(id.error, schema, errorMsg)
-                  }
-                case Right(b) =>
-                  successOne[B](schema, b, id.success(either))
+                case Left(e)  => e.toLiftErrorResponse(id.error, schema)
+                case Right(b) => successOne[B](schema, b, id.success(either))
               }
             }
           )
@@ -354,8 +361,7 @@ object RudderJsonResponse {
         toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), SuccessIdTrace(id))(JsonEncoder[B], ev)
       }
 
-      // create a response from specific API errors modeled as an Either[ResponseError, Any] (the "zero" is for : "there is nothing on the right")
-      private def toLiftResponseZeroEither(
+      def toLiftResponseZeroEither(
           params: DefaultParams,
           schema: ResponseSchema,
           id:     IdTrace
@@ -369,12 +375,8 @@ object RudderJsonResponse {
             },
             either => {
               ev.apply(either) match {
-                case Left(e)  =>
-                  e match {
-                    case UnauthorizedError(errorMsg) => unauthorizedError(id.error, schema, errorMsg)
-                  }
-                case Right(_) =>
-                  successZero(schema)
+                case Left(e)  => e.toLiftErrorResponse(id.error, schema)
+                case Right(_) => successZero(schema)
               }
             }
           )

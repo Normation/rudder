@@ -43,6 +43,7 @@ import com.normation.plugins.PluginId
 import com.normation.plugins.PluginSettings
 import com.normation.plugins.PluginSystemService
 import com.normation.plugins.PluginSystemStatus
+import com.normation.plugins.RudderPackageService.PluginSettingsError
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.rest.ApiModuleProvider
@@ -87,7 +88,11 @@ class PluginInternalApi(
         .updateIndex()
         .chainError("Could not update plugins index")
         .tapError(err => ApplicationLoggerPure.Plugin.error(err.fullMsg))
-        .map(_.map(err => RudderJsonResponse.UnauthorizedError(Some(err.msg))).toLeft(()))
+        .map(_.map {
+          // the corresponding HTTP errors are the following ones
+          case PluginSettingsError.InvalidCredentials(msg) => RudderJsonResponse.UnauthorizedError(Some(msg))
+          case PluginSettingsError.Unauthorized(msg)       => RudderJsonResponse.ForbiddenError(Some(msg))
+        }.toLeft(()))
         .toLiftResponseZeroEither(params, schema, None)
     }
 

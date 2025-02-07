@@ -154,7 +154,7 @@ class EditorTechniqueReaderImpl(
       _         <-
         ZIO.when(res.code != 0)(
           Inconsistency(
-            s"An error occurred while updating generic methods library with command '${cmd.display}':\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
+            s"An error occurred while updating generic methods library with command '${cmd.display}':\n ${res.debugString(sep = "\n ")}"
           ).fail
         )
       // write file

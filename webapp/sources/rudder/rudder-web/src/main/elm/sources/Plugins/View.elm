@@ -1,6 +1,6 @@
 module Plugins.View exposing (..)
 
-import Html exposing (Html, a, button, div, h1, h2, h3, i, input, label, li, p, pre, span, table, tbody, td, text, tr, ul)
+import Html exposing (Html, a, button, div, h1, h2, h3, i, input, label, li, p, pre, span, strong, table, tbody, td, text, tr, ul)
 import Html.Attributes exposing (attribute, checked, class, disabled, for, href, id, style, target, type_)
 import Html.Attributes.Extra exposing (role)
 import Html.Events exposing (onCheck, onClick)
@@ -13,27 +13,10 @@ import String.Extra
 import Time.DateTime
 import Time.Iso8601
 import Time.ZonedDateTime
-import Tuple exposing (first, second)
 
 
 view : Model -> Html Msg
 view model =
-    let
-        plugins =
-            model.plugins
-
-        content =
-            div [ class "main-details" ]
-                [ displayMainLicense model
-                , displaySettingsErrorOrHtml model
-                    (if List.isEmpty plugins then
-                        i [ class "text-secondary" ] [ text "There are no plugins installed" ]
-
-                     else
-                        pluginsSection model
-                    )
-                ]
-    in
     div [ class "rudder-template" ]
         [ div [ class "one-col w-100" ]
             [ div [ class "main-header" ]
@@ -54,7 +37,10 @@ view model =
                 ]
             , div [ class "one-col-main" ]
                 [ div [ class "template-main" ]
-                    [ div [ class "main-container" ] [ content ]
+                    [ div [ class "main-container" ]
+                        [ div [ class "main-details" ]
+                            (loadWithSpinner "spinner-border" model.ui.loading (displayPluginView model))
+                        ]
                     ]
                 ]
             , displayModal model
@@ -128,14 +114,23 @@ checkAll =
            )
 
 
-actionButtons : List (Html Msg)
-actionButtons =
+actionButtons : Model -> List (Html Msg)
+actionButtons model =
     [ button [ class "btn btn-primary me-1", onClick (CallApi updateIndex) ] [ i [ class "fa fa-refresh me-1" ] [], text "Check for updates" ]
-    , button [ class "btn btn-default mx-1", onClick (SetModalState (OpenModal Install)) ] [ text "Install", i [ class "fa fa-plus-circle ms-1" ] [] ]
-    , button [ class "btn btn-default mx-1", onClick (SetModalState (OpenModal Uninstall)) ] [ text "Uninstall", i [ class "fa fa-minus-circle ms-1" ] [] ]
-    , button [ class "btn btn-default mx-1", onClick (SetModalState (OpenModal Enable)) ] [ text "Enable", i [ class "fa fa-check-circle ms-1" ] [] ]
-    , button [ class "btn btn-default ms-1", onClick (SetModalState (OpenModal Disable)) ] [ text "Disable", i [ class "fa fa-ban ms-1" ] [] ]
+    , button [ class "btn btn-default mx-1", disabled <| List.isEmpty model.ui.selected, onClick (SetModalState (OpenModal Install)) ] [ text "Install", i [ class "fa fa-plus-circle ms-1" ] [] ]
+    , button [ class "btn btn-default mx-1", disabled <| List.isEmpty model.ui.selected, onClick (SetModalState (OpenModal Uninstall)) ] [ text "Uninstall", i [ class "fa fa-minus-circle ms-1" ] [] ]
+    , button [ class "btn btn-default mx-1", disabled <| List.isEmpty model.ui.selected, onClick (SetModalState (OpenModal Enable)) ] [ text "Enable", i [ class "fa fa-check-circle ms-1" ] [] ]
+    , button [ class "btn btn-default ms-1", disabled <| List.isEmpty model.ui.selected, onClick (SetModalState (OpenModal Disable)) ] [ text "Disable", i [ class "fa fa-ban ms-1" ] [] ]
     ]
+
+
+displayPluginsList : Model -> Html Msg
+displayPluginsList model =
+    if List.isEmpty model.plugins then
+        i [ class "text-secondary" ] [ text "There are no plugins available." ]
+
+    else
+        pluginsSection model
 
 
 pluginsSection : Model -> Html Msg
@@ -170,7 +165,7 @@ pluginsSection model =
         [ div [ class "table-container plugins-container" ]
             [ div [ class "dataTables_wrapper_top table-filter plugins-actions" ]
                 [ div [ class "start" ] selectHtml
-                , div [ class "end" ] actionButtons
+                , div [ class "end" ] (actionButtons model)
                 ]
             , h2 [ class "fs-5 p-3 m-0" ] [ text "Features" ]
             , div [ class "plugins-list" ] (List.map (displayPlugin model) plugins)
@@ -255,24 +250,26 @@ displayMainLicense : Model -> Html Msg
 displayMainLicense model =
     case model.license of
         Nothing ->
-            displaySettingError model "No license found" ("Installed plugins : " ++ String.join "," (List.map .id model.plugins))
+            displaySettingError model "No license found. Please contact Rudder to get license or configure your access" ("Available plugins : [" ++ String.join ", " (List.map .id model.plugins) ++ "]")
 
         Just license ->
             if license == noGlobalLicense then
-                displaySettingError model "Empty license found" ("Installed plugins : " ++ String.join "," (List.map .id model.plugins))
+                displaySettingError model "Empty license found. Please contact Rudder to get license or configure your access" ("Available plugins : [" ++ String.join ", " (List.map .id model.plugins) ++ "]")
 
             else
                 displayGlobalLicense license
 
 
-displaySettingsErrorOrHtml : Model -> Html Msg -> Html Msg
-displaySettingsErrorOrHtml model orHtml =
-    case model.ui.settingsError of
-        Just ( message, details ) ->
-            displaySettingError model message details
+displayPluginView : Model -> List (Html Msg)
+displayPluginView model =
+    case model.ui.view of
+        ViewSettingsError ( message, details ) ->
+            [ displaySettingError model message details ]
 
-        Nothing ->
-            orHtml
+        ViewPluginsList ->
+            [ displayMainLicense model
+            , displayPluginsList model
+            ]
 
 
 findLicenseNeededError : List PluginError -> Maybe PluginError
@@ -377,9 +374,9 @@ displayPlugin model p =
         ]
 
 
-buildModal : String -> Html Msg -> Msg -> Html Msg
-buildModal title body saveAction =
-    div [ class "modal modal-account fade show", style "display" "block" ]
+buildModal : Bool -> String -> Html Msg -> Msg -> Html Msg
+buildModal loading title body saveAction =
+    div [ class "modal modal-plugins fade show", style "display" "block" ]
         [ div [ class "modal-backdrop fade show", onClick (SetModalState NoModal) ] []
         , div [ class "modal-dialog modal-dialog-scrollable" ]
             [ div [ class "modal-content" ]
@@ -392,7 +389,16 @@ buildModal title body saveAction =
                     ]
                 , div [ class "modal-footer" ]
                     [ button [ type_ "button", class "btn btn-default", onClick (SetModalState NoModal) ] [ text "Close" ]
-                    , button [ type_ "button", class "btn btn-success", onClick saveAction ] [ text "Confirm" ]
+                    , button [ type_ "button", class "btn btn-success", onClick saveAction ]
+                        (loadWithSpinner "spinner-grow spinner-grow-sm"
+                            loading
+                            (if loading then
+                                []
+
+                             else
+                                [ text "Confirm" ]
+                            )
+                        )
                     ]
                 ]
             ]
@@ -407,7 +413,7 @@ modalTitle requestType =
 modalBody : RequestType -> Model -> Html Msg
 modalBody requestType model =
     div [ class "callout-fade callout-warning" ]
-        [ p [] [ i [ class "fa fa-warning me-2" ] [], text <| "Rudder may restart to " ++ requestTypeText requestType ++ " " ++ String.Extra.pluralize "plugin" "plugins" (List.length model.ui.selected) ++ " :" ]
+        [ p [] [ i [ class "fa fa-warning me-2" ] [], strong [] [ text "Rudder may restart" ], text <| " to " ++ requestTypeText requestType ++ " " ++ String.Extra.pluralize "plugin" "plugins" (List.length model.ui.selected) ++ " :" ]
         , ul [ class "list-group m-0" ] (List.map (\p -> li [ class "list-group-item" ] [ text p ]) model.ui.selected)
         ]
 
@@ -419,4 +425,28 @@ displayModal model =
             text ""
 
         OpenModal requestType ->
-            buildModal (modalTitle requestType) (modalBody requestType model) (CallApi (requestTypeAction requestType))
+            buildModal model.ui.loading (modalTitle requestType) (modalBody requestType model) (RequestApi requestType)
+
+
+loadWithSpinner : String -> Bool -> List (Html Msg) -> List (Html Msg)
+loadWithSpinner spinnerClass loading html =
+    [ if loading then
+        div [ class <| "d-flex justify-content-center fade show" ]
+            [ div [ class spinnerClass, role "status" ]
+                [ span [ class "visually-hidden" ] [ text "Loading..." ] ]
+            ]
+
+      else
+        text ""
+    , div
+        [ class <|
+            "fade "
+                ++ (if loading then
+                        ""
+
+                    else
+                        "show"
+                   )
+        ]
+        html
+    ]
