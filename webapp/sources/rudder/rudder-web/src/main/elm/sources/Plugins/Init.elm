@@ -13,7 +13,7 @@ init : { contextPath : String } -> ( Model, Cmd Msg )
 init flags =
     let
         initUI =
-            UI [] NoModal Nothing
+            UI True [] NoModal ViewPluginsList
 
         initModel =
             Model flags.contextPath Nothing [] initUI

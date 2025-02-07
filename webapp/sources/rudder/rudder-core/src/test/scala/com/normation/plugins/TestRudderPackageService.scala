@@ -35,6 +35,8 @@
  *************************************************************************************
  */
 package com.normation.plugins
+
+import com.normation.errors.*
 import com.normation.rudder.hooks.CmdResult
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
@@ -44,19 +46,29 @@ import org.specs2.runner.JUnitRunner
 class TestRudderPackageService extends Specification {
 
   "RudderPackageService" should {
-    "handle credentials error" in {
+    "handle zero error code and message" in {
+      RudderPackageService.PluginSettingsError.fromResult(CmdResult(0, "", "OK")) must beRight(beNone)
+    }
+    "handle non-zero error code and message" in {
       val res = CmdResult(
-        1,
+        2,
         "",
-        "ERROR Received an HTTP 401 Unauthorized error when trying to get 8.2/rpkg.index. Please check your credentials in the configuration."
+        "\u001b[31mERROR\u001b[0m Invalid credentials, please check your credentials in the configuration. (received HTTP 401)\n"
       )
-      RudderPackageService.CredentialError.fromResult(res).aka("CredentialError from cmd result") must beSome(
-        beEqualTo(
-          RudderPackageService.CredentialError(
-            "Received an HTTP 401 Unauthorized error when trying to get 8.2/rpkg.index. Please check your credentials in the configuration."
+      RudderPackageService.PluginSettingsError.fromResult(res).aka("PluginSettingsError from cmd result") must beRight(
+        beSome(
+          beEqualTo(
+            RudderPackageService.PluginSettingsError.InvalidCredentials(
+              "ERROR Invalid credentials, please check your credentials in the configuration. (received HTTP 401)"
+            )
           )
         )
       )
+    }
+    "handle unknown error code and message" in {
+      RudderPackageService.PluginSettingsError.fromResult(
+        CmdResult(12345, "", "\u001b[31mERROR\u001b[0m Unknown error")
+      ) must beLeft(beLike[RudderError] { case err: Inconsistency => err.msg must contain("ERROR Unknown error") })
     }
   }
 }

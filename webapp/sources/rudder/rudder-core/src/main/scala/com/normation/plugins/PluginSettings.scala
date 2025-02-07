@@ -706,7 +706,7 @@ object RudderPackagePlugin     {
 trait RudderPackageService {
   import RudderPackageService.*
 
-  def update(): IOResult[Option[CredentialError]]
+  def update(): IOResult[Option[PluginSettingsError]]
 
   def listAllPlugins(): IOResult[Chunk[RudderPackagePlugin]]
 
@@ -718,18 +718,27 @@ trait RudderPackageService {
 
 object RudderPackageService {
 
-  val ERROR_CODE: Int = 1
+  // PluginSettings configuration could cause errors with known codes and colored stderr in rudder-package
+  sealed abstract class PluginSettingsError extends RudderError
+  object PluginSettingsError {
+    final case class InvalidCredentials(override val msg: String) extends PluginSettingsError
+    final case class Unauthorized(override val msg: String)       extends PluginSettingsError
 
-  // see PluginSettings : the url and credentials configuration could cause errors :
-  final case class CredentialError(msg: String) extends RudderError
+    private val colorRegex = "\u001b\\[[0-9;]*m".r
+    private val uncolor    = (str: String) => colorRegex.replaceAllIn(str, "")
 
-  object CredentialError {
-    private val regex = "^.*ERROR.* (Received an HTTP 401 Unauthorized error.*)$".r
+    private val sanitizeCmdResult = (res: CmdResult) => res.transform(uncolor.compose(_.strip))
 
-    def fromResult(cmdResult: CmdResult): Option[CredentialError] = {
-      (cmdResult.code, cmdResult.stderr.strip) match { // do not forget to strip stderr
-        case (ERROR_CODE, regex(err)) => Some(CredentialError(err))
-        case _                        => None
+    /**
+      * Maps known errors codes from rudder package and adapt the error message to have no color
+      */
+    def fromResult(cmdResult: CmdResult): PureResult[Option[PluginSettingsError]] = {
+      val result = sanitizeCmdResult(cmdResult)
+      result.code match {
+        case 0 => Right(None)
+        case 2 => Right(Some(PluginSettingsError.InvalidCredentials(result.stderr)))
+        case 3 => Right(Some(PluginSettingsError.Unauthorized(result.stderr)))
+        case _ => Left(Inconsistency(result.debugString()))
       }
     }
   }
@@ -746,17 +755,16 @@ class RudderPackageCmdService(configCmdLine: String) extends RudderPackageServic
     case h :: tail => Right((h, tail))
   }
 
-  override def update(): IOResult[Option[CredentialError]] = {
+  override def update(): IOResult[Option[PluginSettingsError]] = {
     // In case of error we need to check the result
     for {
       res          <- runCmd("update" :: Nil)
       (cmd, result) = res
-      err           = CredentialError.fromResult(result)
-      _            <- ZIO.when(result.code != 0 && err.isEmpty) {
-                        Inconsistency(
-                          s"An error occurred while updating plugins list with '${cmd.display}':\n code: ${result.code}\n stderr: ${result.stderr}\n stdout: ${result.stdout}"
-                        ).fail
-                      }
+      err          <-
+        PluginSettingsError
+          .fromResult(result)
+          .toIO
+          .chainError(s"An error occurred while updating plugins list with '${cmd.display}'")
     } yield {
       err
     }
@@ -783,7 +791,7 @@ class RudderPackageCmdService(configCmdLine: String) extends RudderPackageServic
   }
 
   override def removePlugins(plugins: Chunk[String]): IOResult[Unit] = {
-    runCmdOrFail("remove")(
+    runCmdOrFail("remove" :: plugins.toList)(
       s"An error occurred while removing plugins"
     ).unit
   }
@@ -808,15 +816,9 @@ class RudderPackageCmdService(configCmdLine: String) extends RudderPackageServic
       (cmd, result)
     }
   }
-  private def runCmdOrFail(params: String*)(errorMsg: String):      IOResult[CmdResult]        = {
-    runCmdOrFail(params.toList)(errorMsg)
-  }
   private def runCmdOrFail(params: List[String])(errorMsg: String): IOResult[CmdResult]        = {
     runCmd(params).reject {
-      case (cmd, result) if result.code != 0 =>
-        Inconsistency(
-          s"${errorMsg} with '${cmd.display}':\n code: ${result.code}\n stderr: ${result.stderr}\n stdout: ${result.stdout}"
-        )
+      case (cmd, result) if result.code != 0 => Inconsistency(s"${errorMsg} with '${cmd.display}': ${result.debugString()}")
     }.map(_._2)
   }
 }
@@ -826,7 +828,7 @@ class RudderPackageCmdService(configCmdLine: String) extends RudderPackageServic
   */
 trait PluginSystemService {
 
-  def updateIndex(): IOResult[Option[CredentialError]]
+  def updateIndex(): IOResult[Option[PluginSettingsError]]
   def list():        IOResult[Chunk[JsonPluginSystemDetails]]
   def install(plugins:     Chunk[PluginId]): IOResult[Unit]
   def remove(plugins:      Chunk[PluginId]): IOResult[Unit]
@@ -838,7 +840,7 @@ trait PluginSystemService {
   * Implementation for tests, will do any operation without any error
   */
 class InMemoryPluginSystemService(ref: Ref[Map[PluginId, JsonPluginSystemDetails]]) extends PluginSystemService {
-  override def updateIndex(): IOResult[Option[CredentialError]] = {
+  override def updateIndex(): IOResult[Option[PluginSettingsError]] = {
     ZIO.none
   }
 

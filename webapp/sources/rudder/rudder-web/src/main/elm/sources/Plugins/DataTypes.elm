@@ -74,10 +74,16 @@ type alias PluginError =
 
 
 type alias UI =
-    { selected : List PluginId
+    { loading : Bool
+    , selected : List PluginId
     , modalState : ModalState
-    , settingsError : Maybe ( String, String ) -- message, details
+    , view : PluginsView
     }
+
+
+type PluginsView
+    = ViewPluginsList
+    | ViewSettingsError ( String, String ) -- message, details
 
 
 type ModalState
@@ -110,16 +116,14 @@ type RequestType
 
 type Msg
     = CallApi (Model -> Cmd Msg)
+    | RequestApi RequestType
     | ApiGetPlugins (Result (Http.Detailed.Error String) ( Http.Metadata, PluginsInfo ))
-    | ApiPostPlugins (Result (Http.Detailed.Error Bytes) RequestType)
+    | ApiPostPlugins RequestType (Result (Http.Detailed.Error String) ())
     | SetModalState ModalState
+    | ReloadPage
     | Copy String
     | CopyJson Value
     | CheckSelection Select
-
-
-
--- | UpdateUI UI
 
 
 requestTypeText : RequestType -> String
@@ -138,7 +142,7 @@ requestTypeText t =
             "disable"
 
         UpdateIndex ->
-            "index update"
+            "update index"
 
 
 processSelect : Select -> Model -> Model
@@ -177,7 +181,7 @@ withSettingsError : ( String, String ) -> Model -> Model
 withSettingsError error model =
     let
         updateError ui =
-            { ui | settingsError = Just error }
+            { ui | view = ViewSettingsError error }
     in
     { model | ui = updateError model.ui }
 
@@ -200,3 +204,8 @@ pluginDefaultOrdering : Ordering PluginInfo
 pluginDefaultOrdering =
     Ordering.byFieldWith pluginStatusOrdering .status
         |> Ordering.breakTiesWith (Ordering.byField .name)
+
+
+withLoading : Bool -> Model -> Model
+withLoading value model =
+    { model | ui = (\ui -> { ui | loading = value }) model.ui }
