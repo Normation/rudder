@@ -505,8 +505,8 @@ class CloseNodeConfiguration(expectedReportsRepository: UpdateExpectedReportsRep
       _ <- NodeLoggerPure.Delete.debug(s"  - close expected reports for '${nodeId.value}'")
       _ <- expectedReportsRepository
              .closeNodeConfigurationsPure(nodeId)
-             .catchAll(err => NodeLoggerPure.Delete.error(s"Error when closing expected reports for node ${(nodeId, info).name}"))
              .unit
+             .catchAll(_ => NodeLoggerPure.Delete.error(s"Error when closing expected reports for node ${(nodeId, info).name}"))
       _ <- expectedReportsRepository.deleteNodeInfos(nodeId).catchAll(err => NodeLoggerPure.Delete.error(err.msg))
     } yield ()
   }
