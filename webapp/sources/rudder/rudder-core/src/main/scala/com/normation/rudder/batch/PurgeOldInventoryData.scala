@@ -76,8 +76,8 @@ class PurgeOldInventoryData(
     t0 <- currentTimeMillis
     now = Instant.ofEpochMilli(t0)
     _  <- ZIO
-            .foreach(cleanDirectories) { dir =>
-              ZIO.foreach(dir.list.to(Iterable)) { f =>
+            .foreachDiscard(cleanDirectories) { dir =>
+              ZIO.foreachDiscard(dir.list.to(Iterable)) { f =>
                 isOlderThanMaxAge(f, maxAge.toSeconds, now).flatMap { older =>
                   if (older) {
                     InventoryProcessingLogger.info(
@@ -85,6 +85,7 @@ class PurgeOldInventoryData(
                     ) *>
                     IOResult
                       .attempt(f.delete())
+                      .unit
                       .catchAll(err => {
                         InventoryProcessingLogger
                           .error(s"Error while trying to clean old inventory file '${f.pathAsString}': ${err.fullMsg}")
