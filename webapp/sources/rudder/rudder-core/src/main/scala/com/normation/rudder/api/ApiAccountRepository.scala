@@ -236,7 +236,7 @@ final class WoLDAPApiAccountRepository(
                            if (e(A_API_UUID) == Some(principal.id.value)) {
                              Some(e).succeed
                            } else {
-                             LDAPRudderError.Consistancy(s"An account with the same name ${principal.name.value} exists").fail
+                             LDAPRudderError.Consistency(s"An account with the same name ${principal.name.value} exists").fail
                            }
                        }
         optPrevious <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(principal.id))
@@ -286,7 +286,7 @@ final class WoLDAPApiAccountRepository(
     for {
       ldap         <- ldapConnexion
       entry        <- ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(id)).flatMap {
-                        case None    => LDAPRudderError.Consistancy(s"Api Account with ID '${id.value}' is not present").fail
+                        case None    => LDAPRudderError.Consistency(s"Api Account with ID '${id.value}' is not present").fail
                         case Some(x) => x.succeed
                       }
       oldAccount   <- mapper.entry2ApiAccount(entry).toIO
