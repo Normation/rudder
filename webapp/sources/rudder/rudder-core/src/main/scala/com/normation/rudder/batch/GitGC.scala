@@ -93,6 +93,7 @@ class GitGC(
             .withPermit(IOResult.attempt {
               gitRepo.git.gc().setProgressMonitor(new LogProgressMonitor()).call
             })
+            .unit
             .catchAll(err => logger.error(s"Error when performing git-gc on ${gitRepo.rootDirectory.name}: ${err.fullMsg}"))
     t1 <- currentTimeMillis
     _  <- logger.info(s"git-gc performed on ${gitRepo.rootDirectory.name} in ${new Duration(t1 - t0).toString}")

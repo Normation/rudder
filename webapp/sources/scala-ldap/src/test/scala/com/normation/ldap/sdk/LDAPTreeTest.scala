@@ -20,7 +20,6 @@
 
 package com.normation.ldap.sdk
 
-import com.normation.zio.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.DN.NULL_DN
 import com.unboundid.ldap.sdk.RDN
@@ -74,7 +73,7 @@ class LDAPTreeTest extends Specification {
       LDAPEntry(new DN(rdn4, dn2))
     )
 
-    val optTree = ZioRuntime.unsafeRun(LDAPTree(entries).either)
+    val optTree = LDAPTree(entries)
     val tree    = optTree.getOrElse(throw new IllegalArgumentException("this is for test"))
     val mTree   = tree._children(rdn2)
 

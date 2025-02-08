@@ -443,14 +443,15 @@ class FullInventoryRepositoryImpl(
       resServer  <- con.saveTree(pair._1, deleteRemoved = true)
       // when pair._2 is non empty, process need to be saved apart for performance reasons
       _          <- pair._2 match {
-                      case None     => Seq().succeed
+                      case None     => ZIO.unit
                       case Some(ps) =>
                         con
                           .save(ps, removeMissingAttributes = false)
+                          .unit
                           .catchAll(err => { // we don't want to fail because we tried to compensate
                             InventoryProcessingLogger.error(
                               s"Couldn't update the processes for node ${inventory.node.main.id.value}, Error is: ${err.fullMsg}"
-                            ) *> Seq().succeed
+                            )
                           })
                     }
       resMachine <- inventory.machine match {

@@ -664,7 +664,7 @@ class ProcessFile(
              InventoryProcessingLogger.debug(s"Dealing with zip file '${file.name}'") *>
              IOResult.attempt {
                file.unGzipTo(dest)
-             }.catchAll { err => // if the gz file is corrupted, we still want to delete it in the next instruction, but log
+             }.unit.catchAll { err => // if the gz file is corrupted, we still want to delete it in the next instruction, but log
                InventoryProcessingLogger.error(
                  Chained(s"gz archive '${file.pathAsString}' is corrupted: deleting it.", err).fullMsg
                )
