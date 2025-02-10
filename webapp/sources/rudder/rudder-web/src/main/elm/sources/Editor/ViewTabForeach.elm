@@ -505,7 +505,6 @@ displayTabForeach uiInfo =
                           [ element "thead" |> appendChild (element "tr" |> appendChildList (List.append header [element "th" |> appendText "Action"] ))
                           , element "tbody" |> appendChildList (List.append foreachItems newItemRow)
                           ]
-                      |> appendChild (element "span" |> appendText (Debug.toString newForeach))
                       )
 
                     , element "button"
