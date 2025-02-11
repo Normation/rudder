@@ -69,6 +69,7 @@ import zio.Chunk
 @nowarn("msg=a type was inferred to be `AnyVal`")
 @RunWith(classOf[JUnitRunner])
 class RudderUserDetailsTest extends Specification {
+  sequential
 
   implicit class ForceEither[A](iores: IOResult[A]) {
     def force: A = iores.either.runNow match {
