@@ -1,6 +1,6 @@
 module About.View exposing (..)
 
-import Html exposing (Html, div, text, h1, h4, span, p, label, i, a, button, table, thead, tbody, td, th, tr)
+import Html exposing (Html, div, pre, text, h1, h4, span, p, label, i, a, button, table, thead, tbody, td, th, tr)
 import Html.Attributes exposing (class, title, type_)
 import Html.Events exposing (onClick)
 import Json.Encode exposing (Value, list, object)
@@ -47,15 +47,27 @@ view model =
 
             Just info ->
                 let
-                    rowTxtInfo : String -> String -> Html Msg
-                    rowTxtInfo title val =
-                        div[class "mb-1"]
-                            [ div[class "info"]
-                                [ label[][text title]
-                                , span[][text val]
-                                , btnCopy val
+                    rowTxtInfo : String -> String -> Bool -> Html Msg
+                    rowTxtInfo title val isCode =
+                        let
+                            element = if isCode then pre else span
+                            (value, btn) =
+                                if String.isEmpty val then
+                                    ( i[class "text-secondary"][text "No data available"]
+                                    , text ""
+                                    )
+                                else
+                                    ( element[][text val]
+                                    , btnCopy val
+                                    )
+                        in
+                            div[class "mb-1"]
+                                [ div[class "info"]
+                                    [ label[][text title]
+                                    , value
+                                    , btn
+                                    ]
                                 ]
-                            ]
 
                     rowNbInfo : String -> Int -> Html Msg
                     rowNbInfo title val =
@@ -63,7 +75,7 @@ view model =
                             str = String.fromInt val
                         in
                         div[class "mb-1"]
-                            [ div[class "info"]
+                            [ div[class "info align-items-center"]
                                 [ label[][text title]
                                 , span[class "ms-0 badge fs-6"][text str]
                                 , btnCopy str
@@ -216,9 +228,9 @@ view model =
                             , btnCopyJson "rudder" (encodeRudderInfo info.rudderInfo)
                             ]
                         , div[]
-                            [ rowTxtInfo "Version" info.rudderInfo.version
-                            , rowTxtInfo "Build" info.rudderInfo.buildTime
-                            , rowTxtInfo "Instance ID" info.rudderInfo.instanceId
+                            [ rowTxtInfo "Version" info.rudderInfo.version False
+                            , rowTxtInfo "Build" info.rudderInfo.buildTime False
+                            , rowTxtInfo "Instance ID" info.rudderInfo.instanceId False
                             , relaysList info.rudderInfo.relays model.ui
                             ]
                         ]
@@ -228,10 +240,10 @@ view model =
                             , btnCopyJson "system" (encodeSystemInfo info.system)
                             ]
                         , div[]
-                            [ rowTxtInfo "Operating system name" info.system.os.name
-                            , rowTxtInfo "Operating system version" info.system.os.version
-                            , rowTxtInfo "JVM version" info.system.jvm.version
-                            , rowTxtInfo "Launch options" info.system.jvm.cmd
+                            [ rowTxtInfo "Operating system name" info.system.os.name False
+                            , rowTxtInfo "Operating system version" info.system.os.version False
+                            , rowTxtInfo "JVM version" info.system.jvm.version False
+                            , rowTxtInfo "Launch options" info.system.jvm.cmd True
                             ]
                         ]
                     , div[class "mb-4"]
