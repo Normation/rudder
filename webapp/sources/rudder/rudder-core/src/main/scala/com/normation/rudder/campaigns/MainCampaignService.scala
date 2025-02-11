@@ -113,7 +113,7 @@ class MainCampaignService(
 
     def deleteCampaign(c: CampaignId):   ZIO[Any, RudderError, Unit]      = {
       for {
-        campaign <- campaignRepo.get(c)
+        campaign <- campaignRepo.get(c).notOptional(s"Campaign with id ${c.value} not found")
         events   <- repo.getWithCriteria(campaignId = Some(c))
         _        <- ZIO.foreachDiscard(events) { event =>
                       ZIO
@@ -165,7 +165,8 @@ class MainCampaignService(
           case Some(event) =>
             {
               for {
-                campaign <- campaignRepo.get(event.campaignId)
+                campaign <-
+                  campaignRepo.get(event.campaignId).notOptional(s"Campaign with id ${event.campaignId.value} not found")
                 _        <- CampaignLogger.debug(s"Got Campaign ${event.campaignId.value} for event ${event.id.value}")
 
                 _ <- CampaignLogger.debug(s"Start handling campaign event '${event.id.value}' state is ${event.state.value}")
@@ -253,7 +254,9 @@ class MainCampaignService(
                          )
                        case Some(updatedEvent) =>
                          for {
-                           updatedCampaign <- campaignRepo.get(event.campaignId)
+                           updatedCampaign <- campaignRepo
+                                                .get(event.campaignId)
+                                                .notOptional(s"Campaign with id ${event.campaignId.value} not found")
                            _               <- CampaignLogger.debug(s"Got Updated campaign and event for event ${event.id.value}")
 
                            handle       = {
@@ -272,7 +275,9 @@ class MainCampaignService(
                              newCampaign.state match {
                                case Finished | Skipped(_) =>
                                  for {
-                                   campaign <- campaignRepo.get(event.campaignId)
+                                   campaign <- campaignRepo
+                                                 .get(event.campaignId)
+                                                 .notOptional(s"Campaign with id ${event.campaignId.value} not found")
                                    up       <- scheduleCampaignEvent(campaign, newCampaign.end)
                                  } yield {
                                    up
