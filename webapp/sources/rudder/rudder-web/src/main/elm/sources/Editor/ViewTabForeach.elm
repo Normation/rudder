@@ -67,8 +67,6 @@ type alias UpdateMsg =
 
 type alias CallForeach a = { a | foreachName : Maybe String, foreach : Maybe (List (Dict String String)) } -- a = MethodCall OR MethodBlock
 
-type alias InfoForeachUI a = { a | foreachUI : ForeachUI } -- a = MethodCallUiInfo OR MethodBlockUiInfo
-
 getUIMessages : ForeachUI -> ( ForeachUI -> Msg ) -> CallForeach a -> UpdateUIMsg
 getUIMessages f toMsg call =
   let
