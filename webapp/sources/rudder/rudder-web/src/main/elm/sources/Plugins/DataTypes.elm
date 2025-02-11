@@ -1,11 +1,11 @@
 module Plugins.DataTypes exposing (..)
 
-import Bytes exposing (Bytes)
 import Http
 import Http.Detailed
 import Json.Encode exposing (Value)
 import List.Extra
 import Ordering exposing (Ordering)
+import String.Extra
 import Time.ZonedDateTime exposing (ZonedDateTime)
 
 
@@ -184,6 +184,18 @@ withSettingsError error model =
             { ui | view = ViewSettingsError error }
     in
     { model | ui = updateError model.ui }
+
+
+{-| We need to infer the plugin ABI version with respects to main version
+i.e. minor version without the patch version and without the ~rc1, ~beta2, etc.
+-}
+pluginMinorAbiVersion : PluginInfo -> String
+pluginMinorAbiVersion { abiVersion } =
+    abiVersion
+        |> String.split "."
+        |> List.take 2
+        |> String.join "."
+        |> String.Extra.leftOf "~"
 
 
 noGlobalLicense : LicenseGlobalInfo
