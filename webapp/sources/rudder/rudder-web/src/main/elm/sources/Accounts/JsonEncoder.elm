@@ -3,18 +3,20 @@ module Accounts.JsonEncoder exposing (..)
 import Accounts.DataTypes exposing (..)
 import Accounts.DatePickerUtils exposing (posixToString)
 import Json.Encode exposing (..)
+import Json.Encode.Extra exposing (maybe)
+import Maybe.Extra
 
 
 encodeAccount : DatePickerInfo -> Account -> Value
 encodeAccount datePickerInfo account =
     let
-        ( expirationDate, expirationDateDefined ) =
+        ( expirationDate, expirationPolicy ) =
             case account.expirationDate of
                 Just d ->
-                    ( [ ( "expirationDate", string (posixToString datePickerInfo d) ) ], account.expirationDateDefined )
+                    ( [ ( "expirationDate", string (posixToString datePickerInfo d) ) ], "datetime" )
 
                 Nothing ->
-                    ( [], False )
+                    ( [], "never" )
 
         acl =
             case account.acl of
@@ -23,19 +25,23 @@ encodeAccount datePickerInfo account =
 
                 Nothing ->
                     []
+        status =
+          case account.enabled of
+            True -> "enabled"
+            False -> "disabled"
+        id = case String.isEmpty account.id of
+            True -> Nothing
+            False -> Just account.id
     in
     object
-        ([ ( "id", string account.id )
+        ([ ( "id", maybe string id)
          , ( "name", string account.name )
          , ( "description", string account.description )
-         , ( "authorizationType", string account.authorisationType )
-         , ( "kind", string account.kind )
-         , ( "enabled", bool account.enabled )
-         , ( "creationDate", string account.creationDate )
-         , ( "token", string account.token )
-         , ( "tokenGenerationDate", string account.tokenGenerationDate )
-         , ( "expirationDateDefined", bool expirationDateDefined )
+         , ( "status", string status )
          , ( "tenants", string (encodeTenants account.tenantMode account.selectedTenants) )
+         , ( "generateToken", bool (Maybe.Extra.isNothing id))
+         , ( "authorizationType", string account.authorisationType )
+         , ( "expirationPolicy", string expirationPolicy )
          ]
             |> List.append expirationDate
             |> List.append acl

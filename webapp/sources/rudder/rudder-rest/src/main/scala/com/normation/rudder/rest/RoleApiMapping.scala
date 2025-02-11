@@ -90,7 +90,7 @@ object AuthorizationApiMapping {
   }
 
   /*
-   * A default mapping for "only 'all rights' (ie admin) can access it
+   * A default mapping for "only 'all rights' (ie admin) can access it"
    */
   case object OnlyAdmin extends AuthorizationApiMapping {
     override def mapAuthorization(authz: AuthorizationType): List[ApiAclElement] = Nil

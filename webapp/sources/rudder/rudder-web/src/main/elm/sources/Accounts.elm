@@ -124,28 +124,10 @@ update msg model =
                         accounts =
                             apiResult.accounts
 
-                        aclPluginEnabled =
-                            apiResult.aclPluginEnabled
 
-                        tenantsPluginEnabled =
-                            apiResult.tenantsPluginEnabled
-
-                        initAclPlugin =
-                            if aclPluginEnabled && not modelUi.pluginAclInit then
-                                initAcl ""
-
-                            else
-                                Cmd.none
-
-                        initTenantsPlugin =
-                            if apiResult.tenantsPluginEnabled && not modelUi.pluginTenantsInit then
-                                initTenants ""
-
-                            else
-                                Cmd.none
                     in
-                    ( { model | accounts = accounts, aclPluginEnabled = aclPluginEnabled, tenantsPluginEnabled = tenantsPluginEnabled, ui = { modelUi | loadingAccounts = False, pluginAclInit = True, pluginTenantsInit = True } }
-                    , Cmd.batch [ initTooltips "", initAclPlugin, initTenantsPlugin ]
+                    ( { model | accounts = accounts, ui = { modelUi | loadingAccounts = False, pluginAclInit = True, pluginTenantsInit = True } }
+                    , Cmd.batch [ initTooltips "" ]
                     )
 
                 Err err ->

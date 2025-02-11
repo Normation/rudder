@@ -43,15 +43,15 @@ import com.normation.appconfig.ConfigRepository
 import com.normation.appconfig.GenericConfigService
 import com.normation.appconfig.ModifyGlobalPropertyInfo
 import com.normation.cfclerk.domain.TechniqueVersionHelper
-import com.normation.errors
-import com.normation.errors.IOResult
-import com.normation.errors.IOStream
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.Software
+import com.normation.rudder.api.*
+import com.normation.rudder.api.HttpAction
 import com.normation.rudder.batch.AsyncWorkflowInfo
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.appconfig.RudderWebProperty
@@ -62,48 +62,11 @@ import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
-import com.normation.rudder.domain.policies.AddRuleDiff
-import com.normation.rudder.domain.policies.DeleteRuleDiff
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.FullGroupTarget
-import com.normation.rudder.domain.policies.FullRuleTargetInfo
-import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.GroupTarget
-import com.normation.rudder.domain.policies.ModifyRuleDiff
-import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.domain.policies.PolicyModeOverrides
-import com.normation.rudder.domain.policies.PolicyTypeName
-import com.normation.rudder.domain.policies.PolicyTypes
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.RuleUid
-import com.normation.rudder.domain.policies.TargetExclusion
-import com.normation.rudder.domain.policies.TargetIntersection
-import com.normation.rudder.domain.reports.ComplianceLevel
-import com.normation.rudder.domain.reports.ComponentValueStatusReport
-import com.normation.rudder.domain.reports.DirectiveStatusReport
-import com.normation.rudder.domain.reports.MessageStatusReport
-import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.domain.reports.NodeExpectedReports
-import com.normation.rudder.domain.reports.NodeModeConfig
-import com.normation.rudder.domain.reports.NodeStatusReport
+import com.normation.rudder.domain.policies.*
+import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.NodeStatusReport.*
-import com.normation.rudder.domain.reports.OverriddenPolicy
-import com.normation.rudder.domain.reports.ReportType
-import com.normation.rudder.domain.reports.RuleNodeStatusReport
-import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.domain.reports.ValueStatusReport
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
-import com.normation.rudder.facts.nodes.NodeFact
-import com.normation.rudder.facts.nodes.NodeFactChangeEventCallback
-import com.normation.rudder.facts.nodes.NodeFactChangeEventCC
-import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.facts.nodes.SecurityTag
-import com.normation.rudder.facts.nodes.SelectFacts
-import com.normation.rudder.facts.nodes.SelectNodeStatus
+import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -115,6 +78,12 @@ import com.normation.rudder.repository.WoRuleRepository
 import com.normation.rudder.rest.AuthorizationApiMapping
 import com.normation.rudder.rest.ProviderRoleExtension
 import com.normation.rudder.rest.RoleApiMapping
+import com.normation.rudder.rest.data.ApiAccountDetails
+import com.normation.rudder.rest.data.ApiAccountMapping
+import com.normation.rudder.rest.data.ClearTextSecret
+import com.normation.rudder.rest.data.NewApiAccount
+import com.normation.rudder.rest.data.UpdateApiAccount
+import com.normation.rudder.rest.lift.ApiAccountApiService
 import com.normation.rudder.rest.lift.ComplianceAPIService
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.policies.NodeConfigData
@@ -140,8 +109,11 @@ import com.normation.rudder.users.UserManagementService
 import com.normation.rudder.users.UserRepository
 import com.normation.rudder.users.UserSession
 import com.normation.rudder.users.UserStatus
+import com.normation.utils.DateFormaterService
+import com.normation.utils.DateFormaterService.DateTimeCodecs
 import com.normation.zio.UnsafeRun
 import com.typesafe.config.ConfigFactory
+import io.scalaland.chimney.syntax.*
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import org.apache.commons.io.IOUtils
@@ -296,7 +268,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
         nodeId: NodeId
     )(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOResult[Option[NodeFact]] = ???
     def getNodesBySoftwareName(softName:       String): IOResult[List[(NodeId, Software)]] = ???
-    def slowGetAll()(implicit qc:              QueryContext, status:  SelectNodeStatus, attrs: SelectFacts):      errors.IOStream[NodeFact]       = ???
+    def slowGetAll()(implicit qc:              QueryContext, status:  SelectNodeStatus, attrs: SelectFacts):      IOStream[NodeFact]              = ???
     def save(nodeFact:                         NodeFact)(implicit cc: ChangeContext, attrs:    SelectFacts):      IOResult[NodeFactChangeEventCC] = ???
     def setSecurityTag(nodeId: NodeId, tag: Option[SecurityTag])(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] =
       ???
@@ -918,7 +890,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
         existing:         CoreNodeFact,
         cc:               ChangeContext,
         availableTenants: Set[TenantId]
-    ): Either[errors.RudderError, CoreNodeFact] = ???
+    ): Either[RudderError, CoreNodeFact] = ???
   }
 }
 
@@ -999,4 +971,136 @@ object MockUserManagement {
     .map(IOUtils.toString(_, StandardCharsets.UTF_8))
     .map(File(tmpDir, resourceFile).writeText(_))
     .getOrElse(throw new Exception(s"Cannot find ${resourceFile} in test resources"))
+}
+
+class MockApiAccountService() {
+  // Our API accounts
+  val apiAccounts: Map[ApiAccountId, ApiAccount] = {
+    val accountCreationDate: DateTime = DateTime.parse("2025-02-12T10:55:00Z")
+    val accountExpireDate:   DateTime = DateTime.parse("2025-08-12T00:00:00Z")
+    List(
+      ApiAccount(
+        ApiAccountId("system-token"),
+        ApiAccountKind.System, // must be filtered out
+        ApiAccountName("system"),
+        Some(ApiToken("v2:system-hashed-token")),
+        "system",
+        isEnabled = true,
+        creationDate = accountCreationDate,
+        tokenGenerationDate = accountCreationDate,
+        NodeSecurityContext.All
+      ),
+      // a standard admin account with rights on everything/all tenants
+      ApiAccount(
+        ApiAccountId("user1"),
+        ApiAccountKind.PublicApi(ApiAuthorization.RW, None),
+        ApiAccountName("user one"),
+        Some(ApiToken("v2:some-hashed-token")),
+        "number one user",
+        isEnabled = true,
+        creationDate = accountCreationDate,
+        tokenGenerationDate = accountCreationDate,
+        NodeSecurityContext.All
+      ),
+      // limited account
+      ApiAccount(
+        ApiAccountId("user2"),
+        ApiAccountKind.PublicApi(
+          ApiAuthorization.ACL(ApiAclElement(AclPath.parse("/some/endpoint/*").toOption.get, Set(HttpAction.GET)) :: Nil),
+          Some(accountExpireDate)
+        ),
+        ApiAccountName("user2"),
+        Some(ApiToken("v2:some-hashed-token")),
+        "number one user",
+        isEnabled = true,
+        creationDate = accountCreationDate,
+        tokenGenerationDate = accountCreationDate,
+        NodeSecurityContext.ByTenants(Chunk(TenantId("zone1")))
+      )
+    ).map(a => (a.id, a)).toMap
+  }
+
+  val service = new ApiAccountApiService with DateTimeCodecs {
+
+    // mapping from/to rest data
+    private val mapper = {
+      val knownIds     = Ref.make(List("144ce2af-57d6-4e92-bdc1-1fdf2d88c2b1", "e16114be-94ee-497f-8d17-7b258c8e5624")).runNow
+      val knownTokens  = Ref.make(List("t1-ca5a50899d25cd3ff148350843a9d435", "t2-29d5c3cdca39bd7ba81e7e0f88084689")).runNow
+      val creationDate = DateFormaterService.parseDate("2025-02-10T16:37:19Z").toIO
+      // we have two known IDs, then just random stuff
+
+      val generateId     = knownIds.modify {
+        case Nil    => (ApiAccountId(scala.util.Random.nextString(5)), Nil)
+        case h :: t => (ApiAccountId(h), t)
+      }
+      // same than ids for tokens
+      val generateSecret = knownTokens.modify {
+        case Nil    => (ClearTextSecret(scala.util.Random.nextString(10)), Nil)
+        case h :: t => (ClearTextSecret(h), t)
+      }
+
+      def generateToken(secret: ClearTextSecret): IOResult[ApiToken] = ApiToken("token-" + secret.value).succeed
+
+      new ApiAccountMapping(creationDate, generateId, generateSecret, generateToken)
+    }
+
+    private val accounts = Ref
+      .make(
+        // this part is done at repository level in real implementation
+        apiAccounts.filter(_._2.kind.isInstanceOf[ApiAccountKind.PublicApi])
+      )
+      .runNow
+
+    override def getAccounts(): IOResult[List[ApiAccountDetails.Public]] = {
+      accounts.get.map(_.values.toList.map(_.transformInto[ApiAccountDetails.Public]))
+    }
+
+    override def getAccount(id: ApiAccountId): IOResult[Option[ApiAccountDetails.Public]] = {
+      accounts.get.map(_.get(id).map(_.transformInto[ApiAccountDetails.Public]))
+    }
+
+    override def saveAccount(data: NewApiAccount): IOResult[ApiAccountDetails] = {
+      for {
+        pair  <- mapper.fromNewApiAccount(data)
+        (a, s) = pair
+        _     <- accounts.update(_ + (a.id -> a))
+      } yield {
+        s match {
+          case Some(secret) =>
+            mapper.toDetailsWithSecret(a, secret)
+          case None         =>
+            a.transformInto[ApiAccountDetails.Public]
+        }
+      }
+    }
+
+    override def updateAccount(id: ApiAccountId, data: UpdateApiAccount): IOResult[ApiAccountDetails.Public] = {
+      for {
+        a <- accounts
+               .modify(m => {
+                 m.get(id) match {
+                   case Some(x) =>
+                     val up = mapper.update(x, data)
+                     (Some(up), m.updated(id, up))
+                   case None    => (None, m)
+                 }
+               })
+               .notOptional(s"No account with '${id.value}' exists")
+      } yield a.transformInto[ApiAccountDetails.Public]
+    }
+
+    override def regenerateToken(id: ApiAccountId): IOResult[ApiAccountDetails.WithToken] = {
+      for {
+        a    <- accounts.get.map(_.get(id)).notOptional(s"No account with '${id.value}' exists")
+        pair <- mapper.updateToken(a)
+        _    <- accounts.update(_.updated(id, pair._1))
+      } yield mapper.toDetailsWithSecret.tupled(pair)
+    }
+
+    override def deleteAccount(id: ApiAccountId): IOResult[Option[ApiAccountDetails.Public]] = {
+      for {
+        opt <- accounts.modify(m => (m.get(id), m.removed(id)))
+      } yield opt.map(_.transformInto[ApiAccountDetails.Public])
+    }
+  }
 }
