@@ -7,6 +7,8 @@ import SingleDatePicker exposing (DatePicker, Settings, TimePickerVisibility(..)
 import Time exposing (Posix, Zone)
 
 import Ui.Datatable exposing (TableFilters)
+import Agentpolicymode.JsonEncoder exposing (policyModeToString)
+import Maybe.Extra
 
 
 --
@@ -70,13 +72,17 @@ type alias Account =
     , enabled : Bool
     , creationDate : String
     , token : String
-    , tokenGenerationDate : String
-    , expirationDateDefined : Bool
-    , expirationDate : Maybe Posix
+    , tokenGenerationDate : Maybe String
+    , expirationPolicy: ExpirationPolicy
     , acl : Maybe (List AccessControl)
     , tenantMode : TenantMode
     , selectedTenants : Maybe (List String) -- non empty list only
     }
+
+
+type ExpirationPolicy 
+    = NeverExpire
+    | ExpireAtDate Posix
 
 
 type alias AccessControl =
@@ -86,9 +92,7 @@ type alias AccessControl =
 
 
 type alias ApiResult =
-    { aclPluginEnabled : Bool
-    , tenantsPluginEnabled : Bool
-    , accounts : List Account
+    { accounts : List Account
     }
 
 
@@ -120,3 +124,40 @@ type Msg
     | UpdatePicker SingleDatePicker.Msg
     | AdjustTimeZone Zone
     | Tick Posix
+
+
+
+expirationDate : ExpirationPolicy -> Maybe Posix
+expirationDate policy = 
+    case policy of
+        ExpireAtDate d ->
+            Just d
+
+        NeverExpire ->
+            Nothing
+
+
+{-| Sets the expiration value of ExpireAtDate only when policy is to never expire
+-}
+setIfExpireAtDate : Posix -> ExpirationPolicy -> ExpirationPolicy
+setIfExpireAtDate date policy =
+    case policy of
+        ExpireAtDate _ ->
+            ExpireAtDate date
+
+        NeverExpire ->
+            NeverExpire
+
+
+
+setExpirationPolicy : ExpirationPolicy -> Account -> Account
+setExpirationPolicy policy account =
+    { account
+        | expirationPolicy = policy
+    }
+
+
+
+updateExpirationPolicy : (ExpirationPolicy -> ExpirationPolicy) -> Account -> Account
+updateExpirationPolicy f account =
+    setExpirationPolicy (f account.expirationPolicy) account

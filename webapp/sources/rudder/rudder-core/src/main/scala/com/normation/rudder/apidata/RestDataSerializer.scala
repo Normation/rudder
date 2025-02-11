@@ -599,7 +599,7 @@ final case class RestDataSerializerImpl(
  * Between front and backend, we exchange a JsonAcl list, where JsonAcl are *just*
  * one path and one verb. The grouping is done in extractor
  */
-final case class JsonApiAcl(path: String, verb: String)
+final private case class JsonApiAcl(path: String, verb: String)
 
 object ApiAccountSerialisation {
 

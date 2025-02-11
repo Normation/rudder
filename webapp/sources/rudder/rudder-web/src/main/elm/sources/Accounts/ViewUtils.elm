@@ -12,6 +12,7 @@ import Accounts.DatePickerUtils exposing (posixToString, checkIfExpired)
 import String exposing (isEmpty, slice)
 
 import Ui.Datatable exposing (thClass, sortTable, SortOrder(..), filterSearch)
+import Maybe.Extra
 
 
 --
@@ -26,10 +27,10 @@ getSortFunction model a1 a2 =
       Id      -> N.compare a1.id a2.id
       ExpDate ->
         let
-          expDate1 = case a1.expirationDate of
+          expDate1 = case expirationDate a1.expirationPolicy of
             Just d  -> (posixToString datePickerInfo d)
             Nothing -> ""
-          expDate2 = case a2.expirationDate of
+          expDate2 = case expirationDate a2.expirationPolicy of
             Just d  -> (posixToString datePickerInfo d)
             Nothing -> ""
         in
@@ -45,13 +46,14 @@ getSortFunction model a1 a2 =
         EQ -> EQ
         GT -> LT
 
+searchField : DatePickerInfo -> Account -> List String
 searchField datePickerInfo a =
   List.append [ a.name
   , a.id
   , a.token
-  ] ( case a.expirationDate of
-      Just d  -> [posixToString datePickerInfo d]
-      Nothing -> []
+  ] ( case a.expirationPolicy of
+      ExpireAtDate d  -> [posixToString datePickerInfo d]
+      NeverExpire -> []
     )
 
 cleanDate: String -> String
@@ -84,9 +86,9 @@ displayAccountsTable model =
     trAccount a showTokens =
       let
         inputId = "toggle-" ++ a.id
-        expirationDate = case a.expirationDate of
-          Just d  -> if a.expirationDateDefined then (posixToString model.ui.datePickerInfo d) else "Never"
-          Nothing -> "Never"
+        expirationDate = case a.expirationPolicy of
+          ExpireAtDate d  -> posixToString model.ui.datePickerInfo d
+          NeverExpire -> "Never"
 
       in
         tr[class (if checkIfExpired model.ui.datePickerInfo a then "is-expired" else "")]
@@ -115,7 +117,7 @@ displayAccountsTable model =
         , td []
           [ button
             [ class "btn btn-default reload-token"
-            , title ("Generated: " ++ (cleanDate a.tokenGenerationDate))
+            , title ("Generated: " ++ (a.tokenGenerationDate |> Maybe.Extra.unpack (\_ -> "-") cleanDate))
             , onClick (ToggleEditPopup (Confirm Regenerate a.name (CallApi (regenerateToken a))))
             ]
             [ span [class "fa fa-repeat"][] ]

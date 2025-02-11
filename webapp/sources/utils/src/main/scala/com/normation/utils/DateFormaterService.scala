@@ -39,8 +39,10 @@ package com.normation.utils
 
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
+import io.scalaland.chimney.*
 import java.time.ZonedDateTime
 import java.time.ZoneId
+import java.time.ZoneOffset
 import org.joda.time.DateTime
 import org.joda.time.DateTimeFieldType
 import org.joda.time.Duration
@@ -58,7 +60,7 @@ object DateFormaterService {
       ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(d.getMillis), ZoneId.of(d.getZone.getID, ZoneId.SHORT_IDS))
   }
 
-  object json {
+  trait DateTimeCodecs {
     implicit val encoderDateTime: JsonEncoder[DateTime] = JsonEncoder[String].contramap(serialize)
     implicit val decoderDateTime: JsonDecoder[DateTime] = JsonDecoder[String].mapOrFail(parseDate(_).left.map(_.fullMsg))
     implicit val codecDateTime:   JsonCodec[DateTime]   = new JsonCodec[DateTime](encoderDateTime, decoderDateTime)
@@ -69,7 +71,15 @@ object DateFormaterService {
 
     implicit val codecZonedDateTime: JsonCodec[ZonedDateTime] =
       new JsonCodec[ZonedDateTime](encoderZonedDateTime, decoderZonedDateTime)
+
+    implicit val transformDateTime: Transformer[DateTime, ZonedDateTime] = {
+      _.toJava
+    }
+
+    implicit val transformZonedDateTime: Transformer[ZonedDateTime, DateTime] = { x => new DateTime(x.toInstant.toEpochMilli) }
   }
+
+  object json extends DateTimeCodecs
 
   val displayDateFormat: DateTimeFormatter = new DateTimeFormatterBuilder()
     .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
@@ -101,7 +111,8 @@ object DateFormaterService {
    */
   def serialize(datetime: DateTime): String = datetime.toString(ISODateTimeFormat.dateTimeNoMillis.withZoneUTC())
 
-  def serializeZDT(datetime: ZonedDateTime): String = datetime.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+  def serializeZDT(datetime: ZonedDateTime): String =
+    datetime.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneOffset.UTC))
 
   def parseDate(date: String): PureResult[DateTime] = {
     try {
