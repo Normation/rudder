@@ -7,7 +7,7 @@
 //! It trusts its input (which should have already validated the method
 //! signature, type, and constraints).
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use rudder_commons::{canonify, methods::method::Agent};
 
 use crate::ir::technique::ForeachResolvedState;
@@ -41,7 +41,10 @@ pub fn method_call(
 ) -> Result<(Promise, Option<Bundle>)> {
     assert!(!m.name.is_empty());
 
-    let info = m.info.unwrap();
+    let info = m.info.context(format!(
+        "Could not find any 'MethodInfo' for method {}",
+        m.method
+    ))?;
     let id = m.id.as_ref();
     let c_id = canonify(id);
 

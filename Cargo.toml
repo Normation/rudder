@@ -6,6 +6,7 @@ members = ["policies/rudderc",
            "policies/rudder-commons-test",
            "policies/rudder-report",
            "policies/module-types/*",
+           "policies/lib",
            "relay/sources/relayd",
            "relay/sources/rudder-package"]
 resolver = "2"

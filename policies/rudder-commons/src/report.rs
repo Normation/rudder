@@ -19,8 +19,8 @@ type AgentLogLevel = &'static str;
 // A detail log entry
 #[derive(Debug, PartialEq, Eq, Clone, Serialize)]
 pub struct Log {
-    event_type: AgentLogLevel,
-    msg: String,
+    pub event_type: AgentLogLevel,
+    pub msg: String,
 }
 
 /// Tries to catch as many log levels as possible

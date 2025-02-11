@@ -389,13 +389,16 @@ pub mod action {
                 bail!("One library path must be passed using the '--library' option");
             }
             let run_log = match case.target {
-                Target::Unix => cf_agent(
-                    &target_dir.join("technique.cf"),
-                    case_path.as_path(),
-                    libraries[0].as_path(),
-                    &agent_path,
-                    agent_verbose,
-                )?,
+                Target::Unix => {
+                    cf_agent(
+                        &target_dir.join("technique.cf"),
+                        case_path.as_path(),
+                        libraries[0].as_path(),
+                        &agent_path,
+                        agent_verbose,
+                    )?
+                    .runlog
+                }
                 Target::Windows => {
                     // Read the technique
                     // TODO: reuse parsed technique from build step
