@@ -3164,9 +3164,9 @@ class MockCampaign() {
       }
     }
 
-    override def get(id: CampaignId): IOResult[Campaign] =
-      items.get.map(_.get(id)).notOptional(s"Missing campaign with id '${id.serialize}''")
-    override def save(c: Campaign):   IOResult[Campaign] = {
+    override def get(id: CampaignId): IOResult[Option[Campaign]] =
+      items.get.map(_.get(id))
+    override def save(c: Campaign):   IOResult[Campaign]         = {
       c match {
         case x: DumbCampaignTrait => items.update(_ + (x.info.id -> x)) *> c.succeed
         case _ => Inconsistency("Unknown campaign type").fail

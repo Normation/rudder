@@ -91,7 +91,7 @@ class CampaignApi(
       val res = {
         for {
           campaign   <- campaignRepository.get(CampaignId(resources))
-          serialized <- campaignSerializer.getJson(campaign)
+          serialized <- ZIO.foreach(campaign)(campaignSerializer.getJson _)
         } yield {
           serialized
         }
@@ -139,7 +139,7 @@ class CampaignApi(
     ): LiftResponse = {
       val res = {
         for {
-          campaign <- campaignRepository.get(CampaignId(resources))
+          campaign <- campaignRepository.get(CampaignId(resources)).notOptional(s"Campaign with id ${resources} not found")
           newEvent <- mainCampaignService.scheduleCampaignEvent(campaign, DateTime.now())
         } yield {
           newEvent
