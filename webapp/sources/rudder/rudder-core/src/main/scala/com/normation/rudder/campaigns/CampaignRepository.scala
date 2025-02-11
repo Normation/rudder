@@ -46,7 +46,7 @@ import zio.syntax.*
 
 trait CampaignRepository {
   def getAll(typeFilter: List[CampaignType], statusFilter: List[CampaignStatusValue]): IOResult[List[Campaign]]
-  def get(id:            CampaignId): IOResult[Campaign]
+  def get(id:            CampaignId): IOResult[Option[Campaign]]
   def delete(id:         CampaignId): IOResult[CampaignId]
   def save(c:            Campaign): IOResult[Campaign]
 }
@@ -101,14 +101,12 @@ class CampaignRepositoryImpl(campaignSerializer: CampaignSerializer, path: File,
     }
   }
 
-  def get(id: CampaignId): IOResult[Campaign] = {
+  def get(id: CampaignId): IOResult[Option[Campaign]] = {
+    val file = path / (s"${id.value}.json")
     for {
-      content  <- IOResult.attempt(s"error when getting campaign file for campaign with id '${id.value}'") {
-                    val file = path / (s"${id.value}.json")
-                    file.createFileIfNotExists(createParents = true)
-                    file
+      campaign <- ZIO.when(file.exists) {
+                    campaignSerializer.parse(file.contentAsString)
                   }
-      campaign <- campaignSerializer.parse(content.contentAsString)
     } yield {
       campaign
     }
