@@ -72,10 +72,10 @@ class RestApiAccounts(
 
   // used in ApiAccounts snippet to get the context path
   // of that service
-  val relativePath: List[String] = "secure" :: "apiaccounts" :: Nil
+  val relativePath: List[String] = "oldapiaccounttoremove" :: Nil
 
   serve {
-    case Get("secure" :: "apiaccounts" :: Nil, req) =>
+    case Get("oldapiaccounttoremove" :: Nil, req) =>
       implicit val prettify: Boolean = restExtractor
         .extractBoolean("prettify")(req)(identity)
         .getOrElse(Some(false))
@@ -119,7 +119,7 @@ class RestApiAccounts(
 
       })
 
-    case "secure" :: "apiaccounts" :: Nil JsonPut body -> req =>
+    case "oldapiaccounttoremove" :: Nil JsonPut body -> req =>
       implicit val prettify: Boolean = restExtractor
         .extractBoolean("prettify")(req)(identity)
         .getOrElse(Some(false))
@@ -198,7 +198,7 @@ class RestApiAccounts(
           toJsonError(None, "No Json data sent")
       })
 
-    case "secure" :: "apiaccounts" :: tokenId :: Nil JsonPost body -> req =>
+    case "oldapiaccounttoremove" :: tokenId :: Nil JsonPost body -> req =>
       val apiTokenId = ApiAccountId(tokenId)
       implicit val prettify: Boolean = restExtractor
         .extractBoolean("prettify")(req)(identity)
@@ -235,7 +235,7 @@ class RestApiAccounts(
           toJsonError(None, "No Json data sent")
       })
 
-    case Delete("secure" :: "apiaccounts" :: tokenId :: Nil, req) =>
+    case Delete("oldapiaccounttoremove" :: tokenId :: Nil, req) =>
       val apiTokenId = ApiAccountId(tokenId)
       implicit val prettify: Boolean = restExtractor
         .extractBoolean("prettify")(req)(identity)
@@ -267,7 +267,7 @@ class RestApiAccounts(
           toJsonError(None, s"Could not delete account ${tokenId} cause: ${err.fullMsg}")
       })
 
-    case Post("secure" :: "apiaccounts" :: tokenId :: "regenerate" :: Nil, req) =>
+    case Post("oldapiaccounttoremove" :: tokenId :: "regenerate" :: Nil, req) =>
       val apiTokenId = ApiAccountId(tokenId)
       implicit val prettify: Boolean = restExtractor
         .extractBoolean("prettify")(req)(identity)
