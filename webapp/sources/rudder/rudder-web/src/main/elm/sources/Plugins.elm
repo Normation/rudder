@@ -2,11 +2,10 @@ port module Plugins exposing (update)
 
 import Browser
 import Browser.Navigation
-import Http
 import Http.Detailed as Detailed
 import Json.Decode exposing (..)
 import List exposing (drop, head)
-import Plugins.ApiCalls exposing (getPluginInfos, requestTypeAction)
+import Plugins.ApiCalls exposing (getPluginInfos, requestTypeAction, updateIndex)
 import Plugins.DataTypes exposing (..)
 import Plugins.Init exposing (init, subscriptions)
 import Plugins.View exposing (view)
@@ -45,23 +44,26 @@ main =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Now time ->
+            ( { model | now = time }, Cmd.none )
+
         CallApi apiCall ->
             ( model, apiCall model )
 
-        RequestApi t ->
-            ( withLoading True model, requestTypeAction t model )
+        RequestApi t plugins ->
+            ( setLoading True model, requestTypeAction t model plugins )
 
         ApiGetPlugins res ->
             case res of
                 Ok ( _, { license, plugins } ) ->
-                    ( withLoading False { model | license = license, plugins = plugins }, Cmd.none )
+                    ( model |> setLoading False |> setLicense license |> processPlugins plugins, Cmd.none )
 
                 Err err ->
                     processApiError "Error while getting the list of plugins." err model
 
         -- We want to update all plugins information every time the index is updated
         ApiPostPlugins UpdateIndex (Ok _) ->
-            ( withLoading False model, Cmd.batch [ successNotification "Plugins list successfully updated.", getPluginInfos model ] )
+            ( setLoading False model, Cmd.batch [ successNotification "Plugins list successfully updated.", getPluginInfos model ] )
 
         ApiPostPlugins UpdateIndex (Err err) ->
             processApiError "Error while trying to get the updated the list of plugins." err model
@@ -69,13 +71,16 @@ update msg model =
         ApiPostPlugins t res ->
             case res of
                 Ok _ ->
-                    ( withLoading False model, successNotification ("Plugin " ++ requestTypeText t ++ " successful.") )
+                    ( setLoading False model, successNotification ("Plugin " ++ requestTypeText t ++ " successful.") )
 
                 Err err ->
-                    processApiError ("Error while trying to " ++ requestTypeText t) err model
+                    processApiError ("Error while trying to " ++ requestTypeText t ++ " plugins") err model
 
         SetModalState modalState ->
-            ( { model | ui = (\ui -> { ui | modalState = modalState }) model.ui }, Cmd.none )
+            ( model |> updatePluginsViewModel (setModalState modalState), Cmd.none )
+
+        ResetPluginListFromModal pluginsViewModel ->
+            ( model |> setView (ViewPluginsList pluginsViewModel), Cmd.none )
 
         ReloadPage ->
             ( model, Browser.Navigation.reload )
@@ -89,6 +94,9 @@ update msg model =
         CheckSelection s ->
             ( processSelect s model, Cmd.none )
 
+        UpdateFilters filters ->
+            ( processFilters filters model, Cmd.none )
+
 
 processSpecificApiError : String -> Detailed.Error String -> Model -> Maybe ( Model, Cmd Msg )
 processSpecificApiError msg err model =
@@ -97,7 +105,7 @@ processSpecificApiError msg err model =
             case metadata.statusCode of
                 401 ->
                     Just
-                        ( withSettingsError
+                        ( setSettingsError
                             ( "There are credentials errors related to plugin management. Please refresh the list of plugins after you update your configuration credentials.", decodeErrorContent body )
                             model
                         , errorNotification msg
@@ -105,7 +113,7 @@ processSpecificApiError msg err model =
 
                 403 ->
                     Just
-                        ( withSettingsError
+                        ( setSettingsError
                             ( "There are configuration errors related to plugin management. Please refresh the list of plugins after you update your configuration URL or check your access.", decodeErrorContent body )
                             model
                         , errorNotification msg
@@ -147,10 +155,13 @@ processApiError msg err model =
 
                 Detailed.BadBody _ _ m ->
                     m
+
+        newModel =
+            setActionError ( msg, message ) model
     in
     -- specific error override other ones which no longer need to be processed
     processSpecificApiError msg err model
-        |> Maybe.withDefault ( model, errorNotification (msg ++ ", details: \n" ++ message) )
+        |> Maybe.withDefault ( newModel, errorNotification (msg ++ ", details: \n" ++ message) )
 
 
 decodeErrorContent : String -> String
