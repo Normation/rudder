@@ -149,14 +149,9 @@ defaultMethodUiInfo call =
   in
     MethodCallUiInfo Closed CallParameters Unchanged (ForeachUI False False (defaultNewForeach foreachName foreach))
 
-defaultBlockUiInfo : Maybe MethodBlock -> MethodBlockUiInfo
+defaultBlockUiInfo : MethodBlock -> MethodBlockUiInfo
 defaultBlockUiInfo block =
-  let
-    (foreachName, foreach) = case block  of
-      Just b -> (b.foreachName, b.foreach)
-      Nothing -> (Nothing, Nothing)
-  in
-    MethodBlockUiInfo Closed Children Unchanged False (ForeachUI False False (defaultNewForeach foreachName foreach))
+  MethodBlockUiInfo Closed Children Unchanged False (ForeachUI False False (defaultNewForeach block.foreachName block.foreach))
 
 selectTechnique: Model -> (Either Technique Draft) -> (Model, Cmd Msg)
 selectTechnique model technique =
@@ -177,7 +172,7 @@ selectTechnique model technique =
         in
         (d.technique, st, Cmd.none)
     callState = (Dict.fromList (List.map (\c -> (c.id.value, (defaultMethodUiInfo (Just c)))) (List.concatMap getAllCalls effectiveTechnique.elems)))
-    blockState = (Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo (Just c))) (List.concatMap getAllBlocks effectiveTechnique.elems)))
+    blockState = (Dict.fromList (List.map (\c -> (c.id.value, (defaultBlockUiInfo c))) (List.concatMap getAllBlocks effectiveTechnique.elems)))
     defaultUi = TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
     -- Revalidate state when technique is a Draft
     validateDraftUi s = checkTechniqueUiState state s (List.map techniqueCheckState model.techniques) defaultUi
@@ -318,7 +313,7 @@ update msg model =
         copiedName = technique.name ++ " (Copy)"
         newId = canonifyHelper (Value (String.toLower copiedName))
         callState =  Dict.fromList (List.map (\c -> (c.id.value, (defaultMethodUiInfo (Just c)))) (List.concatMap allMethodCalls technique.elems))
-        blockState =  Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo  (Just c))) (List.concatMap getAllBlocks technique.elems))
+        blockState =  Dict.fromList (List.map (\c -> (c.id.value, defaultBlockUiInfo c)) (List.concatMap getAllBlocks technique.elems))
         ui = TechniqueUiInfo General callState  blockState [] False Unchanged Unchanged Nothing
         editInfo = TechniqueEditInfo "" False (Ok ())
         newModel = { model | mode = TechniqueDetails {technique | name = copiedName, id = TechniqueId newId}  (Clone technique optDraftId internalId) ui editInfo }
@@ -457,7 +452,7 @@ update msg model =
                         let
                           updateCallUi = \optCui ->
                             case optCui of
-                              Nothing -> Just (defaultBlockUiInfo (Just b))
+                              Nothing -> Just (defaultBlockUiInfo b)
                               Just cui -> Just { cui | validation = Unchanged }
                         in
                           { ui | blockUI = Dict.update b.id.value updateCallUi  ui.blockUI }
@@ -737,7 +732,7 @@ update msg model =
                 technique = { t |  elems = newMethods}
                 newUi = case call of
                           Call _ c  -> { ui | callsUI = Dict.update newId.value (always (Just (defaultMethodUiInfo (Just c)))) ui.callsUI }
-                          Block _ b  -> { ui | blockUI = Dict.update newId.value (always (Just (defaultBlockUiInfo (Just b)))) ui.blockUI }
+                          Block _ b  -> { ui | blockUI = Dict.update newId.value (always (Just (defaultBlockUiInfo b))) ui.blockUI }
                 m = { model | mode = TechniqueDetails technique o newUi editInfo }
               in
                 case call of
@@ -946,7 +941,7 @@ update msg model =
               Import _ ->
                 let
                   callState = (Dict.fromList (List.map (\c -> (c.id.value, (defaultMethodUiInfo (Just c)))) (List.concatMap getAllCalls technique.elems)))
-                  blockState = (Dict.fromList (List.map (\c -> (c.id.value, (defaultBlockUiInfo (Just c)))) (List.concatMap getAllBlocks technique.elems)))
+                  blockState = (Dict.fromList (List.map (\c -> (c.id.value, (defaultBlockUiInfo c))) (List.concatMap getAllBlocks technique.elems)))
                   ui = TechniqueUiInfo General callState blockState [] False Unchanged Unchanged Nothing
                   editInfo = TechniqueEditInfo "" False (Ok ())
                 in
