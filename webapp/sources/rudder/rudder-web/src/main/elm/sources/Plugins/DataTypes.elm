@@ -84,7 +84,8 @@ type alias InstallActionModel =
 
 
 type alias PluginsViewModel =
-    { selected : Set PluginId
+    { plugins : List PluginInfo
+    , selected : Set PluginId
     , modalState : ModalState
     , installAction : InstallActionModel
     }
@@ -103,7 +104,6 @@ type ModalState
 type alias Model =
     { contextPath : String
     , license : Maybe LicenseGlobalInfo
-    , plugins : List PluginInfo
     , ui : UI
     }
 
@@ -156,17 +156,17 @@ requestTypeText t =
 
 processSelect : Select -> Model -> Model
 processSelect select model =
-    model |> updatePluginsViewModel (processSelect_ select model.plugins)
+    model |> updatePluginsViewModel (processSelect_ select)
 
 
-processSelect_ : Select -> List PluginInfo -> PluginsViewModel -> PluginsViewModel
-processSelect_ select plugins model =
+processSelect_ : Select -> PluginsViewModel -> PluginsViewModel
+processSelect_ select model =
     let
         previouslySelected =
             model.selected
 
         getAllPlugins =
-            \_ -> plugins |> List.map .id |> Set.fromList
+            \_ -> model.plugins |> List.map .id |> Set.fromList
     in
     model
         |> setSelected
@@ -183,11 +183,6 @@ processSelect_ select plugins model =
                 UnselectAll ->
                     Set.empty
             )
-
-
-getPluginsIds : Model -> List PluginId
-getPluginsIds model =
-    model.plugins |> List.map .id
 
 
 updatePluginsViewModel : (PluginsViewModel -> PluginsViewModel) -> Model -> Model
@@ -213,9 +208,19 @@ setSelected plugins model =
     }
 
 
+setPlugins : List PluginInfo -> Model -> Model
+setPlugins plugins =
+    updatePluginsViewModel (\viewModel -> { viewModel | plugins = plugins })
+
+
 setModalState : ModalState -> Model -> Model
 setModalState modalState =
     updatePluginsViewModel (\model -> { model | modalState = modalState })
+
+
+setLicense : Maybe LicenseGlobalInfo -> Model -> Model
+setLicense license model =
+    { model | license = license }
 
 
 setUI : UI -> Model -> Model
@@ -264,6 +269,11 @@ pluginDefaultOrdering =
         |> Ordering.breakTiesWith (Ordering.byField .name)
 
 
-withLoading : Bool -> Model -> Model
-withLoading value model =
-    { model | ui = (\ui -> { ui | loading = value }) model.ui }
+updateUI : (UI -> UI) -> Model -> Model
+updateUI f =
+    \model -> { model | ui = f model.ui }
+
+
+setLoading : Bool -> Model -> Model
+setLoading value =
+    updateUI (\ui -> { ui | loading = value })

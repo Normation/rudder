@@ -73,20 +73,20 @@ actionButtons model =
     ]
 
 
-displayPluginsList : Model -> PluginsViewModel -> Html Msg
-displayPluginsList model pluginsModel =
-    if List.isEmpty model.plugins then
+displayPluginsList : PluginsViewModel -> Html Msg
+displayPluginsList pluginsModel =
+    if List.isEmpty pluginsModel.plugins then
         i [ class "text-secondary" ] [ text "There are no plugins available." ]
 
     else
-        pluginsSection model pluginsModel
+        pluginsSection pluginsModel
 
 
-pluginsSection : Model -> PluginsViewModel -> Html Msg
-pluginsSection model pluginsModel =
+pluginsSection : PluginsViewModel -> Html Msg
+pluginsSection pluginsModel =
     let
         plugins =
-            List.sortWith pluginDefaultOrdering model.plugins
+            List.sortWith pluginDefaultOrdering pluginsModel.plugins
 
         isSelectAll =
             not (List.length plugins == Set.size pluginsModel.selected)
@@ -218,7 +218,7 @@ displayPluginView model =
 
         ViewPluginsList pluginsModel ->
             [ displayMainLicense model
-            , displayPluginsList model pluginsModel
+            , displayPluginsList pluginsModel
             ]
 
 

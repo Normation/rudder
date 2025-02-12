@@ -14,12 +14,11 @@ init : { contextPath : String } -> ( Model, Cmd Msg )
 init flags =
     let
         initUI =
-            { loading = True, view = ViewPluginsList { selected = Set.empty, modalState = NoModal, installAction = { disabled = True } } }
+            { loading = True, view = ViewPluginsList { plugins = [], selected = Set.empty, modalState = NoModal, installAction = { disabled = True } } }
 
         initModel =
             { contextPath = flags.contextPath
             , license = Nothing
-            , plugins = []
             , ui = initUI
             }
     in
