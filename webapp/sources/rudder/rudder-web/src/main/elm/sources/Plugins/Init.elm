@@ -2,6 +2,7 @@ module Plugins.Init exposing (..)
 
 import Plugins.ApiCalls exposing (getPluginInfos)
 import Plugins.DataTypes exposing (..)
+import Set
 
 
 subscriptions : Model -> Sub Msg
@@ -13,10 +14,14 @@ init : { contextPath : String } -> ( Model, Cmd Msg )
 init flags =
     let
         initUI =
-            UI True [] NoModal ViewPluginsList
+            { loading = True, view = ViewPluginsList { selected = Set.empty, modalState = NoModal, installAction = { disabled = True } } }
 
         initModel =
-            Model flags.contextPath Nothing [] initUI
+            { contextPath = flags.contextPath
+            , license = Nothing
+            , plugins = []
+            , ui = initUI
+            }
     in
     ( initModel
     , getPluginInfos initModel

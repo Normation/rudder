@@ -8,6 +8,7 @@ import List.Extra
 import Maybe.Extra
 import Plugins.ApiCalls exposing (..)
 import Plugins.DataTypes exposing (..)
+import Set exposing (Set)
 import String.Extra
 import Time.DateTime
 import Time.Iso8601
@@ -62,36 +63,33 @@ checkAll =
            )
 
 
-actionButtons : Model -> List (Html Msg)
+actionButtons : PluginsViewModel -> List (Html Msg)
 actionButtons model =
     [ button [ class "btn btn-primary me-1", onClick (CallApi updateIndex) ] [ i [ class "fa fa-refresh me-1" ] [], text "Refresh plugins" ]
-    , button [ class "btn btn-default mx-1", disabled <| List.isEmpty model.ui.selected, onClick (SetModalState (OpenModal Install)) ] [ text "Install", i [ class "fa fa-plus-circle ms-1" ] [] ]
-    , button [ class "btn btn-default mx-1", disabled <| List.isEmpty model.ui.selected, onClick (SetModalState (OpenModal Uninstall)) ] [ text "Uninstall", i [ class "fa fa-minus-circle ms-1" ] [] ]
-    , button [ class "btn btn-default mx-1", disabled <| List.isEmpty model.ui.selected, onClick (SetModalState (OpenModal Enable)) ] [ text "Enable", i [ class "fa fa-check-circle ms-1" ] [] ]
-    , button [ class "btn btn-default ms-1", disabled <| List.isEmpty model.ui.selected, onClick (SetModalState (OpenModal Disable)) ] [ text "Disable", i [ class "fa fa-ban ms-1" ] [] ]
+    , button [ class "btn btn-default mx-1", disabled <| model.installAction.disabled, onClick (SetModalState (OpenModal Install)) ] [ text "Install", i [ class "fa fa-plus-circle ms-1" ] [] ]
+    , button [ class "btn btn-default mx-1", disabled <| Set.isEmpty model.selected, onClick (SetModalState (OpenModal Uninstall)) ] [ text "Uninstall", i [ class "fa fa-minus-circle ms-1" ] [] ]
+    , button [ class "btn btn-default mx-1", disabled <| Set.isEmpty model.selected, onClick (SetModalState (OpenModal Enable)) ] [ text "Enable", i [ class "fa fa-check-circle ms-1" ] [] ]
+    , button [ class "btn btn-default ms-1", disabled <| Set.isEmpty model.selected, onClick (SetModalState (OpenModal Disable)) ] [ text "Disable", i [ class "fa fa-ban ms-1" ] [] ]
     ]
 
 
-displayPluginsList : Model -> Html Msg
-displayPluginsList model =
+displayPluginsList : Model -> PluginsViewModel -> Html Msg
+displayPluginsList model pluginsModel =
     if List.isEmpty model.plugins then
         i [ class "text-secondary" ] [ text "There are no plugins available." ]
 
     else
-        pluginsSection model
+        pluginsSection model pluginsModel
 
 
-pluginsSection : Model -> Html Msg
-pluginsSection model =
+pluginsSection : Model -> PluginsViewModel -> Html Msg
+pluginsSection model pluginsModel =
     let
-        selected =
-            model.ui.selected
-
         plugins =
             List.sortWith pluginDefaultOrdering model.plugins
 
         isSelectAll =
-            not (List.length plugins == List.length selected)
+            not (List.length plugins == Set.size pluginsModel.selected)
 
         selectText =
             if isSelectAll then
@@ -113,9 +111,9 @@ pluginsSection model =
         [ div [ class "table-container plugins-container" ]
             [ div [ class "dataTables_wrapper_top table-filter plugins-actions" ]
                 [ div [ class "start" ] selectHtml
-                , div [ class "end" ] (actionButtons model)
+                , div [ class "end" ] (actionButtons pluginsModel)
                 ]
-            , div [ class "plugins-list" ] (List.map (displayPlugin model) plugins)
+            , div [ class "plugins-list" ] (List.map (displayPlugin pluginsModel) plugins)
             ]
         ]
 
@@ -218,9 +216,9 @@ displayPluginView model =
         ViewSettingsError ( message, details ) ->
             [ displaySettingError model message (Just details) ]
 
-        ViewPluginsList ->
+        ViewPluginsList pluginsModel ->
             [ displayMainLicense model
-            , displayPluginsList model
+            , displayPluginsList model pluginsModel
             ]
 
 
@@ -288,8 +286,8 @@ pluginErrorCallouts p =
            )
 
 
-pluginInputCheck : Model -> PluginInfo -> List (Html Msg)
-pluginInputCheck model p =
+pluginInputCheck : PluginInfo -> Set PluginId -> List (Html Msg)
+pluginInputCheck p selected =
     let
         -- plugin cannot be selected
         isDisabled =
@@ -299,15 +297,15 @@ pluginInputCheck model p =
         [ input [ id p.id, type_ "checkbox", class "d-none", disabled True ] [], i [ class "fa fa-info-circle text-muted fs-5 mx-2" ] [] ]
 
     else
-        [ input [ id p.id, type_ "checkbox", class "mx-2", checked (List.member p.id model.ui.selected), onCheck (checkOne p.id) ] [] ]
+        [ input [ id p.id, type_ "checkbox", class "mx-2", checked (Set.member p.id selected), onCheck (checkOne p.id) ] [] ]
 
 
-displayPlugin : Model -> PluginInfo -> Html Msg
-displayPlugin model p =
+displayPlugin : PluginsViewModel -> PluginInfo -> Html Msg
+displayPlugin pluginsModel p =
     div [ class <| "plugin-card card " ++ Maybe.withDefault "" (pluginCardBgClass p) ]
         [ div [ class "card-body" ]
             [ div [ class "form-check p-0 d-flex align-items-center" ]
-                (pluginInputCheck model p
+                (pluginInputCheck p pluginsModel.selected
                     ++ label [ class "d-flex flex-column mx-2", for p.id ]
                         [ div [ class "d-flex align-items-baseline" ]
                             [ h3 [ class "plugin-title card-title" ] [ text p.description ]
@@ -362,22 +360,27 @@ modalTitle requestType =
     String.Extra.toSentenceCase (requestTypeText requestType) ++ " plugins"
 
 
-modalBody : RequestType -> Model -> Html Msg
-modalBody requestType model =
+modalBody : RequestType -> PluginsViewModel -> Html Msg
+modalBody requestType pluginsModel =
     div [ class "callout-fade callout-warning" ]
-        [ p [] [ i [ class "fa fa-warning me-2" ] [], strong [] [ text "Rudder will restart" ], text <| " to " ++ requestTypeText requestType ++ " " ++ String.Extra.pluralize "plugin" "plugins" (List.length model.ui.selected) ++ " :" ]
-        , ul [ class "list-group m-0" ] (List.map (\p -> li [ class "list-group-item" ] [ text p ]) model.ui.selected)
+        [ p [] [ i [ class "fa fa-warning me-2" ] [], strong [] [ text "Rudder will restart" ], text <| " to " ++ requestTypeText requestType ++ " " ++ String.Extra.pluralize "plugin" "plugins" (Set.size pluginsModel.selected) ++ " :" ]
+        , ul [ class "list-group m-0" ] (pluginsModel.selected |> Set.toList |> List.map (\p -> li [ class "list-group-item" ] [ text p ]))
         ]
 
 
 displayModal : Model -> Html Msg
 displayModal model =
-    case model.ui.modalState of
-        NoModal ->
+    case model.ui.view of
+        ViewSettingsError _ ->
             text ""
 
-        OpenModal requestType ->
-            buildModal model.ui.loading (modalTitle requestType) (modalBody requestType model) (RequestApi requestType)
+        ViewPluginsList pluginsModel ->
+            case pluginsModel.modalState of
+                NoModal ->
+                    text ""
+
+                OpenModal requestType ->
+                    buildModal model.ui.loading (modalTitle requestType) (modalBody requestType pluginsModel) (RequestApi requestType pluginsModel.selected)
 
 
 loadWithSpinner : String -> Bool -> List (Html Msg) -> List (Html Msg)

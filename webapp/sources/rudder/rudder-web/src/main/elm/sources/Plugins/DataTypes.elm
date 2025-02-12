@@ -3,8 +3,8 @@ module Plugins.DataTypes exposing (..)
 import Http
 import Http.Detailed
 import Json.Encode exposing (Value)
-import List.Extra
 import Ordering exposing (Ordering)
+import Set exposing (Set)
 import String.Extra
 import Time.ZonedDateTime exposing (ZonedDateTime)
 
@@ -75,14 +75,23 @@ type alias PluginError =
 
 type alias UI =
     { loading : Bool
-    , selected : List PluginId
-    , modalState : ModalState
     , view : PluginsView
     }
 
 
+type alias InstallActionModel =
+    { disabled : Bool }
+
+
+type alias PluginsViewModel =
+    { selected : Set PluginId
+    , modalState : ModalState
+    , installAction : InstallActionModel
+    }
+
+
 type PluginsView
-    = ViewPluginsList
+    = ViewPluginsList PluginsViewModel
     | ViewSettingsError ( String, String ) -- message, details
 
 
@@ -116,7 +125,7 @@ type RequestType
 
 type Msg
     = CallApi (Model -> Cmd Msg)
-    | RequestApi RequestType
+    | RequestApi RequestType (Set PluginId)
     | ApiGetPlugins (Result (Http.Detailed.Error String) ( Http.Metadata, PluginsInfo ))
     | ApiPostPlugins RequestType (Result (Http.Detailed.Error String) ())
     | SetModalState ModalState
@@ -147,34 +156,71 @@ requestTypeText t =
 
 processSelect : Select -> Model -> Model
 processSelect select model =
+    model |> updatePluginsViewModel (processSelect_ select model.plugins)
+
+
+processSelect_ : Select -> List PluginInfo -> PluginsViewModel -> PluginsViewModel
+processSelect_ select plugins model =
     let
-        ui =
-            model.ui
+        previouslySelected =
+            model.selected
 
-        withUiSelection s =
-            { ui | selected = s }
-
-        withSelection s =
-            { model | ui = withUiSelection s }
-
-        selected =
-            ui.selected
-
-        allPlugins =
-            List.map .id model.plugins
+        getAllPlugins =
+            \_ -> plugins |> List.map .id |> Set.fromList
     in
-    case select of
-        SelectOne id ->
-            withSelection (id :: selected)
+    model
+        |> setSelected
+            (case select of
+                SelectOne id ->
+                    Set.insert id previouslySelected
 
-        UnselectOne id ->
-            withSelection (List.Extra.remove id selected)
+                UnselectOne id ->
+                    Set.remove id previouslySelected
 
-        SelectAll ->
-            withSelection allPlugins
+                SelectAll ->
+                    getAllPlugins ()
 
-        UnselectAll ->
-            withSelection []
+                UnselectAll ->
+                    Set.empty
+            )
+
+
+getPluginsIds : Model -> List PluginId
+getPluginsIds model =
+    model.plugins |> List.map .id
+
+
+updatePluginsViewModel : (PluginsViewModel -> PluginsViewModel) -> Model -> Model
+updatePluginsViewModel f ({ ui } as model) =
+    model
+        |> setUI
+            { ui
+                | view =
+                    case model.ui.view of
+                        ViewPluginsList plugins ->
+                            ViewPluginsList <| f plugins
+
+                        ViewSettingsError _ ->
+                            model.ui.view
+            }
+
+
+setSelected : Set PluginId -> PluginsViewModel -> PluginsViewModel
+setSelected plugins model =
+    { model
+        | selected = plugins
+        , installAction = { disabled = Set.isEmpty plugins }
+    }
+
+
+setModalState : ModalState -> Model -> Model
+setModalState modalState =
+    updatePluginsViewModel (\model -> { model | modalState = modalState })
+
+
+setUI : UI -> Model -> Model
+setUI ui model =
+    { model | ui = ui }
 
 
 withSettingsError : ( String, String ) -> Model -> Model
