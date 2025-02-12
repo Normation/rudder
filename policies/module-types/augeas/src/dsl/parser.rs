@@ -1,58 +1,13 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2024 Normation SAS
-
-//! Lexer & parser for the Rudder augeas language.
-//!
-//! The main goal here is to have quality error messages.
-
 use crate::dsl::comparator::{Comparison, NumComparator};
 use crate::dsl::script::Script;
 use crate::dsl::value_type::ValueType;
 use crate::dsl::{AugPath, Sub};
 use anyhow::Result;
-use ariadne::{sources, Color, Label, Report, ReportKind};
-use chumsky::prelude::*;
-use chumsky::Parser;
+use pest::iterators::Pair;
+use pest::Parser;
+use pest_derive::Parser;
 use raugeas::Position;
-use std::fmt;
 use zxcvbn::Score;
-
-pub type Span = SimpleSpan;
-pub type Spanned<T> = (T, Span);
-
-/*
-fn toto2<'a>() -> impl Parser<'a, &'a str, Json, extra::Err<Rich<'a, char>>> {
-    recursive(|value| {
-        choice((
-            just("null").to(Json::Null),
-            just("true").to(Json::Bool(true)),
-            just("false").to(Json::Bool(false)),
-            number.map(Json::Num),
-            string.map(Json::Str),
-            array.map(Json::Array),
-        ))
-        .padded_by(comment.repeated())
-        .recover_with(via_parser(nested_delimiters(
-            '{',
-            '}',
-            [('[', ']')],
-            |_| Json::Invalid,
-        )))
-        .recover_with(via_parser(nested_delimiters(
-            '[',
-            ']',
-            [('{', '}')],
-            |_| Json::Invalid,
-        )))
-        .recover_with(skip_then_retry_until(
-            any().ignored(),
-            one_of(",]}").ignored(),
-        ))
-        .padded()
-    })
-}*/
-
-// AST and parser
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr<'src> {
@@ -117,241 +72,123 @@ pub enum Expr<'src> {
     Load,
 }
 
-fn parser<'a>() -> impl Parser<'a, &'a str, Vec<Spanned<Expr<'a>>>, extra::Err<Rich<'a, char>>> {
-    let comment = just("#")
-        .then(any().and_is(just('\n').not()).repeated())
-        .padded();
+#[derive(Parser)]
+#[grammar = "dsl/raugeas.pest"]
+pub struct RaugeasParser;
 
-    // TODO: escape_names = "\"abtnvfr\\";
-    let escape = just('\\')
-        .then(choice((
-            just('\\'),
-            just('/'),
-            just('"'),
-            just('b').to('\x08'),
-            just('f').to('\x0C'),
-            just('n').to('\n'),
-            just('r').to('\r'),
-            just('t').to('\t'),
-        )))
-        .ignored()
-        .boxed();
-
-    let quoted_string = none_of("\\\"")
-        .ignored()
-        .or(escape)
-        .repeated()
-        .to_slice()
-        .delimited_by(just('"'), just('"'));
-
-    // FIXME:
-    let alpha = one_of("-_/.1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-        .repeated()
-        .to_slice();
-    let string = quoted_string.clone().or(alpha).padded();
-
-    /*
-    let array = string
-        .clone()
-        .separated_by(just(',').padded().recover_with(skip_then_retry_until(
-            any().ignored(),
-            one_of(",]").ignored(),
-        )))
-        .allow_trailing()
-        .collect()
-        .padded()
-        .delimited_by(
-            just('['),
-            just(']')
-                .ignored()
-                .recover_with(via_parser(end()))
-                .recover_with(skip_then_retry_until(any().ignored(), end())),
-        )
-        .boxed();
-
-     */
-
-    let set = just("set")
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone())
-        .map(|(path, value): (&str, &str)| Expr::Set(path.into(), value))
-        .boxed();
-    let setm = just("setm")
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone())
-        .then(string.clone())
-        .map(|((path, sub), value): ((&str, &str), &str)| {
-            Expr::SetMultiple(path.into(), sub, value)
-        })
-        .boxed();
-    let defvar = just("defvar")
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone())
-        .map(|(name, path): (&str, &str)| Expr::DefineVar(name, path.into()))
-        .boxed();
-    let defnode = just("defnode")
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone())
-        .then(string.clone())
-        .map(|((name, path), value): ((&str, &str), &str)| {
-            Expr::DefineNode(name, path.into(), value)
-        })
-        .boxed();
-    let remove = just("remove")
-        .or(just("rm"))
-        .padded()
-        .ignore_then(string.clone())
-        .map(|path: &str| Expr::Remove(path.into()))
-        .boxed();
-    let clear = just("clear")
-        .padded()
-        .ignore_then(string.clone())
-        .map(|path: &str| Expr::Clear(path.into()))
-        .boxed();
-    let clearm = just("clearm")
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone())
-        .map(|(path, sub): (&str, &str)| Expr::ClearMultiple(path.into(), sub))
-        .boxed();
-    let touch = just("touch")
-        .padded()
-        .ignore_then(string.clone())
-        .map(|path: &str| Expr::Touch(path.into()))
-        .boxed();
-    let move_ = just("move")
-        .or(just("mv"))
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone())
-        .map(|(path, other): (&str, &str)| Expr::Move(path.into(), other.into()))
-        .boxed();
-    let copy = just("copy")
-        .or(just("cp"))
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone())
-        .map(|(path, other): (&str, &str)| Expr::Copy(path.into(), other.into()))
-        .boxed();
-    let rename = just("rename")
-        .padded()
-        .ignore_then(string.clone())
-        .then(string.clone())
-        .map(|(path, label): (&str, &str)| Expr::Rename(path.into(), label))
-        .boxed();
-
-    let save = just("save").to(Expr::Save).boxed();
-    let quit = just("quit").to(Expr::Quit).boxed();
-    let load = just("load").to(Expr::Load).boxed();
-
-    let generic = none_of("\n\r")
-        .repeated()
-        .to_slice()
-        .padded()
-        .map(|s| Expr::GenericAugeas(s))
-        .boxed();
-
-    choice((
-        set, setm, defnode, defvar, move_, remove, copy, rename, clear, clearm, touch, save, quit,
-        load, generic,
-    ))
-    .map_with(|expr, e| (expr, e.span()))
-    .padded_by(comment.repeated())
-    .padded()
-    .repeated()
-    .collect()
+fn parse_array(pair: Pair<Rule>) -> Vec<&str> {
+    pair.into_inner().map(|p| p.as_str()).collect()
 }
 
-fn failure(
-    msg: String,
-    label: (String, SimpleSpan),
-    extra_labels: impl IntoIterator<Item = (String, SimpleSpan)>,
-    src: &str,
-) -> ! {
-    // "File" name for the error message
-    let file_name = "command";
-    Report::build(ReportKind::Error, file_name, label.1.start)
-        .with_message(&msg)
-        .with_label(
-            Label::new((file_name, label.1.into_range()))
-                .with_message(label.0)
-                .with_color(Color::Red),
-        )
-        .with_labels(extra_labels.into_iter().map(|label2| {
-            Label::new((file_name, label2.1.into_range()))
-                .with_message(label2.0)
-                .with_color(Color::Yellow)
-        }))
-        .finish()
-        .print(sources([(file_name, src)]))
-        .unwrap();
-    std::process::exit(1)
+fn parse_command(pair: Pair<Rule>) -> Expr {
+    match pair.as_rule() {
+        Rule::save => Expr::Save,
+        Rule::quit => Expr::Quit,
+        Rule::set => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let value: &str = inner_rules.next().unwrap().as_str();
+            Expr::Set(path.into(), value.into())
+        }
+        Rule::rm => Expr::Remove(pair.into_inner().next().unwrap().as_str().into()),
+        Rule::clear => Expr::Clear(pair.into_inner().next().unwrap().as_str().into()),
+        Rule::touch => Expr::Touch(pair.into_inner().next().unwrap().as_str().into()),
+        Rule::mv => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let new_path: &str = inner_rules.next().unwrap().as_str();
+            Expr::Move(path.into(), new_path.into())
+        }
+        Rule::rename => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let new_label: &str = inner_rules.next().unwrap().as_str();
+            Expr::Rename(path.into(), new_label.into())
+        }
+        Rule::defvar => {
+            let mut inner_rules = pair.into_inner();
+            let name: &str = inner_rules.next().unwrap().as_str();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            Expr::DefineVar(name.into(), path.into())
+        }
+        Rule::defnode => {
+            let mut inner_rules = pair.into_inner();
+            let name: &str = inner_rules.next().unwrap().as_str();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let value: &str = inner_rules.next().unwrap().as_str();
+            Expr::DefineNode(name.into(), path.into(), value.into())
+        }
+        _ => unreachable!(),
+    }
 }
 
-fn parse_failure(err: &Rich<impl fmt::Display>, src: &str) -> ! {
-    failure(
-        err.reason().to_string(),
-        (
-            err.found()
-                .map(|c| c.to_string())
-                .unwrap_or_else(|| "end of input".to_string()),
-            *err.span(),
-        ),
-        err.contexts()
-            .map(|(l, s)| (format!("while parsing this {l}"), *s)),
-        src,
-    )
-}
+pub fn parse_script(input: &str) -> Result<Script<'_>> {
+    let parsed = RaugeasParser::parse(Rule::script, input)?.next().unwrap();
 
-pub fn parse_script(src: &str) -> Result<Script> {
-    parser()
-        .parse(src)
-        .into_result()
-        .map(|v| Script {
-            expressions: v.into_iter().map(|e| e.0).collect(),
-        })
-        .map_err(|errs| parse_failure(&errs[0], src))
+    let mut exprs = Vec::new();
+
+    dbg!(&parsed);
+
+    for line in parsed.into_inner() {
+        match line.as_rule() {
+            Rule::command => exprs.push(parse_command(line.into_inner().next().unwrap())),
+            Rule::COMMENT | Rule::EOI => {}
+            _ => {
+                dbg!(&line);
+            }
+        }
+    }
+
+    Ok(Script { expressions: exprs })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pest::Parser;
 
     #[test]
-    fn test_parser() {
-        let src = r#"set "path" "value""#;
+    fn pest_parses_strings() {
         assert_eq!(
-            parser()
-                .parse(src)
-                .into_result()
-                .unwrap_or_else(|errs| parse_failure(&errs[0], src))[0]
-                .0,
-            Expr::Set("path".into(), "value")
+            RaugeasParser::parse(Rule::string_value, "toto")
+                .unwrap()
+                .next()
+                .unwrap()
+                .as_str(),
+            "toto"
         );
-        let src = r#"set /path/to "val - lue""#;
         assert_eq!(
-            parser()
-                .parse(src)
-                .into_result()
-                .unwrap_or_else(|errs| parse_failure(&errs[0], src))[0]
-                .0,
-            Expr::Set("/path/to".into(), "val - lue")
+            RaugeasParser::parse(Rule::string_value, "\"toto\"")
+                .unwrap()
+                .next()
+                .unwrap()
+                .as_str(),
+            "toto"
         );
-
-        assert_eq!(parser().parse("save").unwrap()[0].0, Expr::Save);
-        assert_eq!(parser().parse("save ").unwrap()[0].0, Expr::Save);
-        assert_eq!(parser().parse("  save ").unwrap()[0].0, Expr::Save);
-        assert_eq!(parser().parse("\n\nsave ").unwrap()[0].0, Expr::Save);
-        assert_eq!(parser().parse("save\n ").unwrap()[0].0, Expr::Save);
-        assert_eq!(parser().parse("save # stuff").unwrap()[0].0, Expr::Save);
+        assert_eq!(
+            RaugeasParser::parse(Rule::string_value, "'toto'")
+                .unwrap()
+                .next()
+                .unwrap()
+                .as_str(),
+            "toto"
+        );
     }
 
     #[test]
-    fn test_script() {
+    fn pest_parses_arrays() {
+        assert_eq!(
+            RaugeasParser::parse(Rule::array, "[toto]'")
+                .unwrap()
+                .next()
+                .unwrap()
+                .as_str(),
+            "toto"
+        );
+    }
+
+    #[test]
+    fn pest_parse_script() {
         let input = r#"
             # This is a comment
             set /path/to/node value
@@ -368,9 +205,6 @@ mod tests {
             rename /path/to/node new_label
             defvar name /path/to/node
             defnode name /path/to/node value
-            
-            custom command
-
         "#;
         let expected = vec![
             Expr::Set("/path/to/node".into(), "value"),
@@ -383,16 +217,8 @@ mod tests {
             Expr::Rename("/path/to/node".into(), "new_label"),
             Expr::DefineVar("name", "/path/to/node".into()),
             Expr::DefineNode("name", "/path/to/node".into(), "value"),
-            Expr::GenericAugeas("custom command"),
         ];
-        assert_eq!(
-            parser()
-                .parse(input)
-                .unwrap()
-                .into_iter()
-                .map(|e| e.0)
-                .collect::<Vec<Expr>>(),
-            expected
-        );
+        let parsed = parse_script(input).unwrap();
+        assert_eq!(parsed.expressions, expected);
     }
 }

@@ -1,0 +1,57 @@
+// Whitespace and comments
+WHITESPACE = _{ " " | "\t" }
+COMMENT = _{ "#" ~ (!NEWLINE ~ ANY)* }
+
+// Capture inner string content without quotes
+// FIXME escape sequences
+double_quoted_content = @{ (!("\"") ~ ANY)* }
+single_quoted_content = @{ (!("'") ~ ANY)* }
+unquoted_string = @{ (!(WHITESPACE | "," | "]" | NEWLINE | COMMENT) ~ ANY)+ }
+
+string_value = _{
+    ("\"" ~ double_quoted_content ~ "\"") |
+    ("'" ~ single_quoted_content ~ "'") |
+    unquoted_string
+}
+
+// FIXME check
+identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+// Array syntax
+array = _{ "[" ~ (string_value ~ ("," ~ string_value)*)? ~ "]" }
+
+// Commands
+set = { "set" ~ string_value ~ string_value }
+rm = { "rm" ~ string_value }
+clear = { "clear" ~ string_value }
+touch = { "touch" ~ string_value }
+mv = { ("mv" | "move") ~ string_value ~ string_value }
+rename = { "rename" ~ string_value ~ identifier }
+defvar = { "defvar" ~ identifier ~ string_value }
+defnode = { "defnode" ~ identifier ~ string_value ~ string_value }
+values = { "values" ~ string_value ~ array }
+save = { "save" }
+quit = { "quit" }
+
+// Command line
+command = {
+    set |
+    rm |
+    clear |
+    touch |
+    quit |
+    mv |
+    rename |
+    defvar |
+    defnode |
+    values |
+    save |
+    quit
+}
+
+// Full script
+script = {
+    SOI ~
+    ((command ~ NEWLINE*) | (COMMENT ~ NEWLINE*) | NEWLINE+)* ~
+    EOI
+}
