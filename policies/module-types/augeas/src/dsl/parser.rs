@@ -2,7 +2,7 @@ use crate::dsl::comparator::{Comparison, NumComparator};
 use crate::dsl::script::Script;
 use crate::dsl::value_type::ValueType;
 use crate::dsl::{AugPath, Sub};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;
@@ -80,8 +80,8 @@ fn parse_array(pair: Pair<Rule>) -> Vec<&str> {
     pair.into_inner().map(|p| p.as_str()).collect()
 }
 
-fn parse_command(pair: Pair<Rule>) -> Expr {
-    match pair.as_rule() {
+fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
+    Ok(match pair.as_rule() {
         Rule::save => Expr::Save,
         Rule::quit => Expr::Quit,
         Rule::set => {
@@ -118,8 +118,108 @@ fn parse_command(pair: Pair<Rule>) -> Expr {
             let value: &str = inner_rules.next().unwrap().as_str();
             Expr::DefineNode(name.into(), path.into(), value.into())
         }
-        _ => unreachable!(),
-    }
+        Rule::values_include => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let value: &str = inner_rules.next().unwrap().as_str();
+            Expr::ValuesInclude(path.into(), value)
+        }
+        Rule::values_not_include => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let value: &str = inner_rules.next().unwrap().as_str();
+            Expr::ValuesNotInclude(path.into(), value)
+        }
+        Rule::values_equal => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let values = parse_array(inner_rules.next().unwrap());
+            Expr::ValuesEqual(path.into(), values)
+        }
+        Rule::values_not_equal => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let values = parse_array(inner_rules.next().unwrap());
+            Expr::ValuesNotEqual(path.into(), values)
+        }
+
+        Rule::match_include => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let value: &str = inner_rules.next().unwrap().as_str();
+            Expr::MatchInclude(path.into(), value)
+        }
+        Rule::match_not_include => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let value: &str = inner_rules.next().unwrap().as_str();
+            Expr::MatchNotInclude(path.into(), value)
+        }
+        Rule::match_equal => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let values = parse_array(inner_rules.next().unwrap());
+            Expr::MatchEqual(path.into(), values)
+        }
+        Rule::match_not_equal => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let values = parse_array(inner_rules.next().unwrap());
+            Expr::MatchNotEqual(path.into(), values)
+        }
+        Rule::password_score => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let score_str = inner_rules.next().unwrap().as_str();
+            let score: Score = score_str
+                .parse::<u8>()?
+                .try_into()
+                .map_err(|e| anyhow!("Invalid score '{score_str}': {e}"))?;
+            Expr::PasswordScore(path.into(), score)
+        }
+        Rule::password_luds => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let l: u8 = inner_rules.next().unwrap().as_str().parse()?;
+            let u: u8 = inner_rules.next().unwrap().as_str().parse()?;
+            let d: u8 = inner_rules.next().unwrap().as_str().parse()?;
+            let s: u8 = inner_rules.next().unwrap().as_str().parse()?;
+            let o: u8 = inner_rules.next().unwrap().as_str().parse()?;
+            Expr::PasswordLUDS(path.into(), l, u, d, s, o)
+        }
+        Rule::load => Expr::Load,
+        Rule::insert => {
+            let mut inner_rules = pair.into_inner();
+            let label: &str = inner_rules.next().unwrap().as_str();
+            let position = match inner_rules.next().unwrap().as_str() {
+                "before" => Position::Before,
+                "after" => Position::After,
+                _ => unreachable!(),
+            };
+            let path: &str = inner_rules.next().unwrap().as_str();
+            Expr::Insert(label.into(), position, path.into())
+        }
+        Rule::cp => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let new_path: &str = inner_rules.next().unwrap().as_str();
+            Expr::Copy(path.into(), new_path.into())
+        }
+        Rule::set_multiple => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let sub: &str = inner_rules.next().unwrap().as_str();
+            let value: &str = inner_rules.next().unwrap().as_str();
+            Expr::SetMultiple(path.into(), sub.into(), value.into())
+        }
+        Rule::clear_multiple => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let sub: &str = inner_rules.next().unwrap().as_str();
+            Expr::ClearMultiple(path.into(), sub.into())
+        }
+        _ => unreachable!("Unexpected rule: {:?}", pair.as_rule()),
+    })
 }
 
 pub fn parse_script(input: &str) -> Result<Script<'_>> {
@@ -131,7 +231,7 @@ pub fn parse_script(input: &str) -> Result<Script<'_>> {
 
     for line in parsed.into_inner() {
         match line.as_rule() {
-            Rule::command => exprs.push(parse_command(line.into_inner().next().unwrap())),
+            Rule::command => exprs.push(parse_command(line.into_inner().next().unwrap())?),
             Rule::COMMENT | Rule::EOI => {}
             _ => {
                 dbg!(&line);
