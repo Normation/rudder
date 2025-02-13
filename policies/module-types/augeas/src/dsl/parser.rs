@@ -61,7 +61,7 @@ pub enum Expr<'src> {
     /// Warning: do no use for passwords as the value will be displayed.
     StrLen(AugPath<'src>, NumComparator, usize),
     /// Minimal score
-    PasswordScore(AugPath<'src>, Score),
+    PasswordScore(AugPath<'src>, NumComparator, Score),
     /// Minimal LUDS values
     PasswordLUDS(AugPath<'src>, u8, u8, u8, u8, u8),
     /// Save the changes to the tree.
@@ -142,7 +142,6 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
             let values = parse_array(inner_rules.next().unwrap());
             Expr::ValuesNotEqual(path.into(), values)
         }
-
         Rule::match_include => {
             let mut inner_rules = pair.into_inner();
             let path: &str = inner_rules.next().unwrap().as_str();
@@ -170,12 +169,14 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
         Rule::password_score => {
             let mut inner_rules = pair.into_inner();
             let path: &str = inner_rules.next().unwrap().as_str();
+            let comparator: NumComparator = inner_rules.next().unwrap().as_str().parse()?;
+
             let score_str = inner_rules.next().unwrap().as_str();
             let score: Score = score_str
                 .parse::<u8>()?
                 .try_into()
                 .map_err(|e| anyhow!("Invalid score '{score_str}': {e}"))?;
-            Expr::PasswordScore(path.into(), score)
+            Expr::PasswordScore(path.into(), comparator, score)
         }
         Rule::password_luds => {
             let mut inner_rules = pair.into_inner();
@@ -245,6 +246,7 @@ pub fn parse_script(input: &str) -> Result<Script<'_>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::dsl::comparator::NumComparator::GreaterThanOrEqual;
     use pest::Parser;
 
     #[test]
@@ -305,6 +307,10 @@ mod tests {
             rename /path/to/node new_label
             defvar name /path/to/node
             defnode name /path/to/node value
+
+            password_score /path/to/node >= 3
+
+            password_luds /path/to/node 1 2 3 4 5
         "#;
         let expected = vec![
             Expr::Set("/path/to/node".into(), "value"),
@@ -317,6 +323,23 @@ mod tests {
             Expr::Rename("/path/to/node".into(), "new_label"),
             Expr::DefineVar("name", "/path/to/node".into()),
             Expr::DefineNode("name", "/path/to/node".into(), "value"),
+            Expr::PasswordScore(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                GreaterThanOrEqual,
+                Score::Three,
+            ),
+            Expr::PasswordLUDS(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                1,
+                2,
+                3,
+                4,
+                5,
+            ),
         ];
         let parsed = parse_script(input).unwrap();
         assert_eq!(parsed.expressions, expected);
