@@ -309,7 +309,6 @@ mod tests {
             defnode name /path/to/node value
 
             password_score /path/to/node >= 3
-
             password_luds /path/to/node 1 2 3 4 5
         "#;
         let expected = vec![

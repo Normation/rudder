@@ -6,7 +6,7 @@ use std::ops::Deref;
 
 pub mod comparator;
 mod error;
-mod interpreter;
+pub mod interpreter;
 mod ip;
 mod parser;
 mod password;
