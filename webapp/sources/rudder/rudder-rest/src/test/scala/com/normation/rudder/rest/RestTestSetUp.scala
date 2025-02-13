@@ -55,16 +55,7 @@ import com.normation.inventory.domain.Linux
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.RockyLinux
 import com.normation.inventory.domain.Version as IVersion
-import com.normation.plugins.InMemoryPluginSystemService
-import com.normation.plugins.JsonPluginDetails
-import com.normation.plugins.JsonPluginManagementError
-import com.normation.plugins.JsonPluginSystemDetails
-import com.normation.plugins.JsonPluginSystemStatus
-import com.normation.plugins.PluginId
-import com.normation.plugins.PluginLicenseInfo
-import com.normation.plugins.PluginManagementError
-import com.normation.plugins.PluginSystemStatus
-import com.normation.plugins.PluginType
+import com.normation.plugins.*
 import com.normation.rudder.*
 import com.normation.rudder.api.ApiAuthorization as ApiAuthz
 import com.normation.rudder.api.ApiVersion
@@ -182,6 +173,7 @@ import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import doobie.*
 import java.nio.charset.StandardCharsets
+import java.time.ZonedDateTime
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -824,14 +816,17 @@ class RestTestSetUp {
       List(RelayInfo(NodeId("ac189019-6f8d-47ca-9f3a-ad66c338ce50"), "relay0.rudder.io", 342)),
       None,
       List(
-        JsonPluginDetails(
-          "rudder-plugin-auth-backends",
+        Plugin(
+          PluginId("rudder-plugin-auth-backends"),
           "authentication backends",
-          "auth-backends",
           "Add new authentication backends",
-          "8.3.0-2.4.1",
-          PluginSystemStatus.Enabled,
+          Some("8.3.0-2.4.1"),
+          PluginInstallStatus.Enabled,
           None,
+          ParseVersion.parse("8.3.0-2.4.1").getOrElse(throw new Exception("wrong version in tests")),
+          ParseVersion.parse("8.3.0-2.4.1").getOrElse(throw new Exception("wrong version in tests")),
+          PluginType.Webapp,
+          Nil,
           None
         )
       )
@@ -994,61 +989,53 @@ class RestTestSetUp {
     val endpoints   = schemas.flatMap(new RudderEndpointDispatcher(LiftApiProcessingLogger).withVersion(_, infoVersion))
     new InfoApi(infoVersion, endpoints)
   }
-  val pluginsSystemService = InMemoryPluginSystemService
+  val pluginsSystemService = InMemoryPluginService
     .make(
-      JsonPluginSystemDetails(
+      Plugin(
         PluginId("auth-backends"),
         "authentication backends",
         "Add new authentication backends",
         Some("8.3.0-2.4.1"),
-        JsonPluginSystemStatus.Enabled,
+        PluginInstallStatus.Enabled,
         None,
         ParseVersion.parse("2.4.1").getOrElse(throw new Exception("bad version in test")),
         ParseVersion.parse("8.3.0").getOrElse(throw new Exception("bad version in test")),
         PluginType.Webapp,
-        List(
-          JsonPluginManagementError(
-            PluginManagementError.LicenseNearExpirationError.kind.entryName,
-            PluginManagementError.LicenseNearExpirationError.displayMsg
-          )
-        ),
+        List(PluginError.LicenseNearExpirationError),
         Some(
-          PluginLicenseInfo(
-            "test-licensee",
-            "test-softwareId",
-            "0.0.0-0.0.0",
-            "99.99.0-99.99.0",
-            DateTime.parse("2025-01-10T21:53:20+01:00"),
-            DateTime.parse("2025-01-10T21:53:20+01:00"),
-            Some(1_000_000),
+          PluginLicense(
+            Licensee("test-licensee"),
+            SoftwareId("test-softwareId"),
+            MinVersion("0.0.0-0.0.0"),
+            MaxVersion("99.99.0-99.99.0"),
+            ZonedDateTime.parse("2025-01-10T20:53:20Z"),
+            ZonedDateTime.parse("2025-01-10T20:53:20Z"),
+            MaxNodes(Some(1_000_000)),
             Map.empty
           )
         )
       ) ::
-      JsonPluginSystemDetails(
+      Plugin(
         PluginId("cve"),
         "cve",
         "Manage known vulnerabilities in system components",
         Some("8.3.0-2.10"),
-        JsonPluginSystemStatus.Enabled,
+        PluginInstallStatus.Enabled,
         None,
         ParseVersion.parse("2.10").getOrElse(throw new Exception("bad version in test")),
         ParseVersion.parse("8.3.0").getOrElse(throw new Exception("bad version in test")),
         PluginType.Webapp,
         List(
-          JsonPluginManagementError(
-            PluginManagementError.LicenseNeededError.kind.entryName,
-            PluginManagementError.LicenseNeededError.displayMsg
-          )
+          PluginError.LicenseNeededError
         ),
         None
       ) ::
-      JsonPluginSystemDetails(
+      Plugin(
         PluginId("zabbix"),
         "zabbix",
         "Integration with Zabbix (monitoring tool)",
         Some("8.3.0-2.1"),
-        JsonPluginSystemStatus.Uninstalled,
+        PluginInstallStatus.Uninstalled,
         None,
         ParseVersion.parse("2.1").getOrElse(throw new Exception("bad version in test")),
         ParseVersion.parse("8.3.0").getOrElse(throw new Exception("bad version in test")),

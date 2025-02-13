@@ -60,6 +60,8 @@ import com.normation.inventory.services.core.*
 import com.normation.inventory.services.provisioning.*
 import com.normation.ldap.sdk.*
 import com.normation.plugins.*
+import com.normation.plugins.cli.RudderPackageCmdService
+import com.normation.plugins.settings.*
 import com.normation.rudder.api.*
 import com.normation.rudder.apidata.*
 import com.normation.rudder.batch.*
@@ -1558,7 +1560,7 @@ object RudderConfigInit {
     )
 
     lazy val rudderPackageService = new RudderPackageCmdService(RUDDER_PACKAGE_CMD)
-    lazy val pluginSystemService  = new PluginSystemServiceImpl(
+    lazy val pluginSystemService  = new PluginsServiceImpl(
       rudderPackageService,
       PluginsInfo.plugins,
       rudderFullVersion
@@ -2276,7 +2278,7 @@ object RudderConfigInit {
           () => authenticationProviders.getConfiguredProviders().map(_.name).toSet
         ),
         new InventoryApi(restExtractorService, inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
-        new PluginApi(restExtractorService, pluginSettingsService, PluginsInfo.pluginInfos.succeed),
+        new PluginApi(restExtractorService, pluginSettingsService, PluginsInfo.pluginJsonInfos.succeed),
         new PluginInternalApi(pluginSystemService),
         new RecentChangesAPI(recentChangesService, restExtractorService),
         new RulesInternalApi(ruleInternalApiService, ruleApiService13),

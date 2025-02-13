@@ -12,10 +12,10 @@ response:
           "licensees" : [
             "test-licensee"
           ],
-          "startDate" : "2025-01-10T21:53:20+01:00",
+          "startDate" : "2025-01-10T20:53:20Z",
           "endDates" : [
             {
-              "date" : "2025-01-10T21:53:20+01:00",
+              "date" : "2025-01-10T20:53:20Z",
               "count" : 1
             }
           ],
@@ -124,10 +124,10 @@ response:
           "licensees" : [
             "test-licensee"
           ],
-          "startDate" : "2025-01-10T21:53:20+01:00",
+          "startDate" : "2025-01-10T20:53:20Z",
           "endDates" : [
             {
-              "date" : "2025-01-10T21:53:20+01:00",
+              "date" : "2025-01-10T20:53:20Z",
               "count" : 1
             }
           ],
@@ -220,10 +220,10 @@ response:
           "licensees" : [
             "test-licensee"
           ],
-          "startDate" : "2025-01-10T21:53:20+01:00",
+          "startDate" : "2025-01-10T20:53:20Z",
           "endDates" : [
             {
-              "date" : "2025-01-10T21:53:20+01:00",
+              "date" : "2025-01-10T20:53:20Z",
               "count" : 1
             }
           ],
@@ -316,10 +316,10 @@ response:
           "licensees" : [
             "test-licensee"
           ],
-          "startDate" : "2025-01-10T21:53:20+01:00",
+          "startDate" : "2025-01-10T20:53:20Z",
           "endDates" : [
             {
-              "date" : "2025-01-10T21:53:20+01:00",
+              "date" : "2025-01-10T20:53:20Z",
               "count" : 1
             }
           ],
@@ -412,10 +412,10 @@ response:
           "licensees" : [
             "test-licensee"
           ],
-          "startDate" : "2025-01-10T21:53:20+01:00",
+          "startDate" : "2025-01-10T20:53:20Z",
           "endDates" : [
             {
-              "date" : "2025-01-10T21:53:20+01:00",
+              "date" : "2025-01-10T20:53:20Z",
               "count" : 1
             }
           ],

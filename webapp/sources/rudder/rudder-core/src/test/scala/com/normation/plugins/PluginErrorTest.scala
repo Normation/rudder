@@ -36,17 +36,17 @@
  */
 package com.normation.plugins
 
-import com.normation.plugins.RudderPackagePlugin.AbiVersion
+import com.normation.plugins.cli.RudderPackagePlugin
 import com.normation.utils.ParseVersion
-import org.joda.time.DateTime
+import java.time.ZonedDateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class PluginSettingTest extends Specification {
+class PluginErrorTest extends Specification {
 
-  "PluginManagementError" should {
+  "PluginError" should {
     implicit val rudderVersion:    String     = "8.3.0"
     // a valid one is the rudder version, override implicit in needed tests cases
     implicit val pluginAbiVersion: AbiVersion =
@@ -60,7 +60,7 @@ class PluginSettingTest extends Specification {
           license = None
         )
 
-        val errors = PluginManagementError.fromRudderPackagePlugin(plugin)
+        val errors = PluginError.fromRudderPackagePlugin(plugin)
         errors must beEmpty
       }
 
@@ -69,16 +69,16 @@ class PluginSettingTest extends Specification {
           requiresLicense = false,
           license = Some(
             RudderPackagePlugin.LicenseInfo(
-              DateTime.now.minusMonths(2),
-              DateTime.now.minusMonths(1)
+              ZonedDateTime.now().minusMonths(2),
+              ZonedDateTime.now().minusMonths(1)
             )
           )
         )
 
-        val errors = PluginManagementError.fromRudderPackagePlugin(plugin)
+        val errors = PluginError.fromRudderPackagePlugin(plugin)
         errors must containTheSameElementsAs(
           List(
-            PluginManagementError.LicenseExpiredError
+            PluginError.LicenseExpiredError
           )
         )
       }
@@ -88,16 +88,16 @@ class PluginSettingTest extends Specification {
           requiresLicense = false,
           license = Some(
             RudderPackagePlugin.LicenseInfo(
-              DateTime.now.minusMonths(2),
-              DateTime.now.plusDays(1)
+              ZonedDateTime.now.minusMonths(2),
+              ZonedDateTime.now.plusDays(1)
             )
           )
         )
 
-        val errors = PluginManagementError.fromRudderPackagePlugin(plugin)
+        val errors = PluginError.fromRudderPackagePlugin(plugin)
         errors must containTheSameElementsAs(
           List(
-            PluginManagementError.LicenseNearExpirationError
+            PluginError.LicenseNearExpirationError
           )
         )
       }
@@ -108,13 +108,13 @@ class PluginSettingTest extends Specification {
           license = None
         )
 
-        val errors = PluginManagementError.fromRudderPackagePlugin(plugin)(
+        val errors = PluginError.fromRudderPackagePlugin(plugin)(
           rudderVersion,
           AbiVersion(ParseVersion.parse("9.9.9").getOrElse(throw new Exception("bad version in test")))
         )
         errors must containTheSameElementsAs(
           List(
-            PluginManagementError.RudderAbiVersionError(rudderVersion)
+            PluginError.RudderAbiVersionError(rudderVersion)
           )
         )
       }
@@ -125,10 +125,10 @@ class PluginSettingTest extends Specification {
           license = None
         )
 
-        val errors = PluginManagementError.fromRudderPackagePlugin(plugin)
+        val errors = PluginError.fromRudderPackagePlugin(plugin)
         errors must containTheSameElementsAs(
           List(
-            PluginManagementError.LicenseNeededError
+            PluginError.LicenseNeededError
           )
         )
       }
@@ -139,14 +139,14 @@ class PluginSettingTest extends Specification {
           license = None
         )
 
-        val errors = PluginManagementError.fromRudderPackagePlugin(plugin)(
+        val errors = PluginError.fromRudderPackagePlugin(plugin)(
           rudderVersion,
           AbiVersion(ParseVersion.parse("9.9.9").getOrElse(throw new Exception("bad version in test")))
         )
         errors must containTheSameElementsAs(
-          List(
-            PluginManagementError.LicenseNeededError,
-            PluginManagementError.RudderAbiVersionError(rudderVersion)
+          List[PluginError](
+            PluginError.LicenseNeededError,
+            PluginError.RudderAbiVersionError(rudderVersion)
           )
         )
       }

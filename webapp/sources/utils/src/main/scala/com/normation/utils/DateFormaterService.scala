@@ -80,12 +80,19 @@ object DateFormaterService {
   val rfcDateformat:           DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZZ")
   val rfcDateformatWithMillis: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
 
+  val javaDisplayDateFormat: java.time.format.DateTimeFormatter =
+    java.time.format.DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ssZ")
+
   /*
    * Display date must be used only for the user facing date in non serialized form
    * (for ex: in a web page).
    */
   def getDisplayDate(date: DateTime): String = {
     date.toString(displayDateFormat)
+  }
+
+  def getDisplayDate(date: ZonedDateTime): String = {
+    date.format(javaDisplayDateFormat)
   }
 
   /*

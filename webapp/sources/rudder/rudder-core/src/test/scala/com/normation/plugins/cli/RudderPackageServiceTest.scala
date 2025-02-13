@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2022 Normation SAS
+ * Copyright 2025 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -34,38 +34,41 @@
  *
  *************************************************************************************
  */
+package com.normation.plugins.cli
 
-package com.normation.plugins
-
-import com.normation.utils.ParseVersion
-import com.normation.utils.Version
+import com.normation.errors.*
+import com.normation.rudder.hooks.CmdResult
 import org.junit.runner.RunWith
-import org.specs2.mutable.*
+import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class RudderPluginTest extends Specification {
+class RudderPackageServiceTest extends Specification {
 
-  implicit class ForceParse(s: String) {
-    def toVersion: Version = ParseVersion.parse(s) match {
-      case Left(err) => throw new IllegalArgumentException(s"Can not parse '${s}' as a version in test: ${err}")
-      case Right(v)  => v
+  "RudderPackageService" should {
+    "handle zero error code and message" in {
+      RudderPackageService.PluginSettingsError.fromResult(CmdResult(0, "", "OK")) must beRight(beNone)
     }
-  }
-
-  "Parsing a plugin version" should {
-    "be able to read simple rudder version" in {
-      RudderPluginVersion.from("7.1.0-2.3.0") must_!= (RudderPluginVersion("7.1.0".toVersion, "2.3.0".toVersion))
+    "handle non-zero error code and message" in {
+      val res = CmdResult(
+        2,
+        "",
+        "\u001b[31mERROR\u001b[0m Invalid credentials, please check your credentials in the configuration. (received HTTP 401)\n"
+      )
+      RudderPackageService.PluginSettingsError.fromResult(res).aka("PluginSettingsError from cmd result") must beRight(
+        beSome(
+          beEqualTo(
+            RudderPackageService.PluginSettingsError.InvalidCredentials(
+              "ERROR Invalid credentials, please check your credentials in the configuration. (received HTTP 401)"
+            )
+          )
+        )
+      )
     }
-    "automatically add a patch level (eq 0)" in {
-      RudderPluginVersion.from("7.1-2.3") must_!= (RudderPluginVersion("7.1.0".toVersion, "2.3.0".toVersion))
-    }
-    "understand complicated format with rc" in {
-      RudderPluginVersion
-        .from("7.0.0~rc2-SNAPSHOT-2.1-nightly") must_!= (RudderPluginVersion(
-        "7.0.0~rc2-SNAPSHOT".toVersion,
-        "2.1.0-nightly".toVersion
-      ))
+    "handle unknown error code and message" in {
+      RudderPackageService.PluginSettingsError.fromResult(
+        CmdResult(12345, "", "\u001b[31mERROR\u001b[0m Unknown error")
+      ) must beLeft(beLike[RudderError] { case err: Inconsistency => err.msg must contain("ERROR Unknown error") })
     }
   }
 }

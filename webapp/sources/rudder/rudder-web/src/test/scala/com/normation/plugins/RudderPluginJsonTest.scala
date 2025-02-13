@@ -122,7 +122,7 @@ class RudderPluginJsonTest extends Specification {
   val expected: List[JsonPluginDef] = List(
     JsonPluginDef(
       "rudder-plugin-branding",
-      PluginVersion("5.0.0".toVersion, "1.3.0".toVersion),
+      RudderPluginVersion("5.0.0".toVersion, "1.3.0".toVersion),
       List(
         "/opt/rudder/share/plugins/",
         "/opt/rudder/share/plugins/branding/",
@@ -134,7 +134,7 @@ class RudderPluginJsonTest extends Specification {
     ),
     JsonPluginDef(
       "rudder-plugin-centreon",
-      PluginVersion("5.0.0".toVersion, "1.1.0".toVersion),
+      RudderPluginVersion("5.0.0".toVersion, "1.1.0".toVersion),
       List(
         "/opt/rudder//",
         "/opt/rudder//bin/",

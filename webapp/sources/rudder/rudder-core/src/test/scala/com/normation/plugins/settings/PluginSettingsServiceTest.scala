@@ -35,7 +35,7 @@
  *************************************************************************************
  */
 
-package com.normation.plugins
+package com.normation.plugins.settings
 
 import better.files.File
 import better.files.Resource
@@ -50,7 +50,7 @@ import zio.Ref
 import zio.syntax.*
 
 @RunWith(classOf[JUnitRunner])
-class TestPluginSettingsService extends Specification {
+class PluginSettingsServiceTest extends Specification {
 
   "FilePluginSettingsService" should {
     "read default settings" in withPluginSettingsService(

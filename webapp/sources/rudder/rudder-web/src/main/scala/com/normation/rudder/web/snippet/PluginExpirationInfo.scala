@@ -38,17 +38,17 @@
 package com.normation.rudder.web.snippet
 
 import bootstrap.liftweb.PluginsInfo
-import com.normation.plugins.PluginStatusInfo
+import com.normation.plugins.RudderPluginLicenseStatus
 import com.softwaremill.quicklens.*
+import java.time.ZonedDateTime
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
-import org.joda.time.DateTime
 import scala.xml.NodeSeq
 
 final protected case class Warning(
     licenseError:          List[String],
-    licenseExpired:        Map[String, DateTime],
-    licenseNearExpiration: Map[String, DateTime]
+    licenseExpired:        Map[String, ZonedDateTime],
+    licenseNearExpiration: Map[String, ZonedDateTime]
 )
 
 /**
@@ -63,24 +63,25 @@ class PluginExpirationInfo extends DispatchSnippet with Loggable {
   }
 
   def pluginInfo(html: NodeSeq): NodeSeq = {
+    val now      = ZonedDateTime.now()
     /*
      * Summary of the status of the different plugins
      */
     val warnings = PluginsInfo.plugins.foldLeft(Warning(Nil, Map(), Map())) {
       case (current, (_, plugin)) =>
         plugin.status.current match {
-          case PluginStatusInfo.EnabledNoLicense        =>
+          case RudderPluginLicenseStatus.EnabledNoLicense        =>
             current
-          case PluginStatusInfo.EnabledWithLicense(lic) =>
-            if (lic.endDate.minusMonths(1).isBeforeNow()) {
+          case RudderPluginLicenseStatus.EnabledWithLicense(lic) =>
+            if (lic.endDate.minusMonths(1).isBefore(now)) {
               current.modify(_.licenseNearExpiration).using(m => m + (plugin.name.value -> lic.endDate))
             } else {
               current
             }
-          case PluginStatusInfo.Disabled(_, None)       =>
+          case RudderPluginLicenseStatus.Disabled(_, None)       =>
             current.modify(_.licenseError).using(plugin.name.value :: _)
-          case PluginStatusInfo.Disabled(_, Some(lic))  =>
-            if (lic.endDate.isBeforeNow) {
+          case RudderPluginLicenseStatus.Disabled(_, Some(lic))  =>
+            if (lic.endDate.isBefore(now)) {
               current.modify(_.licenseExpired).using(m => m + (plugin.name.value -> lic.endDate))
             } else {
               current.modify(_.licenseError).using(plugin.name.value :: _)
@@ -110,23 +111,24 @@ class PluginExpirationInfo extends DispatchSnippet with Loggable {
   }
 
   def pluginInfoIcon(html: NodeSeq): NodeSeq = {
+    val now                                                      = ZonedDateTime.now()
     /*
      * Summary of the status of the different plugins
      */
     val warnings                                                 = PluginsInfo.plugins.foldLeft(Warning(Nil, Map(), Map())) {
       case (current, (_, plugin)) =>
         plugin.status.current match {
-          case PluginStatusInfo.EnabledNoLicense        => current
-          case PluginStatusInfo.EnabledWithLicense(lic) =>
-            if (lic.endDate.minusMonths(1).isBeforeNow()) {
+          case RudderPluginLicenseStatus.EnabledNoLicense        => current
+          case RudderPluginLicenseStatus.EnabledWithLicense(lic) =>
+            if (lic.endDate.minusMonths(1).isBefore(now)) {
               current.modify(_.licenseNearExpiration).using(m => m + (plugin.name.value -> lic.endDate))
             } else {
               current
             }
-          case PluginStatusInfo.Disabled(_, None)       =>
+          case RudderPluginLicenseStatus.Disabled(_, None)       =>
             current.modify(_.licenseError).using(plugin.name.value :: _)
-          case PluginStatusInfo.Disabled(_, Some(lic))  =>
-            if (lic.endDate.isBeforeNow) {
+          case RudderPluginLicenseStatus.Disabled(_, Some(lic))  =>
+            if (lic.endDate.isBefore(now)) {
               current.modify(_.licenseExpired).using(m => m + (plugin.name.value -> lic.endDate))
             } else {
               current.modify(_.licenseError).using(plugin.name.value :: _)

@@ -39,8 +39,8 @@ package com.normation.rudder.metrics
 
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.OsDetails
-import com.normation.plugins.JsonGlobalPluginLimits
-import com.normation.plugins.JsonPluginDetails
+import com.normation.plugins.GlobalPluginsLicenseLimits
+import com.normation.plugins.Plugin
 import com.normation.rudder.services.servers.InstanceId
 
 /**
@@ -122,9 +122,9 @@ case class RelayInfo(id: NodeId, hostname: String, managedNodes: Int)
 case class PrivateSystemInfo(
     instanceId:   InstanceId,
     relays:       List[RelayInfo],
-    globalLimits: Option[JsonGlobalPluginLimits],
+    globalLimits: Option[GlobalPluginsLicenseLimits],
     // plugins should be sorted by id
-    plugins:      Seq[JsonPluginDetails]
+    plugins:      Seq[Plugin]
 )
 
 case class SystemInfo(priv: PrivateSystemInfo, public: PublicSystemInfo)

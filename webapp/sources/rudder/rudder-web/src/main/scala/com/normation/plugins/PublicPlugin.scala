@@ -48,7 +48,7 @@ import net.liftweb.util.Helpers
 import scala.xml.NodeSeq
 
 trait PluginEnableImpl extends PluginStatus {
-  override val current: PluginStatusInfo = PluginStatusInfo.EnabledNoLicense
+  override val current: RudderPluginLicenseStatus = RudderPluginLicenseStatus.EnabledNoLicense
   override def isEnabled() = true
 }
 
@@ -99,14 +99,14 @@ trait DefaultPluginDef extends RudderPluginDef {
     }
   }
 
-  override lazy val name:        PluginName     = PluginName(buildConf.getString("plugin-fullname"))
-  override lazy val shortName:   String         = buildConf.getString("plugin-name")
-  override lazy val displayName: String         = buildConf.getString("plugin-title-description")
-  override lazy val version:     PluginVersion  = {
+  override lazy val name:        PluginName          = PluginName(buildConf.getString("plugin-fullname"))
+  override lazy val shortName:   String              = buildConf.getString("plugin-name")
+  override lazy val displayName: String              = buildConf.getString("plugin-title-description")
+  override lazy val version:     RudderPluginVersion = {
     val versionString = buildConf.getString("rudder-version") + "-" + buildConf.getString("plugin-version")
-    PluginVersion.from(versionString).getOrElse(PluginVersion.PARSING_ERROR(versionString))
+    RudderPluginVersion.from(versionString).getOrElse(RudderPluginVersion.PARSING_ERROR(versionString))
   }
-  override lazy val versionInfo: Option[String] = {
+  override lazy val versionInfo: Option[String]      = {
     try {
       Some(buildConf.getString("version-info"))
     } catch {

@@ -44,14 +44,15 @@ import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.plugins.AlwaysEnabledPluginStatus
-import com.normation.plugins.JsonPluginsDetails
-import com.normation.plugins.PluginLicenseInfo
+import com.normation.plugins.Plugin
+import com.normation.plugins.PluginLicense
 import com.normation.plugins.PluginName
+import com.normation.plugins.PluginsMetadata
 import com.normation.plugins.PluginStatus
-import com.normation.plugins.PluginStatusInfo
-import com.normation.plugins.PluginVersion
 import com.normation.plugins.RudderPluginDef
+import com.normation.plugins.RudderPluginLicenseStatus
 import com.normation.plugins.RudderPluginModule
+import com.normation.plugins.RudderPluginVersion
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.eventlog.ApplicationStarted
 import com.normation.rudder.domain.eventlog.LogoutEventLog
@@ -61,6 +62,9 @@ import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.InfoApi as InfoApiDef
+import com.normation.rudder.rest.data.JsonGlobalPluginLimits
+import com.normation.rudder.rest.data.JsonPluginDetails
+import com.normation.rudder.rest.data.JsonPluginsDetails
 import com.normation.rudder.rest.lift.InfoApi
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.v1.RestStatus
@@ -70,10 +74,11 @@ import com.normation.rudder.web.snippet.CustomPageJs
 import com.normation.rudder.web.snippet.WithCachedResource
 import com.normation.rudder.web.snippet.WithEnabledCSP
 import com.normation.rudder.web.snippet.WithNonce
-import com.normation.utils.DateFormaterService
 import com.normation.zio.*
+import io.scalaland.chimney.syntax.*
 import java.net.URI
 import java.net.URLConnection
+import java.time.ZonedDateTime
 import java.util.Locale
 import net.liftweb.common.*
 import net.liftweb.http.*
@@ -216,14 +221,8 @@ object PluginsInfo {
   private var _plugins = Map[PluginName, RudderPluginDef]()
 
   // display license info for webapp logs
-  private def logInfo(name: String, i: PluginLicenseInfo): String = {
-    val nb = i.maxNodes match {
-      case Some(i) if i > 0 => i.toString
-      case _                => "unlimited"
-    }
-
-    s"Plugin '${name}' enabled. Licensed to ${i.licensee} for Rudder [${i.minVersion},${i.maxVersion}] " +
-    s"until ${DateFormaterService.getDisplayDate(i.endDate)} and up to ${nb} nodes"
+  private def logInfo(name: String, i: PluginLicense): String = {
+    s"Plugin '${name}' enabled. ${i.display}"
   }
 
   /*
@@ -235,19 +234,27 @@ object PluginsInfo {
 
     // log license info
     plugin.status.current match {
-      case PluginStatusInfo.EnabledNoLicense      =>
+      case RudderPluginLicenseStatus.EnabledNoLicense      =>
         ApplicationLoggerPure.Plugin.logEffect.info(s"Plugin '${plugin.name.value}' is enabled")
-      case PluginStatusInfo.EnabledWithLicense(i) =>
+      case RudderPluginLicenseStatus.EnabledWithLicense(i) =>
         ApplicationLoggerPure.Plugin.logEffect.info(logInfo(plugin.name.value, i))
-      case PluginStatusInfo.Disabled(reason, _)   =>
+      case RudderPluginLicenseStatus.Disabled(reason, _)   =>
         ApplicationLoggerPure.Plugin.logEffect.warn(s"Plugin '${plugin.name.value}' is disabled: ${reason}")
     }
   }
 
   def plugins: Map[PluginName, RudderPluginDef] = _plugins
 
-  def pluginInfos: JsonPluginsDetails = {
-    JsonPluginsDetails.buildDetails(_plugins.values.toList.sortBy(_.name.value).map(_.toJsonPluginDetails))
+  def pluginInfos: PluginsMetadata[ZonedDateTime] = {
+    import com.normation.plugins.GlobalPluginsLicense.EndDateImplicits.*
+    PluginsMetadata.fromPlugins[ZonedDateTime](_plugins.values.toList.sortBy(_.name.value).map(_.transformInto[Plugin]))
+  }
+
+  // we build plugins details without license information for the public plugins API
+  def pluginJsonInfos: JsonPluginsDetails = {
+    // to get global information we need the metadata computed from pluginInfos
+    val license = pluginInfos.globalLicense.map(_.transformInto[JsonGlobalPluginLimits])
+    JsonPluginsDetails(license, _plugins.values.toList.sortBy(_.name.value).map(_.transformInto[JsonPluginDetails]))
   }
 
   def pluginApisDef: List[EndpointSchema] = {
@@ -927,11 +934,11 @@ class Boot extends Loggable {
           new RudderPluginDef {
             override def displayName = sn.capitalize
             override val name        = PluginName(p.name)
-            override val shortName:   String         = sn
-            override val description: NodeSeq        = <p>{p.name}</p>
-            override val version:     PluginVersion  = p.version
-            override val versionInfo: Option[String] = None
-            override val status:      PluginStatus   = AlwaysEnabledPluginStatus
+            override val shortName:   String              = sn
+            override val description: NodeSeq             = <p>{p.name}</p>
+            override val version:     RudderPluginVersion = p.version
+            override val versionInfo: Option[String]      = None
+            override val status:      PluginStatus        = AlwaysEnabledPluginStatus
             override val init = ()
             override val basePackage: String              = p.name
             override val configFiles: Seq[ConfigResource] = Nil
