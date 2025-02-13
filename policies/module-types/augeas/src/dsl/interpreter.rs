@@ -297,8 +297,14 @@ impl<'a> Interpreter<'a> {
             Expr::PasswordScore(path, value) => {
                 let policy = PasswordPolicy::MinScore(*value);
                 let secret_password = self.aug.get(path)?.unwrap();
-                policy.check(&secret_password)?;
-                InterpreterOut::ok()
+                let out = policy.check(&secret_password)?;
+                InterpreterOut::from_out(out)
+            }
+            Expr::PasswordLUDS(path, total, lower, upper, digits, special) => {
+                let policy = PasswordPolicy::Criteria(*total, *lower, *upper, *digits, *special);
+                let secret_password = self.aug.get(path)?.unwrap();
+                let out = policy.check(&secret_password)?;
+                InterpreterOut::from_out(out)
             }
             Expr::GenericAugeas(cmd) => {
                 let (_num, out) = self.aug.srun(cmd)?;

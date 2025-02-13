@@ -193,12 +193,12 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
         Rule::password_luds => {
             let mut inner_rules = pair.into_inner();
             let path: &str = inner_rules.next().unwrap().as_str();
-            let l: u8 = inner_rules.next().unwrap().as_str().parse()?;
-            let u: u8 = inner_rules.next().unwrap().as_str().parse()?;
-            let d: u8 = inner_rules.next().unwrap().as_str().parse()?;
-            let s: u8 = inner_rules.next().unwrap().as_str().parse()?;
-            let o: u8 = inner_rules.next().unwrap().as_str().parse()?;
-            Expr::PasswordLUDS(path.into(), l, u, d, s, o)
+            let total: u8 = inner_rules.next().unwrap().as_str().parse()?;
+            let lowercase: u8 = inner_rules.next().unwrap().as_str().parse()?;
+            let uppercase: u8 = inner_rules.next().unwrap().as_str().parse()?;
+            let digit: u8 = inner_rules.next().unwrap().as_str().parse()?;
+            let special: u8 = inner_rules.next().unwrap().as_str().parse()?;
+            Expr::PasswordLUDS(path.into(), total, lowercase, uppercase, digit, special)
         }
         Rule::load => Expr::Load,
         Rule::insert => {
@@ -251,13 +251,11 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
 pub fn parse_script(input: &str) -> Result<Script<'_>> {
     let parsed = RaugeasParser::parse(Rule::script, input)?.next().unwrap();
 
-    let mut exprs = Vec::new();
-
-    dbg!(&parsed);
+    let mut expressions = Vec::new();
 
     for line in parsed.into_inner() {
         match line.as_rule() {
-            Rule::command => exprs.push(parse_command(line.into_inner().next().unwrap())?),
+            Rule::command => expressions.push(parse_command(line.into_inner().next().unwrap())?),
             Rule::COMMENT | Rule::EOI => {}
             _ => {
                 dbg!(&line);
@@ -265,7 +263,7 @@ pub fn parse_script(input: &str) -> Result<Script<'_>> {
         }
     }
 
-    Ok(Script { expressions: exprs })
+    Ok(Script { expressions })
 }
 
 #[cfg(test)]

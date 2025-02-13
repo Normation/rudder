@@ -63,9 +63,10 @@ impl Expr<'_> {
             | Expr::Compare(..)
             | Expr::ValuesNotInclude(..)
             | Expr::HasType(..)
+            | Expr::PasswordScore(..)
+            | Expr::PasswordLUDS(..)
             | Expr::StrLen(..) => ExprType::Read,
             Expr::Save | Expr::Quit => ExprType::Effect,
-            _ => todo!(),
         }
     }
 }
