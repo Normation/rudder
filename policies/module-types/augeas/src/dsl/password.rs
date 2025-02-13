@@ -23,7 +23,7 @@ pub enum PasswordPolicy {
     ///
     /// TLUDS:
     /// total length, lowercase, uppercase, digits, special characters
-    Criteria(u8, u8, u8, u8, u8),
+    CharsCriteria(u8, u8, u8, u8, u8),
 }
 
 impl PasswordPolicy {
@@ -58,7 +58,7 @@ impl PasswordPolicy {
                     ))
                 }
             }
-            PasswordPolicy::Criteria(t, l, u, d, s) => {
+            PasswordPolicy::CharsCriteria(t, l, u, d, s) => {
                 let mut errors = vec![];
 
                 if password.len() < *t as usize {

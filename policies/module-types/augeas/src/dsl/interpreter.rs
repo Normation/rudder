@@ -301,7 +301,8 @@ impl<'a> Interpreter<'a> {
                 InterpreterOut::from_out(out)
             }
             Expr::PasswordLUDS(path, total, lower, upper, digits, special) => {
-                let policy = PasswordPolicy::Criteria(*total, *lower, *upper, *digits, *special);
+                let policy =
+                    PasswordPolicy::CharsCriteria(*total, *lower, *upper, *digits, *special);
                 let secret_password = self.aug.get(path)?.unwrap();
                 let out = policy.check(&secret_password)?;
                 InterpreterOut::from_out(out)
