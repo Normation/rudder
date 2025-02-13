@@ -7,8 +7,7 @@
 
 use anyhow::Error;
 use rudder_module_type::Outcome;
-use similar::udiff::unified_diff;
-use similar::Algorithm;
+use similar::{udiff::unified_diff, Algorithm};
 
 /// Compute the unified diff between two strings.
 ///

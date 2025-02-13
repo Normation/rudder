@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::dsl::parser::Expr;
-use crate::dsl::script::{ExprType, Script};
+use crate::dsl::{
+    parser::Expr,
+    script::{ExprType, Script},
+};
 use anyhow::bail;
 use raugeas::Augeas;
 use rudder_module_type::{rudder_debug, rudder_trace};

@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use std::ffi::OsStr;
-use std::ops::Deref;
+use std::{ffi::OsStr, ops::Deref};
 
 pub mod comparator;
 mod error;

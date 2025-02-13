@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::dsl::parser;
-use crate::dsl::parser::Expr;
+use crate::dsl::{parser, parser::Expr};
 use anyhow::Result;
 
 /// The ordered list of changes to apply.

@@ -9,13 +9,13 @@
 use anyhow::Result;
 use gumdrop::Options;
 use raugeas::Flags;
-use rudder_module_augeas::augeas::Augeas;
-use rudder_module_augeas::dsl::interpreter::Interpreter;
-use rudder_module_augeas::dsl::repl;
-use rudder_module_augeas::{CRATE_NAME, CRATE_VERSION};
+use rudder_module_augeas::{
+    augeas::Augeas,
+    dsl::{interpreter::Interpreter, repl},
+    CRATE_NAME, CRATE_VERSION,
+};
 use rudder_module_type::cfengine::log::{set_max_level, LevelFilter};
-use std::path::PathBuf;
-use std::{env, fs};
+use std::{env, fs, path::PathBuf};
 /*
 TODO: implement
  --timing               after executing each command, show how long it took

@@ -6,8 +6,7 @@
 //! We never display the values of the passwords.
 
 use anyhow::Result;
-use zxcvbn::feedback::Feedback;
-use zxcvbn::{zxcvbn, Score};
+use zxcvbn::{feedback::Feedback, zxcvbn, Score};
 
 /// Password complexity policy.
 ///

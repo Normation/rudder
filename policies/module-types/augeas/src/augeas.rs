@@ -1,18 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::dsl::interpreter::{
-    CheckMode, Interpreter, InterpreterOut, InterpreterOutcome, InterpreterPerms,
+use crate::{
+    dsl::interpreter::{
+        CheckMode, Interpreter, InterpreterOut, InterpreterOutcome, InterpreterPerms,
+    },
+    AugeasParameters, RUDDER_LENS_LIB,
 };
-use crate::{AugeasParameters, RUDDER_LENS_LIB};
 use anyhow::bail;
 use bytesize::ByteSize;
 use raugeas::{Flags, SaveMode};
 use rudder_module_type::{rudder_debug, rudder_error, CheckApplyResult, Outcome, PolicyMode};
-use std::borrow::Cow;
-use std::env;
-use std::os::unix::fs::MetadataExt;
-use std::path::{Path, PathBuf};
+use std::{
+    borrow::Cow,
+    env,
+    os::unix::fs::MetadataExt,
+    path::{Path, PathBuf},
+};
 
 /// Augeas module implementation.
 ///
@@ -278,9 +282,7 @@ mod tests {
     use super::*;
 
     use rudder_module_type::Outcome;
-    use std::fs;
-    use std::fs::read_to_string;
-    use std::path::PathBuf;
+    use std::{fs, fs::read_to_string, path::PathBuf};
     use tempfile::tempdir;
 
     fn arguments(

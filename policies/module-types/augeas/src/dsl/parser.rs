@@ -1,10 +1,11 @@
-use crate::dsl::comparator::{Comparison, NumComparator};
-use crate::dsl::script::Script;
-use crate::dsl::value_type::ValueType;
-use crate::dsl::{AugPath, Sub};
+use crate::dsl::{
+    comparator::{Comparison, NumComparator},
+    script::Script,
+    value_type::ValueType,
+    AugPath, Sub,
+};
 use anyhow::{anyhow, Result};
-use pest::iterators::Pair;
-use pest::Parser;
+use pest::{iterators::Pair, Parser};
 use pest_derive::Parser;
 use raugeas::Position;
 use zxcvbn::Score;
