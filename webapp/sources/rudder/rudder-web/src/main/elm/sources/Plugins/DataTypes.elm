@@ -79,8 +79,9 @@ type alias UI =
     }
 
 
-type alias InstallActionModel =
-    { disabled : Bool }
+type InstallActionModel
+    = InstallActionDisabled
+    | InstallActionEnabled Int
 
 
 type alias PluginsViewModel =
@@ -156,11 +157,11 @@ requestTypeText t =
 
 processSelect : Select -> Model -> Model
 processSelect select model =
-    model |> updatePluginsViewModel (processSelect_ select)
+    model |> updatePluginsViewModel (processViewModelSelect select)
 
 
-processSelect_ : Select -> PluginsViewModel -> PluginsViewModel
-processSelect_ select model =
+processViewModelSelect : Select -> PluginsViewModel -> PluginsViewModel
+processViewModelSelect select model =
     let
         previouslySelected =
             model.selected
@@ -183,6 +184,7 @@ processSelect_ select model =
                 UnselectAll ->
                     Set.empty
             )
+            model.plugins
 
 
 updatePluginsViewModel : (PluginsViewModel -> PluginsViewModel) -> Model -> Model
@@ -200,17 +202,34 @@ updatePluginsViewModel f ({ ui } as model) =
             }
 
 
-setSelected : Set PluginId -> PluginsViewModel -> PluginsViewModel
-setSelected plugins model =
+setSelected : Set PluginId -> List PluginInfo -> PluginsViewModel -> PluginsViewModel
+setSelected plugins pluginInfos model =
     { model
         | selected = plugins
-        , installAction = { disabled = Set.isEmpty plugins }
+        , installAction = InstallActionEnabled 2
     }
+
+
+setPluginsView : List PluginInfo -> PluginsViewModel -> PluginsViewModel
+setPluginsView plugins model =
+    { model
+        | plugins = plugins
+    }
+
+
+setPluginInfoStatus : PluginStatus -> PluginInfo -> PluginInfo
+setPluginInfoStatus status pluginInfo =
+    { pluginInfo | status = status }
 
 
 setPlugins : List PluginInfo -> Model -> Model
 setPlugins plugins =
-    updatePluginsViewModel (\viewModel -> { viewModel | plugins = plugins })
+    updatePluginsViewModel (setPluginsView plugins)
+
+
+countInstallablePlugins : Set PluginId -> List PluginInfo -> Int
+countInstallablePlugins _ _ =
+    2
 
 
 setModalState : ModalState -> Model -> Model

@@ -66,7 +66,7 @@ checkAll =
 actionButtons : PluginsViewModel -> List (Html Msg)
 actionButtons model =
     [ button [ class "btn btn-primary me-1", onClick (CallApi updateIndex) ] [ i [ class "fa fa-refresh me-1" ] [], text "Refresh plugins" ]
-    , button [ class "btn btn-default mx-1", disabled <| model.installAction.disabled, onClick (SetModalState (OpenModal Install)) ] [ text "Install", i [ class "fa fa-plus-circle ms-1" ] [] ]
+    , button [ class "btn btn-default mx-1", disabled <| Set.isEmpty model.selected, onClick (SetModalState (OpenModal Install)) ] [ text "Uninstall", i [ class "fa fa-minus-circle ms-1" ] [] ]
     , button [ class "btn btn-default mx-1", disabled <| Set.isEmpty model.selected, onClick (SetModalState (OpenModal Uninstall)) ] [ text "Uninstall", i [ class "fa fa-minus-circle ms-1" ] [] ]
     , button [ class "btn btn-default mx-1", disabled <| Set.isEmpty model.selected, onClick (SetModalState (OpenModal Enable)) ] [ text "Enable", i [ class "fa fa-check-circle ms-1" ] [] ]
     , button [ class "btn btn-default ms-1", disabled <| Set.isEmpty model.selected, onClick (SetModalState (OpenModal Disable)) ] [ text "Disable", i [ class "fa fa-ban ms-1" ] [] ]
