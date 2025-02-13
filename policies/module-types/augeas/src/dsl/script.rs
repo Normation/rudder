@@ -3,10 +3,7 @@
 
 use crate::dsl::parser;
 use crate::dsl::parser::Expr;
-use anyhow::{bail, Result};
-use raugeas::Augeas;
-use rudder_module_type::{rudder_debug, rudder_trace};
-use std::path::Path;
+use anyhow::Result;
 
 /// The ordered list of changes to apply.
 ///

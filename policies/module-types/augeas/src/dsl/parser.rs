@@ -88,7 +88,7 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
             let mut inner_rules = pair.into_inner();
             let path: &str = inner_rules.next().unwrap().as_str();
             let value: &str = inner_rules.next().unwrap().as_str();
-            Expr::Set(path.into(), value.into())
+            Expr::Set(path.into(), value)
         }
         Rule::rm => Expr::Remove(pair.into_inner().next().unwrap().as_str().into()),
         Rule::clear => Expr::Clear(pair.into_inner().next().unwrap().as_str().into()),
@@ -103,20 +103,20 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
             let mut inner_rules = pair.into_inner();
             let path: &str = inner_rules.next().unwrap().as_str();
             let new_label: &str = inner_rules.next().unwrap().as_str();
-            Expr::Rename(path.into(), new_label.into())
+            Expr::Rename(path.into(), new_label)
         }
         Rule::defvar => {
             let mut inner_rules = pair.into_inner();
             let name: &str = inner_rules.next().unwrap().as_str();
             let path: &str = inner_rules.next().unwrap().as_str();
-            Expr::DefineVar(name.into(), path.into())
+            Expr::DefineVar(name, path.into())
         }
         Rule::defnode => {
             let mut inner_rules = pair.into_inner();
             let name: &str = inner_rules.next().unwrap().as_str();
             let path: &str = inner_rules.next().unwrap().as_str();
             let value: &str = inner_rules.next().unwrap().as_str();
-            Expr::DefineNode(name.into(), path.into(), value.into())
+            Expr::DefineNode(name, path.into(), value)
         }
         Rule::values_include => {
             let mut inner_rules = pair.into_inner();
@@ -198,7 +198,7 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
                 _ => unreachable!(),
             };
             let path: &str = inner_rules.next().unwrap().as_str();
-            Expr::Insert(label.into(), position, path.into())
+            Expr::Insert(label, position, path.into())
         }
         Rule::cp => {
             let mut inner_rules = pair.into_inner();
@@ -211,13 +211,13 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
             let path: &str = inner_rules.next().unwrap().as_str();
             let sub: &str = inner_rules.next().unwrap().as_str();
             let value: &str = inner_rules.next().unwrap().as_str();
-            Expr::SetMultiple(path.into(), sub.into(), value.into())
+            Expr::SetMultiple(path.into(), sub, value)
         }
         Rule::clear_multiple => {
             let mut inner_rules = pair.into_inner();
             let path: &str = inner_rules.next().unwrap().as_str();
             let sub: &str = inner_rules.next().unwrap().as_str();
-            Expr::ClearMultiple(path.into(), sub.into())
+            Expr::ClearMultiple(path.into(), sub)
         }
         _ => unreachable!("Unexpected rule: {:?}", pair.as_rule()),
     })
