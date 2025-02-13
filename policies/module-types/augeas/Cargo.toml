@@ -26,6 +26,7 @@ rudder_module_type = { path = "../../rudder-module-type" }
 raugeas = "0.3.1"
 #raugeas = { git = "https://github.com/Normation/raugeas" }
 rustyline = "15"
+secrecy = "0.5.1"
 zxcvbn = "3"
 pest = "2.7.15"
 pest_derive = "2.7.15"

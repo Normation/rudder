@@ -6,6 +6,7 @@
 //! We never display the values of the passwords.
 
 use anyhow::{anyhow, Result};
+use secrecy::{ExposeSecret, SecretString};
 use zxcvbn::{feedback::Feedback, zxcvbn, Score};
 
 /// Password complexity policy.
@@ -38,10 +39,10 @@ impl PasswordPolicy {
         )
     }
 
-    pub fn check(&self, password: &str) -> Result<String> {
+    pub fn check(&self, password: SecretString) -> Result<String> {
         match self {
             PasswordPolicy::MinScore(min_score) => {
-                let entropy = zxcvbn(password, &[]);
+                let entropy = zxcvbn(password.expose_secret(), &[]);
                 let score = entropy.score();
                 let guesses_log10 = entropy.guesses_log10();
                 let guesses_log10_int = guesses_log10.round() as u8;
@@ -61,11 +62,16 @@ impl PasswordPolicy {
             PasswordPolicy::CharsCriteria(t, l, u, d, s) => {
                 let mut errors = vec![];
 
-                if password.len() < *t as usize {
-                    errors.push(format!("it is too short: {} < {}", password.len(), t));
+                let password_len = password.expose_secret().len();
+                if password_len < *t as usize {
+                    errors.push(format!("it is too short: {} < {}", password_len, t));
                 }
                 if *l > 0u8 {
-                    let l_count = password.chars().filter(|c| c.is_lowercase()).count();
+                    let l_count = password
+                        .expose_secret()
+                        .chars()
+                        .filter(|c| c.is_lowercase())
+                        .count();
                     if l_count < *l as usize {
                         errors.push(format!(
                             "it does not contain enough lowercase characters: {} < {}",
@@ -74,7 +80,11 @@ impl PasswordPolicy {
                     }
                 }
                 if *u > 0u8 {
-                    let u_count = password.chars().filter(|c| c.is_uppercase()).count();
+                    let u_count = password
+                        .expose_secret()
+                        .chars()
+                        .filter(|c| c.is_uppercase())
+                        .count();
                     if u_count < *u as usize {
                         errors.push(format!(
                             "it does not contain enough uppercase characters: {} < {}",
@@ -83,7 +93,11 @@ impl PasswordPolicy {
                     }
                 }
                 if *d > 0u8 {
-                    let d_count = password.chars().filter(|c| c.is_ascii_digit()).count();
+                    let d_count = password
+                        .expose_secret()
+                        .chars()
+                        .filter(|c| c.is_ascii_digit())
+                        .count();
                     if d_count < *d as usize {
                         errors.push(format!(
                             "it does not contain enough digits: {} < {}",
@@ -92,7 +106,11 @@ impl PasswordPolicy {
                     }
                 }
                 if *s > 0u8 {
-                    let s_count = password.chars().filter(|c| !c.is_alphanumeric()).count();
+                    let s_count = password
+                        .expose_secret()
+                        .chars()
+                        .filter(|c| !c.is_alphanumeric())
+                        .count();
                     if s_count < *s as usize {
                         errors.push(format!(
                             "it does not contain enough special characters: {} < {}",
@@ -128,8 +146,7 @@ mod tests {
 
         assert_eq!(
             PasswordPolicy::format_feedback(f),
-            "This is a top-10 common password. Add another word or two. Uncommon words are better."
-                .to_string()
+            "This is a top-10 common password.".to_string()
         );
     }
 
@@ -137,8 +154,11 @@ mod tests {
     fn test_password_policy_score() {
         let p = PasswordPolicy::MinScore(Score::Three);
         assert_eq!(
-            p.check("password").err().unwrap().to_string(),
-            "The score is too low: 0 < 3. This is a top-10 common password. Add another word or two. Uncommon words are better.".to_string()
+            p.check(SecretString::new("password".to_string()))
+                .err()
+                .unwrap()
+                .to_string(),
+            "The password is too weak: score 0 < 3 (requires ~10^0 guesses). This is a top-10 common password.".to_string()
         );
     }
 }
