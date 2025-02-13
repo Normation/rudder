@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+use crate::dsl::password::PasswordPolicy;
 use crate::dsl::{
     parser::Expr,
     script::{ExprType, Script},
@@ -285,12 +286,18 @@ impl<'a> Interpreter<'a> {
                 todo!()
             }
             Expr::HasType(path, value_type) => {
-                let value = self.aug.get(path).unwrap().unwrap();
+                let value = self.aug.get(path)?.unwrap();
                 if value_type.check(&value).is_ok() {
                     rudder_debug!("type of {value} is {value_type}");
                 } else {
                     rudder_debug!("type of {value} is NOT {value_type}");
                 }
+                InterpreterOut::ok()
+            }
+            Expr::PasswordScore(path, value) => {
+                let policy = PasswordPolicy::MinScore(*value);
+                let secret_password = self.aug.get(path)?.unwrap();
+                policy.check(&secret_password)?;
                 InterpreterOut::ok()
             }
             Expr::GenericAugeas(cmd) => {

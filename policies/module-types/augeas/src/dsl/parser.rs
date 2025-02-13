@@ -67,7 +67,7 @@ pub enum Expr<'src> {
     /// Warning: do not use for passwords as the value will be displayed.
     StrLen(AugPath<'src>, NumComparator, usize),
     /// Minimal score
-    PasswordScore(AugPath<'src>, NumComparator, Score),
+    PasswordScore(AugPath<'src>, Score),
     /// Minimal LUDS values
     PasswordLUDS(AugPath<'src>, u8, u8, u8, u8, u8),
     /// Save the changes to the tree.
@@ -182,14 +182,13 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
         Rule::password_score => {
             let mut inner_rules = pair.into_inner();
             let path: &str = inner_rules.next().unwrap().as_str();
-            let comparator: NumComparator = inner_rules.next().unwrap().as_str().parse()?;
 
             let score_str = inner_rules.next().unwrap().as_str();
             let score: Score = score_str
                 .parse::<u8>()?
                 .try_into()
                 .map_err(|e| anyhow!("Invalid score '{score_str}': {e}"))?;
-            Expr::PasswordScore(path.into(), comparator, score)
+            Expr::PasswordScore(path.into(), score)
         }
         Rule::password_luds => {
             let mut inner_rules = pair.into_inner();
@@ -238,6 +237,13 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
             let type_: ValueType = inner_rules.next().unwrap().as_str().parse()?;
             Expr::HasType(path.into(), type_)
         }
+        Rule::match_size => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let comparator: NumComparator = inner_rules.next().unwrap().as_str().parse()?;
+            let size: usize = inner_rules.next().unwrap().as_str().parse()?;
+            Expr::MatchSize(path.into(), comparator, size)
+        }
         _ => unreachable!("Unexpected rule: {:?}", pair.as_rule()),
     })
 }
@@ -265,7 +271,7 @@ pub fn parse_script(input: &str) -> Result<Script<'_>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::dsl::comparator::NumComparator::GreaterThanOrEqual;
+    use crate::dsl::comparator::NumComparator::{GreaterThanOrEqual, LessThan};
     use pest::Parser;
 
     #[test]
@@ -331,10 +337,12 @@ mod tests {
             
             strlen /path/to/node >= 3
 
-            password_score /path/to/node >= 3
+            password_score /path/to/node 3
             password_luds /path/to/node 1 2 3 4 5
             
             has_type /path/to/node ipv4
+
+            match_size /pat/to < 5
         "#;
         let expected = vec![
             Expr::Set("/path/to/node".into(), "value"),
@@ -360,7 +368,6 @@ mod tests {
                 AugPath {
                     inner: "/path/to/node",
                 },
-                GreaterThanOrEqual,
                 Score::Three,
             ),
             Expr::PasswordLUDS(
@@ -379,6 +386,7 @@ mod tests {
                 },
                 ValueType::Ipv4,
             ),
+            Expr::MatchSize(AugPath { inner: "/pat/to" }, LessThan, 5),
         ];
         let parsed = parse_script(input).unwrap();
         assert_eq!(parsed.expressions, expected);

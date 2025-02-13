@@ -18,7 +18,7 @@ pub enum PasswordPolicy {
     /// * https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/wheeler
     ///
     /// Any score less than 3 should be considered too weak.
-    Score(Score),
+    MinScore(Score),
     /// Minimum length of the password and different character classes.
     ///
     /// TLUDS:
@@ -45,7 +45,7 @@ impl PasswordPolicy {
 
     pub fn check(&self, password: &str) -> Result<()> {
         match self {
-            PasswordPolicy::Score(s) => {
+            PasswordPolicy::MinScore(s) => {
                 let entropy = zxcvbn(password, &[]);
                 if entropy.score() < *s {
                     let feedback = entropy.feedback();
@@ -116,7 +116,7 @@ impl PasswordPolicy {
 
 impl Default for PasswordPolicy {
     fn default() -> Self {
-        PasswordPolicy::Score(Score::Three)
+        PasswordPolicy::MinScore(Score::Three)
     }
 }
 
@@ -138,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_password_policy_score() {
-        let p = PasswordPolicy::Score(Score::Three);
+        let p = PasswordPolicy::MinScore(Score::Three);
         assert_eq!(
             p.check("password").err().unwrap().to_string(),
             "The score is too low: 0 < 3. This is a top-10 common password. Add another word or two. Uncommon words are better.".to_string()
