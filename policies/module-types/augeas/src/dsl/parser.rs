@@ -10,6 +10,11 @@ use pest_derive::Parser;
 use raugeas::Position;
 use zxcvbn::Score;
 
+/// A command of the extended Augeas language used in Rudder.
+///
+/// Note: We implement all the command modify either the tree or the system,
+/// so we can control changes in the interpreter.
+/// Most read commands are passed unchanged to the Augeas interpreter.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Expr<'src> {
     /// A generic augeas command, not parsed.
@@ -59,7 +64,7 @@ pub enum Expr<'src> {
     HasType(AugPath<'src>, ValueType),
     /// String length
     ///
-    /// Warning: do no use for passwords as the value will be displayed.
+    /// Warning: do not use for passwords as the value will be displayed.
     StrLen(AugPath<'src>, NumComparator, usize),
     /// Minimal score
     PasswordScore(AugPath<'src>, NumComparator, Score),
@@ -167,6 +172,13 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
             let values = parse_array(inner_rules.next().unwrap());
             Expr::MatchNotEqual(path.into(), values)
         }
+        Rule::strlen => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let comparator: NumComparator = inner_rules.next().unwrap().as_str().parse()?;
+            let size: usize = inner_rules.next().unwrap().as_str().parse()?;
+            Expr::StrLen(path.into(), comparator, size)
+        }
         Rule::password_score => {
             let mut inner_rules = pair.into_inner();
             let path: &str = inner_rules.next().unwrap().as_str();
@@ -219,6 +231,12 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
             let path: &str = inner_rules.next().unwrap().as_str();
             let sub: &str = inner_rules.next().unwrap().as_str();
             Expr::ClearMultiple(path.into(), sub)
+        }
+        Rule::has_type => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let type_: ValueType = inner_rules.next().unwrap().as_str().parse()?;
+            Expr::HasType(path.into(), type_)
         }
         _ => unreachable!("Unexpected rule: {:?}", pair.as_rule()),
     })
@@ -302,15 +320,21 @@ mod tests {
             touch /path/to/node
 
             quit
+            save
+            load
 
             mv   /path/to/node /new/path
             move /path/to/node /new/path
             rename /path/to/node new_label
             defvar name /path/to/node
             defnode name /path/to/node value
+            
+            strlen /path/to/node >= 3
 
             password_score /path/to/node >= 3
             password_luds /path/to/node 1 2 3 4 5
+            
+            has_type /path/to/node ipv4
         "#;
         let expected = vec![
             Expr::Set("/path/to/node".into(), "value"),
@@ -318,11 +342,20 @@ mod tests {
             Expr::Clear("/path/to/node".into()),
             Expr::Touch("/path/to/node".into()),
             Expr::Quit,
+            Expr::Save,
+            Expr::Load,
             Expr::Move("/path/to/node".into(), "/new/path".into()),
             Expr::Move("/path/to/node".into(), "/new/path".into()),
             Expr::Rename("/path/to/node".into(), "new_label"),
             Expr::DefineVar("name", "/path/to/node".into()),
             Expr::DefineNode("name", "/path/to/node".into(), "value"),
+            Expr::StrLen(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                GreaterThanOrEqual,
+                3,
+            ),
             Expr::PasswordScore(
                 AugPath {
                     inner: "/path/to/node",
@@ -339,6 +372,12 @@ mod tests {
                 3,
                 4,
                 5,
+            ),
+            Expr::HasType(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                ValueType::Ipv4,
             ),
         ];
         let parsed = parse_script(input).unwrap();
