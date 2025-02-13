@@ -14,39 +14,73 @@ string_value = _{
     unquoted_string
 }
 
-// FIXME check
-identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+integer = @{ ASCII_DIGIT+ }
 
 // Array syntax
 array = _{ "[" ~ (string_value ~ ("," ~ string_value)*)? ~ "]" }
 
 // Commands
 set = { "set" ~ string_value ~ string_value }
+set_multiple = { "setm" ~ string_value ~ string_value ~ string_value }
 rm = { "rm" ~ string_value }
 clear = { "clear" ~ string_value }
+clear_multiple = { "clearm" ~ string_value ~ string_value }
 touch = { "touch" ~ string_value }
+insert = { "insert" ~ string_value ~ string_value ~ string_value }
 mv = { ("mv" | "move") ~ string_value ~ string_value }
-rename = { "rename" ~ string_value ~ identifier }
-defvar = { "defvar" ~ identifier ~ string_value }
-defnode = { "defnode" ~ identifier ~ string_value ~ string_value }
-values = { "values" ~ string_value ~ array }
+cp = { ("cp" | "copy") ~ string_value ~ string_value }
+rename = { "rename" ~ string_value ~ string_value }
+defvar = { "defvar" ~ string_value ~ string_value }
+defnode = { "defnode" ~ string_value ~ string_value ~ string_value }
+compare = { "compare" ~ string_value ~ string_value }
+values_include = { "values_include" ~ string_value ~ string_value }
+values_not_include = { "values_not_include" ~ string_value ~ string_value }
+values_equal = { "values_equal" ~ string_value ~ array }
+values_not_equal = { "values_not_equal" ~ string_value ~ array }
+match_size = { "match_size" ~ string_value ~ string_value ~ integer }
+match_include = { "match_include" ~ string_value ~ string_value }
+match_not_include = { "match_not_include" ~ string_value ~ string_value }
+match_equal = { "match_equal" ~ string_value ~ array }
+match_not_equal = { "match_not_equal" ~ string_value ~ array }
+has_type = { "has_type" ~ string_value ~ string_value }
+strlen = { "strlen" ~ string_value ~ string_value ~ integer }
+password_score = { "password_score" ~ string_value ~ integer }
+password_luds = { "password_luds" ~ string_value ~ integer ~ integer ~ integer ~ integer ~ integer }
 save = { "save" }
 quit = { "quit" }
+load = { "load" }
 
 // Command line
 command = {
     set |
+    set_multiple |
     rm |
     clear |
+    clear_multiple |
     touch |
-    quit |
+    insert |
     mv |
+    cp |
     rename |
     defvar |
     defnode |
-    values |
+    compare |
+    values_include |
+    values_not_include |
+    values_equal |
+    values_not_equal |
+    match_size |
+    match_include |
+    match_not_include |
+    match_equal |
+    match_not_equal |
+    has_type |
+    strlen |
+    password_score |
+    password_luds |
     save |
-    quit
+    quit |
+    load
 }
 
 // Full script

@@ -40,12 +40,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "allocator-api2"
-version = "0.2.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "683d7910e743518b0e34f1186f92494becacb047c7b6bf616c96772180fef923"
-
-[[package]]
 name = "ammonia"
 version = "4.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -154,16 +148,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dde20b3d026af13f561bdd0f15edf01fc734f0dafcedbaf42bba506a9517f223"
 dependencies = [
  "derive_arbitrary",
-]
-
-[[package]]
-name = "ariadne"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "367fd0ad87307588d087544707bc5fbf4805ded96c7db922b70d368fa1cb5702"
-dependencies = [
- "unicode-width 0.1.14",
- "yansi 0.5.1",
 ]
 
 [[package]]
@@ -518,19 +502,6 @@ dependencies = [
  "serde",
  "wasm-bindgen",
  "windows-targets 0.52.6",
-]
-
-[[package]]
-name = "chumsky"
-version = "1.0.0-alpha.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7b80276986f86789dc56ca6542d53bba9cda3c66091ebbe7bd96fc1bdf20f1f"
-dependencies = [
- "hashbrown 0.14.5",
- "regex-automata 0.3.9",
- "serde",
- "stacker",
- "unicode-ident",
 ]
 
 [[package]]
@@ -1602,7 +1573,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 dependencies = [
  "ahash",
- "allocator-api2",
 ]
 
 [[package]]
@@ -3033,7 +3003,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ae130e2f271fbc2ac3a40fb1d07180839cdbbe443c7a27e1e3c13c5cac0116d"
 dependencies = [
  "diff",
- "yansi 1.0.1",
+ "yansi",
 ]
 
 [[package]]
@@ -3130,15 +3100,6 @@ dependencies = [
  "rusty-fork",
  "tempfile",
  "unarray",
-]
-
-[[package]]
-name = "psm"
-version = "0.1.24"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "200b9ff220857e53e184257720a14553b2f4aa02577d2ed9842d45d4b9654810"
-dependencies = [
- "cc",
 ]
 
 [[package]]
@@ -3256,7 +3217,8 @@ dependencies = [
 [[package]]
 name = "raugeas"
 version = "0.3.1"
-source = "git+https://github.com/Normation/raugeas#67cf61aefcad9ec863336bc720a32ceeadf1ca02"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd7055f104d4192f745baa080d2f80f86762ca9a80416a71dc140616377ae003"
 dependencies = [
  "bitflags 2.8.0",
  "libc",
@@ -3266,7 +3228,8 @@ dependencies = [
 [[package]]
 name = "raugeas_sys"
 version = "0.2.0"
-source = "git+https://github.com/Normation/raugeas#67cf61aefcad9ec863336bc720a32ceeadf1ca02"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae9dc7ba072353d6dff50ade0ffc23a679c7f645ac0c21ae7edb7efa22f8a1f9"
 dependencies = [
  "bindgen",
  "pkg-config",
@@ -3355,17 +3318,6 @@ dependencies = [
 
 [[package]]
 name = "regex-automata"
-version = "0.3.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59b23e92ee4318893fa3fe3e6fb365258efbfe6ac6ab30f090cdcbb7aa37efa9"
-dependencies = [
- "aho-corasick",
- "memchr",
- "regex-syntax 0.7.5",
-]
-
-[[package]]
-name = "regex-automata"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "809e8dc61f6de73b46c85f4c96486310fe304c434cfa43669d7b40f711150908"
@@ -3380,12 +3332,6 @@ name = "regex-syntax"
 version = "0.6.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f162c6dd7b008981e4d40210aca20b4bd0f9b60ca9271061b07f78537722f2e1"
-
-[[package]]
-name = "regex-syntax"
-version = "0.7.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbb5fb1acd8a1a18b3dd5be62d25485eb770e05afb408a9627d14d451bae12da"
 
 [[package]]
 name = "regex-syntax"
@@ -3523,14 +3469,11 @@ name = "rudder-module-augeas"
 version = "0.0.0-dev"
 dependencies = [
  "anyhow",
- "ariadne",
  "bytesize",
- "chumsky",
  "gumdrop",
  "ipnet",
  "iprange",
  "miette",
- "nom",
  "pest",
  "pest_derive",
  "raugeas",
@@ -4286,19 +4229,6 @@ name = "stable_deref_trait"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
-
-[[package]]
-name = "stacker"
-version = "0.1.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d08feb8f695b465baed819b03c128dc23f57a694510ab1f06c77f763975685e"
-dependencies = [
- "cc",
- "cfg-if",
- "libc",
- "psm",
- "windows-sys 0.59.0",
-]
 
 [[package]]
 name = "stdio-override"
@@ -5586,12 +5516,6 @@ name = "xxhash-rust"
 version = "0.8.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fdd20c5420375476fbd4394763288da7eb0cc0b8c11deed431a91562af7335d3"
-
-[[package]]
-name = "yansi"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09041cd90cf85f7f8b2df60c646f853b7f535ce68f85244eb6731cf89fa498ec"
 
 [[package]]
 name = "yansi"
