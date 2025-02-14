@@ -1,5 +1,6 @@
 module Plugins.Tests.PluginsTests exposing (suite)
 
+import Dict
 import Expect exposing (..)
 import Fuzz exposing (..)
 import Plugins.DataTypes exposing (..)
@@ -37,7 +38,7 @@ pluginErrorFuzzer =
 
 pluginStatusFuzzer : Fuzzer PluginStatus
 pluginStatusFuzzer =
-    oneOf [ constant Enabled, constant Disabled, constant Uninstalled ]
+    oneOf [ constant StatusEnabled, constant StatusDisabled, constant StatusUninstalled ]
 
 
 licenseInfoFuzzer : Fuzzer LicenseInfo
@@ -54,17 +55,20 @@ zonedDateTimeFuzzer =
 suite =
     describe "Plugins.module"
         [ fuzz (list pluginInfoFuzz) "initialize install action" <|
-            \plugins -> initPluginsViewModel |> setPluginsView plugins |> .installAction |> Expect.equal InstallActionDisabled
+            \plugins -> initPluginsViewModel |> setPluginsView plugins |> .installAction |> Expect.equal (ActionDisabled NoPluginSelected)
         , fuzz pluginInfoFuzz "allow installing installable plugin" <|
             \plugin ->
                 let
                     plugins =
-                        setPluginInfoStatus Uninstalled plugin |> List.singleton
+                        setPluginInfoStatus StatusUninstalled plugin |> List.singleton
 
                     viewModel =
                         initPluginsViewModel
                             |> setPluginsView plugins
                             |> processViewModelSelect SelectAll
+
+                    expected =
+                        ActionEnabled { success = Dict.fromList [ ( plugin.id, AllowedAction ) ], warning = Dict.empty }
                 in
-                viewModel |> .installAction |> Expect.equal (InstallActionEnabled 1)
+                viewModel |> .installAction |> Expect.equal expected
         ]

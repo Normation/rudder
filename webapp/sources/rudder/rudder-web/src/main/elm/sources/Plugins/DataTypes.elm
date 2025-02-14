@@ -1,5 +1,6 @@
 module Plugins.DataTypes exposing (..)
 
+import Dict exposing (Dict)
 import Http
 import Http.Detailed
 import Json.Encode exposing (Value)
@@ -53,9 +54,9 @@ type PluginType
 
 
 type PluginStatus
-    = Enabled
-    | Disabled
-    | Uninstalled
+    = StatusEnabled
+    | StatusDisabled
+    | StatusUninstalled
 
 
 type alias LicenseInfo =
@@ -79,16 +80,75 @@ type alias UI =
     }
 
 
-type InstallActionModel
-    = InstallActionDisabled
-    | InstallActionEnabled Int
+type InstallStatus
+    = Installed ActivationStatus
+    | Uninstalled
+
+
+type ActivationStatus
+    = Enabled
+    | Disabled
+
+
+type LicenseStatus
+    = ValidLicense LicenseInfo
+    | ExpiredLicense LicenseInfo
+    | MissingLicense
+    | NoLicense
+
+
+{-| Result computation on install status, activation status, and license status of a plugin.
+The license status cannot be changed, so it is just a limiting factor when associated with the others.
+The name is long and specific enough but also descriptive (it is a sentence), so that we can generate
+the message using the type.
+-}
+type ActionDisallowedResult
+    = -- see ActionAllowedResult for (Installed,Installed): it is an upgrade
+      UninstalledPluginCannotBeUninstalled -- --    (InstallStatus ⊗ InstallStatus)
+    | EnabledPluginCannotBeEnabled -- --            (ActivationStatus ⊗ ActivationStatus)
+    | DisabledPluginCannotBeDisabled
+    | UninstalledPluginCannotBeDisabled -- --       (InstallStatus ⊗ (ActivationStatus \ InstallStatus))
+    | ExpiredLicensePreventPluginInstallation -- -- (LicenseStatus ⊗ InstallStatus)
+    | MissingLicensePreventPluginInstallation
+    | ExpiredLicensePreventPluginActivation -- --   (LicenseStatus ⊗ ActivationStatus)
+    | MissingLicensePreventPluginActivation
+
+
+
+-- We could add logic for when a plugin will restart, by defining results :
+-- e.g. uninstalling a disabled plugin
+-- We should just add such a result as a parameter to the associated result type below
+
+
+type ActionAllowedResult
+    = AllowedAction
+    | UpgradeAction
+
+
+{-| Summary of what an action was allowed to do, with optional disallowed with warning.
+It can be a useful description at any level
+-}
+type alias ActionExplanation =
+    { success : Dict PluginId ActionAllowedResult
+    , warning : Dict PluginId ActionDisallowedResult
+    }
+
+
+type ActionDisabledExplanation
+    = NoPluginSelected
+    | NoPluginForAction RequestType
+
+
+type ActionModel
+    = ActionDisabled ActionDisabledExplanation
+    | ActionEnabled ActionExplanation
 
 
 type alias PluginsViewModel =
     { plugins : List PluginInfo
     , selected : Set PluginId
     , modalState : ModalState
-    , installAction : InstallActionModel
+    , installAction : ActionModel
     }
 
 
@@ -193,7 +253,7 @@ updatePluginsViewModel f ({ ui } as model) =
         |> setUI
             { ui
                 | view =
-                    case model.ui.view of
+                    case ui.view of
                         ViewPluginsList plugins ->
                             ViewPluginsList <| f plugins
 
@@ -206,7 +266,7 @@ setSelected : Set PluginId -> List PluginInfo -> PluginsViewModel -> PluginsView
 setSelected plugins pluginInfos model =
     { model
         | selected = plugins
-        , installAction = InstallActionEnabled 2
+        , installAction = findInstallablePlugins plugins pluginInfos
     }
 
 
@@ -227,9 +287,9 @@ setPlugins plugins =
     updatePluginsViewModel (setPluginsView plugins)
 
 
-countInstallablePlugins : Set PluginId -> List PluginInfo -> Int
-countInstallablePlugins _ _ =
-    2
+findInstallablePlugins : Set PluginId -> List PluginInfo -> ActionModel
+findInstallablePlugins selected plugins =
+    ActionEnabled { success = selected |> Set.toList |> List.map (\p -> ( p, AllowedAction )) |> Dict.fromList, warning = Dict.empty }
 
 
 setModalState : ModalState -> Model -> Model
@@ -279,7 +339,7 @@ noGlobalLicense =
 
 pluginStatusOrdering : Ordering PluginStatus
 pluginStatusOrdering =
-    Ordering.explicit [ Enabled, Disabled, Uninstalled ]
+    Ordering.explicit [ StatusEnabled, StatusDisabled, StatusUninstalled ]
 
 
 pluginDefaultOrdering : Ordering PluginInfo

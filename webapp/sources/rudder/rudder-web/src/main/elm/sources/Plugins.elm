@@ -2,7 +2,6 @@ port module Plugins exposing (update)
 
 import Browser
 import Browser.Navigation
-import Http
 import Http.Detailed as Detailed
 import Json.Decode exposing (..)
 import List exposing (drop, head)

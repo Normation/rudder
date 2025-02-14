@@ -66,11 +66,38 @@ checkAll =
 actionButtons : PluginsViewModel -> List (Html Msg)
 actionButtons model =
     [ button [ class "btn btn-primary me-1", onClick (CallApi updateIndex) ] [ i [ class "fa fa-refresh me-1" ] [], text "Refresh plugins" ]
-    , button [ class "btn btn-default mx-1", disabled <| Set.isEmpty model.selected, onClick (SetModalState (OpenModal Install)) ] [ text "Uninstall", i [ class "fa fa-minus-circle ms-1" ] [] ]
+    , installActionButton model.installAction
     , button [ class "btn btn-default mx-1", disabled <| Set.isEmpty model.selected, onClick (SetModalState (OpenModal Uninstall)) ] [ text "Uninstall", i [ class "fa fa-minus-circle ms-1" ] [] ]
     , button [ class "btn btn-default mx-1", disabled <| Set.isEmpty model.selected, onClick (SetModalState (OpenModal Enable)) ] [ text "Enable", i [ class "fa fa-check-circle ms-1" ] [] ]
     , button [ class "btn btn-default ms-1", disabled <| Set.isEmpty model.selected, onClick (SetModalState (OpenModal Disable)) ] [ text "Disable", i [ class "fa fa-ban ms-1" ] [] ]
     ]
+
+
+installActionButton : ActionModel -> Html Msg
+installActionButton model =
+    let
+        count =
+            case model of
+                ActionDisabled ->
+                    text "Install"
+
+                ActionEnabled c ->
+                    text ("Install " ++ String.fromInt c)
+
+        isDisabled =
+            case model of
+                ActionDisabled ->
+                    True
+
+                ActionEnabled _ ->
+                    False
+    in
+    button
+        [ class "btn btn-default mx-1"
+        , onClick (SetModalState (OpenModal Install))
+        , disabled isDisabled
+        ]
+        [ count, i [ class "fa fa-plus-circle ms-1" ] [] ]
 
 
 displayPluginsList : PluginsViewModel -> Html Msg
@@ -230,23 +257,23 @@ findLicenseNeededError =
 pluginBadge : PluginInfo -> List (Html msg)
 pluginBadge p =
     case ( p.status, findLicenseNeededError p.errors ) of
-        ( Enabled, _ ) ->
+        ( StatusEnabled, _ ) ->
             [ div [ class "position-absolute top-0 end-0" ] [ span [ class "badge float-end bg-success" ] [ text "Installed" ] ] ]
 
         ( _, Just _ ) ->
             [ div [ class "position-absolute top-0 end-0" ] [ span [ class "badge float-end text-dark" ] [ i [ class "fa fa-info-circle me-1" ] [], text "No license" ] ] ]
 
-        ( Disabled, _ ) ->
+        ( StatusDisabled, _ ) ->
             [ div [ class "position-absolute top-0 end-0" ] [ span [ class "badge float-end" ] [ text "Disabled" ] ] ]
 
-        ( Uninstalled, _ ) ->
+        ( StatusUninstalled, _ ) ->
             []
 
 
 pluginCardBgClass : PluginInfo -> Maybe String
 pluginCardBgClass p =
     case ( p.status, findLicenseNeededError p.errors ) of
-        ( Disabled, _ ) ->
+        ( StatusDisabled, _ ) ->
             Just "plugin-card-disabled"
 
         ( _, Just _ ) ->

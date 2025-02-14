@@ -29,4 +29,4 @@ init flags =
 
 initPluginsViewModel : PluginsViewModel
 initPluginsViewModel =
-    { plugins = [], selected = Set.empty, modalState = NoModal, installAction = InstallActionDisabled }
+    { plugins = [], selected = Set.empty, modalState = NoModal, installAction = ActionDisabled NoPluginSelected }
