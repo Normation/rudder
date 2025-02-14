@@ -217,7 +217,6 @@ class MockSettings(wfservice: WorkflowLevelService, asyncWF: AsyncWorkflowInfo) 
 }
 
 class MockCompliance(mockDirectives: MockDirectives) {
-  self =>
 
   private val directives = mockDirectives.directives
 
@@ -280,8 +279,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
         build("n1", Some(PolicyMode.Enforce)),
         build("n2", Some(PolicyMode.Enforce)),
         build("n3", Some(PolicyMode.Enforce)),
-        build("bn1", Some(PolicyMode.Enforce)),
-        build("bn2", Some(PolicyMode.Enforce)),
+        build("bn1", Some(PolicyMode.Audit)),
+        build("bn2", Some(PolicyMode.Audit)),
         build("bn3", Some(PolicyMode.Enforce)),
         build("bn4", Some(PolicyMode.Enforce)),
         build("bn5", Some(PolicyMode.Enforce))
