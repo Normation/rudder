@@ -43,6 +43,9 @@ pub struct AugeasParameters {
     #[serde_as(as = "NoneAsEmptyString")]
     pub lens: Option<String>,
 
+    // FIXME: implement
+    pub must_exist: Option<bool>,
+
     /// Maximal allowed file size for loading.
     #[serde_inline_default(ByteSize::mb(10))]
     pub max_file_size: ByteSize,
