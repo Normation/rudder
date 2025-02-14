@@ -137,7 +137,14 @@ pub fn run_inner(args: Args) -> Result<()> {
     match args.command {
         Command::Install { force, package } => {
             let index = RepoIndex::from_path(REPOSITORY_INDEX_PATH)?;
-            for full_p in &long_names(package) {
+
+            let to_install = long_names(package);
+
+            if to_install.is_empty() {
+                bail!("No plugin name provided");
+            }
+
+            for full_p in &to_install {
                 if full_p.ends_with("-license.tar.gz") {
                     if let Err(e) =
                         Licenses::update_from_archive(Path::new(full_p), Path::new(LICENSES_FOLDER))
@@ -165,12 +172,19 @@ pub fn run_inner(args: Args) -> Result<()> {
             }
         }
         Command::Uninstall { package } => {
-            for p in &long_names(package) {
+            let to_uninstall = long_names(package);
+
+            if to_uninstall.is_empty() {
+                bail!("No plugin name provided");
+            }
+
+            for p in &to_uninstall {
                 if let Err(e) = db.uninstall(p, true, &mut webapp) {
                     errors = true;
                     error!("Uninstallation of {} failed: {e:?}", short_name(p));
                 }
             }
+
             if errors {
                 error!("Some plugin uninstallation failed");
             } else {
@@ -218,6 +232,9 @@ pub fn run_inner(args: Args) -> Result<()> {
                     }
                     packages
                 };
+                if to_upgrade.is_empty() {
+                    bail!("No plugin name provided");
+                }
                 for p in &to_upgrade {
                     if let Err(e) = db.install(false, p, None, &repo, index.as_ref(), &mut webapp) {
                         errors = true;
@@ -242,7 +259,13 @@ pub fn run_inner(args: Args) -> Result<()> {
         }
         .display(format)?,
         Command::Show { package } => {
-            for p in long_names(package) {
+            let to_show = long_names(package);
+
+            if to_show.is_empty() {
+                bail!("No plugin name provided");
+            }
+
+            for p in to_show {
                 println!(
                     "{}",
                     db.plugins
@@ -283,6 +306,11 @@ pub fn run_inner(args: Args) -> Result<()> {
             } else {
                 long_names(package)
             };
+
+            if to_enable.is_empty() {
+                bail!("No plugin name provided");
+            }
+
             if to_enable.is_empty() {
                 let backup_path = Path::new(PLUGIN_STATUS_BACKUP_PATH);
                 if save {
@@ -334,6 +362,10 @@ pub fn run_inner(args: Args) -> Result<()> {
             } else {
                 long_names(package)
             };
+
+            if to_disable.is_empty() {
+                bail!("No plugin name provided");
+            }
 
             for p in &to_disable {
                 match db.plugins.get(p) {
