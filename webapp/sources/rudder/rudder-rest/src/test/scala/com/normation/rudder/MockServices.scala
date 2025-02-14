@@ -217,7 +217,6 @@ class MockSettings(wfservice: WorkflowLevelService, asyncWF: AsyncWorkflowInfo) 
 }
 
 class MockCompliance(mockDirectives: MockDirectives) {
-  self =>
 
   private val directives = mockDirectives.directives
 
@@ -280,8 +279,8 @@ class MockCompliance(mockDirectives: MockDirectives) {
         build("n1", Some(PolicyMode.Enforce)),
         build("n2", Some(PolicyMode.Enforce)),
         build("n3", Some(PolicyMode.Enforce)),
-        build("bn1", Some(PolicyMode.Enforce)),
-        build("bn2", Some(PolicyMode.Enforce)),
+        build("bn1", Some(PolicyMode.Audit)),
+        build("bn2", Some(PolicyMode.Audit)),
         build("bn3", Some(PolicyMode.Enforce)),
         build("bn4", Some(PolicyMode.Enforce)),
         build("bn5", Some(PolicyMode.Enforce))
@@ -495,7 +494,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
 
     Groups G1 (with N1, N2), G2 (N2), G3 (N1), G4 (N3, N4, N5), G5 (N2, N3), G6(N4, N5)
 
-    Directives D1, D2, D3, D4, D5
+    Directives D1, D2, D3, D4, D5, D6
 
     Rules
 
@@ -504,7 +503,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
     - R3, which applies D3 to G2 and G3
     - R4, which applies D4 to G4 and G5
     - R5, which applies D5 to G6 but not G4 (so nothing)
-    - R6, which applies D4 to G6 (so we will have skipped on N4 and N5)
+    - R6, which applies D4,D6 to G6 (so we will have skipped on D4)
      */
 
     val g1: NodeGroup = NodeGroup(
@@ -573,6 +572,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
     val d3 = directives.rpmDirective
     val d4 = directives.fileTemplateDirecive1
     val d5 = directives.fileTemplateVariables2
+    val d6 = directives.copyGitFileDirective
 
     val r1: Rule = Rule(
       ruleId(1),
@@ -623,7 +623,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       "R6",
       RuleCategoryId("rulecat1"),
       Set(GroupTarget(g6.id)),
-      Set(d4.id)
+      Set(d4.id, d6.id)
     )
 
     val complexStatusReports: Map[NodeId, NodeStatusReport] = Map(
@@ -652,18 +652,42 @@ class MockCompliance(mockDirectives: MockDirectives) {
           simpleRuleNodeStatusReport(nodeId(3), ruleId(4), d4.id, ReportType.EnforceSuccess)
         )
       ),
-      // R4 applies on N4
+      // R4 applies D4 on N4
+      // R6 applies D6 on N4
       nodeId(4) -> simpleNodeStatusReport(
         nodeId(4),
         Set(
-          simpleRuleNodeStatusReport(nodeId(4), ruleId(4), d4.id, ReportType.EnforceSuccess)
+          simpleRuleNodeStatusReport(nodeId(4), ruleId(4), d4.id, ReportType.EnforceSuccess),
+          simpleRuleNodeStatusReport(nodeId(4), ruleId(6), d6.id, ReportType.EnforceSuccess)
+        ),
+        List(
+          OverriddenPolicy(
+            PolicyId(ruleId(6), d4.id, TechniqueVersionHelper("1.0")),
+            PolicyId(ruleId(4), d4.id, TechniqueVersionHelper("1.0"))
+          ),
+          OverriddenPolicy(
+            PolicyId(ruleId(6), d4.id, TechniqueVersionHelper("1.0")),
+            PolicyId(ruleId(5), d4.id, TechniqueVersionHelper("1.0"))
+          )
         )
       ),
-      // R4 applies on N5
+      // R4 applies D4 on N5
+      // R6 applies D6 on N5
       nodeId(5) -> simpleNodeStatusReport(
         nodeId(5),
         Set(
-          simpleRuleNodeStatusReport(nodeId(5), ruleId(4), d4.id, ReportType.EnforceSuccess)
+          simpleRuleNodeStatusReport(nodeId(5), ruleId(4), d4.id, ReportType.EnforceSuccess),
+          simpleRuleNodeStatusReport(nodeId(5), ruleId(6), d6.id, ReportType.EnforceSuccess)
+        ),
+        List(
+          OverriddenPolicy(
+            PolicyId(ruleId(6), d4.id, TechniqueVersionHelper("1.0")),
+            PolicyId(ruleId(4), d4.id, TechniqueVersionHelper("1.0"))
+          ),
+          OverriddenPolicy(
+            PolicyId(ruleId(6), d4.id, TechniqueVersionHelper("1.0")),
+            PolicyId(ruleId(5), d4.id, TechniqueVersionHelper("1.0"))
+          )
         )
       ),
       // R5 targets nothing at all because no node is targeted

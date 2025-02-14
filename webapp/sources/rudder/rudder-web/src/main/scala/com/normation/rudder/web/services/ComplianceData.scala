@@ -362,7 +362,7 @@ object ComplianceData extends Loggable {
           val overrides                 = getOverridenDirectiveDetails(reports.overrides, directiveLib, allRules, None)
           val directivesMode            = aggregate.directives.keys.map(x => directiveLib.allDirectives.get(x).flatMap(_._2.policyMode))
           val (policyMode, explanation) =
-            ComputePolicyMode.nodeModeOnRule(nodeInfo.rudderSettings.policyMode, globalMode)(directivesMode.toSet)
+            ComputePolicyMode.nodeModeOnRule(nodeInfo.rudderSettings.policyMode, globalMode)(directivesMode.toSet).tuple
 
           val details = getDirectivesComplianceDetails(
             aggregate.directives.values.toList,
@@ -429,7 +429,7 @@ object ComplianceData extends Loggable {
         )
 
       val directivesMode            = aggregate.directives.keys.map(x => directiveLib.allDirectives.get(x).flatMap(_._2.policyMode)).toList
-      val (policyMode, explanation) = ComputePolicyMode.ruleModeOnNode(nodeMode, globalMode)(directivesMode.toSet)
+      val (policyMode, explanation) = ComputePolicyMode.ruleModeOnNode(nodeMode, globalMode)(directivesMode.toSet).tuple
       RuleComplianceLine(
         rule,
         rule.id,
@@ -519,7 +519,7 @@ object ComplianceData extends Loggable {
       directivesReport: List[DirectiveStatusReport],
       directiveLib:     FullActiveTechniqueCategory,
       globalPolicyMode: GlobalPolicyMode,
-      computeMode:      Option[PolicyMode] => (String, String)
+      computeMode:      Option[PolicyMode] => ComputePolicyMode.ComputedPolicyMode
   ): List[DirectiveComplianceLine] = {
     val directivesComplianceData = for {
       directiveStatus                  <- directivesReport
@@ -529,7 +529,7 @@ object ComplianceData extends Loggable {
         fullActiveTechnique.techniques.get(directive.techniqueVersion).map(_.name).getOrElse("Unknown technique")
       val techniqueVersion          = directive.techniqueVersion
       val components                = getComponentsComplianceDetails(directiveStatus.components, includeMessage = true)
-      val (policyMode, explanation) = computeMode(directive.policyMode)
+      val (policyMode, explanation) = computeMode(directive.policyMode).tuple
       val directiveTags             = JsonTagSerialisation.serializeTags(directive.tags)
       DirectiveComplianceLine(
         directive,
