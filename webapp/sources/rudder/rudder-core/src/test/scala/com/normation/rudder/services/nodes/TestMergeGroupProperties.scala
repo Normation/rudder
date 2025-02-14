@@ -136,16 +136,16 @@ class TestMergeGroupProperties extends Specification {
     }
   }
 
-  /**
-    *  Hierarchy:
-    *   parent1       parent2
-    *    (bar1)        (bar2)
-    *      |
-    *    child
-    *    (baz)
-    *      |
-    *     node
-    *  (barNode)
+  /*
+   *  Hierarchy:
+   *   parent1       parent2
+   *    (bar1)        (bar2)
+   *      |
+   *    child
+   *    (baz)
+   *      |
+   *     node
+   *  (barNode)
    */
   val parent1: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("parent1")),
@@ -421,12 +421,12 @@ class TestMergeGroupProperties extends Specification {
       )
     }
 
-    /**   parent1  <  parent2
-      *      |           |
-      *       \         /
-      *         \     /
-      *          child
-      */
+    /*   parent1  <  parent2
+     *      |           |
+     *       \         /
+     *         \     /
+     *          child
+     */
     "resolve conflict on parent groups by taking most overriding group" >> {
       val q2  = query.modify(_.criteria).setTo(parent1.toCriterion :: parent2.toCriterion :: Nil)
       val ct2 = child
@@ -454,17 +454,17 @@ class TestMergeGroupProperties extends Specification {
     merged must beRight(List(g.toG("foo")))
   }
 
-  /**
-    *  Hierarchy:
-    *    global
-    *    (bar)
-    *      |
-    *   parent1       parent2
-    *    (bar1)
-    *      |
-    *    child
-    *    (baz)
-    */
+  /*
+   *  Hierarchy:
+   *    global
+   *    (bar)
+   *      |
+   *   parent1       parent2
+   *    (bar1)
+   *      |
+   *    child
+   *    (baz)
+   */
   "global parameter are inherited and overridden by group and only one time" >> {
     // empty properties, see if global is duplicated
     val p2       = parent2.copy(properties = Nil)
