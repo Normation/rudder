@@ -2142,12 +2142,80 @@ response:
               {
                 "id" : "br6",
                 "name" : "R6",
-                "compliance" : 0.0,
+                "compliance" : 100.0,
                 "policyMode" : "enforce",
                 "complianceDetails" : {
-                  "noReport" : 100.0
+                  "successAlreadyOK" : 100.0
                 },
-                "directives" : []
+                "directives" : [
+                  {
+                    "id" : "directive-copyGitFile",
+                    "name" : "directive-copyGitFile",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-copyGitFile-component-br6-bn4",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "bn4",
+                            "name" : "node1.localhost",
+                            "compliance" : 100.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-copyGitFile-component-value-br6-bn4",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "name" : "directive-copyGitFile-component-br6-bn5",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "bn5",
+                            "name" : "node1.localhost",
+                            "compliance" : 100.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-copyGitFile-component-value-br6-bn5",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ],
             "nodes" : [
@@ -2188,6 +2256,45 @@ response:
                             "values" : [
                               {
                                 "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn4",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id" : "br6",
+                    "name" : "R6",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "directive-copyGitFile",
+                        "name" : "directive-copyGitFile",
+                        "compliance" : 100.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "directive-copyGitFile-component-br6-bn4",
+                            "compliance" : 100.0,
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-copyGitFile-component-value-br6-bn4",
                                 "reports" : [
                                   {
                                     "status" : "successAlreadyOK"
@@ -2250,6 +2357,45 @@ response:
                         ]
                       }
                     ]
+                  },
+                  {
+                    "id" : "br6",
+                    "name" : "R6",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "directive-copyGitFile",
+                        "name" : "directive-copyGitFile",
+                        "compliance" : 100.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "directive-copyGitFile-component-br6-bn5",
+                            "compliance" : 100.0,
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-copyGitFile-component-value-br6-bn5",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
                   }
                 ]
               }
@@ -2273,19 +2419,89 @@ response:
           {
             "id" : "bg6",
             "name" : "G6",
-            "compliance" : 0.0,
+            "compliance" : 100.0,
             "mode" : "full-compliance",
-            "complianceDetails" : {},
+            "complianceDetails" : {
+              "successAlreadyOK" : 100.0
+            },
             "rules" : [
               {
                 "id" : "br6",
                 "name" : "R6",
-                "compliance" : 0.0,
+                "compliance" : 100.0,
                 "policyMode" : "enforce",
                 "complianceDetails" : {
-                  "noReport" : 100.0
+                  "successAlreadyOK" : 100.0
                 },
-                "directives" : []
+                "directives" : [
+                  {
+                    "id" : "directive-copyGitFile",
+                    "name" : "directive-copyGitFile",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-copyGitFile-component-br6-bn4",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "bn4",
+                            "name" : "node1.localhost",
+                            "compliance" : 100.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-copyGitFile-component-value-br6-bn4",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "name" : "directive-copyGitFile-component-br6-bn5",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "bn5",
+                            "name" : "node1.localhost",
+                            "compliance" : 100.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-copyGitFile-component-value-br6-bn5",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ],
             "nodes" : [
@@ -2293,20 +2509,104 @@ response:
                 "id" : "bn4",
                 "name" : "node1.localhost",
                 "mode" : "full-compliance",
-                "compliance" : 0.0,
+                "compliance" : 100.0,
                 "policyMode" : "enforce",
-                "complianceDetails" : {},
-                "rules" : []
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "br6",
+                    "name" : "R6",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "directive-copyGitFile",
+                        "name" : "directive-copyGitFile",
+                        "compliance" : 100.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "directive-copyGitFile-component-br6-bn4",
+                            "compliance" : 100.0,
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-copyGitFile-component-value-br6-bn4",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               },
               {
                 "id" : "bn5",
                 "name" : "node1.localhost",
                 "mode" : "full-compliance",
-                "compliance" : 0.0,
+                "compliance" : 100.0,
                 "policyMode" : "enforce",
-                "complianceDetails" : {},
-                "rules" : []
-              }        
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "br6",
+                    "name" : "R6",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "directive-copyGitFile",
+                        "name" : "directive-copyGitFile",
+                        "compliance" : 100.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "directive-copyGitFile-component-br6-bn5",
+                            "compliance" : 100.0,
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-copyGitFile-component-value-br6-bn5",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
             ]
           }
         ]
@@ -2502,6 +2802,204 @@ response:
                             "reports" : [
                               {
                                 "status" : "successRepaired"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Get skipped compliance for skipped directive D4 on rule BR6
+method: GET
+url: /secure/api/compliance/rules/br6
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getRulesComplianceId",
+      "result" : "success",
+      "data" : {
+        "rules" : [
+          {
+            "id" : "br6",
+            "name" : "R6",
+            "compliance" : 100.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "successAlreadyOK" : 100.0
+            },
+            "directives" : [
+              {
+                "id" : "directive-copyGitFile",
+                "name" : "directive-copyGitFile",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "directive-copyGitFile-component-br6-bn4",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "bn4",
+                        "name" : "node1.localhost",
+                        "compliance" : 100.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-copyGitFile-component-value-br6-bn4",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name" : "directive-copyGitFile-component-br6-bn5",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "bn5",
+                        "name" : "node1.localhost",
+                        "compliance" : 100.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-copyGitFile-component-value-br6-bn5",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                "compliance" : 0.0,
+                "policyMode" : "skipped",
+                "complianceDetails" : {},
+                "skippedDetails" : {
+                  "overridingRuleId" : "br4",
+                  "overridingRuleName" : "R4"
+                },
+                "components" : []
+              },
+              {
+                "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                "compliance" : 0.0,
+                "policyMode" : "skipped",
+                "complianceDetails" : {},
+                "skippedDetails" : {
+                  "overridingRuleId" : "br5",
+                  "overridingRuleName" : "R5"
+                },
+                "components" : []
+              }
+            ],
+            "nodes" : [
+              {
+                "id" : "bn4",
+                "name" : "node1.localhost",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive-copyGitFile",
+                    "name" : "directive-copyGitFile",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-copyGitFile-component-br6-bn4",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-copyGitFile-component-value-br6-bn4",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "bn5",
+                "name" : "node1.localhost",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive-copyGitFile",
+                    "name" : "directive-copyGitFile",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-copyGitFile-component-br6-bn5",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-copyGitFile-component-value-br6-bn5",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
                               }
                             ]
                           }
