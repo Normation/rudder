@@ -2,7 +2,6 @@ port module Plugins exposing (update)
 
 import Browser
 import Browser.Navigation
-import Http
 import Http.Detailed as Detailed
 import Json.Decode exposing (..)
 import List exposing (drop, head)
@@ -48,20 +47,20 @@ update msg model =
         CallApi apiCall ->
             ( model, apiCall model )
 
-        RequestApi t ->
-            ( withLoading True model, requestTypeAction t model )
+        RequestApi t plugins ->
+            ( setLoading True model, requestTypeAction t model plugins )
 
         ApiGetPlugins res ->
             case res of
                 Ok ( _, { license, plugins } ) ->
-                    ( withLoading False { model | license = license, plugins = plugins }, Cmd.none )
+                    ( model |> setLoading False |> setLicense license |> setPlugins plugins, Cmd.none )
 
                 Err err ->
                     processApiError "Error while getting the list of plugins." err model
 
         -- We want to update all plugins information every time the index is updated
         ApiPostPlugins UpdateIndex (Ok _) ->
-            ( withLoading False model, Cmd.batch [ successNotification "Plugins list successfully updated.", getPluginInfos model ] )
+            ( setLoading False model, Cmd.batch [ successNotification "Plugins list successfully updated.", getPluginInfos model ] )
 
         ApiPostPlugins UpdateIndex (Err err) ->
             processApiError "Error while trying to get the updated the list of plugins." err model
@@ -69,13 +68,13 @@ update msg model =
         ApiPostPlugins t res ->
             case res of
                 Ok _ ->
-                    ( withLoading False model, successNotification ("Plugin " ++ requestTypeText t ++ " successful.") )
+                    ( setLoading False model, successNotification ("Plugin " ++ requestTypeText t ++ " successful.") )
 
                 Err err ->
                     processApiError ("Error while trying to " ++ requestTypeText t) err model
 
         SetModalState modalState ->
-            ( { model | ui = (\ui -> { ui | modalState = modalState }) model.ui }, Cmd.none )
+            ( model |> setModalState modalState, Cmd.none )
 
         ReloadPage ->
             ( model, Browser.Navigation.reload )

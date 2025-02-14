@@ -130,7 +130,7 @@ $spinner-height-sm: $spinner-width-sm;
     padding-right: 1rem;
 
     & .plugin-card {
-      &:not(:first-child):not(:last-child) {
+      &:not(:last-child) {
         margin: 10px 0;
       }
 
@@ -163,12 +163,12 @@ $spinner-height-sm: $spinner-width-sm;
         font-size: $default-font-size;
       }
 
-      & .plugin-name {
+      & .plugin-title {
         font-size: 1rem;
         font-weight: 500;
       }
 
-      & .plugin-description {
+      & .plugin-name {
         color: $rudder-txt-secondary;
       }
 
@@ -190,6 +190,14 @@ $spinner-height-sm: $spinner-width-sm;
 
           &:last-child {
             margin-bottom: 0;
+          }
+
+          &.callout-danger {
+            background-color: $rudder-bg-danger;
+
+            & .fa.fa-warning {
+              color: #58151c;
+            }
           }
         }
       }

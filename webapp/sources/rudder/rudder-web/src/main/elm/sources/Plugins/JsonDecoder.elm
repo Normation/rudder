@@ -69,13 +69,13 @@ decodePluginStatus =
             (\s ->
                 case s of
                     "enabled" ->
-                        succeed Enabled
+                        succeed StatusEnabled
 
                     "disabled" ->
-                        succeed Disabled
+                        succeed StatusDisabled
 
                     "uninstalled" ->
-                        succeed Uninstalled
+                        succeed StatusUninstalled
 
                     _ ->
                         fail ("Unknown PluginStatus: " ++ s)

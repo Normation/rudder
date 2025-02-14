@@ -5,6 +5,7 @@ import Http.Detailed as Detailed
 import Plugins.DataTypes exposing (..)
 import Plugins.JsonDecoder exposing (decodeGetPluginsInfo)
 import Plugins.JsonEncoder exposing (encodePluginIds)
+import Set exposing (Set)
 
 
 getUrl : Model -> String -> String
@@ -38,7 +39,7 @@ getPluginInfos model =
         }
 
 
-installPlugins : List PluginId -> Model -> Cmd Msg
+installPlugins : Set PluginId -> Model -> Cmd Msg
 installPlugins plugins model =
     request
         { method = "POST"
@@ -51,7 +52,7 @@ installPlugins plugins model =
         }
 
 
-removePlugins : List PluginId -> Model -> Cmd Msg
+removePlugins : Set PluginId -> Model -> Cmd Msg
 removePlugins plugins model =
     request
         { method = "POST"
@@ -64,7 +65,7 @@ removePlugins plugins model =
         }
 
 
-changePluginStatus : RequestType -> List PluginId -> Model -> Cmd Msg
+changePluginStatus : RequestType -> Set PluginId -> Model -> Cmd Msg
 changePluginStatus requestType plugins model =
     request
         { method = "POST"
@@ -77,20 +78,20 @@ changePluginStatus requestType plugins model =
         }
 
 
-requestTypeAction : RequestType -> Model -> Cmd Msg
-requestTypeAction t model =
+requestTypeAction : RequestType -> Model -> Set PluginId -> Cmd Msg
+requestTypeAction t model selected =
     case t of
         Install ->
-            installPlugins model.ui.selected model
+            installPlugins selected model
 
         Uninstall ->
-            removePlugins model.ui.selected model
+            removePlugins selected model
 
         Enable ->
-            changePluginStatus Enable model.ui.selected model
+            changePluginStatus Enable selected model
 
         Disable ->
-            changePluginStatus Disable model.ui.selected model
+            changePluginStatus Disable selected model
 
         UpdateIndex ->
             updateIndex model
