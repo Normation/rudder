@@ -20,7 +20,6 @@ rudder_module_type = { path = "../../rudder-module-type" }
 #rust-apt = { version = "0.8.0", optional = true }
 # while we don't have a fixed release
 rust-apt = { git = "https://gitlab.com/amousset/rust-apt.git", branch = "rudder", optional = true }
-stdio-override = { version = "0.1.3", optional = true }
 memfile = { version = "0.3.2", optional = true }
 uuid = { version = "1", features = ["v4"] }
 #librpm = "0.1.1"
@@ -30,7 +29,7 @@ log = "0.4.21"
 
 [features]
 # Enable APT package management
-apt = ["dep:rust-apt", "dep:stdio-override", "dep:memfile"]
+apt = ["dep:rust-apt", "dep:memfile"]
 
 [dev-dependencies]
 rudder_commons_test = { path = "../../rudder-commons-test" }
