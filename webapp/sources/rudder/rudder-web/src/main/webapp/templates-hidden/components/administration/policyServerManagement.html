@@ -3,9 +3,6 @@
 
 <head>
   <style>
-    .template-sidebar.sidebar-left{
-      box-shadow : none !important;
-    }
     .template-main{
       flex-basis : initial !important;
       flex: auto !important;
@@ -24,15 +21,15 @@
   </style>
   <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/rudder/authorizedNetworks.js"></script>
 </head>
-<div class="d-flex">
 
-  <div class="template-sidebar sidebar-left">
-    <div class="sidebar-body" id="navbar-scrollspy">
-      <ul class="nav nav-tabs"></ul>
+  <div class="d-flex">
+
+    <div class="sidebar-left">
+      <div class="sidebar-body" id="navbar-scrollspy">
+        <ul class="nav nav-tabs"></ul>
+      </div>
     </div>
-  </div>
 
-  <div class="template-main">
     <div class="main-container">
       <div class="main-details" data-bs-spy="scroll" data-bs-target="#navbar-scrollspy" data-bs-smooth-scroll="true">
         <div role="tabpanel" class="inner-portlet" id="allowed-networks">
@@ -635,9 +632,9 @@
       </div>
     </div>
   </div>
-</div>
-<script>
-  buildScrollSpyNav();
-</script>
+
+  <script>
+    buildScrollSpyNav();
+  </script>
   </component-body>
 </xml:group>

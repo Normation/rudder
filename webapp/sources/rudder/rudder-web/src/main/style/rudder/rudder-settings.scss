@@ -295,15 +295,16 @@ ul.wizard-timeline{
 
     &.section-complete{
       color: #098681;
-    }
-
-    &.section-complete i{
-      color: #13beb7;
 
       & > div {
         background-color: #ddfcf2;
       }
+
+      i {
+        color: #13beb7;
+      }
     }
+
 
     &.section-warning{
       color: #FF792E;
