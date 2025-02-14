@@ -1075,10 +1075,13 @@ object NodePropertyError         {
   ) extends NodePropertySpecificError {
     override def toString(): String = debugString
 
-    def message: String = propertiesErrors.values.map {
-      case (_, conflicting, error) =>
-        s"In hierarchy with ${conflicting.map(_.displayName).mkString(", ")} :\n${error}"
-    }.mkString("\n")
+    def message: String = {
+      conflicts.toList.map {
+        case (k, hierarchies) =>
+          val error = conflictMessage(k, hierarchies)
+          s"In hierarchy with ${hierarchies.map(_.map(_.displayName).mkString(", ")).mkString("{", "|", "}")} :\n${error}"
+      }.mkString("\n")
+    }
 
     def debugString: String = s"PropertyInheritanceConflicts([${conflicts.map {
         case (prop, c) =>
