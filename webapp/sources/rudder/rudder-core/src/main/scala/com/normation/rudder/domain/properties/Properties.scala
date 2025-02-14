@@ -1097,7 +1097,7 @@ object NodePropertyError         {
     /**
       * This method is useful when resolving conflicts
       */
-    def --(propNames: Set[String]): PropertyInheritanceConflicts = {
+    def resolve(propNames: Set[String]): PropertyInheritanceConflicts = {
       copy(conflicts = conflicts.filterNot { case (k, _) => propNames.contains(k.name) })
     }
 

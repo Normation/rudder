@@ -264,7 +264,7 @@ object MergeNodeProperties {
           withErr.left match {
             case Some(err: NodePropertyError.PropertyInheritanceConflicts) =>
               // we need to remove resolved conflicting properties and transfer them to the success part
-              val resolved = err.conflicts.toList.flatMap {
+              val resolved  = err.conflicts.toList.flatMap {
                 case (nodeProp, parentProps: NonEmptyChunk[List[ParentProperty]]) =>
                   for {
                     // reverse to get the parent which has the highest priority
@@ -286,10 +286,10 @@ object MergeNodeProperties {
                     parentProp -> parentHierarchy
                   }
               }
-              val toRemove = resolved.map { case (parentProp, _) => parentProp.name }.toSet
-              val updated  = withErr.bimap(
+              val toResolve = resolved.map { case (parentProp, _) => parentProp.name }.toSet
+              val updated   = withErr.bimap(
                 {
-                  case err: NodePropertyError.PropertyInheritanceConflicts => err -- toRemove
+                  case err: NodePropertyError.PropertyInheritanceConflicts => err.resolve(toResolve)
                   case err => err
                 },
                 _ ++ resolved.map {
