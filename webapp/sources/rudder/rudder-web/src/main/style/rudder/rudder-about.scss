@@ -39,8 +39,11 @@ $col-label-width: 200px;
 $margin-label : 10px;
 
 .info-container{
+  background: #fff;
+
   h4, label{
       width: $col-label-width;
+      min-width: $col-label-width;
       text-align: right;
   }
   label {
@@ -57,7 +60,6 @@ $margin-label : 10px;
   }
   .info{
     display: inline-flex;
-    align-items: center;
     position: relative;
     padding-right: 30px;
 
@@ -71,6 +73,19 @@ $margin-label : 10px;
       margin-left: 0;
       position: absolute;
       right: 0;
+      top: calc(50% - 15px);
+    }
+
+    pre {
+      white-space: normal;
+      background-color: rgb(248, 249, 252);
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid rgb(214, 222, 239);
+      height: 100px;
+      max-height: 300px;
+      resize: vertical;
+      overflow: auto;
     }
   }
   h4 > .btn-goto.clipboard{
