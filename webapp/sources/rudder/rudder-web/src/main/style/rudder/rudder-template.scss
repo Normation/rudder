@@ -107,7 +107,7 @@ ul {
 .main-details .well{
   padding: 6px 12px;
   background-color: $rudder-bg-light-gray;
-  border: 1px solid #d6deef;
+  border: 1px solid $rudder-border-color-default;
   box-shadow: none !important;
 }
 .fit-height{
@@ -429,7 +429,7 @@ ul {
 }
 .rudder-template .template-sidebar .sidebar-header{
   padding: 15px;
-  border-bottom: 2px solid #d6deef;
+  border-bottom: 2px solid $rudder-border-color-default;
 }
 
 /* ============================== */
@@ -511,7 +511,7 @@ ul {
   border-top-left-radius : 4px;
   border-bottom-left-radius : 4px;
   background-color: #ededed;
-  border-color: #D6DEEF;
+  border-color: $rudder-border-color-default;
 }
 .sidebar-right .filters-container .input-group > .input-group-text + .form-control {
   display: flex;
@@ -568,7 +568,7 @@ ul {
 .rudder-template .filters-container{
   margin: 0 -15px;
   padding: 15px;
-  border-top: 1px solid #d6deef;
+  border-top: 1px solid $rudder-border-color-default;
   background-color: $rudder-bg-light-gray;
   position: relative;
   display: flex;
@@ -584,8 +584,8 @@ ul {
   position: absolute;
   width: 10px;
   height: 10px;
-  border-left: 1px solid #d6deef;
-  border-top: 1px solid #d6deef;
+  border-left: 1px solid $rudder-border-color-default;
+  border-top: 1px solid $rudder-border-color-default;
   transform: rotate(45deg);
   top: -6px;
   right: 24px;
@@ -598,7 +598,7 @@ ul {
 .rudder-template .template-main-header .filters-container {
   margin: 0;
   padding: 15px;
-  border: 1px solid #d6deef;
+  border: 1px solid $rudder-border-color-default;
   border-radius: var(--bs-border-radius);
 }
 .rudder-template .template-main-header .filters-container:before {
@@ -772,7 +772,7 @@ ul {
   margin-bottom: 10px;
   line-height: inherit;
   border: 0;
-  border-bottom: 2px solid #d6deef;
+  border-bottom: 2px solid $rudder-border-color-default;
   font-size: 20px;
 }
 .rudder-template .show-compliance > .text-muted {
@@ -884,7 +884,7 @@ ul {
 }
 .rudder-template .template-main .dataTable tr.details,
 .rudder-template .template-main .dataTable tr.details + tr{
-  border-top: 1px solid #d6deef;
+  border-top: 1px solid $rudder-border-color-default;
 }
 .rudder-template .template-main .dataTable.compliance-table tr td:first-child,
 .rudder-template .template-main .main-table .dataTable.compliance-table tbody > tr > td:first-child{
@@ -996,8 +996,8 @@ ul {
 #headerBar ~ .content-wrapper .rudder-template .one-col{
   height: calc(100vh - 80px);
 }
-.rudder-template .one-col .main-header{
-  border-bottom: 2px solid #d6deef;
+.rudder-template .one-col .main-header:not(:has(+ .main-navbar)){
+  border-bottom: 2px solid $rudder-border-color-default;
 }
 .rudder-template .one-col-main {
   display: flex;
@@ -1055,7 +1055,7 @@ ul {
 .rudder-template .one-col h3.page-title,
 .rudder-template .one-col .inner-portlet h3.page-title {
   color: #041922 !important;
-  border-bottom: 2px solid #d6deef;
+  border-bottom: 2px solid $rudder-border-color-default;
   margin-top: 20px;
 }
 .rudder-template h3.page-title.foldable .fa {
@@ -1113,7 +1113,7 @@ ul {
   overflow: auto;
 }
 .row > .tree-edit > .tree-container .header-filter + .jstree{
-  border-top: 1px solid #d6deef;
+  border-top: 1px solid $rudder-border-color-default;
 }
 .content-wrapper .rudder-template .tree-edit > .tree-container .jstree .jstree-anchor {
   cursor: default;
@@ -1125,7 +1125,7 @@ ul {
   padding: 15px;
   display: flex;
   justify-content: space-between;
-  border-bottom: 1px solid #d6deef;
+  border-bottom: 1px solid $rudder-border-color-default;
 }
 .tree-container .tree-heading > .fa{
   font-size: 19px;
@@ -1153,7 +1153,7 @@ ul {
   width: calc(100% + 30px);
   padding: 15px;
   background-color: $rudder-bg-light-gray;
-  border-top: 2px solid #d6deef;
+  border-top: 2px solid $rudder-border-color-default;
   justify-content: space-between;
 }
 
@@ -1577,7 +1577,7 @@ label > .warning-info{
   flex: 40;
 }
 .rudder-template .section-with-doc .section-right .doc{
-  border-left: 1px solid #d6deef;
+  border-left: 1px solid $rudder-border-color-default;
   padding-left: 15px;
   color: #738195;
   transition: color .2s;
@@ -1648,7 +1648,7 @@ ul.applied-list{
   flex-direction: column;
 }
 ul.applied-list > li {
-  border: 1px solid #d6deef;
+  border: 1px solid $rudder-border-color-default;
   padding: 10px;
   padding-left: 14px;
   display: block;
@@ -1667,7 +1667,7 @@ ul.applied-list > li.is-disabled{
 }
 
 ul.applied-list > li > .border{
-  background-color: #d6deef;
+  background-color: $rudder-border-color-default;
   position: absolute;
   top: -1px;
   bottom: -1px;
@@ -1757,7 +1757,7 @@ ul.applied-list > li > span.warning-sign{
   transition: .2s;
   background-color: #fff;
   color: #7f8c9e;
-  border-left: 1px solid #d6deef;
+  border-left: 1px solid $rudder-border-color-default;
   opacity: .6;
   cursor: pointer;
 }

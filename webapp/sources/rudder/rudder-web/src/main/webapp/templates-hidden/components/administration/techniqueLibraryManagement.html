@@ -1,16 +1,12 @@
 <xml:group>
   <component-body>
+    <head>
+      <link media="screen" data-lift="with-cached-resource" href="/style/rudder/rudder-directives.css" rel="stylesheet" type="text/css">
+    </head>
 
-<head>
-  <link media="screen" data-lift="with-cached-resource" href="/style/rudder/rudder-directives.css" rel="stylesheet" type="text/css">
-</head>
+    <div data-lift="administration.TechniqueLibraryManagement.head"></div>
 
-<div data-lift="administration.TechniqueLibraryManagement.head"></div>
-
-<div class="portlet">
-  <div class="portlet-content">
-    <div class="inner-portlet space-bottom">
-      <div class="page-title">Technique library</div>
+    <div>
       <div class="callout-fade callout-info">
         <div class="marker">
           <span class="fa fa-info-circle"></span>
@@ -20,85 +16,77 @@
           <br/>
         </lift:authz>
         Arrange techniques and categories in the active techniques library into the organization that suits you best.
-        <br/>
+      </div>
+    <div class="row">
+      <div class="col-sm-12 col-md-6">
+        <div class="page-title with-btn">
+          Reference technique library
+          <lift:authz role="technique_write">
+            <a class="btn btn-default pull-right" href="/secure/configurationManager/techniqueEditor">Edit techniques</a>
+          </lift:authz>
+        </div>
+        <div class="row">
+          <div class="col-sm-12 tree">
+            <div class="filter-tree">
+              <div class="input-group">
+                <button type="button" class="btn btn-default"  onclick="toggleTree('#techniqueLibraryTree', this);">
+                  <span class="fa fa-folder fa-folder-open"></span>
+                </button>
+                <input class="form-control" placeholder="Filter" id="treeSearch2" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch2', '#techniqueLibraryTree');">
+                <button type="button" class="btn btn-default"  onclick="clearSearchFieldTree('#treeSearch2', '#techniqueLibraryTree');" >
+                  <span class="fa fa-times"></span>
+                </button>
+                <lift:authz role="technique_edit">
+                  <div class="lift:administration.TechniqueLibraryManagement.reloadTechniqueLibrary" id="reloadTechniqueLibForm"></div>
+                </lift:authz>
+              </div>
+            </div>
+          </div>
+        </div>
+        <small id="updateLib" class="text-secondary"></small>
+        <div data-lift="administration.TechniqueLibraryManagement.systemLibrary" ></div>
+      </div>
+
+      <div class="col-sm-12 col-md-6">
+        <div class="page-title with-btn">
+          Active techniques library
+          <lift:authz role="technique_write">
+            <div data-lift="administration.TechniqueLibraryManagement.userLibraryAction" ></div>
+          </lift:authz>
+        </div>
+        <div class="row">
+          <div class="col-sm-12 tree">
+            <div class="filter-tree">
+              <div class="input-group">
+                <button type="button" class="btn btn-default"  onclick="toggleTree('#activeTechniquesTree', this);">
+                  <span class="fa fa-folder fa-folder-open"></span>
+                </button>
+                <input class="form-control" placeholder="Filter" id="treeSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#activeTechniquesTree');">
+                <button type="button" class="btn btn-default"  onclick="clearSearchFieldTree('#treeSearch', '#activeTechniquesTree');" >
+                  <span class="fa fa-times"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div data-lift="administration.TechniqueLibraryManagement.userLibrary" ></div>
       </div>
     </div>
-      <div class="row">
-        <div class="col-sm-12 col-md-6">
-          <div class="page-title with-btn">
-            Reference technique library
-            <lift:authz role="technique_write">
-              <a class="btn btn-default pull-right" href="/secure/configurationManager/techniqueEditor">Edit techniques</a>
-            </lift:authz>
-          </div>
-          <div id="TechniquesLibraryTree_actions_zone" class="row">
-            <div class="col-sm-12 tree">
-              <div class="filter-tree">
-                <div class="input-group">
-                  <button type="button" class="btn btn-default"  onclick="toggleTree('#techniqueLibraryTree', this);">
-                    <span class="fa fa-folder fa-folder-open"></span>
-                  </button>
-                  <input class="form-control" placeholder="Filter" id="treeSearch2" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch2', '#techniqueLibraryTree');">
-                  <button type="button" class="btn btn-default"  onclick="clearSearchFieldTree('#treeSearch2', '#techniqueLibraryTree');" >
-                    <span class="fa fa-times"></span>
-                  </button>
-                  <lift:authz role="technique_edit">
-                    <div class="lift:administration.TechniqueLibraryManagement.reloadTechniqueLibrary" id="reloadTechniqueLibForm"></div>
-                  </lift:authz>
-                </div>
-              </div>
-            </div>
-          </div>
-          <small id="updateLib" class="text-secondary"></small>
-          <div data-lift="administration.TechniqueLibraryManagement.systemLibrary" ></div>
-        </div>
 
-        <div class="col-sm-12 col-md-6">
-          <div class="page-title with-btn">
-            Active techniques library
-            <lift:authz role="technique_write">
-              <div data-lift="administration.TechniqueLibraryManagement.userLibraryAction" ></div>
-            </lift:authz>
-          </div>
-          <div id="TechniquesLibraryTree_actions_zone" class="row">
-            <div class="col-sm-12 tree">
-              <div class="filter-tree">
-                <div class="input-group">
-                  <button type="button" class="btn btn-default"  onclick="toggleTree('#activeTechniquesTree', this);">
-                    <span class="fa fa-folder fa-folder-open"></span>
-                  </button>
-                  <input class="form-control" placeholder="Filter" id="treeSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#activeTechniquesTree');">
-                  <button type="button" class="btn btn-default"  onclick="clearSearchFieldTree('#treeSearch', '#activeTechniquesTree');" >
-                    <span class="fa fa-times"></span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div data-lift="administration.TechniqueLibraryManagement.userLibrary" ></div>
-        </div>
+    <div data-lift="administration.TechniqueLibraryManagement.bottomPanel" ></div>
 
-      </div>
-  </div>
-</div>
+    <div id="createActiveTechniqueCategoryPopup" class="modal fade" tabindex="-1">
+      <lift:ignore>
+        This div gets the content of the createActiveTechniqueCategoryPopup injected within
+      </lift:ignore>
+      <div id="createActiveTechniquesCategoryContainer"></div>
+    </div>
 
-<hr class="spacer"/>
-
-<div data-lift="administration.TechniqueLibraryManagement.bottomPanel" ></div>
-
-<div id="createActiveTechniqueCategoryPopup" class="modal fade" tabindex="-1">
-  <lift:ignore>
-    This div gets the content of the createActiveTechniqueCategoryPopup injected within
-  </lift:ignore>
-  <div id="createActiveTechniquesCategoryContainer"></div>
-</div>
-
-<div id="createActiveTechniquePopup" class="modal fade" tabindex="-1">
-  <lift:ignore>
-    This div gets the content of the createActiveTechniqueCategoryPopup injected within
-  </lift:ignore>
-  <div id="createActiveTechniquesContainer"></div>
-</div>
-
+    <div id="createActiveTechniquePopup" class="modal fade" tabindex="-1">
+      <lift:ignore>
+        This div gets the content of the createActiveTechniqueCategoryPopup injected within
+      </lift:ignore>
+      <div id="createActiveTechniquesContainer"></div>
+    </div>
   </component-body>
 </xml:group>

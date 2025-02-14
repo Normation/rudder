@@ -2,47 +2,24 @@
   <component-body>
 
     <lift:authz role="administration_read">
-    <div id="healthcheck-main">
+      <div id="healthcheck-main">
         <head_merge>
-            <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-healthcheck.css"/>
-            <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-healthcheck.js"></script>
+          <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-healthcheck.css"/>
+          <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-healthcheck.js"></script>
         </head_merge>
 
-        <div class="rudder-template">
-            <div class="one-col">
-                <div class="main-header">
-                    <div class="header-title">
-                        <h1>
-                            <span>Health check</span>
-                        </h1>
-                    </div>
-                    <div class="header-description">
-                        Get an overview of Rudder server's health
-                    </div>
-                </div>
-                <div class="one-col-main">
-                    <div class="template-main">
-                        <div class="main-container">
-                            <div class="main-details">
-                                <div id="healthcheck-app">
-                                    <div id="healthcheck-content"/>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div id="healthcheck-app">
+          <div id="healthcheck-content"/>
         </div>
-    </div>
+      </div>
 
-    <script data-lift="with-nonce">
-  var main = document.getElementById("healthcheck-content")
-  var initValues = {
-    contextPath : contextPath
-  };
-  var app  = Elm.Healthcheck.init({node: main, flags: initValues});
-    </script>
-  </lift:authz>
-
+      <script data-lift="with-nonce">
+        var main = document.getElementById("healthcheck-content")
+        var initValues = {
+          contextPath : contextPath
+        };
+        var app  = Elm.Healthcheck.init({node: main, flags: initValues});
+      </script>
+    </lift:authz>
   </component-body>
 </xml:group>
