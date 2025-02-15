@@ -29,14 +29,10 @@ pub enum PasswordPolicy {
 
 impl PasswordPolicy {
     fn format_feedback(feedback: &Feedback) -> String {
-        format!(
-            "{}",
-            feedback
+        feedback
                 .warning()
                 .map(|w| w.to_string())
-                .unwrap_or("".to_string()),
-            // Suggestions are not very interesting, don't display them.
-        )
+                .unwrap_or("".to_string()).to_string()
     }
 
     pub fn check(&self, password: SecretString) -> Result<String> {
@@ -154,7 +150,7 @@ mod tests {
     fn test_password_policy_score() {
         let p = PasswordPolicy::MinScore(Score::Three);
         assert_eq!(
-            p.check(SecretString::new("password".to_string()))
+            p.check("password".into())
                 .err()
                 .unwrap()
                 .to_string(),

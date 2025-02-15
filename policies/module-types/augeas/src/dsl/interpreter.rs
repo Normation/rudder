@@ -9,7 +9,6 @@ use crate::dsl::{
 use anyhow::bail;
 use raugeas::Augeas;
 use rudder_module_type::{rudder_debug, rudder_trace};
-use secrecy::SecretString;
 use std::path::Path;
 
 /// The mode of the interpreter.
@@ -297,14 +296,14 @@ impl<'a> Interpreter<'a> {
             }
             Expr::PasswordScore(path, value) => {
                 let policy = PasswordPolicy::MinScore(*value);
-                let password = SecretString::new(self.aug.get(path)?.unwrap());
+                let password = self.aug.get(path)?.unwrap().into();
                 let out = policy.check(password)?;
                 InterpreterOut::from_out(out)
             }
             Expr::PasswordLUDS(path, total, lower, upper, digits, special) => {
                 let policy =
                     PasswordPolicy::CharsCriteria(*total, *lower, *upper, *digits, *special);
-                let password = SecretString::new(self.aug.get(path)?.unwrap());
+                let password = self.aug.get(path)?.unwrap().into();
                 let out = policy.check(password)?;
                 InterpreterOut::from_out(out)
             }

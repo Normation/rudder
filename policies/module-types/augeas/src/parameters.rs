@@ -49,6 +49,15 @@ pub struct AugeasParameters {
     /// Maximal allowed file size for loading.
     #[serde_inline_default(ByteSize::mb(10))]
     pub max_file_size: ByteSize,
+
+    /// Where to write the report.
+    ///
+    /// If not set, no report is written.
+    ///
+    /// This is needed as the custom promise type protocol only supports the outcome status and logs.
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub report_file: Option<PathBuf>,
 }
 
 impl AugeasParameters {

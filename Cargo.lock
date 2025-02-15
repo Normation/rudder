@@ -1171,9 +1171,9 @@ dependencies = [
 
 [[package]]
 name = "equivalent"
-version = "1.0.1"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
+checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
 name = "errno"
@@ -3470,6 +3470,7 @@ version = "0.0.0-dev"
 dependencies = [
  "anyhow",
  "bytesize",
+ "chrono",
  "gumdrop",
  "ipnet",
  "iprange",
@@ -3481,7 +3482,7 @@ dependencies = [
  "rudder_commons_test",
  "rudder_module_type",
  "rustyline",
- "secrecy 0.5.2",
+ "secrecy",
  "serde",
  "serde-inline-default",
  "serde_json",
@@ -3581,7 +3582,7 @@ dependencies = [
  "reqwest 0.12.12",
  "rstest",
  "rudder_cli",
- "secrecy 0.10.3",
+ "secrecy",
  "sequoia-openpgp",
  "serde",
  "serde_ini",
@@ -3621,7 +3622,7 @@ dependencies = [
  "proptest",
  "regex",
  "reqwest 0.11.27",
- "secrecy 0.10.3",
+ "secrecy",
  "serde",
  "serde-inline-default",
  "serde_json",
@@ -3906,15 +3907,6 @@ name = "scratch"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3cf7c11c38cb994f3d40e8a8cde3bbd1f72a435e4c49e85d6553d8312306152"
-
-[[package]]
-name = "secrecy"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f2309a011083016deb67a984e8edb0845e42b4c6aaadae7658ebdcb47b91fdbc"
-dependencies = [
- "zeroize",
-]
 
 [[package]]
 name = "secrecy"
@@ -4209,9 +4201,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.13.2"
+version = "1.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
+checksum = "7fcf8323ef1faaee30a44a340193b1ac6814fd9b7b4e88e9d4519a3e4abe1cfd"
 
 [[package]]
 name = "socket2"
