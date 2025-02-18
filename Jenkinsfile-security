@@ -66,6 +66,7 @@ pipeline {
             agent {
                 dockerfile {
                     label 'generic-docker'
+                    filename 'webapp/sources/Dockerfile'
                     additionalBuildArgs "--build-arg USER_ID=${JENKINS_UID}"
                     // and share maven cache
                     args '-u 0:0 -v /srv/cache/maven:/home/jenkins/.m2'

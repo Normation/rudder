@@ -365,5 +365,4 @@ pub fn run_inner(args: Args) -> Result<()> {
 }
 
 #[cfg(test)]
-mod tests {
-}
+mod tests {}
