@@ -328,7 +328,8 @@ object NewApiAccount extends ApiAccountCodecs {
         x => {
           ApiAccountMapping
             .apiKind(x.authorizationType.getOrElse(ApiAuthorizationKind.None), x.acl, d, x.expirationPolicy, x.expirationDate)
-        })
+        }
+      )
       .withFieldComputed(_.description, _.description.getOrElse(""))
       .withFieldConst(_.token, t)
       .withFieldComputed(_.isEnabled, _.status == ApiAccountStatus.Enabled)
