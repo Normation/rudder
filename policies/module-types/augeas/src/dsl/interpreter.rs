@@ -6,7 +6,7 @@ use crate::dsl::{
     parser::Expr,
     script::{ExprType, Script},
 };
-use anyhow::bail;
+use anyhow::{bail, Result};
 use raugeas::Augeas;
 use rudder_module_type::{rudder_debug, rudder_trace};
 use std::path::Path;
@@ -146,7 +146,7 @@ impl<'a> Interpreter<'a> {
         Self { aug }
     }
 
-    pub fn preview(&mut self, file: &Path) -> anyhow::Result<Option<String>> {
+    pub fn preview(&mut self, file: &Path) -> Result<Option<String>> {
         println!("{}", self.aug.print("").unwrap());
 
         let path = format!("{}", file.display());
@@ -163,7 +163,7 @@ impl<'a> Interpreter<'a> {
         mode: InterpreterPerms,
         check_mode: CheckMode,
         script: &str,
-    ) -> anyhow::Result<InterpreterOut> {
+    ) -> Result<InterpreterOut> {
         let script = Script::from(script)?;
         let mut check_errors = vec![];
         let mut output = String::new();
@@ -214,14 +214,13 @@ impl<'a> Interpreter<'a> {
         ))
     }
 
-    fn eval(&mut self, expr: &Expr) -> anyhow::Result<InterpreterOut> {
+    fn eval(&mut self, expr: &Expr) -> Result<InterpreterOut> {
         rudder_trace!("Running expression: {:?}", expr);
         match expr {
             Expr::Set(path, value) => InterpreterOut::from_aug_res(self.aug.set(path, value)),
             Expr::SetMultiple(path, sub, value) => {
                 let n = self.aug.setm(path, sub, value)?;
-                rudder_debug!("setm: modified {n} nodes");
-                InterpreterOut::ok()
+                InterpreterOut::from_out(format!("setm: modified {n} nodes"))
             }
             Expr::Remove(path) => {
                 let n = self.aug.rm(path)?;
