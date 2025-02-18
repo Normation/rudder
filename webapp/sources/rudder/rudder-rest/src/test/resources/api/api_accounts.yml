@@ -1,0 +1,293 @@
+description: Get all API accounts
+method: GET
+url: /api/apiaccounts
+response:
+  code: 200
+  content: >-
+    {
+      "action":"getAllAccounts",
+      "result":"success",
+      "data" : {
+        "accounts" : [
+          {
+            "id" : "user1",
+            "name" : "user one",
+            "description" : "number one user",
+            "status" : "enabled",
+            "creationDate" : "2025-02-12T10:55:00Z",
+            "expirationPolicy" : "never",
+            "tokenState" : "generated",
+            "tokenGenerationDate" : "2025-02-12T10:55:00Z",
+            "tenants" : "*",
+            "authorizationType" : "rw"
+          },
+          {
+            "id" : "user2",
+            "name" : "user2",
+            "description" : "number one user",
+            "status" : "enabled",
+            "creationDate" : "2025-02-12T10:55:00Z",
+            "expirationPolicy" : "datetime",
+            "expirationDate" : "2025-08-12T00:00:00Z",
+            "tokenState" : "generated",
+            "tokenGenerationDate" : "2025-02-12T10:55:00Z",
+            "tenants" : "zone1",
+            "authorizationType" : "acl",
+            "acl" : [
+              {
+                "path" : "some/endpoint/*",
+                "verb" : "get"
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Get one API accounts
+method: GET
+url: /api/apiaccounts/user1
+response:
+  code: 200
+  content: >-
+    {
+      "action":"getAccount",
+      "id" : "user1",
+      "result":"success",
+      "data" : {
+        "accounts" : [
+          {
+            "id" : "user1",
+            "name" : "user one",
+            "description" : "number one user",
+            "status" : "enabled",
+            "creationDate" : "2025-02-12T10:55:00Z",
+            "expirationPolicy" : "never",
+            "tokenState" : "generated",
+            "tokenGenerationDate" : "2025-02-12T10:55:00Z",
+            "tenants" : "*",
+            "authorizationType" : "rw"
+          }
+        ]
+      }
+    }
+---
+description: Get one API accounts - bad ID
+method: GET
+url: /api/apiaccounts/user+1
+response:
+  code: 500
+  content: >-
+    {
+      "action":"getAccount",
+      "id" : "user+1",
+      "result" : "error",
+      "errorDetails" : "Inconsistency: 'user+1' is not a valid API account ID, only [a-zA-Z0-9_-]+ is allowed"
+    }
+---
+description: Create a new API account (no ID provided, token generated, default exp)
+method: POST
+url: /secure/api/apiaccounts
+headers:
+  - "Content-Type: application/json"
+body: >-
+    {
+      "name":"account 1",
+      "description":"account 1 description",
+      "expirationPolicy": "datetime",
+      "status": "enabled",
+      "generateToken":true,
+      "tenants":"*",
+      "authorizationType":"acl",
+      "acl":[
+        {
+          "path":"rules/tree",
+          "verb":"get"
+        },
+        {
+          "path":"rules/categories/*",
+          "verb":"get"
+        },
+        {
+          "path":"compliance/*",
+          "verb":"get"
+        }
+      ]
+    }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"createAccount",
+      "id":"144ce2af-57d6-4e92-bdc1-1fdf2d88c2b1",
+      "result":"success",
+      "data":{
+        "accounts":[
+          {
+            "id":"144ce2af-57d6-4e92-bdc1-1fdf2d88c2b1",
+            "name":"account 1",
+            "description":"account 1 description",
+            "status": "enabled",
+            "creationDate": "2025-02-10T16:37:19Z",
+            "expirationPolicy": "datetime",
+            "expirationDate":"2025-03-10T16:37:19Z",
+            "tokenState" : "generated",
+            "tokenGenerationDate":"2025-02-10T16:37:19Z",
+            "token":"t1-ca5a50899d25cd3ff148350843a9d435",
+            "tenants":"*",
+            "authorizationType":"acl",
+            "acl":[
+              {
+                "path":"compliance/*",
+                "verb":"get"
+              },
+              {
+                "path":"rules/categories/*",
+                "verb":"get"
+              },
+              {
+                "path":"rules/tree",
+                "verb":"get"
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Create a new API account (no ID provided, no token generated)
+method: POST
+url: /secure/api/apiaccounts
+headers:
+  - "Content-Type: application/json"
+body: >-
+    {
+      "name":"account 2",
+      "description":"this is a demo account with only compliance and rules (GET) access",
+      "expirationDate":"2025-05-22T17:35:00Z",
+      "status": "disabled",
+      "generateToken":false,
+      "tenants":"-",
+      "authorizationType":"none"
+    }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"createAccount",
+      "id":"e16114be-94ee-497f-8d17-7b258c8e5624",
+      "result":"success",
+      "data":{
+        "accounts":[
+          {
+            "id":"e16114be-94ee-497f-8d17-7b258c8e5624",
+            "name":"account 2",
+            "description":"this is a demo account with only compliance and rules (GET) access",
+            "status": "disabled",
+            "creationDate": "2025-02-10T16:37:19Z",
+            "expirationPolicy": "datetime",
+            "expirationDate":"2025-05-22T17:35:00Z",
+            "tokenState":"missing",
+            "tenants":"-",
+            "authorizationType":"none"
+          }
+        ]
+      }
+    }
+---
+description: Regenerate a token for a given api account
+method: POST
+url: /secure/api/apiaccounts/e16114be-94ee-497f-8d17-7b258c8e5624/regenerate
+headers:
+  - "Content-Type: application/json"
+response:
+  code: 200
+  content: >-
+    {
+      "action":"regenerateToken",
+      "id":"e16114be-94ee-497f-8d17-7b258c8e5624",
+      "result":"success",
+      "data":{
+        "accounts":[
+          {
+            "id":"e16114be-94ee-497f-8d17-7b258c8e5624",
+            "name":"account 2",
+            "description":"this is a demo account with only compliance and rules (GET) access",
+            "status": "disabled",
+            "creationDate": "2025-02-10T16:37:19Z",
+            "expirationPolicy": "datetime",
+            "expirationDate":"2025-05-22T17:35:00Z",
+            "tokenState":"generated",
+            "tokenGenerationDate":"2025-02-10T16:37:19Z",
+            "token":"t2-29d5c3cdca39bd7ba81e7e0f88084689",
+            "tenants":"-",
+            "authorizationType":"none"
+          }
+        ]
+      }
+    }
+---
+description: Update an API account - token not displayed
+method: POST
+url: /secure/api/apiaccounts/e16114be-94ee-497f-8d17-7b258c8e5624
+headers:
+  - "Content-Type: application/json"
+body: >-
+    {
+      "name":"account 2 updated",
+      "status": "enabled"
+    }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateAccount",
+      "id":"e16114be-94ee-497f-8d17-7b258c8e5624",
+      "result":"success",
+      "data":{
+        "accounts":[
+          {
+            "id":"e16114be-94ee-497f-8d17-7b258c8e5624",
+            "name":"account 2 updated",
+            "description":"this is a demo account with only compliance and rules (GET) access",
+            "status": "enabled",
+            "creationDate": "2025-02-10T16:37:19Z",
+            "expirationPolicy": "datetime",
+            "expirationDate":"2025-05-22T17:35:00Z",
+            "tokenState":"generated",
+            "tokenGenerationDate":"2025-02-10T16:37:19Z",
+            "tenants":"-",
+            "authorizationType":"none"
+          }
+        ]
+      }
+    }
+---
+description: Delete an api account
+method: DELETE
+url: /secure/api/apiaccounts/e16114be-94ee-497f-8d17-7b258c8e5624
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteAccount",
+      "id":"e16114be-94ee-497f-8d17-7b258c8e5624",
+      "result":"success",
+      "data":{
+        "accounts":[
+          {
+            "id":"e16114be-94ee-497f-8d17-7b258c8e5624",
+            "name":"account 2 updated",
+            "description":"this is a demo account with only compliance and rules (GET) access",
+            "status": "enabled",
+            "creationDate": "2025-02-10T16:37:19Z",
+            "expirationPolicy": "datetime",
+            "expirationDate":"2025-05-22T17:35:00Z",
+            "tokenState":"generated",
+            "tokenGenerationDate":"2025-02-10T16:37:19Z",
+            "tenants":"-",
+            "authorizationType":"none"
+          }
+        ]
+      }
+    }

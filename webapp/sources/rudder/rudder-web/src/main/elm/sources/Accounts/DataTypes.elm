@@ -86,9 +86,7 @@ type alias AccessControl =
 
 
 type alias ApiResult =
-    { aclPluginEnabled : Bool
-    , tenantsPluginEnabled : Bool
-    , accounts : List Account
+    { accounts : List Account
     }
 
 

@@ -15,7 +15,7 @@ import Accounts.JsonEncoder exposing (..)
 
 getUrl: Model -> List String -> List QueryParameter -> String
 getUrl m url p=
-  Url.Builder.relative (m.contextPath :: "secure" :: url) p
+  Url.Builder.relative (m.contextPath :: "secure" :: "api" :: url) p
 
 getAccounts : Model -> Cmd Msg
 getAccounts model =

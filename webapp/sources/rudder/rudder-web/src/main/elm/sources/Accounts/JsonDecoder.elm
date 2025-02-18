@@ -23,7 +23,7 @@ decodeAccount datePickerInfo =
         |> required "name" string
         |> required "description" string
         |> required "authorizationType" string
-        |> required "kind" string
+        |> optional "kind" string "public"
         |> required "enabled" bool
         |> required "creationDate" string
         |> optional "token" string ""
@@ -94,8 +94,6 @@ toTenantList str =
 decodeResult : DatePickerInfo -> Decoder ApiResult
 decodeResult datePickerInfo =
     succeed ApiResult
-        |> required "aclPluginEnabled" bool
-        |> required "tenantsPluginEnabled" bool
         |> required "accounts" (list (decodeAccount datePickerInfo))
 
 

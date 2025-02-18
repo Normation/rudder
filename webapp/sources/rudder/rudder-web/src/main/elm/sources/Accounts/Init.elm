@@ -66,7 +66,7 @@ subscriptions model =
         ]
 
 
-init : { contextPath : String, hasWriteRights : Bool } -> ( Model, Cmd Msg )
+init : { contextPath : String, hasWriteRights : Bool, aclPluginEnabled:Bool, tenantsPluginEnabled: Bool } -> ( Model, Cmd Msg )
 init flags =
     let
         initDatePicker =
@@ -78,11 +78,25 @@ init flags =
             UI initFilters NoModal False True initDatePicker False False
 
         initModel =
-            Model flags.contextPath initUi [] False False Nothing
+            Model flags.contextPath initUi [] flags.aclPluginEnabled flags.tenantsPluginEnabled Nothing
+
+        initAclPlugin =
+            if flags.aclPluginEnabled && not initUi.pluginAclInit then
+                initAcl ""
+            else
+                Cmd.none
+
+        initTenantsPlugin =
+            if flags.tenantsPluginEnabled && not initUi.pluginTenantsInit then
+                initTenants ""
+            else
+                Cmd.none
 
         initActions =
             [ Task.perform Tick Time.now
             , Task.perform AdjustTimeZone Time.here
+            , initAclPlugin
+            , initTenantsPlugin
             ]
     in
     ( initModel, Cmd.batch initActions )
