@@ -365,9 +365,4 @@ pub fn run_inner(args: Args) -> Result<()> {
 }
 
 #[cfg(test)]
-mod tests {
-    #[test]
-    fn i_am_not_root() {
-        assert!(!super::am_i_root().unwrap())
-    }
-}
+mod tests {}

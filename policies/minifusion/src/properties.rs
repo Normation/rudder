@@ -20,7 +20,7 @@ sub _getCustomProperties {
                 next if ($file =~ m/^\./);
 
                 if ($OSNAME eq 'MSWin32') {
-                  # We assume the files are non world-writtable on windows
+                  # We assume the files are non world-writable on windows
                   # -x does not make sense since the files are just interpreted by the powershell exe
 
                   $logger->debug("Executing Rudder inventory hook $script_file") if $logger;
