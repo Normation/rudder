@@ -2135,7 +2135,7 @@ object RudderConfigInit {
     lazy val apiDispatcher       = new RudderEndpointDispatcher(LiftApiProcessingLogger)
 
     // need to be out of RudderApi else "Platform restriction: a parameter list's length cannot exceed 254."
-    lazy val apiModules          = {
+    lazy val apiModules = {
       import com.normation.rudder.rest.lift.*
       List(
         new ComplianceApi(restExtractorService, complianceAPIService, roDirectiveRepository),

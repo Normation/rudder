@@ -1046,7 +1046,6 @@ class RestTestSetUp {
     )
     .runNow
 
-
   val mockApiAccounts = new MockApiAccountService()
   val apiAccountApi: ApiAccountApi = new ApiAccountApi(mockApiAccounts.service)
 

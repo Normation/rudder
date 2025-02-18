@@ -92,7 +92,7 @@ class TestRestFromFileDef extends ZIOSpecDefault {
                yamlSourceDirectory,
                yamlDestTmpDirectory,
                restTestSetUp.liftRules,
-               "api_accounts.yml" :: Nil,
+               Nil,
                transformations
              )
         _ <- effectUioUnit(
