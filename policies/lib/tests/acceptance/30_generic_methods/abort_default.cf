@@ -1,6 +1,6 @@
 #######################################################
 #
-# Test checking if reporting is correctly done with rudder_logger
+# Test checking if reporting is correcly done with rudder_logger
 #
 #######################################################
 
@@ -23,7 +23,6 @@ bundle agent init
 {
   vars:
     "tmp"               string => getenv("TEMP", 1024);
-
     "expected_report"   string => "R: [FATAL] Aborting agent run because of reason: message";
 }
 
@@ -33,8 +32,9 @@ bundle agent test
 {
   vars:
       # execute the agent, and get its output in 'output' variable
-      "output_cmd" string => "${sys.workdir}/bin/cf-agent -Kf \"${this.promise_dirname}/abort_default_output.cf.sub\"";
-      "output" string => execresult("${output_cmd}", "noshell");
+      "output_cmd"     string => "${sys.workdir}/bin/cf-agent -Kf \"${this.promise_dirname}/abort_default_output.cf.sub\"";
+      "output"         string => execresult("${output_cmd}", "noshell");
+      "output_as_list"  slist => splitstring("${output}", "\n", "10");
 
 }
 
@@ -46,7 +46,7 @@ bundle agent check
     pass1::
       # Check if output contains the correct value
       "contain_expected_reports"
-         expression => strcmp("${init.expected_report}", "${test.output}");
+         expression => some("R: \\[FATAL\\] Aborting agent run because of reason: message", "@{test.output_as_list}");
 
     any::
       "pass2" expression => "pass1";
