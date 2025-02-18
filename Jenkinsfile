@@ -60,8 +60,9 @@ pipeline {
                 stage('relayd-man') {
                     agent {
                         dockerfile {
+                            label 'generic-docker'
                             filename 'ci/asciidoctor.Dockerfile'
-                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
+                            args '-u 0:0'
                         }
                     }
                     when { not { branch 'master' } }
@@ -93,7 +94,9 @@ pipeline {
                 stage('shell') {
                     agent {
                         dockerfile {
-                            filename 'ci/shellcheck.Dockerfile'
+                            label 'generic-docker'
+                            filename 'ci/common.Dockerfile'
+                            args '-u 0:0'
                         }
                     }
 
@@ -131,7 +134,9 @@ pipeline {
                 stage('python') {
                     agent {
                         dockerfile {
-                            filename 'ci/pylint.Dockerfile'
+                            label 'generic-docker'
+                            filename 'ci/common.Dockerfile'
+                            args '-u 0:0'
                         }
                     }
                     steps {
@@ -163,8 +168,9 @@ pipeline {
                 stage('typos') {
                     agent {
                         dockerfile {
-                            filename 'ci/typos.Dockerfile'
-                            additionalBuildArgs  '--build-arg VERSION=1.20.9'
+                            label 'generic-docker'
+                            filename 'ci/common.Dockerfile'
+                            args '-u 0:0'
                         }
                     }
 
@@ -204,8 +210,9 @@ pipeline {
                 stage('api-doc') {
                     agent {
                         dockerfile {
+                            label 'generic-docker'
                             filename 'api-doc/Dockerfile'
-                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
+                            args '-u 0:0'
                         }
                     }
 
@@ -239,12 +246,12 @@ pipeline {
                 stage('webapp') {
                     agent {
                         dockerfile {
+                            label 'generic-docker'
                             filename 'webapp/sources/Dockerfile'
-                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
                             // we don't share elm folder as it is may break with concurrent builds
                             // set same timezone as some tests rely on it
                             // and share maven cache
-                            args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
+                            args '-u 0:0 -v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
                         }
                     }
                     steps {
@@ -332,10 +339,10 @@ pipeline {
                 stage('rudder-package') {
                     agent {
                         dockerfile {
+                            label 'generic-docker'
                             filename 'relay/sources/rudder-package/Dockerfile'
-                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
                             // mount cache
-                            args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache -v /srv/cache/cargo-vet:/home/jenkins/.cache/cargo-vet'
+                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache -v /srv/cache/cargo-vet:/home/jenkins/.cache/cargo-vet'
                         }
                     }
                     steps {
@@ -376,12 +383,13 @@ pipeline {
                 stage('policies') {
                     agent {
                         dockerfile {
+                            label 'generic-docker'
                             filename 'policies/Dockerfile'
                             // no 8.3 build for now
-                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=8.2-nightly --build-arg PSANALYZER_VER=1.20.0"
-                            //additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${env.RUDDER_VERSION}-nightly --build-arg PSANALYZER_VER=1.20.0"
+                            additionalBuildArgs  "--build-arg RUDDER_VER=8.2-nightly --build-arg PSANALYZER_VER=1.20.0"
+                            //additionalBuildArgs  "--build-arg RUDDER_VER=${env.RUDDER_VERSION}-nightly --build-arg PSANALYZER_VER=1.20.0"
                             // mount cache
-                            args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache -v /srv/cache/cargo-vet:/home/jenkins/.cache/cargo-vet'
+                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache -v /srv/cache/cargo-vet:/home/jenkins/.cache/cargo-vet'
                         }
                     }
                     steps {
@@ -457,12 +465,13 @@ pipeline {
                     stage('webapp') {
                         agent {
                             dockerfile {
+                                label 'generic-docker'
                                 filename 'webapp/sources/Dockerfile'
-                                additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID} --build-arg JDK_VERSION=${JDK_VERSION}"
+                                additionalBuildArgs "--build-arg JDK_VERSION=${JDK_VERSION}"
                                 // we don't share elm folder as it is may break with concurrent builds
                                 // set same timezone as some tests rely on it
                                 // and share maven cache
-                                args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
+                                args '-u 0:0 -v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
                             }
                         }
                         steps {
@@ -505,8 +514,9 @@ pipeline {
                 stage('relayd-man') {
                     agent {
                         dockerfile {
+                            label 'generic-docker'
                             filename 'ci/asciidoctor.Dockerfile'
-                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
+                            args '-u 0:0'
                         }
                     }
                     when { not { branch 'master' } }
@@ -541,8 +551,9 @@ pipeline {
                 stage('api-doc') {
                     agent {
                         dockerfile {
+                            label 'generic-docker'
                             filename 'api-doc/Dockerfile'
-                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
+                            args '-u 0:0'
                         }
                     }
 
@@ -583,8 +594,9 @@ pipeline {
                 stage('api-doc-redirect') {
                     agent {
                         dockerfile {
+                            label 'generic-docker'
                             filename 'api-doc/Dockerfile'
-                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
+                            args '-u 0:0'
                         }
                     }
                     when { branch 'master' }
@@ -619,12 +631,12 @@ pipeline {
                 stage('webapp') {
                     agent {
                         dockerfile {
+                            label 'generic-docker'
                             filename 'webapp/sources/Dockerfile'
-                            additionalBuildArgs "--build-arg USER_ID=${env.JENKINS_UID}"
                             // we don't share elm folder as it is may break with concurrent builds
                             // set same timezone as some tests rely on it
                             // and share maven cache
-                            args '-v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
+                            args '-u 0:0 -v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
                         }
                     }
                     steps {
@@ -666,10 +678,11 @@ pipeline {
                 stage('policies') {
                     agent {
                         dockerfile {
+                            label 'generic-docker'
                             filename 'policies/Dockerfile'
-                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID} --build-arg RUDDER_VER=${env.RUDDER_VERSION}-nightly"
+                            additionalBuildArgs  "--build-arg RUDDER_VER=${env.RUDDER_VERSION}-nightly"
                             // mount cache
-                            args '-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
+                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
                         }
                     }
                     steps {
@@ -785,13 +798,13 @@ def updateSlack(errors, running, slackResponse, version, changeUrl) {
 
   if (changeUrl == null) {
 
-      def fixed = currentBuild.resultIsBetterOrEqualTo("SUCCESS") && currentBuild.previousBuild.resultIsWorseOrEqualTo("UNSTABLE") 
+      def fixed = currentBuild.resultIsBetterOrEqualTo("SUCCESS") && currentBuild.previousBuild.resultIsWorseOrEqualTo("UNSTABLE")
       if (errors.isEmpty() && running.isEmpty() && fixed) {
         msg +=  " => Build fixed! :white_check_mark:"
         def color = "good"
         slackSend(channel: "ci", message: msg, color: color)
-      } 
-      
+      }
+
 
       if (! errors.isEmpty()) {
           msg += "\n*Errors* :x: ("+errors.size()+")\n  • " + errors.join("\n  • ")
