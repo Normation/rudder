@@ -608,8 +608,8 @@ class LDAPDiffMapper(
                                 }
                               case A_API_EXPIRATION_DATETIME     =>
                                 val expirationDate = oldAccount.kind match {
-                                  case PublicApi(_, date) => date
-                                  case _                  => None
+                                  case PublicApi(_, policy) => policy.expirationDate
+                                  case _                    => None
                                 }
                                 val diffDate       = {
                                   try {

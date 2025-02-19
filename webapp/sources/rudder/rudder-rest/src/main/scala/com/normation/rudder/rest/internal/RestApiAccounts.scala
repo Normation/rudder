@@ -154,7 +154,7 @@ class RestApiAccounts(
 
                 val account = ApiAccount(
                   id,
-                  ApiAccountKind.PublicApi(acl, expiration),
+                  ApiAccountKind.PublicApi.fromOptDate(acl, expiration),
                   restApiAccount.name.get,
                   hash,
                   restApiAccount.description.getOrElse(""),
@@ -362,7 +362,7 @@ final case class RestApiAccount(
     val tenantsUpdate = tenants.getOrElse(account.tenants)
     val kind          = account.kind match {
       case ApiAccountKind.PublicApi(a, e) =>
-        ApiAccountKind.PublicApi(authz.getOrElse(a), expiration.getOrElse(e))
+        ApiAccountKind.PublicApi.fromOptDate(authz.getOrElse(a), expiration.getOrElse(e.expirationDate))
       case x                              => x
     }
 

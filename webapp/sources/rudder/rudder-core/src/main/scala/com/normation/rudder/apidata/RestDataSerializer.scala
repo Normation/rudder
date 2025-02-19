@@ -609,13 +609,13 @@ object ApiAccountSerialisation {
     def toJson: JObject = {
       val (expirationDate, authzType, acl): (Option[String], Option[String], Option[List[JsonApiAcl]]) = {
         account.kind match {
-          case User | System                           => (None, None, None)
-          case PublicApiAccount(authz, expirationDate) =>
+          case User | System                             => (None, None, None)
+          case PublicApiAccount(authz, expirationPolicy) =>
             val acl = authz match {
               case NoAccess | RO | RW => None
               case ACL(acls)          => Some(acls.flatMap(x => x.actions.map(a => JsonApiAcl(x.path.value, a.name))))
             }
-            (expirationDate.map(DateFormaterService.getDisplayDateTimePicker), Some(authz.kind.name), acl)
+            (expirationPolicy.expirationDate.map(DateFormaterService.getDisplayDateTimePicker(_)), Some(authz.kind.name), acl)
         }
       }
 

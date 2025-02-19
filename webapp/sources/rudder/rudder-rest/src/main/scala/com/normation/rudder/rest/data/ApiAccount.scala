@@ -41,6 +41,8 @@ import cats.implicits.*
 import com.normation.errors.IOResult
 import com.normation.rudder.api.AclPath
 import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.api.ApiAccountExpirationPolicy
+import com.normation.rudder.api.ApiAccountExpirationPolicyKind
 import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.api.ApiAccountKind
 import com.normation.rudder.api.ApiAccountKind.PublicApi
@@ -54,6 +56,7 @@ import com.normation.rudder.api.HttpAction
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.data.NewApiAccount.transformNewApiAccount
 import com.normation.utils.DateFormaterService.DateTimeCodecs
+import com.normation.utils.DateFormaterService.transformer.*
 import com.softwaremill.quicklens.*
 import enumeratum.Enum
 import enumeratum.EnumEntry
@@ -99,22 +102,6 @@ object ApiTokenState       extends Enum[ApiTokenState] {
   override def values: IndexedSeq[ApiTokenState] = findValues
 
   implicit val codecApiTokenState: JsonCodec[ApiTokenState] = new JsonCodec[ApiTokenState](
-    JsonEncoder.string.contramap(_.entryName),
-    JsonDecoder.string.mapOrFail(withNameInsensitiveEither(_).left.map(_.getMessage()))
-  )
-}
-
-sealed trait ApiAccountExpirationPolicy extends EnumEntry with EnumEntry.Lowercase
-object ApiAccountExpirationPolicy       extends Enum[ApiAccountExpirationPolicy] {
-
-  case object Never      extends ApiAccountExpirationPolicy
-  case object AtDateTime extends ApiAccountExpirationPolicy {
-    override def entryName: String = "datetime"
-  }
-
-  override def values: IndexedSeq[ApiAccountExpirationPolicy] = findValues
-
-  implicit val codecApiTokenExpirationPolicy: JsonCodec[ApiAccountExpirationPolicy] = new JsonCodec[ApiAccountExpirationPolicy](
     JsonEncoder.string.contramap(_.entryName),
     JsonDecoder.string.mapOrFail(withNameInsensitiveEither(_).left.map(_.getMessage()))
   )
@@ -172,20 +159,27 @@ trait ApiAccountCodecs extends DateTimeCodecs {
   implicit val encoderNodeSecurityContext:  JsonEncoder[NodeSecurityContext]  = JsonEncoder.string.contramap(_.serialize)
   implicit val decoderNodeSecurityContext:  JsonDecoder[NodeSecurityContext]  =
     JsonDecoder.string.mapOrFail(s => NodeSecurityContext.parse(Some(s)).left.map(_.fullMsg))
+
+  implicit val codecApiTokenExpirationPolicy: JsonCodec[ApiAccountExpirationPolicyKind] = {
+    new JsonCodec[ApiAccountExpirationPolicyKind](
+      JsonEncoder.string.contramap(_.entryName),
+      JsonDecoder.string.mapOrFail(ApiAccountExpirationPolicyKind.withNameInsensitiveEither(_).left.map(_.getMessage()))
+    )
+  }
 }
 
 sealed trait ApiAccountDetails {
   def id:                  ApiAccountId
-  def name:                ApiAccountName               // used in event log to know who did actions.
+  def name:                ApiAccountName                 // used in event log to know who did actions.
   def description:         String
   def status:              ApiAccountStatus
   def creationDate:        ZonedDateTime
-  def expirationPolicy:    ApiAccountExpirationPolicy   // this is expiration for the whole account
-  def expirationDate:      Option[ZonedDateTime]        // this is expiration for the whole account
+  def expirationPolicy:    ApiAccountExpirationPolicyKind // this is expiration for the whole account
+  def expirationDate:      Option[ZonedDateTime]          // this is expiration for the whole account
   def tokenState:          ApiTokenState
   def tokenGenerationDate: Option[ZonedDateTime]
   def tenants:             NodeSecurityContext
-  def authorizationType:   Option[ApiAuthorizationKind] // ApiAuthorization.kind
+  def authorizationType:   Option[ApiAuthorizationKind]   // ApiAuthorization.kind
   def acl:                 Option[List[JsonApiPerm]]
 }
 
@@ -208,7 +202,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
       description:         String,
       status:              ApiAccountStatus,
       creationDate:        ZonedDateTime,
-      expirationPolicy:    ApiAccountExpirationPolicy,
+      expirationPolicy:    ApiAccountExpirationPolicyKind,
       expirationDate:      Option[ZonedDateTime],
       tokenState:          ApiTokenState,
       tokenGenerationDate: Option[ZonedDateTime],
@@ -223,7 +217,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
       description:         String,
       status:              ApiAccountStatus,
       creationDate:        ZonedDateTime,
-      expirationPolicy:    ApiAccountExpirationPolicy,
+      expirationPolicy:    ApiAccountExpirationPolicyKind,
       expirationDate:      Option[ZonedDateTime],
       tokenState:          ApiTokenState,
       tokenGenerationDate: Option[ZonedDateTime],
@@ -234,10 +228,10 @@ object ApiAccountDetails extends ApiAccountCodecs {
   ) extends ApiAccountDetails
 
   // only encode, no decoder for that
-  implicit val encoderClearTextSecret:            JsonEncoder[ClearTextSecret]                       = JsonEncoder.string.contramap(_.value)
-  implicit val encoderApiAccountDetailsPublic:    JsonEncoder[ApiAccountDetails.Public]              = DeriveJsonEncoder.gen
-  implicit val encoderApiAccountDetailsWithToken: JsonEncoder[ApiAccountDetails.WithToken]           = DeriveJsonEncoder.gen
-  implicit val encoderApiAccountDetails:          JsonEncoder[ApiAccountDetails]                     = new JsonEncoder[ApiAccountDetails] {
+  implicit val encoderClearTextSecret:            JsonEncoder[ClearTextSecret]                        = JsonEncoder.string.contramap(_.value)
+  implicit val encoderApiAccountDetailsPublic:    JsonEncoder[ApiAccountDetails.Public]               = DeriveJsonEncoder.gen
+  implicit val encoderApiAccountDetailsWithToken: JsonEncoder[ApiAccountDetails.WithToken]            = DeriveJsonEncoder.gen
+  implicit val encoderApiAccountDetails:          JsonEncoder[ApiAccountDetails]                      = new JsonEncoder[ApiAccountDetails] {
     override def unsafeEncode(a: ApiAccountDetails, indent: Option[Int], out: Write): Unit = {
       a match {
         case x: ApiAccountDetails.Public    => encoderApiAccountDetailsPublic.unsafeEncode(x, indent, out)
@@ -245,17 +239,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
       }
     }
   }
-  implicit val transformApiAccountKindExpDT:      Transformer[ApiAccountKind, Option[ZonedDateTime]] = {
-    case ApiAccountKind.System | ApiAccountKind.User => None
-    case PublicApi(_, expirationDate)                => expirationDate.map(_.transformInto[ZonedDateTime])
-  }
-
-  implicit val transformApiAccountKindExpPol: Transformer[ApiAccountKind, ApiAccountExpirationPolicy] = {
-    case PublicApi(_, expirationDate) if (expirationDate.isDefined) => ApiAccountExpirationPolicy.AtDateTime
-    case _                                                          => ApiAccountExpirationPolicy.Never
-  }
-
-  implicit val transformApiAclElement: Transformer[List[ApiAclElement], List[JsonApiPerm]] = JsonApiPerm.from _
+  implicit val transformApiAclElement:            Transformer[List[ApiAclElement], List[JsonApiPerm]] = JsonApiPerm.from _
 
   // authorization name is only defined for public API
   implicit val transformApiAccountKindAuthz: Transformer[ApiAccountKind, Option[ApiAuthorizationKind]] = {
@@ -272,8 +256,11 @@ object ApiAccountDetails extends ApiAccountCodecs {
   private def transformApiAccountDetails[A <: ApiAccountDetails] = Transformer
     .define[ApiAccount, A]
     .withFieldComputed(_.status, x => if (x.isEnabled) ApiAccountStatus.Enabled else ApiAccountStatus.Disabled)
-    .withFieldComputed(_.expirationPolicy, _.kind.transformInto[ApiAccountExpirationPolicy])
-    .withFieldComputed(_.expirationDate, _.kind.transformInto[Option[ZonedDateTime]])
+    .withFieldRenamed(_.kind, _.expirationPolicy)
+    .withFieldComputedFrom(_.kind)(
+      _.expirationDate,
+      _.transformInto[ApiAccountExpirationPolicy].expirationDate.map(_.transformInto[ZonedDateTime])
+    )
     .withFieldComputed(_.tokenState, x => if (x.token.isEmpty) ApiTokenState.Missing else ApiTokenState.Generated)
     .withFieldComputed(_.authorizationType, _.kind.transformInto[Option[ApiAuthorizationKind]])
     .withFieldComputed(_.acl, _.kind.transformInto[Option[List[JsonApiPerm]]])
@@ -281,12 +268,14 @@ object ApiAccountDetails extends ApiAccountCodecs {
   implicit val transformPublicApi: Transformer[ApiAccount, ApiAccountDetails.Public] = {
     transformApiAccountDetails[ApiAccountDetails.Public]
       .withFieldComputed(_.tokenGenerationDate, x => x.token.map(_ => x.tokenGenerationDate.transformInto[ZonedDateTime]))
+      .withFieldComputed(_.expirationPolicy, _.kind.transformInto[ApiAccountExpirationPolicy].kind)
       .buildTransformer
   }
 
   def transformWithTokenApi(secret: ClearTextSecret): Transformer[ApiAccount, ApiAccountDetails.WithToken] = {
     transformApiAccountDetails[ApiAccountDetails.WithToken]
       .withFieldConst(_.token, secret)
+      .withFieldComputed(_.expirationPolicy, _.kind.transformInto[ApiAccountExpirationPolicy].kind)
       .buildTransformer
   }
 }
@@ -302,13 +291,13 @@ object ApiAccountDetails extends ApiAccountCodecs {
  */
 final case class NewApiAccount(
     id:                Option[ApiAccountId],
-    name:              ApiAccountName, // used in event log to know who did actions.
+    name:              ApiAccountName,                         // used in event log to know who did actions.
     description:       Option[String],
     status:            ApiAccountStatus,
     tenants:           NodeSecurityContext,
     generateToken:     Option[Boolean],
-    expirationPolicy:  Option[ApiAccountExpirationPolicy],
-    expirationDate:    Option[ZonedDateTime],
+    expirationPolicy:  Option[ApiAccountExpirationPolicyKind], // defaults to "datetime" by default
+    expirationDate:    Option[ZonedDateTime],                  // defaults to the policy default value
     authorizationType: Option[ApiAuthorizationKind],
     acl:               Option[List[ApiAclElement]]
 )
@@ -349,7 +338,7 @@ final case class UpdateApiAccount(
     description:       Option[String],
     status:            Option[ApiAccountStatus],
     tenants:           Option[NodeSecurityContext],
-    expirationPolicy:  Option[ApiAccountExpirationPolicy],
+    expirationPolicy:  Option[ApiAccountExpirationPolicyKind],
     expirationDate:    Option[ZonedDateTime],
     authorizationType: Option[ApiAuthorizationKind],
     acl:               Option[List[ApiAclElement]]
@@ -369,6 +358,7 @@ class ApiAccountMapping(
     generateSecret: IOResult[ClearTextSecret],
     createToken:    ClearTextSecret => IOResult[ApiToken]
 ) extends DateTimeCodecs {
+  import ApiAccountExpirationPolicy.*
 
   /**
    * Create a new ApiAccount and optionally return the secret used for the token
@@ -406,11 +396,12 @@ class ApiAccountMapping(
           val exp   = {
             // if we go from "never" to "datetime" without a date, now + 1 month
             (e, up.expirationPolicy, up.expirationDate) match {
-              case (None, None, None)                                        => None
-              case (_, Some(ApiAccountExpirationPolicy.Never), _)            => None
-              case (_, _, Some(d))                                           => Some(d.transformInto[DateTime])
-              case (None, Some(ApiAccountExpirationPolicy.AtDateTime), None) => Some(DateTime.now())
-              case (Some(e), _, None)                                        => Some(e)
+              case (NeverExpire, None, None)                                            => NeverExpire
+              case (_, Some(ApiAccountExpirationPolicyKind.Never), _)                   => NeverExpire
+              case (_, _, Some(d))                                                      => ExpireAtDate(d.transformInto[DateTime])
+              case (NeverExpire, Some(ApiAccountExpirationPolicyKind.AtDateTime), None) =>
+                ExpireAtDate(DateTime.now().plus(ExpireAtDate.defaultJoda)) // TODO: test this
+              case (e: ExpireAtDate, _, None)                                           => e
             }
           }
           ApiAccountKind.PublicApi(authz.getOrElse(a), exp)
@@ -435,7 +426,8 @@ class ApiAccountMapping(
 
 }
 
-object ApiAccountMapping extends DateTimeCodecs {
+object ApiAccountMapping {
+  import ApiAccountExpirationPolicy.*
 
   // from an API authz kind and acl, build the public API
   def authz(k: ApiAuthorizationKind, acl: Option[List[ApiAclElement]]): ApiAuthorization = {
@@ -451,15 +443,17 @@ object ApiAccountMapping extends DateTimeCodecs {
     }
   }
 
-  // if expiration policy is missing, it's datetime by default
-  // if expiration date is missing, it's one month ahead by default
-  def exp(now: DateTime, policy: Option[ApiAccountExpirationPolicy], date: Option[ZonedDateTime]): Option[DateTime] = {
-    policy match {
-      case Some(ApiAccountExpirationPolicy.Never) => None
-      case _                                      =>
+  def exp(
+      now:  DateTime,
+      kind: Option[ApiAccountExpirationPolicyKind],
+      date: Option[ZonedDateTime]
+  ): ApiAccountExpirationPolicy = {
+    kind match {
+      case Some(ApiAccountExpirationPolicyKind.Never) => NeverExpire
+      case _                                          =>
         date match {
-          case Some(d) => Some(d.transformInto[DateTime])
-          case None    => Some(now.plusMonths(1))
+          case Some(d) => ExpireAtDate(d.transformInto[DateTime])
+          case None    => ExpireAtDate(now.plus(ExpireAtDate.defaultJoda))
         }
     }
   }
@@ -468,7 +462,7 @@ object ApiAccountMapping extends DateTimeCodecs {
       a:       ApiAuthorizationKind,
       acl:     Option[List[ApiAclElement]],
       now:     DateTime,
-      expPol:  Option[ApiAccountExpirationPolicy],
+      expPol:  Option[ApiAccountExpirationPolicyKind],
       expDate: Option[ZonedDateTime]
   ): ApiAccountKind.PublicApi = {
     ApiAccountKind.PublicApi(authz(a, acl), exp(now, expPol, expDate))

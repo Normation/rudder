@@ -83,7 +83,7 @@ class ApiAccountTest extends Specification with DateTimeCodecs {
     account.token === Some(token)
     account.kind match {
       case ApiAccountKind.PublicApi(_, expirationDate) =>
-        expirationDate === Some(now.plusMonths(1))
+        expirationDate === ApiAccountExpirationPolicy.ExpireAtDate(now.plusDays(30)) // default
       case x                                           => ko(s"The account type should not be '${x}'")
     }
     account.isEnabled === false

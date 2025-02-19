@@ -1024,7 +1024,7 @@ class LDAPEntityMapper(
             warnOnIgnoreAuthz()
             ApiAccountKind.User
           case ApiAccountType.PublicApi =>
-            ApiAccountKind.PublicApi(authz, expirationDate.map(_.dateTime))
+            ApiAccountKind.PublicApi.fromOptDate(authz, expirationDate.map(_.dateTime))
         }
 
         ApiAccount(
@@ -1061,8 +1061,8 @@ class LDAPEntityMapper(
     mod.resetValuesTo(A_API_TENANT, principal.tenants.serialize)
 
     principal.kind match {
-      case ApiAccountKind.PublicApi(authz, exp) =>
-        exp.foreach(e => mod.resetValuesTo(A_API_EXPIRATION_DATETIME, GeneralizedTime(e).toString()))
+      case ApiAccountKind.PublicApi(authz, policy) =>
+        policy.expirationDate.foreach(e => mod.resetValuesTo(A_API_EXPIRATION_DATETIME, GeneralizedTime(e).toString()))
         // authorisation
         authz match {
           case ApiAuthorization.ACL(acl) =>
@@ -1071,7 +1071,7 @@ class LDAPEntityMapper(
           case x                         =>
             mod.resetValuesTo(A_API_AUTHZ_KIND, x.kind.name)
         }
-      case _                                    => // nothing to add
+      case _                                       => // nothing to add
     }
     mod
   }

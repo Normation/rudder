@@ -871,7 +871,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
       val kind = accountType match {
         case ApiAccountType.System    => ApiAccountKind.System
         case ApiAccountType.User      => ApiAccountKind.User
-        case ApiAccountType.PublicApi => ApiAccountKind.PublicApi(authz, expirationDate)
+        case ApiAccountType.PublicApi => ApiAccountKind.PublicApi.fromOptDate(authz, expirationDate)
       }
 
       ApiAccount(

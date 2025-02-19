@@ -844,7 +844,7 @@ class RestAuthenticationFilter(
                   ApiAccountId(name),
                   ApiAccountKind.PublicApi(
                     ApiAuthorization.None,
-                    None
+                    ApiAccountExpirationPolicy.NeverExpire
                   ), // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
 
                   ApiAccountName(name),
@@ -905,21 +905,21 @@ class RestAuthenticationFilter(
                   case Right(Some(principal)) =>
                     if (principal.isEnabled) {
                       principal.kind match {
-                        case ApiAccountKind.System                           => // we don't want to allow system account kind from DB
+                        case ApiAccountKind.System                   => // we don't want to allow system account kind from DB
                           failsAuthentication(
                             httpRequest,
                             httpResponse,
                             Inconsistency(s"A saved API account can not have the kind 'System': '${principal.name.value}'")
                           )
-                        case ApiAccountKind.PublicApi(authz, expirationDate) =>
-                          expirationDate match {
-                            case Some(date) if (DateTime.now().isAfter(date)) =>
+                        case ApiAccountKind.PublicApi(authz, policy) =>
+                          policy match {
+                            case ApiAccountExpirationPolicy.ExpireAtDate(date) if (DateTime.now().isAfter(date)) =>
                               failsAuthentication(
                                 httpRequest,
                                 httpResponse,
                                 Inconsistency(s"Account with ID ${principal.id.value} is disabled")
                               )
-                            case _                                            => // no expiration date or expiration date not reached
+                            case _                                                                               => // no expiration date or expiration date not reached
                               val user = RudderUserDetail(
                                 RudderAccount.Api(principal),
                                 UserStatus.Active,
@@ -931,7 +931,7 @@ class RestAuthenticationFilter(
                               authenticate(user)
                               chain.doFilter(request, response)
                           }
-                        case ApiAccountKind.User                             =>
+                        case ApiAccountKind.User                     =>
                           // User account need an update for their ACL.
                           (try {
                             Right(userDetailsService.loadUserDetailInfoByUsername(principal.id.value))

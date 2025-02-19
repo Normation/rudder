@@ -43,8 +43,10 @@ import io.scalaland.chimney.*
 import java.time.ZonedDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
+import java.util.TimeZone
 import org.joda.time.DateTime
 import org.joda.time.DateTimeFieldType
+import org.joda.time.DateTimeZone
 import org.joda.time.Duration
 import org.joda.time.chrono.ISOChronology
 import org.joda.time.format.*
@@ -60,7 +62,13 @@ object DateFormaterService {
       ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(d.getMillis), ZoneId.of(d.getZone.getID, ZoneId.SHORT_IDS))
   }
 
-  trait DateTimeCodecs {
+  implicit class JavaTimeToJoda(x: ZonedDateTime) {
+    // see https://stackoverflow.com/a/37335420 - read other solution and the comment in them, too
+    def toJoda: DateTime =
+      new DateTime(x.toInstant.toEpochMilli, DateTimeZone.forTimeZone(TimeZone.getTimeZone(x.getZone)))
+  }
+
+  trait DateTimeCodecs extends TransformDateTime {
     implicit val encoderDateTime: JsonEncoder[DateTime] = JsonEncoder[String].contramap(serialize)
     implicit val decoderDateTime: JsonDecoder[DateTime] = JsonDecoder[String].mapOrFail(parseDate(_).left.map(_.fullMsg))
     implicit val codecDateTime:   JsonCodec[DateTime]   = new JsonCodec[DateTime](encoderDateTime, decoderDateTime)
@@ -71,15 +79,16 @@ object DateFormaterService {
 
     implicit val codecZonedDateTime: JsonCodec[ZonedDateTime] =
       new JsonCodec[ZonedDateTime](encoderZonedDateTime, decoderZonedDateTime)
+  }
 
-    implicit val transformDateTime: Transformer[DateTime, ZonedDateTime] = {
-      _.toJava
-    }
-
-    implicit val transformZonedDateTime: Transformer[ZonedDateTime, DateTime] = { x => new DateTime(x.toInstant.toEpochMilli) }
+  trait TransformDateTime {
+    implicit val transformDateTime:      Transformer[DateTime, ZonedDateTime] = _.toJava
+    implicit val transformZonedDateTime: Transformer[ZonedDateTime, DateTime] = _.toJoda
   }
 
   object json extends DateTimeCodecs
+
+  object transformer extends TransformDateTime
 
   val displayDateFormat: DateTimeFormatter = new DateTimeFormatterBuilder()
     .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
