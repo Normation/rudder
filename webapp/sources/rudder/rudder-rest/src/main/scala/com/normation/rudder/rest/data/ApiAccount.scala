@@ -72,10 +72,10 @@ import zio.syntax.*
  * Same, data creation and update is a bit different for API account.
  */
 
-/*
+/**
  * Account status: enabled or not
  */
-sealed trait ApiAccountStatus extends EnumEntry
+sealed trait ApiAccountStatus extends EnumEntry with EnumEntry.Lowercase
 object ApiAccountStatus       extends Enum[ApiAccountStatus] {
   case object Enabled  extends ApiAccountStatus
   case object Disabled extends ApiAccountStatus
@@ -83,15 +83,15 @@ object ApiAccountStatus       extends Enum[ApiAccountStatus] {
   override def values: IndexedSeq[ApiAccountStatus] = findValues
 
   implicit val codecApiAccountStatus: JsonCodec[ApiAccountStatus] = new JsonCodec[ApiAccountStatus](
-    JsonEncoder.string.contramap(_.entryName.toLowerCase),
-    JsonDecoder.string.mapOrFail(s => ApiAccountStatus.withNameInsensitiveEither(s).left.map(_.getMessage()))
+    JsonEncoder.string.contramap(_.entryName),
+    JsonDecoder.string.mapOrFail(withNameInsensitiveEither(_).left.map(_.getMessage()))
   )
 }
 
-/*
+/**
  * Token state: deleted, generated
  */
-sealed trait ApiTokenState extends EnumEntry
+sealed trait ApiTokenState extends EnumEntry with EnumEntry.Lowercase
 object ApiTokenState       extends Enum[ApiTokenState] {
   case object Missing   extends ApiTokenState
   case object Generated extends ApiTokenState
@@ -99,40 +99,47 @@ object ApiTokenState       extends Enum[ApiTokenState] {
   override def values: IndexedSeq[ApiTokenState] = findValues
 
   implicit val codecApiTokenState: JsonCodec[ApiTokenState] = new JsonCodec[ApiTokenState](
-    JsonEncoder.string.contramap(_.entryName.toLowerCase),
-    JsonDecoder.string.mapOrFail(s => ApiTokenState.withNameInsensitiveEither(s).left.map(_.getMessage()))
+    JsonEncoder.string.contramap(_.entryName),
+    JsonDecoder.string.mapOrFail(withNameInsensitiveEither(_).left.map(_.getMessage()))
   )
 }
 
-sealed trait ApiAccountExpirationPolicy extends EnumEntry
+sealed trait ApiAccountExpirationPolicy extends EnumEntry with EnumEntry.Lowercase
 object ApiAccountExpirationPolicy       extends Enum[ApiAccountExpirationPolicy] {
 
   case object Never      extends ApiAccountExpirationPolicy
-  case object AtDateTime extends ApiAccountExpirationPolicy
+  case object AtDateTime extends ApiAccountExpirationPolicy {
+    override def entryName: String = "datetime"
+  }
 
   override def values: IndexedSeq[ApiAccountExpirationPolicy] = findValues
 
   implicit val codecApiTokenExpirationPolicy: JsonCodec[ApiAccountExpirationPolicy] = new JsonCodec[ApiAccountExpirationPolicy](
-    JsonEncoder.string.contramap {
-      case Never      => "never"
-      case AtDateTime => "datetime"
-    },
-    JsonDecoder.string.mapOrFail {
-      case "never"    => Right(Never)
-      case "datetime" => Right(AtDateTime)
-      case s          => Left(s"'${s}' is not a valid expiration policy for token")
-    }
+    JsonEncoder.string.contramap(_.entryName),
+    JsonDecoder.string.mapOrFail(withNameInsensitiveEither(_).left.map(_.getMessage()))
   )
 }
 
 // Output DATA
 
-/*
+/**
  * ACL
  * Between front and backend, we exchange a JsonAcl list, where JsonAcl are *just*
- * one path and one verb. The grouping is done in extractor
+ * one path and one verb. The grouping is done in extractor.
+ * The objects are sorted by verb.
  */
 final case class JsonApiPerm(path: String, verb: String)
+object JsonApiPerm {
+
+  /**
+   * Enforce that permissions are sorted by path first, then by verb
+   */
+  def from(acls: List[ApiAclElement]): List[JsonApiPerm] =
+    acls.flatMap(acl => acl.actions.map(a => JsonApiPerm(acl.path.value, a.name)).toList).sorted
+
+  implicit private val ordering: Ordering[JsonApiPerm] =
+    Ordering[String].on[JsonApiPerm](_.path).orElse(Ordering[String].on[JsonApiPerm](_.verb))
+}
 
 // default codecs for API accounts
 trait ApiAccountCodecs extends DateTimeCodecs {
@@ -185,7 +192,8 @@ sealed trait ApiAccountDetails {
 final case class ClearTextSecret(value: String)
 
 object ApiAccountDetails extends ApiAccountCodecs {
-  /*
+
+  /**
    * General data structure about a public API account details. Some notes:
    * - kind is not returned (only public accounts are returned here)
    * - token value is never returned here, in place token info is returned:
@@ -247,9 +255,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
     case _                                                          => ApiAccountExpirationPolicy.Never
   }
 
-  implicit val transformApiAclElement: Transformer[List[ApiAclElement], List[JsonApiPerm]] = {
-    _.sortBy(_.path.value).flatMap(acl => acl.actions.map(a => JsonApiPerm(acl.path.value, a.name)).toList.sortBy(_.verb))
-  }
+  implicit val transformApiAclElement: Transformer[List[ApiAclElement], List[JsonApiPerm]] = JsonApiPerm.from _
 
   // authorization name is only defined for public API
   implicit val transformApiAccountKindAuthz: Transformer[ApiAccountKind, Option[ApiAuthorizationKind]] = {
@@ -287,13 +293,12 @@ object ApiAccountDetails extends ApiAccountCodecs {
 
 // Input DATA
 
-/*
- * Things changed from 8.2:
+/**
+ * Things that changed since 8.3 :
  * - no more `oldId` supported
  * - boolean "enabled" is replaced with a status "enabled/disabled"
  * - there is an explicit expirationPolicy in place of expirationDateDefined
- * - expirationDate is an option,
- * -
+ * - expirationDate is an option
  */
 final case class NewApiAccount(
     id:                Option[ApiAccountId],
@@ -308,8 +313,8 @@ final case class NewApiAccount(
     acl:               Option[List[ApiAclElement]]
 )
 
-/*
- * This is the object where most of the logic that interprets an API account input goes
+/**
+ * This is the object where lies most of the logic that interprets an API account input
  */
 object NewApiAccount extends ApiAccountCodecs {
   implicit val decoderNewApiAccount: JsonDecoder[NewApiAccount] = DeriveJsonDecoder.gen
@@ -354,7 +359,7 @@ object UpdateApiAccount extends ApiAccountCodecs {
   implicit val decoderUpdateApiAccount: JsonDecoder[UpdateApiAccount] = DeriveJsonDecoder.gen
 }
 
-/*
+/**
  * Transformation service for the part with effects / injection
  * of other needed services
  */
@@ -365,7 +370,7 @@ class ApiAccountMapping(
     createToken:    ClearTextSecret => IOResult[ApiToken]
 ) extends DateTimeCodecs {
 
-  /*
+  /**
    * Create a new ApiAccount and optionally return the secret used for the token
    */
   def fromNewApiAccount(newApiAccount: NewApiAccount): IOResult[(ApiAccount, Option[ClearTextSecret])] = {
@@ -383,7 +388,7 @@ class ApiAccountMapping(
     } yield (transformNewApiAccount(d, id, token).transform(newApiAccount), secret)
   }
 
-  /*
+  /**
    * Update an ApiAccount from Rest data
    */
   def update(account: ApiAccount, up: UpdateApiAccount): ApiAccount = {

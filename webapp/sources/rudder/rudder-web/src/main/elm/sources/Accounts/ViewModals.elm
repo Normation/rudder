@@ -10,6 +10,7 @@ import Html.Attributes exposing (attribute, checked, class, disabled, for, id, n
 import Html.Events exposing (onCheck, onClick, onInput)
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
 import Time.Extra as Time exposing (Interval(..), add)
+import Maybe.Extra
 
 buildModal : String -> Html Msg -> Html Msg -> Html Msg
 buildModal modalTitle modalBody modalBtn =
@@ -103,18 +104,12 @@ displayModal model =
                       displayAclPlugin = account.authorisationType == "acl" && model.aclPluginEnabled
                       displayTenants   = account.tenantMode == ByTenants && model.tenantsPluginEnabled
 
-                      ( expirationDate, selectedDate ) =
-                          case account.expirationDate of
-                              Just d ->
-                                  ( if account.expirationDateDefined then
-                                      posixToString model.ui.datePickerInfo d
+                      ( expirationText, selectedDate ) =
+                          case account.expirationPolicy of
+                              ExpireAtDate d ->
+                                  ( posixToString model.ui.datePickerInfo d, d )
 
-                                    else
-                                      "Never"
-                                  , d
-                                  )
-
-                              Nothing ->
+                              NeverExpire ->
                                   ( "Never", add Month 1 model.ui.datePickerInfo.zone model.ui.datePickerInfo.currentTime )
 
                       displayWarningName =
@@ -196,7 +191,7 @@ displayModal model =
                               [ label [ for "newAccount-expiration", class "mb-1" ]
                                   [ text "Expiration date"
                                   , label [ for "selectDate", class "custom-toggle toggle-secondary" ]
-                                      [ input [ type_ "checkbox", id "selectDate", checked account.expirationDateDefined, onCheck (\c -> UpdateAccountForm { account | expirationDateDefined = c }) ] []
+                                      [ input [ type_ "checkbox", id "selectDate", checked <| account.expirationPolicy /= NeverExpire, onCheck (\c -> UpdateAccountForm ( account |> if c then setExpirationPolicy (ExpireAtDate selectedDate) else setExpirationPolicy NeverExpire ) ) ] []
                                       , label [ for "selectDate", class "custom-toggle-group" ]
                                           [ label [ for "selectDate", class "toggle-enabled" ] [ text "Defined" ]
                                           , span [ class "cursor" ] []
@@ -209,8 +204,8 @@ displayModal model =
                                       text ""
                                   ]
                               , div [ class "elm-datepicker-container" ]
-                                  [ button [ type_ "button", class "form-control btn-datepicker", disabled (not account.expirationDateDefined), onClick (OpenPicker selectedDate), placeholder "Select an expiration date" ]
-                                      [ text expirationDate
+                                  [ button [ type_ "button", class "form-control btn-datepicker", disabled (account.expirationPolicy == NeverExpire), onClick (OpenPicker selectedDate), placeholder "Select an expiration date" ]
+                                      [ text expirationText
                                       ]
                                   , SingleDatePicker.view (userDefinedDatePickerSettings model.ui.datePickerInfo.zone model.ui.datePickerInfo.currentTime selectedDate) model.ui.datePickerInfo.picker
                                   ]

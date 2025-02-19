@@ -1365,12 +1365,12 @@ object ApiAccounts       extends Enum[ApiAccounts] with ApiModuleProvider[ApiAcc
   }
   case object UpdateAccount   extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
     val z: Int = implicitly[Line].value
-    val description    = "Update an API account if it exists"
+    val description    = "Update an API account"
     val (action, path) = POST / "apiaccounts" / "{id}"
   }
   case object RegenerateToken extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
     val z: Int = implicitly[Line].value
-    val description    = "Get one API account if it exists"
+    val description    = "Regenerate a token for an API account"
     val (action, path) = POST / "apiaccounts" / "{id}" / "regenerate"
   }
   case object DeleteAccount   extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {

@@ -37,7 +37,7 @@ saveAccount : Account -> Model -> Cmd Msg
 saveAccount account model =
   let
     (method, url) = case model.ui.modalState of
-      NewAccount -> ("PUT",["apiaccounts"])
+      NewAccount -> ("POST",["apiaccounts"])
       _ -> ("POST", ["apiaccounts", account.id])
     req =
       request
