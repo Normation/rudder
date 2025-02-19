@@ -117,7 +117,11 @@ case class RudderUserDetail(
     case RudderAccount.User(_, _)                     => (login, "", RudderAuthType.User.grantedAuthorities)
     // We can default to "" as this value is ot used for authentication.
     case RudderAccount.Api(api)                       =>
-      (login, api.token.flatMap(_.exposeHash()).getOrElse(""), RudderAuthType.Api.grantedAuthorities)
+      (
+        login,
+        api.token.authenticationHash.flatMap(_.exposeHash()).getOrElse(""),
+        RudderAuthType.Api.grantedAuthorities
+      )
   }
   override val isAccountNonExpired                        = true
   override val isAccountNonLocked                         = true

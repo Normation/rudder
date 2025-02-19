@@ -98,13 +98,13 @@ import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.tenants.TenantId
 import com.normation.rudder.tenants.TenantService
 import com.normation.rudder.users.*
-import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.UnsafeRun
 import com.typesafe.config.ConfigFactory
 import io.scalaland.chimney.syntax.*
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
 import scala.collection.MapView
@@ -999,18 +999,17 @@ object MockUserManagement {
 class MockApiAccountService(userService: com.normation.rudder.users.UserService) {
   // Our API accounts
   val apiAccounts: Map[ApiAccountId, ApiAccount] = {
-    val accountCreationDate: DateTime = DateTime.parse("2025-02-12T10:55:00Z")
-    val accountExpireDate:   DateTime = DateTime.parse("2025-08-12T00:00:00Z")
+    val accountCreationDate = Instant.parse("2025-02-12T10:55:00Z")
+    val accountExpireDate   = Instant.parse("2025-08-12T00:00:00Z")
     List(
       ApiAccount(
         ApiAccountId("system-token"),
         ApiAccountKind.System, // must be filtered out
         ApiAccountName("system"),
-        Some(ApiTokenHash.fromHashValue("v2:system-hashed-token")),
+        AccountToken(Some(ApiTokenHash.fromHashValue("v2:system-hashed-token")), accountCreationDate),
         "system",
         isEnabled = true,
         creationDate = accountCreationDate,
-        tokenGenerationDate = accountCreationDate,
         NodeSecurityContext.All
       ),
       // a standard admin account with v1 token: as of 8.3, it is disabled in entry2ApiAccount whatever ldap content says
@@ -1018,23 +1017,21 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         ApiAccountId("old1"),
         ApiAccountKind.PublicApi(ApiAuthorization.RW, None),
         ApiAccountName("old account"),
-        Some(ApiTokenHash.fromHashValue("some-clear-token")),
+        AccountToken(Some(ApiTokenHash.fromHashValue("some-clear-token")), accountCreationDate),
         "old account",
         isEnabled = false,     // done when reading account
         creationDate = accountCreationDate,
-        tokenGenerationDate = accountCreationDate,
         NodeSecurityContext.All
       ),
       // a standard admin account with rights on everything/all tenants
       ApiAccount(
         ApiAccountId("user1"),
-        ApiAccountKind.PublicApi(ApiAuthorization.RW, None),
+        ApiAccountKind.PublicApi(ApiAuthorization.RW, ApiAccountExpirationPolicy.NeverExpire),
         ApiAccountName("user one"),
-        Some(ApiTokenHash.fromHashValue("v2:some-hashed-token")),
+        AccountToken(Some(ApiTokenHash.fromHashValue("v2:some-hashed-token")), accountCreationDate),
         "number one user",
         isEnabled = true,
         creationDate = accountCreationDate,
-        tokenGenerationDate = accountCreationDate,
         NodeSecurityContext.All
       ),
       // limited account
@@ -1042,14 +1039,13 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         ApiAccountId("user2"),
         ApiAccountKind.PublicApi(
           ApiAuthorization.ACL(ApiAclElement(AclPath.parse("/some/endpoint/*").toOption.get, Set(HttpAction.GET)) :: Nil),
-          Some(accountExpireDate)
+          ApiAccountExpirationPolicy.ExpireAtDate(accountExpireDate)
         ),
         ApiAccountName("user2"),
-        Some(ApiTokenHash.fromHashValue("v2:some-hashed-token")),
+        AccountToken(Some(ApiTokenHash.fromHashValue("v2:some-hashed-token")), accountCreationDate),
         "number one user",
         isEnabled = true,
         creationDate = accountCreationDate,
-        tokenGenerationDate = accountCreationDate,
         NodeSecurityContext.ByTenants(Chunk(TenantId("zone1")))
       )
     ).map(a => (a.id, a)).toMap
@@ -1065,7 +1061,7 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
     }
 
     override def getByToken(hashedToken: ApiTokenHash): IOResult[Option[ApiAccount]] = {
-      accounts.get.map(_.collectFirst { case (_, a) if a.token.contains(hashedToken) => a })
+      accounts.get.map(_.collectFirst { case (_, a) if a.token.authenticationHash.contains(hashedToken) => a })
     }
 
     override def getById(id: ApiAccountId): IOResult[Option[ApiAccount]] = {
@@ -1084,6 +1080,10 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
     override def delete(id: ApiAccountId, modId: ModificationId, actor: EventActor): IOResult[ApiAccountId] = {
       accounts.update(_.removed(id)).map(_ => id)
     }
+
+    override def isSystemToken(apiTokenHash: ApiTokenHash): Boolean = {
+      apiAccounts(ApiAccountId("system-token")).token.authenticationHash.exists(_.equalsToken(apiTokenHash))
+    }
   }
 
   val service: ApiAccountApiService = {
@@ -1092,7 +1092,7 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
     val mapper = {
       val knownIds     = Ref.make(List("144ce2af-57d6-4e92-bdc1-1fdf2d88c2b1", "e16114be-94ee-497f-8d17-7b258c8e5624")).runNow
       val knownTokens  = Ref.make(List("t1-ca5a50899d25cd3ff148350843a9d435", "t2-29d5c3cdca39bd7ba81e7e0f88084689")).runNow
-      val creationDate = DateFormaterService.parseDate("2025-02-10T16:37:19Z").toIO
+      val creationDate = Instant.parse("2025-02-10T16:37:19Z")
       // we have two known IDs, then just random stuff
 
       val generateId     = knownIds.modify {
@@ -1108,7 +1108,7 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
       def generateToken(secret: ClearTextSecret): IOResult[ApiTokenHash] =
         ApiTokenHash.fromSecret(secret.transformInto[ApiTokenSecret]).succeed
 
-      new ApiAccountMapping(creationDate, generateId, generateSecret, generateToken)
+      new ApiAccountMapping(creationDate.succeed, generateId, generateSecret, generateToken)
     }
 
     val uuidGen = new StringUuidGenerator { override def newUuid: String = "not used" }

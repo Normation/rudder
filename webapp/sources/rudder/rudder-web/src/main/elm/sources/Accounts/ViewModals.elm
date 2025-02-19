@@ -100,7 +100,7 @@ displayModal model =
 
               Just account ->
                   let
-                      displayAclPlugin = account.authorisationType == "acl" && model.aclPluginEnabled
+                      displayAclPlugin = account.authorizationType == ACL && model.aclPluginEnabled
                       displayTenants   = account.tenantMode == ByTenants && model.tenantsPluginEnabled
 
                       ( expirationText, selectedDate ) =
@@ -124,7 +124,7 @@ displayModal model =
                       -- if the plugin is disabled, only show a read-only view of tenants. Else, it's an option among all, none, a list. Tenants should not be set for full RW access, so we disable it in that case
                       displayTenantAccess =
                           if model.tenantsPluginEnabled then
-                              select [ id "newAccount-tenants", class "form-select", onInput (\s -> UpdateAccountForm { account | tenantMode = Tuple.first (parseTenants s) }), disabled (account.authorisationType == "rw") ]
+                              select [ id "newAccount-tenants", class "form-select", onInput (\s -> UpdateAccountForm { account | tenantMode = Tuple.first (parseTenants s) }), disabled (account.authorizationType == RW) ]
                                   [ option [ value "*", selected (account.tenantMode == AllAccess) ] [ text "Access to all tenants" ]
                                   , option [ value "-", selected (account.tenantMode == NoAccess) ] [ text "Access to no tenant" ]
                                   , option [ value "list", selected (account.tenantMode == ByTenants) ]
@@ -215,10 +215,10 @@ displayModal model =
                               ]
                           , div [ class "form-group" ]
                               [ label [ for "newAccount-access" ] [ text "Access level" ]
-                              , select [ id "newAccount-access", class "form-select", onInput (\s -> UpdateAccountForm { account | authorisationType = s }) ]
-                                  [ option [ value "ro", selected (account.authorisationType == "ro") ] [ text "Read only" ]
-                                  , option [ value "rw", selected (account.authorisationType == "rw") ] [ text "Full access" ]
-                                  , option [ value "acl", selected (account.authorisationType == "acl"), disabled (not model.aclPluginEnabled) ]
+                              , select [ id "newAccount-access", class "form-select", onInput (authorizationTypeFromText >> Maybe.map (\s -> UpdateAccountForm { account | authorizationType = s }) >> Maybe.withDefault Ignore) ]
+                                  [ option [ value "ro", selected (account.authorizationType == RO) ] [ text "Read only" ]
+                                  , option [ value "rw", selected (account.authorizationType == RW) ] [ text "Full access" ]
+                                  , option [ value "acl", selected (account.authorizationType == ACL), disabled (not model.aclPluginEnabled) ]
                                       [ text
                                           ("Custom ACL"
                                               ++ (if model.aclPluginEnabled then

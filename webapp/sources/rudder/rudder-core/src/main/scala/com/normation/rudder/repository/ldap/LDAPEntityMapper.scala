@@ -77,7 +77,6 @@ import com.normation.rudder.reports.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.*
-import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import io.scalaland.chimney.PartialTransformer
@@ -1010,7 +1009,7 @@ class LDAPEntityMapper(
             warnOnIgnoreAuthz()
             ApiAccountKind.User
           case ApiAccountType.PublicApi =>
-            ApiAccountKind.PublicApi(authz, expirationDate.map(x => DateFormaterService.toDateTime(x.instant)))
+            ApiAccountKind.PublicApi.apply(authz, expirationDate.map(_.instant))
         }
 
         // as of 8.3, we disable an API account with token version < 2
@@ -1018,15 +1017,16 @@ class LDAPEntityMapper(
           case Some(t) => if (t.version() >= 2) isEnabled else false
           case None    => isEnabled
         }
+        val accountToken          = AccountToken(token, tokenCreationDatetime.instant)
+
         ApiAccount(
           id,
           accountKind,
           name,
-          token,
+          accountToken,
           description,
           isEnabledAndVersionOk,
-          DateFormaterService.toDateTime(creationDatetime.instant),
-          DateFormaterService.toDateTime(tokenCreationDatetime.instant),
+          creationDatetime.instant,
           tenants
         )
       }
@@ -1041,7 +1041,7 @@ class LDAPEntityMapper(
     mod.resetValuesTo(A_API_UUID, principal.id.value)
     mod.resetValuesTo(A_NAME, principal.name.value)
     mod.resetValuesTo(A_CREATION_DATETIME, GeneralizedTime(principal.creationDate).toString)
-    principal.token.flatMap(_.exposeHash()) match {
+    principal.accountToken.flatMap(_.hash).flatMap(_.exposeHash()) match {
       case Some(value) => mod.resetValuesTo(A_API_TOKEN, value)
       case None        => mod.deleteAttribute(A_API_TOKEN)
     }
@@ -1052,8 +1052,8 @@ class LDAPEntityMapper(
     mod.resetValuesTo(A_API_TENANT, principal.tenants.serialize)
 
     principal.kind match {
-      case ApiAccountKind.PublicApi(authz, exp) =>
-        exp.foreach(e => mod.resetValuesTo(A_API_EXPIRATION_DATETIME, GeneralizedTime(e).toString()))
+      case ApiAccountKind.PublicApi(authz, policy) =>
+        policy.expirationDate.foreach(e => mod.resetValuesTo(A_API_EXPIRATION_DATETIME, GeneralizedTime(e).toString()))
         // authorisation
         authz match {
           case ApiAuthorization.ACL(acl) =>
@@ -1062,7 +1062,7 @@ class LDAPEntityMapper(
           case x                         =>
             mod.resetValuesTo(A_API_AUTHZ_KIND, x.kind.name)
         }
-      case _                                    => // nothing to add
+      case _                                       => // nothing to add
     }
     mod
   }

@@ -83,7 +83,7 @@ update msg model =
                 editAccount =
                     case modalState of
                         NewAccount ->
-                            Just (Account "" "" "" "rw" "" True "" TokenState.GeneratedV2 (Just Token.Hashed) Nothing (ExpireAtDate expDate) Nothing TenantMode.AllAccess Nothing)
+                            Just (Account "" "" "" RW "" Enabled "" TokenState.GeneratedV2 (Just Token.Hashed) Nothing (ExpireAtDate expDate) Nothing TenantMode.AllAccess Nothing)
 
                         EditAccount a ->
                             Just a
