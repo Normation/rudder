@@ -513,7 +513,7 @@ class APIAccountSerialisationImpl(xmlVersion: String) extends APIAccountSerialis
     val kind = account.kind match {
       case ApiAccountKind.User | ApiAccountKind.System =>
         <kind>{account.kind.kind.name}</kind>
-      case ApiAccountKind.PublicApi(authz, exp)        =>
+      case ApiAccountKind.PublicApi(authz, policy)     =>
         NodeSeq.fromSeq(
           Seq(
             <kind>{account.kind.kind.name}</kind>,
@@ -529,7 +529,9 @@ class APIAccountSerialisationImpl(xmlVersion: String) extends APIAccountSerialis
               }
             }</authorization>
           )
-        ) ++ exp.map(d => <expirationDate>{d.toString(ISODateTimeFormat.dateTime)}</expirationDate>).getOrElse(NodeSeq.Empty)
+        ) ++ policy.expirationDate
+          .map(d => <expirationDate>{d.toString(ISODateTimeFormat.dateTime)}</expirationDate>)
+          .getOrElse(NodeSeq.Empty)
     }
 
     createTrimedElem(XML_TAG_API_ACCOUNT, xmlVersion)(

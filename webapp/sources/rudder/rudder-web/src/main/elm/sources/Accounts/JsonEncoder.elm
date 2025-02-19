@@ -11,8 +11,8 @@ import Time.Extra
 import Time.Iso8601
 
 
-encodeAccount : DatePickerInfo -> Account -> Value
-encodeAccount { zone } account =
+encodeAccount : Zone -> Account -> Value
+encodeAccount zone account =
     let
         ( expirationPolicy, expirationDate ) =
             case account.expirationPolicy of
@@ -31,11 +31,10 @@ encodeAccount { zone } account =
                     []
 
         status =
-            if account.enabled then
-                "enabled"
+            accountStatusText account.status
 
-            else
-                "disabled"
+        authorizationType =
+            authorizationTypeText account.authorizationType
 
         id =
             String.Extra.nonEmpty account.id
@@ -47,7 +46,7 @@ encodeAccount { zone } account =
          , ( "status", string status )
          , ( "tenants", string (encodeTenants account.tenantMode account.selectedTenants) )
          , ( "generateToken", bool (Maybe.Extra.isNothing id) )
-         , ( "authorizationType", string account.authorisationType )
+         , ( "authorizationType", string authorizationType )
          , ( "expirationPolicy", string expirationPolicy )
          ]
             |> List.append expirationDate

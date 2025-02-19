@@ -1017,7 +1017,7 @@ class MockApiAccountService() {
       // a standard admin account with rights on everything/all tenants
       ApiAccount(
         ApiAccountId("user1"),
-        ApiAccountKind.PublicApi(ApiAuthorization.RW, None),
+        ApiAccountKind.PublicApi(ApiAuthorization.RW, ApiAccountExpirationPolicy.NeverExpire),
         ApiAccountName("user one"),
         Some(ApiTokenHash.fromHashValue("v2:some-hashed-token")),
         "number one user",
@@ -1031,7 +1031,7 @@ class MockApiAccountService() {
         ApiAccountId("user2"),
         ApiAccountKind.PublicApi(
           ApiAuthorization.ACL(ApiAclElement(AclPath.parse("/some/endpoint/*").toOption.get, Set(HttpAction.GET)) :: Nil),
-          Some(accountExpireDate)
+          ApiAccountExpirationPolicy.ExpireAtDate(accountExpireDate)
         ),
         ApiAccountName("user2"),
         Some(ApiTokenHash.fromHashValue("v2:some-hashed-token")),

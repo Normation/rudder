@@ -83,7 +83,7 @@ class ApiAccountTest extends Specification with DateTimeCodecs {
     account.token === Some(ApiTokenHash.fromSecret(secret))
     account.kind match {
       case ApiAccountKind.PublicApi(_, expirationDate) =>
-        expirationDate === Some(now.plusMonths(1))
+        expirationDate === ApiAccountExpirationPolicy.ExpireAtDate(now.plusDays(30)) // default
       case x                                           => ko(s"The account type should not be '${x}'")
     }
     account.isEnabled === false
@@ -91,7 +91,7 @@ class ApiAccountTest extends Specification with DateTimeCodecs {
 
   "If we fix expiration and account ID, they are fixed" >> {
     val id         = ApiAccountId("defined-id")
-    val expiration = now.plusYears(1).transformInto[ZonedDateTime]
+    val expiration = now.plusYears(1)
 
     val data = NewRestApiAccount(
       Some(id),
@@ -101,7 +101,7 @@ class ApiAccountTest extends Specification with DateTimeCodecs {
       com.normation.rudder.facts.nodes.NodeSecurityContext.None,
       None,
       None,
-      Some(expiration),
+      Some(expiration.transformInto[ZonedDateTime]),
       None,
       None
     )
@@ -111,9 +111,9 @@ class ApiAccountTest extends Specification with DateTimeCodecs {
     account.id === id
     account.token === Some(ApiTokenHash.fromSecret(secret))
     account.kind match {
-      case ApiAccountKind.PublicApi(_, expirationDate) =>
-        expirationDate === Some(expiration.transformInto[DateTime])
-      case x                                           => ko(s"The account type should not be '${x}'")
+      case ApiAccountKind.PublicApi(_, expirationPolicy) =>
+        expirationPolicy === ApiAccountExpirationPolicy.ExpireAtDate(expiration)
+      case x                                             => ko(s"The account type should not be '${x}'")
     }
   }
 }

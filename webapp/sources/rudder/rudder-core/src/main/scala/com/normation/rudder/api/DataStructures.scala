@@ -42,6 +42,7 @@ import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import enumeratum.*
+import io.scalaland.chimney.Transformer
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import org.bouncycastle.util.encoders.Hex
@@ -431,13 +432,87 @@ object ApiAccountKind       {
   case object System extends ApiAccountKind { val kind: ApiAccountType.System.type = ApiAccountType.System }
   case object User   extends ApiAccountKind { val kind: ApiAccountType.User.type = ApiAccountType.User     }
   final case class PublicApi(
-      authorizations: ApiAuthorization,
-      // this is an expiration date for the whole account, not a generated token. IE, we can
-      // have it even without token, or even if we just generated the token.
-      expirationDate: Option[DateTime]
+      authorizations:   ApiAuthorization,
+      // this is an expiration policy for the whole account, not for a generated token. IE, we can
+      // have it even without token, or even if we just generated a token for the account.
+      expirationPolicy: ApiAccountExpirationPolicy
   ) extends ApiAccountKind {
     val kind: ApiAccountType.PublicApi.type = ApiAccountType.PublicApi
   }
+
+  object PublicApi {
+    def fromOptDate(
+        authorizations: ApiAuthorization,
+        expirationDate: Option[DateTime]
+    ): PublicApi = PublicApi(authorizations, ApiAccountExpirationPolicy.fromOpt(expirationDate))
+  }
+}
+
+/**
+ * Definition of different expiration policies for public API accounts :
+ * - system and user account never expire
+ * - public account can : also be set to never expire, or expire at a given datetime (with default value after the API creation)
+ */
+sealed trait ApiAccountExpirationPolicy {
+  def kind: ApiAccountExpirationPolicyKind
+
+  def expirationDate: Option[DateTime]
+}
+
+object ApiAccountExpirationPolicy {
+  import ApiAccountExpirationPolicyKind.*
+
+  case class ExpireAtDate(date: DateTime) extends ApiAccountExpirationPolicy {
+    override def kind:           ApiAccountExpirationPolicyKind = AtDateTime
+    override def expirationDate: Some[DateTime]                 = Some(date)
+  }
+  object ExpireAtDate                     extends zio.DurationModule         {
+    def default:     Duration               = 30.days
+    def defaultJoda: org.joda.time.Duration = org.joda.time.Duration.standardDays(30)
+  }
+
+  case object NeverExpire extends ApiAccountExpirationPolicy {
+    override def kind:           ApiAccountExpirationPolicyKind = Never
+    override def expirationDate: None.type                      = None
+  }
+
+  // implicit instances : we know the association between api account kind and its expiration policy
+  implicit val transformApiAccountKindExpPolicy: Transformer[ApiAccountKind, ApiAccountExpirationPolicy] = {
+    Transformer
+      .define[ApiAccountKind, ApiAccountExpirationPolicy]
+      .withSealedSubtypeHandled[ApiAccountKind.System.type](_ => NeverExpire)
+      .withSealedSubtypeHandled[ApiAccountKind.User.type](_ => NeverExpire)
+      .withSealedSubtypeHandled[ApiAccountKind.PublicApi](_.expirationPolicy)
+      .buildTransformer
+  }
+
+  def fromOpt(expirationDate: Option[DateTime]): ApiAccountExpirationPolicy = {
+    expirationDate match {
+      case None        => NeverExpire
+      case Some(value) => ExpireAtDate(value)
+    }
+  }
+}
+
+sealed trait ApiAccountExpirationPolicyKind extends EnumEntry with EnumEntry.Lowercase
+object ApiAccountExpirationPolicyKind       extends Enum[ApiAccountExpirationPolicyKind] {
+
+  case object Never      extends ApiAccountExpirationPolicyKind
+  case object AtDateTime extends ApiAccountExpirationPolicyKind {
+    override def entryName: String = "datetime"
+  }
+
+  // implicit instances : we know the association between api account kind and its expiration policy kind
+  implicit val transformApiAccountKindExpPolicyKind: Transformer[ApiAccountKind, ApiAccountExpirationPolicyKind] = {
+    Transformer
+      .define[ApiAccountKind, ApiAccountExpirationPolicyKind]
+      .withSealedSubtypeHandled[ApiAccountKind.System.type](_ => Never)
+      .withSealedSubtypeHandled[ApiAccountKind.User.type](_ => Never)
+      .withSealedSubtypeHandled[ApiAccountKind.PublicApi](_.expirationPolicy.kind)
+      .buildTransformer
+  }
+
+  override def values: IndexedSeq[ApiAccountExpirationPolicyKind] = findValues
 }
 
 /**
