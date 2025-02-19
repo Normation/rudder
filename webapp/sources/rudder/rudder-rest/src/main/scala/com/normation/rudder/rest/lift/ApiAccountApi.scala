@@ -194,7 +194,7 @@ class ApiAccountApiServiceV1(
         None.succeed
       case Some(account) if (account.kind.kind == ApiAccountType.PublicApi) =>
         Some(account).succeed
-      case Some(x)                                                          =>
+      case Some(_)                                                          =>
         // we log to let ops know that perhaps someone is poking the API accounts, but
         // we don't give more info.
         ApiLoggerPure.warn(s"Access to API account with ID '${id.value}' is not authorized via API") *>
@@ -245,18 +245,26 @@ class ApiAccountApiServiceV1(
 
   override def regenerateToken(id: ApiAccountId)(using qc: QueryContext): IOResult[ApiAccountDetails] = {
     for {
-      a    <- getPublicApiAccount(id)
-      pair <- mapper.updateToken(a)
-      _    <- writeApi.save(pair._1, ModificationId(uuidGen.newUuid), qc.actor)
-    } yield mapper.toDetailsWithSecret.tupled(pair)
+      a                 <- getPublicApiAccount(id)
+      (account, secret) <- mapper.updateToken(a)
+      _                 <- writeApi.save(account, ModificationId(uuidGen.newUuid), qc.actor)
+    } yield mapper.toDetailsWithSecret(account, secret)
   }
 
   override def deleteToken(id: ApiAccountId)(using qc: QueryContext): IOResult[ApiAccountDetails] = {
     for {
-      a <- getPublicApiAccount(id)
-      u  = a.modify(_.token).setTo(None)
-      _ <- writeApi.save(u, ModificationId(uuidGen.newUuid), qc.actor)
-    } yield u.transformInto[ApiAccountDetails.Public]
+      a            <- getPublicApiAccount(id)
+      accountToken <- a.token match {
+                        case t: AccountToken => ZIO.some(t)
+                        case _: SystemToken  => ZIO.none
+                      }
+      res          <- ZIO.foreach(accountToken) { token =>
+                        val u = a.modify(_.token).setTo(AccountToken(None, token.generationDate))
+                        writeApi
+                          .save(u, ModificationId(uuidGen.newUuid), qc.actor)
+                          .as(u)
+                      }
+    } yield res.getOrElse(a).transformInto[ApiAccountDetails.Public]
   }
 
   override def deleteAccount(id: ApiAccountId)(using qc: QueryContext): IOResult[Option[ApiAccountDetails.Public]] = {

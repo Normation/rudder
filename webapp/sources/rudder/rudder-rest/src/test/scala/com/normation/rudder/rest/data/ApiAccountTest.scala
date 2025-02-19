@@ -41,17 +41,17 @@ import com.normation.rudder.api.*
 import com.normation.utils.DateFormaterService.DateTimeCodecs
 import com.normation.zio.*
 import io.scalaland.chimney.syntax.*
-import java.time.ZonedDateTime
-import org.joda.time.DateTime
+import java.time.Instant
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import zio.*
 import zio.syntax.*
 
 @RunWith(classOf[JUnitRunner])
 class ApiAccountTest extends Specification with DateTimeCodecs {
 
-  private val now       = DateTime.parse("2025-02-10T10:10:10Z")
+  private val now       = Instant.parse("2025-02-10T10:10:10Z")
   private val accountId = ApiAccountId("account1")
   private val secret    = ApiTokenSecret("token1")
 
@@ -80,10 +80,10 @@ class ApiAccountTest extends Specification with DateTimeCodecs {
     val (account, _) = mapper.fromNewApiAccount(data).runNow
 
     account.id === accountId
-    account.token === Some(ApiTokenHash.fromSecret(secret))
+    account.token === AccountToken(Some(ApiTokenHash.fromSecret(secret)), now)
     account.kind match {
       case ApiAccountKind.PublicApi(_, expirationDate) =>
-        expirationDate === Some(now.plusMonths(1))
+        expirationDate === ApiAccountExpirationPolicy.ExpireAtDate(now).plusOneMonth // default
       case x                                           => ko(s"The account type should not be '${x}'")
     }
     account.isEnabled === false
@@ -91,7 +91,7 @@ class ApiAccountTest extends Specification with DateTimeCodecs {
 
   "If we fix expiration and account ID, they are fixed" >> {
     val id         = ApiAccountId("defined-id")
-    val expiration = now.plusYears(1).transformInto[ZonedDateTime]
+    val expiration = now.plus(365.days)
 
     val data = NewRestApiAccount(
       Some(id),
@@ -109,11 +109,11 @@ class ApiAccountTest extends Specification with DateTimeCodecs {
     val (account, _) = mapper.fromNewApiAccount(data).runNow
 
     account.id === id
-    account.token === Some(ApiTokenHash.fromSecret(secret))
+    account.token === AccountToken(Some(ApiTokenHash.fromSecret(secret)), now)
     account.kind match {
-      case ApiAccountKind.PublicApi(_, expirationDate) =>
-        expirationDate === Some(expiration.transformInto[DateTime])
-      case x                                           => ko(s"The account type should not be '${x}'")
+      case ApiAccountKind.PublicApi(_, expirationPolicy) =>
+        expirationPolicy === ApiAccountExpirationPolicy.ExpireAtDate(expiration)
+      case x                                             => ko(s"The account type should not be '${x}'")
     }
   }
 }

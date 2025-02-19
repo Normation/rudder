@@ -56,9 +56,11 @@ searchField datePickerInfo a =
 cleanDate: String -> String
 cleanDate date = slice 0 16 (String.replace "T" " " date)
 
-filterByAuthType : String -> String -> Bool
-filterByAuthType filterAuthType authType=
-  String.isEmpty filterAuthType || filterAuthType == authType
+filterByAuthType : Maybe AuthorizationType -> AuthorizationType -> Bool
+filterByAuthType filterAuthType authType =
+  filterAuthType
+    |> Maybe.map ((==) authType)
+    |> Maybe.withDefault True
 
 generateLoadingList : Html Msg
 generateLoadingList =
@@ -93,7 +95,7 @@ displayAccountsTable model =
         [ td []
         [ text a.name
         , displayAccountDescription a
-        , span [class "badge badge-grey"][ text (getAuthorisationType a.authorisationType) ]
+        , span [class "badge badge-grey"][ text (getAuthorizationType a.authorizationType) ]
         , (if checkIfExpired model.ui.datePickerInfo a then span[class "badge-expired"][] else text "")
         , (if checkIfTokenV1 a then span[class "badge-disabled"][] else text "")
         ]
@@ -121,7 +123,7 @@ displayAccountsTable model =
             ]
             [ span [class "fa fa-pencil"] [] ]
           , label [for inputId, class "custom-toggle"]
-            [ input [type_ "checkbox", id inputId, checked a.enabled, onCheck (\c -> CallApi (saveAccount {a | enabled = c}))][]
+            [ input [type_ "checkbox", id inputId, checked (a.status == Enabled), onCheck (\c -> CallApi (saveAccount {a | status = if c then Enabled else Disabled }))][]
             , label [for inputId, class "custom-toggle-group"]
               [ label [for inputId, class "toggle-enabled" ][text "Enabled"]
               , span  [class "cursor"][]
@@ -139,7 +141,7 @@ displayAccountsTable model =
     tableFilters = filters.tableFilters
     filteredAccounts = model.accounts
       |> List.filter (\a -> filterSearch tableFilters.filter (searchField model.ui.datePickerInfo a))
-      |> List.filter (\a -> filterByAuthType filters.authType a.authorisationType)
+      |> List.filter (\a -> filterByAuthType filters.authType a.authorizationType)
       |> List.sortWith (getSortFunction model)
   in
     table [class "dataTable"]
@@ -167,14 +169,13 @@ displayAccountsTable model =
       )
     ]
 
-getAuthorisationType : String -> String
-getAuthorisationType authorizationKind =
+getAuthorizationType : AuthorizationType -> String
+getAuthorizationType authorizationKind =
   case authorizationKind of
-  "ro"   -> "Read only"
-  "rw"   -> "Full access"
-  "none" -> "No access"
-  "acl"  -> "Custom ACLs"
-  _ -> authorizationKind
+    RO   -> "Read only"
+    RW   -> "Full access"
+    None -> "No access"
+    ACL  -> "Custom ACLs"
 
 displayAccountDescription : Account -> Html Msg
 displayAccountDescription a =

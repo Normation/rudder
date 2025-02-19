@@ -59,10 +59,10 @@ import jakarta.servlet.ServletRequest
 import jakarta.servlet.ServletResponse
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import java.time.Instant
 import java.util.Collection
 import net.liftweb.common.*
 import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
@@ -854,15 +854,14 @@ class RestAuthenticationFilter(
                   ApiAccountId(name),
                   ApiAccountKind.PublicApi(
                     ApiAuthorization.None,
-                    None
+                    ApiAccountExpirationPolicy.NeverExpire
                   ), // un-authenticated APIv1 token certainly doesn't get any authz on v2 API
 
                   ApiAccountName(name),
-                  Some(ApiTokenHash.disabled()),
+                  AccountToken(Some(ApiTokenHash.disabled()), Instant.now()),
                   "API Account for un-authenticated API",
                   isEnabled = true,
-                  creationDate = new DateTime(0, DateTimeZone.UTC),
-                  tokenGenerationDate = DateTime.now(DateTimeZone.UTC),
+                  creationDate = Instant.EPOCH,
                   tenants = NodeSecurityContext.None
                 )
 
@@ -886,10 +885,10 @@ class RestAuthenticationFilter(
 
             case token =>
               // try to authenticate
-              val apiToken      = ApiTokenSecret(token)
-              val apiTokenHash  = apiToken.toHash()
-              val systemAccount = apiTokenRepository.getSystemAccount
-              if (systemAccount.token.exists(_.equalsToken(apiTokenHash))) { // system token with super authz
+              val apiToken     = ApiTokenSecret(token)
+              val apiTokenHash = apiToken.toHash()
+              if (apiTokenRepository.isSystemToken(apiTokenHash)) { // system token with super authz
+                val systemAccount = apiTokenRepository.getSystemAccount
                 authenticate(
                   RudderUserDetail(
                     RudderAccount.Api(systemAccount),
@@ -914,84 +913,105 @@ class RestAuthenticationFilter(
                     )
 
                   case Right(Some(principal)) =>
-                    if (principal.isEnabled) {
-                      principal.kind match {
-                        case ApiAccountKind.System                           => // we don't want to allow system account kind from DB
+                    principal.token match {
+                      case _: SystemToken => { // system token with super authz
+                        authenticate(
+                          RudderUserDetail(
+                            RudderAccount.Api(principal),
+                            UserStatus.Active,
+                            Set(Role.Administrator), // this token has "admin rights - use with care
+                            systemApiAcl,
+                            NodeSecurityContext.All
+                          )
+                        )
+                        chain.doFilter(request, response)
+                      }
+
+                      case AccountToken(hash, generationDate) => {
+                        if (principal.isEnabled) {
+                          principal.kind match {
+                            case ApiAccountKind.System                   => // we don't want to allow system account kind from DB
+                              failsAuthentication(
+                                httpRequest,
+                                httpResponse,
+                                Inconsistency(s"A saved API account can not have the kind 'System': '${principal.name.value}'")
+                              )
+                            case ApiAccountKind.PublicApi(authz, policy) =>
+                              policy match {
+                                case ApiAccountExpirationPolicy.ExpireAtDate(date) if Instant.now().isAfter(date) =>
+                                  failsAuthentication(
+                                    httpRequest,
+                                    httpResponse,
+                                    Inconsistency(s"Account with ID ${principal.id.value} is disabled")
+                                  )
+                                case _                                                                            => // no expiration date or expiration date not reached
+                                  val user = RudderUserDetail(
+                                    RudderAccount.Api(principal),
+                                    UserStatus.Active,
+                                    RudderAuthType.Api.apiRudderRole,
+                                    authz,
+                                    principal.tenants
+                                  )
+                                  // cool, build an authentication token from it
+                                  authenticate(user)
+                                  chain.doFilter(request, response)
+                              }
+                            case ApiAccountKind.User                     =>
+                              // User account need an update for their ACL.
+                              (try {
+                                Right(userDetailsService.loadUserDetailInfoByUsername(principal.id.value))
+                              } catch {
+                                case ex: UsernameNotFoundException =>
+                                  Left(
+                                    s"User with id '${principal.id.value}' was not found on the system. The API token linked to that user can not be used anymore."
+                                  )
+                                case ex: Exception                 =>
+                                  Left(
+                                    s"Error when trying to get user information linked to user '${principal.id.value}' API token."
+                                  )
+                              }) match {
+                                case Right((u, info))
+                                    if RudderConfig.authenticationProviders
+                                      .getProviderProperties()
+                                      .get(info.managedBy)
+                                      .map(_.restTokenFeatureSwitch == FeatureSwitch.Enabled)
+                                      .getOrElse(
+                                        false
+                                      ) => // do not allow rest authentication if user is managed by unknown provider
+                                  // update acl
+                                  authenticate(
+                                    RudderUserDetail(
+                                      RudderAccount.Api(principal),
+                                      u.status,
+                                      u.roles,
+                                      u.apiAuthz,
+                                      u.nodePerms
+                                    )
+                                  )
+                                  chain.doFilter(request, response)
+
+                                case Right((u, info)) =>
+                                  failsAuthentication(
+                                    httpRequest,
+                                    httpResponse,
+                                    Inconsistency(
+                                      s"User with id '${u.getUsername} and managed by provider ${info.managedBy} is not allowed to use the REST API. " +
+                                      s"The configuration for this provider disables REST API token authentication, you should change the provider configuration to enable that."
+                                    )
+                                  )
+
+                                case Left(er) =>
+                                  failsAuthentication(httpRequest, httpResponse, Inconsistency(er))
+                              }
+                          }
+                        } else {
                           failsAuthentication(
                             httpRequest,
                             httpResponse,
-                            Inconsistency(s"A saved API account can not have the kind 'System': '${principal.name.value}'")
+                            Inconsistency(s"Account with ID ${principal.id.value} is disabled")
                           )
-                        case ApiAccountKind.PublicApi(authz, expirationDate) =>
-                          expirationDate match {
-                            case Some(date) if (DateTime.now(DateTimeZone.UTC).isAfter(date)) =>
-                              failsAuthentication(
-                                httpRequest,
-                                httpResponse,
-                                Inconsistency(s"Account with ID ${principal.id.value} is disabled")
-                              )
-                            case _                                                            => // no expiration date or expiration date not reached
-                              val user = RudderUserDetail(
-                                RudderAccount.Api(principal),
-                                UserStatus.Active,
-                                RudderAuthType.Api.apiRudderRole,
-                                authz,
-                                principal.tenants
-                              )
-                              // cool, build an authentication token from it
-                              authenticate(user)
-                              chain.doFilter(request, response)
-                          }
-                        case ApiAccountKind.User                             =>
-                          // User account need an update for their ACL.
-                          (try {
-                            Right(userDetailsService.loadUserDetailInfoByUsername(principal.id.value))
-                          } catch {
-                            case ex: UsernameNotFoundException =>
-                              Left(
-                                s"User with id '${principal.id.value}' was not found on the system. The API token linked to that user can not be used anymore."
-                              )
-                            case ex: Exception                 =>
-                              Left(s"Error when trying to get user information linked to user '${principal.id.value}' API token.")
-                          }) match {
-                            case Right((u, info))
-                                if RudderConfig.authenticationProviders
-                                  .getProviderProperties()
-                                  .get(info.managedBy)
-                                  .map(_.restTokenFeatureSwitch == FeatureSwitch.Enabled)
-                                  .getOrElse(false) => // do not allow rest authentication if user is managed by unknown provider
-                              // update acl
-                              authenticate(
-                                RudderUserDetail(
-                                  RudderAccount.Api(principal),
-                                  u.status,
-                                  u.roles,
-                                  u.apiAuthz,
-                                  u.nodePerms
-                                )
-                              )
-                              chain.doFilter(request, response)
-
-                            case Right((u, info)) =>
-                              failsAuthentication(
-                                httpRequest,
-                                httpResponse,
-                                Inconsistency(
-                                  s"User with id '${u.getUsername} and managed by provider ${info.managedBy} is not allowed to use the REST API. " +
-                                  s"The configuration for this provider disables REST API token authentication, you should change the provider configuration to enable that."
-                                )
-                              )
-
-                            case Left(er) =>
-                              failsAuthentication(httpRequest, httpResponse, Inconsistency(er))
-                          }
+                        }
                       }
-                    } else {
-                      failsAuthentication(
-                        httpRequest,
-                        httpResponse,
-                        Inconsistency(s"Account with ID ${principal.id.value} is disabled")
-                      )
                     }
                 }
               }
