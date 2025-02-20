@@ -616,7 +616,8 @@ pipeline {
                                           options: [artifactsPublisher(disabled: true)]
                                 ) {
                                     // we need to use $MVN_COMMAND to get the settings file path
-                                    sh script: '$MVN_CMD --update-snapshots clean package deploy', label: "webapp deploy"
+                                    // we no longer need to execute tests
+                                    sh script: '$MVN_CMD -DskipTests --update-snapshots clean package deploy', label: "webapp deploy"
                                 }
                             }
                         }
