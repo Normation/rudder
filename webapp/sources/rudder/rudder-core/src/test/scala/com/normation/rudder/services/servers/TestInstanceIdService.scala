@@ -38,9 +38,7 @@ package com.normation.rudder.services.servers
 
 import better.files.File
 import better.files.File.Attributes
-import com.normation.errors.RudderError
 import com.normation.zio.UnsafeRun
-import java.nio.file.attribute.PosixFilePermissions
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -74,20 +72,22 @@ class TestInstanceIdService extends Specification {
         )
       }
 
-      "non-readable file" in File.temporaryFile(
-        "rudder-test-instance-id-",
-        "",
-        None,
-        List(PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("---------")))
-      ) { tmpFile =>
-        InstanceIdService
-          .make(tmpFile, null)
-          .either
-          .runNow must beLeft(
-          like[RudderError](_.fullMsg must startWith(s"Could not use file ${tmpFile.pathAsString} to read instance ID"))
-        )
+      // this test makes "files.exists()" check fail with an exception because of permission error
+      // but it does not work on every tmp folder (e.g. CI)
+      // "non-readable file" in File.temporaryFile(
+      //   "rudder-test-instance-id-",
+      //   "",
+      //   None,
+      //   List(PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("---------")))
+      // ) { tmpFile =>
+      //   InstanceIdService
+      //     .make(tmpFile, null)
+      //     .either
+      //     .runNow must beLeft(
+      //     like[RudderError](_.fullMsg must startWith(s"Could not use file ${tmpFile.pathAsString} to read instance ID"))
+      //   )
 
-      }
+      // }
     }
   }
 }
