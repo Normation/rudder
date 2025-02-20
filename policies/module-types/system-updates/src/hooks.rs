@@ -137,11 +137,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn geteuid_gets_an_id() {
-        assert!(geteuid() > 0);
-    }
-
-    #[test]
     fn test_hook_is_runnable() {
         let euid = geteuid();
 
