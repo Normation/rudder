@@ -70,17 +70,17 @@ class ComputePolicyModeTest extends Specification with Loggable {
     "Empty everything leads to default" in {
       ComputePolicyMode
         .ruleMode(GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always), Set(), Set())
-        ._1 must beEqualTo("enforce")
+        .name must beEqualTo("enforce")
     }
     "Directive in audit and no node leads to audit" in {
       ComputePolicyMode
         .ruleMode(GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always), Set(audit1), Set())
-        ._1 must beEqualTo("audit")
+        .name must beEqualTo("audit")
     }
     "Directive in audit and node in default leads to audit" in {
       ComputePolicyMode
         .ruleMode(GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always), Set(audit1), Set(None))
-        ._1 must beEqualTo("audit")
+        .name must beEqualTo("audit")
     }
   }
 
