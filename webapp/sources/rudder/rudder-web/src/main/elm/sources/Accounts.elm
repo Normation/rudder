@@ -88,7 +88,7 @@ update msg model =
                 editAccount =
                     case modalState of
                         NewAccount ->
-                            Just (Account "" "" "" "rw" "" True "" "" Nothing (ExpireAtDate expDate) Nothing TenantMode.AllAccess Nothing)
+                            Just (Account "" "" "" RW "" Enabled "" "" Nothing (ExpireAtDate expDate) Nothing TenantMode.AllAccess Nothing)
 
                         EditAccount a ->
                             Just a

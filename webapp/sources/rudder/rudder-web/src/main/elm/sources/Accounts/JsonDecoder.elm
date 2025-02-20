@@ -16,40 +16,64 @@ import Time.Iso8601ErrorMsg
 -- GENERAL
 
 
-decodeGetAccounts : DatePickerInfo -> Decoder ApiResult
-decodeGetAccounts datePickerInfo =
-    at [ "data" ] (decodeResult datePickerInfo)
+decodeGetAccounts : Zone -> Decoder ApiResult
+decodeGetAccounts zone =
+    at [ "data" ] (decodeResult zone)
 
 
-decodeAccount : DatePickerInfo -> Decoder Account
-decodeAccount datePickerInfo =
+decodeAccount : Zone -> Decoder Account
+decodeAccount zone =
     succeed Account
         |> required "id" string
         |> required "name" string
         |> required "description" string
-        |> required "authorizationType" string
+        |> required "authorizationType" decodeAuthorizationType
         |> optional "kind" string "public"
-        |> required "status" decodeEnabledStatus
+        |> required "status" decodeAccountStatus
         |> required "creationDate" string
         |> optional "token" string ""
         |> optional "tokenGenerationDate" (maybe string) Nothing
-        |> custom (decodeExpirationPolicy datePickerInfo)
+        |> custom (decodeExpirationPolicy zone)
         |> optional "acl" (map Just (list <| decodeAcl)) Nothing
         |> required "tenants" (string |> andThen toTenantMode)
         |> required "tenants" (string |> andThen toTenantList)
 
 
-decodeEnabledStatus : Decoder Bool
-decodeEnabledStatus =
+decodeAuthorizationType : Decoder AuthorizationType
+decodeAuthorizationType =
+    string
+        |> andThen
+            (\s ->
+                case s of
+                    "ro" ->
+                        succeed RO
+
+                    "rw" ->
+                        succeed RW
+
+                    "none" ->
+                        succeed None
+
+                    "acl" ->
+                        succeed ACL
+
+                    _ ->
+                        fail "Authorization status invalid, expected \"ro\", \"rw\", \"none\", or \"acl\"."
+            )
+
+
+
+decodeAccountStatus : Decoder AccountStatus
+decodeAccountStatus =
     string
         |> andThen
             (\s ->
                 case s of
                     "enabled" ->
-                        succeed True
+                        succeed Enabled
 
                     "disabled" ->
-                        succeed False
+                        succeed Disabled
 
                     _ ->
                         fail "Enabled status invalid, expected \"enabled\" or \"disabled\"."
@@ -63,8 +87,8 @@ decodeAcl =
         |> required "verb" string
 
 
-decodeExpirationPolicy : DatePickerInfo -> Decoder ExpirationPolicy
-decodeExpirationPolicy { zone } =
+decodeExpirationPolicy : Zone -> Decoder ExpirationPolicy
+decodeExpirationPolicy zone =
     field "expirationPolicy" string
         |> andThen (parseExpirationPolicy zone)
 
@@ -128,15 +152,15 @@ toTenantList str =
     succeed (Tuple.second (parseTenants str))
 
 
-decodeResult : DatePickerInfo -> Decoder ApiResult
-decodeResult datePickerInfo =
+decodeResult : Zone -> Decoder ApiResult
+decodeResult zone =
     succeed ApiResult
-        |> required "accounts" (list (decodeAccount datePickerInfo))
+        |> required "accounts" (list (decodeAccount zone))
 
 
-decodePostAccount : DatePickerInfo -> Decoder Account
-decodePostAccount datePickerInfo =
-    at [ "data", "accounts" ] (index 0 (decodeAccount datePickerInfo))
+decodePostAccount : Zone -> Decoder Account
+decodePostAccount zone =
+    at [ "data", "accounts" ] (index 0 (decodeAccount zone))
 
 
 decodeErrorDetails : String -> ( String, String )
