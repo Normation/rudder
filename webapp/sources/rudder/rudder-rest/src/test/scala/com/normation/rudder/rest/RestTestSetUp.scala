@@ -398,6 +398,7 @@ class RestTestSetUp {
     override def getGenerationContinueOnError: () => Box[Boolean]          = ???
     override def writeCertificatesPem(allNodeInfos: MapView[NodeId, CoreNodeFact]): Unit = ???
     override def triggerNodeGroupUpdate(): Box[Unit] = ???
+    override def updateAllProperties():    Box[Unit] = ???
     override def beforeDeploymentSync(generationTime: DateTime): Box[Unit] = ???
     override def HOOKS_D:                     String                                               = ???
     override def HOOKS_IGNORE_SUFFIXES:       List[String]                                         = ???
