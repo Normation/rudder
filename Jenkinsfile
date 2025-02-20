@@ -219,7 +219,7 @@ pipeline {
                             // we don't share elm folder as it is may break with concurrent builds
                             // set same timezone as some tests rely on it
                             // and share maven cache
-                            args '-u 0:0 -v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
+                            args '-u 0:0 -v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/root/.elm -v /srv/cache/maven:/root/.m2'
                         }
                     }
                     steps {
@@ -310,7 +310,7 @@ pipeline {
                             label 'generic-docker'
                             filename 'relay/sources/rudder-package/Dockerfile'
                             // mount cache
-                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache -v /srv/cache/cargo-vet:/home/jenkins/.cache/cargo-vet'
+                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache -v /srv/cache/cargo-vet:/root/.cache/cargo-vet'
                         }
                     }
                     steps {
@@ -355,7 +355,7 @@ pipeline {
                             filename 'policies/Dockerfile'
                             additionalBuildArgs  "--build-arg RUDDER_VER=${env.RUDDER_VERSION}-nightly --build-arg PSANALYZER_VER=1.20.0"
                             // mount cache
-                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache -v /srv/cache/cargo-vet:/home/jenkins/.cache/cargo-vet'
+                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache -v /srv/cache/cargo-vet:/root/.cache/cargo-vet'
                         }
                     }
                     steps {
@@ -437,7 +437,7 @@ pipeline {
                                 // we don't share elm folder as it is may break with concurrent builds
                                 // set same timezone as some tests rely on it
                                 // and share maven cache
-                                args '-u 0:0 -v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
+                                args '-u 0:0 -v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/root/.elm -v /srv/cache/maven:/root/.m2'
                             }
                         }
                         steps {
@@ -602,7 +602,7 @@ pipeline {
                             // we don't share elm folder as it is may break with concurrent builds
                             // set same timezone as some tests rely on it
                             // and share maven cache
-                            args '-u 0:0 -v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/home/jenkins/.elm -v /srv/cache/maven:/home/jenkins/.m2'
+                            args '-u 0:0 -v /etc/timezone:/etc/timezone:ro -v /srv/cache/elm:/root/.elm -v /srv/cache/maven:/root/.m2'
                         }
                     }
                     steps {
@@ -649,7 +649,7 @@ pipeline {
                             filename 'policies/Dockerfile'
                             additionalBuildArgs  "--build-arg RUDDER_VER=${env.RUDDER_VERSION}-nightly"
                             // mount cache
-                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache'
+                            args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache'
                         }
                     }
                     steps {
