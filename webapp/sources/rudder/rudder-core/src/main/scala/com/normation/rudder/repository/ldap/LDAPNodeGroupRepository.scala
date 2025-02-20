@@ -74,6 +74,7 @@ import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.properties.NodePropertiesService
 import com.normation.rudder.repository.CategoryAndNodeGroup
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.FullNodeGroupCategory
@@ -646,6 +647,7 @@ class WoLDAPNodeGroupRepository(
     roGroupRepo:        RoLDAPNodeGroupRepository,
     ldap:               LDAPConnectionProvider[RwLDAPConnection],
     diffMapper:         LDAPDiffMapper,
+    propertiesService:  NodePropertiesService,
     uuidGen:            StringUuidGenerator,
     actionlogEffect:    EventLogRepository,
     gitArchiver:        GitNodeGroupArchiver,
@@ -1082,19 +1084,26 @@ class WoLDAPNodeGroupRepository(
     // note: this is not protected by a lock because of the risk of calling it in a read lock
     // in a subclass. All callers must call it in a `writeLock`.
     for {
-      result       <- con.save(entry, removeMissingAttributes = true).chainError(s"Error when saving entry: ${entry}")
-      optDiff      <- diffMapper
-                        .modChangeRecords2NodeGroupDiff(existing, result)
-                        .toIO
-                        .chainError(s"Error when mapping change record to a diff object: ${result}")
-      loggedAction <- optDiff match {
-                        case None       => ZIO.unit
-                        case Some(diff) =>
-                          actionlogEffect
-                            .saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = reason)
-                            .chainError("Error when logging modification as an event")
-                      }
-      autoArchive  <-
+      result      <- con.save(entry, removeMissingAttributes = true).chainError(s"Error when saving entry: ${entry}")
+      optDiff     <- diffMapper
+                       .modChangeRecords2NodeGroupDiff(existing, result)
+                       .toIO
+                       .chainError(s"Error when mapping change record to a diff object: ${result}")
+      _           <- optDiff match {
+                       case None       => ZIO.unit
+                       case Some(diff) =>
+                         for {
+                           // save event log
+                           _ <-
+                             actionlogEffect
+                               .saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = reason)
+                               .chainError("Error when logging modification as an event")
+                           // properties change need to trigger an update and recomputation of properties
+                           _ <-
+                             ZIO.whenCase(diff.modProperties) { case Some(_) => propertiesService.updateAll() }
+                         } yield ()
+                     }
+      autoArchive <-
         (ZIO
           .when(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { // only persists if modification are present
             for {

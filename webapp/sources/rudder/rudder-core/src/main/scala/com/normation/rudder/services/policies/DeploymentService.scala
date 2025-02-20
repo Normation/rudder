@@ -47,6 +47,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors.*
 import com.normation.inventory.domain.MemorySize
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.batch.NodePropertiesSyncService
 import com.normation.rudder.batch.UpdateDynamicGroups
 import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.domain.Constants
@@ -220,14 +221,20 @@ trait PromiseGenerationService {
 
       // trigger a dynamic group update
       dynamicGroupUpdateTime = System.currentTimeMillis
-      _                     <- if (computeDynGroupsEnabled) {
-                                 triggerNodeGroupUpdate()
-                               } else {
-                                 PolicyGenerationLogger.warn(
-                                   s"Computing dynamic groups disable by REST API settings 'rudder_generation_compute_dyngroups'"
-                                 )
-                                 Full(())
-                               }
+      _                     <- {
+        if (computeDynGroupsEnabled) {
+          triggerNodeGroupUpdate()
+        } else {
+          PolicyGenerationLogger.warn(
+            s"Computing dynamic groups disable by REST API settings 'rudder_generation_compute_dyngroups'"
+          )
+
+        }
+
+        // we want group and nodes properties to be updated here,
+        // to guarantee that they are up-to-date before querying them in the repository
+        updateAllProperties()
+      }
       timeComputeGroups      = (System.currentTimeMillis - dynamicGroupUpdateTime)
       _                      = PolicyGenerationLogger.timing.debug(s"Computing dynamic groups finished in ${timeComputeGroups} ms")
 
@@ -630,6 +637,8 @@ trait PromiseGenerationService {
 
   // Trigger dynamic group update
   def triggerNodeGroupUpdate(): Box[Unit]
+  // Update all known properties and things that are synced with them
+  def updateAllProperties():    Box[Unit]
 
   // code hooks
   def beforeDeploymentSync(generationTime: DateTime): Box[Unit]
@@ -831,6 +840,7 @@ class PromiseGenerationServiceImpl(
     override val systemVarService:                  SystemVariableService,
     override val nodeConfigurationService:          NodeConfigurationHashRepository,
     override val nodeFactRepository:                NodeFactRepository,
+    override val propertiesSyncService:             NodePropertiesSyncService,
     override val propertiesRepository:              PropertiesRepository,
     override val confExpectedRepo:                  UpdateExpectedReportsRepository,
     override val roNodeGroupRepository:             RoNodeGroupRepository,
@@ -873,8 +883,15 @@ class PromiseGenerationServiceImpl(
 
   override def triggerNodeGroupUpdate(): Box[Unit] = {
     dynamicsGroupsUpdate.map(groupUpdate(_)).getOrElse(Failure("Dynamic group update is not registered, this is an error"))
-
   }
+
+  override def updateAllProperties(): Box[Unit] = {
+    propertiesSyncService
+      .syncProperties()(QueryContext.systemQC)
+      .chainError("Properties cannot be updated when computing new dynamic groups")
+      .toBox
+  }
+
   private def groupUpdate(updateDynamicGroups: UpdateDynamicGroups): Box[Unit] = {
     // Trigger a manual update if one is not pending (otherwise it goes in infinit loop)
     // It doesn't expose anything about its ending, so we need to wait for the update to be idle
@@ -922,6 +939,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   def interpolatedValueCompiler:    InterpolatedValueCompiler
   def systemVarService:             SystemVariableService
   def ruleApplicationStatusService: RuleApplicationStatusService
+  def propertiesSyncService:        NodePropertiesSyncService
   def propertiesRepository:         PropertiesRepository
   def getGlobalPolicyMode:          () => Box[GlobalPolicyMode]
 
