@@ -214,6 +214,9 @@ pub fn run_inner(args: Args) -> Result<()> {
                     db.plugins.keys().cloned().collect()
                 } else {
                     let packages = long_names(package);
+                    if packages.is_empty() {
+                        bail!("No plugin name provided");
+                    }
                     for p in &packages {
                         if !db.plugins.contains_key(p) {
                             bail!(
@@ -224,9 +227,6 @@ pub fn run_inner(args: Args) -> Result<()> {
                     }
                     packages
                 };
-                if to_upgrade.is_empty() {
-                    bail!("No plugin name provided");
-                }
                 for p in &to_upgrade {
                     if let Err(e) = db.install(false, p, None, &repo, index.as_ref(), &mut webapp) {
                         errors = true;
@@ -296,12 +296,12 @@ pub fn run_inner(args: Args) -> Result<()> {
             let to_enable: Vec<String> = if all {
                 db.plugins.keys().cloned().collect()
             } else {
-                long_names(package)
+                let plugins = long_names(package);
+                if plugins.is_empty() {
+                    bail!("No plugin name provided");
+                }
+                plugins
             };
-
-            if to_enable.is_empty() {
-                bail!("No plugin name provided");
-            }
 
             if to_enable.is_empty() {
                 let backup_path = Path::new(PLUGIN_STATUS_BACKUP_PATH);
@@ -352,12 +352,12 @@ pub fn run_inner(args: Args) -> Result<()> {
                     .map(|(p, _)| p.to_string())
                     .collect()
             } else {
-                long_names(package)
+                let plugins = long_names(package);
+                if plugins.is_empty() {
+                    bail!("No plugin name provided");
+                }
+                plugins
             };
-
-            if to_disable.is_empty() {
-                bail!("No plugin name provided");
-            }
 
             for p in &to_disable {
                 match db.plugins.get(p) {
