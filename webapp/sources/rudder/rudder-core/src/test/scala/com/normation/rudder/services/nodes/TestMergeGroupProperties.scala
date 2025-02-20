@@ -90,8 +90,10 @@ class TestMergeGroupProperties extends Specification {
   implicit class ToTarget(g: NodeGroup) {
     def toTarget:    FullGroupTarget =
       FullGroupTarget(GroupTarget(g.id), g)
-    def toCriterion: CriterionLine   =
-      CriterionLine(null, Criterion("some ldap attr", SubGroupComparator(null), null), null, g.id.serialize)
+    def toCriterion: CriterionLine   = {
+      val criterion = Criterion("some ldap attr", SubGroupComparator(() => null), AlwaysFalse("for tests"))
+      CriterionLine(ObjectCriterion("any criterion", criterion :: Nil), criterion, Equals, g.id.serialize)
+    }
   }
 
   implicit class ToNodePropertyHierarchy(groups: List[NodeGroup]) {
@@ -136,15 +138,15 @@ class TestMergeGroupProperties extends Specification {
 
   /*
    *  Hierarchy:
-   *   global
-   *      |
    *   parent1       parent2
+   *    (bar1)        (bar2)
    *      |
-   *   childProp
+   *    child
+   *    (baz)
    *      |
-   *    node
+   *     node
+   *  (barNode)
    */
-
   val parent1: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("parent1")),
     name = "parent1",
@@ -234,6 +236,14 @@ class TestMergeGroupProperties extends Specification {
   }
 
   "override is done in the same order of line, the last wins" >> {
+    /*   parent1     parent2
+     *      |           |
+     *       \         /
+     *         \     /
+     *          child
+     *            |
+     *           node
+     */
     val q2  = query.modify(_.criteria).setTo(parent1.toCriterion :: parent2.toCriterion :: Nil)
     val ct2 = child
       .modify(_.query)
@@ -411,6 +421,31 @@ class TestMergeGroupProperties extends Specification {
       )
     }
 
+    /*   parent1  <  parent2
+     *      |           |
+     *       \         /
+     *         \     /
+     *          child
+     */
+    "resolve conflict on parent groups by taking most overriding group" >> {
+      val q2  = query.modify(_.criteria).setTo(parent1.toCriterion :: parent2.toCriterion :: Nil)
+      val ct2 = child
+        .modify(_.id.uid.value)
+        .setTo("ct2")
+        .modify(_.query)
+        .setTo(Some(q2)) // parent 2 wins
+        .modify(_.properties)
+        .setTo(Nil)
+
+      val res = MergeNodeProperties.forGroup(
+        ct2.toTarget,
+        Map(parent1.id -> parent1.toTarget, parent2.id -> parent2.toTarget, ct2.id -> ct2.toTarget),
+        Map()
+      )
+      // ct2 is resolving conflict by assigning priority to parent2
+      res must beEqualTo(SuccessNodePropertyHierarchy(Chunk(List(parent2).toH1("foo"))))
+    }
+
   }
 
   "global parameter are inherited" >> {
@@ -419,6 +454,17 @@ class TestMergeGroupProperties extends Specification {
     merged must beRight(List(g.toG("foo")))
   }
 
+  /*
+   *  Hierarchy:
+   *    global
+   *    (bar)
+   *      |
+   *   parent1       parent2
+   *    (bar1)
+   *      |
+   *    child
+   *    (baz)
+   */
   "global parameter are inherited and overridden by group and only one time" >> {
     // empty properties, see if global is duplicated
     val p2       = parent2.copy(properties = Nil)
