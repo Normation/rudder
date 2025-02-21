@@ -8,7 +8,7 @@ import List.Extra
 import Maybe.Extra
 import Plugins.ApiCalls exposing (..)
 import Plugins.DataTypes exposing (..)
-import Plugins.JsonEncoder exposing (..)
+import Set exposing (Set)
 import String.Extra
 import Time.DateTime
 import Time.Iso8601
@@ -25,15 +25,6 @@ view model =
                         [ span [] [ text "Plugins management" ]
                         ]
                     ]
-                , div [ class "header-description" ]
-                    [ p []
-                        [ text "Plugins can extend Rudder’s base functionality to add extra features. Learn about available plugins on our "
-                        , a [ target "_blank", href "https://www.rudder.io/software/plugins/" ] [ text "website" ]
-                        , text " or directly "
-                        , a [ target "_blank", href "https://repository.rudder.io/plugins/" ] [ text "download free plugins" ]
-                        , text "."
-                        ]
-                    ]
                 ]
             , div [ class "one-col-main" ]
                 [ div [ class "template-main" ]
@@ -46,48 +37,6 @@ view model =
             , displayModal model
             ]
         ]
-
-
-pluginStatusText : PluginStatus -> String
-pluginStatusText status =
-    case status of
-        Enabled ->
-            "Enabled"
-
-        Disabled ->
-            "Disabled"
-
-        Uninstalled ->
-            "Uninstalled"
-
-
-displayPluginLicense : Maybe LicenseInfo -> String
-displayPluginLicense l =
-    case l of
-        Just license ->
-            "Licensee: "
-                |> String.append license.licensee
-                |> String.append ", Allowed nodes: "
-                |> String.append (String.fromInt license.allowedNodesNumber)
-                |> String.append ", Supported versions: "
-                |> String.append license.supportedVersions
-                |> String.append ", Start date: "
-                |> String.append (Time.Iso8601.fromZonedDateTime license.startDate)
-                |> String.append ", End date: "
-                |> String.append (Time.Iso8601.fromZonedDateTime license.endDate)
-
-        Nothing ->
-            "No License"
-
-
-pluginTypeText : PluginType -> String
-pluginTypeText pluginType =
-    case pluginType of
-        Webapp ->
-            "Webapp"
-
-        Integration ->
-            "Integration"
 
 
 checkOne : PluginId -> Bool -> Msg
@@ -114,36 +63,60 @@ checkAll =
            )
 
 
-actionButtons : Model -> List (Html Msg)
+actionButtons : PluginsViewModel -> List (Html Msg)
 actionButtons model =
-    [ button [ class "btn btn-primary me-1", onClick (CallApi updateIndex) ] [ i [ class "fa fa-refresh me-1" ] [], text "Check for updates" ]
-    , button [ class "btn btn-default mx-1", disabled <| List.isEmpty model.ui.selected, onClick (SetModalState (OpenModal Install)) ] [ text "Install", i [ class "fa fa-plus-circle ms-1" ] [] ]
-    , button [ class "btn btn-default mx-1", disabled <| List.isEmpty model.ui.selected, onClick (SetModalState (OpenModal Uninstall)) ] [ text "Uninstall", i [ class "fa fa-minus-circle ms-1" ] [] ]
-    , button [ class "btn btn-default mx-1", disabled <| List.isEmpty model.ui.selected, onClick (SetModalState (OpenModal Enable)) ] [ text "Enable", i [ class "fa fa-check-circle ms-1" ] [] ]
-    , button [ class "btn btn-default ms-1", disabled <| List.isEmpty model.ui.selected, onClick (SetModalState (OpenModal Disable)) ] [ text "Disable", i [ class "fa fa-ban ms-1" ] [] ]
+    [ button [ class "btn btn-primary me-1", onClick (CallApi updateIndex) ] [ i [ class "fa fa-refresh me-1" ] [], text "Refresh plugins" ]
+    , installActionButton model.installAction
+    , button [ class "btn btn-default mx-1", disabled <| Set.isEmpty model.selected, onClick (SetModalState (OpenModal Uninstall)) ] [ text "Uninstall", i [ class "fa fa-minus-circle ms-1" ] [] ]
+    , button [ class "btn btn-default mx-1", disabled <| Set.isEmpty model.selected, onClick (SetModalState (OpenModal Enable)) ] [ text "Enable", i [ class "fa fa-check-circle ms-1" ] [] ]
+    , button [ class "btn btn-default ms-1", disabled <| Set.isEmpty model.selected, onClick (SetModalState (OpenModal Disable)) ] [ text "Disable", i [ class "fa fa-ban ms-1" ] [] ]
     ]
 
 
-displayPluginsList : Model -> Html Msg
-displayPluginsList model =
-    if List.isEmpty model.plugins then
+installActionButton : ActionModel -> Html Msg
+installActionButton model =
+    let
+        count =
+            case model of
+                ActionDisabled ->
+                    text "Install"
+
+                ActionEnabled c ->
+                    text ("Install " ++ String.fromInt c)
+
+        isDisabled =
+            case model of
+                ActionDisabled ->
+                    True
+
+                ActionEnabled _ ->
+                    False
+    in
+    button
+        [ class "btn btn-default mx-1"
+        , onClick (SetModalState (OpenModal Install))
+        , disabled isDisabled
+        ]
+        [ count, i [ class "fa fa-plus-circle ms-1" ] [] ]
+
+
+displayPluginsList : PluginsViewModel -> Html Msg
+displayPluginsList pluginsModel =
+    if List.isEmpty pluginsModel.plugins then
         i [ class "text-secondary" ] [ text "There are no plugins available." ]
 
     else
-        pluginsSection model
+        pluginsSection pluginsModel
 
 
-pluginsSection : Model -> Html Msg
-pluginsSection model =
+pluginsSection : PluginsViewModel -> Html Msg
+pluginsSection pluginsModel =
     let
-        selected =
-            model.ui.selected
-
         plugins =
-            List.sortWith pluginDefaultOrdering model.plugins
+            List.sortWith pluginDefaultOrdering pluginsModel.plugins
 
         isSelectAll =
-            not (List.length plugins == List.length selected)
+            not (List.length plugins == Set.size pluginsModel.selected)
 
         selectText =
             if isSelectAll then
@@ -165,10 +138,9 @@ pluginsSection model =
         [ div [ class "table-container plugins-container" ]
             [ div [ class "dataTables_wrapper_top table-filter plugins-actions" ]
                 [ div [ class "start" ] selectHtml
-                , div [ class "end" ] (actionButtons model)
+                , div [ class "end" ] (actionButtons pluginsModel)
                 ]
-            , h2 [ class "fs-5 p-3 m-0" ] [ text "Features" ]
-            , div [ class "plugins-list" ] (List.map (displayPlugin model) plugins)
+            , div [ class "plugins-list" ] (List.map (displayPlugin pluginsModel) plugins)
             ]
         ]
 
@@ -207,9 +179,7 @@ displayGlobalLicense license =
     div [ class "main-license" ]
         [ div [ attribute "data-plugin" "statusInformation", class "license-card" ]
             [ div [ id "license-information", class "license-info" ]
-                [ h2 [ class "license-info-title" ] [ span [] [ text "License information" ], i [ class "license-icon ion ion-ribbon-b" ] [] ]
-                , p [ class "license-information-details" ] [ text "The following license information are provided" ]
-                , div [ class "license-information-details" ]
+                [ div [ class "license-information-details" ]
                     [ table [ class "table-license" ]
                         [ tbody []
                             [ tr [] [ td [] [ text "Licensee:" ], td [] [ text licensees ] ]
@@ -226,35 +196,42 @@ displayGlobalLicense license =
         ]
 
 
-displaySettingError : Model -> String -> String -> Html Msg
+displaySettingError : Model -> String -> Maybe String -> Html Msg
 displaySettingError model message details =
-    div [ class "callout-fade callout-warning overflow-scroll" ]
-        [ p [] [ i [ class "fa fa-warning" ] [], text message ]
-        , p [] [ a [ target "_blank", href (model.contextPath ++ "/secure/administration/settings") ] [ text "Open Rudder account settings", i [ class "fa fa-external-link ms-1" ] [] ] ]
-        , p []
-            [ button [ class "btn btn-primary me-1", onClick (CallApi updateIndex) ] [ i [ class "fa fa-refresh me-1" ] [], text "Refresh plugins" ]
-            , a [ class "btn btn-default", attribute "data-bs-toggle" "collapse", href "#collapseSettingsError", role "button", attribute "aria-expanded" "false", attribute "aria-controls" "collapseSettingsError" ]
+    let
+        seeDetailsBtn =
+            a
+                [ class "btn btn-default", attribute "data-bs-toggle" "collapse", href "#collapseSettingsError", role "button", attribute "aria-expanded" "false", attribute "aria-controls" "collapseSettingsError" ]
                 [ text "See details" ]
-            ]
-        , div [ class "collapse", id "collapseSettingsError" ]
-            [ div [ class "card card-body" ]
-                [ pre [ class "command-output" ]
-                    [ text details
-                    ]
-                ]
-            ]
-        ]
+
+        detailsCollapse txt =
+            div [ class "collapse", id "collapseSettingsError" ] [ div [ class "card card-body" ] [ pre [ class "command-output" ] [ text txt ] ] ]
+
+        ( seeDetailsBtnHtml, detailsCollapseHtml ) =
+            details
+                |> Maybe.Extra.unpack (\_ -> ( [], [] )) (\d -> ( [ seeDetailsBtn ], [ detailsCollapse d ] ))
+    in
+    div [ class "callout-fade callout-warning overflow-scroll" ]
+        ([ p [] [ i [ class "fa fa-warning" ] [], text message ]
+         , p [] [ a [ target "_blank", href (model.contextPath ++ "/secure/administration/settings") ] [ text "Open Rudder account settings", i [ class "fa fa-external-link ms-1" ] [] ] ]
+         , p []
+            (button [ class "btn btn-primary me-1", onClick (CallApi updateIndex) ] [ i [ class "fa fa-refresh me-1" ] [], text "Refresh plugins" ]
+                :: seeDetailsBtnHtml
+            )
+         ]
+            ++ detailsCollapseHtml
+        )
 
 
 displayMainLicense : Model -> Html Msg
 displayMainLicense model =
     case model.license of
         Nothing ->
-            displaySettingError model "No license found. Please contact Rudder to get license or configure your access" ("Available plugins : [" ++ String.join ", " (List.map .id model.plugins) ++ "]")
+            displaySettingError model "No license found. Please contact Rudder to get license or configure your access" Nothing
 
         Just license ->
             if license == noGlobalLicense then
-                displaySettingError model "Empty license found. Please contact Rudder to get license or configure your access" ("Available plugins : [" ++ String.join ", " (List.map .id model.plugins) ++ "]")
+                displaySettingError model "Empty license found. Please contact Rudder to get license or configure your access" Nothing
 
             else
                 displayGlobalLicense license
@@ -264,11 +241,11 @@ displayPluginView : Model -> List (Html Msg)
 displayPluginView model =
     case model.ui.view of
         ViewSettingsError ( message, details ) ->
-            [ displaySettingError model message details ]
+            [ displaySettingError model message (Just details) ]
 
-        ViewPluginsList ->
+        ViewPluginsList pluginsModel ->
             [ displayMainLicense model
-            , displayPluginsList model
+            , displayPluginsList pluginsModel
             ]
 
 
@@ -280,23 +257,23 @@ findLicenseNeededError =
 pluginBadge : PluginInfo -> List (Html msg)
 pluginBadge p =
     case ( p.status, findLicenseNeededError p.errors ) of
-        ( Enabled, _ ) ->
+        ( StatusEnabled, _ ) ->
             [ div [ class "position-absolute top-0 end-0" ] [ span [ class "badge float-end bg-success" ] [ text "Installed" ] ] ]
 
         ( _, Just _ ) ->
-            [ div [ class "position-absolute top-0 end-0" ] [ span [ class "badge float-end text-dark" ] [ i [ class "fa fa-info-circle me-1" ] [], text "Missing license" ] ] ]
+            [ div [ class "position-absolute top-0 end-0" ] [ span [ class "badge float-end text-dark" ] [ i [ class "fa fa-info-circle me-1" ] [], text "No license" ] ] ]
 
-        ( Disabled, _ ) ->
+        ( StatusDisabled, _ ) ->
             [ div [ class "position-absolute top-0 end-0" ] [ span [ class "badge float-end" ] [ text "Disabled" ] ] ]
 
-        ( Uninstalled, _ ) ->
+        ( StatusUninstalled, _ ) ->
             []
 
 
 pluginCardBgClass : PluginInfo -> Maybe String
 pluginCardBgClass p =
     case ( p.status, findLicenseNeededError p.errors ) of
-        ( Disabled, _ ) ->
+        ( StatusDisabled, _ ) ->
             Just "plugin-card-disabled"
 
         ( _, Just _ ) ->
@@ -326,7 +303,7 @@ pluginErrorCallouts : PluginInfo -> Maybe (List (Html msg))
 pluginErrorCallouts p =
     p.errors
         |> List.filterMap (\err -> pluginErrorCalloutClass err |> Maybe.map (\cls -> ( err, cls )))
-        |> List.map (\( err, cls ) -> div [ class ("callout-fade callout-" ++ cls) ] [ i [ class ("me-1 fa fa-" ++ cls) ] [], text err.message ])
+        |> List.map (\( err, cls ) -> div [ class ("callout-fade callout-" ++ cls) ] [ i [ class "me-1 fa fa-warning" ] [], text err.message ])
         |> (\e ->
                 if List.isEmpty e then
                     Nothing
@@ -336,8 +313,8 @@ pluginErrorCallouts p =
            )
 
 
-pluginInputCheck : Model -> PluginInfo -> List (Html Msg)
-pluginInputCheck model p =
+pluginInputCheck : PluginInfo -> Set PluginId -> List (Html Msg)
+pluginInputCheck p selected =
     let
         -- plugin cannot be selected
         isDisabled =
@@ -347,22 +324,22 @@ pluginInputCheck model p =
         [ input [ id p.id, type_ "checkbox", class "d-none", disabled True ] [], i [ class "fa fa-info-circle text-muted fs-5 mx-2" ] [] ]
 
     else
-        [ input [ id p.id, type_ "checkbox", class "mx-2", checked (List.member p.id model.ui.selected), onCheck (checkOne p.id) ] [] ]
+        [ input [ id p.id, type_ "checkbox", class "mx-2", checked (Set.member p.id selected), onCheck (checkOne p.id) ] [] ]
 
 
-displayPlugin : Model -> PluginInfo -> Html Msg
-displayPlugin model p =
+displayPlugin : PluginsViewModel -> PluginInfo -> Html Msg
+displayPlugin pluginsModel p =
     div [ class <| "plugin-card card " ++ Maybe.withDefault "" (pluginCardBgClass p) ]
         [ div [ class "card-body" ]
             [ div [ class "form-check p-0 d-flex align-items-center" ]
-                (pluginInputCheck model p
+                (pluginInputCheck p pluginsModel.selected
                     ++ label [ class "d-flex flex-column mx-2", for p.id ]
                         [ div [ class "d-flex align-items-baseline" ]
-                            [ h3 [ class "plugin-name card-title" ] [ text p.name ]
+                            [ h3 [ class "plugin-title card-title" ] [ text p.description ]
                             , span [ class "plugin-version ms-2" ] [ text ("v" ++ p.pluginVersion) ]
                             ]
                         , div [ class "card-text" ]
-                            [ div [ class "plugin-description" ] [ text p.description ]
+                            [ div [ class "plugin-name" ] [ a [ class "link-secondary text-decoration-underline link-underline link-offset-2 link-underline-opacity-25 link-underline-opacity-100-hover", target "_blank", href (pluginDocumentationLink p) ] [ i [ class "fa fa-book me-2" ] [], text p.name ] ]
                             , Maybe.withDefault (text "") <|
                                 Maybe.map (div [ class "plugin-errors d-flex flex-column" ]) <|
                                     pluginErrorCallouts p
@@ -388,7 +365,7 @@ buildModal loading title body saveAction =
                     [ body
                     ]
                 , div [ class "modal-footer" ]
-                    [ button [ type_ "button", class "btn btn-default", onClick (SetModalState NoModal) ] [ text "Close" ]
+                    [ button [ type_ "button", class "btn btn-default", onClick (SetModalState NoModal) ] [ text "Cancel" ]
                     , button [ type_ "button", class "btn btn-success", onClick saveAction ]
                         (loadWithSpinner "spinner-grow spinner-grow-sm"
                             loading
@@ -410,22 +387,27 @@ modalTitle requestType =
     String.Extra.toSentenceCase (requestTypeText requestType) ++ " plugins"
 
 
-modalBody : RequestType -> Model -> Html Msg
-modalBody requestType model =
+modalBody : RequestType -> PluginsViewModel -> Html Msg
+modalBody requestType pluginsModel =
     div [ class "callout-fade callout-warning" ]
-        [ p [] [ i [ class "fa fa-warning me-2" ] [], strong [] [ text "Rudder may restart" ], text <| " to " ++ requestTypeText requestType ++ " " ++ String.Extra.pluralize "plugin" "plugins" (List.length model.ui.selected) ++ " :" ]
-        , ul [ class "list-group m-0" ] (List.map (\p -> li [ class "list-group-item" ] [ text p ]) model.ui.selected)
+        [ p [] [ i [ class "fa fa-warning me-2" ] [], strong [] [ text "Rudder will restart" ], text <| " to " ++ requestTypeText requestType ++ " " ++ String.Extra.pluralize "plugin" "plugins" (Set.size pluginsModel.selected) ++ " :" ]
+        , ul [ class "list-group m-0" ] (pluginsModel.selected |> Set.toList |> List.map (\p -> li [ class "list-group-item" ] [ text p ]))
         ]
 
 
 displayModal : Model -> Html Msg
 displayModal model =
-    case model.ui.modalState of
-        NoModal ->
+    case model.ui.view of
+        ViewSettingsError _ ->
             text ""
 
-        OpenModal requestType ->
-            buildModal model.ui.loading (modalTitle requestType) (modalBody requestType model) (RequestApi requestType)
+        ViewPluginsList pluginsModel ->
+            case pluginsModel.modalState of
+                NoModal ->
+                    text ""
+
+                OpenModal requestType ->
+                    buildModal model.ui.loading (modalTitle requestType) (modalBody requestType pluginsModel) (RequestApi requestType pluginsModel.selected)
 
 
 loadWithSpinner : String -> Bool -> List (Html Msg) -> List (Html Msg)
@@ -450,3 +432,13 @@ loadWithSpinner spinnerClass loading html =
         ]
         html
     ]
+
+
+pluginDocumentationLink : PluginInfo -> String
+pluginDocumentationLink p =
+    String.join "/" <|
+        "https://docs.rudder.io/reference"
+            :: pluginMinorAbiVersion p
+            :: "plugins"
+            :: (p.id ++ ".html")
+            :: []
