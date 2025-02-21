@@ -41,19 +41,24 @@ import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.api.ApiAccountId
+import com.normation.rudder.api.ApiAccountKind
 import com.normation.rudder.api.ApiAccountKind.PublicApi as PublicApiAccount
 import com.normation.rudder.api.ApiAccountKind.System
 import com.normation.rudder.api.ApiAccountKind.User
+import com.normation.rudder.api.ApiAccountName
 import com.normation.rudder.api.ApiAuthorization.ACL
 import com.normation.rudder.api.ApiAuthorization.None as NoAccess
 import com.normation.rudder.api.ApiAuthorization.RO
 import com.normation.rudder.api.ApiAuthorization.RW
 import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.api.NewApiAccount
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.workflows.*
+import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategory
@@ -67,6 +72,7 @@ import com.normation.utils.DateFormaterService
 import net.liftweb.common.*
 import net.liftweb.json.*
 import net.liftweb.json.JsonDSL.*
+import org.joda.time.DateTime
 import zio.json.ast.Json
 import zio.json.ast.Json.Str
 
@@ -605,33 +611,76 @@ object ApiAccountSerialisation {
 
   implicit val formats: Formats = DefaultFormats
 
+  def toJsonPartial(
+      kind:                ApiAccountKind,
+      id:                  ApiAccountId,
+      name:                ApiAccountName,
+      description:         String,
+      tokenGenerationDate: DateTime,
+      creationDate:        DateTime,
+      isEnabled:           Boolean,
+      tenants:             NodeSecurityContext
+  ): JObject = {
+    val (expirationDate, authzType, acl): (Option[String], Option[String], Option[List[JsonApiAcl]]) = {
+      kind match {
+        case User | System                           => (None, None, None)
+        case PublicApiAccount(authz, expirationDate) =>
+          val acl = authz match {
+            case NoAccess | RO | RW => None
+            case ACL(acls)          => Some(acls.flatMap(x => x.actions.map(a => JsonApiAcl(x.path.value, a.name))))
+          }
+          (expirationDate.map(DateFormaterService.getDisplayDateTimePicker), Some(authz.kind.name), acl)
+      }
+    }
+
+    ("id"                    -> id.value) ~
+    ("name"                  -> name.value) ~
+    ("tokenGenerationDate"   -> DateFormaterService.serialize(tokenGenerationDate)) ~
+    ("kind"                  -> kind.kind.name) ~
+    ("description"           -> description) ~
+    ("creationDate"          -> DateFormaterService.serialize(creationDate)) ~
+    ("enabled"               -> isEnabled) ~
+    ("expirationDate"        -> expirationDate) ~
+    ("expirationDateDefined" -> expirationDate.isDefined) ~
+    ("authorizationType"     -> authzType) ~
+    ("acl"                   -> acl.map(x => Extraction.decompose(x))) ~
+    ("tenants"               -> tenants.serialize)
+  }
+
   implicit class Json(val account: ApiAccount) extends AnyVal {
     def toJson: JObject = {
-      val (expirationDate, authzType, acl): (Option[String], Option[String], Option[List[JsonApiAcl]]) = {
-        account.kind match {
-          case User | System                           => (None, None, None)
-          case PublicApiAccount(authz, expirationDate) =>
-            val acl = authz match {
-              case NoAccess | RO | RW => None
-              case ACL(acls)          => Some(acls.flatMap(x => x.actions.map(a => JsonApiAcl(x.path.value, a.name))))
-            }
-            (expirationDate.map(DateFormaterService.getDisplayDateTimePicker), Some(authz.kind.name), acl)
-        }
-      }
+      toJsonPartial(
+        account.kind,
+        account.id,
+        account.name,
+        account.description,
+        account.tokenGenerationDate,
+        account.creationDate,
+        account.isEnabled,
+        account.tenants
+      ) ~
+      ("token" -> account.token.map(_.version().toString))
+    }
+  }
+}
 
-      ("id"                    -> account.id.value) ~
-      ("name"                  -> account.name.value) ~
-      ("token"                 -> account.token.map(_.value)) ~
-      ("tokenGenerationDate"   -> DateFormaterService.serialize(account.tokenGenerationDate)) ~
-      ("kind"                  -> account.kind.kind.name) ~
-      ("description"           -> account.description) ~
-      ("creationDate"          -> DateFormaterService.serialize(account.creationDate)) ~
-      ("enabled"               -> account.isEnabled) ~
-      ("expirationDate"        -> expirationDate) ~
-      ("expirationDateDefined" -> expirationDate.isDefined) ~
-      ("authorizationType"     -> authzType) ~
-      ("acl"                   -> acl.map(x => Extraction.decompose(x))) ~
-      ("tenants"               -> account.tenants.serialize)
+object NewApiAccountSerialisation {
+
+  implicit val formats: Formats = DefaultFormats
+
+  implicit class NewJson(val account: NewApiAccount) extends AnyVal {
+    def toJson: JObject = {
+      ApiAccountSerialisation.toJsonPartial(
+        account.kind,
+        account.id,
+        account.name,
+        account.description,
+        account.tokenGenerationDate,
+        account.creationDate,
+        account.isEnabled,
+        account.tenants
+      ) ~
+      ("token" -> account.token.map(_.exposeSecret()))
     }
   }
 }

@@ -55,7 +55,6 @@ import com.normation.rudder.repository.ldap.LDAPDiffMapper
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.zio.*
-import java.security.MessageDigest
 import org.joda.time.DateTime
 import zio.*
 import zio.syntax.*
@@ -72,7 +71,7 @@ trait RoApiAccountRepository {
    */
   def getAllStandardAccounts: IOResult[Seq[ApiAccount]]
 
-  def getByToken(token: ApiToken): IOResult[Option[ApiAccount]]
+  def getByToken(hashedToken: ApiTokenHash): IOResult[Option[ApiAccount]]
 
   def getById(id: ApiAccountId): IOResult[Option[ApiAccount]]
 
@@ -99,8 +98,8 @@ final class RoLDAPApiAccountRepository(
     val rudderDit:     RudderDit,
     val ldapConnexion: LDAPConnectionProvider[RoLDAPConnection],
     val mapper:        LDAPEntityMapper,
-    val tokenGen:      TokenGenerator,
-    val systemAcl:     List[ApiAclElement]
+    val systemAcl:     List[ApiAclElement],
+    val systemToken:   ApiTokenHash
 ) extends RoApiAccountRepository {
 
   val systemAPIAccount: ApiAccount = {
@@ -108,7 +107,7 @@ final class RoLDAPApiAccountRepository(
       ApiAccountId("rudder-system-api-account"),
       ApiAccountKind.System,
       ApiAccountName("Rudder system account"),
-      Some(ApiToken(ApiToken.generate_secret(tokenGen, "-system"))),
+      Some(systemToken),
       "For internal use",
       isEnabled = true,
       creationDate = DateTime.now,
@@ -132,13 +131,7 @@ final class RoLDAPApiAccountRepository(
             None
           case Right(p)  =>
             p.kind match {
-              case _: ApiAccountKind.PublicApi =>
-                // since Rudder 8.3, we don't return API accounts with non hashed secret
-                // which were deprecated in Rudder 8.0.
-                p.token match {
-                  case None    => Some(p)
-                  case Some(t) => if (t.isHashed) Some(p) else None
-                }
+              case _: ApiAccountKind.PublicApi => Some(p)
               case _ => None
             }
         }
@@ -147,46 +140,25 @@ final class RoLDAPApiAccountRepository(
     }
   }
 
-  // Here the process is:
-  //
-  // * Ensure it is a clear-text token
-  // * Check if token matches in-memory system account
-  // * Then look for it in the LDAP:
-  //   * First as a hash
-  //   * Then, in fallback, as clear-text token
-  //
-  // Warning: When matching clear-text value we MUST make sure it is not
-  // a hash but a clear text token to avoid accepting the hash as valid token itself.
-  //
-  override def getByToken(token: ApiToken): IOResult[Option[ApiAccount]] = {
-    // check that the two token are equals and t2 is system-token OK
-    def sameAndValid(t1: ApiToken, t2: Option[ApiToken]): Boolean = {
-      t2 match {
-        case Some(t) if (t.value.strip().nonEmpty) =>
-          // Constant-time comparison
-          MessageDigest.isEqual(t.value.getBytes(), t1.value.getBytes())
-        case _                                     =>
-          false
-      }
-    }
+  /*
+  Look for a given token hash in the LDAP.
+   */
+  override def getByToken(hashedToken: ApiTokenHash): IOResult[Option[ApiAccount]] = {
+    val hash = hashedToken.exposeHash();
+    for {
+      ldap     <- ldapConnexion
+      // here, be careful to the semantic of get with a filter!
+      optEntry <- hash match {
+                    case None    => None.succeed
+                    case Some(h) => ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, h))
+                  }
+      optRes   <- optEntry match {
+                    case None    => None.succeed
+                    case Some(e) => mapper.entry2ApiAccount(e).map(Some(_)).toIO
+                  }
+    } yield {
+      optRes
 
-    if (token.isHashed || token.value.strip().isEmpty) {
-      None.succeed
-    } else if (sameAndValid(token, systemAPIAccount.token)) {
-      Some(systemAPIAccount).succeed
-    } else {
-      val hash = ApiToken.hash(token.value)
-      for {
-        ldap     <- ldapConnexion
-        // here, be careful to the semantic of get with a filter!
-        optEntry <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(RudderLDAPConstants.A_API_TOKEN, hash))
-        optRes   <- optEntry match {
-                      case None    => None.succeed
-                      case Some(e) => mapper.entry2ApiAccount(e).map(Some(_)).toIO
-                    }
-      } yield {
-        optRes
-      }
     }
   }
 

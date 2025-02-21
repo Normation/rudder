@@ -50,7 +50,6 @@ searchField : DatePickerInfo -> Account -> List String
 searchField datePickerInfo a =
   List.append [ a.name
   , a.id
-  , a.token
   ] ( case a.expirationPolicy of
       ExpireAtDate d  -> [posixToString datePickerInfo d]
       NeverExpire -> []
@@ -80,10 +79,8 @@ generateLoadingList =
 displayAccountsTable : Model -> Html Msg
 displayAccountsTable model =
   let
-    hasClearTextTokens = List.any (\a -> (String.length a.token) > 0) model.accounts
-
-    trAccount : Account -> Bool -> Html Msg
-    trAccount a showTokens =
+    trAccount : Account -> Html Msg
+    trAccount a =
       let
         inputId = "toggle-" ++ a.id
         expirationDate = case a.expirationPolicy of
@@ -100,19 +97,7 @@ displayAccountsTable model =
         ]
         , td []
         [ span [class "token-txt"][ text a.id ] ]
-        , if showTokens then
-            if isEmpty a.token then
-                td [class "token"] [ span [class "token-txt"][ text "[hashed]" ] ]
-            else
-                td [class "token"]
-                [ span [class "token-txt"]
-                  [text (slice 0 5 a.token)]
-                  , span[class "fa hide-text"][]
-                , Html.a [ class "btn-goto clipboard", title "Copy to clipboard" , onClick (Copy a.token) ]
-                  [ i [class "ion ion-clipboard"][] ]
-                ]
-          else
-            td [class "date"][ text (cleanDate a.creationDate) ]
+        , td [class "date"][ text (cleanDate a.creationDate) ]
         , td [class "date"][ text expirationDate ]
         , td []
           [ button
@@ -153,10 +138,7 @@ displayAccountsTable model =
       [ tr [class "head"]
         [ th [class (thClass tableFilters Name    ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters Name    )})][ text "Account name"    ]
         , th [class (thClass tableFilters Id      ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters Id      )})][ text "Account id"           ]
-        , if hasClearTextTokens then
-            th [][ text "Token" ]
-          else
-            th [class (thClass tableFilters CreDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters CreDate )})][ text "Creation date" ]
+        , th [class (thClass tableFilters CreDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters CreDate )})][ text "Creation date" ]
         , th [class (thClass tableFilters ExpDate ), onClick (UpdateFilters {filters | tableFilters = (sortTable tableFilters ExpDate )})][ text "Expiration date" ]
         , th [][ text "Actions" ]
         ]
@@ -168,10 +150,10 @@ displayAccountsTable model =
         ]
       else if List.isEmpty filteredAccounts then
         [ tr[]
-          [ td[class "empty", colspan 4][i [class"fa fa-exclamation-triangle"][], text "No api accounts match your filters"] ]
+          [ td[class "empty", colspan 4][i [class"fa fa-exclamation-triangle"][], text "No API accounts match your filters"] ]
         ]
       else
-        List.map (\a -> trAccount a hasClearTextTokens) filteredAccounts
+        List.map (\a -> trAccount a) filteredAccounts
       )
     ]
 
@@ -223,3 +205,9 @@ htmlEscape s =
     |> String.replace "\"" "&quot;"
     |> String.replace "'" "&#x27;"
     |> String.replace "\\" "&#x2F;"
+
+exposeToken : Token -> String
+exposeToken t = 
+  case t of
+    New s -> s
+    _ -> ""

@@ -1636,12 +1636,12 @@ object RudderConfigInit {
       globalParameterUnserialisation,
       ruleCategoryUnserialisation
     )
-    lazy val workflowEventLogService = new WorkflowEventLogServiceImpl(eventLogRepository, uuidGen)
+    lazy val workflowEventLogService = new WorkflowEventLogServiceImpl(eventLogRepository, stringUuidGenerator)
     lazy val diffService: DiffService = new DiffServiceImpl()
     lazy val diffDisplayer = new DiffDisplayer(linkUtil)
     lazy val commitAndDeployChangeRequest: CommitAndDeployChangeRequestService = {
       new CommitAndDeployChangeRequestServiceImpl(
-        uuidGen,
+        stringUuidGenerator,
         roDirectiveRepository,
         woDirectiveRepository,
         roNodeGroupRepository,
@@ -1727,7 +1727,7 @@ object RudderConfigInit {
       woApiAccountRepository,
       restExtractorService,
       tokenGenerator,
-      uuidGen,
+      stringUuidGenerator,
       userService,
       apiAuthorizationLevelService,
       tenantService
@@ -1754,7 +1754,7 @@ object RudderConfigInit {
         roRuleRepository,
         woRuleRepository,
         configurationRepository,
-        uuidGen,
+        stringUuidGenerator,
         asyncDeploymentAgent,
         workflowLevelService,
         roRuleCategoryRepository,
@@ -1770,7 +1770,7 @@ object RudderConfigInit {
     lazy val parameterApiService14 = {
       new ParameterApiService14(
         roLDAPParameterRepository,
-        uuidGen,
+        stringUuidGenerator,
         workflowLevelService
       )
     }
@@ -1781,7 +1781,7 @@ object RudderConfigInit {
       nodeConfigurationHashRepo,
       asyncDeploymentAgent,
       eventLogRepository,
-      uuidGen,
+      stringUuidGenerator,
       clearableCache
     )
 
@@ -1799,7 +1799,7 @@ object RudderConfigInit {
       debugScript,
       clearCacheService,
       asyncDeploymentAgent,
-      uuidGen,
+      stringUuidGenerator,
       updateDynamicGroups,
       itemArchiveManager,
       personIdentService,
@@ -1881,7 +1881,7 @@ object RudderConfigInit {
     lazy val pipelinedInventoryParser: InventoryParser = {
       val fusionReportParser = {
         new FusionInventoryParser(
-          uuidGen,
+          stringUuidGenerator,
           rootParsingExtensions = Nil,
           contentParsingExtensions = Nil,
           ignoreProcesses = INVENTORIES_IGNORE_PROCESSES
@@ -1925,7 +1925,7 @@ object RudderConfigInit {
       deprecated.ldapFullInventoryRepository,
       deprecated.softwareInventoryDAO,
       deprecated.ldapSoftwareSave,
-      uuidGen
+      stringUuidGenerator
     )
 
     lazy val getNodeBySoftwareName = new SoftDaoGetNodesBySoftwareName(deprecated.softwareInventoryDAO)
@@ -1952,7 +1952,7 @@ object RudderConfigInit {
     // need to be done here to avoid cyclic dependencies
     deferredEffects.append(
       nodeFactRepository.registerChangeCallbackAction(
-        new GenerationOnChange(updateDynamicGroups, asyncDeploymentAgent, uuidGen)
+        new GenerationOnChange(updateDynamicGroups, asyncDeploymentAgent, stringUuidGenerator)
       )
     )
     deferredEffects.append(
@@ -1996,7 +1996,7 @@ object RudderConfigInit {
 //      :: new PostCommitLogger(ldifInventoryLogger)
         new PostCommitInventoryHooks[Unit](HOOKS_D, HOOKS_IGNORE_SUFFIXES, nodeFactRepository)
         // removed: this is done as a callback of CoreNodeFactRepos
-        // :: new TriggerPolicyGenerationPostCommit[Unit](asyncDeploymentAgent, uuidGen)
+        // :: new TriggerPolicyGenerationPostCommit[Unit](asyncDeploymentAgent, stringUuidGenerator)
         :: Nil
       )
     )
@@ -2150,7 +2150,7 @@ object RudderConfigInit {
             woNodeGroupRepository,
             propertiesRepository,
             propertiesService,
-            uuidGen,
+            stringUuidGenerator,
             asyncDeploymentAgent,
             workflowLevelService,
             queryParser,
@@ -2165,7 +2165,7 @@ object RudderConfigInit {
             roDirectiveRepository,
             configurationRepository,
             woDirectiveRepository,
-            uuidGen,
+            stringUuidGenerator,
             asyncDeploymentAgent,
             workflowLevelService,
             directiveEditorService,
@@ -2199,7 +2199,7 @@ object RudderConfigInit {
           ),
           userPropertyService,
           new NodeApiInheritedProperties(propertiesRepository),
-          uuidGen,
+          stringUuidGenerator,
           DeleteMode.Erase // only supported mode for Rudder 8.0
         ),
         new ParameterApi(zioJsonExtractor, parameterApiService14),
@@ -2284,6 +2284,8 @@ object RudderConfigInit {
       )
     }
 
+    lazy val systemTokenSecret = ApiTokenSecret.generate(tokenGenerator, suffix = "system")
+
     lazy val rudderApi = {
       import com.normation.rudder.rest.lift.*
 
@@ -2357,8 +2359,8 @@ object RudderConfigInit {
       rudderDitImpl,
       roLdap,
       ldapEntityMapper,
-      tokenGenerator,
-      ApiAuthorization.allAuthz.acl // for system token
+      ApiAuthorization.allAuthz.acl, // for system token
+      systemTokenSecret.toHash()
     )
     lazy val roApiAccountRepository: RoApiAccountRepository = roLDAPApiAccountRepository
 
@@ -2405,7 +2407,6 @@ object RudderConfigInit {
     lazy val inventoryDitService: InventoryDitService =
       new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
     lazy val stringUuidGenerator: StringUuidGenerator = new StringUuidGeneratorImpl
-    lazy val uuidGen                   = stringUuidGenerator
     lazy val systemVariableSpecService = new SystemVariableSpecServiceImpl()
     lazy val ldapEntityMapper: LDAPEntityMapper =
       new LDAPEntityMapper(rudderDitImpl, nodeDitImpl, queryRawParser, inventoryMapper)
@@ -2715,7 +2716,7 @@ object RudderConfigInit {
     lazy val nodeGridImpl = new NodeGrid(nodeFactRepository, configService)
 
     lazy val modificationService      =
-      new ModificationService(logRepository, gitModificationRepository, itemArchiveManagerImpl, uuidGen)
+      new ModificationService(logRepository, gitModificationRepository, itemArchiveManagerImpl, stringUuidGenerator)
     lazy val eventListDisplayerImpl   = new EventListDisplayer(logRepository)
     lazy val eventLogDetailsGenerator = new EventLogDetailsGenerator(
       eventLogDetailsServiceImpl,
@@ -2826,7 +2827,7 @@ object RudderConfigInit {
         rwLdap,
         ldapDiffMapper,
         logRepository,
-        uuidGen,
+        stringUuidGenerator,
         gitDirectiveArchiver,
         gitActiveTechniqueArchiver,
         gitActiveTechniqueCategoryArchiver,
@@ -2883,7 +2884,7 @@ object RudderConfigInit {
       roLdapNodeGroupRepository,
       rwLdap,
       ldapDiffMapper,
-      uuidGen,
+      stringUuidGenerator,
       logRepository,
       gitNodeGroupArchiver,
       personIdentServiceImpl,
@@ -2904,7 +2905,7 @@ object RudderConfigInit {
       new WoLDAPRuleCategoryRepository(
         roLDAPRuleCategoryRepository,
         rwLdap,
-        uuidGen,
+        stringUuidGenerator,
         gitRuleCategoryArchiver,
         personIdentServiceImpl,
         RUDDER_AUTOARCHIVEITEMS
@@ -3024,7 +3025,7 @@ object RudderConfigInit {
         roLdapDirectiveRepository,
         woLdapDirectiveRepository,
         techniqueRepository,
-        uuidGen
+        stringUuidGenerator
       )
     )
 
@@ -3032,7 +3033,7 @@ object RudderConfigInit {
       val service = new TechniqueRepositoryImpl(
         techniqueReader,
         Seq(),
-        uuidGen
+        stringUuidGenerator
       )
       service
     }
@@ -3299,7 +3300,7 @@ object RudderConfigInit {
       dynGroupUpdaterService,
       propertiesSyncService,
       asyncDeploymentAgentImpl,
-      uuidGen,
+      stringUuidGenerator,
       RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL,
       () => configService.rudder_compute_dyngroups_max_parallelism().toBox
     )
@@ -3337,7 +3338,7 @@ object RudderConfigInit {
     lazy val techniqueLibraryUpdater = new CheckTechniqueLibrary(
       techniqueRepositoryImpl,
       techniqueCompilationStatusService,
-      uuidGen,
+      stringUuidGenerator,
       RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL
     )
 
@@ -3357,7 +3358,7 @@ object RudderConfigInit {
     lazy val postNodeDeleteActions = Ref
       .make(
         //      new RemoveNodeInfoFromCache(ldapNodeInfoServiceImpl)
-        new RemoveNodeFromGroups(roNodeGroupRepository, woNodeGroupRepository, uuidGen)
+        new RemoveNodeFromGroups(roNodeGroupRepository, woNodeGroupRepository, stringUuidGenerator)
         :: new CloseNodeConfiguration(updateExpectedRepo)
         :: new DeletePolicyServerPolicies(policyServerManagementService)
         :: new ResetKeyStatus(rwLdap, removedNodesDitImpl)
@@ -3397,7 +3398,7 @@ object RudderConfigInit {
       .make(campaignSerializer, campaignPath, campaignEventRepo)
       .runOrDie(err => new RuntimeException(s"Error during initialization of campaign repository: " + err.fullMsg))
 
-    lazy val mainCampaignService = new MainCampaignService(campaignEventRepo, campaignRepo, uuidGen, 1, 1)
+    lazy val mainCampaignService = new MainCampaignService(campaignEventRepo, campaignRepo, stringUuidGenerator, 1, 1)
     lazy val jsonReportsAnalyzer = JSONReportsAnalyser(reportsRepository, propertyRepository)
 
     lazy val instanceUuidPath    = root / "opt" / "rudder" / "etc" / "instance-id"
@@ -3431,7 +3432,7 @@ object RudderConfigInit {
       ),
       new CheckTechniqueLibraryReload(
         techniqueRepositoryImpl,
-        uuidGen
+        stringUuidGenerator
       ),
       new CheckTechniqueCompilationStatus(techniqueCompilationCache),
       new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap),
@@ -3442,23 +3443,23 @@ object RudderConfigInit {
         techniqueRepositoryImpl,
         roLdapDirectiveRepository,
         woLdapDirectiveRepository,
-        uuidGen,
+        stringUuidGenerator,
         asyncDeploymentAgentImpl
       ), // new CheckDirectiveBusinessRules()
 
-      new CheckRudderGlobalParameter(roLDAPParameterRepository, woLDAPParameterRepository, uuidGen),
-      new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, uuidGen),
+      new CheckRudderGlobalParameter(roLDAPParameterRepository, woLDAPParameterRepository, stringUuidGenerator),
+      new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, stringUuidGenerator),
       new CheckNcfTechniqueUpdate(
         ncfTechniqueWriter,
         roLDAPApiAccountRepository.systemAPIAccount,
-        uuidGen,
+        stringUuidGenerator,
         updateTechniqueLibrary,
         ncfTechniqueReader,
         resourceFileService
       ),
       new MigrateJsonTechniquesToYaml(
         ncfTechniqueWriter,
-        uuidGen,
+        stringUuidGenerator,
         updateTechniqueLibrary,
         techniqueCompilationStatusService,
         gitConfigRepo.rootDirectory.pathAsString
@@ -3466,14 +3467,14 @@ object RudderConfigInit {
       new FixedPathLoggerMigration(),
       new TriggerPolicyUpdate(
         asyncDeploymentAgent,
-        uuidGen
+        stringUuidGenerator
       ),
       new RemoveFaultyLdapEntries(
         woDirectiveRepository,
-        uuidGen
+        stringUuidGenerator
       ),
       new CreateSystemToken(
-        roLDAPApiAccountRepository.systemAPIAccount.token,
+        systemTokenSecret,
         root / "var" / "rudder" / "run",
         RestAuthenticationFilter.API_TOKEN_HEADER
       ),
@@ -3645,7 +3646,7 @@ object RudderConfigInit {
 //    lazy val checkInventoryUpdate = new CheckInventoryUpdate(
 //      nodeFactInfoService,
 //      asyncDeploymentAgent,
-//      uuidGen,
+//      stringUuidGenerator,
 //      RUDDER_BATCH_CHECK_NODE_CACHE_INTERVAL
 //    )
 
@@ -3807,7 +3808,7 @@ object RudderConfigInit {
       sharedFileApi,
       eventLogApi,
       systemApiService11,
-      uuidGen,
+      stringUuidGenerator,
       inventoryWatcher,
       configService,
       historizeNodeCountBatch,

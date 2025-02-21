@@ -878,7 +878,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
         ApiAccountId(id),
         kind,
         ApiAccountName(name),
-        if (token.strip().isEmpty) None else Some(ApiToken(token)),
+        Some(ApiTokenHash.fromHashValue(token)),
         description,
         isEnabled,
         creationDate,

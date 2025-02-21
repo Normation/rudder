@@ -40,33 +40,26 @@ package bootstrap.liftweb.checks.endconfig.action
 import better.files.File
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
-import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
-import com.normation.rudder.api.ApiToken
+import com.normation.rudder.api.ApiTokenSecret
 import com.normation.zio.UnsafeRun
 import java.nio.file.attribute.PosixFilePermissions
 import scala.jdk.CollectionConverters.*
-import zio.syntax.*
 
 /**
  * Create an API token file at webapp startup to use for internal use.
  */
-class CreateSystemToken(systemToken: Option[ApiToken], runDir: File, apiTokenHeaderName: String) extends BootstrapChecks {
+class CreateSystemToken(systemToken: ApiTokenSecret, runDir: File, apiTokenHeaderName: String) extends BootstrapChecks {
   import CreateSystemToken.*
 
   override val description = "Create system API token files"
 
   override def checks(): Unit = {
     (for {
-      value  <- systemToken.map(_.value).getOrElse("").strip() match {
-                  case s if (s.length < tokenMinSize) =>
-                    Inconsistency(s"Error: system token can't be less than ${tokenMinSize} long").fail
-                  case s                              => s.succeed
-                }
-      token  <- restrictedPermissionsWrite(runDir / tokenFile, value)
+      token  <- restrictedPermissionsWrite(runDir / tokenFile, systemToken.exposeSecret())
       // Allows easier usage in scripts, and in particular prevents making the token value visible in
       // process list by using the "--header @file" syntax in curl to read the file.
-      header <- restrictedPermissionsWrite(runDir / tokenHeaderFile, curlTokenHeader(value))
+      header <- restrictedPermissionsWrite(runDir / tokenHeaderFile, curlTokenHeader)
       _      <- BootstrapLogger.info(s"System API token files created in ${token.pathAsString} and ${header.pathAsString}")
     } yield ())
       .chainError(s"An error occurred while creating system API token files in ${runDir.pathAsString}")
@@ -83,8 +76,8 @@ class CreateSystemToken(systemToken: Option[ApiToken], runDir: File, apiTokenHea
     }
   }
 
-  private def curlTokenHeader(token: String): String = {
-    s"${apiTokenHeaderName}: ${token}"
+  private val curlTokenHeader: String = {
+    s"${apiTokenHeaderName}: ${systemToken.exposeSecret()}"
   }
 }
 

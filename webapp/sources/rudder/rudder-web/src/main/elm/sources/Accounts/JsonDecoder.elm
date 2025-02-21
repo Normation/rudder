@@ -1,6 +1,7 @@
 module Accounts.JsonDecoder exposing (..)
 
 import Accounts.DataTypes as TenantMode exposing (..)
+import Accounts.DataTypes as Token exposing (..)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import List exposing (drop, head)
@@ -31,7 +32,7 @@ decodeAccount datePickerInfo =
         |> optional "kind" string "public"
         |> required "status" decodeEnabledStatus
         |> required "creationDate" string
-        |> optional "token" string ""
+        |> optional "token" (string |> andThen toToken) Token.ClearText
         |> optional "tokenGenerationDate" (maybe string) Nothing
         |> custom (decodeExpirationPolicy datePickerInfo)
         |> optional "acl" (map Just (list <| decodeAcl)) Nothing
@@ -91,9 +92,20 @@ parseExpirationPolicy zone str =
             fail "Unrecognized \"expirationPolicy\" field, expected \"never\" or \"datetime\""
 
 
+parseToken : String -> ( Token )
+parseToken str =
+  case str of
+    "2" -> Token.Hashed
+    "1" -> Token.ClearText
+    _   -> Token.New str
+
+
+toToken : String -> Decoder Token
+toToken str =
+    succeed (parseToken str)
+
 
 -- the string for a tenant mode is '*', '-', or a comma separated list of non-empty string
-
 
 parseTenants : String -> ( TenantMode, Maybe (List String) )
 parseTenants str =

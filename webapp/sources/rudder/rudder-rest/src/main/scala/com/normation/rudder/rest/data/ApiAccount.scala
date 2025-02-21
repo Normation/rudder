@@ -49,10 +49,11 @@ import com.normation.rudder.api.ApiAccountType
 import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.api.ApiAuthorizationKind
-import com.normation.rudder.api.ApiToken
+import com.normation.rudder.api.ApiTokenHash
+import com.normation.rudder.api.ApiTokenSecret
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.facts.nodes.NodeSecurityContext
-import com.normation.rudder.rest.data.NewApiAccount.transformNewApiAccount
+import com.normation.rudder.rest.data.NewRestApiAccount.transformNewRestApiAccount
 import com.normation.utils.DateFormaterService.DateTimeCodecs
 import com.softwaremill.quicklens.*
 import enumeratum.Enum
@@ -190,6 +191,12 @@ sealed trait ApiAccountDetails {
 }
 
 final case class ClearTextSecret(value: String)
+object ClearTextSecret {
+  implicit val encoderClearTextSecret:        JsonEncoder[ClearTextSecret]                 = JsonEncoder.string.contramap(_.value)
+  implicit val transformerFromApiTokenSecret: Transformer[ApiTokenSecret, ClearTextSecret] = apiTokenSecret =>
+    ClearTextSecret(apiTokenSecret.exposeSecret())
+  implicit val transformer:                   Transformer[ClearTextSecret, ApiTokenSecret] = clearText => ApiTokenSecret(clearText.value)
+}
 
 object ApiAccountDetails extends ApiAccountCodecs {
 
@@ -234,7 +241,6 @@ object ApiAccountDetails extends ApiAccountCodecs {
   ) extends ApiAccountDetails
 
   // only encode, no decoder for that
-  implicit val encoderClearTextSecret:            JsonEncoder[ClearTextSecret]                       = JsonEncoder.string.contramap(_.value)
   implicit val encoderApiAccountDetailsPublic:    JsonEncoder[ApiAccountDetails.Public]              = DeriveJsonEncoder.gen
   implicit val encoderApiAccountDetailsWithToken: JsonEncoder[ApiAccountDetails.WithToken]           = DeriveJsonEncoder.gen
   implicit val encoderApiAccountDetails:          JsonEncoder[ApiAccountDetails]                     = new JsonEncoder[ApiAccountDetails] {
@@ -300,7 +306,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
  * - there is an explicit expirationPolicy in place of expirationDateDefined
  * - expirationDate is an option
  */
-final case class NewApiAccount(
+final case class NewRestApiAccount(
     id:                Option[ApiAccountId],
     name:              ApiAccountName, // used in event log to know who did actions.
     description:       Option[String],
@@ -316,17 +322,17 @@ final case class NewApiAccount(
 /**
  * This is the object where lies most of the logic that interprets an API account input
  */
-object NewApiAccount extends ApiAccountCodecs {
-  implicit val decoderNewApiAccount: JsonDecoder[NewApiAccount] = DeriveJsonDecoder.gen
+object NewRestApiAccount extends ApiAccountCodecs {
+  implicit val decoderNewRestApiAccount: JsonDecoder[NewRestApiAccount] = DeriveJsonDecoder.gen
 
   // build transformer with dependencies
-  def transformNewApiAccount(
+  def transformNewRestApiAccount(
       d:  DateTime,
       id: ApiAccountId,
-      t:  Option[ApiToken]
-  ): Transformer[NewApiAccount, ApiAccount] = {
+      t:  Option[ApiTokenHash]
+  ): Transformer[NewRestApiAccount, ApiAccount] = {
     Transformer
-      .define[NewApiAccount, ApiAccount]
+      .define[NewRestApiAccount, ApiAccount]
       .withFieldConst(_.id, id)
       .withFieldComputed(
         _.kind,
@@ -367,13 +373,13 @@ class ApiAccountMapping(
     creationDate:   IOResult[DateTime],
     generateId:     IOResult[ApiAccountId],
     generateSecret: IOResult[ClearTextSecret],
-    createToken:    ClearTextSecret => IOResult[ApiToken]
+    createToken:    ClearTextSecret => IOResult[ApiTokenHash]
 ) extends DateTimeCodecs {
 
   /**
    * Create a new ApiAccount and optionally return the secret used for the token
    */
-  def fromNewApiAccount(newApiAccount: NewApiAccount): IOResult[(ApiAccount, Option[ClearTextSecret])] = {
+  def fromNewApiAccount(newApiAccount: NewRestApiAccount): IOResult[(ApiAccount, Option[ClearTextSecret])] = {
     for {
       id     <- newApiAccount.id match {
                   case Some(x) => x.succeed
@@ -385,7 +391,7 @@ class ApiAccountMapping(
                   case None    => None.succeed
                 }
       d      <- creationDate
-    } yield (transformNewApiAccount(d, id, token).transform(newApiAccount), secret)
+    } yield (transformNewRestApiAccount(d, id, token).transform(newApiAccount), secret)
   }
 
   /**
