@@ -44,7 +44,7 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
-import com.normation.errors.IOResult
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogDetails
@@ -57,8 +57,7 @@ import com.normation.inventory.domain.RockyLinux
 import com.normation.inventory.domain.Version as IVersion
 import com.normation.plugins.*
 import com.normation.rudder.*
-import com.normation.rudder.api.ApiAuthorization as ApiAuthz
-import com.normation.rudder.api.ApiVersion
+import com.normation.rudder.api.{ApiAuthorization as ApiAuthz, *}
 import com.normation.rudder.apidata.RestDataSerializerImpl
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch.*
@@ -1047,6 +1046,9 @@ class RestTestSetUp {
     )
     .runNow
 
+  val mockApiAccounts = new MockApiAccountService()
+  val apiAccountApi: ApiAccountApi = new ApiAccountApi(mockApiAccounts.service)
+
   val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema with SortIndex]] = List(
     systemApi,
     parameterApi,
@@ -1110,6 +1112,7 @@ class RestTestSetUp {
       () => mockUserManagement.providerRoleExtension,
       () => mockUserManagement.authBackendProviders
     ),
+    apiAccountApi,
     infoApi,
     eventLogApi,
     new PluginInternalApi(pluginsSystemService)
@@ -1213,13 +1216,13 @@ class RestTest(liftRules: LiftRules) {
   def execRequestResponseZioTest[T](mockReq: MockHttpServletRequest)(tests: Box[LiftResponse] => TestResult): TestResult = {
     doReqZioTest(mockReq) { req =>
       // the test logic is taken from LiftServlet#doServices.
-      // perhaps we should call directly that methods, but it need
+      // perhaps we should call directly that methods, but it needs
       // much more set-up, and I don't know for sure *how* to set-up things.
       NamedPF
         .applyBox(req, LiftRules.statelessDispatch.toList)
         .map(_.apply() match {
           case Full(a) => Full(LiftRules.convertResponse((a, Nil, S.responseCookies, req)))
-          case r       => r
+          case r       => r ?~! "Error when executing the request in LiftRules.statelessDispatch.toList"
         }) match {
         case Full(x) => tests(x)
         case eb: EmptyBox => tests(eb)

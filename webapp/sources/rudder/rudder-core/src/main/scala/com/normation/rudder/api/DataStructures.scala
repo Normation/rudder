@@ -38,6 +38,8 @@ package com.normation.rudder.api
 
 import cats.data.*
 import cats.implicits.*
+import com.normation.errors.Inconsistency
+import com.normation.errors.PureResult
 import com.normation.rudder.api.ApiToken.prefixV2
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import enumeratum.*
@@ -47,9 +49,17 @@ import org.bouncycastle.util.encoders.Hex
 import org.joda.time.DateTime
 
 /**
- * ID of the Account
+ * ID of the Account.
+ * An ID can only contain simple base64url chars
  */
 final case class ApiAccountId(value: String) extends AnyVal
+
+object ApiAccountId {
+  private val regex = """[a-zA-Z0-9_-]+""".r
+  def isValidApiAccountId(s: String): Boolean = regex.matches(s)
+  def parse(s: String): PureResult[ApiAccountId] = if (isValidApiAccountId(s)) Right(ApiAccountId(s))
+  else Left(Inconsistency(s"'${s}' is not a valid API account ID, only ${regex.pattern.toString} is allowed"))
+}
 
 /**
  * Name of the principal, used in event log to know
@@ -330,6 +340,11 @@ object ApiAccountType       extends Enum[ApiAccountType] {
   case object PublicApi extends ApiAccountType { val name = "public" }
 
   def values: IndexedSeq[ApiAccountType] = findValues
+
+  def parse(s: String): PureResult[ApiAccountType] = values.find(_.name == s.toLowerCase) match {
+    case Some(t) => Right(t)
+    case None    => Left(Inconsistency(s"'${s}' is not a recognized API account type"))
+  }
 }
 
 sealed trait ApiAccountKind { def kind: ApiAccountType }
@@ -338,6 +353,8 @@ object ApiAccountKind       {
   case object User   extends ApiAccountKind { val kind: ApiAccountType.User.type = ApiAccountType.User     }
   final case class PublicApi(
       authorizations: ApiAuthorization,
+      // this is an expiration date for the whole account, not a generated token. IE, we can
+      // have it even without token, or even if we just generated the token.
       expirationDate: Option[DateTime]
   ) extends ApiAccountKind {
     val kind: ApiAccountType.PublicApi.type = ApiAccountType.PublicApi

@@ -1298,8 +1298,8 @@ object InventoryApi       extends Enum[InventoryApi] with ApiModuleProvider[Inve
  * This API definition need to be in Rudder core because it defines specific
  * user API rights, which is a special thing. The actual implementation will
  * be defined in the API Authorization plugin.
- * Note that these endpoint don't have token ID has parameter because an user can only manage
- * its own token, and Rudder will make the mapping server side.
+ * Note that these endpoints don't have token ID as parameter because a user can only manage
+ * its own token, and Rudder will make the mapping server side based on session information.
  */
 sealed trait UserApi extends EnumEntry with EndpointSchema with InternalApi with SortIndex {
   override def dataContainer: Option[String] = None
@@ -1336,6 +1336,52 @@ object UserApi       extends Enum[UserApi] with ApiModuleProvider[UserApi]      
   def endpoints: List[UserApi] = values.toList.sortBy(_.z)
 
   def values = findValues
+}
+
+/*
+ * API account management. Endpoints used to create, update, delete API account and
+ * manage their tokens.
+ * This API is also used by ELM API Account management app.
+ */
+sealed trait ApiAccounts extends EnumEntry with EndpointSchema with GeneralApi with SortIndex {
+  override def dataContainer: Option[String] = Some("accounts")
+}
+object ApiAccounts       extends Enum[ApiAccounts] with ApiModuleProvider[ApiAccounts]        {
+
+  case object GetAllAccounts  extends ApiAccounts with ZeroParam with StartsAtVersion21 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Get the list of all API accounts with their details"
+    val (action, path) = GET / "apiaccounts"
+  }
+  case object GetAccount      extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
+    val z: Int = implicitly[Line].value
+    val description    = "Get one API account if it exists"
+    val (action, path) = GET / "apiaccounts" / "{id}"
+  }
+  case object CreateAccount   extends ApiAccounts with ZeroParam with StartsAtVersion21 with SortIndex {
+    val z: Int = implicitly[Line].value
+    val description    = "Create a new API account. If ID is provided and already exists, it's an error"
+    val (action, path) = POST / "apiaccounts"
+  }
+  case object UpdateAccount   extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
+    val z: Int = implicitly[Line].value
+    val description    = "Update an API account"
+    val (action, path) = POST / "apiaccounts" / "{id}"
+  }
+  case object RegenerateToken extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
+    val z: Int = implicitly[Line].value
+    val description    = "Regenerate a token for an API account"
+    val (action, path) = POST / "apiaccounts" / "{id}" / "regenerate"
+  }
+  case object DeleteAccount   extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
+    val z: Int = implicitly[Line].value
+    val description    = "Delete an API account if it exists"
+    val (action, path) = DELETE / "apiaccounts" / "{id}"
+  }
+
+  def endpoints: List[ApiAccounts] = values.toList.sortBy(_.z)
+
+  def values: IndexedSeq[ApiAccounts] = findValues
 }
 
 /*
@@ -1389,6 +1435,7 @@ object AllApi {
     ArchiveApi.endpoints :::
     InfoApi.endpoints :::
     HookApi.endpoints :::
+    ApiAccounts.endpoints :::
     // UserApi is not declared here, it will be contributed by plugin
     Nil
   }

@@ -68,6 +68,7 @@ trait RoApiAccountRepository {
   /**
    * Retrieve all standard API Account (not linked to an user,
    * not system, i.e account.kind == PublicApi)
+   * AND (Rudder 8.3) with hashed token
    */
   def getAllStandardAccounts: IOResult[Seq[ApiAccount]]
 
@@ -131,7 +132,13 @@ final class RoLDAPApiAccountRepository(
             None
           case Right(p)  =>
             p.kind match {
-              case _: ApiAccountKind.PublicApi => Some(p)
+              case _: ApiAccountKind.PublicApi =>
+                // since Rudder 8.3, we don't return API accounts with non hashed secret
+                // which were deprecated in Rudder 8.0.
+                p.token match {
+                  case None    => Some(p)
+                  case Some(t) => if (t.isHashed) Some(p) else None
+                }
               case _ => None
             }
         }
