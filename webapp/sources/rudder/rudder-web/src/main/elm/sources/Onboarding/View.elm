@@ -200,22 +200,18 @@ view model =
         Nothing -> []
 
   in
-    div [class "rudder-template"]
-    [ div [class "one-col"]
-      [ div [class "one-col-main"]
-        [ div [class "template-sidebar sidebar-left"]
-          [ div [class "sidebar-body"]
-            [ ul[class "wizard-timeline"]
-                (model.sections
-                  |> List.map sidebarSection)
-            ]
-          ]
-        , div [class "template-main"]
-          [ div [class "main-container"]
-            [ div [class "main-details"]
-              [ div [class "wizard-section"] activeSection ]
-            ]
-          ]
+    div [class "d-flex"]
+    [ div [class "template-sidebar sidebar-left"]
+      [ div [class "sidebar-body"]
+        [ ul[class "wizard-timeline"]
+            (model.sections
+              |> List.map sidebarSection)
+        ]
+      ]
+    , div [class "template-main"]
+      [ div [class "main-container"]
+        [ div [class "main-details pt-5"]
+          [ div [class "wizard-section"] activeSection ]
         ]
       ]
     ]

@@ -800,7 +800,7 @@ function navScroll(event, target, container){
   if(event) event.preventDefault();
   var container       = $(container);
   var target          = $(target);
-  var paddingTop      = 10; // Substract padding-top of the container
+  var paddingTop      = 20; // Substract padding-top of the container
   var anchorDiff      = 20; // Used to trigger the scrollSpy feature
   var containerOffset = container.offset().top;
   var targetOffset    = target.offset().top - paddingTop;
@@ -824,7 +824,7 @@ function buildScrollSpyNav(){
       listItem = $("<li>");
       var targetLink = '#'+tmp;
       var subClass = $(this).hasClass("page-subtitle") ? "subtitle" : ""
-      link.attr("href","#"+tmp).text(linkText).addClass(subClass).on('click',function(event){navScroll(event, targetLink, '.main-details')});
+      link.attr("href","#"+tmp).text(linkText).addClass(subClass).on('click',function(event){navScroll(event, targetLink, ".main-details[data-bs-spy='scroll']")});
       listItem.addClass("nav-item").append(link);
       $("#navbar-scrollspy > ul").append(listItem);
     });
