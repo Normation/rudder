@@ -81,8 +81,8 @@ valueCompliance complianceFilters =
   ItemFun
     (\ _ _ _ -> [])
     (\_ i -> i)
-    [ ("Value"   , .value   >> text, (\d1 d2 -> N.compare d1.value  d2.value))
-    , ("Messages", .reports >> List.filter (filterReports complianceFilters) >> List.map (\r -> Maybe.withDefault "" r.message) >> List.foldl (++) "\n"  >> text, (\d1 d2 -> N.compare d1.value d2.value) )
+    [ ("Value"   , .value   >> (\v -> div[class "value-container font-monospace"][text v]), (\d1 d2 -> N.compare d1.value  d2.value))
+    , ("Messages", .reports >> List.filter (filterReports complianceFilters) >> List.map (\r -> Maybe.withDefault "" r.message) >> List.foldl (++) "\n"  >> (\v -> div[class "value-container"][text v]), (\d1 d2 -> N.compare d1.value d2.value) )
     , ("Status"  , .reports >> List.filter (filterReports complianceFilters) >> buildComplianceReport, (\d1 d2 -> Basics.compare d1.value d2.value))
     ]
     .value
@@ -191,7 +191,7 @@ showComplianceDetails fun compliance parent openedRows model =
   let
     itemRows = List.map Tuple3.second (fun.rows)
     data = fun.data model compliance
-    detailsRows = List.map (\row -> td [class "ok"] [row data]) itemRows
+    detailsRows = List.map (\row -> td [] [row data]) itemRows
     id = fun.id compliance
     rowId = parent ++ "/" ++ id
     rowOpened = Dict.get rowId openedRows

@@ -302,6 +302,19 @@ td.listclose:after {
 .dataTable > tbody > tr > td.details{
   padding: 0;
 }
+.dataTable > tbody > tr > td:has(> .value-container){
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.dataTable > tbody > tr > td > .value-container {
+  padding: 6px 0;
+  white-space: pre-line;
+  max-height: 200px;
+  overflow: auto;
+}
+.dataTable > tbody > tr > td > .value-container.font-monospace {
+  font-size: .9em;
+}
 .dataTable > tbody > tr > td.listclose{
   position: relative;
 }
