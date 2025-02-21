@@ -1288,7 +1288,6 @@ object RudderConfig extends Loggable {
   val reportDisplayer:                     ReportDisplayer                            = rci.reportDisplayer
   val reportingService:                    ReportingService                           = rci.reportingService
   val reportsRepository:                   ReportsRepository                          = rci.reportsRepository
-  val restApiAccounts:                     RestApiAccounts                            = rci.restApiAccounts
   val restCompletion:                      RestCompletion                             = rci.restCompletion
   val restDataSerializer:                  RestDataSerializer                         = rci.restDataSerializer
   val restExtractorService:                RestExtractorService                       = rci.restExtractorService
@@ -1439,7 +1438,6 @@ case class RudderServiceApi(
     allBootstrapChecks:                  BootstrapChecks,
     authenticationProviders:             AuthBackendProvidersManager,
     rudderUserListProvider:              FileUserDetailListProvider,
-    restApiAccounts:                     RestApiAccounts,
     restQuicksearch:                     RestQuicksearch,
     restCompletion:                      RestCompletion,
     sharedFileApi:                       SharedFilesAPI,
@@ -1722,16 +1720,6 @@ object RudderConfigInit {
 
     lazy val linkUtil           = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeFactRepository)
     // REST API
-    lazy val restApiAccounts    = new RestApiAccounts(
-      roApiAccountRepository,
-      woApiAccountRepository,
-      restExtractorService,
-      tokenGenerator,
-      stringUuidGenerator,
-      userService,
-      apiAuthorizationLevelService,
-      tenantService
-    )
     lazy val restDataSerializer = RestDataSerializerImpl(techniqueRepository, diffService)
 
     lazy val restQuicksearch = new RestQuicksearch(
@@ -3802,7 +3790,6 @@ object RudderConfigInit {
       allBootstrapChecks,
       authenticationProviders,
       rudderUserListProvider,
-      restApiAccounts,
       restQuicksearch,
       restCompletion,
       sharedFileApi,
