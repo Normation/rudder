@@ -1595,7 +1595,7 @@ object RudderConfigInit {
     lazy val authenticationProviders = new AuthBackendProvidersManager()
 
     // Plugin input interface for Authorization for API
-    lazy val authorizationApiMapping = new ExtensibleAuthorizationApiMapping(AuthorizationApiMapping.Core :: Nil)
+    lazy val authorizationApiMapping = new ExtensibleAuthorizationApiMapping(Nil)
 
     ////////// end pluggable service providers //////////
 
