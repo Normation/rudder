@@ -1,17 +1,22 @@
 module Accounts.JsonDecoder exposing (..)
 
 import Accounts.DataTypes as TenantMode exposing (..)
-import Accounts.DatePickerUtils exposing (stringToPosix)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import List exposing (drop, head)
 import String exposing (join, split)
+import Time exposing (Posix, Zone)
+import Time.DateTime
+import Time.Extra
+import Time.Iso8601
+import Time.Iso8601ErrorMsg
 
 
 
 -- GENERAL
 
 
+decodeGetAccounts : DatePickerInfo -> Decoder ApiResult
 decodeGetAccounts datePickerInfo =
     at [ "data" ] (decodeResult datePickerInfo)
 
@@ -23,28 +28,32 @@ decodeAccount datePickerInfo =
         |> required "name" string
         |> required "description" string
         |> required "authorizationType" string
-        |> required "kind" string
-        |> required "enabled" bool
+        |> optional "kind" string "public"
+        |> required "status" decodeEnabledStatus
         |> required "creationDate" string
         |> optional "token" string ""
-        |> required "tokenGenerationDate" string
-        |> required "expirationDateDefined" bool
-        |> optional "expirationDate"
-            (string
-                |> andThen
-                    (\s ->
-                        case stringToPosix datePickerInfo s of
-                            Just date ->
-                                succeed (Just date)
-
-                            Nothing ->
-                                fail "Expiration date invalid : bad format"
-                    )
-            )
-            Nothing
+        |> optional "tokenGenerationDate" (maybe string) Nothing
+        |> custom (decodeExpirationPolicy datePickerInfo)
         |> optional "acl" (map Just (list <| decodeAcl)) Nothing
         |> required "tenants" (string |> andThen toTenantMode)
         |> required "tenants" (string |> andThen toTenantList)
+
+
+decodeEnabledStatus : Decoder Bool
+decodeEnabledStatus =
+    string
+        |> andThen
+            (\s ->
+                case s of
+                    "enabled" ->
+                        succeed True
+
+                    "disabled" ->
+                        succeed False
+
+                    _ ->
+                        fail "Enabled status invalid, expected \"enabled\" or \"disabled\"."
+            )
 
 
 decodeAcl : Decoder AccessControl
@@ -52,6 +61,34 @@ decodeAcl =
     succeed AccessControl
         |> required "path" string
         |> required "verb" string
+
+
+decodeExpirationPolicy : DatePickerInfo -> Decoder ExpirationPolicy
+decodeExpirationPolicy { zone } =
+    field "expirationPolicy" string
+        |> andThen (parseExpirationPolicy zone)
+
+
+parseExpirationPolicy : Zone -> String -> Decoder ExpirationPolicy
+parseExpirationPolicy zone str =
+    case str of
+        "never" ->
+            succeed NeverExpire
+
+        "datetime" ->
+            field "expirationDate" string
+                |> andThen
+                    (\s ->
+                        case parseDateTimeAsPosix zone s of
+                            Ok posix ->
+                                succeed (ExpireAtDate posix)
+
+                            Err err ->
+                                fail ("Expiration date invalid : " ++ err)
+                    )
+
+        _ ->
+            fail "Unrecognized \"expirationPolicy\" field, expected \"never\" or \"datetime\""
 
 
 
@@ -94,8 +131,6 @@ toTenantList str =
 decodeResult : DatePickerInfo -> Decoder ApiResult
 decodeResult datePickerInfo =
     succeed ApiResult
-        |> required "aclPluginEnabled" bool
-        |> required "tenantsPluginEnabled" bool
         |> required "accounts" (list (decodeAccount datePickerInfo))
 
 
@@ -115,7 +150,7 @@ decodeErrorDetails json =
                 Ok s ->
                     s
 
-                Err e ->
+                Err _ ->
                     "fail to process errorDetails"
 
         errors =
@@ -130,3 +165,18 @@ decodeErrorDetails json =
 
         Just s ->
             ( s, join " \n " (drop 1 (List.map (\err -> "\t ‣ " ++ err) errors)) )
+
+
+{-| Format is ISO8601 String : YYYY-MM-ddTHH:mm:ssZ
+
+To account for the specified datepicker timezone and its date representation,
+we need to translate the date to POSIX,
+and we need to adjust the parsed offset of the date time string.
+
+-}
+parseDateTimeAsPosix : Zone -> String -> Result String Posix
+parseDateTimeAsPosix zone str =
+    Time.Iso8601.toDateTime str
+        |> Result.map (\d -> Time.DateTime.toPosix d)
+        |> Result.map (\p -> Time.Extra.partsToPosix zone (Time.Extra.Parts (Time.toYear zone p) (Time.toMonth zone p) (Time.toDay zone p) (Time.toHour zone p) (Time.toMinute zone p) (Time.toSecond zone p) (Time.toMillis zone p)))
+        |> Result.mapError (List.map (Time.Iso8601ErrorMsg.renderText "Invalid ISO string date") >> String.join "\n")
