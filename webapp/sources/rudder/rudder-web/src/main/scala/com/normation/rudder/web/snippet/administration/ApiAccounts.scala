@@ -40,7 +40,6 @@ package com.normation.rudder.web.snippet.administration
 import bootstrap.liftweb.RudderConfig
 import com.normation.plugins.DefaultExtendableSnippet
 import net.liftweb.http.DispatchSnippet
-import net.liftweb.http.S
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmds.Script
 import net.liftweb.http.js.JsCmds.jsExpToJsCmd
@@ -48,16 +47,13 @@ import scala.xml.NodeSeq
 
 class ApiAccounts extends DispatchSnippet with DefaultExtendableSnippet[ApiAccounts] {
 
-  private val relativePath = RudderConfig.restApiAccounts.relativePath.mkString("/", "/", "")
-
   def mainDispatch: Map[String, NodeSeq => NodeSeq] = Map(
     "render" -> render,
     "body"   -> identity
   )
 
   def render(xml: NodeSeq): NodeSeq = <head>{
-    Script(JsRaw(s"""const apiPath = "${S.contextPath + relativePath}";
-                    |const aclPluginEnabled = ${RudderConfig.apiAuthorizationLevelService.aclEnabled};
+    Script(JsRaw(s"""const aclPluginEnabled = ${RudderConfig.apiAuthorizationLevelService.aclEnabled};
                     |const tenantsPluginEnabled = ${RudderConfig.tenantService.tenantsEnabled};""".stripMargin))
   }</head> // JsRaw ok, const
 
