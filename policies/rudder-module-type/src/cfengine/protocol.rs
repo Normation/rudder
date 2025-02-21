@@ -286,6 +286,7 @@ mod tests {
             action_policy: ActionPolicy::Fix,
             agent_frequency_minutes: 5,
             state_dir: Default::default(),
+            report_id: None,
         };
         let ref_val = ValidateRequest {
             operation: ValidateOperation::ValidatePromise,
@@ -322,6 +323,7 @@ mod tests {
             action_policy: ActionPolicy::Fix,
             agent_frequency_minutes: 5,
             state_dir: Default::default(),
+            report_id: None,
         };
         let ref_val = EvaluateRequest {
             operation: EvaluateOperation::EvaluatePromise,
