@@ -39,25 +39,14 @@ package com.normation.rudder.rest
 
 import com.normation.box.*
 import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.rudder.api.AclPath
-import com.normation.rudder.api.ApiAccountId
-import com.normation.rudder.api.ApiAccountName
-import com.normation.rudder.api.ApiAclElement
-import com.normation.rudder.api.ApiAuthorization as ApiAuthz
-import com.normation.rudder.api.ApiAuthorizationKind
-import com.normation.rudder.api.HttpAction
 import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.domain.reports.CompliancePrecision
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.ncf.ParameterType.ParameterTypeService
 import com.normation.rudder.repository.*
-import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.rest.data.*
-import com.normation.rudder.rest.internal.RestApiAccount
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.services.workflows.WorkflowLevelService
-import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.*
 import net.liftweb.http.Req
@@ -75,21 +64,11 @@ final case class RestExtractorService(
     parameterTypeService: ParameterTypeService
 ) extends Loggable {
 
-  import com.normation.rudder.repository.json.DataExtractor.OptionnalJson.*
-
-  private def toApiAccountId(value: String): Box[ApiAccountId] = {
-    Full(ApiAccountId(value))
-  }
-
-  private def toApiAccountName(value: String): Box[ApiAccountName] = {
-    Full(ApiAccountName(value))
-  }
-
   /*
    * Looking for parameter: "level=2"
    * Still used in compliance APIs
    */
-  def extractComplianceLevel(params: Map[String, List[String]]):  Box[Option[Int]]                 = {
+  def extractComplianceLevel(params: Map[String, List[String]]): Box[Option[Int]] = {
     params.get("level") match {
       case None | Some(Nil) => Full(None)
       case Some(h :: tail)  => // only take into account the first level param is several are passed
@@ -100,6 +79,7 @@ final case class RestExtractorService(
         }
     }
   }
+
   def extractPercentPrecision(params: Map[String, List[String]]): Box[Option[CompliancePrecision]] = {
     params.get("precision") match {
       case None | Some(Nil) => Full(None)
@@ -114,60 +94,6 @@ final case class RestExtractorService(
           Some(level)
         }
 
-    }
-  }
-
-  /*
-   * The ACL list which is exchange between
-   */
-  def extractApiACLFromJSON(json: JValue): Box[(AclPath, HttpAction)] = {
-    import com.normation.rudder.utils.Utils.eitherToBox
-    for {
-      path   <- CompleteJson.extractJsonString(json, "path", AclPath.parse)
-      action <- CompleteJson.extractJsonString(json, "verb", HttpAction.parse)
-    } yield {
-      (path, action)
-    }
-  }
-
-  def extractApiAccountFromJSON(json: JValue): Box[RestApiAccount] = {
-    import com.normation.rudder.utils.Utils.eitherToBox
-    for {
-      id                <- extractJsonString(json, "id", toApiAccountId)
-      name              <- extractJsonString(json, "name", toApiAccountName)
-      description       <- extractJsonString(json, "description")
-      enabled           <- extractJsonBoolean(json, "enabled")
-      oldId             <- extractJsonString(json, "oldId", toApiAccountId)
-      expirationDefined <- extractJsonBoolean(json, "expirationDateDefined")
-      expirationValue   <- extractJsonString(json, "expirationDate", DateFormaterService.parseDateTimePicker(_).toBox)
-      authType          <- extractJsonString(json, "authorizationType", ApiAuthorizationKind.parse)
-      tenants           <- extractJsonString(json, "tenants", s => NodeSecurityContext.parse(Some(s)).toBox)
-      acl               <- extractJsonArray(json, "acl")((extractApiACLFromJSON _)).map(_.getOrElse(Nil))
-    } yield {
-
-      val auth       = authType match {
-        case None                            => None
-        case Some(ApiAuthorizationKind.None) => Some(ApiAuthz.None)
-        case Some(ApiAuthorizationKind.RO)   => Some(ApiAuthz.RO)
-        case Some(ApiAuthorizationKind.RW)   => Some(ApiAuthz.RW)
-        case Some(ApiAuthorizationKind.ACL)  => {
-          // group by path to get ApiAclElements
-          val acls = acl
-            .groupBy(_._1)
-            .map {
-              case (p, seq) =>
-                ApiAclElement(p, seq.map(_._2).toSet)
-            }
-            .toList
-          Some(ApiAuthz.ACL(acls))
-        }
-      }
-      val expiration = expirationDefined match {
-        case None        => None
-        case Some(true)  => Some(expirationValue)
-        case Some(false) => Some(None)
-      }
-      RestApiAccount(id, name, description, enabled, oldId, expiration, auth, tenants)
     }
   }
 
@@ -227,5 +153,4 @@ final case class RestExtractorService(
         ComplianceFormat.fromValue(format).toBox
     }
   }
-
 }
