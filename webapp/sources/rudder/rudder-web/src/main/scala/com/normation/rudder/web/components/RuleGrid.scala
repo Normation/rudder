@@ -476,7 +476,7 @@ class RuleGrid(
 
     rules.map { rule =>
       val nodes                     = groupsLib.getNodeIds(rule.targets, arePolicyServers)
-      val (policyMode, explanation) = getRulePolicyMode(rule, nodes, nodeFacts, directivesLib, globalMode)
+      val (policyMode, explanation) = getRulePolicyMode(rule, nodes, nodeFacts, directivesLib, globalMode).tuple
 
       val trackerVariables: Box[Seq[DirectiveStatus]] = {
         traverse(rule.directiveIds.toSeq) { id =>

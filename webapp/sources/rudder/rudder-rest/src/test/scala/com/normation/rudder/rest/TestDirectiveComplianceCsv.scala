@@ -40,7 +40,9 @@ package com.normation.rudder.rest
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
+import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.ComplianceLevel
@@ -54,6 +56,7 @@ import com.normation.rudder.rest.data.ByRuleBlockCompliance
 import com.normation.rudder.rest.data.ByRuleNodeCompliance
 import com.normation.rudder.rest.data.ByRuleValueCompliance
 import com.normation.rudder.rest.data.CsvCompliance
+import com.normation.rudder.web.services.ComputePolicyMode
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
@@ -90,19 +93,20 @@ class TestDirectiveComplianceCsv extends Specification {
 "Basic hardening on all systems", "Check Cipher TLS_PSK_WITH_NULL_SHA384 ", "Command execution", "prod-app-01.lab.rudder.io", "Disable-TlsCipherSuite -Name "TLS_PSK_WITH_NULL_SHA384"", "auditNotApplicable", "Skipping method 'Command execution' with key parameter 'Disable-TlsCipherSuite -Name "TLS_PSK_WITH_NULL_SHA384"' since condition 'windows.audit_from_powershell_execution__Get_TlsCipherSuite__Name__TLS_PSK_WITH_NULL_SHA384___Count_error' is not reached was not applicable"
 "Basic hardening on all systems", "Check Cipher TLS_PSK_WITH_NULL_SHA384 ", "Command execution", "prod-www-02.lab.rudder.io", "Disable-TlsCipherSuite -Name "TLS_PSK_WITH_NULL_SHA384"", "auditNotApplicable", "Skipping method 'Command execution' with key parameter 'Disable-TlsCipherSuite -Name "TLS_PSK_WITH_NULL_SHA384"' since condition 'windows.audit_from_powershell_execution__Get_TlsCipherSuite__Name__TLS_PSK_WITH_NULL_SHA384___Count_error' is not reached was not applicable"
      */
+    val enforce    = ComputePolicyMode.global(GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always))
     val notUsed    = ComplianceLevel()
     val compliance = ByDirectiveCompliance(
       DirectiveId(DirectiveUid("d1")),
       "directive 1",
       notUsed,
       FullCompliance,
-      None,
+      enforce,
       Seq(
         ByDirectiveByRuleCompliance(
           RuleId(RuleUid("r1")),
           "Basic hardening on all systems",
           notUsed,
-          Some(PolicyMode.Enforce),
+          enforce,
           Seq(
             ByRuleBlockCompliance(
               "Check Cipher TLS_RSA_WITH_DES_CBC_SHA",
@@ -111,11 +115,11 @@ class TestDirectiveComplianceCsv extends Specification {
                 ByRuleValueCompliance(
                   "Command execution",
                   notUsed,
-                  Seq(
+                  List(
                     ByRuleNodeCompliance(
                       NodeId("n1"),
                       "prod-www-01.lab.rudder.io",
-                      None,
+                      enforce,
                       notUsed,
                       Seq(
                         ComponentValueStatusReport(
@@ -136,7 +140,7 @@ class TestDirectiveComplianceCsv extends Specification {
                     ByRuleNodeCompliance(
                       NodeId("n1"),
                       "prod-windows-2016.demo.normation.com",
-                      None,
+                      enforce,
                       notUsed,
                       Seq(
                         ComponentValueStatusReport(
@@ -159,11 +163,11 @@ class TestDirectiveComplianceCsv extends Specification {
                 ByRuleValueCompliance(
                   "Audit from Powershell execution",
                   notUsed,
-                  Seq(
+                  List(
                     ByRuleNodeCompliance(
                       NodeId("n1"),
                       "prod-app-01.lab.rudder.io",
-                      None,
+                      enforce,
                       notUsed,
                       Seq(
                         ComponentValueStatusReport(
@@ -184,7 +188,7 @@ class TestDirectiveComplianceCsv extends Specification {
                     ByRuleNodeCompliance(
                       NodeId("n1"),
                       "prod-windows-2016.demo.normation.com",
-                      None,
+                      enforce,
                       notUsed,
                       Seq(
                         ComponentValueStatusReport(
