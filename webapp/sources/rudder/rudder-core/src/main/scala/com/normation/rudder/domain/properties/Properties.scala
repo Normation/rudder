@@ -40,6 +40,7 @@ import zio.json.ast.Json
 package com.normation.rudder.domain.properties
 
 import cats.data.Ior
+import cats.kernel.Monoid
 import cats.kernel.Semigroup
 import cats.syntax.semigroup.*
 import com.normation.GitVersion
@@ -48,8 +49,8 @@ import com.normation.errors.*
 import com.normation.inventory.domain.CustomProperty
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.properties.GroupProp
 import com.normation.rudder.services.policies.ParameterEntry
 import com.typesafe.config.*
 import enumeratum.*
@@ -927,20 +928,24 @@ object CompareProperties {
  *   - name of the diff provider: group/target name, global parameter
  */
 sealed trait ParentProperty {
+  def kind:        String
   def displayName: String // human-readable information about the parent providing prop
   def value:       ConfigValue
 }
 
 object ParentProperty {
   final case class Node(name: String, id: NodeId, value: ConfigValue)       extends ParentProperty {
+    override def kind:        String = "Node"
     override def displayName: String = s"${name} (${id.value})"
   }
   final case class Group(name: String, id: NodeGroupId, value: ConfigValue) extends ParentProperty {
+    override def kind:        String = "Group"
     override def displayName: String = s"${name} (${id.serialize})"
   }
   // a global parameter has the same name as property so no need to be specific for name
   final case class Global(value: ConfigValue)                               extends ParentProperty {
     val displayName = "Global Parameter"
+    override def kind: String = displayName
   }
 
   // The hierarchy of node properties from top to bottom : Global, Group, Node
@@ -1089,8 +1094,8 @@ object NodePropertyError         {
       s"MissingParentGroup(groupId=${groupId.serialize},groupName=${groupName},parentGroupId=${parentGroupId})"
   }
   object MissingParentGroup {
-    def apply(group: NodeGroup, parentGroupId: String): MissingParentGroup =
-      MissingParentGroup(group.id, group.name, parentGroupId)
+    def apply(groupProp: GroupProp, parentGroupId: String): MissingParentGroup =
+      MissingParentGroup(groupProp.groupId, groupProp.groupName, parentGroupId)
   }
 
   // The message can be very broad or specific here, it is known from the DAG resolution
@@ -1102,20 +1107,32 @@ object NodePropertyError         {
   case class PropertyInheritanceConflicts(
       conflicts: Map[NodeProperty, NonEmptyChunk[List[ParentProperty]]]
   ) extends NodePropertySpecificError {
-    def message: String = propertiesErrors.values.map {
-      case (_, conflicting, error) =>
-        s"In hierarchy with ${conflicting.map(_.displayName).mkString(", ")} :\n${error}"
-    }.mkString("\n")
+    override def toString(): String = debugString
+
+    def message: String = {
+      conflicts.toList.map {
+        case (k, hierarchies) =>
+          val error = conflictMessage(k, hierarchies)
+          s"In hierarchy with ${hierarchies.map(_.map(_.displayName).mkString(", ")).mkString("{", "|", "}")} :\n${error}"
+      }.mkString("\n")
+    }
 
     def debugString: String = s"PropertyInheritanceConflicts([${conflicts.map {
         case (prop, c) =>
           prop.name + "->" + c
-            .map(_.map(_.displayName).mkString(",")) // H = G1 (g1-uuid), G2 (g2-uuid)
+            .map(_.map(p => s"${p.kind} ${p.displayName}").mkString(",")) // H = Group G1 (g1-uuid), Group G2 (g2-uuid)
             .mkString("{", "|", "}") // conflicting hierarchies : {HA|HB|...}
       }.mkString(",")}])"
 
     def ++(that: PropertyInheritanceConflicts): PropertyInheritanceConflicts = {
       PropertyInheritanceConflicts(conflicts ++ that.conflicts)
+    }
+
+    /**
+      * This method is useful when resolving conflicts
+      */
+    def resolve(propNames: Set[String]): PropertyInheritanceConflicts = {
+      copy(conflicts = conflicts.filterNot { case (k, _) => propNames.contains(k.name) })
     }
 
     // the map needs to be evaluated eagerly to get all property errors at once and atomic checks
@@ -1155,8 +1172,10 @@ object NodePropertyError         {
       )
     }
 
-    // semigroup is used when using combinators from the Ior datatype to accumulate conflicts
-    implicit val semigroup: Semigroup[PropertyInheritanceConflicts] = Semigroup.instance(_ ++ _)
+    val empty: PropertyInheritanceConflicts = PropertyInheritanceConflicts(Map.empty)
+
+    // monoid is used when using combinators from the Ior datatype to accumulate conflicts
+    implicit val monoid: Monoid[PropertyInheritanceConflicts] = Monoid.instance(empty, _ ++ _)
   }
 
   /**
@@ -1229,7 +1248,11 @@ object FailedNodePropertyHierarchy {
   /**
     * Constuctor needs to validate that properties in success does not intersect specific node property errors
     */
-  def apply(it: Iterable[NodePropertyHierarchy], error: NodePropertyError, contextMessage: String = "") = {
+  def apply(
+      it:             Iterable[NodePropertyHierarchy],
+      error:          NodePropertyError,
+      contextMessage: String = ""
+  ): FailedNodePropertyHierarchy = {
     val success = error match {
       case propErrors: NodePropertySpecificError =>
         it.filterNot(p => propErrors.propertiesErrors.keySet.contains(p.prop.name))
