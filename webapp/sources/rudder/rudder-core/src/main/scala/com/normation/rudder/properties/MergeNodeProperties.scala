@@ -55,6 +55,7 @@ import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.NodePropertyError
+import com.normation.rudder.domain.properties.NodePropertyError.*
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.PropertyProvider
@@ -212,39 +213,40 @@ object MergeNodeProperties {
       allGroups:    Map[NodeGroupId, FullGroupTarget],
       globalParams: Map[String, GlobalParameter]
   ): ResolvedNodePropertyHierarchy = {
+    val groupProp     = group.nodeGroup.toGroupProp
+    val allGroupProps = allGroups.map { case (id, g) => (id.serialize, g.nodeGroup.toGroupProp) }
+
     // get parents till the top, recursively.
     // This can fail if a parent is missing from "all groups"
     def withParents(
-        currents:  List[FullGroupTarget],
-        allGroups: Map[String, FullGroupTarget], // key: serialized version of NodeGroupId, parent is a String
-        acc:       Map[NodeGroupId, FullGroupTarget]
-    ): Either[NodePropertyError.MissingParentGroup, Map[NodeGroupId, FullGroupTarget]] = {
-      import cats.implicits.*
+        currents:  List[GroupProp],
+        allGroups: Map[String, GroupProp], // key: serialized version of NodeGroupId, as parents of GroupProp is a List[String]
+        acc:       Map[NodeGroupId, GroupProp]
+    ): Either[NodePropertyError.MissingParentGroup, Map[NodeGroupId, GroupProp]] = {
       currents match {
         case Nil  => Right(acc)
         case list =>
-          list.foldLeft(Right(acc): Either[NodePropertyError.MissingParentGroup, Map[NodeGroupId, FullGroupTarget]]) {
-            case (optAcc, g) =>
+          list.foldLeft(Right(acc): Either[NodePropertyError.MissingParentGroup, Map[NodeGroupId, GroupProp]]) {
+            case (optAcc, prop) =>
               optAcc match {
                 case Left(err)  => Left(err)
                 case Right(acc) =>
-                  if (acc.isDefinedAt(g.nodeGroup.id)) Right(acc) // already done previously
+                  if (acc.isDefinedAt(prop.groupId)) Right(acc) // already done previously
                   else {
-                    val prop = g.nodeGroup.toGroupProp
                     for {
                       parents <- prop.parentGroups.traverse { parentId =>
                                    val parentExists = NodeGroupId.parse(parentId).map(acc.isDefinedAt(_)).getOrElse(false)
-                                   if (parentExists) Right(Nil)
+                                   if (parentExists) Right(None)
                                    else {
                                      allGroups.get(parentId) match {
                                        case None    =>
-                                         Left(NodePropertyError.MissingParentGroup(g.nodeGroup, parentId))
+                                         Left(NodePropertyError.MissingParentGroup(prop, parentId))
                                        case Some(p) =>
-                                         Right(p :: Nil)
+                                         Right(Some(p))
                                      }
                                    }
                                  }
-                      rec     <- withParents(parents.flatten, allGroups, acc + (g.nodeGroup.id -> g))
+                      rec     <- withParents(parents.flatten, allGroups, acc + (prop.groupId -> prop))
                     } yield {
                       rec
                     }
@@ -253,12 +255,73 @@ object MergeNodeProperties {
           }
       }
     }
+
+    // Group may resolve conflicting properties from parents, for some properties
+    // so we need to mark those as resolved, with the most prioritized parent (see https://issues.rudder.io/issues/26325)
+    def checkMergeGroupParent(otherProps: Map[NodeGroupId, GroupProp]): Ior[NodePropertyError, List[NodePropertyHierarchy]] = {
+      checkPropertyMerge(otherProps, globalParams) match {
+        case Ior.Right(b) => Ior.Right(b)
+        case withErr      =>
+          withErr.left match {
+            case Some(err: NodePropertyError.PropertyInheritanceConflicts) =>
+              // we need to remove resolved conflicting properties and transfer them to the success part
+              val resolved  = err.conflicts.toList.flatMap {
+                case (nodeProp, parentProps: NonEmptyChunk[List[ParentProperty]]) =>
+                  for {
+                    // reverse to get the parent which has the highest priority
+                    firstParent     <- groupProp.parentGroups.reverse.headOption
+                    parent          <- allGroupProps.get(firstParent)
+                    // we assume that there is a single property value for the same name (upstream we have List and not a Map)
+                    parentProp      <- parent.properties.find(_.name == nodeProp.name)
+                    // parentProps probably needs to be a NonEmptyChunk(VerticalPropTree[{node=(1),groups=(*),global=(1)}])
+                    // and what we want is a VerticalPropTree that has the parent group as its dominant group i.e. most prioritized groups, the last one
+                    // we probably want to have this natural subdivision, such that the Ordering[ParentProperty] will disappear, as it's explicitly : .node, .groups (already sorted), .global
+                    parentHierarchy <- parentProps.collectFirst {
+                                         case l
+                                             if l.reverse.collectFirst { case g: ParentProperty.Group => g }
+                                               .map(_.id)
+                                               .contains(parent.groupId) =>
+                                           l
+                                       }
+                  } yield {
+                    parentProp -> parentHierarchy
+                  }
+              }
+              val toResolve = resolved.map { case (parentProp, _) => parentProp.name }.toSet
+              val updated   = withErr.bimap(
+                {
+                  case err: NodePropertyError.PropertyInheritanceConflicts => err.resolve(toResolve)
+                  case err => err
+                },
+                _ ++ resolved.map {
+                  case (groupProp, hierarchy) =>
+                    // we always have a `NodeProperty`, instead of a `GroupProperty`
+                    // and the value is "inherited" from the parent
+                    NodePropertyHierarchy(
+                      NodeProperty(groupProp.config).withProvider(GroupProp.INHERITANCE_PROVIDER),
+                      hierarchy
+                    )
+                }
+              )
+              // it may happen that conflicts are empty, in which case it can be simplified to Ior.Right
+              updated match {
+                case Ior.Both(NodePropertyError.PropertyInheritanceConflicts.empty, r) => Ior.Right(r)
+                case Ior.Left(NodePropertyError.PropertyInheritanceConflicts.empty)    => Ior.Right(List.empty)
+                case other                                                             => other
+              }
+            case None | Some(_: NodePropertyError)                         => withErr
+          }
+      }
+    }
+
     val resolved = for {
       hierarchy   <-
-        // this fails with an empty list of property, maybe we should also ignore group parent errors, as with "sortGroups"
-        Ior.fromEither(withParents(group :: Nil, allGroups.map { case (id, group) => (id.serialize, group) }, Map()))
-      props        = (hierarchy - group.nodeGroup.id).map { case (groupId, target) => (groupId, target.nodeGroup.toGroupProp) }
-      hierarchies <- checkPropertyMerge(props, globalParams)
+        // this fails with an empty list of property, missing parents errors are short-circuiting, as they may be the cause of misconfiguration
+        Ior
+          .fromEither[NodePropertyError, Map[NodeGroupId, GroupProp]](withParents(groupProp :: Nil, allGroupProps, Map()))
+      otherProps   = hierarchy - group.nodeGroup.id
+      hierarchies <- checkMergeGroupParent(otherProps)
+
     } yield {
       val groupProps = group.nodeGroup.properties.map(g => (g.name, g)).toMap
       mergeDefault(group.nodeGroup.id.serialize, groupProps, hierarchies.map(h => (h.prop.name, h)).toMap).values
@@ -375,10 +438,9 @@ object MergeNodeProperties {
       // work on non empty chain for repeated append operations on the resulting hierarchy (due to cumulating both error and success)
       val grouped = propByTrees.groupByNec(_.prop.name)
 
-      // The right combinator that allows to use the semigroup structure of the error is the
       val validatedProps = grouped.toList.map {
         case (k, c) =>
-          val (h, more) = (c.head, c.tail)
+          val (h, more) = c.uncons
           if (more.forall(_.prop == h.prop)) { // if it's exactly the same property everywhere, it's ok
             Right(h)
           } else {
@@ -394,6 +456,7 @@ object MergeNodeProperties {
 
       // This is guaranteed to be at least a Both, since we start with a right one and we just add potential errors
       val initialValue = Ior.right[NodePropertyError.PropertyInheritanceConflicts, Chain[NodePropertyHierarchy]](Chain.empty)
+      // The right combinator that allows to use the semigroup structure of the error is the Ior data type
       validatedProps
         .foldLeft(initialValue) {
           case (acc, Left(c))  => acc.addLeft(c)
