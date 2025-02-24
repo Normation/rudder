@@ -42,10 +42,7 @@ impl ModuleType0 for Augeas {
         let p: AugeasParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
         p.validate()?;
 
-        self.handle_check_apply(p, mode)
-
-        // FIXME : structured reporting, serialize late
-        //         also to be used tests!
+        self.handle_check_apply(p, mode, Some(parameters.backup_dir.as_path()))
     }
 }
 
