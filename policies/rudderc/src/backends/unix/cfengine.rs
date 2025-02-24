@@ -31,13 +31,14 @@
 pub(crate) mod bundle;
 pub(crate) mod promise;
 
-use std::{fs, path::Path, process::Command};
-
 use anyhow::{bail, Result};
 use rudder_commons::{
     regex_comp,
     report::{Report, RunLog},
 };
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::{fs, path::Path, process::Command};
 use tempfile::tempdir;
 use tracing::debug;
 
@@ -146,13 +147,36 @@ pub fn cfengine_canonify_condition(c: &str) -> String {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize, Hash)]
+pub struct CfEngineDatastate {
+    #[serde(deserialize_with = "deserialize_cfengine_classes")]
+    pub classes: Vec<String>,
+    pub vars: serde_json::Value,
+}
+
+fn deserialize_cfengine_classes<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let map: HashMap<String, bool> = HashMap::deserialize(deserializer)?;
+    Ok(map
+        .into_iter()
+        .filter_map(|(k, v)| if v { Some(k) } else { None })
+        .collect())
+}
+pub struct CfAgentResult {
+    pub runlog: RunLog,
+    pub datastate: CfEngineDatastate,
+    pub output: String,
+}
+
 pub fn cf_agent(
     input: &Path,
     params: &Path,
     lib_path: &Path,
     agent_path: &Path,
     agent_verbose: bool,
-) -> Result<RunLog> {
+) -> Result<CfAgentResult> {
     debug!("Running cf-agent on {}", input.display());
     // Use a dedicated workdir for each test
     // Required to run agents concurrently without trouble
@@ -166,6 +190,7 @@ pub fn cf_agent(
     } else {
         Path::new(".").join(input)
     };
+    let datastate_path = work_dir.path().join("datastate.json");
     let canon_lib_path = lib_path.canonicalize()?;
     let cmd = Command::new(agent_path.join("cf-agent"))
         .args([
@@ -178,6 +203,7 @@ pub fn cf_agent(
         ])
         // No way to pass textual data as parameter, so we use env variables
         .env("PARAMS_FILE", params)
+        .env("DATASTATE_FILE", datastate_path.clone())
         .env("LIB_PATH", canon_lib_path)
         .env("TMP_DIR", work_dir.path().to_string_lossy().to_string())
         .env("CWD", std::env::current_dir()?)
@@ -190,7 +216,13 @@ pub fn cf_agent(
         // CFEngine output everything on stdout
         let run_log = Report::parse(&stdout)?;
         debug!("cf-agent output: {}", stdout);
-        Ok(run_log)
+        let raw_datastate =
+            &fs::read_to_string(datastate_path.clone()).expect("Could not read the datastate file");
+        Ok(CfAgentResult {
+            runlog: run_log,
+            datastate: serde_json::from_str(raw_datastate).unwrap(),
+            output: stdout.to_string(),
+        })
     }
 }
 
