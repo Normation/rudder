@@ -304,11 +304,7 @@ pub fn run_inner(args: Args) -> Result<()> {
             let to_enable: Vec<String> = if all {
                 db.plugins.keys().cloned().collect()
             } else {
-                let plugins = long_names(package);
-                if plugins.is_empty() {
-                    bail!("No plugin name provided");
-                }
-                plugins
+                long_names(package)
             };
 
             if to_enable.is_empty() {
