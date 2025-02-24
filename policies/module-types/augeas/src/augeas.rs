@@ -1,17 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::dsl::script::{
-    CheckMode, Interpreter, InterpreterOut, InterpreterOutcome, InterpreterPerms,
+use crate::{
+    dsl::{
+        error::format_report,
+        interpreter::{
+            CheckMode, Interpreter, InterpreterOut, InterpreterOutcome, InterpreterPerms,
+        },
+    },
+    AugeasParameters, RUDDER_LENS_LIB,
 };
-use crate::{AugeasParameters, RUDDER_LENS_LIB};
 use anyhow::bail;
+use bytesize::ByteSize;
 use raugeas::{Flags, SaveMode};
-use rudder_module_type::{rudder_debug, rudder_error, CheckApplyResult, Outcome, PolicyMode};
-use std::borrow::Cow;
-use std::env;
-use std::os::unix::fs::MetadataExt;
-use std::path::{Path, PathBuf};
+use rudder_module_type::{
+    backup::Backup, rudder_debug, rudder_error, CheckApplyResult, Outcome, PolicyMode,
+};
+use std::{
+    borrow::Cow,
+    env, fs,
+    os::unix::fs::MetadataExt,
+    path::{Path, PathBuf},
+};
 
 /// Augeas module implementation.
 ///
@@ -26,13 +36,6 @@ pub struct Augeas {
     aug: raugeas::Augeas,
     root: Option<PathBuf>,
     load_paths: Vec<PathBuf>,
-}
-
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub enum LoadMode {
-    All,
-    LensesOnly,
-    Nothing,
 }
 
 impl Augeas {
@@ -68,54 +71,41 @@ impl Augeas {
         root: Option<&Path>,
         load_paths: &[T],
     ) -> anyhow::Result<raugeas::Augeas> {
+        let mut flags = Flags::NONE;
+        flags.insert(Flags::NO_LOAD);
         // Enable span tracking for better error messages.
-        Self::new_aug(root, load_paths, false, true, LoadMode::LensesOnly)
+        // As we never load the whole tree, the cost is negligible.
+        flags.insert(Flags::ENABLE_SPAN);
+
+        Self::new_aug(root, load_paths, flags)
     }
 
     pub fn new_aug<T: AsRef<Path>>(
         root: Option<&Path>,
         load_paths: &[T],
-        type_check_lenses: bool,
-        enable_span: bool,
-        load_mode: LoadMode,
+        flags: Flags,
     ) -> anyhow::Result<raugeas::Augeas> {
-        let mut flags = Flags::NONE;
-
-        match load_mode {
-            LoadMode::All => {
-                rudder_debug!("Loading all files into the tree on startup");
-            }
-            LoadMode::LensesOnly => {
-                rudder_debug!("Loading lenses on startup");
-                flags.insert(Flags::NO_LOAD);
-            }
-            LoadMode::Nothing => {
-                rudder_debug!("Not loading lenses on startup");
-                flags.insert(Flags::NO_MODULE_AUTOLOAD);
-            }
-        }
-
-        if enable_span {
-            rudder_debug!("Enabling span tracking");
-            flags.insert(Flags::ENABLE_SPAN);
-        }
-
-        if type_check_lenses {
-            rudder_debug!("Type checking lenses");
-            flags.insert(Flags::TYPE_CHECK);
-        }
+        // Consider Rudder lib as part of the standard lib.
+        let rudder_lib = if flags.contains(Flags::NO_STD_INCLUDE) {
+            None
+        } else {
+            Some(RUDDER_LENS_LIB.into())
+        };
 
         // Load from the given paths plus the default one.
-        let load_paths = std::iter::once(RUDDER_LENS_LIB.into())
-            .chain(load_paths.iter().map(|p| p.as_ref().to_string_lossy()))
+        let load_paths = load_paths
+            .iter()
+            .map(|p| p.as_ref().to_string_lossy())
+            .chain(rudder_lib)
             .collect::<Vec<Cow<str>>>()
             .join(":");
-        rudder_debug!("Loading lenses from: {}", load_paths);
+
+        rudder_debug!("Loading lenses from: {load_paths}");
         let aug = raugeas::Augeas::init(root, load_paths, flags)?;
 
         // Show version for debugging purposes.
         let version = aug.version()?;
-        rudder_debug!("augeas version: {}", version);
+        rudder_debug!("augeas version: {version}");
 
         Ok(aug)
     }
@@ -124,30 +114,37 @@ impl Augeas {
         &mut self,
         p: AugeasParameters,
         policy_mode: PolicyMode,
+        backup_dir: Option<&Path>,
     ) -> CheckApplyResult {
         let aug = &mut self.aug;
 
         let already_exists = p.path.exists();
+        let path_str = p.path.display().to_string();
+
+        let current_content = if already_exists {
+            Some(fs::read_to_string(&p.path)?)
+        } else {
+            None
+        };
 
         if already_exists {
             // Avoid memory exhaustion by not loading the file if it is too big.
             // NOTE: this is not a security feature, as we don't defend against TOCTOU attacks.
             let size = p.path.metadata()?.size();
-            // 10MB is a reasonable limit for config file.
-            if size > 10_000_000 {
+            let b_size = ByteSize::b(size);
+            if b_size > p.max_file_size {
                 bail!(
-                    "File too big to load: {} ({}B > 10MB)",
-                    p.path.display(),
-                    size
+                    "File is too big to be loaded: {path_str} ({b_size} > {})",
+                    p.max_file_size
                 );
             }
-            rudder_debug!("Target {} already exists", p.path.display());
+            rudder_debug!("Target {path_str} already exists");
         } else if policy_mode == PolicyMode::Audit {
-            rudder_error!("Target {} does not exist", p.path.display());
+            rudder_error!("Target {path_str} does not exist");
             // Short-circuit the check.
-            bail!("Audit target file '{}' does not exist", p.path.display());
+            bail!("Audit target file '{path_str}' does not exist");
         } else {
-            rudder_debug!("Target {} does not exist", p.path.display());
+            rudder_debug!("Target {path_str} does not exist");
         }
 
         if let Some(l) = p.lens.as_deref() {
@@ -159,27 +156,38 @@ impl Augeas {
         }
 
         // We have loaded the target, let's check for parsing errors.
-        if let Some(e) = aug.tree_error(format!("/augeas/{}", p.path.display()))? {
-            bail!("Error loading target file '{}': {}", p.path.display(), e);
-            // TODO: some errors might not be fatal?
+        if let Some(e) = aug.tree_error(format!("/augeas/{path_str}"))? {
+            if let (Some(pos), Some(content)) = (&e.position, current_content.as_ref()) {
+                let report = format_report(
+                    &format!("Load error: {}", e.kind),
+                    &e.message,
+                    pos.position..(pos.position + 1),
+                    &path_str,
+                    content,
+                    None,
+                );
+                bail!("{report}");
+            } else {
+                bail!("Error loading target file '{path_str}': {e}");
+            }
         }
 
         let context: Cow<str> = if let Some(c) = p.context.as_deref() {
             c.into()
         } else {
-            format!("files/{}", p.path.display()).into()
+            format!("files/{path_str}").into()
         };
         rudder_debug!("Setting context to: {context}");
         aug.set("/augeas/context", context.as_ref())?;
 
-        let mut interpreter = Interpreter::new(aug);
+        let mut interpreter = Interpreter::new(aug, current_content.as_deref());
 
         // FIXME: handle check only and check script_if
 
         let no_if_script = p.if_script.trim().is_empty();
 
         let do_script = if no_if_script {
-            // No condition, always run the script.
+            // There is no condition => always run the script.
             true
         } else {
             match interpreter.run(
@@ -207,7 +215,7 @@ impl Augeas {
                     }
                 }
                 Err(e) => {
-                    rudder_error!("Error in if_script: {}", e);
+                    rudder_error!("Error in if_script: {e}");
                     false
                 }
             }
@@ -245,13 +253,10 @@ impl Augeas {
 
              */
 
-            // FIXME: try to detect non-convergence on new files too.
+            // FIXME: try to detect non-convergence on new files too!
 
             // TODO check:
-            // - if running twice changes the result (or triggers checks)
             // - is if_script now returns false
-            //
-            // This allows detecting non-idempotent configurations and avoid writing them.
         }
 
         // Avoid writing if we are in audit mode.
@@ -264,7 +269,7 @@ impl Augeas {
             }
         }
 
-        // TODO: Pas de preview() dispo en création de fichier
+        // TODO: No preview() when creating the file.
 
         /*
         let src = read_to_string(&p.path).unwrap_or("".to_string());
@@ -278,15 +283,22 @@ impl Augeas {
 
         aug.save()?;
 
-        // FIXME reload in case the tree is not clean
-
-        // Ensure `files` are clean before next call.
-        //aug.load()?;
+        // FIXME reload in case the tree is not clean?
 
         // Get information about changes
-        // make backups
+        let modified = true;
+
+        // Make a backup if needed.
+        if let Some(b) = backup_dir {
+            if let Some(c) = &current_content {
+                if modified {
+                    let backup_file = Backup::BeforeEdit.backup_file(p.path.as_path());
+                    fs::write(b.join(backup_file), c)?;
+                }
+            }
+        }
+
         Ok(Outcome::Repaired("5 success".to_string()))
-        // TODO text reporting with structured data
     }
 }
 
@@ -295,18 +307,22 @@ mod tests {
     use super::*;
 
     use rudder_module_type::Outcome;
-    use std::fs;
-    use std::fs::read_to_string;
-    use std::path::PathBuf;
+    use std::{fs, fs::read_to_string, path::PathBuf};
     use tempfile::tempdir;
 
-    fn arguments(script: String, path: PathBuf, lens: Option<String>) -> AugeasParameters {
+    fn arguments(
+        script: String,
+        path: PathBuf,
+        lens: Option<String>,
+        size_mb: u64,
+    ) -> AugeasParameters {
         AugeasParameters {
             script,
             path,
             lens,
-            show_diff: true,
+            show_file_content: true,
             context: Some("".to_string()),
+            max_file_size: ByteSize::mb(size_mb),
             ..Default::default()
         }
     }
@@ -324,8 +340,10 @@ mod tests {
                     format!("set /files{}/0 \"hello world\"", f.display()),
                     f.clone(),
                     Some(lens.to_string()),
+                    10,
                 ),
                 PolicyMode::Enforce,
+                None,
             )
             .unwrap();
         assert_eq!(r, Outcome::repaired("5 success".to_string()));
@@ -348,12 +366,40 @@ mod tests {
                     dbg!(format!("set /files{}/1 \"world\"", f.display())),
                     f.clone(),
                     Some(lens.to_string()),
+                    10,
                 ),
                 PolicyMode::Enforce,
+                None,
             )
             .unwrap();
         assert_eq!(r, Outcome::repaired("5 success".to_string()));
         let content = read_to_string(&f).unwrap();
         assert_eq!(content.trim(), "world");
+    }
+
+    #[test]
+    fn it_stops_on_files_too_big() {
+        let mut augeas = Augeas::new_module(None, vec![]).unwrap();
+        let d = tempdir().unwrap().into_path();
+        let f = d.join("test");
+        let lens = "Simplelines";
+
+        fs::write(&f, "hello").unwrap();
+
+        let r = augeas
+            .handle_check_apply(
+                arguments(
+                    dbg!(format!("set /files{}/1 \"world\"", f.display())),
+                    f.clone(),
+                    Some(lens.to_string()),
+                    0,
+                ),
+                PolicyMode::Enforce,
+                None,
+            )
+            .err()
+            .unwrap();
+        assert!(r.to_string().starts_with("File is too big to be loaded"));
+        assert!(r.to_string().ends_with(" (5 B > 0 B)"));
     }
 }

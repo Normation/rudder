@@ -5,10 +5,12 @@ use crate::dsl::ip::IpRangeChecker;
 use anyhow::{anyhow, bail};
 use bytesize::ByteSize;
 use ipnet::{Ipv4Net, Ipv6Net};
-use std::fmt;
-use std::fmt::Display;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-use std::str::FromStr;
+use std::{
+    fmt,
+    fmt::Display,
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+    str::FromStr,
+};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum ValueType {
@@ -52,7 +54,7 @@ impl FromStr for ValueType {
             "uint" => Ok(Self::Uint),
             "float" => Ok(Self::Float),
             "bool" => Ok(Self::Bool),
-            _ => bail!("Invalid value type: {}", s),
+            _ => bail!("Invalid value type: {s}"),
         }
     }
 }
@@ -83,63 +85,63 @@ impl ValueType {
             Self::BytesSize => {
                 value
                     .parse::<ByteSize>()
-                    .map_err(|e| anyhow!("Invalid byte size: {}", e))?;
+                    .map_err(|e| anyhow!("Invalid byte size: {e}"))?;
             }
             Self::Ip => {
                 value
                     .parse::<IpAddr>()
-                    .map_err(|e| anyhow!("Invalid IP address: {}", e))?;
+                    .map_err(|e| anyhow!("Invalid IP address: {e}"))?;
             }
             Self::Ipv4 => {
                 value
                     .parse::<Ipv4Addr>()
-                    .map_err(|e| anyhow!("Invalid IPv4 address: {}", e))?;
+                    .map_err(|e| anyhow!("Invalid IPv4 address: {e}"))?;
             }
             Self::Ipv6 => {
                 value
                     .parse::<Ipv6Addr>()
-                    .map_err(|e| anyhow!("Invalid IPv6 address: {}", e))?;
+                    .map_err(|e| anyhow!("Invalid IPv6 address: {e}"))?;
             }
             Self::IpRange => {
                 if IpRangeChecker::is_ipv6(value) {
                     value
                         .parse::<Ipv6Net>()
-                        .map_err(|e| anyhow!("Invalid IPv4 range: {}", e))?;
+                        .map_err(|e| anyhow!("Invalid IPv4 range: {e}"))?;
                 } else {
                     value
                         .parse::<Ipv4Net>()
-                        .map_err(|e| anyhow!("Invalid IPv6 range: {}", e))?;
+                        .map_err(|e| anyhow!("Invalid IPv6 range: {e}"))?;
                 }
             }
             Self::Ipv4Range => {
                 value
                     .parse::<Ipv4Net>()
-                    .map_err(|e| anyhow!("Invalid IPv4 range: {}", e))?;
+                    .map_err(|e| anyhow!("Invalid IPv4 range: {e}"))?;
             }
             Self::Ipv6Range => {
                 value
                     .parse::<Ipv6Net>()
-                    .map_err(|e| anyhow!("Invalid IPv6 range: {}", e))?;
+                    .map_err(|e| anyhow!("Invalid IPv6 range: {e}"))?;
             }
             Self::Int => {
                 value
                     .parse::<isize>()
-                    .map_err(|_| anyhow!("Invalid integer: {}", value))?;
+                    .map_err(|_| anyhow!("Invalid integer: {value}"))?;
             }
             Self::Uint => {
                 value
                     .parse::<usize>()
-                    .map_err(|_| anyhow!("Invalid positive integer: {}", value))?;
+                    .map_err(|_| anyhow!("Invalid positive integer: {value}"))?;
             }
             Self::Float => {
                 value
                     .parse::<f64>()
-                    .map_err(|_| anyhow!("Invalid floating point number: {}", value))?;
+                    .map_err(|_| anyhow!("Invalid floating point number: {value}"))?;
             }
             Self::Bool => {
                 value
                     .parse::<bool>()
-                    .map_err(|_| anyhow!("Invalid boolean: {}", value))?;
+                    .map_err(|_| anyhow!("Invalid boolean: {value}"))?;
             }
         }
         Ok(())

@@ -1,455 +1,406 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2024 Normation SAS
+// SPDX-FileCopyrightText: 2025 Normation SAS
 
-use crate::dsl::script::Expr;
-use crate::dsl::value_type::ValueType;
-use nom::branch::alt;
-use nom::bytes::complete::{is_not, tag};
-use nom::character::complete::{alpha1, char, line_ending, multispace0, not_line_ending, space0};
-use nom::combinator::{eof, map_res, not, opt};
-use nom::error::VerboseError;
-use nom::multi::{many0, separated_list0};
-use nom::sequence::delimited;
-use nom::IResult;
+use crate::dsl::{
+    comparator::{
+        Comparison, NumComparator, Number, NumericComparison, StrComparator, StrValidation,
+    },
+    script::Script,
+    value_type::ValueType,
+    AugPath, Sub,
+};
+use anyhow::{anyhow, Result};
+use pest::{
+    iterators::{Pair, Pairs},
+    Parser,
+};
+use pest_derive::Parser;
+use raugeas::Position;
+use zxcvbn::Score;
 
-/// Read a comment.
+/// A check expression, unique to the Rudder extended Augeas language.
 ///
-/// A comment starts with a `#` and ends with a newline.
-pub fn comment(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
-    let (input, _) = tag("#")(input)?;
-    let (input, comment) = not_line_ending(input)?;
-    Ok((input, comment))
+/// All check expressions apply to a match expression.
+#[derive(Clone, Debug, PartialEq)]
+pub enum CheckExpr<'a> {
+    /// Check the value at the path has a given type
+    ///
+    /// Uses the "is" keyword.
+    HasType(ValueType),
+    /// String length
+    ///
+    /// Warning: do not use for passwords as the value will be displayed.
+    Len(NumComparator, usize),
+    /// Minimal score
+    PasswordScore(Score),
+    /// Minimal LUDS values
+    PasswordLUDS(u8, u8, u8, u8, u8),
+    /// Check the size of the array at the path
+    ValuesLen(NumComparator, usize),
+    // Comparison contains both the typed value and the comparator
+    Compare(Comparison),
+    ValuesInclude(&'a str),
+    ValuesNotInclude(&'a str),
+    ValuesEqual(Vec<&'a str>),
+    ValuesEqualOrdered(Vec<&'a str>),
 }
 
-/// Read an array of arguments.
-pub fn arg_array(input: &str) -> IResult<&str, Vec<&str>, VerboseError<&str>> {
-    let (input, _) = space0(input)?;
-    let (input, _) = char('[')(input)?;
-    let (input, args) = separated_list0(delimited(space0, char(','), space0), arg)(input)?;
-    let (input, _) = space0(input)?;
-    let (input, _) = char(']')(input)?;
-    Ok((input, args))
-}
-
-// static const char *const escape_chars = "\a\b\t\n\v\f\r";
-
-/// Read a path or a value.
+/// A command of the extended Augeas language used in Rudder.
 ///
-/// It can contain spaces, in which case it must be quoted, either with single or double quotes.
-// FIXME: handle escaped quotes
-pub fn arg(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
-    let (input, _) = space0(input)?;
-    // either a quoted string or an unquoted string
-    let (input, arg) = alt((
-        // FIXME cleanup eol & delimiters
-        delimited(char('"'), is_not("\"\r\n"), char('"')),
-        delimited(char('\''), is_not("'\r\n"), char('\'')),
-        is_not("\"' \t\r\n"),
-    ))(input)?;
-    let (input, _) = space0(input)?;
-    Ok((input, arg))
+/// Note: We implement all the command modify either the tree or the system,
+/// so we can control changes in the interpreter.
+/// Most read commands are passed unchanged to the Augeas interpreter.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Expr<'src> {
+    /// A generic augeas command, not parsed.
+    GenericAugeas(&'src str),
+    /// Sets the value VALUE at location PATH
+    Set(AugPath<'src>, crate::dsl::Value<'src>),
+    Get(AugPath<'src>),
+    /// Sets multiple nodes (matching SUB relative to PATH) to VALUE
+    SetMultiple(AugPath<'src>, Sub<'src>, crate::dsl::Value<'src>),
+    /// Removes the node at location PATH
+    Remove(AugPath<'src>),
+    /// Sets the node at PATH to NULL, creating it if needed
+    Clear(AugPath<'src>),
+    /// Sets multiple nodes (matching SUB relative to PATH) to NULL
+    ClearMultiple(AugPath<'src>, Sub<'src>),
+    /// Creates PATH with the value NULL if it does not exist
+    Touch(AugPath<'src>),
+    /// Inserts an empty node LABEL either before or after PATH.
+    Insert(crate::dsl::Value<'src>, Position, AugPath<'src>),
+    /// Moves a node at PATH to the new location OTHER PATH
+    Move(AugPath<'src>, AugPath<'src>),
+    /// Copies a node at PATH to the new location OTHER PATH
+    Copy(AugPath<'src>, AugPath<'src>),
+    /// Rename a node at PATH to a new LABEL
+    Rename(AugPath<'src>, crate::dsl::Value<'src>),
+    /// Sets Augeas variable $NAME to PATH
+    DefineVar(crate::dsl::Value<'src>, AugPath<'src>),
+    /// Sets Augeas variable $NAME to PATH, creating it with VALUE if needed
+    DefineNode(
+        crate::dsl::Value<'src>,
+        AugPath<'src>,
+        crate::dsl::Value<'src>,
+    ),
+    Check(AugPath<'src>, CheckExpr<'src>),
+    /// Save the changes to the tree.
+    Save,
+    /// Quit the script.
+    Quit,
+    /// (Re)load the tree.
+    Load,
 }
 
-/// Read a command, same as an argument but only alphanumeric characters.
-fn cmd(input: &str) -> IResult<&str, &str, VerboseError<&str>> {
-    let (input, cmd) = alpha1(input)?;
-    let (input, _) = space0(input)?;
-    Ok((input, cmd))
+#[derive(Parser)]
+#[grammar = "dsl/raugeas.pest"]
+pub struct RaugeasParser;
+
+fn parse_array(pair: Pairs<Rule>) -> Vec<&str> {
+    pair.map(|p| p.as_str()).collect()
 }
 
-fn cmd_set(input: &str) -> IResult<&str, Expr, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    let (input, value) = arg(input)?;
-    Ok((input, Expr::Set(path.into(), value)))
-}
-
-fn cmd_setm(input: &str) -> IResult<&str, Expr, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    let (input, sub) = arg(input)?;
-    let (input, value) = arg(input)?;
-    Ok((input, Expr::SetMultiple(path.into(), sub, value)))
-}
-
-fn cmd_rm(input: &str) -> IResult<&str, Expr, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    Ok((input, Expr::Remove(path.into())))
-}
-
-fn cmd_clear(input: &str) -> IResult<&str, Expr, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    Ok((input, Expr::Clear(path.into())))
-}
-
-fn cmd_clearm(input: &str) -> IResult<&str, Expr, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    let (input, sub) = arg(input)?;
-    Ok((input, Expr::ClearMultiple(path.into(), sub)))
-}
-
-fn cmd_touch(input: &str) -> IResult<&str, Expr, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    Ok((input, Expr::Touch(path.into())))
-}
-
-fn cmd_ins(input: &str) -> IResult<&str, Expr, VerboseError<&str>> {
-    let (input, label) = arg(input)?;
-    let (input, position) = map_res(arg, |p| p.parse())(input)?;
-    let (input, path) = arg(input)?;
-    Ok((input, Expr::Insert(label, position, path.into())))
-}
-
-fn cmd_mv(input: &str) -> IResult<&str, Expr, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    let (input, other) = arg(input)?;
-    Ok((input, Expr::Move(path.into(), other.into())))
-}
-
-fn cmd_rename(input: &str) -> IResult<&str, Expr, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    let (input, label) = arg(input)?;
-    Ok((input, Expr::Rename(path.into(), label)))
-}
-
-fn cmd_defvar(input: &str) -> IResult<&str, Expr, VerboseError<&str>> {
-    let (input, name) = arg(input)?;
-    let (input, path) = arg(input)?;
-    Ok((input, Expr::DefineVar(name, path.into())))
-}
-
-fn cmd_defnode(input: &str) -> IResult<&str, Expr, VerboseError<&str>> {
-    let (input, name) = arg(input)?;
-    let (input, path) = arg(input)?;
-    let (input, value) = arg(input)?;
-    Ok((input, Expr::DefineNode(name, path.into(), value)))
-}
-
-fn cmd_is_type(input: &str) -> IResult<&str, Expr, VerboseError<&str>> {
-    let (input, value_type) = map_res(arg, |p| p.parse::<ValueType>())(input)?;
-    let (input, path) = arg(input)?;
-
-    Ok((input, Expr::HasType(path.into(), value_type)))
-}
-
-fn cmd_match(input: &str) -> IResult<&str, Expr, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    let (input, sub_cmd) = arg(input)?;
-
-    match sub_cmd {
-        "include" => {
-            let (input, value) = arg(input)?;
-            Ok((input, Expr::MatchInclude(path.into(), value)))
+fn parse_check_command(pair: Pair<Rule>) -> Result<CheckExpr> {
+    Ok(match pair.as_rule() {
+        Rule::values_include => {
+            let mut inner_rules = pair.into_inner();
+            let value: &str = inner_rules.next().unwrap().as_str();
+            CheckExpr::ValuesInclude(value)
         }
-        "not_include" => {
-            let (input, value) = arg(input)?;
-            Ok((input, Expr::MatchNotInclude(path.into(), value)))
+        Rule::values_not_include => {
+            let mut inner_rules = pair.into_inner();
+            let value: &str = inner_rules.next().unwrap().as_str();
+            CheckExpr::ValuesNotInclude(value)
         }
-        "==" => {
-            let (input, value) = arg_array(input)?;
-            Ok((input, Expr::MatchEqual(path.into(), value)))
+        Rule::values_equal => CheckExpr::ValuesEqual(parse_array(pair.into_inner())),
+        Rule::values_equal_ordered => CheckExpr::ValuesEqualOrdered(parse_array(pair.into_inner())),
+        Rule::len => {
+            let mut inner_rules = pair.into_inner();
+            let comparator: NumComparator = inner_rules.next().unwrap().as_str().parse()?;
+            let size: usize = inner_rules.next().unwrap().as_str().parse()?;
+            CheckExpr::Len(comparator, size)
         }
-        "!=" => {
-            let (input, value) = arg_array(input)?;
-            Ok((input, Expr::MatchNotEqual(path.into(), value)))
+        Rule::password_score => {
+            let mut inner_rules = pair.into_inner();
+
+            let score_str = inner_rules.next().unwrap().as_str();
+            let score: Score = score_str
+                .parse::<u8>()?
+                .try_into()
+                .map_err(|e| anyhow!("Invalid score '{score_str}': {e}"))?;
+            CheckExpr::PasswordScore(score)
         }
-        "len" => {
-            let (input, cmp) = map_res(arg, |p| p.parse())(input)?;
-            let (input, i) = map_res(arg, |p| p.parse::<usize>())(input)?;
-            Ok((input, Expr::MatchSize(path.into(), cmp, i)))
+        Rule::password_tluds => {
+            let mut inner_rules = pair.into_inner();
+            let total: u8 = inner_rules.next().unwrap().as_str().parse()?;
+            let lowercase: u8 = inner_rules.next().unwrap().as_str().parse()?;
+            let uppercase: u8 = inner_rules.next().unwrap().as_str().parse()?;
+            let digit: u8 = inner_rules.next().unwrap().as_str().parse()?;
+            let special: u8 = inner_rules.next().unwrap().as_str().parse()?;
+            CheckExpr::PasswordLUDS(total, lowercase, uppercase, digit, special)
         }
-        _ => todo!(),
+        Rule::has_type => {
+            let mut inner_rules = pair.into_inner();
+            let type_: ValueType = inner_rules.next().unwrap().as_str().parse()?;
+            CheckExpr::HasType(type_)
+        }
+        Rule::values_len => {
+            let mut inner_rules = pair.into_inner();
+            let comparator: NumComparator = inner_rules.next().unwrap().as_str().parse()?;
+            let size: usize = inner_rules.next().unwrap().as_str().parse()?;
+            CheckExpr::ValuesLen(comparator, size)
+        }
+        Rule::compare_num => {
+            let mut inner_rules = pair.into_inner();
+            let comparator: NumComparator = inner_rules.next().unwrap().as_str().parse()?;
+            let value: Number = inner_rules.next().unwrap().as_str().parse()?;
+            let comparison = NumericComparison { comparator, value };
+            CheckExpr::Compare(Comparison::Num(comparison))
+        }
+        Rule::compare_string => {
+            let mut inner_rules = pair.into_inner();
+            let comparator: StrComparator = inner_rules.next().unwrap().as_str().parse()?;
+            let value = inner_rules.next().unwrap().as_str().to_string();
+            let comparison = StrValidation { comparator, value };
+            CheckExpr::Compare(Comparison::Str(comparison))
+        }
+        _ => unreachable!("Unexpected check rule: {:?}", pair.as_rule()),
+    })
+}
+
+fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
+    Ok(match pair.as_rule() {
+        Rule::check => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            Expr::Check(
+                path.into(),
+                parse_check_command(inner_rules.next().unwrap())?,
+            )
+        }
+        Rule::save => Expr::Save,
+        Rule::quit => Expr::Quit,
+        Rule::set => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let value: &str = inner_rules.next().unwrap().as_str();
+            Expr::Set(path.into(), value)
+        }
+        Rule::get => Expr::Get(pair.into_inner().next().unwrap().as_str().into()),
+        Rule::rm => Expr::Remove(pair.into_inner().next().unwrap().as_str().into()),
+        Rule::clear => Expr::Clear(pair.into_inner().next().unwrap().as_str().into()),
+        Rule::touch => Expr::Touch(pair.into_inner().next().unwrap().as_str().into()),
+        Rule::mv => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let new_path: &str = inner_rules.next().unwrap().as_str();
+            Expr::Move(path.into(), new_path.into())
+        }
+        Rule::rename => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let new_label: &str = inner_rules.next().unwrap().as_str();
+            Expr::Rename(path.into(), new_label)
+        }
+        Rule::defvar => {
+            let mut inner_rules = pair.into_inner();
+            let name: &str = inner_rules.next().unwrap().as_str();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            Expr::DefineVar(name, path.into())
+        }
+        Rule::defnode => {
+            let mut inner_rules = pair.into_inner();
+            let name: &str = inner_rules.next().unwrap().as_str();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let value: &str = inner_rules.next().unwrap().as_str();
+            Expr::DefineNode(name, path.into(), value)
+        }
+        Rule::load => Expr::Load,
+        Rule::insert => {
+            let mut inner_rules = pair.into_inner();
+            let label: &str = inner_rules.next().unwrap().as_str();
+            let position = match inner_rules.next().unwrap().as_str() {
+                "before" => Position::Before,
+                "after" => Position::After,
+                _ => unreachable!(),
+            };
+            let path: &str = inner_rules.next().unwrap().as_str();
+            Expr::Insert(label, position, path.into())
+        }
+        Rule::cp => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let new_path: &str = inner_rules.next().unwrap().as_str();
+            Expr::Copy(path.into(), new_path.into())
+        }
+        Rule::set_multiple => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let sub: &str = inner_rules.next().unwrap().as_str();
+            let value: &str = inner_rules.next().unwrap().as_str();
+            Expr::SetMultiple(path.into(), sub, value)
+        }
+        Rule::clear_multiple => {
+            let mut inner_rules = pair.into_inner();
+            let path: &str = inner_rules.next().unwrap().as_str();
+            let sub: &str = inner_rules.next().unwrap().as_str();
+            Expr::ClearMultiple(path.into(), sub)
+        }
+        _ => unreachable!("Unexpected rule: {:?}", pair.as_rule()),
+    })
+}
+
+pub fn parse_script(input: &str) -> Result<Script<'_>> {
+    let parsed = RaugeasParser::parse(Rule::script, input)?.next().unwrap();
+
+    let mut expressions = Vec::new();
+
+    for line in parsed.into_inner() {
+        match line.as_rule() {
+            Rule::command => expressions.push(parse_command(line.into_inner().next().unwrap())?),
+            Rule::COMMENT | Rule::EOI => {}
+            _ => {
+                dbg!(&line);
+            }
+        }
     }
-}
-fn cmd_values(input: &str) -> IResult<&str, Expr, VerboseError<&str>> {
-    let (input, path) = arg(input)?;
-    let (input, sub_cmd) = arg(input)?;
 
-    match sub_cmd {
-        "include" => {
-            let (input, value) = arg(input)?;
-            Ok((input, Expr::ValuesInclude(path.into(), value)))
-        }
-        "not_include" => {
-            let (input, value) = arg(input)?;
-            Ok((input, Expr::ValuesNotInclude(path.into(), value)))
-        }
-        "==" => {
-            let (input, value) = arg_array(input)?;
-            Ok((input, Expr::ValuesEqual(path.into(), value)))
-        }
-        "!=" => {
-            let (input, value) = arg_array(input)?;
-            Ok((input, Expr::ValuesNotEqual(path.into(), value)))
-        }
-        _ => todo!(),
-    }
-}
-
-fn cmd_generic(input: &str) -> IResult<&str, Expr, VerboseError<&str>> {
-    let (input, cmd) = not_line_ending(input)?;
-    Ok((input, Expr::GenericAugeas(cmd)))
-}
-
-/// Read a valid change.
-fn expression(input: &str) -> IResult<&str, Expr, VerboseError<&str>> {
-    let (i, c) = cmd(input)?;
-    match c {
-        "set" => cmd_set(i),
-        "setm" => cmd_setm(i),
-        "rm" | "remove" => cmd_rm(i),
-        "clear" => cmd_clear(i),
-        "clearm" => cmd_clearm(i),
-        "touch" => cmd_touch(i),
-        "ins" | "insert" => cmd_ins(i),
-        "mv" | "move" => cmd_mv(i),
-        "rename" => cmd_rename(i),
-        "defvar" => cmd_defvar(i),
-        "defnode" => cmd_defnode(i),
-        "match" => cmd_match(i),
-        "values" => cmd_values(i),
-        "is" => cmd_is_type(i),
-        "save" => Ok((i, Expr::Save)),
-        "quit" => Ok((i, Expr::Quit)),
-        "load" => Ok((i, Expr::Load)),
-        _ => cmd_generic(input),
-    }
-}
-
-fn line(input: &str) -> IResult<&str, Option<Expr>, VerboseError<&str>> {
-    let (input, _) = not(eof)(input)?;
-    let (input, _) = space0(input)?;
-    let (input, _) = opt(comment)(input)?;
-    let (input, e) = opt(expression)(input)?;
-    let (input, _) = space0(input)?;
-    let (input, _) = opt(comment)(input)?;
-    let (input, _) = opt(line_ending)(input)?;
-    Ok((input, e))
-}
-
-pub fn script(input: &str) -> IResult<&str, Vec<Expr>, VerboseError<&str>> {
-    // many0 -> allow empty changes (only comments, etc.)
-    let (input, changes) = many0(line)(input)?;
-    let exprs = changes.into_iter().flatten().collect();
-    let (input, _) = multispace0(input)?;
-    let (input, _) = eof(input)?;
-    Ok((input, exprs))
+    Ok(Script { expressions })
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::dsl::parser::{expression, line, script};
-    use crate::dsl::script::*;
-    use crate::dsl::value_type::ValueType;
-    use raugeas::Position;
+    use super::*;
+    use crate::dsl::{
+        comparator::NumComparator::{GreaterThanOrEqual, LessThan},
+        parser::CheckExpr::{ValuesEqual, ValuesEqualOrdered},
+    };
+    use pest::Parser;
 
     #[test]
-    fn test_match_include() {
-        let input = "match /files/etc include token";
-        let expected = Expr::MatchInclude("/files/etc".into(), "token");
-        let result = expression(input).unwrap();
-        assert_eq!(result.1, expected);
+    fn pest_parses_strings() {
+        assert_eq!(
+            RaugeasParser::parse(Rule::string, "toto")
+                .unwrap()
+                .next()
+                .unwrap()
+                .as_str(),
+            "toto"
+        );
+        assert_eq!(
+            RaugeasParser::parse(Rule::string, "\"toto\"")
+                .unwrap()
+                .next()
+                .unwrap()
+                .as_str(),
+            "toto"
+        );
+        assert_eq!(
+            RaugeasParser::parse(Rule::string, "'toto'")
+                .unwrap()
+                .next()
+                .unwrap()
+                .as_str(),
+            "toto"
+        );
     }
 
     #[test]
-    fn test_match_not_include() {
-        let input = "match /files/etc not_include token";
-        let expected = Expr::MatchNotInclude("/files/etc".into(), "token");
-        let result = expression(input).unwrap();
-        assert_eq!(result.1, expected);
+    fn pest_parses_arrays() {
+        assert_eq!(
+            parse_array(RaugeasParser::parse(Rule::array, "[toto, 'titi', \"tutu\"]'").unwrap()),
+            vec!["toto", "titi", "tutu"]
+        );
     }
 
     #[test]
-    fn test_cmd_generic() {
-        let input = "generic command";
-        let expected = Expr::GenericAugeas("generic command");
-        let result = expression(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_change_set() {
-        let input = "set /path/to/node value";
-        let expected = Expr::Set("/path/to/node".into(), "value");
-        let result = expression(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_change_setm() {
-        let input = "setm /path/to/nodes subnode value";
-        let expected = Expr::SetMultiple("/path/to/nodes".into(), "subnode", "value");
-        let result = expression(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_change_rm() {
-        let input = "rm /path/to/node";
-        let expected = Expr::Remove("/path/to/node".into());
-        let result = expression(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_change_clear() {
-        let input = "clear /path/to/node";
-        let expected = Expr::Clear("/path/to/node".into());
-        let result = expression(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_change_clearm() {
-        let input = "clearm /path/to/nodes subnode";
-        let expected = Expr::ClearMultiple("/path/to/nodes".into(), "subnode");
-        let result = expression(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_change_touch() {
-        let input = "touch /path/to/node";
-        let expected = Expr::Touch("/path/to/node".into());
-        let result = expression(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_change_ins() {
-        let input = "ins label before /path/to/node";
-        let expected = Expr::Insert("label", Position::Before, "/path/to/node".into());
-        let result = expression(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_change_mv() {
-        let input = "mv /path/to/node /new/path";
-        let expected = Expr::Move("/path/to/node".into(), "/new/path".into());
-        let result = expression(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_change_rename() {
-        let input = "rename /path/to/node new_label";
-        let expected = Expr::Rename("/path/to/node".into(), "new_label");
-        let result = expression(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_change_defvar() {
-        let input = "defvar name /path/to/node";
-        let expected = Expr::DefineVar("name", "/path/to/node".into());
-        let result = expression(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_change_defnode() {
-        let input = "defnode name /path/to/node value";
-        let expected = Expr::DefineNode("name", "/path/to/node".into(), "value");
-        let result = expression(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_empty_line() {
-        let input = "";
-        let result = line(input);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_empty_line_break() {
-        let input = "\n";
-        let result = line(input).unwrap();
-        assert_eq!(result.1, None);
-    }
-
-    #[test]
-    fn test_empty_line_carriage_return() {
-        let input = "\r\n";
-        let result = line(input).unwrap();
-        assert_eq!(result.1, None);
-    }
-
-    #[test]
-    fn test_line() {
-        let input = "set /path/to/node value\n";
-        let expected = Expr::Set("/path/to/node".into(), "value");
-        let result = line(input).unwrap();
-        assert_eq!(result.1, Some(expected));
-    }
-
-    #[test]
-    fn test_line_command_and_comment() {
-        let input = "set /path/to/node value # comment\n";
-        let expected = Expr::Set("/path/to/node".into(), "value");
-        let result = line(input).unwrap();
-        assert_eq!(result.1, Some(expected));
-    }
-
-    #[test]
-    fn test_line_comment() {
-        let input = "# comment\n";
-        let result = line(input).unwrap();
-        assert_eq!(result.1, None);
-    }
-
-    #[test]
-    fn test_values_include() {
-        let input = "values /path/to/node include value";
-        let expected = Expr::ValuesInclude("/path/to/node".into(), "value");
-        let result = expression(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_script_parser() {
+    fn pest_parse_script() {
         let input = r#"
             # This is a comment
             set /path/to/node value
-            setm /path/to/nodes 'sub node' value
             rm /path/to/node
             # other comment
 
             clear /path/to/node # another command
-            clearm /path/to/nodes "sub node"
             touch /path/to/node
-            
-            is uint /path/to/node
 
-            print /path/to/node
             quit
+            save
+            load
 
-            values /path/to/node include value
-
-            ins  label  before        /path/to/node
-            mv /path/to/node /new/path
+            mv   /path/to/node /new/path
+            move /path/to/node /new/path
             rename /path/to/node new_label
             defvar name /path/to/node
             defnode name /path/to/node value
+            
+            check /path/to/node len >= 3
 
+            check /path/to/node password score 3
+            check /path/to/node password tluds 1 2 3 4 5
+            
+            check /path/to/node is ipv4
+
+            check /pat/to values len < 5
+            
+            check /path/to/node values == ["value1", "value2"]
+            check /path/to/node values === ["value1", "value2"]
         "#;
         let expected = vec![
             Expr::Set("/path/to/node".into(), "value"),
-            Expr::SetMultiple("/path/to/nodes".into(), "sub node", "value"),
             Expr::Remove("/path/to/node".into()),
             Expr::Clear("/path/to/node".into()),
-            Expr::ClearMultiple("/path/to/nodes".into(), "sub node"),
             Expr::Touch("/path/to/node".into()),
-            Expr::HasType("/path/to/node".into(), ValueType::Uint),
-            Expr::GenericAugeas("print /path/to/node"),
             Expr::Quit,
-            Expr::ValuesInclude("/path/to/node".into(), "value"),
-            Expr::Insert("label", Position::Before, "/path/to/node".into()),
+            Expr::Save,
+            Expr::Load,
+            Expr::Move("/path/to/node".into(), "/new/path".into()),
             Expr::Move("/path/to/node".into(), "/new/path".into()),
             Expr::Rename("/path/to/node".into(), "new_label"),
             Expr::DefineVar("name", "/path/to/node".into()),
             Expr::DefineNode("name", "/path/to/node".into(), "value"),
+            Expr::Check(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                CheckExpr::Len(GreaterThanOrEqual, 3),
+            ),
+            Expr::Check(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                CheckExpr::PasswordScore(Score::Three),
+            ),
+            Expr::Check(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                CheckExpr::PasswordLUDS(1, 2, 3, 4, 5),
+            ),
+            Expr::Check(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                CheckExpr::HasType(ValueType::Ipv4),
+            ),
+            Expr::Check(
+                AugPath { inner: "/pat/to" },
+                CheckExpr::ValuesLen(LessThan, 5),
+            ),
+            Expr::Check(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                ValuesEqual(vec!["value1", "value2"]),
+            ),
+            Expr::Check(
+                AugPath {
+                    inner: "/path/to/node",
+                },
+                ValuesEqualOrdered(vec!["value1", "value2"]),
+            ),
         ];
-        let result = script(input).unwrap();
-        assert_eq!(result.1, expected);
+        let parsed = parse_script(input).unwrap();
+        assert_eq!(parsed.expressions, expected);
     }
 }

@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use std::ffi::OsStr;
-use std::ops::Deref;
+use std::{ffi::OsStr, fmt::Display, ops::Deref};
 
 pub mod comparator;
-mod error;
-mod interpreter;
+pub mod error;
+pub mod interpreter;
 mod ip;
 mod parser;
-mod parser_chumsky;
 mod password;
 pub mod repl;
 pub mod script;
@@ -44,6 +42,12 @@ impl<'a> From<&'a str> for AugPath<'a> {
     }
 }
 
+impl Display for AugPath<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.inner.fmt(f)
+    }
+}
+
 impl AugPath<'_> {
     pub fn is_absolute(&self) -> bool {
         self.inner.starts_with('/')
@@ -51,48 +55,5 @@ impl AugPath<'_> {
 
     pub fn is_relative(&self) -> bool {
         !self.is_absolute()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::dsl::parser::{arg, comment};
-    #[test]
-    fn test_comment() {
-        let input = "# This is a comment";
-        let expected = " This is a comment";
-        let result = comment(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_arg_with_quoted_value() {
-        let input = r#""quoted value""#;
-        let expected = "quoted value";
-        let result = arg(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_arg_with_single_quoted_value() {
-        let input = r#"'quoted value'"#;
-        let expected = "quoted value";
-        let result = arg(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_arg_with_unquoted_value() {
-        let input = "unquoted value";
-        let expected = "unquoted";
-        let result = arg(input).unwrap();
-        assert_eq!(result.1, expected);
-    }
-
-    #[test]
-    fn test_arg_with_empty_input() {
-        let input = "";
-        let result = arg(input);
-        assert!(result.is_err());
     }
 }

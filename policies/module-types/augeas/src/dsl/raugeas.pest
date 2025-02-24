@@ -1,0 +1,108 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2025 Normation SAS
+
+// The most precise the grammar, the better the error messages.
+
+// Whitespace and comments
+WHITESPACE = _{ " " | "\t" }
+COMMENT = _{ "#" ~ (!NEWLINE ~ ANY)* }
+
+// Capture inner string content without quotes
+// FIXME escape sequences
+double_quoted_content = @{ (!("\"") ~ ANY)* }
+single_quoted_content = @{ (!("'") ~ ANY)* }
+unquoted_string = @{ (!(WHITESPACE | "," | "]" | NEWLINE | COMMENT) ~ ANY)+ }
+
+string = _{
+    ("\"" ~ double_quoted_content ~ "\"") |
+    ("'" ~ single_quoted_content ~ "'") |
+    unquoted_string
+}
+
+path = _{ string }
+
+integer = @{ ASCII_DIGIT+ }
+
+password_score_value = @{ "0" | "1" | "2" | "3" | "4" }
+numeric_comparator = @{ "==" | "!=" | "<=" | ">=" | "<" | ">" }
+regex_comparator = @{ "~" | "!~" | "==" | "!=" }
+
+// Array syntax
+array = _{ "[" ~ (string ~ ("," ~ string)*)? ~ "]" }
+
+// Rudder extensions for audits
+len = { "len" ~ numeric_comparator ~ integer }
+password_score = { "password" ~ "score" ~ password_score_value }
+password_tluds = { "password" ~ "tluds" ~ integer ~ integer ~ integer ~ integer ~ integer }
+values_include = { "values" ~ "include" ~ string }
+values_not_include = { "values" ~ "not_include" ~ string }
+values_equal = { "values" ~ "==" ~ array }
+values_equal_ordered = { "values" ~ "===" ~ array }
+values_len = { "values" ~ "len" ~ numeric_comparator ~ integer }
+has_type = { "is" ~ string }
+compare_num = { numeric_comparator ~ string }
+compare_string = { regex_comparator ~ string }
+
+check_commands = _{
+    len |
+    password_score |
+    password_tluds |
+    values_include |
+    values_not_include |
+    values_equal_ordered |
+    values_equal |
+    values_len |
+    has_type |
+    compare_num |
+    compare_string
+}
+
+check = { "check" ~ path ~ check_commands }
+
+// Stock Augeas commands commands
+get = { "get" ~ path }
+set = { "set" ~ path ~ string }
+set_multiple = { "setm" ~ path ~ string ~ string }
+rm = { "rm" ~ path }
+clear = { "clear" ~ path }
+clear_multiple = { "clearm" ~ path ~ string }
+touch = { "touch" ~ path }
+insert = { "insert" ~ path ~ string ~ string }
+mv = { ("mv" | "move") ~ path ~ path }
+cp = { ("cp" | "copy") ~ path ~ path }
+rename = { "rename" ~ path ~ path }
+defvar = { "defvar" ~ string ~ string }
+defnode = { "defnode" ~ string ~ string ~ string }
+save = { "save" }
+quit = { "quit" }
+load = { "load" }
+other_command = { !("save" | "quit" | "strlen" | "check") ~ (!NEWLINE ~ ANY)+ }
+
+// Command line
+command = {
+    check |
+    get |
+    set |
+    set_multiple |
+    rm |
+    clear |
+    clear_multiple |
+    touch |
+    insert |
+    mv |
+    cp |
+    rename |
+    defvar |
+    defnode |
+    save |
+    quit |
+    load |
+    other_command
+}
+
+// Full script
+script = {
+    SOI ~
+    ((command ~ NEWLINE*) | (COMMENT ~ NEWLINE*) | NEWLINE+)* ~
+    EOI
+}
