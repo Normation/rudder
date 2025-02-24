@@ -66,6 +66,7 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.services.workflows.*
 import com.normation.rudder.web.services.ComputePolicyMode
+import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
@@ -296,7 +297,7 @@ class RuleApi(
 
 }
 
-final case class RuleApplicationStatus(policyMode: (String, String), applicationStatusDetails: (String, Option[String]))
+final case class RuleApplicationStatus(policyMode: ComputedPolicyMode, applicationStatusDetails: (String, Option[String]))
 
 class RuleApiService14(
     readRule:             RoRuleRepository,
@@ -350,7 +351,7 @@ class RuleApiService14(
       val status = getRuleApplicationStatus(change.newRule, groupLib, directiveLib, nodesLib, globalMode)
 
       val optCrId = if (workflow.needExternalValidation()) Some(id) else None
-      JRRule.fromRule(change.newRule, optCrId, Some(status.policyMode._1), Some(status.applicationStatusDetails))
+      JRRule.fromRule(change.newRule, optCrId, Some(status.policyMode.name), Some(status.applicationStatusDetails))
     }
   }
 
@@ -388,7 +389,7 @@ class RuleApiService14(
         rule <- rules.sortBy(_.id.serialize)
       } yield {
         val status = getRuleApplicationStatus(rule, groupLib, directiveLib, nodesLib, globalMode)
-        JRRule.fromRule(rule, None, Some(status.policyMode._1), Some(status.applicationStatusDetails))
+        JRRule.fromRule(rule, None, Some(status.policyMode.name), Some(status.applicationStatusDetails))
       }
     }
 
@@ -468,7 +469,7 @@ class RuleApiService14(
     } yield {
       val status = getRuleApplicationStatus(change.newRule, groupLib, directiveLib, nodesLib, globalMode)
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
-      JRRule.fromRule(change.newRule, None, Some(status.policyMode._1), Some(status.applicationStatusDetails))
+      JRRule.fromRule(change.newRule, None, Some(status.policyMode.name), Some(status.applicationStatusDetails))
     }).chainError(s"Error when creating new rule")
   }
 
@@ -482,7 +483,7 @@ class RuleApiService14(
       globalMode   <- getGlobalPolicyMode()
     } yield {
       val status = getRuleApplicationStatus(rule, groupLib, directiveLib, nodesLib, globalMode)
-      JRRule.fromRule(rule, None, Some(status.policyMode._1), Some(status.applicationStatusDetails))
+      JRRule.fromRule(rule, None, Some(status.policyMode.name), Some(status.applicationStatusDetails))
     }
 
   }
@@ -519,7 +520,7 @@ class RuleApiService14(
        } yield {
          val status = getRuleApplicationStatus(rule, groupLib, directiveLib, nodesLib, globalMode)
          asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
-         JRRule.fromRule(rule, None, Some(status.policyMode._1), Some(status.applicationStatusDetails))
+         JRRule.fromRule(rule, None, Some(status.policyMode.name), Some(status.applicationStatusDetails))
        }
      })
   }
@@ -612,7 +613,7 @@ class RuleApiService14(
                             rule <- rules.sortBy(_.id.serialize)
                           } yield {
                             val status = getRuleApplicationStatus(rule, groupLib, directiveLib, nodesLib, globalMode)
-                            (rule, Some(status.policyMode._1), Some(status.applicationStatusDetails))
+                            (rule, Some(status.policyMode.name), Some(status.applicationStatusDetails))
                           }).groupBy(_._1.categoryId.value)
       missingCatContent = getMissingCategories(root, rules.toList)
       missingCategory   = RuleCategory(

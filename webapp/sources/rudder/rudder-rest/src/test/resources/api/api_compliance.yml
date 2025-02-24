@@ -24,7 +24,7 @@ response:
                 "id" : "r1",
                 "name" : "R1",
                 "compliance" : 100.0,
-                "policyMode" : "default",
+                "policyMode" : "mixed",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -111,7 +111,7 @@ response:
                     "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
                     "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                     "compliance" : 100.0,
-                    "policyMode" : "default",
+                    "policyMode" : "enforce",
                     "complianceDetails" : {
                       "successRepaired" : 100.0
                     },
@@ -161,7 +161,7 @@ response:
                     "id" : "directive2",
                     "name" : "directive2",
                     "compliance" : 0.0,
-                    "policyMode" : "default",
+                    "policyMode" : "enforce",
                     "complianceDetails" : {
                       "error" : 100.0
                     },
@@ -292,7 +292,7 @@ response:
                         "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "successRepaired" : 100.0
                         },
@@ -331,7 +331,7 @@ response:
                         "id" : "directive2",
                         "name" : "directive2",
                         "compliance" : 0.0,
-                        "policyMode" : "default",
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "error" : 100.0
                         },
@@ -422,7 +422,7 @@ response:
                         "id" : "directive2",
                         "name" : "directive2",
                         "compliance" : 0.0,
-                        "policyMode" : "default",
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "error" : 100.0
                         },
@@ -482,7 +482,7 @@ response:
                 "id" : "r1",
                 "name" : "R1",
                 "compliance" : 100.0,
-                "policyMode" : "default",
+                "policyMode" : "mixed",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -569,7 +569,7 @@ response:
                     "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
                     "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                     "compliance" : 100.0,
-                    "policyMode" : "default",
+                    "policyMode" : "enforce",
                     "complianceDetails" : {
                       "successRepaired" : 100.0
                     },
@@ -619,7 +619,7 @@ response:
                     "id" : "directive2",
                     "name" : "directive2",
                     "compliance" : 0.0,
-                    "policyMode" : "default",
+                    "policyMode" : "enforce",
                     "complianceDetails" : {
                       "error" : 100.0
                     },
@@ -750,7 +750,7 @@ response:
                         "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "successRepaired" : 100.0
                         },
@@ -789,7 +789,7 @@ response:
                         "id" : "directive2",
                         "name" : "directive2",
                         "compliance" : 0.0,
-                        "policyMode" : "default",
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "error" : 100.0
                         },
@@ -880,7 +880,7 @@ response:
                         "id" : "directive2",
                         "name" : "directive2",
                         "compliance" : 0.0,
-                        "policyMode" : "default",
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "error" : 100.0
                         },
@@ -940,7 +940,7 @@ response:
                 "id" : "r1",
                 "name" : "R1",
                 "compliance" : 100.0,
-                "policyMode" : "default",
+                "policyMode" : "mixed",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -999,7 +999,7 @@ response:
                     "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
                     "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                     "compliance" : 100.0,
-                    "policyMode" : "default",
+                    "policyMode" : "enforce",
                     "complianceDetails" : {
                       "successRepaired" : 100.0
                     },
@@ -1049,7 +1049,7 @@ response:
                     "id" : "directive2",
                     "name" : "directive2",
                     "compliance" : 0.0,
-                    "policyMode" : "default",
+                    "policyMode" : "enforce",
                     "complianceDetails" : {
                       "error" : 100.0
                     },
@@ -1152,7 +1152,7 @@ response:
                         "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "successRepaired" : 100.0
                         },
@@ -1191,7 +1191,7 @@ response:
                         "id" : "directive2",
                         "name" : "directive2",
                         "compliance" : 0.0,
-                        "policyMode" : "default",
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "error" : 100.0
                         },
@@ -1258,7 +1258,7 @@ response:
                     "id" : "directive2",
                     "name" : "directive2",
                     "compliance" : 0.0,
-                    "policyMode" : "default",
+                    "policyMode" : "enforce",
                     "complianceDetails" : {
                       "error" : 100.0
                     },
@@ -1320,7 +1320,7 @@ response:
                         "id" : "directive2",
                         "name" : "directive2",
                         "compliance" : 0.0,
-                        "policyMode" : "default",
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "error" : 100.0
                         },
@@ -1380,7 +1380,7 @@ response:
                 "id" : "br1",
                 "name" : "R1",
                 "compliance" : 100.0,
-                "policyMode" : "enforce",
+                "policyMode" : "audit",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -1389,7 +1389,7 @@ response:
                     "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                     "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                     "compliance" : 100.0,
-                    "policyMode" : "default",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
@@ -1405,7 +1405,7 @@ response:
                             "id" : "bn1",
                             "name" : "node1.localhost",
                             "compliance" : 100.0,
-                            "policyMode" : "enforce",
+                            "policyMode" : "audit",
                             "complianceDetails" : {
                               "successAlreadyOK" : 100.0
                             },
@@ -1433,7 +1433,7 @@ response:
                             "id" : "bn2",
                             "name" : "node1.localhost",
                             "compliance" : 100.0,
-                            "policyMode" : "enforce",
+                            "policyMode" : "audit",
                             "complianceDetails" : {
                               "successAlreadyOK" : 100.0
                             },
@@ -1458,7 +1458,7 @@ response:
                 "id" : "br2",
                 "name" : "R2",
                 "compliance" : 100.0,
-                "policyMode" : "enforce",
+                "policyMode" : "audit",
                 "complianceDetails" : {
                   "successRepaired" : 100.0
                 },
@@ -1467,7 +1467,7 @@ response:
                     "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
                     "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                     "compliance" : 100.0,
-                    "policyMode" : "default",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successRepaired" : 100.0
                     },
@@ -1483,7 +1483,7 @@ response:
                             "id" : "bn1",
                             "name" : "node1.localhost",
                             "compliance" : 100.0,
-                            "policyMode" : "enforce",
+                            "policyMode" : "audit",
                             "complianceDetails" : {
                               "successRepaired" : 100.0
                             },
@@ -1508,7 +1508,7 @@ response:
                 "id" : "br3",
                 "name" : "R3",
                 "compliance" : 0.0,
-                "policyMode" : "enforce",
+                "policyMode" : "audit",
                 "complianceDetails" : {
                   "error" : 100.0
                 },
@@ -1517,7 +1517,7 @@ response:
                     "id" : "directive2",
                     "name" : "directive2",
                     "compliance" : 0.0,
-                    "policyMode" : "default",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "error" : 100.0
                     },
@@ -1533,7 +1533,7 @@ response:
                             "id" : "bn1",
                             "name" : "node1.localhost",
                             "compliance" : 0.0,
-                            "policyMode" : "enforce",
+                            "policyMode" : "audit",
                             "complianceDetails" : {
                               "error" : 100.0
                             },
@@ -1561,7 +1561,7 @@ response:
                             "id" : "bn2",
                             "name" : "node1.localhost",
                             "compliance" : 0.0,
-                            "policyMode" : "enforce",
+                            "policyMode" : "audit",
                             "complianceDetails" : {
                               "error" : 100.0
                             },
@@ -1586,7 +1586,7 @@ response:
                 "id" : "br4",
                 "name" : "R4",
                 "compliance" : 100.0,
-                "policyMode" : "enforce",
+                "policyMode" : "mixed",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -1595,7 +1595,7 @@ response:
                     "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                     "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                     "compliance" : 100.0,
-                    "policyMode" : "default",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
@@ -1611,7 +1611,7 @@ response:
                             "id" : "bn2",
                             "name" : "node1.localhost",
                             "compliance" : 100.0,
-                            "policyMode" : "enforce",
+                            "policyMode" : "audit",
                             "complianceDetails" : {
                               "successAlreadyOK" : 100.0
                             },
@@ -1639,7 +1639,7 @@ response:
                 "name" : "node1.localhost",
                 "mode" : "full-compliance",
                 "compliance" : 66.66,
-                "policyMode" : "enforce",
+                "policyMode" : "audit",
                 "complianceDetails" : {
                   "successAlreadyOK" : 33.33,
                   "error" : 33.34,
@@ -1650,7 +1650,7 @@ response:
                     "id" : "br1",
                     "name" : "R1",
                     "compliance" : 100.0,
-                    "policyMode" : "enforce",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
@@ -1659,7 +1659,7 @@ response:
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -1689,7 +1689,7 @@ response:
                     "id" : "br2",
                     "name" : "R2",
                     "compliance" : 100.0,
-                    "policyMode" : "enforce",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successRepaired" : 100.0
                     },
@@ -1698,7 +1698,7 @@ response:
                         "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "successRepaired" : 100.0
                         },
@@ -1728,7 +1728,7 @@ response:
                     "id" : "br3",
                     "name" : "R3",
                     "compliance" : 0.0,
-                    "policyMode" : "enforce",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "error" : 100.0
                     },
@@ -1737,7 +1737,7 @@ response:
                         "id" : "directive2",
                         "name" : "directive2",
                         "compliance" : 0.0,
-                        "policyMode" : "default",
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "error" : 100.0
                         },
@@ -1770,7 +1770,7 @@ response:
                 "name" : "node1.localhost",
                 "mode" : "full-compliance",
                 "compliance" : 66.67,
-                "policyMode" : "enforce",
+                "policyMode" : "audit",
                 "complianceDetails" : {
                   "successAlreadyOK" : 66.67,
                   "error" : 33.33
@@ -1780,7 +1780,7 @@ response:
                     "id" : "br1",
                     "name" : "R1",
                     "compliance" : 100.0,
-                    "policyMode" : "enforce",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
@@ -1789,7 +1789,7 @@ response:
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -1819,7 +1819,7 @@ response:
                     "id" : "br3",
                     "name" : "R3",
                     "compliance" : 0.0,
-                    "policyMode" : "enforce",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "error" : 100.0
                     },
@@ -1828,7 +1828,7 @@ response:
                         "id" : "directive2",
                         "name" : "directive2",
                         "compliance" : 0.0,
-                        "policyMode" : "default",
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "error" : 100.0
                         },
@@ -1858,7 +1858,7 @@ response:
                     "id" : "br4",
                     "name" : "R4",
                     "compliance" : 100.0,
-                    "policyMode" : "enforce",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
@@ -1867,7 +1867,7 @@ response:
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -1926,7 +1926,7 @@ response:
                 "id" : "br1",
                 "name" : "R1",
                 "compliance" : 100.0,
-                "policyMode" : "enforce",
+                "policyMode" : "audit",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -1935,7 +1935,7 @@ response:
                     "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                     "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                     "compliance" : 100.0,
-                    "policyMode" : "default",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
@@ -1951,7 +1951,7 @@ response:
                             "id" : "bn1",
                             "name" : "node1.localhost",
                             "compliance" : 100.0,
-                            "policyMode" : "enforce",
+                            "policyMode" : "audit",
                             "complianceDetails" : {
                               "successAlreadyOK" : 100.0
                             },
@@ -1979,7 +1979,7 @@ response:
                             "id" : "bn2",
                             "name" : "node1.localhost",
                             "compliance" : 100.0,
-                            "policyMode" : "enforce",
+                            "policyMode" : "audit",
                             "complianceDetails" : {
                               "successAlreadyOK" : 100.0
                             },
@@ -2004,7 +2004,7 @@ response:
                 "id" : "br2",
                 "name" : "R2",
                 "compliance" : 100.0,
-                "policyMode" : "enforce",
+                "policyMode" : "audit",
                 "complianceDetails" : {
                   "successRepaired" : 100.0
                 },
@@ -2013,7 +2013,7 @@ response:
                     "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
                     "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                     "compliance" : 100.0,
-                    "policyMode" : "default",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successRepaired" : 100.0
                     },
@@ -2029,7 +2029,7 @@ response:
                             "id" : "bn1",
                             "name" : "node1.localhost",
                             "compliance" : 100.0,
-                            "policyMode" : "enforce",
+                            "policyMode" : "audit",
                             "complianceDetails" : {
                               "successRepaired" : 100.0
                             },
@@ -2057,7 +2057,7 @@ response:
                 "name" : "node1.localhost",
                 "mode" : "full-compliance",
                 "compliance" : 100.0,
-                "policyMode" : "enforce",
+                "policyMode" : "audit",
                 "complianceDetails" : {
                   "successAlreadyOK" : 50.0,
                   "successRepaired" : 50.0
@@ -2067,7 +2067,7 @@ response:
                     "id" : "br1",
                     "name" : "R1",
                     "compliance" : 100.0,
-                    "policyMode" : "enforce",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
@@ -2076,7 +2076,7 @@ response:
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -2106,7 +2106,7 @@ response:
                     "id" : "br2",
                     "name" : "R2",
                     "compliance" : 100.0,
-                    "policyMode" : "enforce",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successRepaired" : 100.0
                     },
@@ -2115,7 +2115,7 @@ response:
                         "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "successRepaired" : 100.0
                         },
@@ -2148,7 +2148,7 @@ response:
                 "name" : "node1.localhost",
                 "mode" : "full-compliance",
                 "compliance" : 100.0,
-                "policyMode" : "enforce",
+                "policyMode" : "audit",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -2157,7 +2157,7 @@ response:
                     "id" : "br1",
                     "name" : "R1",
                     "compliance" : 100.0,
-                    "policyMode" : "enforce",
+                    "policyMode" : "audit",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
@@ -2166,7 +2166,7 @@ response:
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "audit",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -2224,7 +2224,7 @@ response:
                 "id" : "br4",
                 "name" : "R4",
                 "compliance" : 100.0,
-                "policyMode" : "enforce",
+                "policyMode" : "mixed",
                 "complianceDetails" : {
                   "successAlreadyOK" : 100.0
                 },
@@ -2233,7 +2233,7 @@ response:
                     "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                     "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                     "compliance" : 100.0,
-                    "policyMode" : "default",
+                    "policyMode" : "enforce",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
@@ -2301,12 +2301,80 @@ response:
               {
                 "id" : "br6",
                 "name" : "R6",
-                "compliance" : 0.0,
+                "compliance" : 100.0,
                 "policyMode" : "enforce",
                 "complianceDetails" : {
-                  "noReport" : 100.0
+                  "successAlreadyOK" : 100.0
                 },
-                "directives" : []
+                "directives" : [
+                  {
+                    "id" : "directive-copyGitFile",
+                    "name" : "directive-copyGitFile",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-copyGitFile-component-br6-bn4",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "bn4",
+                            "name" : "node1.localhost",
+                            "compliance" : 100.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-copyGitFile-component-value-br6-bn4",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "name" : "directive-copyGitFile-component-br6-bn5",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "bn5",
+                            "name" : "node1.localhost",
+                            "compliance" : 100.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-copyGitFile-component-value-br6-bn5",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ],
             "nodes" : [
@@ -2333,7 +2401,7 @@ response:
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -2347,6 +2415,45 @@ response:
                             "values" : [
                               {
                                 "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn4",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id" : "br6",
+                    "name" : "R6",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "directive-copyGitFile",
+                        "name" : "directive-copyGitFile",
+                        "compliance" : 100.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "directive-copyGitFile-component-br6-bn4",
+                            "compliance" : 100.0,
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-copyGitFile-component-value-br6-bn4",
                                 "reports" : [
                                   {
                                     "status" : "successAlreadyOK"
@@ -2384,7 +2491,7 @@ response:
                         "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
                         "compliance" : 100.0,
-                        "policyMode" : "default",
+                        "policyMode" : "enforce",
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
@@ -2398,6 +2505,45 @@ response:
                             "values" : [
                               {
                                 "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br4-bn5",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id" : "br6",
+                    "name" : "R6",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "directive-copyGitFile",
+                        "name" : "directive-copyGitFile",
+                        "compliance" : 100.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "directive-copyGitFile-component-br6-bn5",
+                            "compliance" : 100.0,
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-copyGitFile-component-value-br6-bn5",
                                 "reports" : [
                                   {
                                     "status" : "successAlreadyOK"
@@ -2432,19 +2578,89 @@ response:
           {
             "id" : "bg6",
             "name" : "G6",
-            "compliance" : 0.0,
+            "compliance" : 100.0,
             "mode" : "full-compliance",
-            "complianceDetails" : {},
+            "complianceDetails" : {
+              "successAlreadyOK" : 100.0
+            },
             "rules" : [
               {
                 "id" : "br6",
                 "name" : "R6",
-                "compliance" : 0.0,
+                "compliance" : 100.0,
                 "policyMode" : "enforce",
                 "complianceDetails" : {
-                  "noReport" : 100.0
+                  "successAlreadyOK" : 100.0
                 },
-                "directives" : []
+                "directives" : [
+                  {
+                    "id" : "directive-copyGitFile",
+                    "name" : "directive-copyGitFile",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-copyGitFile-component-br6-bn4",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "bn4",
+                            "name" : "node1.localhost",
+                            "compliance" : 100.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-copyGitFile-component-value-br6-bn4",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "name" : "directive-copyGitFile-component-br6-bn5",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "nodes" : [
+                          {
+                            "id" : "bn5",
+                            "name" : "node1.localhost",
+                            "compliance" : 100.0,
+                            "policyMode" : "enforce",
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-copyGitFile-component-value-br6-bn5",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               }
             ],
             "nodes" : [
@@ -2452,20 +2668,104 @@ response:
                 "id" : "bn4",
                 "name" : "node1.localhost",
                 "mode" : "full-compliance",
-                "compliance" : 0.0,
+                "compliance" : 100.0,
                 "policyMode" : "enforce",
-                "complianceDetails" : {},
-                "rules" : []
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "br6",
+                    "name" : "R6",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "directive-copyGitFile",
+                        "name" : "directive-copyGitFile",
+                        "compliance" : 100.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "directive-copyGitFile-component-br6-bn4",
+                            "compliance" : 100.0,
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-copyGitFile-component-value-br6-bn4",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               },
               {
                 "id" : "bn5",
                 "name" : "node1.localhost",
                 "mode" : "full-compliance",
-                "compliance" : 0.0,
+                "compliance" : 100.0,
                 "policyMode" : "enforce",
-                "complianceDetails" : {},
-                "rules" : []
-              }        
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "br6",
+                    "name" : "R6",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "directives" : [
+                      {
+                        "id" : "directive-copyGitFile",
+                        "name" : "directive-copyGitFile",
+                        "compliance" : 100.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "components" : [
+                          {
+                            "name" : "directive-copyGitFile-component-br6-bn5",
+                            "compliance" : 100.0,
+                            "complianceDetails" : {
+                              "successAlreadyOK" : 100.0
+                            },
+                            "values" : [
+                              {
+                                "value" : "directive-copyGitFile-component-value-br6-bn5",
+                                "reports" : [
+                                  {
+                                    "status" : "successAlreadyOK"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
             ]
           }
         ]
@@ -2475,6 +2775,7 @@ response:
 description: Get a directive compliance
 method: GET
 url: /secure/api/compliance/directives/e9a1a909-2490-4fc9-95c3-9d0aa01717c9?level=3
+comment: N1 and N2 and BR1 are in audit mode, the other N3-N5 are in enforce, and BR4 is targeting N2-N5 so it is mixed
 response:
   code: 200
   content: >-
@@ -2487,7 +2788,7 @@ response:
           "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
           "compliance" : 100.0,
           "mode" : "full-compliance",
-          "policyMode" : "default",
+          "policyMode" : "enforce",
           "complianceDetails" : {
             "successAlreadyOK" : 100.0
           },
@@ -2496,7 +2797,7 @@ response:
               "id" : "br1",
               "name" : "R1",
               "compliance" : 100.0,
-              "policyMode" : "enforce",
+              "policyMode" : "audit",
               "complianceDetails" : {
                 "successAlreadyOK" : 100.0
               },
@@ -2506,7 +2807,7 @@ response:
               "id" : "br4",
               "name" : "R4",
               "compliance" : 100.0,
-              "policyMode" : "enforce",
+              "policyMode" : "mixed",
               "complianceDetails" : {
                 "successAlreadyOK" : 100.0
               },
@@ -2515,5 +2816,350 @@ response:
           ],
           "nodes" : []
         }
+      }
+    }
+---
+description: Get a node compliance in audit mode
+method: GET
+url: /secure/api/compliance/nodes/bn1
+comment: node in audit must force other modes to audit (global is overridable enforce), see https://issues.rudder.io/issues/26232
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getNodeComplianceId",
+      "result" : "success",
+      "data" : {
+        "nodes" : [
+          {
+            "id" : "bn1",
+            "name" : "node1.localhost",
+            "compliance" : 66.66,
+            "mode" : "full-compliance",
+            "policyMode" : "audit",
+            "complianceDetails" : {
+              "successAlreadyOK" : 33.33,
+              "error" : 33.34,
+              "successRepaired" : 33.33
+            },
+            "rules" : [
+              {
+                "id" : "br1",
+                "name" : "R1",
+                "compliance" : 100.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "compliance" : 100.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-br1-bn1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-br1-bn1",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "br3",
+                "name" : "R3",
+                "compliance" : 0.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "error" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive2",
+                    "name" : "directive2",
+                    "compliance" : 0.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "error" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive2-component-br3-bn1",
+                        "compliance" : 0.0,
+                        "complianceDetails" : {
+                          "error" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive2-component-value-br3-bn1",
+                            "reports" : [
+                              {
+                                "status" : "error"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "br2",
+                "name" : "R2",
+                "compliance" : 100.0,
+                "policyMode" : "audit",
+                "complianceDetails" : {
+                  "successRepaired" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "name" : "directive 99f4ef91-537b-4e03-97bc-e65b447514cc",
+                    "compliance" : 100.0,
+                    "policyMode" : "audit",
+                    "complianceDetails" : {
+                      "successRepaired" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-br2-bn1",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successRepaired" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "99f4ef91-537b-4e03-97bc-e65b447514cc-component-value-br2-bn1",
+                            "reports" : [
+                              {
+                                "status" : "successRepaired"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+description: Get skipped compliance for skipped directive D4 on rule BR6
+method: GET
+url: /secure/api/compliance/rules/br6
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getRulesComplianceId",
+      "result" : "success",
+      "data" : {
+        "rules" : [
+          {
+            "id" : "br6",
+            "name" : "R6",
+            "compliance" : 100.0,
+            "mode" : "full-compliance",
+            "policyMode" : "enforce",
+            "complianceDetails" : {
+              "successAlreadyOK" : 100.0
+            },
+            "directives" : [
+              {
+                "id" : "directive-copyGitFile",
+                "name" : "directive-copyGitFile",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "directive-copyGitFile-component-br6-bn4",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "bn4",
+                        "name" : "node1.localhost",
+                        "compliance" : 100.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-copyGitFile-component-value-br6-bn4",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name" : "directive-copyGitFile-component-br6-bn5",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "bn5",
+                        "name" : "node1.localhost",
+                        "compliance" : 100.0,
+                        "policyMode" : "enforce",
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-copyGitFile-component-value-br6-bn5",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                "compliance" : 0.0,
+                "policyMode" : "skipped",
+                "complianceDetails" : {},
+                "skippedDetails" : {
+                  "overridingRuleId" : "br4",
+                  "overridingRuleName" : "R4"
+                },
+                "components" : []
+              },
+              {
+                "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                "compliance" : 0.0,
+                "policyMode" : "skipped",
+                "complianceDetails" : {},
+                "skippedDetails" : {
+                  "overridingRuleId" : "br5",
+                  "overridingRuleName" : "R5"
+                },
+                "components" : []
+              }
+            ],
+            "nodes" : [
+              {
+                "id" : "bn4",
+                "name" : "node1.localhost",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive-copyGitFile",
+                    "name" : "directive-copyGitFile",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-copyGitFile-component-br6-bn4",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-copyGitFile-component-value-br6-bn4",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id" : "bn5",
+                "name" : "node1.localhost",
+                "compliance" : 100.0,
+                "policyMode" : "enforce",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "directives" : [
+                  {
+                    "id" : "directive-copyGitFile",
+                    "name" : "directive-copyGitFile",
+                    "compliance" : 100.0,
+                    "policyMode" : "enforce",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-copyGitFile-component-br6-bn5",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-copyGitFile-component-value-br6-bn5",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       }
     }

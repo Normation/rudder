@@ -432,7 +432,7 @@ object ComplianceData extends Loggable {
         )
 
       val directivesMode            = aggregate.directives.keys.map(x => directiveLib.allDirectives.get(x).flatMap(_._2.policyMode)).toList
-      val (policyMode, explanation) = ComputePolicyMode.ruleModeOnNode(nodeMode, globalMode)(directivesMode.toSet)
+      val (policyMode, explanation) = ComputePolicyMode.ruleModeOnNode(nodeMode, globalMode)(directivesMode.toSet).tuple
       RuleComplianceLine(
         rule,
         rule.id,
@@ -496,7 +496,7 @@ object ComplianceData extends Loggable {
   private def getDirectivesComplianceDetails(
       directivesReport: List[DirectiveStatusReport],
       directiveLib:     FullActiveTechniqueCategory,
-      computeMode:      Option[PolicyMode] => (String, String)
+      computeMode:      Option[PolicyMode] => ComputePolicyMode.ComputedPolicyMode
   ): List[DirectiveComplianceLine] = {
     val directivesComplianceData = for {
       directiveStatus                  <- directivesReport
@@ -506,7 +506,7 @@ object ComplianceData extends Loggable {
         fullActiveTechnique.techniques.get(directive.techniqueVersion).map(_.name).getOrElse("Unknown technique")
       val techniqueVersion          = directive.techniqueVersion
       val components                = getComponentsComplianceDetails(directiveStatus.components, includeMessage = true)
-      val (policyMode, explanation) = computeMode(directive.policyMode)
+      val (policyMode, explanation) = computeMode(directive.policyMode).tuple
       DirectiveComplianceLine(
         directive,
         techniqueName,
