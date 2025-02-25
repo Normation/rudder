@@ -1,15 +1,15 @@
 use crate::{
+    RebootType,
     campaign::{
-        do_post_update, do_schedule, do_update, fail_campaign, FullSchedule, RunnerParameters,
+        FullSchedule, RunnerParameters, do_post_update, do_schedule, do_update, fail_campaign,
     },
     db::PackageDatabase,
     package_manager::LinuxPackageManager,
     scheduler,
     state::UpdateStatus,
     system::System,
-    RebootType,
 };
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use chrono::{DateTime, Utc};
 use rudder_module_type::Outcome;
 
@@ -154,6 +154,7 @@ impl Runner {
 #[cfg(test)]
 mod tests {
     use crate::{
+        RebootType, Schedule, ScheduleParameters,
         campaign::{FullCampaignType, FullSchedule, RunnerParameters},
         db::PackageDatabase,
         output::ResultOutput,
@@ -161,7 +162,6 @@ mod tests {
         runner::{Action, Runner},
         state::UpdateStatus,
         system::System,
-        RebootType, Schedule, ScheduleParameters,
     };
     use chrono::{Duration, Utc};
     use pretty_assertions::assert_eq;
@@ -309,8 +309,8 @@ mod tests {
     }
 
     #[test]
-    pub fn update_loop_with_immediate_schedule_and_reboot_as_needed_should_stop_on_pending_post_actions(
-    ) {
+    pub fn update_loop_with_immediate_schedule_and_reboot_as_needed_should_stop_on_pending_post_actions()
+     {
         let parameters = RunnerParameters {
             reboot_type: RebootType::AsNeeded,
             ..default_runner_parameters()

@@ -7,11 +7,11 @@
 
 use std::{path::PathBuf, str::FromStr};
 
-use anyhow::{bail, Error, Result};
+use anyhow::{Error, Result, bail};
 use log::debug;
 use serde::{Deserialize, Serialize};
 
-use crate::{regex_comp, Escaping, MethodConstraint, MethodConstraints, Target};
+use crate::{Escaping, MethodConstraint, MethodConstraints, Target, regex_comp};
 
 /// Supported agent for a legacy method, now replaced by `Target`
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

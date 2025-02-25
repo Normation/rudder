@@ -5,15 +5,16 @@ use std::{path::Path, sync::Arc};
 
 use serde::Serialize;
 use warp::{
-    filters::{method, BoxedFilter},
-    path, Filter, Reply,
+    Filter, Reply,
+    filters::{BoxedFilter, method},
+    path,
 };
 
 use crate::{
+    CRATE_VERSION, Error, JobConfig,
     api::{ApiResponse, ApiResult},
     configuration::check_configuration,
     output::database::ping,
-    Error, JobConfig, CRATE_VERSION,
 };
 
 pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {

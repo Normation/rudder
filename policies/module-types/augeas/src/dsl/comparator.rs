@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use anyhow::{bail, Error, Result};
+use anyhow::{Error, Result, bail};
 use bytesize::ByteSize;
 use regex::Regex;
 use std::{

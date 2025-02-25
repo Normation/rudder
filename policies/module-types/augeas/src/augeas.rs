@@ -2,19 +2,19 @@
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
 use crate::{
+    AugeasParameters, RUDDER_LENS_LIB,
     dsl::{
         error::format_report,
         interpreter::{
             CheckMode, Interpreter, InterpreterOut, InterpreterOutcome, InterpreterPerms,
         },
     },
-    AugeasParameters, RUDDER_LENS_LIB,
 };
 use anyhow::bail;
 use bytesize::ByteSize;
 use raugeas::{Flags, SaveMode};
 use rudder_module_type::{
-    backup::Backup, rudder_debug, rudder_error, CheckApplyResult, Outcome, PolicyMode,
+    CheckApplyResult, Outcome, PolicyMode, backup::Backup, rudder_debug, rudder_error,
 };
 use std::{
     borrow::Cow,

@@ -4,9 +4,9 @@
 use core::fmt;
 use std::{cmp::Ordering, fmt::Display, fs, str::FromStr};
 
-use anyhow::{bail, Context, Error, Result};
+use anyhow::{Context, Error, Result, bail};
 use regex::Regex;
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use tracing::debug;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]

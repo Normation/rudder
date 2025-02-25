@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
-use anyhow::{bail, Context, Error, Result};
-use rudder_commons::{methods::method::MethodInfo, PolicyMode, RegexConstraint, Select};
-use serde::{de, Deserialize, Deserializer, Serialize};
+use anyhow::{Context, Error, Result, bail};
+use rudder_commons::{PolicyMode, RegexConstraint, Select, methods::method::MethodInfo};
+use serde::{Deserialize, Deserializer, Serialize, de};
 use serde_yaml::Value;
 use std::{
     collections::HashMap,
@@ -945,8 +945,8 @@ mod tests {
         )
     }
     #[test]
-    fn it_should_not_render_nested_templates_as_the_replacement_is_done_node_by_node_without_recursion(
-    ) {
+    fn it_should_not_render_nested_templates_as_the_replacement_is_done_node_by_node_without_recursion()
+     {
         let child = DeserItem {
             name: "The nested item is not ${item.key1}".to_string(),
             ..DeserItem::default()

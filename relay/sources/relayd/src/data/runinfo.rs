@@ -11,10 +11,10 @@ use std::{
 use anyhow::Error;
 use chrono::prelude::*;
 use nom::{
+    IResult,
     branch::alt,
     bytes::complete::{tag, take_until},
     combinator::{eof, map_res, opt},
-    IResult,
 };
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -185,10 +185,12 @@ mod tests {
             .unwrap(),
             reference
         );
-        assert!(RunInfo::from_str(
-            "2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.lg.gz"
-        )
-        .is_err());
+        assert!(
+            RunInfo::from_str(
+                "2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.lg.gz"
+            )
+            .is_err()
+        );
         assert!(RunInfo::from_str("2018-08-24T15:55:01+00:00@.log.gz").is_err());
     }
 

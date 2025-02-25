@@ -3,12 +3,12 @@
 
 use std::{path::PathBuf, str::FromStr};
 
-use anyhow::{bail, Error};
+use anyhow::{Error, bail};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    cfengine::log::LevelFilter, parameters::Parameters, rudder_error, rudder_info,
     CheckApplyResult, Outcome, PolicyMode, ProtocolResult, ValidateResult,
+    cfengine::log::LevelFilter, parameters::Parameters, rudder_error, rudder_info,
 };
 
 const ALLOWED_CHAR_CLASS: &str = "_0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";

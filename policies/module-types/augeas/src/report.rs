@@ -17,7 +17,7 @@
 use crate::{CRATE_NAME, CRATE_VERSION};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
-use similar::{udiff::unified_diff, Algorithm};
+use similar::{Algorithm, udiff::unified_diff};
 use std::{fmt::Display, sync::LazyLock};
 
 static SOURCE_NAME: LazyLock<String> = LazyLock::new(|| format!("{CRATE_NAME}/{CRATE_VERSION}"));

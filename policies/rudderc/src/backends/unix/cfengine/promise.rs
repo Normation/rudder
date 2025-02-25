@@ -299,13 +299,13 @@ mod tests {
         assert_eq!(
             Promise::string("test", "plop")
                 .if_condition("debian")
-                .format(0,  LONGEST_ATTRIBUTE_LEN + 3 + len),
+                .format(0, LONGEST_ATTRIBUTE_LEN + 3 + len),
             "    \"test\"                   string => \"plop\",\n                                    if => \"debian\";"
         );
         assert_eq!(
             Promise::string("test", "plop")
                 .if_condition("debian.${my.var}")
-                .format( 0,LONGEST_ATTRIBUTE_LEN + 3 + len),
+                .format(0, LONGEST_ATTRIBUTE_LEN + 3 + len),
             "    \"test\"                   string => \"plop\",\n                                    if => \"debian.${my.var}\";"
         );
         assert_eq!(

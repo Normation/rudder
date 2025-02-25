@@ -11,11 +11,11 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{anyhow, bail, Context, Error};
+use anyhow::{Context, Error, anyhow, bail};
 use secrecy::SecretString;
 use serde::{
-    de::{Deserializer, Error as SerdeError, Unexpected, Visitor},
     Deserialize,
+    de::{Deserializer, Error as SerdeError, Unexpected, Visitor},
 };
 use serde_inline_default::serde_inline_default;
 use tracing::{debug, warn};
@@ -175,7 +175,9 @@ impl Configuration {
     pub fn peer_authentication(&self) -> PeerAuthentication {
         // compute actual model
         if !self.output.upstream.verify_certificates {
-            warn!("output.upstream.verify_certificates parameter is deprecated, use general.peer_authentication instead");
+            warn!(
+                "output.upstream.verify_certificates parameter is deprecated, use general.peer_authentication instead"
+            );
             PeerAuthentication::DangerousNone
         } else {
             self.general.peer_authentication
@@ -187,7 +189,9 @@ impl Configuration {
     pub fn upstream_url(&self) -> String {
         match &self.output.upstream.url {
             Some(id) => {
-                warn!("upstream.url setting is deprecated, use upstream.host and general.https_port instead");
+                warn!(
+                    "upstream.url setting is deprecated, use upstream.host and general.https_port instead"
+                );
                 id.clone()
             }
             None => format!(

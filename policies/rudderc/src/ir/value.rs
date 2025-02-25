@@ -15,15 +15,15 @@
 
 use std::{cmp::Ordering, fmt::Debug, str::FromStr, sync::OnceLock};
 
-use anyhow::{bail, Error, Result};
+use anyhow::{Error, Result, bail};
 use nom::{
+    Finish, IResult,
     branch::alt,
     bytes::complete::{tag, take_till, take_until, take_while},
     character::complete::char,
     combinator::{eof, map, verify},
     multi::{many0, many1},
     sequence::{preceded, terminated},
-    Finish, IResult,
 };
 use rudder_commons::Target;
 use tracing::{debug, warn};
@@ -288,8 +288,8 @@ impl Expression {
                             if !vals.contains(&k2.as_str()) {
                                 if let Some(prop) = did_you_mean(k2, vals) {
                                     warn!(
-                                            "Unknown variable 'node.inventory[{k1}][{k2}]', did you mean '{prop}'?"
-                                        );
+                                        "Unknown variable 'node.inventory[{k1}][{k2}]', did you mean '{prop}'?"
+                                    );
                                 } else {
                                     warn!("Unknown variable 'node.inventory[{k1}][{k2}]'");
                                 }

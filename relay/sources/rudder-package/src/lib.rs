@@ -25,7 +25,7 @@ use std::{
     process::ExitCode,
 };
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use clap::Parser;
 use cli::Args;
 use repository::RepositoryError;

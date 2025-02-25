@@ -5,7 +5,7 @@
 //!
 //! Support both IPv4 and IPv6 ranges.
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use ipnet::{Ipv4Net, Ipv6Net};
 use iprange::{IpRange, ToNetwork};
 use std::{fmt::Display, net::IpAddr};

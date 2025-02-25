@@ -46,7 +46,7 @@ struct ListEntry {
 
 impl ListOutput {
     fn human_table(self) -> Result<()> {
-        use cli_table::{print_stdout, Cell, Style, Table};
+        use cli_table::{Cell, Style, Table, print_stdout};
         let now = Utc::now();
 
         let table = self

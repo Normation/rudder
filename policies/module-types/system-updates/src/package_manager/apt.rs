@@ -9,26 +9,26 @@ use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
     package_manager::{
+        LinuxPackageManager, PackageId, PackageInfo, PackageList, PackageManager, PackageSpec,
         apt::{
             filter::{Distribution, PackageFileFilter},
             progress::RudderAptAcquireProgress,
         },
-        LinuxPackageManager, PackageId, PackageInfo, PackageList, PackageManager, PackageSpec,
     },
 };
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use memfile::MemFile;
 use regex::Regex;
 #[cfg(not(debug_assertions))]
 use rudder_module_type::ensure_root_user;
 use rudder_module_type::os_release::OsRelease;
 use rust_apt::{
+    Cache, PackageSort,
     cache::Upgrade,
     config::Config,
     error::AptErrors,
     new_cache,
     progress::{AcquireProgress, InstallProgress},
-    Cache, PackageSort,
 };
 use std::{collections::HashMap, env, os::fd::AsRawFd, path::Path, process::Command};
 

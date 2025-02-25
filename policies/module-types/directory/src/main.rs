@@ -3,12 +3,12 @@
 
 use std::{fs, path::PathBuf};
 
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use file_owner::PathExt;
 use rudder_module_type::cfengine::called_from_agent;
 use rudder_module_type::{
-    parameters::Parameters, run_module, CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome,
-    PolicyMode, ValidateResult,
+    CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
+    parameters::Parameters, run_module,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

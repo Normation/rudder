@@ -2,8 +2,9 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use warp::{
-    filters::{method, BoxedFilter},
-    path, Filter, Reply,
+    Filter, Reply,
+    filters::{BoxedFilter, method},
+    path,
 };
 
 use crate::metrics::REGISTRY;
@@ -18,7 +19,7 @@ pub fn routes() -> BoxedFilter<(impl Reply,)> {
 
 pub mod handlers {
     use prometheus::proto::MetricFamily;
-    use warp::{reject, Rejection, Reply};
+    use warp::{Rejection, Reply, reject};
 
     use super::*;
     use crate::api::RudderReject;

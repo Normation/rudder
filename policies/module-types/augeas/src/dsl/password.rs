@@ -5,9 +5,9 @@
 //!
 //! We never display the values of the passwords.
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use secrecy::{ExposeSecret, SecretString};
-use zxcvbn::{feedback::Feedback, zxcvbn, Score};
+use zxcvbn::{Score, feedback::Feedback, zxcvbn};
 
 /// Password complexity policy.
 ///
@@ -46,7 +46,8 @@ impl PasswordPolicy {
                 if score < *min_score {
                     Err(anyhow!(
                         "The password is too weak: score {score} < {min_score} (requires ~10^{guesses_log10_int} guesses). {}",
-                         entropy.feedback()
+                        entropy
+                            .feedback()
                             .map(Self::format_feedback)
                             .unwrap_or("".to_string())
                     ))

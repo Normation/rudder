@@ -6,7 +6,7 @@ pub mod packages;
 
 use std::{env, fs, fs::read_to_string, path::PathBuf, process::Command, str};
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 use chrono::{DateTime, Local};
 use clap::Parser;
 use os_release::OsRelease;
@@ -58,7 +58,10 @@ struct Cli {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    env::set_var("LANG", "C");
+    // SAFETY: The module is single-threaded.
+    unsafe {
+        env::set_var("LANG", "C");
+    }
 
     let inventory = InventoryRequest::new()?;
     let mut out = String::new();

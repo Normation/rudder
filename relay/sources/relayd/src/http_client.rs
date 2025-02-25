@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use anyhow::Error;
 use lazy_static::lazy_static;
-use reqwest::{tls::Version, Certificate, Client};
+use reqwest::{Certificate, Client, tls::Version};
 use tracing::debug;
 
 use crate::{CRATE_NAME, CRATE_VERSION};

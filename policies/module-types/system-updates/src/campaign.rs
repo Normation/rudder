@@ -4,12 +4,12 @@
 #![allow(clippy::borrowed_box)]
 
 use crate::{
+    CampaignType, PackageParameters, RebootType, Schedule,
     db::PackageDatabase,
     hooks::Hooks,
     output::{Report, ScheduleReport, Status},
     package_manager::{LinuxPackageManager, PackageSpec},
     system::System,
-    CampaignType, PackageParameters, RebootType, Schedule,
 };
 use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
@@ -103,7 +103,7 @@ pub enum FullSchedule {
 impl FullSchedule {
     pub fn new(schedule: &Schedule, node_id: String, agent_frequency: Duration) -> Self {
         match schedule {
-            Schedule::Scheduled(ref s) => FullSchedule::Scheduled(FullScheduleParameters {
+            Schedule::Scheduled(s) => FullSchedule::Scheduled(FullScheduleParameters {
                 start: s.start,
                 end: s.end,
                 node_id,

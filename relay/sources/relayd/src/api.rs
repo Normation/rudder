@@ -9,11 +9,11 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::{bail, Error};
+use anyhow::{Error, bail};
 use percent_encoding::percent_decode_str;
 use serde::Serialize;
 use tracing::{error, info, instrument};
-use warp::{http::StatusCode, path, reject, reject::Reject, reply, Filter, Rejection, Reply};
+use warp::{Filter, Rejection, Reply, http::StatusCode, path, reject, reject::Reject, reply};
 
 use crate::JobConfig;
 

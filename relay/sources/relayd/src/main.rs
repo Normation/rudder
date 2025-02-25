@@ -5,8 +5,9 @@ use std::{env, path::Path, process::exit};
 
 use clap::Parser;
 use rudder_relayd::{
+    ExitStatus,
     configuration::{check_configuration, cli::CliConfiguration},
-    init_logger, start, ExitStatus,
+    init_logger, start,
 };
 use tracing::error;
 
