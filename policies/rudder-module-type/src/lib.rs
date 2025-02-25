@@ -233,7 +233,7 @@ pub struct CliConfiguration {
 ///
 /// Some of these are also provided by the agent, but we need to be able to run in standalone mode.
 pub mod inventory {
-    use anyhow::{bail, Result};
+    use anyhow::{Result, bail};
     use rudder_commons::NODE_ID_PATH;
     use std::fs;
     use std::path::Path;
@@ -271,8 +271,8 @@ pub mod backup {
     //!
     //! Dates are all localtime.
 
-    use chrono::prelude::*;
     use chrono::Locale;
+    use chrono::prelude::*;
     use rudder_commons::canonify;
     use std::{
         fmt,
@@ -331,7 +331,10 @@ pub mod backup {
             let backup = Backup::BeforeEdit
                 .backup_file_timestamp(Path::new("/opt/rudder/etc/relayd/main.conf"), 1653943305);
             // CFEngine format
-            assert_eq!(backup.to_string_lossy(), "_opt_rudder_etc_relayd_main_conf_1653943305_Mon_May_30_20_41_45_2022_cf_before_edit");
+            assert_eq!(
+                backup.to_string_lossy(),
+                "_opt_rudder_etc_relayd_main_conf_1653943305_Mon_May_30_20_41_45_2022_cf_before_edit"
+            );
             // RFC3339 format
             //assert_eq!(backup.to_string_lossy(), "_opt_rudder_etc_relayd_main_conf_1653943305_2022_05_30T20_41_45_00_00_cf_before_edit");
         }

@@ -11,8 +11,8 @@ use crate::parameters::AugeasParameters;
 use anyhow::bail;
 use augeas::Augeas;
 use rudder_module_type::{
-    parameters::Parameters, CheckApplyResult, ModuleType0, ModuleTypeMetadata, PolicyMode,
-    ValidateResult,
+    CheckApplyResult, ModuleType0, ModuleTypeMetadata, PolicyMode, ValidateResult,
+    parameters::Parameters,
 };
 use serde_json::Value;
 use std::env;
@@ -47,7 +47,10 @@ impl ModuleType0 for Augeas {
 }
 
 pub fn entry() -> Result<(), anyhow::Error> {
-    env::set_var("LC_ALL", "C");
+    // SAFETY: The module is single-threaded.
+    unsafe {
+        env::set_var("LC_ALL", "C");
+    }
 
     let promise_type = Augeas::new_module(None, vec![])?;
     if rudder_module_type::cfengine::called_from_agent() {

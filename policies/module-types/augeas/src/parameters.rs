@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use bytesize::ByteSize;
 use serde::{Deserialize, Serialize};
 use serde_inline_default::serde_inline_default;

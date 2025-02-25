@@ -7,7 +7,7 @@
 
 use std::{fs::read_to_string, path::Path};
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use log::{debug, warn};
 use walkdir::{DirEntry, WalkDir};
 

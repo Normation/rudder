@@ -9,20 +9,20 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
 
 use super::archive::Rpkg;
 use crate::{
+    PACKAGES_FOLDER, TMP_PLUGINS_FOLDER,
     archive::{PackageScript, PackageScriptArg},
     plugin::{self, short_name},
     repo_index::RepoIndex,
     repository::Repository,
     versions::ArchiveVersion,
     webapp::Webapp,
-    PACKAGES_FOLDER, TMP_PLUGINS_FOLDER,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone)]
@@ -113,7 +113,9 @@ impl Database {
         } else {
             let i = match index {
                 Some(i) => i,
-                None => bail!("No index was found from remote repository. Try running 'rudder package update'.")
+                None => bail!(
+                    "No index was found from remote repository. Try running 'rudder package update'."
+                ),
             };
 
             let to_dl_and_install = if let Some(v) = version {
@@ -314,7 +316,10 @@ impl InstalledPlugin {
     pub fn disable(&self, webapp: &mut Webapp) -> Result<()> {
         info!("Disabling plugin {}", self.metadata.short_name());
         if self.metadata.jar_files.is_empty() {
-            debug!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
+            debug!(
+                "Plugin {} does not support the enable/disable feature, it will always be enabled if installed.",
+                self.metadata.name
+            );
             Ok(())
         } else {
             webapp.disable_jars(&self.metadata.jar_files)
@@ -324,7 +329,10 @@ impl InstalledPlugin {
     pub fn enable(&self, webapp: &mut Webapp) -> Result<()> {
         info!("Enabling plugin {}", self.metadata.short_name());
         if self.metadata.jar_files.is_empty() {
-            debug!("Plugin {} does not support the enable/disable feature, it will always be enabled if installed.", self.metadata.name);
+            debug!(
+                "Plugin {} does not support the enable/disable feature, it will always be enabled if installed.",
+                self.metadata.name
+            );
             Ok(())
         } else {
             webapp.enable_jars(&self.metadata.jar_files)
@@ -410,18 +418,20 @@ mod tests {
         // Enable >8.1 syntax
         d.apply_plugin_status_line_from_backup("enabled rudder-plugin-dsc", &mut w)
             .unwrap();
-        assert!(w
-            .jars()
-            .unwrap()
-            .contains(&"/opt/rudder/share/plugins/dsc/dsc.jar".to_string()));
+        assert!(
+            w.jars()
+                .unwrap()
+                .contains(&"/opt/rudder/share/plugins/dsc/dsc.jar".to_string())
+        );
 
         // Disable >8.1 syntax
         d.apply_plugin_status_line_from_backup("disabled rudder-plugin-dsc", &mut w)
             .unwrap();
-        assert!(!w
-            .jars()
-            .unwrap()
-            .contains(&"/opt/rudder/share/plugins/dsc/dsc.jar".to_string()));
+        assert!(
+            !w.jars()
+                .unwrap()
+                .contains(&"/opt/rudder/share/plugins/dsc/dsc.jar".to_string())
+        );
 
         // Enable <8.0 syntax
         d.apply_plugin_status_line_from_backup(
@@ -429,10 +439,11 @@ mod tests {
             &mut w,
         )
         .unwrap();
-        assert!(w
-            .jars()
-            .unwrap()
-            .contains(&"/opt/rudder/share/plugins/dsc/dsc.jar".to_string()));
+        assert!(
+            w.jars()
+                .unwrap()
+                .contains(&"/opt/rudder/share/plugins/dsc/dsc.jar".to_string())
+        );
 
         // Disable <8.0 syntax
         d.apply_plugin_status_line_from_backup(
@@ -440,25 +451,29 @@ mod tests {
             &mut w,
         )
         .unwrap();
-        assert!(!w
-            .jars()
-            .unwrap()
-            .contains(&"/opt/rudder/share/plugins/dsc/dsc.jar".to_string()));
+        assert!(
+            !w.jars()
+                .unwrap()
+                .contains(&"/opt/rudder/share/plugins/dsc/dsc.jar".to_string())
+        );
 
         // Unsupported plugin name syntax
-        assert!(d
-            .apply_plugin_status_line_from_backup("enabled dsc", &mut w)
-            .is_err());
+        assert!(
+            d.apply_plugin_status_line_from_backup("enabled dsc", &mut w)
+                .is_err()
+        );
 
         // Unsupported plugin status syntax
-        assert!(d
-            .apply_plugin_status_line_from_backup("eNabled rudder-plugin-dsc", &mut w)
-            .is_err());
+        assert!(
+            d.apply_plugin_status_line_from_backup("eNabled rudder-plugin-dsc", &mut w)
+                .is_err()
+        );
 
         // Non installed plugin
-        assert!(d
-            .apply_plugin_status_line_from_backup("enabled rudder-plugin-unknown", &mut w)
-            .is_err());
+        assert!(
+            d.apply_plugin_status_line_from_backup("enabled rudder-plugin-unknown", &mut w)
+                .is_err()
+        );
     }
 
     #[test]

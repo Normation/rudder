@@ -2,15 +2,15 @@
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
 use std::{
-    fs::{self, create_dir_all, File},
+    fs::{self, File, create_dir_all},
     path::{Path, PathBuf},
     process::ExitCode,
 };
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use reqwest::{
-    blocking::{Client, Response},
     Proxy, StatusCode, Url,
+    blocking::{Client, Response},
 };
 use secrecy::ExposeSecret;
 use tempfile::tempdir;
@@ -18,10 +18,10 @@ use tracing::{debug, info};
 
 use crate::license::Licenses;
 use crate::{
+    LICENSES_FOLDER, REPOSITORY_INDEX_PATH,
     config::{Configuration, Credentials},
     signature::{SignatureVerifier, VerificationSuccess},
     webapp::Webapp,
-    LICENSES_FOLDER, REPOSITORY_INDEX_PATH,
 };
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
@@ -107,7 +107,10 @@ impl Repository {
         // Special error messages and codes for common errors
         match res.status() {
             StatusCode::UNAUTHORIZED => {
-                let e = anyhow!("Invalid credentials, please check your credentials in the configuration (received HTTP {:?}).", res.status());
+                let e = anyhow!(
+                    "Invalid credentials, please check your credentials in the configuration (received HTTP {:?}).",
+                    res.status()
+                );
                 bail!(RepositoryError::InvalidCredentials(e))
             }
             StatusCode::FORBIDDEN | StatusCode::NOT_FOUND => {

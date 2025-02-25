@@ -12,14 +12,14 @@ use std::path::Path;
 
 use anyhow::{Error, Result};
 use quick_xml::se::{QuoteLevel, Serializer};
-use rudder_commons::{Target, ALL_TARGETS};
+use rudder_commons::{ALL_TARGETS, Target};
 use serde::Serialize;
 
 use crate::{
+    RESOURCES_DIR,
     backends::{Backend, Windows},
     ir,
     ir::technique::{Id, ItemKind, LeafReportingMode, Parameter, ParameterType},
-    RESOURCES_DIR,
 };
 
 pub struct Metadata;

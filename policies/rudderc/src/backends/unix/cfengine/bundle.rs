@@ -3,7 +3,7 @@
 
 use std::{collections::HashMap, fmt};
 
-use crate::backends::unix::cfengine::promise::{Promise, PromiseType, LONGEST_ATTRIBUTE_LEN};
+use crate::backends::unix::cfengine::promise::{LONGEST_ATTRIBUTE_LEN, Promise, PromiseType};
 
 const NORMAL_ORDERING: [PromiseType; 3] = [
     PromiseType::Vars,

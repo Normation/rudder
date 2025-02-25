@@ -11,7 +11,7 @@ use std::{
 
 use pretty_assertions::assert_eq;
 use rudder_cli::logs;
-use rudder_commons::{methods::Methods, Target, ALL_TARGETS};
+use rudder_commons::{ALL_TARGETS, Target, methods::Methods};
 use rudderc::{
     action,
     compiler::{metadata, read_technique},

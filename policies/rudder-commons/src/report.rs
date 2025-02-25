@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later WITH GPL-3.0-linking-source-exception
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use nom::{
+    IResult,
     branch::alt,
     bytes::complete::{tag, take_till, take_until},
     combinator::{map, not, opt},
     multi::{many0, many1},
-    IResult,
 };
 use serde::Serialize;
 

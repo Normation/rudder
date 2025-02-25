@@ -5,15 +5,15 @@ pub mod test;
 
 use std::path::Path;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use askama::Template;
-use rudder_commons::{methods::method::Agent, Escaping, PolicyMode};
+use rudder_commons::{Escaping, PolicyMode, methods::method::Agent};
 
 use super::Backend;
 use crate::ir::{
+    Technique,
     condition::Condition,
     technique::{ItemKind, LeafReportingMode, Method, Parameter},
-    Technique,
 };
 
 pub struct Windows;

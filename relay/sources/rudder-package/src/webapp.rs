@@ -11,14 +11,14 @@ use std::{
 
 use anyhow::{Context, Result};
 use quick_xml::{
+    Writer,
     events::{BytesEnd, BytesStart, BytesText, Event},
     reader::Reader,
-    Writer,
 };
 use spinners::{Spinner, Spinners};
 use tracing::debug;
 
-use crate::{cmd::CmdOutput, versions::RudderVersion, DONT_RESTART_ENV_VAR};
+use crate::{DONT_RESTART_ENV_VAR, cmd::CmdOutput, versions::RudderVersion};
 
 /// We want to write the file after each plugin to avoid half-installs
 pub struct Webapp {

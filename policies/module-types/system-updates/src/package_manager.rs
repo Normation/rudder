@@ -3,7 +3,7 @@
 
 /// Implementation of Linux package manager interactions.
 ///
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

@@ -7,24 +7,24 @@ use std::{
     sync::atomic::{AtomicBool, AtomicUsize, Ordering},
 };
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use boon::{Compiler, Schemas};
-use rudder_commons::{is_canonified, logs::ok_output, methods::Methods, Target};
+use rudder_commons::{Target, is_canonified, logs::ok_output, methods::Methods};
 use serde_json::Value;
 use tracing::{error, warn};
 
 use crate::ir::technique::ForeachResolvedState;
 use crate::{
-    backends::{backend, metadata::Metadata, Backend},
+    RESOURCES_DIR,
+    backends::{Backend, backend, metadata::Metadata},
     frontends,
     ir::{
+        Technique,
         technique::{
             Block, BlockReportingMode, Id, ItemKind, Method, Parameter, ParameterType, PasswordType,
         },
         value::Expression,
-        Technique,
     },
-    RESOURCES_DIR,
 };
 
 // Count of user errors detected when reading the technique
@@ -104,9 +104,15 @@ pub fn read_technique(
 // TODO: See if quick_xml should encode these anyway
 fn check_for_control_chars(s: String) -> Result<String> {
     // \n, \r and \t are allowed in XML
-    match s.chars().find(|c| c.is_ascii_control() && !['\n', '\r', '\t'].contains(c)) {
-         Some(c) => bail!("Output contains a forbidden control character '{}', stopping. This can happen when using escape sequence in YAML double quotes.", c.escape_default()),
-         None => Ok(s),
+    match s
+        .chars()
+        .find(|c| c.is_ascii_control() && !['\n', '\r', '\t'].contains(c))
+    {
+        Some(c) => bail!(
+            "Output contains a forbidden control character '{}', stopping. This can happen when using escape sequence in YAML double quotes.",
+            c.escape_default()
+        ),
+        None => Ok(s),
     }
 }
 

@@ -9,7 +9,7 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use anyhow::{bail, Error};
+use anyhow::{Error, bail};
 use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Debug, Serialize, Clone, Copy, Eq)]

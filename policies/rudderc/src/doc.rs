@@ -83,13 +83,13 @@ fn markdown(methods: &'static Methods) -> Result<String> {
 
 pub mod book {
     use std::{
-        fs::{create_dir_all, remove_dir_all, File, OpenOptions},
+        fs::{File, OpenOptions, create_dir_all, remove_dir_all},
         io::Write,
         path::{Path, PathBuf},
     };
 
     use anyhow::{Context, Result};
-    use include_dir::{include_dir, Dir};
+    use include_dir::{Dir, include_dir};
     use mdbook::MDBook;
     use rudder_commons::methods::Methods;
 
@@ -152,8 +152,8 @@ mod markdown {
 
     use anyhow::Result;
     use rudder_commons::{
+        DEFAULT_MAX_PARAM_LENGTH, Target,
         methods::method::{MethodInfo, Parameter},
-        Target, DEFAULT_MAX_PARAM_LENGTH,
     };
     use serde::Serialize;
 

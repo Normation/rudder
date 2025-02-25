@@ -3,7 +3,7 @@
 
 use std::{collections::HashSet, fs, path::Path};
 
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tracing::warn;
@@ -133,58 +133,65 @@ mod tests {
             .unwrap()
             .unwrap();
         let expected = vec![
-        Plugin {
-          metadata: plugin::Metadata {
-            package_type: archive::PackageType::Plugin,
-            name: String::from("rudder-plugin-aix"),
-            version: versions::ArchiveVersion::from_str("8.0.0~beta2-2.1").unwrap(),
-                        description: None,
-            build_date: String::from("2023-09-14T14:31:35+00:00"),
-            build_commit: String::from("2198ca7c0aa0a4e19f04e0ace099520371641f92"),
-            content: HashMap::from([
-              (String::from("files.txz"), String::from("/opt/rudder/share/plugins")),
-            ]),
-            depends: None,
-            jar_files: vec![String::from("/opt/rudder/share/plugins/aix/aix.jar")],
-            requires_license: false,
-          },
-          path: String::from("./8.0/aix/release/rudder-plugin-aix-8.0.0~beta2-2.1.rpkg"),
-        },
-        Plugin {
-          metadata: plugin::Metadata {
-            package_type: archive::PackageType::Plugin,
-            name: String::from("rudder-plugin-aix"),
-            version: versions::ArchiveVersion::from_str("8.0.0~rc1-2.1").unwrap(),
-                        description: None,
-            build_date: String::from("2023-10-13T09:44:54+00:00"),
-            build_commit: String::from("cdcf8a4b01124b9b309903cafd95b3a161a9c35c"),
-            content: HashMap::from([
-              (String::from("files.txz"), String::from("/opt/rudder/share/plugins")),
-            ]),
-            depends: None,
-            jar_files: vec![String::from("/opt/rudder/share/plugins/aix/aix.jar")],
-            requires_license: false,
-          },
-          path: String::from("./8.0/aix/rudder-plugin-aix-8.0.0~rc1-2.1.rpkg/release/rudder-plugin-aix-8.0.0~rc1-2.1.rpkg"),
-        },
-        Plugin {
-          metadata: plugin::Metadata {
-            package_type: archive::PackageType::Plugin,
-            name: String::from("rudder-plugin-vault"),
-            version: versions::ArchiveVersion::from_str("8.0.0~rc1-2.1-nightly").unwrap(),
-                        description: None,
-            build_date: String::from("2023-10-07T20:38:18+00:00"),
-            build_commit: String::from("747126d505b3cac0403014cf35a4caf3a3ec886f"),
-            content: HashMap::from([
-              (String::from("files.txz"), String::from("/opt/rudder/")),
-            ]),
-            depends: None,
-            jar_files: vec![],
-            requires_license: false,
-          },
-          path: String::from("./8.0/rudder-plugin-vault-8.0.0~rc1-2.1-nightly.rpkg/nightly/rudder-plugin-vault-8.0.0~rc1-2.1-nightly.rpkg"),
-        },
-      ];
+            Plugin {
+                metadata: plugin::Metadata {
+                    package_type: archive::PackageType::Plugin,
+                    name: String::from("rudder-plugin-aix"),
+                    version: versions::ArchiveVersion::from_str("8.0.0~beta2-2.1").unwrap(),
+                    description: None,
+                    build_date: String::from("2023-09-14T14:31:35+00:00"),
+                    build_commit: String::from("2198ca7c0aa0a4e19f04e0ace099520371641f92"),
+                    content: HashMap::from([(
+                        String::from("files.txz"),
+                        String::from("/opt/rudder/share/plugins"),
+                    )]),
+                    depends: None,
+                    jar_files: vec![String::from("/opt/rudder/share/plugins/aix/aix.jar")],
+                    requires_license: false,
+                },
+                path: String::from("./8.0/aix/release/rudder-plugin-aix-8.0.0~beta2-2.1.rpkg"),
+            },
+            Plugin {
+                metadata: plugin::Metadata {
+                    package_type: archive::PackageType::Plugin,
+                    name: String::from("rudder-plugin-aix"),
+                    version: versions::ArchiveVersion::from_str("8.0.0~rc1-2.1").unwrap(),
+                    description: None,
+                    build_date: String::from("2023-10-13T09:44:54+00:00"),
+                    build_commit: String::from("cdcf8a4b01124b9b309903cafd95b3a161a9c35c"),
+                    content: HashMap::from([(
+                        String::from("files.txz"),
+                        String::from("/opt/rudder/share/plugins"),
+                    )]),
+                    depends: None,
+                    jar_files: vec![String::from("/opt/rudder/share/plugins/aix/aix.jar")],
+                    requires_license: false,
+                },
+                path: String::from(
+                    "./8.0/aix/rudder-plugin-aix-8.0.0~rc1-2.1.rpkg/release/rudder-plugin-aix-8.0.0~rc1-2.1.rpkg",
+                ),
+            },
+            Plugin {
+                metadata: plugin::Metadata {
+                    package_type: archive::PackageType::Plugin,
+                    name: String::from("rudder-plugin-vault"),
+                    version: versions::ArchiveVersion::from_str("8.0.0~rc1-2.1-nightly").unwrap(),
+                    description: None,
+                    build_date: String::from("2023-10-07T20:38:18+00:00"),
+                    build_commit: String::from("747126d505b3cac0403014cf35a4caf3a3ec886f"),
+                    content: HashMap::from([(
+                        String::from("files.txz"),
+                        String::from("/opt/rudder/"),
+                    )]),
+                    depends: None,
+                    jar_files: vec![],
+                    requires_license: false,
+                },
+                path: String::from(
+                    "./8.0/rudder-plugin-vault-8.0.0~rc1-2.1-nightly.rpkg/nightly/rudder-plugin-vault-8.0.0~rc1-2.1-nightly.rpkg",
+                ),
+            },
+        ];
         assert_eq!(expected, index.index);
     }
 }

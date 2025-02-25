@@ -9,26 +9,26 @@ use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
     package_manager::{
+        LinuxPackageManager, PackageId, PackageInfo, PackageList, PackageManager, PackageSpec,
         apt::{
             filter::{Distribution, PackageFileFilter},
             progress::RudderAptAcquireProgress,
         },
-        LinuxPackageManager, PackageId, PackageInfo, PackageList, PackageManager, PackageSpec,
     },
 };
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use memfile::MemFile;
 use regex::Regex;
 #[cfg(not(debug_assertions))]
 use rudder_module_type::ensure_root_user;
 use rudder_module_type::os_release::OsRelease;
 use rust_apt::{
+    Cache, PackageSort,
     cache::Upgrade,
     config::Config,
     error::AptErrors,
     new_cache,
     progress::{AcquireProgress, InstallProgress},
-    Cache, PackageSort,
 };
 use std::{collections::HashMap, env, os::fd::AsRawFd, path::Path, process::Command};
 
@@ -63,12 +63,15 @@ impl AptPackageManager {
         #[cfg(not(debug_assertions))]
         ensure_root_user()?;
 
-        env::set_var("DEBIAN_FRONTEND", "noninteractive");
-        // TODO: do we really want to disable list changes?
-        // It will be switched to non-interactive mode automatically.
-        env::set_var("APT_LISTCHANGES_FRONTEND", "none");
-        // We will do this by calling `needrestart` ourselves, turn off the APT hook.
-        env::set_var("NEEDRESTART_SUSPEND", "y");
+        // SAFETY: single-threaded
+        unsafe {
+            env::set_var("DEBIAN_FRONTEND", "noninteractive");
+            // TODO: do we really want to disable list changes?
+            // It will be switched to non-interactive mode automatically.
+            env::set_var("APT_LISTCHANGES_FRONTEND", "none");
+            // We will do this by calling `needrestart` ourselves, turn off the APT hook.
+            env::set_var("NEEDRESTART_SUSPEND", "y");
+        }
 
         let cache = new_cache!()?;
 
