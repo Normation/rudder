@@ -587,7 +587,7 @@ class ComplianceAPIService(
          .groupBy(_._2.componentName)
        ByRuleBlockCompliance(
          name,
-         ComplianceLevel.sum(groupsComponents.map(_._2.compliance)),
+         groupsComponents.map(_._2.reportingLogic).head,
          bidule.flatMap(c => components(nodeFacts, globalMode)(c._1, c._2)).toList
        ) :: Nil
      }) ::: (if (uniqueComponents.isEmpty) {
