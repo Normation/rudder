@@ -251,7 +251,7 @@ object PluginsInfo {
     PluginsMetadata.fromPlugins[ZonedDateTime](_plugins.values.toList.sortBy(_.name.value).map(_.transformInto[Plugin]))
   }
 
-  // we build plugins details without license information for the public plugins API
+  // plugins details for the public plugins API with a different mapping, more oriented towards API consumers
   def pluginJsonInfos: JsonPluginsDetails = {
     // to get global information we need the metadata computed from pluginInfos
     val license = pluginInfos.globalLicense.map(_.transformInto[JsonGlobalPluginLimits])

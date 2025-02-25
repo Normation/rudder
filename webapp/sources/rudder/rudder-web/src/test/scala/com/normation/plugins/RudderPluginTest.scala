@@ -60,6 +60,13 @@ class RudderPluginTest extends Specification {
     "automatically add a patch level (eq 0)" in {
       RudderPluginVersion.from("7.1-2.3") must_!= (RudderPluginVersion("7.1.0".toVersion, "2.3.0".toVersion))
     }
+    "understand complicated format with beta" in {
+      RudderPluginVersion
+        .from("8.3.0~beta1-SNAPSHOT-2.1-nightly") must_!= (RudderPluginVersion(
+        "7.0.0~beta1-SNAPSHOT".toVersion,
+        "2.1.0-nightly".toVersion
+      ))
+    }
     "understand complicated format with rc" in {
       RudderPluginVersion
         .from("7.0.0~rc2-SNAPSHOT-2.1-nightly") must_!= (RudderPluginVersion(

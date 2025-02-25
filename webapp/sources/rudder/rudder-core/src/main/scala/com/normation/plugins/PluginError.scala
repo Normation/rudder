@@ -36,7 +36,10 @@
  */
 package com.normation.plugins
 
+import Ordering.Implicits.*
 import com.normation.plugins.cli.*
+import com.normation.utils.ParseVersion
+import com.normation.utils.PartType
 import enumeratum.*
 import enumeratum.EnumEntry.*
 import java.time.ZonedDateTime
@@ -64,16 +67,17 @@ object PluginError       {
   }
 
   /**
-    * Sum type for license expiration error with case disjunction
-    */
-  sealed trait LicenseExpirationError    extends PluginError
-  case object LicenseExpiredError        extends LicenseExpirationError {
+   * Sum type for license expiration error with case disjunction
+   */
+  sealed trait LicenseExpirationError                                                 extends PluginError
+  case class LicenseExpiredError(expirationDate: ZonedDateTime)                       extends LicenseExpirationError {
     override def kind:       Kind.LicenseExpiredError.type = Kind.LicenseExpiredError
-    override def displayMsg: String                        = "Plugin license error require your attention"
+    override def displayMsg: String                        = s"Plugin license has expired on ${expirationDate.toLocalDate().toString()}"
   }
-  case object LicenseNearExpirationError extends LicenseExpirationError {
+  case class LicenseNearExpirationError(daysLeft: Int, expirationDate: ZonedDateTime) extends LicenseExpirationError {
     override def kind:       Kind.LicenseNearExpirationError.type = Kind.LicenseNearExpirationError
-    override def displayMsg: String                               = "Plugin license near expiration"
+    override def displayMsg: String                               =
+      s"Plugin license near expiration (${daysLeft} days left until ${expirationDate.toLocalDate().toString()})"
   }
 
   final case class RudderAbiVersionError(rudderFullVersion: String) extends PluginError {
@@ -96,10 +100,18 @@ object PluginError       {
       rudderFullVersion: String,
       abiVersion:        AbiVersion
   ): Option[RudderAbiVersionError] = {
-    if (rudderFullVersion != abiVersion.value.toVersionString)
-      Some(RudderAbiVersionError(rudderFullVersion))
-    else
-      None
+    val isError = ParseVersion.parse(rudderFullVersion) match {
+      // Rudder full version should be the same, wihout the SNAPSHOT part type
+      case Right(value) if (abiVersion.value.equiv(value.copy(parts = value.parts.collect {
+            case v if !v.value.isInstanceOf[PartType.Snapshot] => v
+          }))) =>
+        false
+      case _ =>
+        // compare on string
+        rudderFullVersion != abiVersion.value.toVersionString
+    }
+    if (isError) Some(RudderAbiVersionError(rudderFullVersion))
+    else None
   }
 
   private def validateLicenseNeeded(
@@ -118,11 +130,13 @@ object PluginError       {
   private def validateLicenseExpiration(endDate: ZonedDateTime): Option[LicenseExpirationError] = {
     val now = ZonedDateTime.now()
     if (endDate.isBefore(now)) {
-      Some(LicenseExpiredError)
-    } else if (endDate.minusMonths(1).isBefore(now))
-      Some(LicenseNearExpirationError)
-    else
+      Some(LicenseExpiredError(endDate))
+    } else if (endDate.minusMonths(1).isBefore(now)) {
+      val daysLeft = java.time.Duration.between(now, endDate).toDays.toInt
+      Some(LicenseNearExpirationError(daysLeft, endDate))
+    } else {
       None
+    }
   }
 
 }

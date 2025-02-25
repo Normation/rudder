@@ -4,13 +4,14 @@ import java.time.ZonedDateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import zio.Chunk
 
 @RunWith(classOf[JUnitRunner])
 class PluginDataTest extends Specification {
   import GlobalPluginsLicense.*
   import PluginInstallStatus.*
 
-  "PluginSystemStastus" should {
+  "PluginSystemStatus" should {
     "map from a disabled webapp plugin" in {
       PluginInstallStatus.from(PluginType.Webapp, installed = true, enabled = false) === Disabled
     }
@@ -63,6 +64,21 @@ class PluginDataTest extends Specification {
         uniqueLicense.combine(uniqueLicense).endDate must beSome(beLike[DateCounts] {
           case d => d.value must containTheSameElementsAs((endDate -> DateCount(endDate, 2)) :: Nil)
         })
+      }
+
+      "from multiple licenses with some empty optional fields" in {
+        import GlobalPluginsLicense.EndDateImplicits.minZonedDateTime
+        // only the max nodes can be empty
+        val opt = GlobalPluginsLicense.from[ZonedDateTime](Chunk(license, license))
+
+        opt must beSome(beLike[GlobalPluginsLicense[ZonedDateTime]](_.maxNodes must beNone))
+      }
+
+      "from no license" in {
+        import GlobalPluginsLicense.EndDateImplicits.minZonedDateTime
+        val opt = GlobalPluginsLicense.from[ZonedDateTime](Chunk.empty)
+
+        opt must beNone
       }
     }
   }
