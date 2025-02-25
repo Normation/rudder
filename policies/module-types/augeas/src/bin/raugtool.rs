@@ -10,11 +10,11 @@ use anyhow::Result;
 use gumdrop::Options;
 use raugeas::Flags;
 use rudder_module_augeas::{
+    CRATE_NAME, CRATE_VERSION,
     augeas::Augeas,
     dsl::{interpreter::Interpreter, repl},
-    CRATE_NAME, CRATE_VERSION,
 };
-use rudder_module_type::cfengine::log::{set_max_level, LevelFilter};
+use rudder_module_type::cfengine::log::{LevelFilter, set_max_level};
 use std::{env, fs, path::PathBuf};
 /*
 TODO: implement
@@ -219,6 +219,9 @@ impl Cli {
 }
 
 fn main() -> Result<(), anyhow::Error> {
-    env::set_var("LC_ALL", "C");
+    // SAFETY: The module is single-threaded.
+    unsafe {
+        env::set_var("LC_ALL", "C");
+    }
     Cli::run()
 }

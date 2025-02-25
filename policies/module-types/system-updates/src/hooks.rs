@@ -9,7 +9,7 @@ use std::{
 };
 
 use crate::output::{CommandBehavior, CommandCapture, ResultOutput};
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use rudder_module_type::{rudder_debug, rudder_error, rudder_info};
 
 const HOOKS_DIR: &str = "/var/rudder/system-update/hooks.d/";

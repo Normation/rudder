@@ -11,8 +11,8 @@ use tracing::{error, trace};
 use crate::{
     compiler::user_error,
     ir::{
-        technique::{DeserTechnique, TECHNIQUE_FORMAT_VERSION},
         Technique,
+        technique::{DeserTechnique, TECHNIQUE_FORMAT_VERSION},
     },
 };
 

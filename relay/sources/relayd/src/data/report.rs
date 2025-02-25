@@ -473,8 +473,12 @@ mod tests {
             "The thing\nThe other thing".to_string()
         );
         assert_eq!(
-            multilines("2019-05-09T13:36:46+00:00 The thing\n\n2019-05-09T13:36:46+00:00 The other thing\n")
-            .unwrap().1.join("\n"),
+            multilines(
+                "2019-05-09T13:36:46+00:00 The thing\n\n2019-05-09T13:36:46+00:00 The other thing\n"
+            )
+            .unwrap()
+            .1
+            .join("\n"),
             "The thing\n\nThe other thing".to_string()
         );
         assert_eq!(

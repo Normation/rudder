@@ -31,7 +31,7 @@
 pub(crate) mod bundle;
 pub(crate) mod promise;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use rudder_commons::{
     regex_comp,
     report::{Report, RunLog},

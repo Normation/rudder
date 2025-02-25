@@ -12,8 +12,8 @@
 
 // Test file specifications. Do we want several test cases in one file?
 
-use anyhow::{bail, Context, Result};
-use rudder_commons::{logs::ok_output, PolicyMode, Target};
+use anyhow::{Context, Result, bail};
+use rudder_commons::{PolicyMode, Target, logs::ok_output};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},

@@ -7,7 +7,7 @@ use crate::dsl::{
     password::PasswordPolicy,
     script::{ExprType, Script},
 };
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use raugeas::{Augeas, Span};
 use rudder_module_type::{rudder_debug, rudder_trace};
 use std::path::Path;

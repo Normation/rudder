@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use anyhow::{bail, Result};
-use openpgp::parse::{stream::*, Parse};
+use anyhow::{Result, bail};
+use openpgp::parse::{Parse, stream::*};
 use openpgp::policy::StandardPolicy;
 use openpgp::{Cert, KeyHandle};
 use regex::Regex;
@@ -11,7 +11,7 @@ use sequoia_openpgp::cert::CertParser;
 use sha2::{Digest, Sha512};
 use std::fs::read;
 use std::{
-    fs::{read_to_string, File},
+    fs::{File, read_to_string},
     io,
     os::unix::ffi::OsStrExt,
     path::{Path, PathBuf},
@@ -161,42 +161,53 @@ mod tests {
         let verifier =
             SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
 
-        assert!(verifier
-            .verify_sq(
-                &read(Path::new("tests/signature/SHA512SUMS.asc")).unwrap(),
-                &read(Path::new("tests/signature/SHA512SUMS")).unwrap()
-            )
-            .is_ok());
-        assert!(verifier
-            .verify_sq(
-                &read(Path::new("tests/signature/SHA512SUMS.asc")).unwrap(),
-                &read(Path::new("tests/signature/SHA512SUMS.wrong")).unwrap()
-            )
-            .is_err());
+        assert!(
+            verifier
+                .verify_sq(
+                    &read(Path::new("tests/signature/SHA512SUMS.asc")).unwrap(),
+                    &read(Path::new("tests/signature/SHA512SUMS")).unwrap()
+                )
+                .is_ok()
+        );
+        assert!(
+            verifier
+                .verify_sq(
+                    &read(Path::new("tests/signature/SHA512SUMS.asc")).unwrap(),
+                    &read(Path::new("tests/signature/SHA512SUMS.wrong")).unwrap()
+                )
+                .is_err()
+        );
     }
 
     #[test]
     fn it_verifies_files() {
         let verifier =
             SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
-        assert!(verifier
-            .verify_file(
-                Path::new("tests/signature/rudder-plugin-zabbix-8.0.3-2.1.rpkg"),
-                Path::new("tests/signature/SHA512SUMS.asc"),
-                Path::new("tests/signature/SHA512SUMS"),
-            )
-            .is_ok());
-        assert!(verifier
-            .verify_file(
-                Path::new("tests/signature/rudder-plugin-zabbix-8.0.0-2.1.rpkg"),
-                Path::new("tests/signature/SHA512SUMS.asc"),
-                Path::new("tests/signature/SHA512SUMS"),
-            )
-            .is_err());
+        assert!(
+            verifier
+                .verify_file(
+                    Path::new("tests/signature/rudder-plugin-zabbix-8.0.3-2.1.rpkg"),
+                    Path::new("tests/signature/SHA512SUMS.asc"),
+                    Path::new("tests/signature/SHA512SUMS"),
+                )
+                .is_ok()
+        );
+        assert!(
+            verifier
+                .verify_file(
+                    Path::new("tests/signature/rudder-plugin-zabbix-8.0.0-2.1.rpkg"),
+                    Path::new("tests/signature/SHA512SUMS.asc"),
+                    Path::new("tests/signature/SHA512SUMS"),
+                )
+                .is_err()
+        );
     }
 
     #[test]
     fn it_hashes_files() {
-        assert_eq!(SignatureVerifier::file_sha512(Path::new("tests/hash/poem.txt")).unwrap(), "5074b6b33568c923c70931ed89a4182aeb5f1ecffaac10067149211a0466748c577385e9edfcefc6b83c2f407e70718d529e07f19a1dab84df1b4b2cd03faba6");
+        assert_eq!(
+            SignatureVerifier::file_sha512(Path::new("tests/hash/poem.txt")).unwrap(),
+            "5074b6b33568c923c70931ed89a4182aeb5f1ecffaac10067149211a0466748c577385e9edfcefc6b83c2f407e70718d529e07f19a1dab84df1b4b2cd03faba6"
+        );
     }
 }

@@ -4,8 +4,8 @@
 //! FIXME: Allows configuration of the module's logger to output "normal" logs
 //!        when run from the runner.
 
-use crate::parameters::Parameters;
 use crate::ModuleType0;
+use crate::parameters::Parameters;
 use rudder_commons::PolicyMode;
 use serde_json::Value;
 

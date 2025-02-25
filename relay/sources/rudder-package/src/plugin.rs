@@ -8,10 +8,11 @@ use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 use crate::{
+    PACKAGES_FOLDER,
     archive::{self, PackageScript, PackageScriptArg},
     cmd::CmdOutput,
     dependency::Dependencies,
-    versions, PACKAGES_FOLDER,
+    versions,
 };
 
 pub fn long_names(l: Vec<String>) -> Vec<String> {

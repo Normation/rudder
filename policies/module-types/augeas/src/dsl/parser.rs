@@ -2,17 +2,17 @@
 // SPDX-FileCopyrightText: 2025 Normation SAS
 
 use crate::dsl::{
+    AugPath, Sub,
     comparator::{
         Comparison, NumComparator, Number, NumericComparison, StrComparator, StrValidation,
     },
     script::Script,
     value_type::ValueType,
-    AugPath, Sub,
 };
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use pest::{
-    iterators::{Pair, Pairs},
     Parser,
+    iterators::{Pair, Pairs},
 };
 use pest_derive::Parser;
 use raugeas::Position;

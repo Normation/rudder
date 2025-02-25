@@ -7,7 +7,7 @@
 //! It trusts its input (which should have already validated the method
 //! signature, type, and constraints).
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use rudder_commons::{canonify, methods::method::Agent};
 
 use crate::ir::technique::ForeachResolvedState;

@@ -8,7 +8,7 @@ use std::{
 };
 
 use anyhow::bail;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use rudder_cli::custom_panic_hook_ignore_sigpipe;
 use tracing::debug;
 
@@ -205,26 +205,26 @@ pub fn run(args: MainArgs) -> Result<()> {
 // Actions
 pub mod action {
     use std::{
-        fs::{self, create_dir, create_dir_all, read_to_string, remove_dir_all, File},
+        fs::{self, File, create_dir, create_dir_all, read_to_string, remove_dir_all},
         io::{self, Read, Write},
         path::{Path, PathBuf},
         process::Command,
     };
 
-    use anyhow::{bail, Context, Result};
-    use rudder_commons::{logs::ok_output, Target, ALL_TARGETS};
+    use anyhow::{Context, Result, bail};
+    use rudder_commons::{ALL_TARGETS, Target, logs::ok_output};
     use walkdir::WalkDir;
     use zip::write::{ExtendedFileOptions, FileOptions, ZipWriter};
 
     pub use crate::compiler::compile;
     use crate::{
+        METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TESTS_DIR, YAML_EXTENSIONS,
         backends::{unix::cfengine::cf_agent, windows::test::win_agent},
         compiler::{metadata, read_technique},
-        doc::{book, Format},
+        doc::{Format, book},
         frontends::read_methods,
         ir::Technique,
         test::TestCase,
-        METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TESTS_DIR, YAML_EXTENSIONS,
     };
 
     /// Create a technique skeleton

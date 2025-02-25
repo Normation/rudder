@@ -4,7 +4,7 @@
 pub mod unix {
     use std::{fs, path::Path};
 
-    use assert_cmd::{prelude::*, Command};
+    use assert_cmd::{Command, prelude::*};
     use predicates::prelude::*;
     use rudder_module_type::{CheckApplyResult, Outcome, PolicyMode};
     use tempfile::tempdir;

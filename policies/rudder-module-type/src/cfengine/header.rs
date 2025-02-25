@@ -5,7 +5,7 @@
 
 use std::{fmt, str::FromStr};
 
-use anyhow::{bail, Error};
+use anyhow::{Error, bail};
 
 /// Version of the calling agent and of the promise type. Useful to decide which features to enable
 /// and handle compatibility layers.
