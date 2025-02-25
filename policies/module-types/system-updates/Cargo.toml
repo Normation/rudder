@@ -11,6 +11,7 @@ license.workspace = true
 [dependencies]
 anyhow = "1"
 cli-table = "0.4"
+gag = "1"
 gumdrop = "0.8.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -35,3 +36,4 @@ apt = ["dep:rust-apt", "dep:memfile"]
 rudder_commons_test = { path = "../../rudder-commons-test" }
 tempfile = "3"
 pretty_assertions = "1"
+libc = "0.2.164"

@@ -30,6 +30,7 @@ impl RudderAptAcquireProgress {
 
     pub fn read_mem_file(mut file: MemFile) -> String {
         let mut acquire_out = String::new();
+        file.flush().unwrap();
         file.seek(SeekFrom::Start(0)).unwrap();
         file.read_to_string(&mut acquire_out).unwrap();
         acquire_out
@@ -163,6 +164,8 @@ impl DynAcquireProgress for RudderAptAcquireProgress {
 mod tests {
     use super::*;
     use memfile::MemFile;
+    use std::ffi::c_void;
+    use std::os::fd::AsRawFd;
 
     #[test]
     fn test_apt_progress() {
@@ -171,5 +174,21 @@ mod tests {
         progress.simulate("toto");
         let acquire_out = RudderAptAcquireProgress::read_mem_file(file);
         assert_eq!(acquire_out, "toto".to_string());
+    }
+
+    #[test]
+    fn test_apt_progress_raw() {
+        let mem_file_install = MemFile::create_default("upgrade-install").unwrap();
+        let install_progress = mem_file_install.as_raw_fd();
+        unsafe {
+            let r = libc::write(
+                install_progress,
+                "Hello World!".as_ptr() as *const c_void,
+                12,
+            );
+            assert_eq!(r, 12);
+        }
+        let install_out = RudderAptAcquireProgress::read_mem_file(mem_file_install);
+        assert_eq!(install_out, "Hello World!".to_string());
     }
 }
