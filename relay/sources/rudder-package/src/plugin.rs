@@ -132,7 +132,12 @@ impl Metadata {
         let mut writer = BufWriter::new(file);
         let _ = serde_json::to_writer_pretty(&mut writer, &r);
         if !r.output.status.success() {
-            debug!("Package script execution return unexpected exit code.");
+            bail!(
+                "Package script '{}' for plugin '{}' returned '{}'",
+                script,
+                self.short_name(),
+                r.output.status
+            );
         }
         Ok(())
     }
