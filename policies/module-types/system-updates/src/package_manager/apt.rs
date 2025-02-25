@@ -63,12 +63,15 @@ impl AptPackageManager {
         #[cfg(not(debug_assertions))]
         ensure_root_user()?;
 
-        env::set_var("DEBIAN_FRONTEND", "noninteractive");
-        // TODO: do we really want to disable list changes?
-        // It will be switched to non-interactive mode automatically.
-        env::set_var("APT_LISTCHANGES_FRONTEND", "none");
-        // We will do this by calling `needrestart` ourselves, turn off the APT hook.
-        env::set_var("NEEDRESTART_SUSPEND", "y");
+        // SAFETY: single-threaded
+        unsafe {
+            env::set_var("DEBIAN_FRONTEND", "noninteractive");
+            // TODO: do we really want to disable list changes?
+            // It will be switched to non-interactive mode automatically.
+            env::set_var("APT_LISTCHANGES_FRONTEND", "none");
+            // We will do this by calling `needrestart` ourselves, turn off the APT hook.
+            env::set_var("NEEDRESTART_SUSPEND", "y");
+        }
 
         let cache = new_cache!()?;
 
