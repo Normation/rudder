@@ -5,15 +5,15 @@ use std::sync::Arc;
 
 use anyhow::Error;
 use tokio::sync::mpsc;
-use tracing::{Instrument, Level, debug, error, info, instrument, span};
+use tracing::{debug, error, info, instrument, span, Instrument, Level};
 
 use crate::{
-    JobConfig,
     configuration::main::InventoryOutputSelect,
     input::watch::*,
     metrics::INVENTORIES,
     output::upstream::send_inventory,
-    processing::{OutputError, ReceivedFile, failure, queue_id_from_file, success},
+    processing::{failure, queue_id_from_file, success, OutputError, ReceivedFile},
+    JobConfig,
 };
 
 static INVENTORY_EXTENSIONS: &[&str] = &["gz", "xml", "ocs", "sign"];

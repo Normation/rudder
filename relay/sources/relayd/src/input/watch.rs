@@ -7,7 +7,7 @@ use std::{
 };
 
 use anyhow::Error;
-use futures::{StreamExt, future};
+use futures::{future, StreamExt};
 use inotify::{Inotify, WatchMask};
 use tokio::{
     fs::{read_dir, remove_file},
@@ -165,7 +165,7 @@ async fn watch_files<P: AsRef<Path>>(path: P, tx: mpsc::Sender<ReceivedFile>) ->
 #[cfg(test)]
 mod tests {
     use std::{
-        fs::{File, rename},
+        fs::{rename, File},
         path::PathBuf,
         str::FromStr,
     };

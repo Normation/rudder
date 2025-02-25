@@ -10,15 +10,15 @@ use std::{
 
 use anyhow::Error;
 use tokio::{
-    signal::unix::{SignalKind, signal},
+    signal::unix::{signal, SignalKind},
     sync::RwLock,
 };
 use tracing::{debug, error, info};
 use tracing_subscriber::{
     filter::EnvFilter,
     fmt::{
-        Formatter, Subscriber,
         format::{DefaultFields, Format, Full},
+        Formatter, Subscriber,
     },
     reload::Handle,
 };
@@ -35,7 +35,7 @@ use crate::{
     data::node::{NodeId, NodesList},
     http_client::HttpClient,
     metrics::{MANAGED_NODES, SUB_NODES},
-    output::database::{PgPool, pg_pool},
+    output::database::{pg_pool, PgPool},
     processing::{inventory, reporting, shared_files},
 };
 

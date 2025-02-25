@@ -10,7 +10,7 @@ use std::{
     time::Duration,
 };
 
-use filetime::{FileTime, set_file_times};
+use filetime::{set_file_times, FileTime};
 use rudder_relayd::{configuration::main::CleanupConfig, input::watch::cleanup};
 
 #[test]

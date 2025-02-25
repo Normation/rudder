@@ -8,13 +8,13 @@ use std::{
     str::FromStr,
 };
 
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use diesel::{self, prelude::*};
 use flate2::read::GzDecoder;
 use openssl::{stack::Stack, x509::X509};
 use rudder_relayd::{
     configuration::main::DatabaseConfig,
-    data::{RunInfo, RunLog, node::NodesList, report::QueryableReport},
+    data::{node::NodesList, report::QueryableReport, RunInfo, RunLog},
     input::signature,
     output::database::{
         schema::{reportsexecution::dsl::*, ruddersysevents::dsl::*},
@@ -25,14 +25,12 @@ use rudder_relayd::{
 fn bench_nodeslist(c: &mut Criterion) {
     c.bench_function("parse nodes list", move |b| {
         b.iter(|| {
-            assert!(
-                black_box(NodesList::new(
-                    "root".to_string(),
-                    "benches/files/nodeslist.json",
-                    None
-                ))
-                .is_ok()
-            )
+            assert!(black_box(NodesList::new(
+                "root".to_string(),
+                "benches/files/nodeslist.json",
+                None
+            ))
+            .is_ok())
         })
     });
 }
@@ -40,14 +38,12 @@ fn bench_nodeslist(c: &mut Criterion) {
 fn bench_nodeslist_certs(c: &mut Criterion) {
     c.bench_function("parse nodes list and certificates", move |b| {
         b.iter(|| {
-            assert!(
-                black_box(NodesList::new(
-                    "root".to_string(),
-                    "benches/files/nodeslist.json",
-                    Some("benches/files/allnodescerts.pem")
-                ))
-                .is_ok()
-            )
+            assert!(black_box(NodesList::new(
+                "root".to_string(),
+                "benches/files/nodeslist.json",
+                Some("benches/files/allnodescerts.pem")
+            ))
+            .is_ok())
         })
     });
 }

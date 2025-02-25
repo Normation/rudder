@@ -5,7 +5,7 @@ use std::{collections::HashMap, process::Stdio, str::FromStr, sync::Arc};
 
 use anyhow::Error;
 use bytes::Bytes;
-use futures::{Stream, StreamExt, TryStreamExt, stream::select};
+use futures::{stream::select, Stream, StreamExt, TryStreamExt};
 use hyper::Body;
 use regex::Regex;
 use tokio::{
@@ -15,17 +15,17 @@ use tokio::{
 use tokio_stream::wrappers::LinesStream;
 use tracing::{debug, error, instrument, trace, warn};
 use warp::{
-    Filter, Reply, body,
-    filters::{BoxedFilter, method},
-    path,
+    body,
+    filters::{method, BoxedFilter},
+    path, Filter, Reply,
 };
 
 use crate::{
-    JobConfig,
     api::RudderReject,
     configuration::main::RemoteRun as RemoteRunCfg,
     data::node::{Host, NodeId},
     error::RudderError,
+    JobConfig,
 };
 
 pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
@@ -68,7 +68,7 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
 
 pub mod handlers {
     use percent_encoding::percent_decode_str;
-    use warp::{Rejection, Reply, reject};
+    use warp::{reject, Rejection, Reply};
 
     use super::*;
     use crate::JobConfig;

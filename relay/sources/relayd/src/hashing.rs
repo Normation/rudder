@@ -3,8 +3,8 @@
 
 use std::{fmt, str, str::FromStr};
 
-use anyhow::{Error, anyhow};
-use base64::{Engine, engine::general_purpose as base64_engine};
+use anyhow::{anyhow, Error};
+use base64::{engine::general_purpose as base64_engine, Engine};
 use openssl::hash::MessageDigest;
 use sha2::{Digest, Sha256, Sha512};
 
@@ -241,12 +241,10 @@ mod tests {
 
     #[test]
     fn it_validates_hashes() {
-        assert!(
-            Sha256.is_valid_hash(
-                &hex::decode("c22a3fb1e9de4bfa697ba258f60f14339b72c3faeb043cb75379b9ebcb2717c3")
-                    .unwrap()
-            )
-        );
+        assert!(Sha256.is_valid_hash(
+            &hex::decode("c22a3fb1e9de4bfa697ba258f60f14339b72c3faeb043cb75379b9ebcb2717c3")
+                .unwrap()
+        ));
         assert!(!Sha256.is_valid_hash(&hex::decode("c22a3f").unwrap()));
         assert!(Sha512
             .is_valid_hash(&hex::decode("d301df08cfc11928ee30b4624fbbb6aba068f06faa1c4d5e7516cf7f7b7cb36e8a38d9095ecaadef97882f093921096e9340d452b0c47e9854414e7c05e0c6c4").unwrap()));

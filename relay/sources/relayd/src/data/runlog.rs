@@ -21,8 +21,8 @@ use tracing::{debug, error, warn};
 
 use crate::{
     data::{
+        report::{runlog, RawReport},
         Report, RunInfo,
-        report::{RawReport, runlog},
     },
     error::RudderError,
     output::database::schema::reportsexecution,

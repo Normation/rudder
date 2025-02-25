@@ -7,7 +7,7 @@ use reqwest::Body;
 use secrecy::{ExposeSecret, SecretString};
 use tracing::{debug, instrument};
 
-use crate::{Error, JobConfig, processing::inventory::InventoryType};
+use crate::{processing::inventory::InventoryType, Error, JobConfig};
 
 #[instrument(name = "upstream", level = "debug", skip(job_config))]
 pub async fn send_report(job_config: Arc<JobConfig>, path: PathBuf) -> Result<(), Error> {

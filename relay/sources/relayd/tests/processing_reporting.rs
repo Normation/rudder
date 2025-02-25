@@ -8,8 +8,8 @@ use std::{
     thread, time,
 };
 
-use diesel::{self, PgConnection, prelude::*};
-use filetime::{FileTime, set_file_times};
+use diesel::{self, prelude::*, PgConnection};
+use filetime::{set_file_times, FileTime};
 use rudder_relayd::{
     configuration::cli::CliConfiguration,
     data::report::QueryableReport,

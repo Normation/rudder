@@ -254,14 +254,12 @@ mod tests {
                 file_id: "file".to_string(),
             }
         );
-        assert!(
-            SharedFile::new(
-                "source".to_string(),
-                "target".to_string(),
-                "file/../passwd".to_string(),
-            )
-            .is_err()
-        );
+        assert!(SharedFile::new(
+            "source".to_string(),
+            "target".to_string(),
+            "file/../passwd".to_string(),
+        )
+        .is_err());
     }
 
     #[test]

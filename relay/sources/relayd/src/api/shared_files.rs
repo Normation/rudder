@@ -18,16 +18,16 @@ use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tracing::{debug, error, instrument, warn};
 use warp::{
-    Filter, Reply, body,
-    filters::{BoxedFilter, method},
+    body,
+    filters::{method, BoxedFilter},
     http::StatusCode,
-    path, query,
+    path, query, Filter, Reply,
 };
 
 use crate::{
-    JobConfig,
     data::shared_file::{Metadata, SharedFile},
     error::RudderError,
+    JobConfig,
 };
 
 pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
@@ -56,7 +56,7 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
 }
 
 pub mod handlers {
-    use warp::{Rejection, Reply, reply};
+    use warp::{reply, Rejection, Reply};
 
     use super::*;
     use crate::JobConfig;

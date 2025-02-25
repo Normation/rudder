@@ -9,18 +9,18 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use anyhow::{Context, Error, anyhow};
+use anyhow::{anyhow, Context, Error};
 use tokio::{
     fs::{read, remove_file},
     time::interval,
 };
-use tracing::{Level, debug, error, info, span};
+use tracing::{debug, error, info, span, Level};
 use walkdir::WalkDir;
 
 use crate::{
-    JobConfig,
     configuration::main::{SharedFilesCleanupConfig, WatchedDirectory},
     data::shared_file::Metadata,
+    JobConfig,
 };
 
 pub fn start(job_config: &Arc<JobConfig>) {

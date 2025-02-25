@@ -5,19 +5,19 @@ use std::{convert::TryFrom, sync::Arc};
 
 use anyhow::Error;
 use tokio::{sync::mpsc, task::spawn_blocking};
-use tracing::{Instrument, Level, debug, error, info, instrument, span, warn};
+use tracing::{debug, error, info, instrument, span, warn, Instrument, Level};
 
 use crate::{
-    JobConfig,
     configuration::main::ReportingOutputSelect,
     data::{RunInfo, RunLog},
     input::{read_compressed_file, signature, watch::*},
     metrics::{REPORTS, REPORTS_PROCESSING_DURATION, REPORTS_SIZE_BYTES},
     output::{
-        database::{RunlogInsertion, insert_runlog},
+        database::{insert_runlog, RunlogInsertion},
         upstream::send_report,
     },
-    processing::{OutputError, ReceivedFile, failure, queue_id_from_file, success},
+    processing::{failure, queue_id_from_file, success, OutputError, ReceivedFile},
+    JobConfig,
 };
 
 static REPORT_EXTENSIONS: &[&str] = &["gz", "zip", "log"];

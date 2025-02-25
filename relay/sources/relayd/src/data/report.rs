@@ -8,11 +8,11 @@ use std::fmt::{self, Display};
 
 use chrono::prelude::*;
 use nom::{
-    IResult,
     branch::alt,
     bytes::complete::{tag, take_till, take_until},
     combinator::{map, map_res, not, opt},
     multi::{many0, many1},
+    IResult,
 };
 use serde::{Deserialize, Serialize};
 

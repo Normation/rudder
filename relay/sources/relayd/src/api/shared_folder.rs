@@ -8,17 +8,16 @@ use serde::Deserialize;
 use tokio::fs::read;
 use tracing::{debug, error, instrument, trace};
 use warp::{
-    Filter, Reply,
-    filters::{BoxedFilter, method},
+    filters::{method, BoxedFilter},
     fs,
     http::StatusCode,
-    path, query,
+    path, query, Filter, Reply,
 };
 
 use crate::{
-    JobConfig,
-    api::{RudderReject, sanitize_path},
+    api::{sanitize_path, RudderReject},
     hashing::Hash,
+    JobConfig,
 };
 
 pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
@@ -43,7 +42,7 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
 }
 
 pub mod handlers {
-    use warp::{Rejection, Reply, filters::path::Peek, reject, reply};
+    use warp::{filters::path::Peek, reject, reply, Rejection, Reply};
 
     use super::*;
     use crate::JobConfig;
