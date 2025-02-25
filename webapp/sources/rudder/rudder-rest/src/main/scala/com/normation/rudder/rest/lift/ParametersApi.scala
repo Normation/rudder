@@ -502,12 +502,8 @@ class ParameterApiService14(
     val baseParameter = GlobalParameter.apply("", GitVersion.DEFAULT_REV, "".toConfigValue, None, "", None)
     val parameter     = restParameter.updateParameter(baseParameter)
     val diff          = AddGlobalParameterDiff(parameter)
-    val p             = GenericProperty.patternName // pattern for parameter ID
     for {
-      _   <- restParameter.id.checkMandatory(
-               v => p.matcher(v).matches(),
-               v => s"'id' is mandatory and must match pattern '${p.pattern()}' but was: '${v}'"
-             )
+      _   <- restParameter.id.notOptional(s"'id' is mandatory but was empty")
       cr   = GlobalParamChangeRequest(GlobalParamModAction.Create, None)
       res <- createChangeRequest(diff, parameter, cr, params, actor).toIO
     } yield res

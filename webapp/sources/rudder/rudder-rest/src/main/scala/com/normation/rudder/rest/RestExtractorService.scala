@@ -193,11 +193,7 @@ final case class RestExtractorService(
 
   private def toParameterName(value: String): Box[String] = {
     toMinimalSizeString(1)(value) match {
-      case Full(value) =>
-        if (GenericProperty.patternName.matcher(value).matches)
-          Full(value)
-        else Failure(s"Parameter Name should be respect the following regex : ${GenericProperty.patternName.pattern()}")
-
+      case Full(value) => Full(value)
       case eb: EmptyBox => eb ?~! "Parameter Name should not be empty"
     }
   }
