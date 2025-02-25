@@ -1,18 +1,22 @@
 module Editor.ViewBlock exposing (..)
 
-import Dict
+import Set
+import Dict exposing (Dict)
+import Dict.Extra exposing (keepOnly)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode
 import Dom.DragDrop as DragDrop
 import Dom exposing (..)
+import Maybe.Extra
+import List.Extra
 
 import Editor.DataTypes exposing (..)
 import Editor.MethodConditions exposing (..)
 import Editor.ViewMethod exposing (showMethodCall)
 import Editor.MethodElemUtils exposing (..)
-import Maybe.Extra
+import Editor.ViewTabForeach exposing (foreachLabel, displayTabForeach)
 
 
 appendNodeConditional : Html msg -> Bool -> Element msg -> Element msg
@@ -44,7 +48,15 @@ blockDetail: MethodBlock -> Maybe CallId -> MethodBlockUiInfo -> TechniqueUiInfo
 blockDetail block parentId ui techniqueUi model =
   let
     activeClass = (\c -> if c == ui.tab then "active" else "" )
-
+    (nbForeach, foreachClass) = case block.foreach of
+          Nothing ->
+            ( "0"
+            , ""
+            )
+          Just foreach ->
+            ( String.fromInt (List.length foreach)
+            , " has-foreach"
+            )
     tabsList =
       element "ul"
       |> addClass "tabs-list"
@@ -64,6 +76,13 @@ blockDetail block parentId ui techniqueUi model =
             |> addClass (activeClass BlockReporting)
             |> addActionStopAndPrevent ("click", UIBlockAction block.id {ui | tab = BlockReporting})
             |> appendText "Reporting"
+          , element "li"
+            |> addClass (activeClass BlockForEach)
+            |> addActionStopAndPrevent ("click", UIBlockAction block.id {ui | tab = BlockForEach})
+            |> appendChildList [
+                 element "span" |> appendText "Foreach"
+               , element "span" |> addClass ("badge" ++ foreachClass) |> appendChild(element "span" |> appendText nbForeach |> appendChild(element "i" |> addClass "fa fa-retweet ms-1" ))
+               ]
           ]
 
   in
@@ -85,14 +104,14 @@ showBlockTab model parentId block uiInfo techniqueUi =
                  let
                    updatedCondition = {condition | os = os }
                  in
-                   li [ onClick (MethodCallModified (Block parentId {block | condition = updatedCondition })), class (osClass os) ] [ a [class "dropdown-item"] [ text (osName os) ] ]
+                   li [ onClick (MethodCallModified (Block parentId {block | condition = updatedCondition }) Nothing), class (osClass os) ] [ a [class "dropdown-item"] [ text (osName os) ] ]
                  )
                osList
         ubuntuLi = List.map (\ubuntuMinor ->
                      let
                        updatedCall = Block parentId { block | condition = {condition | os =  updateUbuntuMinor  ubuntuMinor condition.os } }
                      in
-                       li [ onClick (MethodCallModified updatedCall) ] [ a [class "dropdown-item"] [ text (showUbuntuMinor ubuntuMinor) ] ]
+                       li [ onClick (MethodCallModified updatedCall Nothing) ] [ a [class "dropdown-item"] [ text (showUbuntuMinor ubuntuMinor) ] ]
                    ) [All, ZeroFour, Ten]
         condition = block.condition
         errorOnConditionInput =
@@ -104,7 +123,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                       let
                         updatedCall = Block parentId { block | condition = {condition | os =  f  (String.toInt s) condition.os } }
                       in
-                        MethodCallModified updatedCall
+                        MethodCallModified updatedCall Nothing
         osConditions = element "div"
                        |> addClass "form-group condition-form"
                        |> addAttribute (id "os-form")
@@ -207,7 +226,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                                            let
                                              updatedCondition = {condition | advanced = s }
                                              updatedCall = Block parentId {block | condition = updatedCondition }
-                                           in MethodCallModified updatedCall
+                                           in MethodCallModified updatedCall Nothing
                                          )
                              ] []
                           , errorOnConditionInput
@@ -246,7 +265,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                                  FocusReport _ -> "Focus on one child method report"
                              )
         liCompositionRule =  \rule -> element "li"
-                                           |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = rule }))
+                                           |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = rule }) Nothing)
                                            |> appendChild (element "a" |> addClass "dropdown-item" |> appendText (compositionText rule))
         availableComposition = List.map liCompositionRule [ WeightedReport, FocusReport "", WorstReport WorstReportWeightedSum ]
 
@@ -262,7 +281,7 @@ showBlockTab model parentId block uiInfo techniqueUi =
                                      componentValue
                      in
                        element "li"
-                               |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = FocusReport (getId child).value }))
+                               |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = FocusReport (getId child).value }) Nothing)
                                |> appendChild (element "a" |> addClass "dropdown-item" |> appendText component)
 
         availableFocus = List.map liFocus block.calls
@@ -274,39 +293,42 @@ showBlockTab model parentId block uiInfo techniqueUi =
                          FocusWorst -> "Focus on the child with worst compliance"
 
         liWorst = \weight -> element "li"
-                    |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = (WorstReport weight) }))
+                    |> addActionStopAndPrevent ("click", MethodCallModified (Block parentId {block | reportingLogic = (WorstReport weight) }) Nothing)
                     |> appendChild (element "a" |> addClass "dropdown-item" |> appendText (labelWorst weight))
 
         availableWorst = List.map liWorst [FocusWorst, WorstReportWeightedOne, WorstReportWeightedSum]
       in
-         element "div"
-           |> appendChildList
-                        [ buildSelectReporting "reporting-rule" "Reporting based on:" availableComposition ((compositionText block.reportingLogic) ++ " ")
-                        ]
-                     |> appendChild
-                          ( case block.reportingLogic of
-                              FocusReport value ->
-                                let
-                                   methodElem = findElemIf (\e -> (getId e).value == value) block.calls
-                                   componentValue =
-                                     case methodElem of
-                                       Just elem ->
-                                         let
-                                           name = getComponent elem
-                                         in
-                                         if(String.isEmpty name) then
-                                           case elem of
-                                             Block _ _ -> "< unnamed block > "
-                                             Call _ c -> Maybe.withDefault (c.methodName.value) (Maybe.map .name (Dict.get c.methodName.value model.methods))
-                                         else
-                                           name
-                                       Nothing -> ""
-                                in
-                                buildSelectReporting "reporting-rule-subselect" "Focus reporting on method:" availableFocus componentValue
-                              (WorstReport weight) ->
-                                buildSelectReporting "reporting-rule-subselect" "Select weight of worst case:" availableWorst (labelWorst weight)
-                              _ -> element "span"
-                            )
+        element "div"
+          |> appendChildList
+             [ buildSelectReporting "reporting-rule" "Reporting based on:" availableComposition ((compositionText block.reportingLogic) ++ " ")
+             ]
+          |> appendChild
+            ( case block.reportingLogic of
+              FocusReport value ->
+                let
+                  methodElem = findElemIf (\e -> (getId e).value == value) block.calls
+                  componentValue =
+                    case methodElem of
+                      Just elem ->
+                        let
+                          name = getComponent elem
+                        in
+                        if(String.isEmpty name) then
+                          case elem of
+                            Block _ _ -> "< unnamed block > "
+                            Call _ c -> Maybe.withDefault (c.methodName.value) (Maybe.map .name (Dict.get c.methodName.value model.methods))
+                        else
+                          name
+                      Nothing -> ""
+                in
+                  buildSelectReporting "reporting-rule-subselect" "Focus reporting on method:" availableFocus componentValue
+              (WorstReport weight) ->
+                buildSelectReporting "reporting-rule-subselect" "Select weight of worst case:" availableWorst (labelWorst weight)
+              _ -> element "span"
+            )
+
+    BlockForEach ->
+        displayTabForeach (BlockUiInfo uiInfo block)
 
 buildSelectReporting: String -> String -> (List (Element Msg)) -> String -> Element Msg
 buildSelectReporting id label items value =
@@ -418,6 +440,7 @@ blockBody model parentId block ui techniqueUi =
                                 |> addClass ("gm-label rudder-label gm-label-name ")
                                 |> appendText "Block"
                               )
+                           |> foreachLabel block.foreachName block.foreach
                          )
     appendRightLabels = appendChild
       ( case ui.mode of
@@ -451,21 +474,21 @@ blockBody model parentId block ui techniqueUi =
                                   element "li"
                                    |> appendChild
                                       (element "a"
-                                        |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Nothing }) )
+                                        |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Nothing }) Nothing )
                                         |> addClass "dropdown-item"
                                         |> appendText "None"
                                       )
                                  , element "li"
                                    |> appendChild
                                       (element "a"
-                                        |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Just Audit }) )
+                                        |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Just Audit }) Nothing )
                                         |> addClass "dropdown-item"
                                         |> appendText "Audit"
                                       )
                                  , element "li"
                                    |> appendChild
                                       (element "a"
-                                        |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Just Enforce }) )
+                                        |> addAction ("click",  MethodCallModified (Block parentId {block | policyMode = Just Enforce }) Nothing )
                                         |> addClass "dropdown-item"
                                         |> appendText "Enforce"
                                       )
@@ -487,7 +510,7 @@ blockBody model parentId block ui techniqueUi =
                                              |> appendText "Name"
                                            , element "input"
                                              |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, type_ "text", name "component", style "width" "100%", class "form-control", value block.component,  placeholder "A friendly name for this component" ]
-                                             |> addInputHandler  (\s -> MethodCallModified (Block parentId {block  | component = s }))
+                                             |> addInputHandler  (\s -> MethodCallModified (Block parentId {block  | component = s }) Nothing)
                                            ]
                                        )
                                 )
@@ -632,7 +655,7 @@ showChildren model block ui techniqueUi parentId =
                    List.reverse (dropTarget :: base)
               Block _ b ->
                 let
-                  methodUi = Maybe.withDefault (MethodBlockUiInfo Closed Children ValidState True) (Dict.get b.id.value techniqueUi.blockUI)
+                  methodUi = Maybe.withDefault (MethodBlockUiInfo Closed Children ValidState True (ForeachUI False False (defaultNewForeach b.foreachName b.foreach))) (Dict.get b.id.value techniqueUi.blockUI)
                 in
                   [ showMethodBlock model techniqueUi methodUi (Just block.id) b ]
             )
