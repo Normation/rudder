@@ -59,7 +59,10 @@ impl Display for Event {
             ))?;
         }
         if let Some(ref r) = self.report {
-            f.write_str(&format!("Report: {}\n", serde_json::to_string(&r).unwrap()))?;
+            f.write_str(&format!(
+                "Report: {}\n",
+                serde_json::to_string_pretty(&r).unwrap()
+            ))?;
         }
         Ok(())
     }
