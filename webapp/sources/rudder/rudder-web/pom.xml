@@ -91,14 +91,16 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.mortbay.jetty</groupId>
+        <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-maven-plugin</artifactId>
-        <version>7.1.6.v20100715</version>
+        <version>11.0.24</version>
         <configuration>
           <scanIntervalSeconds>0</scanIntervalSeconds>
-          <webAppConfig>
+          <webApp>
             <contextPath>/rudder-web</contextPath>
-          </webAppConfig>
+          </webApp>
+          <deployMode>FORK</deployMode>
+          <jvmArgs>-DrjrDisableannotation=true -Drun.mode=development -XX:MaxMetaspaceSize=360m -Xms256m -Xmx2048m -XX:-UseLoopPredicate -XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:+UseStringDeduplication -Drudder.configFile=/home/clarkenciel/IdeaProjects/rudder-tests/dev/configuration.properties -Drudder.authFile=/home/clarkenciel/IdeaProjects/rudder-tests/dev/users.xml</jvmArgs>
         </configuration>
       </plugin>
      <!-- we need to be able to depend on tests for plugin -->
