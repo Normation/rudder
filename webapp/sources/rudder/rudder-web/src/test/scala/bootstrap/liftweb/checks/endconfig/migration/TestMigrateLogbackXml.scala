@@ -194,6 +194,8 @@ class TestMigrateLogbackXml extends Specification with ContentMatchers with Afte
 
   override def afterAll(): Unit = tmpDir.delete()
 
+  sequential
+
   "Properly migrate xml logback file" >> {
     prettyPrinter.formatNodes(migration.migrateLogback(xml)) must beEqualTo(prettyPrinter.format(result))
   }
@@ -205,6 +207,19 @@ class TestMigrateLogbackXml extends Specification with ContentMatchers with Afte
     val logback8_2          = tmpDir / "logback-8.2.xml"
     System.setProperty(LOGBACK_CONFIGURATION_FILE, logback8_2.pathAsString)
 
+    migration.checks()
+
+    val content = logback8_2.contentAsString
+
+    content must beEqualTo(previous_content)
+  }
+  "may be ran twice without breaking the logback.xml file" >> {
+
+    val logback8_2_migrated = tmpDir / "logback-8.2-migrated.xml"
+    val previous_content    = logback8_2_migrated.contentAsString
+    val logback8_2          = tmpDir / "logback-8.2.xml"
+    System.setProperty(LOGBACK_CONFIGURATION_FILE, logback8_2.pathAsString)
+    migration.checks()
     migration.checks()
 
     val content = logback8_2.contentAsString
