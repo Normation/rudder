@@ -1502,10 +1502,10 @@ object JsonResponseObjects {
    */
   sealed trait GlobalPropertyStatus extends PropertyStatus
   object GlobalPropertyStatus {
-    final case object GlobalPropertyOkStatus extends GlobalPropertyStatus {
+    case object GlobalPropertyOkStatus extends GlobalPropertyStatus {
       override def errorMessage: Option[String] = None
     }
-    final case class GlobalPropertyErrorStatus private[GlobalPropertyStatus] (override val errorMessage: Some[String])
+    case class GlobalPropertyErrorStatus private[GlobalPropertyStatus] (override val errorMessage: Some[String])
         extends GlobalPropertyStatus
 
     def fromResolvedNodeProperty(hierarchy: ResolvedNodePropertyHierarchy): GlobalPropertyStatus = hierarchy match {
