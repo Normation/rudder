@@ -161,7 +161,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     config.datasource
   }
 
-  lazy val doobie = new DoobieIO(dataSource)
+  final lazy val doobie = new DoobieIO(dataSource)
   def transacRun[T](query: Transactor[Task] => Task[T]): T = {
     doobie.transactRunEither(xa => query(xa)) match {
       case Right(x) => x
