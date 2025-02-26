@@ -49,7 +49,7 @@ import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.RunAnalysisKind
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
-import com.softwaremill.quicklens.ModifyPimp
+import com.softwaremill.quicklens.*
 import doobie.*
 import doobie.implicits.*
 import org.joda.time.DateTime
