@@ -57,6 +57,7 @@ import doobie.implicits.*
 import net.liftweb.common.*
 import net.liftweb.json.*
 import org.joda.time.DateTime
+import scala.annotation.nowarn
 import zio.{System as _, *}
 import zio.interop.catz.*
 import zio.syntax.*
@@ -568,7 +569,8 @@ object ComponentsValuesSerialiser {
     if (null == ids || ids.trim == "") List()
     else {
       implicit val formats = DefaultFormats
-      parse(ids).extract[List[String]]
+      // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+      parse(ids).extract[List[String]]: @nowarn("cat=deprecation")
     }
   }
 }

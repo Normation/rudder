@@ -40,6 +40,7 @@ package bootstrap.liftweb
 import com.normation.errors.IOResult
 import com.normation.rudder.ActionType
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.AuthorizationType.*
 import com.normation.rudder.CustomRoleResolverResult
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
@@ -61,7 +62,6 @@ import com.normation.zio.*
 import org.junit.runner.RunWith
 import scala.xml.Elem
 import zio.*
-import zio.Chunk
 import zio.test.*
 import zio.test.Assertion.*
 import zio.test.junit.ZTestJUnitRunner
@@ -134,6 +134,24 @@ class RudderUserDetailsTest extends ZIOSpecDefault {
     <user name="user_a1" password="..." permissions="role-A1"/>   <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
   </authentication>
 
+  // add a plugin built-in role and check it is available too
+
+  sealed trait PluginAuth extends AuthorizationType {
+    def authzKind = "pluginAuth"
+  }
+
+  object PluginAuth {
+    case object Read extends PluginAuth with ActionType.Read with AuthorizationType
+
+    case object Edit extends PluginAuth with ActionType.Edit with AuthorizationType
+
+    case object Write extends PluginAuth with ActionType.Write with AuthorizationType
+
+    def values: Set[AuthorizationType] = Set(Read, Edit, Write)
+  }
+
+  val pluginRole: Builtin = Builtin(BuiltinName.PluginRoleName("plugin"), Rights(PluginAuth.values))
+
   override def spec: Spec[TestEnvironment with Scope, Any] = {
 
     suiteAll("All REST tests defined in files") {
@@ -179,18 +197,6 @@ class RudderUserDetailsTest extends ZIOSpecDefault {
       }
 
       test("general rules around custom roles definition and error should be parsed correctly") {
-        import com.normation.rudder.AuthorizationType.*
-
-        // add a plugin built-in role and check it is available too
-
-        sealed trait PluginAuth extends AuthorizationType { def authzKind = "pluginAuth" }
-        object PluginAuth {
-          case object Read  extends PluginAuth with ActionType.Read with AuthorizationType
-          case object Edit  extends PluginAuth with ActionType.Edit with AuthorizationType
-          case object Write extends PluginAuth with ActionType.Write with AuthorizationType
-          def values: Set[AuthorizationType] = Set(Read, Edit, Write)
-        }
-        val pluginRole = Builtin(BuiltinName.PluginRoleName("plugin"), Rights(PluginAuth.values))
         RudderRoles.registerBuiltin(pluginRole).force
 
         val userDetailList = getUserDetailList(userXML_3, "userXML_3")
