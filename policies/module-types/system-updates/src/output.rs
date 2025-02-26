@@ -168,7 +168,7 @@ pub struct Report {
     pub software_updated: Vec<PackageDiff>,
     pub status: Status,
     pub output: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Report::error_is_empty")]
     pub errors: Option<String>,
 }
 
@@ -186,6 +186,13 @@ impl Report {
             status: Status::Success,
             output: "".to_string(),
             errors: None,
+        }
+    }
+
+    fn error_is_empty(err: &Option<String>) -> bool {
+        match err {
+            Some(e) => e.chars().all(|c| c.is_whitespace() || c.is_control()),
+            None => true,
         }
     }
 
@@ -268,5 +275,19 @@ impl ScheduleReport {
             status: Status::Success,
             date: datetime,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_skips_empty_errors() {
+        assert!(Report::error_is_empty(&None));
+        assert!(Report::error_is_empty(&Some("".to_string())));
+        assert!(Report::error_is_empty(&Some("  \n  \n".to_string())));
+        assert!(Report::error_is_empty(&Some("\t  \n\r".to_string())));
+        assert!(!Report::error_is_empty(&Some("\t  \na\r".to_string())));
     }
 }
