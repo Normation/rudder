@@ -43,7 +43,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.ComplianceSerializable
 import com.normation.rudder.score.ComplianceScore.scoreId
 import com.normation.rudder.score.ScoreValue.*
-import io.scalaland.chimney.syntax.TransformerOps
+import io.scalaland.chimney.syntax.*
 import zio.*
 import zio.json.*
 import zio.syntax.*
