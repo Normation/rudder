@@ -55,7 +55,6 @@ import com.normation.rudder.services.policies.ParameterEntry
 import com.typesafe.config.*
 import enumeratum.*
 import net.liftweb.json.*
-import net.liftweb.json.JsonDSL.*
 import org.apache.commons.text.StringEscapeUtils
 import zio.Chunk
 import zio.NonEmptyChunk
@@ -740,12 +739,15 @@ object GenericProperty {
    * Implicit class to render properties to JSON
    */
   implicit class PropertyToJson(val x: GenericProperty[?]) extends AnyVal {
-    def toJsonObj: JObject = (
-      ("name"            -> x.name)
+    def toJsonObj: JObject = {
+      import net.liftweb.json.JsonDSL.*
+      (
+        ("name"          -> x.name)
         ~ ("value"       -> parse(x.value.render(ConfigRenderOptions.concise())))
         ~ ("provider"    -> x.provider.map(_.value))
         ~ ("inheritMode" -> x.inheritMode.map(_.value))
-    )
+      )
+    }
 
     def toData: String = x.config.root().render(ConfigRenderOptions.concise().setComments(true))
   }
@@ -758,6 +760,8 @@ object GenericProperty {
     }
 
     def toDataJson: JObject = {
+      import net.liftweb.json.JsonDSL.*
+
       props.map(x => JField(x.name, x.jsonValue)).toList.sortBy(_.name)
     }
   }
