@@ -17,6 +17,7 @@ use crate::{
     },
 };
 use anyhow::{Context, Result, anyhow};
+use gag::Gag;
 use memfile::MemFile;
 use regex::Regex;
 #[cfg(not(debug_assertions))]
@@ -296,8 +297,12 @@ impl LinuxPackageManager for AptPackageManager {
             let mem_file_install = MemFile::create_default("upgrade-install").unwrap();
             let mut install_progress = InstallProgress::fd(mem_file_install.as_raw_fd());
 
+            // Before making calls to the package manager, we need to silence stdout.
+            // APT writes on it, and it breaks CFEngine's protocol.
+            let print_gag_out = Gag::stdout().expect("Failed to silence stdout");
             let mut res_commit =
                 Self::apt_errors_to_output(c.commit(&mut acquire_progress, &mut install_progress));
+            drop(print_gag_out);
 
             let acquire_out = RudderAptAcquireProgress::read_mem_file(mem_file_acquire);
             res_commit.stdout(acquire_out);
