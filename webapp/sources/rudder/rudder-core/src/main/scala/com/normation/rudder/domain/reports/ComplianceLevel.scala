@@ -603,12 +603,22 @@ final case class ComplianceSerializable(
 
 object ComplianceSerializable {
 
-  // A ComplianceSerializable with all field set to OptPosNum.none
-  def empty = {
-    import shapeless.syntax.sized.*
-    val x = Array.fill(14)(OptPosNum.none).toList
-    ComplianceSerializable.apply.tupled(x.sized(14).map(_.tupled).get)
-  }
+  val empty: ComplianceSerializable = ComplianceSerializable(
+    applying = OptPosNum.none,
+    successNotApplicable = OptPosNum.none,
+    successAlreadyOK = OptPosNum.none,
+    successRepaired = OptPosNum.none,
+    error = OptPosNum.none,
+    auditCompliant = OptPosNum.none,
+    auditNonCompliant = OptPosNum.none,
+    auditError = OptPosNum.none,
+    auditNotApplicable = OptPosNum.none,
+    unexpectedUnknownComponent = OptPosNum.none,
+    unexpectedMissingComponent = OptPosNum.none,
+    noReport = OptPosNum.none,
+    reportsDisabled = OptPosNum.none,
+    badPolicyMode = OptPosNum.none
+  )
 
   implicit val codecComplianceSerializable:     JsonCodec[ComplianceSerializable]                      = DeriveJsonCodec.gen
   implicit val transformComplianceSerializable: Transformer[ComplianceSerializable, CompliancePercent] = {

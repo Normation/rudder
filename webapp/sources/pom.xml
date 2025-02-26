@@ -485,7 +485,6 @@ limitations under the License.
     <ip4s-version>3.6.0</ip4s-version>
     <doobie-version>1.0.0-RC5</doobie-version>
     <fs2-version>3.10.2</fs2-version>
-    <shapeless-version>2.3.12</shapeless-version>
     <cats-effect-version>3.5.5</cats-effect-version>
     <dev-zio-version>2.1.14</dev-zio-version>
     <zio-cats-version>23.1.0.3</zio-cats-version> <!-- gives fs2 3.10.2, but doobie 1.0.0-RC5 is in 3.9.3 -->
@@ -571,11 +570,6 @@ limitations under the License.
         <groupId>org.tpolecat</groupId>
         <artifactId>doobie-core_${scala-binary-version}</artifactId>
         <version>${doobie-version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.chuusai</groupId>
-        <artifactId>shapeless_${scala-binary-version}</artifactId>
-        <version>${shapeless-version}</version>
       </dependency>
       <dependency>
         <groupId>com.lihaoyi</groupId>
