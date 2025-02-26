@@ -868,21 +868,21 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                         }
       tenants        <- NodeSecurityContext.parse((apiAccount \ "tenants").headOption.map(_.text)).toBox
     } yield {
-      val kind = accountType match {
+      val kind         = accountType match {
         case ApiAccountType.System    => ApiAccountKind.System
         case ApiAccountType.User      => ApiAccountKind.User
         case ApiAccountType.PublicApi => ApiAccountKind.PublicApi.fromOptDate(authz, expirationDate)
       }
+      val accountToken = AccountToken(Some(ApiTokenHash.fromHashValue(token)), tokenGenDate)
 
       ApiAccount(
         ApiAccountId(id),
         kind,
         ApiAccountName(name),
-        Some(ApiTokenHash.fromHashValue(token)),
+        accountToken,
         description,
         isEnabled,
         creationDate,
-        tokenGenDate,
         tenants
       )
     }

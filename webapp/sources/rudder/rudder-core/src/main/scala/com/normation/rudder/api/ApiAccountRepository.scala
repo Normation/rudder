@@ -99,7 +99,7 @@ final class RoLDAPApiAccountRepository(
     val ldapConnexion: LDAPConnectionProvider[RoLDAPConnection],
     val mapper:        LDAPEntityMapper,
     val systemAcl:     List[ApiAclElement],
-    val systemToken:   ApiTokenHash
+    val systemToken:   SystemToken
 ) extends RoApiAccountRepository {
 
   val systemAPIAccount: ApiAccount = {
@@ -107,11 +107,10 @@ final class RoLDAPApiAccountRepository(
       ApiAccountId("rudder-system-api-account"),
       ApiAccountKind.System,
       ApiAccountName("Rudder system account"),
-      Some(systemToken),
+      systemToken,
       "For internal use",
       isEnabled = true,
       creationDate = DateTime.now,
-      tokenGenerationDate = DateTime.now,
       tenants = NodeSecurityContext.All
     )
   }
@@ -144,7 +143,7 @@ final class RoLDAPApiAccountRepository(
   Look for a given token hash in the LDAP.
    */
   override def getByToken(hashedToken: ApiTokenHash): IOResult[Option[ApiAccount]] = {
-    val hash = hashedToken.exposeHash();
+    val hash = hashedToken.exposeHash()
     for {
       ldap     <- ldapConnexion
       // here, be careful to the semantic of get with a filter!
@@ -203,12 +202,6 @@ final class WoLDAPApiAccountRepository(
     semaphore.withPermit(
       for {
         ldap        <- ldapConnexion
-        existing    <-
-          ldap.get(rudderDit.API_ACCOUNTS.API_ACCOUNT.dn(principal.id)) map {
-            case None    => None.succeed
-            case Some(e) =>
-              Some(e).succeed
-          }
         name        <- ldap.get(rudderDit.API_ACCOUNTS.dn, BuildFilter.EQ(LDAPConstants.A_NAME, principal.name.value)) map {
                          case None    => None.succeed
                          case Some(e) =>

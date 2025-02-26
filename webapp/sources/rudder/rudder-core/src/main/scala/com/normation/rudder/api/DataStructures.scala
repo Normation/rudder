@@ -466,9 +466,8 @@ object ApiAccountExpirationPolicy {
     override def kind:           ApiAccountExpirationPolicyKind = AtDateTime
     override def expirationDate: Some[DateTime]                 = Some(date)
   }
-  object ExpireAtDate                     extends zio.DurationModule         {
-    def default:     Duration               = 30.days
-    def defaultJoda: org.joda.time.Duration = org.joda.time.Duration.standardDays(30)
+  object ExpireAtDate {
+    def default: org.joda.time.Duration = org.joda.time.Duration.standardDays(30)
   }
 
   case object NeverExpire extends ApiAccountExpirationPolicy {
@@ -515,6 +514,24 @@ object ApiAccountExpirationPolicyKind       extends Enum[ApiAccountExpirationPol
   override def values: IndexedSeq[ApiAccountExpirationPolicyKind] = findValues
 }
 
+sealed trait ApiAccountToken {
+  def authenticationHash: Option[ApiTokenHash]
+}
+
+/**
+ * Token that is optional and that has generation date if generated / creation date otherwise because time of token creation is still persisted
+ */
+final case class AccountToken(hash: Option[ApiTokenHash], generationDate: DateTime) extends ApiAccountToken {
+  override def authenticationHash: Option[ApiTokenHash] = hash
+}
+
+/**
+ * Existing token that does not need generation date, since it is generated once and for all
+ */
+final case class SystemToken(value: ApiTokenHash) extends ApiAccountToken {
+  override def authenticationHash: Some[ApiTokenHash] = Some(value)
+}
+
 /**
  * An API principal
  */
@@ -524,54 +541,23 @@ final case class ApiAccount(
     // If a token should be revoked, use isEnabled = false.
     name: ApiAccountName, // used in event log to know who did actions.
 
-    token:               Option[ApiTokenHash], // if none, then the token can't be used for authentication
-    description:         String,
-    isEnabled:           Boolean,
-    creationDate:        DateTime,
-    tokenGenerationDate: DateTime,
-    tenants:             NodeSecurityContext
+    token:        ApiAccountToken, // if none, then the token can't be used for authentication
+    description:  String,
+    isEnabled:    Boolean,
+    creationDate: DateTime,
+    tenants:      NodeSecurityContext
 ) {
-  def toNewApiAccount(secret: ApiTokenSecret): NewApiAccount = {
-    NewApiAccount(
-      id,
-      kind,
-      name,
-      Some(secret),
-      description,
-      isEnabled,
-      creationDate,
-      tokenGenerationDate,
-      tenants
-    )
-  }
-}
 
-/**
- * An API principal, containing the secret, to be used just after creation, and never stored.
- */
-final case class NewApiAccount(
-    id:                  ApiAccountId,
-    kind:                ApiAccountKind,
-    name:                ApiAccountName,
-    // Clear text token, only used for just-created accounts, never stored
-    token:               Option[ApiTokenSecret],
-    description:         String,
-    isEnabled:           Boolean,
-    creationDate:        DateTime,
-    tokenGenerationDate: DateTime,
-    tenants:             NodeSecurityContext
-) {
-  def toApiAccount(): ApiAccount = {
-    ApiAccount(
-      id,
-      kind,
-      name,
-      token.map(_.toHash()),
-      description,
-      isEnabled,
-      creationDate,
-      tokenGenerationDate,
-      tenants
-    )
+  /**
+   * Retrieve an AccountToken, if it is not the system token
+   */
+  def accountToken: Option[AccountToken] = token match {
+    case a: AccountToken => Some(a)
+    case _: SystemToken  => None
+  }
+
+  def tokenGenerationDate: DateTime = token match {
+    case a: AccountToken => a.generationDate
+    case _: SystemToken  => creationDate
   }
 }

@@ -1027,15 +1027,16 @@ class LDAPEntityMapper(
             ApiAccountKind.PublicApi.fromOptDate(authz, expirationDate.map(_.dateTime))
         }
 
+        val accountToken = AccountToken(token, tokenCreationDatetime.dateTime)
+
         ApiAccount(
           id,
           accountKind,
           name,
-          token,
+          accountToken,
           description,
           isEnabled,
           creationDatetime.dateTime,
-          tokenCreationDatetime.dateTime,
           tenants
         )
       }
@@ -1050,7 +1051,7 @@ class LDAPEntityMapper(
     mod.resetValuesTo(A_API_UUID, principal.id.value)
     mod.resetValuesTo(A_NAME, principal.name.value)
     mod.resetValuesTo(A_CREATION_DATETIME, GeneralizedTime(principal.creationDate).toString)
-    principal.token.flatMap(_.exposeHash()) match {
+    principal.accountToken.flatMap(_.hash).flatMap(_.exposeHash()) match {
       case Some(value) => mod.resetValuesTo(A_API_TOKEN, value)
       case None        => mod.deleteAttribute(A_API_TOKEN)
     }

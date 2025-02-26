@@ -1007,11 +1007,10 @@ class MockApiAccountService() {
         ApiAccountId("system-token"),
         ApiAccountKind.System, // must be filtered out
         ApiAccountName("system"),
-        Some(ApiTokenHash.fromHashValue("v2:system-hashed-token")),
+        AccountToken(Some(ApiTokenHash.fromHashValue("v2:system-hashed-token")), accountCreationDate),
         "system",
         isEnabled = true,
         creationDate = accountCreationDate,
-        tokenGenerationDate = accountCreationDate,
         NodeSecurityContext.All
       ),
       // a standard admin account with rights on everything/all tenants
@@ -1019,11 +1018,10 @@ class MockApiAccountService() {
         ApiAccountId("user1"),
         ApiAccountKind.PublicApi(ApiAuthorization.RW, ApiAccountExpirationPolicy.NeverExpire),
         ApiAccountName("user one"),
-        Some(ApiTokenHash.fromHashValue("v2:some-hashed-token")),
+        AccountToken(Some(ApiTokenHash.fromHashValue("v2:some-hashed-token")), accountCreationDate),
         "number one user",
         isEnabled = true,
         creationDate = accountCreationDate,
-        tokenGenerationDate = accountCreationDate,
         NodeSecurityContext.All
       ),
       // limited account
@@ -1034,11 +1032,10 @@ class MockApiAccountService() {
           ApiAccountExpirationPolicy.ExpireAtDate(accountExpireDate)
         ),
         ApiAccountName("user2"),
-        Some(ApiTokenHash.fromHashValue("v2:some-hashed-token")),
+        AccountToken(Some(ApiTokenHash.fromHashValue("v2:some-hashed-token")), accountCreationDate),
         "number one user",
         isEnabled = true,
         creationDate = accountCreationDate,
-        tokenGenerationDate = accountCreationDate,
         NodeSecurityContext.ByTenants(Chunk(TenantId("zone1")))
       )
     ).map(a => (a.id, a)).toMap
