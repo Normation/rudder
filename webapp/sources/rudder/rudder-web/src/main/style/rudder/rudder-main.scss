@@ -124,7 +124,7 @@ pre.json-beautify, .content-wrapper pre.json-beautify{
   position: relative;
   margin-bottom: 0;
   padding: 7px 6px;
-  padding-right: 65px;
+  padding-right: 105px;
   white-space: pre-wrap;
   word-break: break-all;
   word-wrap: break-word;
@@ -680,10 +680,17 @@ pre.json-beautify code.elmsh {
   background-color: #1384BE;
 }
 
-.label-provider, .dataTable .rudder-label.label-sm.label-provider {
+.label-provider,
+.dataTable .rudder-label.label-sm.label-provider {
   padding:0 5px !important;
-  margin-top:4px;
-  margin-left: 6px;
+}
+.dataTable pre.json-beautify > .label-provider {
+  position: absolute;
+  top: 8px;
+  right: 25px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .label-provider + .tooltip .tooltip-inner {
