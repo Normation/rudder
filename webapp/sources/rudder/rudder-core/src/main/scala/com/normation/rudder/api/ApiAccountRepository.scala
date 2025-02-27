@@ -76,6 +76,9 @@ trait RoApiAccountRepository {
   def getById(id: ApiAccountId): IOResult[Option[ApiAccount]]
 
   def getSystemAccount: ApiAccount
+
+  def isSystemToken(apiTokenHash: ApiTokenHash): Boolean
+
 }
 
 /**
@@ -114,6 +117,8 @@ final class RoLDAPApiAccountRepository(
       tenants = NodeSecurityContext.All
     )
   }
+
+  override def isSystemToken(apiTokenHash: ApiTokenHash): Boolean = systemToken.value.equalsToken(apiTokenHash)
 
   override def getSystemAccount: ApiAccount = systemAPIAccount
 

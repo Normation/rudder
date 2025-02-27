@@ -55,9 +55,7 @@ import com.normation.rudder.api.ApiAuthorizationKind
 import com.normation.rudder.api.ApiTokenHash
 import com.normation.rudder.api.ApiTokenSecret
 import com.normation.rudder.api.HttpAction
-import com.normation.rudder.api.SystemToken
 import com.normation.rudder.facts.nodes.NodeSecurityContext
-import com.normation.rudder.rest.data.NewRestApiAccount.transformNewApiAccount
 import com.normation.utils.DateFormaterService.DateTimeCodecs
 import com.normation.utils.DateFormaterService.transformer.*
 import com.softwaremill.quicklens.*
@@ -270,17 +268,21 @@ object ApiAccountDetails extends ApiAccountCodecs {
       _.expirationDate,
       _.transformInto[ApiAccountExpirationPolicy].expirationDate.map(_.transformInto[ZonedDateTime])
     )
-    .withFieldComputed(_.tokenState, x => if (x.accountToken.isEmpty) ApiTokenState.Missing else ApiTokenState.Generated)
-    .withFieldComputed(_.authorizationType, _.kind.transformInto[Option[ApiAuthorizationKind]])
     .withFieldComputed(
       _.tokenGenerationDate,
       x => {
+        // only when account token is there
         x.token match {
-          case a: AccountToken => Some(a.generationDate.transformInto[ZonedDateTime])
-          case _: SystemToken  => None
+          case a: AccountToken if a.hash.isDefined => Some(a.generationDate.transformInto[ZonedDateTime])
+          case _ => None
         }
       }
     )
+    .withFieldComputed(
+      _.tokenState,
+      x => if (x.accountToken.flatMap(_.hash).isEmpty) ApiTokenState.Missing else ApiTokenState.Generated
+    )
+    .withFieldComputed(_.authorizationType, _.kind.transformInto[Option[ApiAuthorizationKind]])
     .withFieldComputed(_.acl, _.kind.transformInto[Option[List[JsonApiPerm]]])
 
   implicit val transformPublicApi: Transformer[ApiAccount, ApiAccountDetails.Public] = {
@@ -375,6 +377,7 @@ class ApiAccountMapping(
     createToken:    ClearTextSecret => IOResult[ApiTokenHash]
 ) extends DateTimeCodecs {
   import ApiAccountExpirationPolicy.*
+  import NewRestApiAccount.transformNewApiAccount
 
   /**
    * Create a new ApiAccount and optionally return the secret used for the token

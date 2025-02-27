@@ -80,7 +80,7 @@ class ApiAccountTest extends Specification with DateTimeCodecs {
     val (account, _) = mapper.fromNewApiAccount(data).runNow
 
     account.id === accountId
-    account.token === Some(ApiTokenHash.fromSecret(secret))
+    account.token === AccountToken(Some(ApiTokenHash.fromSecret(secret)), now)
     account.kind match {
       case ApiAccountKind.PublicApi(_, expirationDate) =>
         expirationDate === ApiAccountExpirationPolicy.ExpireAtDate(now.plusDays(30)) // default
@@ -109,7 +109,7 @@ class ApiAccountTest extends Specification with DateTimeCodecs {
     val (account, _) = mapper.fromNewApiAccount(data).runNow
 
     account.id === id
-    account.token === Some(ApiTokenHash.fromSecret(secret))
+    account.token === AccountToken(Some(ApiTokenHash.fromSecret(secret)), now)
     account.kind match {
       case ApiAccountKind.PublicApi(_, expirationPolicy) =>
         expirationPolicy === ApiAccountExpirationPolicy.ExpireAtDate(expiration)
