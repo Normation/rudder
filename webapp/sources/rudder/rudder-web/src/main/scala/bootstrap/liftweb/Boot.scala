@@ -831,7 +831,7 @@ class Boot extends Loggable {
         Menu("920-maintenance", <span>Maintenance</span>) / "secure" / "administration" / "maintenance"
           >> needPerms(Authz.Administration.Read),
         Menu("950-plugins", <span>Plugins</span>) / "secure" / "administration" / "pluginInformation"
-          >> needPerms(Authz.Administration.Read),
+          >> needPerms(Authz.Administration.Write),
         Menu("990-about", <span>About</span>) / "secure" / "administration" / "about"
           >> needPerms(Authz.Administration.Read)
       )

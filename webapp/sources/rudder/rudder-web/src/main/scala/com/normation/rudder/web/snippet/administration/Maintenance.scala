@@ -39,8 +39,8 @@ package com.normation.rudder.web.snippet.administration
 
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.snippet.TabUtils
 import net.liftweb.http.DispatchSnippet
-import net.liftweb.util.CssSel
 import scala.xml.*
 
 class Maintenance extends DispatchSnippet with DefaultExtendableSnippet[Maintenance] {
@@ -51,22 +51,21 @@ class Maintenance extends DispatchSnippet with DefaultExtendableSnippet[Maintena
       "body"               -> identity,
       "healthCheckTab"     -> healthCheckTab,
       "reportsDatabaseTab" -> reportsDatabaseTab,
-      "policyBackupTab"    -> policyBackupTab,
       "hooksTab"           -> hooksTab,
       "techniqueTreeTab"   -> techniqueTreeTab
     )
   }
 }
 
-object Maintenance {
+object Maintenance extends TabUtils {
+  override def tabMenuId:    String = "maintenanceTabMenu"
+  override def tabContentId: String = "maintenanceTabContent"
+
   private def healthCheckTab(xml: NodeSeq) =
     ChooseTemplate("templates-hidden" :: "components" :: "administration" :: "healthcheck" :: Nil, "component-body")
 
   private def reportsDatabaseTab(xml: NodeSeq) =
     ChooseTemplate("templates-hidden" :: "components" :: "administration" :: "reportsDatabase" :: Nil, "component-body")
-
-  private def policyBackupTab(xml: NodeSeq) =
-    ChooseTemplate("templates-hidden" :: "components" :: "administration" :: "policyBackup" :: Nil, "component-body")
 
   private def hooksTab(xml: NodeSeq) =
     ChooseTemplate("templates-hidden" :: "components" :: "administration" :: "hooksManagement" :: Nil, "component-body")
@@ -77,19 +76,4 @@ object Maintenance {
       "component-body"
     )
   }
-
-  /*
-   * Create a new tab (the clickable header part).
-   * The id must not contain the `#`
-   */
-  def tabMenu(tabId: String, name: String) = Settings.tabMenu(tabId, name)
-
-  // an utility method that provides the correct cssSel to add a menu item
-  def addTabMenu(tabId: String, name: String): CssSel = Settings.addTabMenu(tabId, name)
-
-  def tabContent(tabId: String, content: NodeSeq): Elem = Settings.tabContent(tabId, content)
-
-  def addTabContent(tabId: String, content: NodeSeq): CssSel = Settings.addTabContent(tabId, content)
-
-  def addTab(tabId: String, name: String, content: NodeSeq): CssSel = Settings.addTab(tabId, name, content)
 }
