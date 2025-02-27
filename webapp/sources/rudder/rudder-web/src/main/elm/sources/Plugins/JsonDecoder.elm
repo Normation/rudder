@@ -1,12 +1,25 @@
-module Plugins.JsonDecoder exposing (..)
+module Plugins.JsonDecoder exposing (decodeGetPluginMetadata)
 
 import Json.Decode as D exposing (..)
 import Json.Decode.Pipeline exposing (optional, required)
 import Plugins.DataTypes exposing (..)
+import Plugins.PluginData exposing (..)
 import Time.Iso8601
 import Time.Iso8601ErrorMsg
 import Time.TimeZones exposing (utc)
 import Time.ZonedDateTime exposing (ZonedDateTime)
+
+
+decodeGetPluginMetadata : Decoder PluginMetadata
+decodeGetPluginMetadata =
+    map
+        (\{ license, plugins } ->
+            { license = license
+            , plugins =
+                List.map toPlugin plugins
+            }
+        )
+        decodeGetPluginsInfo
 
 
 decodeGetPluginsInfo : Decoder PluginsInfo
@@ -17,13 +30,13 @@ decodeGetPluginsInfo =
 decodePluginsInfo : Decoder PluginsInfo
 decodePluginsInfo =
     D.succeed PluginsInfo
-        |> optional "license" (maybe decodeLicenseGlobalInfo) Nothing
+        |> optional "license" (maybe decodeLicenseGlobal) Nothing
         |> required "plugins" (list decodePluginInfo)
 
 
-decodeLicenseGlobalInfo : Decoder LicenseGlobalInfo
-decodeLicenseGlobalInfo =
-    D.succeed LicenseGlobalInfo
+decodeLicenseGlobal : Decoder LicenseGlobal
+decodeLicenseGlobal =
+    D.succeed LicenseGlobal
         |> optional "licensees" (maybe (list string)) Nothing
         |> optional "startDate" (maybe decodeDateTime) Nothing
         |> optional "endDates" (maybe (list decodeDateCount)) Nothing
@@ -69,13 +82,13 @@ decodePluginStatus =
             (\s ->
                 case s of
                     "enabled" ->
-                        succeed Enabled
+                        succeed StatusEnabled
 
                     "disabled" ->
-                        succeed Disabled
+                        succeed StatusDisabled
 
                     "uninstalled" ->
-                        succeed Uninstalled
+                        succeed StatusUninstalled
 
                     _ ->
                         fail ("Unknown PluginStatus: " ++ s)
@@ -117,8 +130,8 @@ decodeDateCount =
         |> required "count" int
 
 
-decodePluginError : Decoder PluginError
+decodePluginError : Decoder PluginInfoError
 decodePluginError =
-    D.succeed PluginError
+    D.succeed PluginInfoError
         |> required "error" string
         |> required "message" string

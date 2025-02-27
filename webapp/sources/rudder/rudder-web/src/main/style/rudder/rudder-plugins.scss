@@ -111,11 +111,22 @@ $spinner-height-sm: $spinner-width-sm;
   }
 }
 
+.header-title {
+  & ul {
+    max-width: 30vw;
+    margin-bottom: 0;
+    text-align: right;
+    font-weight: 300;
+    font-style: italic;
+  }
+}
 
 .plugins-container {
   $default-font-size: 0.86em;
 
   & .plugins-actions {
+    display: flex;
+    flex-direction: column;
     border-bottom: 2px solid $rudder-border-color-default !important; // in combination with datatable classes
 
     & .btn {
@@ -123,16 +134,43 @@ $spinner-height-sm: $spinner-width-sm;
       border-radius: 0.3em;
       min-width: 4.8rem;
     }
+
+    & .plugins-actions-buttons {
+      width: 100%;
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: space-between;
+
+      & :first-child {
+        flex: 1 1 auto;
+      }
+
+      & :last-child {
+        flex: 0 1 auto;
+      }
+    }
+
+    & .plugins-actions-filters {
+      width: 100%;
+      display: flex;
+      margin-top: 0.4em;
+
+      & .form-group:not(:first-child) {
+        margin-left: 1em;
+      }
+    }
   }
 
   & .plugins-list {
     padding-left: 1rem;
     padding-right: 1rem;
 
-    & .plugin-card {
-      &:not(:first-child):not(:last-child) {
-        margin: 10px 0;
-      }
+    &.callout-warning {
+      margin: 10px 0;
+    }
+
+    & .plugin-card.card {
+      margin: 10px 0;
 
       &.plugin-card-disabled {
         background-color: $rudder-bg-light-gray;
@@ -146,51 +184,101 @@ $spinner-height-sm: $spinner-width-sm;
         }
       }
 
-      & .badge.float-end {
+      & .badge.float-start {
         font-size: $default-font-size;
-        border-top-left-radius: 0;
-        border-bottom-right-radius: 0;
+        border-top-right-radius: 0;
+        border-bottom-left-radius: 0;
         text-transform: uppercase;
         padding: 0.3rem 0.8rem;
         font-weight: 600;
+        margin: 0;
+      }
+
+      & .card-body {
+        margin-top: 1rem;
       }
 
       & .form-check label {
         cursor: pointer;
       }
 
-      & .card-text {
-        font-size: $default-font-size;
-      }
-
-      & .plugin-name {
+      & .plugin-title {
         font-size: 1rem;
         font-weight: 500;
+
+        & .plugin-doc-icon {
+          margin-left: 0.6rem;
+          color: #337ab7;
+          opacity: 0.8;
+          &:hover {
+            opacity: 1;
+          }
+        }
       }
 
-      & .plugin-description {
-        color: $rudder-txt-secondary;
-      }
+      & .card-text {
+        font-size: $default-font-size;
 
-      & .plugin-version {
-        font-size: 0.72rem;
-        font-weight: 300;
-      }
+        & .plugin-technical-info {
+          color: $rudder-txt-secondary;
 
-      & .plugin-errors {
-        $el-margin: 0.5rem;
+          & .badge.badge-type {
+            opacity: 0.75;
+            border-radius: 0.25rem;
 
-        margin-top: $el-margin;
-
-        & .callout-fade {
-          &:not(:last-child) {
-            margin-top: $el-margin;
-            margin-bottom: $el-margin;
+            &.plugin-webapp + &.plugin-integration{
+              background-color: #72829d;
+              font-weight: 600 !important;
+            }
           }
 
-          &:last-child {
-            margin-bottom: 0;
+          & .plugin-version {
+            &:before{
+              content: "-";
+              padding: 0 0.3rem;
+            }
           }
+        }
+
+        & .plugin-errors {
+          $el-margin: 0.5rem;
+
+          margin-top: $el-margin;
+
+          & .callout-fade {
+            &:not(:last-child) {
+              margin-top: $el-margin;
+              margin-bottom: $el-margin;
+            }
+
+            &:last-child {
+              margin-bottom: 0;
+            }
+
+            &.callout-danger {
+              background-color: $rudder-bg-danger;
+
+              & .fa.fa-warning {
+                color: #58151c;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/* === MODAL === */
+.modal {
+  .modal-body {
+    .plugin-action.callout-fade {
+      .plugin-action-error {
+        &:not(:last-child) {
+          padding-bottom: 1em;
+        }
+        & .list-group li {
+          background: #f8f9fc;
         }
       }
     }
