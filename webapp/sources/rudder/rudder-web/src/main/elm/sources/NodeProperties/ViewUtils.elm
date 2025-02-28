@@ -247,7 +247,7 @@ displayNodePropertyRow model =
                 _ -> "<h4 class='tags-tooltip-title'>" ++ pr ++ "</h4> <div class='tooltip-inner-content'>This property is managed by its provider ‘<b>" ++ pr ++ "</b>’ and can not be modified manually. Check Rudder’s settings to adjust this provider’s configuration.</div>"
             in
               (span
-              [ class "rudder-label label-provider label-sm bs-tooltip"
+              [ class "rudder-label label-provider label-sm bs-tooltip ms-1"
               , attribute "data-bs-toggle" "tooltip"
               , attribute "data-bs-placement" "right"
               , attribute "data-bs-trigger" "click"
