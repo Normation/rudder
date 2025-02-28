@@ -3,6 +3,7 @@
 
 use core::fmt;
 use std::{
+    env,
     fs::{self, *},
     io::{Cursor, Read},
     path::PathBuf,
@@ -14,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
 use crate::{
-    PACKAGE_SCRIPTS_ARCHIVE, PACKAGES_FOLDER,
+    DONT_RUN_POSTINST_ENV_VAR, PACKAGE_SCRIPTS_ARCHIVE, PACKAGES_FOLDER,
     database::{Database, InstalledPlugin},
     plugin::Metadata,
     webapp::Webapp,
@@ -246,8 +247,15 @@ impl Rpkg {
         } else {
             PackageScriptArg::Install
         };
-        self.metadata
-            .run_package_script(PackageScript::Postinst, arg)?;
+        if env::var(DONT_RUN_POSTINST_ENV_VAR).is_ok() {
+            debug!(
+                "Skipping postinstall scripts as {} environment variable is set",
+                DONT_RUN_POSTINST_ENV_VAR
+            );
+        } else {
+            self.metadata
+                .run_package_script(PackageScript::Postinst, arg)?;
+        }
         // Update the webapp xml file if the plugin contains one or more jar file
         debug!("Enabling the associated jars if any");
         webapp.enable_jars(&self.metadata.jar_files)?;
