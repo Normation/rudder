@@ -57,6 +57,7 @@ const REPOSITORY_INDEX_PATH: &str = "/var/rudder/tmp/plugins/rpkg.index";
 const TMP_PLUGINS_FOLDER: &str = "/var/rudder/tmp/plugins";
 const PLUGIN_STATUS_BACKUP_PATH: &str = "/tmp/rudder-plugins-upgrade";
 const DONT_RESTART_ENV_VAR: &str = "RUDDER_PACKAGE_DONT_RESTART";
+const DONT_RUN_POSTINST_ENV_VAR: &str = "RUDDER_PACKAGE_DONT_RUN_POSTINST";
 
 #[cfg(not(debug_assertions))]
 fn am_i_root() -> Result<bool> {
