@@ -116,10 +116,9 @@ class NodeCountHistorizationTest extends Specification with BeforeAfter {
     ZioRuntime.unsafeRun(prog.provideLayer(Scope.default >>> testEnvironment))
     val lines = File(rootDir, "nodes-2020-03").lines(StandardCharsets.UTF_8).toVector
 
-    (lines.size must beEqualTo(3)) and (
-      (lines(1) must beEqualTo(""""2020-03-20T03:49:36Z";"1";"2";"3";"4";"5";"6"""")) and
-      (lines(2) must beEqualTo(""""2020-03-20T03:49:37Z";"35";"46";"57";"68";"79";"3""""))
-    )
+    lines.size must beEqualTo(3)
+    lines(1) must beEqualTo(""""2020-03-20T03:49:36Z";"1";"2";"3";"4";"5";"6"""")
+    lines(2) must beEqualTo(""""2020-03-20T03:49:37Z";"35";"46";"57";"68";"79";"3"""")
   }
 
 }
