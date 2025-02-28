@@ -22,7 +22,7 @@ view model =
         [ p[][text "This page shows you the current hooks used in Rudder."]
         , p[][
             text "For more information, please consult the"
-          , a [href "/rudder-doc/reference/7.2/usage/advanced_configuration_management.html#_server_event_hooks"][text " documentation."]
+          , a [href "/rudder-doc/reference/current/usage/advanced_configuration_management.html#_server_event_hooks"][text " documentation."]
           ]
         ]
       ]
