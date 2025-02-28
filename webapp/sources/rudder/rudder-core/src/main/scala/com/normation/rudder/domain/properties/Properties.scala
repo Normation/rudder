@@ -54,7 +54,6 @@ import com.normation.rudder.properties.GroupProp
 import com.normation.rudder.services.policies.ParameterEntry
 import com.typesafe.config.*
 import enumeratum.*
-import java.util.regex.Pattern
 import net.liftweb.json.*
 import net.liftweb.json.JsonDSL.*
 import org.apache.commons.text.StringEscapeUtils
@@ -290,12 +289,7 @@ object GenericProperty {
   val PROVIDER     = "provider"
   val DESCRIPTION  = "description"
   val INHERIT_MODE = "inheritMode" // options: inheritance mode
-  val VISIBILITY   = "visibility"  // optional, if missing Visibility.default is used.
-
-  /**
-   * Property name must matches that pattern
-   */
-  val patternName: Pattern = Pattern.compile("""[\-a-zA-Z0-9_]+""")
+  val VISIBILITY   = "visibility"  // optional, if missing Visibility.default
 
   def getMode(config: Config):                            Option[InheritMode] = {
     if (config.hasPath(INHERIT_MODE)) {
