@@ -60,6 +60,7 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.rest.ApiModuleProvider
+import com.normation.rudder.rest.AuthorizationMappingListEndpoint
 import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.InfoApi as InfoApiDef
 import com.normation.rudder.rest.data.JsonGlobalPluginLimits
@@ -534,13 +535,15 @@ class Boot extends Loggable {
     LiftRules.statelessDispatch.append(RudderConfig.sharedFileApi)
     // REST API (all public/internal API)
     // we need to add "info" API here to have all used API (even plugins)
-    val infoApi = {
+    val infoApi       = {
       // all used api - add info as it is not yet declared
       val schemas   = RudderConfig.rudderApi.apis().map(_.schema) ++ InfoApiDef.endpoints
       val endpoints = schemas.flatMap(RudderConfig.apiDispatcher.withVersion(_, RudderConfig.ApiVersions))
       new InfoApi(RudderConfig.ApiVersions, endpoints)
     }
     RudderConfig.rudderApi.addModules(infoApi.getLiftEndpoints())
+    val apiRoleMapper = new AuthorizationMappingListEndpoint(RudderConfig.rudderApi.apis().map(_.schema))
+    RudderConfig.authorizationApiMapping.addMapper(apiRoleMapper)
     LiftRules.statelessDispatch.append(RudderConfig.rudderApi.getLiftRestApi())
 
     // URL rewrites

@@ -75,7 +75,7 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.WoRuleRepository
-import com.normation.rudder.rest.AuthorizationApiMapping
+import com.normation.rudder.rest.ExtensibleAuthorizationApiMapping
 import com.normation.rudder.rest.ProviderRoleExtension
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.rest.data.ApiAccountDetails
@@ -876,7 +876,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
   val userService: FileUserDetailListProvider = {
     val usersFile = UserFile(usersConfigFile.pathAsString, usersInputStream)
 
-    val roleApiMapping = new RoleApiMapping(AuthorizationApiMapping.Core)
+    val roleApiMapping = new RoleApiMapping(new ExtensibleAuthorizationApiMapping(Nil))
 
     val res = new FileUserDetailListProvider(roleApiMapping, usersFile, passwordEncoderDispatcher)
     res.reload()
