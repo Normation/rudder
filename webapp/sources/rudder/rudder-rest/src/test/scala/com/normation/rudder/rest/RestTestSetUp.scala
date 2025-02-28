@@ -1000,7 +1000,7 @@ class RestTestSetUp {
         ParseVersion.parse("2.4.1").getOrElse(throw new Exception("bad version in test")),
         ParseVersion.parse("8.3.0").getOrElse(throw new Exception("bad version in test")),
         PluginType.Webapp,
-        List(PluginError.LicenseNearExpirationError),
+        List(PluginError.LicenseNearExpirationError(1, ZonedDateTime.parse("2025-01-10T20:53:20Z"))),
         Some(
           PluginLicense(
             Licensee("test-licensee"),

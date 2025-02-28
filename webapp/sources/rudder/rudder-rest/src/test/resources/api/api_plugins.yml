@@ -34,7 +34,7 @@ response:
             "errors" : [
               {
                 "error" : "license.near.expiration.error",
-                "message" : "Plugin license near expiration"
+                "message" : "Plugin license near expiration (1 days left until 2025-01-10)"
               }
             ],
             "license" : {
@@ -146,7 +146,7 @@ response:
             "errors" : [
               {
                 "error" : "license.near.expiration.error",
-                "message" : "Plugin license near expiration"
+                "message" : "Plugin license near expiration (1 days left until 2025-01-10)"
               }
             ],
             "license" : {
@@ -242,7 +242,7 @@ response:
             "errors" : [
               {
                 "error" : "license.near.expiration.error",
-                "message" : "Plugin license near expiration"
+                "message" : "Plugin license near expiration (1 days left until 2025-01-10)"
               }
             ],
             "license" : {
@@ -338,7 +338,7 @@ response:
             "errors" : [
               {
                 "error" : "license.near.expiration.error",
-                "message" : "Plugin license near expiration"
+                "message" : "Plugin license near expiration (1 days left until 2025-01-10)"
               }
             ],
             "license" : {
@@ -434,7 +434,7 @@ response:
             "errors" : [
               {
                 "error" : "license.near.expiration.error",
-                "message" : "Plugin license near expiration"
+                "message" : "Plugin license near expiration (1 days left until 2025-01-10)"
               }
             ],
             "license" : {

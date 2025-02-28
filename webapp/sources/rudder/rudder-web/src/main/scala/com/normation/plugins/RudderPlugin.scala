@@ -141,12 +141,6 @@ final case class PluginName(value: String) {
 }
 
 object RudderPluginDef {
-  implicit val licenseTransformer:           Transformer[PluginLicense, JsonPluginLicense]   = {
-    Transformer
-      .define[PluginLicense, JsonPluginLicense]
-      .withFieldRenamed(_.others, _.additionalInfo)
-      .buildTransformer
-  }
   implicit val transformerJsonPluginDetails: Transformer[RudderPluginDef, JsonPluginDetails] = {
     Transformer
       .define[RudderPluginDef, JsonPluginDetails]
@@ -183,7 +177,7 @@ object RudderPluginDef {
       .define[RudderPluginDef, Plugin]
       .withFieldConst(_.pluginType, PluginType.Webapp)
       .withFieldConst(_.errors, List.empty)
-      .withFieldComputed(_.name, _.name.value)
+      .withFieldComputed(_.name, _.shortName) // the RudderPluginDef name is used in plugins themselves
       .withFieldComputed(_.description, _.description.toString())
       .withFieldComputed(_.version, p => Some(p.version.pluginVersion.toVersionStringNoEpoch))
       .withFieldComputed(_.pluginVersion, _.version.pluginVersion)

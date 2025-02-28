@@ -158,7 +158,11 @@ view model =
                             pluginRow plugin =
                               let
                                 license = case plugin.license of
-                                  Nothing -> []
+                                  Nothing -> [
+                                      td[][]
+                                    , td[][]
+                                    , td[][]
+                                    , td[][]]
                                   Just l -> [
                                       td[][text l.licensee]
                                     , td[][text ("from " ++ l.startDate ++ " to " ++ l.endDate)]

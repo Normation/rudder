@@ -65,12 +65,13 @@ class PluginErrorTest extends Specification {
       }
 
       "plugin with expired license" in {
-        val plugin = fakePlugin(
+        val expiration = ZonedDateTime.now().minusMonths(1)
+        val plugin     = fakePlugin(
           requiresLicense = false,
           license = Some(
             RudderPackagePlugin.LicenseInfo(
               ZonedDateTime.now().minusMonths(2),
-              ZonedDateTime.now().minusMonths(1)
+              expiration
             )
           )
         )
@@ -78,28 +79,31 @@ class PluginErrorTest extends Specification {
         val errors = PluginError.fromRudderPackagePlugin(plugin)
         errors must containTheSameElementsAs(
           List(
-            PluginError.LicenseExpiredError
+            PluginError.LicenseExpiredError(expiration)
           )
         )
       }
 
       "plugin with license near expiration" in {
-        val plugin = fakePlugin(
+        val now        = ZonedDateTime.now
+        val expiration = now.plusDays(2)
+        val plugin     = fakePlugin(
           requiresLicense = false,
           license = Some(
             RudderPackagePlugin.LicenseInfo(
-              ZonedDateTime.now.minusMonths(2),
-              ZonedDateTime.now.plusDays(1)
+              now.minusMonths(2),
+              expiration
             )
           )
         )
 
         val errors = PluginError.fromRudderPackagePlugin(plugin)
-        errors must containTheSameElementsAs(
-          List(
-            PluginError.LicenseNearExpirationError
-          )
-        )
+        errors must haveLength(1)
+        errors.head must beLikeA {
+          case e: PluginError.LicenseNearExpirationError =>
+            e.daysLeft must beGreaterThan(0)
+            e.expirationDate.toLocalDate must beEqualTo(expiration.toLocalDate)
+        }
       }
 
       "plugin with ABI version error" in {
@@ -117,6 +121,20 @@ class PluginErrorTest extends Specification {
             PluginError.RudderAbiVersionError(rudderVersion)
           )
         )
+      }
+
+      "plugin with ABI version but SNAPSHOT" in {
+        val plugin = fakePlugin(
+          requiresLicense = false,
+          license = None
+        )
+
+        val v      = s"${rudderVersion}-SNAPSHOT"
+        val errors = PluginError.fromRudderPackagePlugin(plugin)(
+          v,
+          AbiVersion(ParseVersion.parse(v).getOrElse(throw new Exception("bad version in test")))
+        )
+        errors must beEmpty
       }
 
       "plugin missing needed license" in {

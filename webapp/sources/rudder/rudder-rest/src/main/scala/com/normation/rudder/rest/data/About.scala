@@ -104,7 +104,7 @@ object LicenseJson {
     Transformer
       .define[PluginLicense, LicenseJson]
       .withFieldRenamed(_.maxNodes, _.allowedNodesNumber)
-      .withFieldComputed(_.supportedVersions, x => s"[${x.minVersion},${x.maxVersion}]")
+      .withFieldComputed(_.supportedVersions, x => s"[${x.minVersion.value},${x.maxVersion.value}]")
       .buildTransformer
   }
 

@@ -208,7 +208,7 @@ sealed abstract class GlobalPluginsLicense[EndDate](
     ) {}
   }
 
-  private def isDefined = licensees.isDefined && startDate.isDefined && endDate.isDefined && maxNodes.isDefined
+  private def isDefined = licensees.isDefined || startDate.isDefined || endDate.isDefined || maxNodes.isDefined
 }
 
 object GlobalPluginsLicense {
