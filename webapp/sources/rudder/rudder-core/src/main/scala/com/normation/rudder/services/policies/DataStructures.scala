@@ -219,6 +219,13 @@ final case class ParameterEntry(
     escapedValue:  String,
     agentType:     AgentType
 ) {
+
+  val escapedParameterName = parameterName.replaceAll("""[^\p{Alnum}_]""", "_")
+  // returns the escaped name of the parameter
+  def getEscapedParameterName(): String = {
+    escapedParameterName
+  }
+
   // returns the name of the parameter
   def getParameterName(): String = {
     parameterName
