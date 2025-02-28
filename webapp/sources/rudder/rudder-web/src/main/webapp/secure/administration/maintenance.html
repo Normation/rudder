@@ -25,11 +25,8 @@
               Reports database
             </button>
           </li>
-          <li class="nav-item" role="presentation">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#policyBackup" type="button" role="tab" aria-controls="policyBackup">
-              Policy backup
-            </button>
-          </li>
+          <span id="policyBackupTabMenu" class="d-none">
+          </span>
           <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#hooks" type="button" role="tab" aria-controls="hooks">
               Hooks
@@ -53,9 +50,8 @@
                 <div id="reportsDatabase" class="tab-pane">
                   <div class="lift:administration.Maintenance.reportsDatabaseTab"></div>
                 </div>
-                <div id="policyBackup" class="tab-pane">
-                  <div class="lift:administration.Maintenance.policyBackupTab"></div>
-                </div>
+                <span id="policyBackupContent">
+                </span>
                 <div id="hooks" class="tab-pane">
                   <div class="lift:administration.Maintenance.hooksTab"></div>
                 </div>

@@ -125,6 +125,7 @@ import com.normation.rudder.services.user.*
 import com.normation.rudder.services.workflows.*
 import com.normation.rudder.tenants.*
 import com.normation.rudder.users.*
+import com.normation.rudder.web.components.administration.PolicyBackup
 import com.normation.rudder.web.components.administration.RudderCompanyAccount
 import com.normation.rudder.web.model.*
 import com.normation.rudder.web.services.*
@@ -3564,6 +3565,7 @@ object RudderConfigInit {
     ////////////////////// Snippet plugins & extension register //////////////////////
     lazy val snippetExtensionRegister: SnippetExtensionRegister = new SnippetExtensionRegisterImpl()
     snippetExtensionRegister.register(new RudderCompanyAccount())
+    snippetExtensionRegister.register(new PolicyBackup())
 
     lazy val cachedNodeConfigurationService: CachedNodeConfigurationService = {
       val cached = new CachedNodeConfigurationService(findExpectedRepo, nodeFactRepository)

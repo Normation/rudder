@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2024 Normation SAS
+ * Copyright 2025 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,27 +35,34 @@
  *************************************************************************************
  */
 
-package com.normation.rudder.web.snippet.administration
+package com.normation.rudder.web.components.administration
 
-import com.normation.plugins.DefaultExtendableSnippet
+import com.normation.plugins.SnippetExtensionPoint
+import com.normation.rudder.AuthorizationType
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.snippet.TabUtils
-import net.liftweb.http.DispatchSnippet
-import scala.xml.*
+import com.normation.rudder.web.snippet.administration.Maintenance
+import scala.reflect.ClassTag
+import scala.xml.NodeSeq
 
-class Settings extends DispatchSnippet with DefaultExtendableSnippet[Settings] {
-  private def settingsTabContent(xml: NodeSeq) =
-    ChooseTemplate("templates-hidden" :: "components" :: "administration" :: "policyServerManagement" :: Nil, "component-body")
+class PolicyBackup()(implicit val ttag: ClassTag[Maintenance]) extends SnippetExtensionPoint[Maintenance] {
+  private val tabId = "policyBackupTab"
 
-  override def mainDispatch: Map[String, NodeSeq => NodeSeq] = {
-    Map(
-      "body"           -> identity,
-      "mainTabContent" -> settingsTabContent
-    )
+  private def template: NodeSeq =
+    ChooseTemplate("templates-hidden" :: "components" :: "administration" :: "policyBackup" :: Nil, "component-body")
+
+  override def compose(snippet: Maintenance): Map[String, NodeSeq => NodeSeq] = {
+    if (CurrentUser.checkRights(AuthorizationType.Administration.Write)) {
+      Map(
+        "body" -> {
+          (Maintenance.addTabMenu(tabId, "Policy Backup", TabUtils.ReplaceInTab("policyBackupTabMenu")) & Maintenance
+            .addTabContent(tabId, template, TabUtils.ReplaceInTab("policyBackupContent")))
+        }
+      )
+    } else {
+      Map.empty
+    }
   }
-}
 
-object Settings extends TabUtils {
-  override def tabMenuId:    String = "settingsTabMenu"
-  override def tabContentId: String = "settingsTabContent"
 }
