@@ -37,9 +37,7 @@
 
 package com.normation.plugins
 
-import better.files.Dispose
-import better.files.File
-import better.files.Resource
+import better.files.*
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version
 import com.normation.zio.*

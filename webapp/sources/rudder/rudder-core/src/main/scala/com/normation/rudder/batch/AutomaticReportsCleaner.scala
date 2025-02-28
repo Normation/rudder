@@ -53,7 +53,6 @@ import net.liftweb.actor.LAPinger
 import net.liftweb.actor.SpecializedLiftActor
 import net.liftweb.common.*
 import org.joda.time.*
-import scala.annotation.nowarn
 import zio.*
 import zio.syntax.*
 
@@ -404,7 +403,7 @@ class AutomaticReportsCleaning(
                  )
                  .delay(dur)
                  .repeat(Schedule.spaced(dur).forever)
-                 .forkDaemon: @nowarn("msg=a type was inferred to be `\\w+`; this may indicate a programming error.")
+                 .forkDaemon
 
              }
   } yield ()).runNow

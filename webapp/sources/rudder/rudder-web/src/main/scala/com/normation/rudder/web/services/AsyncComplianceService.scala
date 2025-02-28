@@ -58,6 +58,7 @@ import net.liftweb.util.Helpers.TimeSpan
 import org.apache.commons.text.StringEscapeUtils
 import scala.concurrent.*
 import scala.concurrent.ExecutionContext.Implicits.global
+import zio.json.EncoderOps
 
 class AsyncComplianceService(
     reportingService: ReportingService

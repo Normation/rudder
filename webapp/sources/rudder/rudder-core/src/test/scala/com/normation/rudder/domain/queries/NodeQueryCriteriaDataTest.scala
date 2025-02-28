@@ -47,7 +47,7 @@ import zio.*
 @RunWith(classOf[JUnitRunner])
 class NodeQueryCriteriaDataTest extends Specification {
 
-  val ips   = Chunk("192.168.10.10", "fe80::5054:ff:fefe:aa71", "127.0.0.1", "::1").map(IpAddress)
+  val ips   = Chunk("192.168.10.10", "fe80::5054:ff:fefe:aa71", "127.0.0.1", "::1").map(IpAddress.apply)
   val n     = NodeConfigData.fact1.copy(ipAddresses = ips)
   val empty = NodeConfigData.fact1.copy(ipAddresses = Chunk())
 

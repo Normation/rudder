@@ -185,10 +185,11 @@ object TraitTestApiFromYamlFiles {
     }
 
     // the list anyref here is Yaml objects
-    def loadYamls(input: IOManaged[InputStream]): IOResult[List[AnyRef]] = {
+    def loadYamls(input: IOManaged[InputStream]): IOResult[List[AnyRef]] = ZIO.scoped {
       for {
-        tool  <- IOResult.attempt(new Yaml())
-        yamls <- ZIO.scoped(input.flatMap(x => IOResult.attempt(tool.loadAll(x).asScala.toList)))
+        tool        <- IOResult.attempt(new Yaml())
+        inputstream <- input
+        yamls       <- IOResult.attempt(tool.loadAll(inputstream).asScala.toList)
       } yield {
         yamls
       }

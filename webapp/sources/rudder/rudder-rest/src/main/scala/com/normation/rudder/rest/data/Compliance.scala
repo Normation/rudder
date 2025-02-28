@@ -640,29 +640,6 @@ object JsonCompliance {
       }
     }
 
-    private def byNodeByComponents(
-        comps:     Seq[ByRuleComponentCompliance],
-        level:     Int,
-        precision: CompliancePrecision
-    ): Option[JsonAST.JValue] = {
-      if (level < 3) None
-      else {
-        Some(comps.map { component =>
-          (
-            ("name"                -> component.name)
-            ~ ("compliance"        -> component.compliance.complianceWithoutPending(precision))
-            ~ ("complianceDetails" -> percents(component.compliance, precision))
-            ~ (component match {
-              case component: ByRuleBlockCompliance => // TODO: this case should not happened because we are only get nodes compliance here
-                ("components" -> byNodeByComponents(component.subComponents, level, precision))
-              case component: ByRuleValueCompliance =>
-                ("nodes" -> nodes(component.nodes, level, precision))
-            })
-          )
-        })
-      }
-    }
-
     private def rules(
         rules:     Seq[ByDirectiveByRuleCompliance],
         level:     Int,

@@ -267,10 +267,10 @@ object TestJavaLockWithZio {
         log(s"Release lock '${name}'") *>
         ZIO
           .attemptBlockingIO(this.unlock())
-          .catchAll(t =>
+          .tapError(t =>
             log(s"${t.getClass.getName}:${t.getMessage}") *> ZIO.foreach(t.getStackTrace.toList)(s => log(s.toString))
           )
-          .unit
+          .ignore
       })(_ => {
         log(s"Do things in lock '${name}'") *>
         block

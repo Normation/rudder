@@ -52,7 +52,6 @@ import com.softwaremill.quicklens.ModifyPimp
 import doobie.*
 import doobie.implicits.*
 import org.joda.time.DateTime
-import scala.annotation.nowarn
 import zio.{System as _, *}
 import zio.interop.catz.*
 
@@ -134,7 +133,6 @@ class NodeStatusReportRepositoryImpl(
     } yield ()
   }
 
-  @nowarn
   override def getAll()(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = {
     cache.get
   }

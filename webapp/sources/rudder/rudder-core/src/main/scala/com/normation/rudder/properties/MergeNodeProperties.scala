@@ -357,9 +357,7 @@ object MergeNodeProperties {
       (k, NodePropertyHierarchy(mergedProp, obj :: d.hierarchy))
     }.toMap
 
-    defaults.filter(kv => fullyInherited.contains(kv._1))
-    ++ overrided
-    ++ properties.flatMap {
+    defaults.filter(kv => fullyInherited.contains(kv._1)) ++ overrided ++ properties.flatMap {
       case (k, v) => if (fromNodeOnly.contains(k)) Some((k, NodePropertyHierarchy(NodeProperty(v.config), Nil))) else None
     }
   }
