@@ -60,7 +60,6 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.*
 import com.typesafe.config.ConfigValue
 import com.typesafe.config.ConfigValueType
-import java.util.regex.Pattern
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.DispatchSnippet
@@ -225,7 +224,6 @@ class CreateOrUpdateGlobalParameterPopup(
   }
 
   ////////////////////////// fields for form ////////////////////////
-  private val patternName = Pattern.compile("[a-zA-Z0-9_]+");
 
   private val parameterName = new WBTextField("Name", change.previousGlobalParam.map(_.name).getOrElse("")) {
     override def setFilter      = notNull _ :: trim _ :: Nil
@@ -235,8 +233,7 @@ class CreateOrUpdateGlobalParameterPopup(
       case None        => super.inputField
     }) % ("onkeydown" -> "return processKey(event , 'createParameterSaveButton')") % ("tabindex" -> "1")
     override def validations    = {
-      valMinLen(1, "The name must not be empty") _ ::
-      valRegex(patternName, "The name can contain only letters, digits and underscore") _ :: Nil
+      valMinLen(1, "The name must not be empty") _ :: Nil
     }
   }
 
