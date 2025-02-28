@@ -77,10 +77,7 @@ update msg model =
                     processApiError ("Error while trying to " ++ requestTypeText t ++ " plugins") err model
 
         SetModalState modalState ->
-            ( model |> updatePluginsViewModel (setModalState modalState), Cmd.none )
-
-        ResetPluginListFromModal pluginsViewModel ->
-            ( model |> setView (ViewPluginsList pluginsViewModel), Cmd.none )
+            ( model |> updatePluginsView (setModalState modalState), Cmd.none )
 
         ReloadPage ->
             ( model, Browser.Navigation.reload )
@@ -101,23 +98,15 @@ update msg model =
 processSpecificApiError : String -> Detailed.Error String -> Model -> Maybe ( Model, Cmd Msg )
 processSpecificApiError msg err model =
     case err of
-        Detailed.BadStatus metadata body ->
+        Detailed.BadStatus metadata _ ->
             case metadata.statusCode of
                 401 ->
                     Just
-                        ( setSettingsError
-                            ( "There are credentials errors related to plugin management. Please refresh the list of plugins after you update your configuration credentials.", decodeErrorContent body )
-                            model
-                        , errorNotification msg
-                        )
+                        ( setSettingsError CredentialsError model, errorNotification msg )
 
                 403 ->
                     Just
-                        ( setSettingsError
-                            ( "There are configuration errors related to plugin management. Please refresh the list of plugins after you update your configuration URL or check your access.", decodeErrorContent body )
-                            model
-                        , errorNotification msg
-                        )
+                        ( setSettingsError ConfigurationError model, errorNotification msg )
 
                 502 ->
                     -- Bad Gateway may indicate that the server has probably restarted meanwhile to apply changes on plugins
@@ -157,7 +146,7 @@ processApiError msg err model =
                     m
 
         newModel =
-            setActionError ( msg, message ) model
+            processActionError ( msg, message ) model
     in
     -- specific error override other ones which no longer need to be processed
     processSpecificApiError msg err model

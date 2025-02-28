@@ -14,6 +14,10 @@ import Set exposing (Set)
 import Time exposing (Posix)
 
 
+type alias ContextPath =
+    String
+
+
 type alias UI =
     { loading : Bool
     , view : PluginsView
@@ -22,7 +26,6 @@ type alias UI =
 
 type alias PluginsViewModel =
     { plugins : Dict PluginId Plugin
-    , modalState : ModalState
     , filters : Filters
     , selected : Selected
     , installAction : PluginsAction
@@ -32,15 +35,26 @@ type alias PluginsViewModel =
     }
 
 
-type PluginsView
-    = ViewPluginsList PluginsViewModel
-    | ViewActionError ( String, String ) PluginsViewModel -- (message, details)
-    | ViewSettingError ( String, String )
+type alias PluginsView =
+    { viewModel : PluginsViewModel
+    , modalState : ModalState
+    , error : Maybe ViewError
+    }
+
+
+type ViewError
+    = ViewActionError ( String, String )
+    | ViewSettingsError PluginSettingsError
+
+
+type PluginSettingsError
+    = CredentialsError
+    | ConfigurationError
 
 
 type ModalState
     = OpenModal ModalAction PluginsActionExplanation
-    | ErrorModal ModalAction
+    | ErrorModal ModalAction ( String, String )
     | NoModal
 
 
@@ -69,7 +83,7 @@ type FilterByInstallStatus
 
 
 type alias Model =
-    { contextPath : String
+    { contextPath : ContextPath
     , license : Maybe LicenseGlobal
     , plugins : Dict PluginId Plugin
     , now : Posix
@@ -91,7 +105,6 @@ type Msg
     | ApiGetPlugins (Result (Http.Detailed.Error String) ( Http.Metadata, PluginMetadata ))
     | ApiPostPlugins RequestType (Result (Http.Detailed.Error String) ())
     | SetModalState ModalState
-    | ResetPluginListFromModal PluginsViewModel
     | ReloadPage
     | Copy String
     | CopyJson Value
@@ -162,23 +175,24 @@ applyFilters ({ search, installStatus, pluginType } as filters) initialPlugins m
     }
 
 
-updatePluginsViewModel : (PluginsViewModel -> PluginsViewModel) -> Model -> Model
-updatePluginsViewModel f ({ ui } as model) =
+updatePluginsView : (PluginsView -> PluginsView) -> Model -> Model
+updatePluginsView f ({ ui } as model) =
     model
         |> setUI
             { ui
-                | view =
-                    case ui.view of
-                        ViewPluginsList plugins ->
-                            ViewPluginsList <| f plugins
-
-                        _ ->
-                            ui.view
+                | view = f ui.view
             }
 
 
-setPluginsView : Dict PluginId Plugin -> PluginsViewModel -> PluginsViewModel
-setPluginsView plugins model =
+updatePluginsViewModel : (PluginsViewModel -> PluginsViewModel) -> Model -> Model
+updatePluginsViewModel f =
+    updatePluginsView (\v -> { v | viewModel = f v.viewModel })
+
+
+{-| Initialize with non selectable plugins and then set plugins
+-}
+setViewModelPlugins : Dict PluginId Plugin -> PluginsViewModel -> PluginsViewModel
+setViewModelPlugins plugins model =
     setNotSelectablePlugins plugins
         { model
             | plugins = plugins
@@ -191,7 +205,7 @@ processPlugins plugins =
         d =
             pluginsFromList plugins
     in
-    setPlugins d >> updatePluginsViewModel (setPluginsView d)
+    setPlugins d >> updatePluginsViewModel (setViewModelPlugins d)
 
 
 pluginsFromList : List Plugin -> Dict PluginId Plugin
@@ -204,7 +218,7 @@ setPlugins plugins model =
     { model | plugins = plugins }
 
 
-setModalState : ModalState -> PluginsViewModel -> PluginsViewModel
+setModalState : ModalState -> PluginsView -> PluginsView
 setModalState modalState model =
     { model | modalState = modalState }
 
@@ -224,36 +238,47 @@ setUI ui model =
     { model | ui = ui }
 
 
-setSettingsError : ( String, String ) -> Model -> Model
-setSettingsError error model =
+setSettingsError : PluginSettingsError -> Model -> Model
+setSettingsError error ({ ui } as model) =
     let
-        updateError ui =
-            { ui | view = ViewSettingError error, loading = False }
+        updateError v =
+            { v | error = Just <| ViewSettingsError error }
     in
-    { model | ui = updateError model.ui }
+    { model | ui = { ui | view = updateError ui.view, loading = False } }
 
 
-setActionError : ( String, String ) -> Model -> Model
-setActionError error ({ ui } as model) =
-    case ui.view of
-        ViewPluginsList ({ modalState } as pluginViewModel) ->
-            case modalState of
-                OpenModal action _ ->
-                    model |> setUI { ui | view = ViewActionError error { pluginViewModel | modalState = ErrorModal action }, loading = False }
+pluginSettingsError : PluginsView -> Maybe PluginSettingsError
+pluginSettingsError v =
+    case v.error of
+        Just (ViewSettingsError err) ->
+            Just err
 
-                _ ->
-                    model
+        _ ->
+            Nothing
 
-        ViewActionError _ ({ modalState } as pluginViewModel) ->
-            case modalState of
-                ErrorModal _ ->
-                    -- modal should be left open
-                    model |> setUI { ui | view = ViewActionError error pluginViewModel, loading = False }
 
-                _ ->
-                    model
+{-| Process an error : sets the modal to an error state and set the error
+-}
+processActionError : ( String, String ) -> Model -> Model
+processActionError error model =
+    model
+        |> updatePluginsView (setModalStateError error)
+        |> updatePluginsView (setActionError error)
+        |> setLoading False
 
-        ViewSettingError _ ->
+
+setActionError : ( String, String ) -> PluginsView -> PluginsView
+setActionError error model =
+    { model | error = Just <| ViewActionError error }
+
+
+setModalStateError : ( String, String ) -> PluginsView -> PluginsView
+setModalStateError error ({ modalState } as model) =
+    case modalState of
+        OpenModal action _ ->
+            { model | modalState = ErrorModal action error }
+
+        _ ->
             model
 
 

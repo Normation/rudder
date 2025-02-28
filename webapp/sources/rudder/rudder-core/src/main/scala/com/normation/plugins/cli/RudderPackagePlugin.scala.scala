@@ -149,16 +149,13 @@ trait RudderPackageService {
 
 object RudderPackageService {
 
-  // PluginSettings configuration could cause errors with known codes and colored stderr in rudder-package
+  // PluginSettings configuration could cause errors with known codes and stderr in rudder-package
   sealed abstract class PluginSettingsError extends RudderError
   object PluginSettingsError {
     final case class InvalidCredentials(override val msg: String) extends PluginSettingsError
     final case class Unauthorized(override val msg: String)       extends PluginSettingsError
 
-    private val colorRegex = "\u001b\\[[0-9;]*m".r
-    private val uncolor    = (str: String) => colorRegex.replaceAllIn(str, "")
-
-    private val sanitizeCmdResult = (res: CmdResult) => res.transform(uncolor.compose(_.strip))
+    private val sanitizeCmdResult = (res: CmdResult) => res.strip
 
     /**
       * Maps known errors codes from rudder package and adapt the error message to have no color
@@ -242,7 +239,7 @@ class RudderPackageCmdService(configCmdLine: String) extends RudderPackageServic
   private def runCmd(params: List[String]):                         IOResult[(Cmd, CmdResult)] = {
     for {
       configCmd   <- configCmdRes.toIO
-      cmd          = Cmd(configCmd._1, configCmd._2 ::: params, Map.empty, None)
+      cmd          = Cmd(configCmd._1, configCmd._2 ::: params, Map("NO_COLOR" -> "1"), None)
       packagesCmd <- RunNuCommand.run(cmd)
       result      <- packagesCmd.await
     } yield {

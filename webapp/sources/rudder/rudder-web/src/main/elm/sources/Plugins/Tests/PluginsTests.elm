@@ -4,7 +4,7 @@ import Dict
 import Expect exposing (..)
 import Fuzz exposing (..)
 import Plugins.Action exposing (..)
-import Plugins.DataTypes exposing (PluginsViewModel, pluginsFromList, setPluginsView)
+import Plugins.DataTypes exposing (PluginsViewModel, pluginsFromList, setViewModelPlugins)
 import Plugins.Init exposing (initPluginsViewModel)
 import Plugins.PluginData exposing (..)
 import Plugins.Select exposing (..)
@@ -90,7 +90,7 @@ fuzzPluginExpectAction msg toAction status pluginType license sel toExpectation 
 
                 viewModel =
                     initPluginsViewModel
-                        |> setPluginsView plugins
+                        |> setViewModelPlugins plugins
                         |> select (sel plugin.id) plugins
             in
             viewModel |> toAction |> toExpectation plugin
@@ -116,24 +116,24 @@ suite =
         [ describe "select valid plugins"
             [ -- install
               fuzz (list pluginFuzz) "initialize install action" <|
-                \plugins -> initPluginsViewModel |> setPluginsView (pluginsFromList plugins) |> .installAction |> Expect.equal initPluginsAction
+                \plugins -> initPluginsViewModel |> setViewModelPlugins (pluginsFromList plugins) |> .installAction |> Expect.equal initPluginsAction
             , fuzzSelectValidPlugin "allow installing uninstalled plugin" .installAction Uninstalled ActionInstall
             , fuzzSelectValidPlugin "allow upgrading already installed (enabled)" .installAction (Installed Enabled) ActionUpgrade
             , fuzzSelectValidPlugin "allow upgrading already installed (disabled)" .installAction (Installed Disabled) ActionUpgrade
 
             -- enable
             , fuzz (list pluginFuzz) "initialize enable action" <|
-                \plugins -> initPluginsViewModel |> setPluginsView (pluginsFromList plugins) |> .enableAction |> Expect.equal initPluginsAction
+                \plugins -> initPluginsViewModel |> setViewModelPlugins (pluginsFromList plugins) |> .enableAction |> Expect.equal initPluginsAction
             , fuzzSelectValidPlugin "allow enabling disabled plugin" .enableAction (Installed Disabled) ActionEnable
 
             -- disable
             , fuzz (list pluginFuzz) "initialize disable action" <|
-                \plugins -> initPluginsViewModel |> setPluginsView (pluginsFromList plugins) |> .disableAction |> Expect.equal initPluginsAction
+                \plugins -> initPluginsViewModel |> setViewModelPlugins (pluginsFromList plugins) |> .disableAction |> Expect.equal initPluginsAction
             , fuzzSelectValidPlugin "allow disabling enabled webapp plugin" .disableAction (Installed Enabled) ActionDisable
 
             -- uninstall
             , fuzz (list pluginFuzz) "initialize uninstall action" <|
-                \plugins -> initPluginsViewModel |> setPluginsView (pluginsFromList plugins) |> .disableAction |> Expect.equal initPluginsAction
+                \plugins -> initPluginsViewModel |> setViewModelPlugins (pluginsFromList plugins) |> .disableAction |> Expect.equal initPluginsAction
             , fuzzSelectValidPlugin "allow uninstalling enabled plugin" .uninstallAction (Installed Enabled) ActionUninstall
             , fuzzSelectValidPlugin "allow uninstalling disabled plugin" .uninstallAction (Installed Disabled) ActionUninstall
 

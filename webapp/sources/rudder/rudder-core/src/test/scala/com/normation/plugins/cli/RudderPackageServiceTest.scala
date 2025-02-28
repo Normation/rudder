@@ -53,7 +53,7 @@ class RudderPackageServiceTest extends Specification {
       val res = CmdResult(
         2,
         "",
-        "\u001b[31mERROR\u001b[0m Invalid credentials, please check your credentials in the configuration. (received HTTP 401)\n"
+        "ERROR Invalid credentials, please check your credentials in the configuration. (received HTTP 401)\n"
       )
       RudderPackageService.PluginSettingsError.fromResult(res).aka("PluginSettingsError from cmd result") must beRight(
         beSome(
@@ -67,7 +67,7 @@ class RudderPackageServiceTest extends Specification {
     }
     "handle unknown error code and message" in {
       RudderPackageService.PluginSettingsError.fromResult(
-        CmdResult(12345, "", "\u001b[31mERROR\u001b[0m Unknown error")
+        CmdResult(12345, "", "ERROR Unknown error")
       ) must beLeft(beLike[RudderError] { case err: Inconsistency => err.msg must contain("ERROR Unknown error") })
     }
   }

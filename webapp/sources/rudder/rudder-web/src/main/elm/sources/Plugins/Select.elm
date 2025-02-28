@@ -8,6 +8,7 @@ module Plugins.Select exposing
     , noSelected
     , select
     , selectedCount
+    , selectedSet
     , setNotSelectablePlugins
     )
 

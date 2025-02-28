@@ -13,9 +13,10 @@ import Plugins.Action exposing (Action(..), PluginsAction(..), PluginsActionExpl
 import Plugins.ApiCalls exposing (..)
 import Plugins.DataTypes exposing (..)
 import Plugins.PluginData exposing (..)
-import Plugins.Select exposing (Select(..), Selected, Selection(..), getSelection, isAllSelected, noSelected, selectedCount)
+import Plugins.Select exposing (Select(..), Selected, Selection(..), getSelection, isAllSelected, noSelected, selectedCount, selectedSet)
 import Set exposing (Set)
 import String.Extra
+import Time exposing (Posix)
 import Time.DateTime
 import Time.Iso8601
 import Time.TimeZones exposing (utc)
@@ -28,25 +29,17 @@ view model =
         [ div [ class "one-col w-100" ]
             [ div [ class "main-header" ]
                 [ div [ class "header-title d-flex justify-content-baseline" ]
-                    [ h1 []
-                        [ span [] [ text "Plugins management" ]
-                        ]
-                    , if model.ui.loading then
-                        text ""
-
-                      else
-                        displayMainLicense model
-                    ]
+                    (displayMainHeader model.ui.view model.license model.now model.ui.loading model.contextPath)
                 ]
             , div [ class "one-col-main" ]
                 [ div [ class "template-main" ]
                     [ div [ class "main-container" ]
-                        [ div [ class "main-details" ]
-                            (loadWithSpinner "spinner-border" model.ui.loading (displayPluginView model))
+                        [ div [ class "main-details pt-0" ]
+                            (loadWithSpinner "spinner-border" model.ui.loading [ displayPluginsView (Dict.size model.plugins) model.ui.view.viewModel ])
                         ]
                     ]
                 ]
-            , displayModal model
+            , displayModal model.ui model.plugins
             ]
         ]
 
@@ -72,6 +65,38 @@ checkAll plugins =
 
                 else
                     UnselectAll
+           )
+
+
+{-| PluginView is needed to display the error setting in the header, where it seems to be the most visible
+-}
+displayMainHeader : PluginsView -> Maybe LicenseGlobal -> Posix -> Bool -> ContextPath -> List (Html Msg)
+displayMainHeader v license now loading contextPath =
+    let
+        onSettingError c =
+            case c of
+                CredentialsError ->
+                    "There are credentials errors related to plugin management. Please refresh the list of plugins after you update your configuration credentials."
+
+                ConfigurationError ->
+                    "There are configuration errors related to plugin management. Please refresh the list of plugins after you update your configuration URL or check your access."
+
+        settingError =
+            pluginSettingsError v
+                |> Maybe.map (onSettingError >> text)
+                |> Maybe.withDefault (text "")
+    in
+    div [ class "d-flex flex-column" ]
+        [ h1 []
+            [ span [] [ text "Plugins management" ]
+            ]
+        , settingError
+        ]
+        :: (if loading then
+                []
+
+            else
+                [ displayMainLicense license now contextPath ]
            )
 
 
@@ -109,14 +134,15 @@ actionInstallUpgradeButton x =
             [ disabled (Maybe.Extra.isNothing install && Maybe.Extra.isNothing upgrade) ]
     in
     button
-        ([ class "btn btn-default mx-1"
+        ([ class "dropdown-item"
+         , type_ "button"
 
          -- we need action to be Install, since the Upgrade is just a user point-of-view
          , onClick (SetModalState (OpenModal ModalInstallUpgrade x))
          ]
             ++ disabledAttrs
         )
-        (installText ++ text " / " :: upgradeText ++ [ i [ class "fa fa-plus-circle ms-1" ] [] ])
+        (actionIcon ActionInstall :: (installText ++ text " / " :: upgradeText))
 
 
 displaySelectAll : Int -> PluginsViewModel -> List (Html Msg)
@@ -162,7 +188,7 @@ displaySelectAll totalCount { selected, plugins } =
 
 displayFilters : Filters -> List (Html Msg)
 displayFilters filters =
-    [ div [ class "form-group" ]
+    [ div [ class "plugins-actions-filters-search input-group input-group-sm" ]
         [ input
             [ class "form-control"
             , type_ "text"
@@ -175,13 +201,15 @@ displayFilters filters =
             ]
             []
         ]
-    , div [ class "form-group" ]
-        [ div [ class "btn-group", attribute "role" "group", attribute "aria-label" "Plugin Type Filter" ]
-            (pluginTypeRadioButtons filters)
-        ]
-    , div [ class "form-group" ]
-        [ div [ class "btn-group", attribute "role" "group", attribute "aria-label" "Install Status Filter" ]
-            (installStatusRadioButtons filters)
+    , div [ class "plugins-actions-filters-radio" ]
+        [ div [ class "input-group" ]
+            [ div [ class "btn-group btn-group-sm", attribute "role" "group", attribute "aria-label" "Plugin Type Filter" ]
+                (pluginTypeRadioButtons filters)
+            ]
+        , div [ class "input-group" ]
+            [ div [ class "btn-group btn-group-sm", attribute "role" "group", attribute "aria-label" "Install Status Filter" ]
+                (installStatusRadioButtons filters)
+            ]
         ]
     ]
 
@@ -227,17 +255,24 @@ radioButton groupName selected toMsg index ( labelText, value ) =
         , onClick (toMsg value)
         ]
         []
-    , label [ class "btn btn-outline-primary", Html.Attributes.for inputId ] [ text labelText ]
+    , label [ class "btn btn-outline-dark", for inputId ] [ text labelText ]
     ]
 
 
 displayActionButtons : PluginsViewModel -> List (Html Msg)
 displayActionButtons { selected, installAction, uninstallAction, enableAction, disableAction } =
-    [ button [ class "btn btn-primary me-1", onClick (CallApi updateIndex) ] [ i [ class "fa fa-refresh me-1" ] [], text "Refresh plugins" ]
-    , actionInstallUpgradeButton ((\(PluginsAction { explanation }) -> explanation) installAction)
-    , actionButton ActionUninstall selected uninstallAction
-    , actionButton ActionEnable selected enableAction
-    , actionButton ActionDisable selected disableAction
+    [ button [ class "btn btn-primary me-2", onClick (CallApi updateIndex) ] [ i [ class "fa fa-refresh me-1" ] [], text "Refresh plugins" ]
+    , div [ class "dropdown header-buttons" ]
+        [ button [ class "btn btn-default dropdown-toggle", attribute "data-bs-toggle" "dropdown", attribute "aria-expanded" "false" ]
+            [ text "Actions"
+            ]
+        , ul [ class "dropdown-menu" ]
+            [ li [] [ actionInstallUpgradeButton ((\(PluginsAction { explanation }) -> explanation) installAction) ]
+            , li [] [ actionButton ActionUninstall selected uninstallAction ]
+            , li [] [ actionButton ActionEnable selected enableAction ]
+            , li [] [ actionButton ActionDisable selected disableAction ]
+            ]
+        ]
     ]
 
 
@@ -257,7 +292,7 @@ actionButton action selected (PluginsAction { successCount, isActionDisabled, ex
             else
                 "/" ++ totalSelected
 
-        count =
+        textWithCount =
             text (actionText action ++ " ")
                 :: (if isActionDisabled then
                         []
@@ -277,21 +312,41 @@ actionButton action selected (PluginsAction { successCount, isActionDisabled, ex
             [ disabled isActionDisabled ]
     in
     button
-        ([ class "btn btn-default mx-1"
+        ([ class "dropdown-item"
+         , type_ "button"
          , onClick (SetModalState (OpenModal (actionToModal action) explanation))
          ]
             ++ disabledAttrs
         )
-        (count ++ [ actionIcon action ])
+        (actionIcon action :: textWithCount)
 
 
-displayPluginsList : Dict PluginId Plugin -> PluginsViewModel -> Html Msg
-displayPluginsList plugins pluginsModel =
-    if Dict.isEmpty plugins then
+hiddenSelectionWarning : Selected -> Set PluginId -> List (Html Msg)
+hiddenSelectionWarning selected plugins =
+    let
+        sel =
+            selectedSet selected
+
+        diff =
+            Set.diff sel plugins
+
+        countDiff =
+            Set.size diff
+    in
+    if countDiff > 0 then
+        [ em [ class "text-muted" ] [ i [ class "fa fa-info-circle me-2" ] [], text <| String.fromInt countDiff ++ " plugins are selected and hidden" ] ]
+
+    else
+        []
+
+
+displayPluginsView : Int -> PluginsViewModel -> Html Msg
+displayPluginsView totalPluginsCount pluginsModel =
+    if totalPluginsCount == 0 then
         i [ class "text-secondary" ] [ text "There are no plugins available." ]
 
     else
-        displayPluginsSection (Dict.size plugins) pluginsModel
+        displayPluginsSection totalPluginsCount pluginsModel
 
 
 displayPluginsSection : Int -> PluginsViewModel -> Html Msg
@@ -303,9 +358,9 @@ displayPluginsSection totalCount pluginsModel =
         listContent =
             div [ class "plugins-list" ]
                 (if List.isEmpty plugins then
-                    [ div [ class "plugins-list callout-fade callout-warning overflow-scroll" ]
+                    [ div [ class "plugins-list callout-fade callout-warning overflow-scroll text-warning" ]
                         [ i [ class "fa fa-exclamation-triangle me-2" ] []
-                        , em [] [ text "No plugins match your filters" ]
+                        , em [] [ text "No plugin matches your filters" ]
                         ]
                     ]
 
@@ -315,13 +370,15 @@ displayPluginsSection totalCount pluginsModel =
     in
     div [ class "main-table" ]
         [ div [ class "table-container plugins-container" ]
-            [ div [ class "dataTables_wrapper_top table-filter plugins-actions" ]
-                [ div [ class "plugins-actions-buttons" ]
-                    [ div [] (displaySelectAll totalCount pluginsModel)
-                    , div [] (displayActionButtons pluginsModel)
-                    ]
-                , div [ class "plugins-actions-filters" ]
-                    (displayFilters pluginsModel.filters)
+            [ div [ class "dataTables_wrapper_top sticky-top table-filter plugins-actions" ]
+                [ div [ class "plugins-actions-filters" ]
+                    (div [] (displaySelectAll totalCount pluginsModel)
+                        :: displayFilters pluginsModel.filters
+                    )
+                , div [ class "plugins-actions-buttons" ]
+                    (displayActionButtons pluginsModel)
+                , div [ class "plugins-actions-warning" ]
+                    (hiddenSelectionWarning pluginsModel.selected (plugins |> List.map .id |> Set.fromList))
                 ]
             , listContent
             ]
@@ -377,12 +434,13 @@ displayGlobalLicense now license =
             license.maxNodes |> Maybe.map String.fromInt |> Maybe.withDefault "Unlimited"
     in
     ul []
-        [ li [ class "d-inline-block" ] [ span [ class "fw-normal" ] [ text "Licensee: " ], text licensees, text ", ", span [ class "fw-normal" ] [ text "Allowed number of nodes: " ], text nbNodes ]
+        [ li [ class "d-inline-block" ] [ span [ class "fw-normal" ] [ text "Licensee: " ], text licensees ]
+        , li [ class "d-inline-block" ] [ span [ class "fw-normal" ] [ text "Allowed number of nodes: " ], text nbNodes ]
         , li [ class "d-inline-block" ] (span [ class "fw-normal" ] [ text "Validity period: " ] :: validityPeriod)
         ]
 
 
-displaySettingError : String -> String -> Maybe String -> Html Msg
+displaySettingError : ContextPath -> String -> Maybe String -> Html Msg
 displaySettingError contextPath message details =
     let
         seeDetailsBtnHtml =
@@ -412,34 +470,18 @@ displaySettingError contextPath message details =
         ]
 
 
-displayMainLicense : Model -> Html Msg
-displayMainLicense model =
-    case model.license of
+displayMainLicense : Maybe LicenseGlobal -> Posix -> ContextPath -> Html Msg
+displayMainLicense license now contextPath =
+    case license of
         Nothing ->
-            displaySettingError model.contextPath "No license found. Please contact Rudder to get license or configure your access" Nothing
+            displaySettingError contextPath "No license found. Please contact Rudder to get license or configure your access" Nothing
 
-        Just license ->
-            if license == noGlobalLicense then
-                displaySettingError model.contextPath "Empty license found. Please contact Rudder to get license or configure your access" Nothing
+        Just l ->
+            if l == noGlobalLicense then
+                displaySettingError contextPath "Empty license found. Please contact Rudder to get license or configure your access" Nothing
 
             else
-                displayGlobalLicense (ZonedDateTime.fromPosix utc model.now) license
-
-
-displayPluginView : Model -> List (Html Msg)
-displayPluginView model =
-    case model.ui.view of
-        ViewSettingError ( message, details ) ->
-            [ displaySettingError model.contextPath message (Just details) ]
-
-        ViewActionError _ pluginsModel ->
-            -- error is already dislayed in modal
-            [ displayPluginsList model.plugins pluginsModel
-            ]
-
-        ViewPluginsList pluginsModel ->
-            [ displayPluginsList model.plugins pluginsModel
-            ]
+                displayGlobalLicense (ZonedDateTime.fromPosix utc now) l
 
 
 pluginBadge : Plugin -> List (Html msg)
@@ -533,8 +575,8 @@ displayPlugin pluginsModel p =
         ]
 
 
-buildErrorModal : PluginsViewModel -> String -> ( String, String ) -> Html Msg
-buildErrorModal pluginsViewModel title ( message, details ) =
+buildErrorModal : String -> ( String, String ) -> Html Msg
+buildErrorModal title ( message, details ) =
     let
         seeDetailsBtnHtml =
             a
@@ -545,12 +587,12 @@ buildErrorModal pluginsViewModel title ( message, details ) =
             div [ class "collapse", id "collapseSettingsError" ] [ div [ class "card card-body" ] [ pre [ class "command-output" ] [ text details ] ] ]
     in
     div [ class "modal modal-plugins fade show", style "display" "block" ]
-        [ div [ class "modal-backdrop fade show", onClick (ResetPluginListFromModal pluginsViewModel) ] []
+        [ div [ class "modal-backdrop fade show", onClick (SetModalState NoModal) ] []
         , div [ class "modal-dialog modal-dialog-scrollable" ]
             [ div [ class "modal-content" ]
                 [ div [ class "modal-header" ]
                     [ h2 [ class "fs-5 modal-title" ] [ text title ]
-                    , button [ type_ "button", class "btn-close", onClick (ResetPluginListFromModal pluginsViewModel) ] []
+                    , button [ type_ "button", class "btn-close", onClick (SetModalState NoModal) ] []
                     ]
                 , div [ class "modal-body" ]
                     [ div [ class "callout-fade callout-danger overflow-scroll" ]
@@ -560,7 +602,7 @@ buildErrorModal pluginsViewModel title ( message, details ) =
                         ]
                     ]
                 , div [ class "modal-footer" ]
-                    [ button [ type_ "button", class "btn btn-default", onClick (ResetPluginListFromModal pluginsViewModel) ] [ text "Close" ]
+                    [ button [ type_ "button", class "btn btn-default", onClick (SetModalState NoModal) ] [ text "Close" ]
                     ]
                 ]
             ]
@@ -605,7 +647,7 @@ modalTitle action =
 
 
 modalBody : ModalAction -> PluginsActionExplanation -> Dict PluginId Plugin -> Html Msg
-modalBody action explanation plugins =
+modalBody action explanation allPlugins =
     let
         doAction act =
             String.Extra.decapitalize (modalActionText act)
@@ -621,7 +663,7 @@ modalBody action explanation plugins =
 
         pluginListGroupItem p =
             li [ class "list-group-item" ]
-                (case Dict.get p plugins of
+                (case Dict.get p allPlugins of
                     Just { id, description } ->
                         [ text description
                         , text " "
@@ -698,46 +740,36 @@ modalBody action explanation plugins =
             div [] (displaySuccess install actionInstallText ++ [ p [] [ text <| "and upgrade " ++ String.fromInt (Set.size upgrade) ++ " plugins :" ], successHtml upgrade ] ++ displayError warning errorInstallUpgradeText)
 
 
-displayModal : Model -> Html Msg
-displayModal model =
-    case model.ui.view of
-        ViewSettingError _ ->
+displayModal : UI -> Dict PluginId Plugin -> Html Msg
+displayModal ({ loading } as v) allPlugins =
+    case v.view.modalState of
+        OpenModal action explanation ->
+            buildModal loading (modalTitle action) (modalBody action explanation allPlugins) (RequestApi (actionRequestType action) (successPluginsFromExplanation explanation))
+
+        ErrorModal action errDetails ->
+            buildErrorModal (modalTitle action) errDetails
+
+        NoModal ->
             text ""
-
-        ViewActionError errDetails pluginsModel ->
-            case pluginsModel.modalState of
-                ErrorModal action ->
-                    buildErrorModal pluginsModel (modalTitle action) errDetails
-
-                _ ->
-                    text ""
-
-        ViewPluginsList pluginsModel ->
-            case pluginsModel.modalState of
-                OpenModal action explanation ->
-                    buildModal model.ui.loading (modalTitle action) (modalBody action explanation pluginsModel.plugins) (RequestApi (actionRequestType action) (successPluginsFromExplanation explanation))
-
-                _ ->
-                    text ""
 
 
 actionIcon : Action -> Html Msg
 actionIcon action =
     case action of
         ActionInstall ->
-            i [ class "fa fa-plus-circle ms-1" ] [] 
+            i [ class "fa fa-plus-circle" ] []
 
         ActionUpgrade ->
-            i [ class "fa fa-plus-circle ms-1" ] [] 
+            i [ class "fa fa-plus-circle" ] []
 
         ActionEnable ->
-            i [ class "fa fa-check-circle ms-1" ] [] 
+            i [ class "fa fa-check-circle" ] []
 
         ActionDisable ->
-            i [ class "fa fa-ban ms-1" ] [] 
+            i [ class "fa fa-ban" ] []
 
         ActionUninstall ->
-            i [ class "fa fa-minus-circle ms-1" ] [] 
+            i [ class "fa fa-minus-circle" ] []
 
 
 loadWithSpinner : String -> Bool -> List (Html Msg) -> List (Html Msg)

@@ -19,7 +19,7 @@ init flags =
     let
         initUI : UI
         initUI =
-            { loading = True, view = ViewPluginsList initPluginsViewModel }
+            { loading = True, view = { viewModel = initPluginsViewModel, error = Nothing, modalState = NoModal } }
 
         initModel : Model
         initModel =
@@ -44,7 +44,6 @@ initPluginsViewModel : PluginsViewModel
 initPluginsViewModel =
     { plugins = Dict.empty
     , selected = noSelected
-    , modalState = NoModal
     , filters = initFilters
     , installAction = initPluginsAction
     , enableAction = initPluginsAction
