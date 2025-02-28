@@ -112,22 +112,46 @@ $spinner-height-sm: $spinner-width-sm;
 }
 
 .header-title {
+  & > :first-child {
+    display: flex;
+    flex-direction: column;
+  }
+
   & ul {
     max-width: 30vw;
     margin-bottom: 0;
     text-align: right;
     font-weight: 300;
     font-style: italic;
+
+    & li {
+      width: 100%;
+    }
   }
 }
 
 .plugins-container {
   $default-font-size: 0.86em;
+  $main-details-lr-padding: 15px;
+  position: absolute;
+  top: 0;
+  right: $main-details-lr-padding;
+  left: $main-details-lr-padding;
+  bottom: 0;
 
   & .plugins-actions {
     display: flex;
-    flex-direction: column;
-    border-bottom: 2px solid $rudder-border-color-default !important; // in combination with datatable classes
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+
+    // in combination with datatable classes
+    &.table-filter {
+      border-bottom: 2px solid $rudder-border-color-default !important;
+      padding-bottom: 10px !important;
+      border-top: 0 !important;
+      margin-top: 0 !important;
+    }
 
     & .btn {
       font-size: $default-font-size;
@@ -135,29 +159,42 @@ $spinner-height-sm: $spinner-width-sm;
       min-width: 4.8rem;
     }
 
-    & .plugins-actions-buttons {
-      width: 100%;
+    & .plugins-actions-filters {
       display: flex;
       flex-wrap: nowrap;
       justify-content: space-between;
 
       & :first-child {
-        flex: 1 1 auto;
+        flex: 0 0 160px;
       }
 
-      & :last-child {
-        flex: 0 1 auto;
+      & .plugins-actions-filters-search  {
+        flex: 0 0 20%;
+      }
+
+      & .plugins-actions-filters-radio {
+        opacity: 0.85;
+        display: flex;
+        justify-content: space-between;
+
+        & :first-child {
+          margin-right: 2em;
+        }
       }
     }
 
-    & .plugins-actions-filters {
-      width: 100%;
+    & .plugins-actions-buttons {
+      margin-left: auto;
+      overflow: visible;
       display: flex;
-      margin-top: 0.4em;
+      flex-wrap: nowrap;
+      justify-content: space-between;
+    }
 
-      & .form-group:not(:first-child) {
-        margin-left: 1em;
-      }
+    & .plugins-actions-warning {
+      width: 100%;
+      font-size: 12px;
+      margin-top: 0.5em;
     }
   }
 

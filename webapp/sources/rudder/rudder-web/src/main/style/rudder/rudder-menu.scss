@@ -422,8 +422,11 @@ header.main-header .logo-lg img{
   margin-top: -7px
 }
 
-.dropdown-menu>li>a > .fa, .dropdown-menu>li>a > .ion {
-  margin-right: 10px
+.dropdown-menu>li>a,
+.dropdown-menu>li>button {
+  & > .fa, & > .ion {
+    margin-right: 10px
+  }
 }
 
 .navbar-nav .notifications-menu>.dropdown-menu,
