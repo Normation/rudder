@@ -78,7 +78,7 @@ final case class AbiVersion(value: Version) extends AnyVal
 final case class PluginVersion(value: Version) extends AnyVal
 
 /**
-  * Main datatype for a plugin object which enforces the errors 
+  * Main datatype for a plugin object which enforces the errors
   * that can be associated with the plugin (on license, version, ...).
   */
 final case class Plugin(
@@ -196,7 +196,7 @@ sealed abstract class GlobalPluginsLicense[EndDate](
   }
 
   private[GlobalPluginsLicense] def sortDistinctLicensees: GlobalPluginsLicense[EndDate] = {
-    withLicensees(licensees.map(_.sorted.distinct).flatMap(NonEmptyChunk.fromChunk))
+    withLicensees(licensees.map(_.sorted.distinct).flatMap(NonEmptyChunk.fromChunk(_)))
   }
 
   protected def withLicensees(licensees: Option[NonEmptyChunk[String]]): GlobalPluginsLicense[EndDate] = {

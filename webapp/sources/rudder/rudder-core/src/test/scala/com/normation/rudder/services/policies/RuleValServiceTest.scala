@@ -225,7 +225,7 @@ class RuleValServiceTest extends Specification {
           vars.get(ComponentId(reportKeysVariableName("component1"), "component1" :: "root section" :: Nil, None)) match {
             case None           => ko(s"Excepted variable variable_component1, but got nothing. The variables are ${variables}")
             case Some(variable) =>
-              variable.values.size === 3 and
+              variable.values.size === 3
               variable.values === Seq("variable_component1", "variable_component1one", "variable_component1two")
           }
       }

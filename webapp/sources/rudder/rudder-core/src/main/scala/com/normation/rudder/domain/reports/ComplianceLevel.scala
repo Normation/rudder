@@ -38,7 +38,6 @@
 package com.normation.rudder.domain.reports
 
 import com.normation.rudder.domain.reports.ComplianceLevel.PERCENT_PRECISION
-import com.normation.rudder.domain.reports.CompliancePrecision.Level0
 import com.normation.rudder.domain.reports.CompliancePrecision.Level2
 import io.scalaland.chimney.*
 import net.liftweb.common.*
@@ -89,7 +88,7 @@ final case class CompliancePercent(
     nonCompliant:       Double = 0,
     auditError:         Double = 0,
     badPolicyMode:      Double = 0
-)(val precision: CompliancePrecision = Level0) {
+) {
   val compliance: Double = success + repaired + notApplicable + compliant + auditNotApplicable
 }
 
@@ -131,7 +130,7 @@ object CompliancePercent {
     ).map(_.level)
   }
   { // maintenance sanity check between dimension
-    List(ComplianceLevel(), CompliancePercent()()).foreach { inst =>
+    List(ComplianceLevel(), CompliancePercent()).foreach { inst =>
       // product arity only compare first arg list
       if (inst.productArity != WORSE_ORDER.length) {
         throw new IllegalArgumentException(
@@ -161,7 +160,7 @@ object CompliancePercent {
   def fromLevels(c: ComplianceLevel, precision: CompliancePrecision): CompliancePercent = {
     val total = c.total
     if (total == 0) { // special case: let it be 0
-      CompliancePercent()(precision)
+      CompliancePercent()
     } else {
       // these depend on the precision
       val diviser = divisers(precision.precision)
@@ -333,9 +332,7 @@ object CompliancePercent {
         s" not the expected length of ${expected}, this is a code bug, please report it: + ${pc}"
       )
     } else {
-      CompliancePercent(pc(0), pc(1), pc(2), pc(3), pc(4), pc(5), pc(6), pc(7), pc(8), pc(9), pc(10), pc(11), pc(12), pc(13))(
-        precision
-      )
+      CompliancePercent(pc(0), pc(1), pc(2), pc(3), pc(4), pc(5), pc(6), pc(7), pc(8), pc(9), pc(10), pc(11), pc(12), pc(13))
     }
   }
 }
@@ -603,18 +600,27 @@ final case class ComplianceSerializable(
 
 object ComplianceSerializable {
 
-  // A ComplianceSerializable with all field set to OptPosNum.none
-  def empty = {
-    import shapeless.syntax.sized.*
-    val x = Array.fill(14)(OptPosNum.none).toList
-    ComplianceSerializable.apply.tupled(x.sized(14).map(_.tupled).get)
-  }
+  val empty: ComplianceSerializable = ComplianceSerializable(
+    applying = OptPosNum.none,
+    successNotApplicable = OptPosNum.none,
+    successAlreadyOK = OptPosNum.none,
+    successRepaired = OptPosNum.none,
+    error = OptPosNum.none,
+    auditCompliant = OptPosNum.none,
+    auditNonCompliant = OptPosNum.none,
+    auditError = OptPosNum.none,
+    auditNotApplicable = OptPosNum.none,
+    unexpectedUnknownComponent = OptPosNum.none,
+    unexpectedMissingComponent = OptPosNum.none,
+    noReport = OptPosNum.none,
+    reportsDisabled = OptPosNum.none,
+    badPolicyMode = OptPosNum.none
+  )
 
   implicit val codecComplianceSerializable:     JsonCodec[ComplianceSerializable]                      = DeriveJsonCodec.gen
   implicit val transformComplianceSerializable: Transformer[ComplianceSerializable, CompliancePercent] = {
     Transformer
       .define[ComplianceSerializable, CompliancePercent]
-      .withFieldConst(_.precision, Level0)
       .withFieldRenamed(_.applying, _.pending)
       .withFieldRenamed(_.successNotApplicable, _.notApplicable)
       .withFieldRenamed(_.successAlreadyOK, _.success)
