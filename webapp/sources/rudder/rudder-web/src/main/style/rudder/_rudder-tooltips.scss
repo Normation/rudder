@@ -1,0 +1,150 @@
+@use 'rudder-variables' as *;
+
+/* create a stacking context for elements with > .tool-tips */
+*:has(.tool-tip) {
+    position: relative;
+
+    /* when those parent elements have focus, hover, etc */
+    &:is(:hover, :focus-visible, :active) > .tool-tip {
+      opacity: 1;
+      transition-delay: 100ms;
+    }
+}
+
+.tool-tip {
+  $p-inline: 10px;
+  $p-block: 10px;
+  $triangle-size: 7px;
+  $bg: #fff;
+  $shadow-alpha: 15%;
+
+  $isRTL: -1;
+
+  $bottom-tip: conic-gradient(from -30deg at bottom, #0000, #000 1deg 60deg, #0000 61deg) bottom / 100% 50% no-repeat;
+  $top-tip: conic-gradient(from 150deg at top, #0000, #000 1deg 60deg, #0000 61deg) top / 100% 50% no-repeat;
+  $right-tip: conic-gradient(from -120deg at right, #0000, #000 1deg 60deg, #0000 61deg) right / 50% 100% no-repeat;
+  $left-tip: conic-gradient(from 60deg at left, #0000, #000 1deg 60deg, #0000 61deg) left / 50% 100% no-repeat;
+
+  $x: 0;
+  $y: 0;
+  pointer-events: none;
+  user-select: none;
+
+  opacity: 0;
+  transform: translateX($x) translateY($y);
+  transition: opacity .2s ease, transform .2s ease;
+
+  position: absolute;
+  z-index: 1;
+  inline-size: max-content;
+  max-width: 450px;
+  text-align: start;
+  font-size: 1rem;
+  font-weight: normal;
+  line-height: initial;
+  padding: $p-block $p-inline;
+  margin: 0;
+  border-radius: 5px;
+  background: $bg;
+  will-change: filter;
+  color: $rudder-txt-primary;
+  filter:
+    drop-shadow(0 3px 3px hsl(0, 0%, 0%, $shadow-alpha))
+    drop-shadow(0 12px 12px hsl(0, 0%, 0%, $shadow-alpha));
+
+  &:dir(rtl) {
+    $isRTL: 1;
+  }
+
+  /* tooltip shape is a pseudo element so we can cast a shadow */
+  &::after {
+    content: "";
+    background: $bg;
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    $tip:$bottom-tip;
+    mask: $tip;
+  }
+
+  /* TOP || BLOCK START */
+  &:is([tip-position="top"], [tip-position="block-start"], :not([tip-position])) {
+    inset-inline-start: 50%;
+    inset-block-end: calc(100% + $p-block + $triangle-size);
+    $x: calc(50% * $isRTL);
+
+    @media (prefers-reduced-motion: no-preference) {
+      @nest :has(> &):not(:hover, :active) .tool-tip {
+        $y: 3px;
+      }
+    }
+
+    &::after {
+      $tip: $bottom-tip;
+      inset-block-end: calc($triangle-size * -1);
+      border-block-end: $triangle-size solid transparent;
+    }
+  }
+
+  /* RIGHT || INLINE END */
+  &:is([tip-position="right"], [tip-position="inline-end"]) {
+    inset-inline-start: calc(100% + $p-inline + $triangle-size);
+    inset-block-end: 50%;
+    $y: 50%;
+
+    @media (prefers-reduced-motion: no-preference) {
+      @nest :has(> &):not(:hover, :active) .tool-tip {
+        $x: calc($isRTL * -3px * -1);
+      }
+    }
+
+    &::after {
+      $tip: $left-tip;
+      inset-inline-start: calc($triangle-size * -1);
+      border-inline-start: $triangle-size solid transparent;
+    }
+
+    &:dir(rtl)::after {
+      $tip: $right-tip;
+    }
+  }
+
+  /* BOTTOM || BLOCK END */
+  &:is([tip-position="bottom"], [tip-position="block-end"]) {
+    inset-inline-start: 0%;
+    inset-block-start: calc(100% + $p-block + $triangle-size);
+    $x: calc(50% * $isRTL);
+
+    @media (prefers-reduced-motion: no-preference) {
+      @nest :has(> &):not(:hover, :active) .tool-tip {
+        $y: -3px;
+      }
+    }
+
+    &::after {
+      $tip: $top-tip;
+      inset-block-start: calc($triangle-size * -1);
+      border-block-start: $triangle-size solid transparent;
+    }
+  }
+
+  /* LEFT || INLINE START */
+  &:is([tip-position="left"], [tip-position="inline-start"]) {
+    inset-inline-end: calc(100% + $p-inline + $triangle-size);
+    inset-block-end: 50%;
+    $y: 50%;
+    @media (prefers-reduced-motion: no-preference) {
+      @nest :has(> &):not(:hover, :active) .tool-tip {
+        $x: calc($isRTL * 3px * -1);
+      }
+    }
+    &::after {
+      $tip: $right-tip;
+      inset-inline-end: calc($triangle-size * -1);
+      border-inline-end: $triangle-size solid transparent;
+    }
+    &:dir(rtl)::after {
+      $tip: $left-tip;
+    }
+  }
+}
