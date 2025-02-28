@@ -54,7 +54,7 @@ type alias DatePickerInfo =
 
 type alias Filters =
     { tableFilters : TableFilters SortBy
-    , authType : String
+    , authType : Maybe AuthorizationType
     }
 
 type alias UI =
@@ -71,9 +71,9 @@ type alias Account =
     { id : String
     , name : String
     , description : String
-    , authorisationType : String
+    , authorizationType : AuthorizationType
     , kind : String
-    , enabled : Bool
+    , status : AccountStatus
     , creationDate : String
     , token : Token
     , tokenGenerationDate : Maybe String
@@ -82,6 +82,18 @@ type alias Account =
     , tenantMode : TenantMode
     , selectedTenants : Maybe (List String) -- non empty list only
     }
+
+
+type AuthorizationType
+    = None
+    | RO
+    | RW
+    | ACL
+
+
+type AccountStatus
+    = Enabled
+    | Disabled
 
 
 type ExpirationPolicy 
@@ -129,6 +141,50 @@ type Msg
     | AdjustTimeZone Zone
     | Tick Posix
 
+
+accountStatusText : AccountStatus -> String
+accountStatusText status =
+    case status of
+        Enabled ->
+            "enabled"
+
+        Disabled ->
+            "disabled"
+
+
+authorizationTypeText : AuthorizationType -> String
+authorizationTypeText arg =
+    case arg of
+        None ->
+            "none"
+
+        RO ->
+            "ro"
+
+        RW ->
+            "rw"
+
+        ACL ->
+            "acl"
+
+
+authorizationTypeFromText : String -> Maybe AuthorizationType
+authorizationTypeFromText arg =
+    case arg of
+        "none" ->
+            Just None
+
+        "ro" ->
+            Just RO
+
+        "rw" ->
+            Just RW
+
+        "acl" ->
+            Just ACL
+
+        _ ->
+            Nothing
 
 
 expirationDate : ExpirationPolicy -> Maybe Posix

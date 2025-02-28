@@ -589,7 +589,11 @@ class LDAPDiffMapper(
                                 }
                               case A_API_TOKEN                   =>
                                 nonNull(diff, mod.getOptValueDefault("")) { (d, value) =>
-                                  d.copy(modToken = Some(SimpleDiff(oldAccount.token.flatMap(_.exposeHash()).getOrElse(""), value)))
+                                  d.copy(modToken = {
+                                    Some(
+                                      SimpleDiff(oldAccount.accountToken.flatMap(_.hash).flatMap(_.exposeHash()).getOrElse(""), value)
+                                    )
+                                  })
                                 }
                               case A_DESCRIPTION                 =>
                                 nonNull(diff, mod.getOptValueDefault("")) { (d, value) =>
@@ -608,8 +612,8 @@ class LDAPDiffMapper(
                                 }
                               case A_API_EXPIRATION_DATETIME     =>
                                 val expirationDate = oldAccount.kind match {
-                                  case PublicApi(_, date) => date
-                                  case _                  => None
+                                  case PublicApi(_, policy) => policy.expirationDate
+                                  case _                    => None
                                 }
                                 val diffDate       = {
                                   try {

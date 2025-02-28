@@ -101,7 +101,7 @@ displayModal model =
 
               Just account ->
                   let
-                      displayAclPlugin = account.authorisationType == "acl" && model.aclPluginEnabled
+                      displayAclPlugin = account.authorizationType == ACL && model.aclPluginEnabled
                       displayTenants   = account.tenantMode == ByTenants && model.tenantsPluginEnabled
 
                       ( expirationText, selectedDate ) =
@@ -216,10 +216,10 @@ displayModal model =
                               ]
                           , div [ class "form-group" ]
                               [ label [ for "newAccount-access" ] [ text "Access level" ]
-                              , select [ id "newAccount-access", class "form-select", onInput (\s -> UpdateAccountForm { account | authorisationType = s }) ]
-                                  [ option [ value "ro", selected (account.authorisationType == "ro") ] [ text "Read only" ]
-                                  , option [ value "rw", selected (account.authorisationType == "rw") ] [ text "Full access" ]
-                                  , option [ value "acl", selected (account.authorisationType == "acl"), disabled (not model.aclPluginEnabled) ]
+                              , select [ id "newAccount-access", class "form-select", onInput (authorizationTypeFromText >> Maybe.map (\s -> UpdateAccountForm { account | authorizationType = s }) >> Maybe.withDefault Ignore) ]
+                                  [ option [ value "ro", selected (account.authorizationType == RO) ] [ text "Read only" ]
+                                  , option [ value "rw", selected (account.authorizationType == RW) ] [ text "Full access" ]
+                                  , option [ value "acl", selected (account.authorizationType == ACL), disabled (not model.aclPluginEnabled) ]
                                       [ text
                                           ("Custom ACL"
                                               ++ (if model.aclPluginEnabled then

@@ -79,10 +79,10 @@ view model =
                                                                 filters =
                                                                     model.ui.filters
                                                             in
-                                                            UpdateFilters { filters | authType = authType }
+                                                            UpdateFilters { filters | authType = authorizationTypeFromText authType }
                                                         )
                                                     ]
-                                                    [ option [ selected True, value model.ui.filters.authType, disabled True ] [ text "Filter on access level" ]
+                                                    [ option [ selected True, value (model.ui.filters.authType |> Maybe.map authorizationTypeText |> Maybe.withDefault ""), disabled True ] [ text "Filter on access level" ]
                                                     , option [ value "" ] [ text "All accounts" ]
                                                     , option [ value "none" ] [ text "No access" ]
                                                     , option [ value "ro" ] [ text "Read only" ]
