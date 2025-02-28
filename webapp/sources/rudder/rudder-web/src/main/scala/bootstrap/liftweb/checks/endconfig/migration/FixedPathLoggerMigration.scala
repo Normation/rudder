@@ -132,13 +132,15 @@ class FixedPathLoggerMigration extends BootstrapChecks {
     val logbackFile = better.files.File(logbackPath)
     val xml         = ConstructingParser.fromFile(logbackFile.toJava, true).document()
 
-    val shouldMigrateLogback = xml \ "if" match {
-      case NodeSeq.Empty => true
+    val shouldMigrateLogback = xml \\ "if" match {
+      case NodeSeq.Empty =>
+        true
       case nodes         =>
         nodes \\ "appender" match {
-          case NodeSeq.Empty => true
+          case NodeSeq.Empty =>
+            true
           case appenders     =>
-            appenders.exists(_.attribute("name").exists(_.exists(_.text == "STDOUT")))
+            appenders.find(_.attribute("name").exists(_.exists(_.text == "STDOUT"))).isEmpty
         }
     }
 
@@ -146,7 +148,8 @@ class FixedPathLoggerMigration extends BootstrapChecks {
       val newLogback = migrateLogback(xml)
       val backPath   = logbackFile.parent / s"logback.xml-backup-${DateFormaterService.serialize(DateTime.now())}"
 
-      logbackFile.copyTo(backPath)
+      // In case file already exists
+      logbackFile.copyTo(backPath, overwrite = true)
 
       BootstrapLogger.logEffect.info(
         s"Migrating logback.xml to new format. A backup of previous file is available at ${backPath.pathAsString}"
