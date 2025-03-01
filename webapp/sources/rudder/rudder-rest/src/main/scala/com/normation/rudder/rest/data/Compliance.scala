@@ -48,6 +48,7 @@ import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.repository.FullActiveTechnique
 import enumeratum.*
+import io.scalaland.chimney.Transformer
 import java.lang
 import net.liftweb.json.*
 import net.liftweb.json.JsonAST
@@ -55,6 +56,8 @@ import net.liftweb.json.JsonDSL.*
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.QuoteMode
 import scala.collection.immutable
+import zio.json.DeriveJsonEncoder
+import zio.json.JsonEncoder
 
 /**
  * Here, we want to present two views of compliance:
@@ -128,6 +131,35 @@ final case class ByDirectiveByNodeRuleCompliance(
     policyMode: Option[PolicyMode],
     components: Seq[ByRuleByNodeByDirectiveByComponentCompliance]
 )
+
+final case class ByNodeGroupFullCompliance(
+    id:       String,
+    name:     String,
+    category: String,
+    global:   GenericCompliance,
+    targeted: GenericCompliance
+)
+
+final case class GenericCompliance(
+    id:                String,
+    name:              String,
+    compliance:        ComplianceLevel,
+    mode:              ComplianceModeName,
+    complianceDetails: ComplianceSerializable
+)
+object GenericCompliance {
+  implicit def transformByNodeGroupCompliance(implicit
+      precision: CompliancePrecision
+  ): Transformer[ByNodeGroupCompliance, GenericCompliance] = {
+    Transformer
+      .define[ByNodeGroupCompliance, GenericCompliance]
+      .withFieldComputed(
+        _.complianceDetails,
+        b => ComplianceSerializable.fromPercent(CompliancePercent.fromLevels(b.compliance, precision))
+      )
+      .buildTransformer
+  }
+}
 
 final case class ByNodeGroupCompliance(
     id:         String,
@@ -511,6 +543,18 @@ object CsvCompliance {
 }
 
 object JsonCompliance {
+  implicit val complianceModeNameEncoder:     JsonEncoder[ComplianceModeName]     = JsonEncoder[String].contramap(_.name)
+  implicit val complianceSerializableEncoder: JsonEncoder[ComplianceSerializable] = DeriveJsonEncoder.gen[ComplianceSerializable]
+
+  class ComplianceEncoders(implicit val precision: CompliancePrecision) {
+    implicit val complianceLevelEncoder:           JsonEncoder[ComplianceLevel]           = {
+      JsonEncoder[Double].contramap(_.complianceWithoutPending(precision))
+    }
+    implicit val genericComplianceEncoder:         JsonEncoder[GenericCompliance]         =
+      DeriveJsonEncoder.gen[GenericCompliance]
+    implicit val byNodeGroupFullComplianceEncoder: JsonEncoder[ByNodeGroupFullCompliance] =
+      DeriveJsonEncoder.gen[ByNodeGroupFullCompliance]
+  }
 
   // global compliance
   implicit class JsonGlobalCompliance(val optCompliance: Option[(ComplianceLevel, Long)]) extends AnyVal {

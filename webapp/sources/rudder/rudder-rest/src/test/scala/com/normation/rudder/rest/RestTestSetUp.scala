@@ -955,6 +955,7 @@ class RestTestSetUp {
     campaignApiModule.api,
     new ComplianceApi(
       restExtractorService,
+      zioJsonExtractor,
       complianceService.complianceAPIService,
       mockDirectives.directiveRepo
     )

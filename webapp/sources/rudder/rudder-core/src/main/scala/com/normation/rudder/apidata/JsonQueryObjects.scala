@@ -37,6 +37,7 @@
 
 package com.normation.rudder.apidata
 
+import cats.syntax.traverse.*
 import com.normation.GitVersion
 import com.normation.GitVersion.ParseRev
 import com.normation.GitVersion.Revision
@@ -59,6 +60,7 @@ import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.queries.NodeReturnType
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
+import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
@@ -620,6 +622,16 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
         params.optGet("category").map(NodeGroupCategoryId.apply),
         source
       )
+    }
+  }
+
+  def extractCompliancePrecisionFromParams(params: Map[String, List[String]]): PureResult[Option[CompliancePrecision]] = {
+    for {
+      precision <-
+        params.parseString("precision", s => s.toIntOption.toRight(s"percent precison must be an integer, was: '${s}'"))
+      res       <- precision.traverse(CompliancePrecision.fromPrecision(_).toPureResult)
+    } yield {
+      res
     }
   }
 
