@@ -236,7 +236,8 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
       (writeCache.syncOne(newError) *> // println(mockActor.messages.head).succeed *>
       msgLock.withPermit(
         (mockActor hasReceivedMessage_? UpdateCompilationStatus(expectedCompilationStatus ++ newErrorStatus)).succeed
-      )).runNow.aka("actor received message") must beTrue and (mockActor.messageCount must beEqualTo(1))
+      )).runNow.aka("actor received message") must beTrue
+      mockActor.messageCount must beEqualTo(1)
     }
 
     "update an existing technique in error" in {
@@ -307,14 +308,16 @@ class TestTechniqueCompilationCache extends Specification with BeforeAfterAll {
       (writeCache.syncTechniqueActiveStatus(newError.id) *>
       msgLock.withPermit(
         (mockActor hasReceivedMessage_? UpdateCompilationStatus(newErrorStatus)).succeed
-      )).runNow.aka("actor received message") must beTrue and (mockActor.messageCount must beEqualTo(2))
+      )).runNow.aka("actor received message") must beTrue
+      mockActor.messageCount must beEqualTo(2)
     }
 
     "unsync one" in {
       (writeCache.unsyncOne(newError.id -> newError.version) *>
       msgLock.withPermit(
         (mockActor hasReceivedMessage_? UpdateCompilationStatus(CompilationStatusAllSuccess)).succeed
-      )).runNow.aka("actor received message") must beTrue and (mockActor.messageCount must beEqualTo(3))
+      )).runNow.aka("actor received message") must beTrue
+      mockActor.messageCount must beEqualTo(3)
     }
 
   }

@@ -97,7 +97,6 @@ class LoadDemoDataTest extends Specification {
       val dn        = new DN("ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration")
       val newParent = new DN("ou=Not Existing Place For Inventories,ou=Inventories,cn=rudder-configuration")
 
-      val res = ldap.newConnection.flatMap(_.move(dn, newParent)).either.runNow
       /*
        * Failure message is:
        * Can not move 'biosName=bios1,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration' to new parent
@@ -105,10 +104,8 @@ class LoadDemoDataTest extends Specification {
        * 'biosName=bios1,machineId=machine2,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration' because the parent for the new DN
        * 'biosName=bios1,machineId=machine-does-not-exists,ou=Machines,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration' does not exist.
        */
-      res must beAnInstanceOf[Left[LDAPRudderError, ?]] and (
-        ldap.newConnection.flatMap(_.exists(dn)).runNow must beTrue
-      )
-
+      ldap.newConnection.flatMap(_.move(dn, newParent)).either.runNow must beLeft
+      ldap.newConnection.flatMap(_.exists(dn)).runNow must beTrue
     }
 
     "Missing attribute is a grave message that should not be ignored (#10067)" in {

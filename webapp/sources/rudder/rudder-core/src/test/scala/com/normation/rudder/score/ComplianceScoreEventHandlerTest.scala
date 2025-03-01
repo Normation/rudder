@@ -39,7 +39,6 @@ package com.normation.rudder.score
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.CompliancePercent
-import com.normation.rudder.domain.reports.CompliancePrecision
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
@@ -66,9 +65,7 @@ class ComplianceScoreEventHandlerTest extends Specification {
     val n1    = NodeId("node1")
     val event = ComplianceScoreEvent(
       n1,
-      CompliancePercent(pending = 17, success = 33, repaired = 21, error = 14, 0, 0, noAnswer = 25, 0, 0, 0, 0, 0, 0, 0)(
-        CompliancePrecision.Level2
-      )
+      CompliancePercent(pending = 17, success = 33, repaired = 21, error = 14, 0, 0, noAnswer = 25, 0, 0, 0, 0, 0, 0, 0)
     )
 
     val result = {
