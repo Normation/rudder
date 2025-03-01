@@ -218,10 +218,10 @@ class TestMigrateJsonTechniquesToYaml extends Specification with ContentMatchers
 
   "There is only three techniques to migrate" >> {
     val res = migration.getAllTechniqueFiles(gitMock.configurationRepositoryRoot / "techniques").runNow
-    (res.size === 3) and
-    (res.map(_.parent.parent.name) must containTheSameElementsAs(
+    res.size === 3
+    res.map(_.parent.parent.name) must containTheSameElementsAs(
       List("technique_with_blocks", "technique_with_error", "technique_with_parameters")
-    ))
+    )
   }
 
   "After migration, the config repo matches what is expected" >> {

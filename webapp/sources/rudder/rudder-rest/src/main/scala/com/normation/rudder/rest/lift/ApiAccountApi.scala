@@ -177,11 +177,11 @@ class ApiAccountApiServiceV1(
 
   override def getAccount(id: ApiAccountId): IOResult[Option[ApiAccountDetails.Public]] = {
     readApi.getById(id).flatMap {
-      case None                                                                  =>
+      case None                                                             =>
         None.succeed
-      case Some(account) if (account.kind.kind.name == ApiAccountType.PublicApi) =>
+      case Some(account) if (account.kind.kind == ApiAccountType.PublicApi) =>
         Some(account.transformInto[ApiAccountDetails.Public]).succeed
-      case Some(x)                                                               =>
+      case Some(x)                                                          =>
         ApiLoggerPure.warn(s"Access to API account with ID '${id.value}' is not authorized via API") *>
         None.succeed
     }
