@@ -13,8 +13,9 @@ use rudder_commons::{is_canonified, logs::ok_output, methods::Methods, Target};
 use serde_json::Value;
 use tracing::{error, warn};
 
+use crate::backends::MetadataBackend;
 use crate::{
-    backends::{backend, metadata::Metadata, Backend},
+    backends::{backend, metadata::Metadata},
     frontends,
     ir::{
         technique::{
@@ -118,13 +119,13 @@ pub fn compile(policy: Technique, target: Target, src: &Path, standalone: bool) 
 }
 
 /// Compile metadata file
-pub fn metadata(policy: Technique, src: &Path) -> Result<String> {
+pub fn metadata(policy: Technique, src: &Path, targets: &[Target]) -> Result<String> {
     ok_output(
         "Generating",
         format!("{} v{} [Metadata]", policy.name, policy.version,),
     );
     let resources_path = src.parent().unwrap().join(RESOURCES_DIR);
-    Metadata.generate(policy, resources_path.as_path(), false)
+    Metadata.generate(policy, resources_path.as_path(), false, targets)
 }
 
 /// Inject metadata information into method calls

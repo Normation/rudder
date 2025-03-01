@@ -5,16 +5,16 @@ pub mod test;
 
 use std::path::Path;
 
-use anyhow::{bail, Result};
-use askama::Template;
-use rudder_commons::{methods::method::Agent, Escaping, PolicyMode};
-
 use super::Backend;
+use crate::backends;
 use crate::ir::{
     condition::Condition,
     technique::{ItemKind, LeafReportingMode, Method, Parameter},
     Technique,
 };
+use anyhow::{bail, Result};
+use askama::Template;
+use rudder_commons::{methods::method::Agent, Escaping, PolicyMode};
 
 pub struct Windows;
 
@@ -273,7 +273,7 @@ impl Windows {
 
         let technique = TechniqueTemplate {
             id: &src.id.to_string(),
-            has_resources: !Windows::list_resources(resources)?.is_empty(),
+            has_resources: !backends::list_resources(resources)?.is_empty(),
             parameters: src.params,
             methods,
         };

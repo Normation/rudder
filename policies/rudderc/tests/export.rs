@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use rudder_commons::ALL_TARGETS;
+use rudderc::action;
 use std::path::{Path, PathBuf};
 use test_generator::test_resources;
-
-use rudderc::action;
 
 #[test_resources("tests/cases/general/*/technique.yml")]
 fn compile(filename: &str) {
@@ -16,6 +16,7 @@ fn compile(filename: &str) {
         &technique_dir.join("target"),
         false,
         true,
+        ALL_TARGETS,
     )
     .unwrap();
     // Check that the generated technique is correct
@@ -25,6 +26,7 @@ fn compile(filename: &str) {
         &technique_dir.join("target"),
         false,
         false,
+        ALL_TARGETS,
     )
     .unwrap();
     let res = action::export(technique_dir, technique_dir.join("target"));
