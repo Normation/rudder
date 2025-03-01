@@ -1024,18 +1024,19 @@ class LDAPEntityMapper(
             warnOnIgnoreAuthz()
             ApiAccountKind.User
           case ApiAccountType.PublicApi =>
-            ApiAccountKind.PublicApi(authz, expirationDate.map(_.dateTime))
+            ApiAccountKind.PublicApi.fromOptDate(authz, expirationDate.map(_.dateTime))
         }
+
+        val accountToken = AccountToken(token, tokenCreationDatetime.dateTime)
 
         ApiAccount(
           id,
           accountKind,
           name,
-          token,
+          accountToken,
           description,
           isEnabled,
           creationDatetime.dateTime,
-          tokenCreationDatetime.dateTime,
           tenants
         )
       }
@@ -1050,7 +1051,7 @@ class LDAPEntityMapper(
     mod.resetValuesTo(A_API_UUID, principal.id.value)
     mod.resetValuesTo(A_NAME, principal.name.value)
     mod.resetValuesTo(A_CREATION_DATETIME, GeneralizedTime(principal.creationDate).toString)
-    principal.token.flatMap(_.exposeHash()) match {
+    principal.accountToken.flatMap(_.hash).flatMap(_.exposeHash()) match {
       case Some(value) => mod.resetValuesTo(A_API_TOKEN, value)
       case None        => mod.deleteAttribute(A_API_TOKEN)
     }
@@ -1061,8 +1062,8 @@ class LDAPEntityMapper(
     mod.resetValuesTo(A_API_TENANT, principal.tenants.serialize)
 
     principal.kind match {
-      case ApiAccountKind.PublicApi(authz, exp) =>
-        exp.foreach(e => mod.resetValuesTo(A_API_EXPIRATION_DATETIME, GeneralizedTime(e).toString()))
+      case ApiAccountKind.PublicApi(authz, policy) =>
+        policy.expirationDate.foreach(e => mod.resetValuesTo(A_API_EXPIRATION_DATETIME, GeneralizedTime(e).toString()))
         // authorisation
         authz match {
           case ApiAuthorization.ACL(acl) =>
@@ -1071,7 +1072,7 @@ class LDAPEntityMapper(
           case x                         =>
             mod.resetValuesTo(A_API_AUTHZ_KIND, x.kind.name)
         }
-      case _                                    => // nothing to add
+      case _                                       => // nothing to add
     }
     mod
   }
