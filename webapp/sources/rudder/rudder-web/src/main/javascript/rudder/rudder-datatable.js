@@ -1173,7 +1173,7 @@ function callbackElement(oData, displayCompliance) {
 function reloadTable(gridId, nodeIds, scores) {
   var table = $('#'+gridId).DataTable();
   table.destroy();
-  createNodeTable(gridId, nodeIds, function(){reloadTable(gridId, scores)}, scores)
+  createNodeTable(gridId, nodeIds, function(){reloadTable(gridId, nodeIds, scores)}, scores)
 }
 
 function createNodeTable(gridId, nodeIds, refresh, scores) {
