@@ -374,7 +374,6 @@ table .innerDetails li{
 .dataTables_paginate {
   float: right;
   text-align: right;
-  line-height:1;
 }
 .dataTables_paginate .fg-button {
   display: inline-block;
