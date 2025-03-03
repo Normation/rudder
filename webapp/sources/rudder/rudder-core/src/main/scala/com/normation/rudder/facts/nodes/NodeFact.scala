@@ -1583,7 +1583,7 @@ object JMachineInfo {
           case JMachineType.PhysicalMachineType => Result.Value(PhysicalMachineType)
           case JMachineType.VirtualMachineType  =>
             Result.fromEitherString(
-              jm.provider.traverse(VmType.parse).map(_.getOrElse(VmType.UnknownVmType)).map(VirtualMachineType)
+              jm.provider.traverse(VmType.parse).map(_.getOrElse(VmType.UnknownVmType)).map(VirtualMachineType.apply)
             )
         }
       }
