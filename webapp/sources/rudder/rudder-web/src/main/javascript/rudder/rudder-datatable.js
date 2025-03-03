@@ -41,7 +41,6 @@ var recentChanges = {};
 var recentChangesCount = {};
 var inventories = {};
 var recentGraphs = {};
-var nodeIds = undefined;
 
 
 /* Create an array with the values of all the checkboxes in a column */
@@ -1171,13 +1170,13 @@ function callbackElement(oData, displayCompliance) {
   return elem;
 }
 
-function reloadTable(gridId, scores) {
+function reloadTable(gridId, nodeIds, scores) {
   var table = $('#'+gridId).DataTable();
   table.destroy();
-  createNodeTable(gridId, function(){reloadTable(gridId, scores)}, scores)
+  createNodeTable(gridId, nodeIds, function(){reloadTable(gridId, scores)}, scores)
 }
 
-function createNodeTable(gridId, refresh, scores) {
+function createNodeTable(gridId, nodeIds, refresh, scores) {
   var allColumns = {
       "Node ID" :
       { "data": "id"
