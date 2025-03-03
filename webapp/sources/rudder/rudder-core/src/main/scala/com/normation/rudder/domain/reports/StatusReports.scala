@@ -64,7 +64,78 @@ import zio.Chunk
  *
  */
 
-sealed trait StatusReport {
+trait HasCompliance {
+  def compliance: ComplianceLevel
+}
+
+trait ComponentCompliance extends HasCompliance {
+  def componentName: String
+  def allReports:    List[ReportType]
+  def status:        ReportType = ReportType.getWorseType(allReports)
+}
+
+trait BlockCompliance[Sub] extends ComponentCompliance {
+  def subs:           List[Sub & ComponentCompliance]
+  def reportingLogic: ReportingLogic
+
+  def findChildren(componentName: String): List[Sub & ComponentCompliance] = {
+    subs.find(_.componentName == componentName).toList :::
+    subs.collect { case g: BlockCompliance[Sub] => g }.flatMap(_.findChildren(componentName))
+  }
+
+  def allReports: List[ReportType] = subs.flatMap {
+    case block: BlockCompliance[Sub] => block.allReports
+    case s => s.allReports
+  }
+
+  override def status: ReportType = {
+    reportingLogic match {
+      case FocusWorst | WorstReportWeightedOne | WorstReportWeightedSum | WeightedReport =>
+        ReportType.getWorseType(subs.map(_.status))
+      case FocusReport(component)                                                        =>
+        ReportType.getWorseType(findChildren(component).map(_.status))
+    }
+  }
+
+  def compliance: ComplianceLevel = {
+    import ReportingLogic.*
+    reportingLogic match {
+      // simple weighted compliance, as usual
+      case WeightedReport => ComplianceLevel.sum(subs.map(_.compliance))
+      // worst case bubble up, and its weight can be either 1 or the sum of sub-component weight
+      case worst: WorstReportWeightedReportingLogic =>
+        val worstReport    = ReportType.getWorseType(subs.flatMap(_.allReports))
+        val weightedReport = allReports.map(_ => worstReport)
+        println(subs)
+        println(weightedReport)
+        val kept           = worst match {
+          case WorstReportWeightedOne => worstReport :: Nil
+          case WorstReportWeightedSum => weightedReport
+        }
+        ComplianceLevel.compute(kept)
+      case FocusWorst =>
+        // Get reports of sub-components to find the worst by percent
+        val allReports = subs.map {
+          case b: BlockCompliance[?] =>
+            // Convert block compliance to percent, take the worst
+            b.compliance
+          case o =>
+            // Value has 1 count
+            val w = ComplianceLevel.compute(
+              Iterable(o.status)
+            )
+            w
+        }
+        // Find worst by percent: compute numeric compliance with default precision
+        val worst      = allReports.minBy(_.computePercent().compliance)
+        worst
+      // focus on a given sub-component name (can be present several time, or 0 which leads to N/A)
+      case FocusReport(component) => ComplianceLevel.sum(findChildren(component).map(_.compliance))
+    }
+  }
+}
+
+sealed trait StatusReport extends HasCompliance {
   def compliance: ComplianceLevel
 }
 
@@ -365,7 +436,7 @@ object DirectiveStatusReport {
  * For a component, store the report status, as the worse status of the component
  * Or error if there is an unexpected component value
  */
-sealed trait ComponentStatusReport extends StatusReport {
+sealed trait ComponentStatusReport extends StatusReport with ComponentCompliance {
   def componentName: String
   def getValues(predicate:           ComponentValueStatusReport => Boolean): Seq[ComponentValueStatusReport]
   def withFilteredElement(predicate: ComponentValueStatusReport => Boolean): Option[ComponentStatusReport]
@@ -378,44 +449,8 @@ final case class BlockStatusReport(
     componentName:  String,
     reportingLogic: ReportingLogic,
     subComponents:  List[ComponentStatusReport]
-) extends ComponentStatusReport {
-  def findChildren(componentName: String): List[ComponentStatusReport] = {
-    subComponents.find(_.componentName == componentName).toList :::
-    subComponents.collect { case g: BlockStatusReport => g }.flatMap(_.findChildren(componentName))
-  }
-  def compliance:                          ComplianceLevel             = {
-    import ReportingLogic.*
-    reportingLogic match {
-      // simple weighted compliance, as usual
-      case WeightedReport => ComplianceLevel.sum(subComponents.map(_.compliance))
-      // worst case bubble up, and its weight can be either 1 or the sum of sub-component weight
-      case worst: WorstReportWeightedReportingLogic =>
-        val worstReport = ReportType.getWorseType(subComponents.map(_.status))
-        val allReports  = getValues(_ => true).flatMap(_.messages.map(_ => worstReport))
-        val kept        = worst match {
-          case WorstReportWeightedOne => allReports.take(1)
-          case WorstReportWeightedSum => allReports
-        }
-        ComplianceLevel.compute(kept)
-      case FocusWorst =>
-        // Get reports of sub-components to find the worst by percent
-        val allReports = subComponents.map {
-          case b: BlockStatusReport =>
-            // Convert block compliance to percent, take the worst
-            b.compliance
-          case o: ValueStatusReport =>
-            // Value has 1 count
-            ComplianceLevel.compute(
-              Iterable(ReportType.getWorseType(o.getValues(_ => true).flatMap(_.messages.map(_ => o.status))))
-            )
-        }
-        // Find worst by percent: compute numeric compliance with default precision
-        val worst      = allReports.minBy(_.computePercent().compliance)
-        worst
-      // focus on a given sub-component name (can be present several time, or 0 which leads to N/A)
-      case FocusReport(component) => ComplianceLevel.sum(findChildren(component).map(_.compliance))
-    }
-  }
+) extends ComponentStatusReport with BlockCompliance[ComponentStatusReport] {
+  val subs: List[ComponentStatusReport] = subComponents
 
   def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[ComponentValueStatusReport] = {
     subComponents.flatMap(_.getValues(predicate))
@@ -428,34 +463,28 @@ final case class BlockStatusReport(
       case l   => Some(this.copy(subComponents = l))
     }
   }
-
-  def status: ReportType = {
-    reportingLogic match {
-      case FocusWorst | WorstReportWeightedOne | WorstReportWeightedSum | WeightedReport =>
-        ReportType.getWorseType(subComponents.map(_.status))
-      case FocusReport(component)                                                        =>
-        ReportType.getWorseType(findChildren(component).map(_.status))
-    }
-  }
 }
 final case class ValueStatusReport(
     componentName:         String,
     expectedComponentName: String, // only one ComponentValueStatusReport by values.
-
-    componentValues: List[ComponentValueStatusReport]
+    componentValues:       List[ComponentValueStatusReport]
 ) extends ComponentStatusReport {
 
-  override def toString(): String = s"${componentName}:${componentValues.toSeq.sortBy(_.componentValue).mkString("[", ",", "]")}"
+  override def toString(): String = s"${componentName}:${componentValues.sortBy(_.componentValue).mkString("[", ",", "]")}"
 
-  override lazy val compliance:                                    ComplianceLevel                 = ComplianceLevel.sum(componentValues.map(_.compliance))
+  override lazy val compliance: ComplianceLevel = ComplianceLevel.sum(componentValues.map(_.compliance))
+
   /*
    * Get all values matching the predicate
    */
   def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[ComponentValueStatusReport] = {
-    componentValues.filter(v => predicate(v)).toSeq
+    componentValues.filter(v => predicate(v))
   }
 
-  def status:                                                                ReportType                    = ReportType.getWorseType(getValues(_ => true).map(_.status))
+  def allReports: List[ReportType] = {
+    getValues(_ => true).toList.flatMap(c => c.messages.map(_ => c.status))
+  }
+
   /*
    * Rebuild a componentStatusReport, keeping only values matching the predicate
    */
@@ -502,7 +531,7 @@ object ComponentStatusReport extends Loggable {
                   case (FocusReport(a), _)                                       => FocusReport(a)
                 }
               })
-            BlockStatusReport(cptName, reportingLogic, ComponentStatusReport.merge(r.flatMap(_.subComponents)).toList) :: Nil
+            BlockStatusReport(cptName, reportingLogic, ComponentStatusReport.merge(r.flatMap(_.subComponents))) :: Nil
         }
         groupComponent ::: valueComponents
 
