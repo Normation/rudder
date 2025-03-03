@@ -115,9 +115,7 @@ class SrvGrid(
     val jsTableId  = StringEscapeUtils.escapeEcmaScript(tableId)
     val nodeIds    = nodes.map(nodes => JsArray(nodes.map(n => Str(n.id.value)).toList).toJsCmd).getOrElse("undefined")
     JsRaw(
-      s"""nodeIds = ${nodeIds};
-         | createNodeTable("${jsTableId}",function() {reloadTable("${jsTableId}", ${scoreNames.toJsCmd})}, ${scoreNames.toJsCmd});
-                   """.stripMargin
+      s"""createNodeTable("${jsTableId}", ${nodeIds},function() {reloadTable("${jsTableId}", ${nodeIds}, ${scoreNames.toJsCmd})}, ${scoreNames.toJsCmd});"""
     ) & (additionalJs.getOrElse(Noop)) // JsRaw ok, escaped
   }
 
@@ -137,8 +135,7 @@ class SrvGrid(
         }
 
         JsRaw(s"""
-          nodeIds = ${nodeIds}
-          reloadTable("${tableId}", ${scoreNames.toJsCmd});
+          reloadTable("${tableId}", ${nodeIds}, ${scoreNames.toJsCmd});
       """) // JsRaw ok, escaped
       }
     )
