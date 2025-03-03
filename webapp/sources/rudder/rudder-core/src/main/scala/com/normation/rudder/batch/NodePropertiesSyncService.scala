@@ -43,6 +43,14 @@ import com.normation.rudder.properties.NodePropertiesService
 import com.normation.rudder.properties.PropertiesRepository
 import net.liftweb.common.SimpleActor
 
+/**
+ * Service that encapsulate a functional dependency between properties and other 
+ * components, which need to be synced when properties change, the components in question
+ * depend on the implementation.
+ * 
+ * Dependents are asking for sync because they likely define a dependency between
+ * the place of the call, and the state of the components that are needed to be in sync.
+ */
 trait NodePropertiesSyncService {
 
   /**
@@ -53,6 +61,11 @@ trait NodePropertiesSyncService {
 
 }
 
+/**
+ * Implementation that syncs the actor responsible for updating the UI with up-to-date properties.
+ * The existence of this implementation reflects the current architecture which involves
+ * an asynchronous actor (within an actor system that manages display of properties).
+ */
 class NodePropertiesSyncServiceImpl(
     propertiesService:    NodePropertiesService,
     propertiesRepository: PropertiesRepository,
