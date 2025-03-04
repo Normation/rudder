@@ -366,12 +366,32 @@ class ComputeNodeStatusReportServiceImpl(
   /**
    * Group all actions queue by the same type, keeping the global order.
    * It is necessary to keep global order so that we serialize compliance in order
-   * and don't loose information
+   * and don't lose information
    */
-  private def groupQueueActionByType(l: Chunk[CacheComplianceQueueAction]): Chunk[Chunk[CacheComplianceQueueAction]] = {
-    l.headOption.map { x =>
-      val (h, t) = l.span(x.getClass == _.getClass); groupQueueActionByType(t).prepended(h)
-    }.getOrElse(Chunk.empty)
+  protected[reports] def groupQueueActionByType(
+      l: Chunk[CacheComplianceQueueAction]
+  ): Chunk[Chunk[CacheComplianceQueueAction]] = {
+
+    (l.foldLeft(Chunk.empty[Chunk[CacheComplianceQueueAction]]) {
+      case (acc, action) =>
+        acc.headOption match {
+          // init
+          case None        => Chunk(Chunk(action))
+          case Some(chunk) =>
+            chunk.headOption.map(_.getClass) match {
+              case None                                            =>
+                // Should not happen, our chunks are never empty, maybe use NEL?
+                Chunk(action) +: acc.tail
+              // Class is the same as action accumulate
+              case Some(className) if action.getClass == className =>
+                (chunk :+ action) +: acc.tail
+              case _                                               =>
+                // not same class, create a new head chunk that we will check
+                Chunk(action) +: acc
+            }
+        }
+    }).reverse
+
   }
 
   private def cacheToLog(c: Map[NodeId, NodeStatusReport]): String = {
