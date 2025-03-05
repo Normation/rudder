@@ -40,6 +40,7 @@ package com.normation.rudder.rest.data
 import cats.Order
 import cats.data.NonEmptyList
 import cats.syntax.list.*
+import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
@@ -47,6 +48,7 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.ComplianceLevel
+import com.normation.rudder.domain.reports.HasCompliance
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.web.services.ComputePolicyMode
@@ -176,22 +178,30 @@ final case class ByRuleDirectiveCompliance(
     components:     Seq[ByRuleComponentCompliance]
 )
 
-sealed trait ByRuleComponentCompliance {
+sealed trait ByRuleComponentCompliance extends HasCompliance with ComponentCompliance {
   def name:       String
   def compliance: ComplianceLevel
 }
 
 final case class ByRuleBlockCompliance(
-    name:          String,
-    compliance:    ComplianceLevel,
-    subComponents: Seq[ByRuleComponentCompliance]
-) extends ByRuleComponentCompliance
+    name:           String,
+    reportingLogic: ReportingLogic,
+    subComponents:  Seq[ByRuleComponentCompliance]
+) extends ByRuleComponentCompliance with BlockCompliance[ByRuleComponentCompliance] {
+  override def subs: List[ByRuleComponentCompliance with ComponentCompliance] = subComponents.toList
+
+  override def componentName: String = name
+}
 
 final case class ByRuleValueCompliance(
     name:       String,
     compliance: ComplianceLevel,
     nodes:      List[ByRuleNodeCompliance]
-) extends ByRuleComponentCompliance
+) extends ByRuleComponentCompliance {
+  override def componentName: String = name
+
+  override def allReports: List[ReportType] = nodes.flatMap(_.values).flatMap(c => c.messages.map(_ => c.status))
+}
 
 final case class ByRuleNodeCompliance(
     id:         NodeId,
@@ -226,22 +236,30 @@ final case class ByRuleByNodeByDirectiveCompliance(
     components: Seq[ByRuleByNodeByDirectiveByComponentCompliance]
 )
 
-sealed trait ByRuleByNodeByDirectiveByComponentCompliance {
+sealed trait ByRuleByNodeByDirectiveByComponentCompliance extends ComponentCompliance {
   def name:       String
   def compliance: ComplianceLevel
 }
 
 final case class ByRuleByNodeByDirectiveByBlockCompliance(
-    name:          String,
-    compliance:    ComplianceLevel,
-    subComponents: Seq[ByRuleByNodeByDirectiveByComponentCompliance]
-) extends ByRuleByNodeByDirectiveByComponentCompliance
+    name:           String,
+    reportingLogic: ReportingLogic,
+    subComponents:  Seq[ByRuleByNodeByDirectiveByComponentCompliance]
+) extends ByRuleByNodeByDirectiveByComponentCompliance with BlockCompliance[ByRuleByNodeByDirectiveByComponentCompliance] {
+  override def subs: List[ByRuleByNodeByDirectiveByComponentCompliance with ComponentCompliance] = subComponents.toList
+
+  override def componentName: String = name
+}
 
 final case class ByRuleByNodeByDirectiveByValueCompliance(
     name:       String,
     compliance: ComplianceLevel,
     values:     Seq[ComponentValueStatusReport]
-) extends ByRuleByNodeByDirectiveByComponentCompliance
+) extends ByRuleByNodeByDirectiveByComponentCompliance {
+  override def componentName: String = name
+
+  override def allReports: List[ReportType] = values.flatMap(c => c.messages.map(_ => c.status)).toList
+}
 
 final case class SkippedDetails(
     overridingRuleId:   RuleId,
@@ -326,7 +344,7 @@ object GroupComponentCompliance {
             // All subComponents are regrouped by Node, rebuild our block for each node
             case (nodeId, s) =>
               val subs = s.map(_._2)
-              (nodeId, ByRuleByNodeByDirectiveByBlockCompliance(b.name, ComplianceLevel.sum(subs.map(_.compliance)), subs))
+              (nodeId, ByRuleByNodeByDirectiveByBlockCompliance(b.name, b.reportingLogic, subs))
           }
           .toSeq
       // Value case

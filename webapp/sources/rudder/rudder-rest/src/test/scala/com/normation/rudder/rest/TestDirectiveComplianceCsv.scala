@@ -37,6 +37,7 @@
 
 package com.normation.rudder.rest
 
+import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
@@ -110,7 +111,7 @@ class TestDirectiveComplianceCsv extends Specification {
           Seq(
             ByRuleBlockCompliance(
               "Check Cipher TLS_RSA_WITH_DES_CBC_SHA",
-              notUsed,
+              ReportingLogic.WeightedReport,
               Seq(
                 ByRuleValueCompliance(
                   "Command execution",
