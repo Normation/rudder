@@ -756,6 +756,7 @@ object NodeStatusReportSerialization {
         .withFieldComputed(_.numberReports, _.compliance.total)
         .withFieldComputed(_.reportingLogic, _.reportingLogic.value)
         .enableMethodAccessors
+        .enableInheritedAccessors
         .buildTransformer
     }
 
