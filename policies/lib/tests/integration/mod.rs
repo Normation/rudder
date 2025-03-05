@@ -28,7 +28,7 @@ fn get_lib_path() -> PathBuf {
 }
 
 fn init_test() -> ManuallyDrop<TempDir> {
-    env_logger::init();
+    let _ = env_logger::try_init();
     let workdir = tempdir().unwrap();
     debug!("WORKDIR = {:?}", workdir.path());
     ManuallyDrop::new(workdir)

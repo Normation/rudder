@@ -31,7 +31,7 @@
 pub(crate) mod bundle;
 pub(crate) mod promise;
 
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use rudder_commons::{
     regex_comp,
     report::{Report, RunLog},
@@ -183,7 +183,11 @@ pub fn cf_agent(
     let work_dir = tempdir().unwrap();
     let bin_dir = work_dir.path().join("bin");
     fs::create_dir(&bin_dir)?;
-    fs::copy(agent_path.join("cf-promises"), bin_dir.join("cf-promises"))?;
+    fs::copy(agent_path.join("cf-promises"), bin_dir.join("cf-promises")).context(format!(
+        "An error occurred while copying the agent to the workdir '{}' from '{}'",
+        bin_dir.join("cf-promises").to_string_lossy(),
+        agent_path.join("cf-promises").to_string_lossy(),
+    ))?;
     // CFEngine looks in its default dir otherwise
     let input_absolute = if input.is_absolute() {
         input.to_path_buf()
