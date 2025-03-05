@@ -555,7 +555,7 @@ final class AsyncDeploymentActor(
         _ <- PolicyGenerationLoggerPure.manager.trace("Policy updater Agent: start to update policies")
         d <- delay
         _ <- ZIO.when(d.toMillis > 0) {
-               PolicyGenerationLoggerPure.manager.debug(s"Policy generation will start in ${delay.toString}")
+               PolicyGenerationLoggerPure.manager.info(s"Policy generation will start in ${d.toString}")
              }
         _ <- (for {
                _   <- PolicyGenerationLoggerPure.manager.debug(s"Policy generation starts now!")
