@@ -113,7 +113,7 @@ impl MethodTestSuite {
             &compiled_technique_path,
             &compiled_technique_path,
             &library_path,
-            &PathBuf::from("/usr/local/sbin/"),
+            &PathBuf::from("/opt/rudder/bin/"),
             true,
         )
         .unwrap();

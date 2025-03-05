@@ -25,6 +25,37 @@ pipeline {
     stages {
         stage('Tests') {
             parallel {
+                stage('policies-methods') {
+                    agent {
+                        dockerfile {
+                            filename 'ci/methods.Dockerfile'
+                        }
+                    }
+                    steps {
+                        script {
+                            running.add("Tests - policies/methods")
+                        }
+                        dir("policies/lib") {
+                            sh script: 'cargo test', label: 'methods tests'
+                        }
+                    }
+                    post {
+                        failure {
+                            script {
+                                failedBuild = true
+                                errors.add("Tests - policies-methods")
+                                slackResponse = updateSlack(errors, running, slackResponse, version, changeUrl)
+                                slackSend(channel: slackResponse.threadId, message: "Error during policies-methods test - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                running.remove("Tests - policies-methods")
+                                cleanWs(deleteDirs: true, notFailBuild: true)
+                            }
+                        }
+                    }
+                }
                 stage('python-lib') {
                     agent {
                         dockerfile {
