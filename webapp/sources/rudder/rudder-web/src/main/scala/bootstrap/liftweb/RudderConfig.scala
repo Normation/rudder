@@ -2113,7 +2113,7 @@ object RudderConfigInit {
       ApiVersion(18, deprecated = true) ::  // rudder 8.0 - allowed network
       ApiVersion(19, deprecated = true) ::  // rudder 8.1 - (score), tenants
       ApiVersion(20, deprecated = true) ::  // rudder 8.2 - zio-json
-      ApiVersion(21, deprecated = false) :: // rudder 8.3 - zio-json, api accounts, event logs (internal), new authorization model, plugins internal API
+      ApiVersion(21, deprecated = false) :: // rudder 8.3 - zio-json, api accounts,new authorization model
       Nil
     }
 
