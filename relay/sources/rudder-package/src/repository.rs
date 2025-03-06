@@ -6,15 +6,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{anyhow, bail, Context, Result};
-use reqwest::{
-    blocking::{Client, Response},
-    Proxy, StatusCode, Url,
-};
-use secrecy::ExposeSecret;
-use tempfile::tempdir;
-use tracing::{debug, info};
-
 use crate::license::Licenses;
 use crate::{
     config::{Configuration, Credentials},
@@ -22,6 +13,14 @@ use crate::{
     webapp::Webapp,
     LICENSES_FOLDER, REPOSITORY_INDEX_PATH,
 };
+use anyhow::{anyhow, bail, Context, Result};
+use reqwest::{
+    blocking::{Client, Response},
+    Proxy, StatusCode, Url,
+};
+use secrecy::ExposeSecret;
+use tempfile::tempdir;
+use tracing::{debug, info, warn};
 
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
@@ -178,7 +177,7 @@ impl Repository {
             }
             Licenses::update_from_archive(local_archive_path, license_folder)?;
         } else {
-            debug!("Not updating licenses as no configured credentials were found")
+            warn!("Not updating licenses as no configured credentials were found")
         }
         Ok(())
     }
