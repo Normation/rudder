@@ -118,7 +118,6 @@ import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.RemoveNodeService
-import com.normation.rudder.web.services.ReasonBehavior
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
@@ -390,7 +389,6 @@ class NodeApi(
 
       (for {
         restNode <- restExtractor.extractUpdateNode(req).toIO
-        reason   <- extractReason(req)
         result   <- nodeApiService.updateRestNode(NodeId(id), restNode)
         // await all properties update to guarantee that properties are resolved after node modification
         _        <- nodePropertiesService.updateAll()
@@ -734,26 +732,6 @@ class NodeApi(
 
     implicit val finalEncoder: JsonEncoder[JRNodeDetailLevel] =
       DeriveJsonEncoder.gen[JRNodeDetailLevel]
-  }
-
-  // TODO: known to be duplicated in change-validation. Some day we will need to factor this out in zio (moving prop service to rudder-core)
-  private def extractReason(req: Req): IOResult[Option[String]] = {
-    import ReasonBehavior.*
-    (userPropertyService.reasonsFieldBehavior match {
-      case Disabled => ZIO.none
-      case mode     =>
-        val reason = req.params.get("reason").flatMap(_.headOption)
-        (mode: @unchecked) match {
-          case Mandatory =>
-            reason
-              .notOptional("Reason field is mandatory and should be at least 5 characters long")
-              .reject {
-                case s if s.lengthIs < 5 => Inconsistency("Reason field should be at least 5 characters long")
-              }
-              .map(Some(_))
-          case Optionnal => reason.succeed
-        }
-    }).chainError("There was an error while extracting reason message")
   }
 }
 
