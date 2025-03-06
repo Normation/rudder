@@ -40,6 +40,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
@@ -75,7 +76,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
     (for {
       seq <- roParameterService.getAllGlobalParameters()
     } yield {
-      seq
+      seq.filterNot(_.visibility == Visibility.Hidden)
     }) match {
       case Full((seq)) => displayGridParameters(seq, gridName)
       case eb: EmptyBox =>

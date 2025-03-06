@@ -56,6 +56,7 @@ import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
+import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.ResultTransformation.*
 import com.normation.rudder.facts.nodes.NodeFact
@@ -122,7 +123,7 @@ class TestMergeGroupProperties extends Specification {
       )
     }
     def toGP(name: String): GlobalParameter       = {
-      GlobalParameter(name, GitVersion.DEFAULT_REV, global, None, "", None)
+      GlobalParameter(name, GitVersion.DEFAULT_REV, global, None, "", None, Visibility.default)
     }
   }
   implicit class ToConfigValue(s: String)                         {
@@ -522,7 +523,8 @@ class TestMergeGroupProperties extends Specification {
               globalProperty,
               maaInheritMode,
               "",
-              None
+              None,
+              Visibility.default
             )
           )
         )
@@ -547,7 +549,8 @@ class TestMergeGroupProperties extends Specification {
               globalProperty,
               mpaInheritMode,
               "",
-              None
+              None,
+              Visibility.default
             )
           )
         )
@@ -657,7 +660,8 @@ class TestMergeGroupProperties extends Specification {
           GenericProperty.parseValue("""{"global":"global value", "override":"global"}""").forceGet,
           None,
           "",
-          None
+          None,
+          Visibility.default
         ))
       )
       val parent        = parent1
