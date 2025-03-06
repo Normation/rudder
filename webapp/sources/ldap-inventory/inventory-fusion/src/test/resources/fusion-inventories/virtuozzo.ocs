@@ -94,6 +94,10 @@ TZEW7+Ri43DsMyRwYiCafuVThL+J
       <SERVER_ROLES></SERVER_ROLES>
       <UUID>c1bab9fc-bcf6-4d59-a397-84c8e2fc06c0</UUID>
     </RUDDER>
+    <SOFTWARES>
+      <NAME>rudder-agent</NAME>
+      <VERSION>8.0.0</VERSION>
+    </SOFTWARES>
     <USERS>
       <LOGIN>root</LOGIN>
     </USERS>
