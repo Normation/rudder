@@ -134,35 +134,35 @@ bundle agent user_secondary_groups(login, groups, force) {
   methods:
     # Without enforce, fallback to user_group
     pass2.!pass3.!purge_other_groups.user_exists.!group_not_found::
-     "disable_reporting"       usebundle => disable_reporting;
-     "subcall_${group_list}"   usebundle =>  user_group(
-                                               "${login}",
-                                               "${group_list}"
-                                             );
-     "reenable_reporting"      usebundle => enable_reporting,
-                                      if => "should_report";
+     "${report_data.method_id}"   usebundle => disable_reporting;
+     "${report_data.method_id}"   usebundle => user_group(
+                                                 "${login}",
+                                                 "${group_list}"
+                                               );
+     "${report_data.method_id}"   usebundle => enable_reporting,
+                                         if => "should_report";
 
     # Result class definition
     pass3::
-      "error"    usebundle => _classes_failure("${prefixes}"),
-                        if => "${c_id}_error";
-      "repaired" usebundle => _classes_repaired("${prefixes}"),
-                        if => "${c_id}_repaired";
-      "success"  usebundle => _classes_success("${prefixes}"),
-                        if => "${c_id}_success";
+      "${report_data.method_id}" usebundle => _classes_failure("${prefixes}"),
+                                        if => "${c_id}_error";
+      "${report_data.method_id}" usebundle => _classes_repaired("${prefixes}"),
+                                        if => "${c_id}_repaired";
+      "${report_data.method_id}" usebundle => _classes_success("${prefixes}"),
+                                        if => "${c_id}_success";
     # Reporting
     pass3::
-     "group_checked"
-        usebundle => log_rudder_v4("${login}", "Secondary groups for user", "${login}"),
+     "${report_data.method_id}"
+        usebundle => log_rudder_v4("${login}", "User ${login} was already in the secondary groups '${groups}'. Configuration for user", "${login}"),
                if => and( "user_exists",
                           "!group_not_found"
                         );
 
-     "user_missing"
+     "${report_data.method_id}"
         usebundle => log_rudder_v4("${login}", "User ${login} does not exist. Setting up secondary groups", "${login}"),
                if => "!user_exists";
 
-     "group_missing"
+     "${report_data.method_id}"
         usebundle => log_rudder_v4("${login}", "One or more groups where not found. Setting up secondary groups", "${login}"),
                if => "user_exists.group_not_found";
 }
