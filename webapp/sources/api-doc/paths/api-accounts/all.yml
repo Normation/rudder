@@ -1,0 +1,96 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2025 Normation SAS
+get:
+  summary: List all API accounts
+  description: List all API accounts. No secret data are returned.
+  operationId: getAllAccounts
+  responses:
+    "200":
+      description: Directives information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getAllAccounts
+              data:
+                type: object
+                required:
+                  - accounts
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/api-account.yml
+  tags:
+    - API account management
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/api-accounts/all.sh
+post:
+  summary: Create an API account
+  description: Create a new API account from provided parameters. If a token need to be generated, it will be presented only once in the answer.
+  operationId: createAccount
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/api-account-new.yml
+  responses:
+    "200":
+      description: Information about request
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - id
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              id:
+                description: ID of the created account
+                type: string
+                format: uuid
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - createAccount
+              data:
+                type: object
+                required:
+                  - accounts
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/api-account.yml
+  tags:
+    - API account management
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/api-accounts/create.sh

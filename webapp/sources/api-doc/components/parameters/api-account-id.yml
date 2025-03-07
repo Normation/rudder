@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2025 Normation SAS
+name: "apiAccountId"
+in: path
+required: true
+description: Id of the API account
+schema:
+  type: string
+  format: uuid
+  example: 1ebee8c7-c898-4ee5-9470-139bfd80c442

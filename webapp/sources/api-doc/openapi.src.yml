@@ -59,6 +59,8 @@ tags:
     description: Internal components and administration
   - name: User management
     description: Manage user information and configuration file
+  - name: API account management
+    description: Manage API accounts
   - name: Plugins
     description: Information about installed plugins
   - name: "🧩 Change requests"
@@ -144,6 +146,12 @@ paths:
     $ref: paths/usermanagement/disable.yml
   "/usermanagement/coverage/{username}":
     $ref: paths/usermanagement/coverage.yml
+  "/apiaccounts":
+    $ref: paths/api-accounts/all.yml
+  "/apiaccounts/${apiAccountId}":
+    $ref: paths/api-accounts/id.yml
+  "/apiaccounts/${apiAccountId}/regenerate":
+    $ref: paths/api-accounts/regenerate-token.yml
   "/scaleoutrelay/promote/{nodeId}":
     $ref: paths/scale-out-relay/promote.yml
   "/scaleoutrelay/demote/{nodeId}":
