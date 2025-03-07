@@ -90,7 +90,7 @@ delete:
                     items:
                       $ref: ../../components/schemas/api-account.yml
   tags:
-    - API Accounts
+    - API account management
   x-codeSamples:
     - lang: curl
       source:
@@ -140,7 +140,7 @@ post:
                     items:
                       $ref: ../../components/schemas/api-account.yml
   tags:
-    - API Accounts
+    - API account management
   x-codeSamples:
     - lang: curl
       source:
