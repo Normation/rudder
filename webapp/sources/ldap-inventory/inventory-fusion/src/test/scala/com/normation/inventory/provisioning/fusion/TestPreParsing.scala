@@ -97,7 +97,7 @@ class TestPreParsing extends Specification {
     }
 
     "When there is no security token defined" in {
-      val noSecurityToken = post.check("fusion-inventories/debian-no-security-token.ocs")
+      val noSecurityToken = post.check("fusion-inventories/rudder-tag/debian-no-security-token.ocs")
       noSecurityToken.swap.getOrElse(throw new Exception("For test")).fullMsg must beMatching(
         """.*\QMissing security token attribute (RUDDER/AGENT/AGENT_CERT)\E.*""".r
       )

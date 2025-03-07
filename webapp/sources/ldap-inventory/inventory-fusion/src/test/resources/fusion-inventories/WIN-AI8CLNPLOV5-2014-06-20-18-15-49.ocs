@@ -353,6 +353,10 @@
       <STATUS>Idle</STATUS>
     </PRINTERS>
     <SOFTWARES>
+      <NAME>Rudder Agent (DSC)</NAME>
+      <VERSION>8.0.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
       <ARCH>x86_64</ARCH>
       <FROM>registry</FROM>
       <GUID>FusionInventory-Agent</GUID>

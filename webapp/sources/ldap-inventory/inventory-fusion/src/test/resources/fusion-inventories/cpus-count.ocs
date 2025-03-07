@@ -711,6 +711,14 @@ TZEW7+Ri43DsMyRwYiCafuVThL+J
     </RUDDER>
     <SOFTWARES>
       <ARCH>amd64</ARCH>
+      <NAME>rudder-agent</NAME>
+      <PUBLISHER>Debian</PUBLISHER>
+      <SOURCE_VERSION>8.0.0</SOURCE_VERSION>
+      <SYSTEM_CATEGORY>admin</SYSTEM_CATEGORY>
+      <VERSION>8.0.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
       <FILESIZE>206</FILESIZE>
       <FROM>deb</FROM>
       <NAME>acl</NAME>

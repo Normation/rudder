@@ -37,6 +37,7 @@
 
 package com.normation.inventory.provisioning.fusion
 
+import cats.data.NonEmptyList
 import com.normation.errors.*
 import com.normation.inventory.domain.*
 import com.normation.inventory.domain.InventoryError.Inconsistency
@@ -377,14 +378,6 @@ class FusionInventoryParser(
    */
   def processRudderElement(xml: NodeSeq, inventory: Inventory, customProperties: List[CustomProperty]): IOResult[Inventory] = {
 
-    // Check that a seq contains only one or identical values, if not fails
-    def uniqueValueInSeq[T](seq: Seq[T], errorMessage: String): IOResult[T] = {
-      seq.distinct match {
-        case entry if entry.lengthCompare(1) == 0 => entry.head.succeed
-        case entry                                => InventoryError.Inconsistency(s"${errorMessage} (${entry.size} value(s) found in place of exactly 1)").fail
-      }
-    }
-
     // parse the sub list of AGENT_CAPABILITIES/AGENT_CAPABILITY, ignore other elements
     // note: agent capabilities should per agent to be really useful.
     def processAgentCapabilities(xml: NodeSeq): Set[AgentCapability] = {
@@ -393,13 +386,24 @@ class FusionInventoryParser(
 
     // as a temporary solution, we are getting information from packages
 
-    def findAgent(software: Seq[Software], agentType: AgentType): Option[AgentVersion] = {
+    def findAgentVersion(software: Seq[Software], agentType: AgentType): Option[AgentVersion] = {
       val agentSoftName = agentType.inventorySoftwareName.toLowerCase()
-      for {
-        soft    <- software.find(_.name.map(_.toLowerCase() contains agentSoftName).getOrElse(false))
-        version <- soft.version
-      } yield {
-        AgentVersion(agentType.toAgentVersionName(version.value))
+
+      software.filter(_.name.exists(_.toLowerCase().contains(agentSoftName))).toList.flatMap(_.version) match {
+        case Nil =>
+          InventoryProcessingLogger.logEffect.warn(
+            s"No software with name '${agentSoftName}' were found when looking for version of the agent"
+          )
+          None
+
+        case x :: others =>
+          if (others.nonEmpty) {
+            InventoryProcessingLogger.logEffect.warn(
+              s"More than one software with name '${agentSoftName}' were found when looking for version. We only keep '${x}' and discard ${others
+                  .mkString(",")}"
+            )
+          }
+          Some(AgentVersion(agentType.toAgentVersionName(x.value)))
       }
     }
 
@@ -408,62 +412,72 @@ class FusionInventoryParser(
      * ie if there's two agents, and XML for one is not valid, still
      * keep the other.
      *
+     * We fail only if all agent fail keeping error.
      * We build a list of Option[Agent] (but we log on console if an
      * agent is ignored).
      *
      */
-    val agentList = ZIO.foreach((xml \\ "AGENT").toList) { agentXML =>
-      val agent = for {
-        agentName    <- optText(agentXML \ "AGENT_NAME").notOptional(
-                          "could not parse agent name (tag AGENT_NAME) from Rudder specific inventory"
-                        )
-        rawAgentType <- ZIO.fromEither(AgentType.fromValue(agentName))
-        agentType    <- if (rawAgentType == AgentType.CfeEnterprise) {
-                          Inconsistency(
-                            "CFEngine Enterprise/Nova agents are not supported anymore"
-                          ).fail
-                        } else { rawAgentType.succeed }
+    def processAgentList(rudderXml: NodeSeq): PureResult[(AgentInfo, String, String)] = {
 
-        rootUser       <-
-          optText(agentXML \\ "OWNER").notOptional("could not parse rudder user (tag OWNER) from rudder specific inventory")
-        policyServerId <- optText(agentXML \\ "POLICY_SERVER_UUID").notOptional(
-                            "could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory"
+      val agentListEither = (rudderXml \\ "AGENT").toList.map { agentXML =>
+        val agent = for {
+          agentName    <- optText(agentXML \ "AGENT_NAME").notOptionalPure(
+                            "could not parse agent name (tag AGENT_NAME) from Rudder specific inventory"
                           )
-        optCert         = optText(agentXML \ "AGENT_CERT")
-        securityToken  <-
-          optCert match {
-            case Some(cert) => Certificate(cert).succeed
-            case None       =>
-              Inconsistency(
-                "could not parse agent security token (tag AGENT_CERT), which is mandatory"
-              ).fail
-          }
-        version        <-
-          findAgent(inventory.applications, agentType).notOptional(
-            s"Agent is not present in software list and so we can't get its version. This is not supported anymore."
-          )
-      } yield {
+          rawAgentType <- AgentType.fromValue(agentName)
+          agentType    <- if (rawAgentType == AgentType.CfeEnterprise) {
+                            Left(Inconsistency("CFEngine Enterprise/Nova agents are not supported anymore"))
+                          } else {
+                            Right(rawAgentType)
+                          }
 
-        Some((AgentInfo(agentType, Some(version), securityToken, Set()), rootUser, policyServerId))
+          rootUser       <-
+            optText(agentXML \\ "OWNER").notOptionalPure("could not parse rudder user (tag OWNER) from rudder specific inventory")
+          policyServerId <- optText(agentXML \\ "POLICY_SERVER_UUID").notOptionalPure(
+                              "could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory"
+                            )
+          optCert         = optText(agentXML \ "AGENT_CERT")
+          securityToken  <-
+            optCert match {
+              case Some(cert) => Right(Certificate(cert))
+              case None       => Left(Inconsistency("could not parse agent security token (tag AGENT_CERT), which is mandatory"))
+            }
+          version        <-
+            findAgentVersion(inventory.applications, agentType).notOptionalPure(
+              s"Agent is not present in software list and so we can't get its version. This is not supported anymore."
+            )
+        } yield {
+          (AgentInfo(agentType, Some(version), securityToken, Set()), rootUser, policyServerId)
+        }
+
+        agent.chainError(s"Error when parsing an <RUDDER><AGENT> entry in '${inventory.name}', that agent will be ignored.")
       }
 
-      agent.catchAll { eb =>
-        val e = Chained(s"Error when parsing an <RUDDER><AGENT> entry in '${inventory.name}', that agent will be ignored.", eb)
-        InventoryProcessingLogger.error(e.fullMsg) *> None.succeed
+      val (errors, agents) = agentListEither.partitionMap(identity)
+      errors match {
+        case h :: tail =>
+          val allErrors = Left(Accumulated(NonEmptyList.of(h, tail*)))
+          agents match {
+            // only take care of the first one
+            case a :: _ => Right(a)
+            case Nil    => allErrors.chainError(s"No <AGENT> entry was correctly defined in <RUDDER> extension tag")
+          }
+
+        case Nil =>
+          agents match {
+            // only take care of the first one
+            case a :: _ => Right(a)
+            case Nil    => Left(Inconsistency(s"No <AGENT> entry was defined in <RUDDER> extension tag"))
+          }
       }
     }
 
-    // to keep things consistent with previous behavior in 6.x, we don't fail if there is no rudder tag (perhaps it
-    // has an impact on root server init).
-    // We still fail on several rudder tag, which always was buggy
+    // As of Rudder 8.0, we must have exactly one <RUDDER> tag.
     val checkNumberOfRudderTag: IOResult[Unit] = {
       val size = xml.size
       if (size == 1) ZIO.unit
       else if (size < 1) {
-        // even if we don't fail to keep behavior, we at leat log the problem.
-        InventoryProcessingLogger.error(
-          s"This rudder inventory does not have any <rudder> tag defined. This tag is mandatory."
-        ) *> ZIO.unit
+        Inconsistency(s"This rudder inventory does not have any <rudder> tag defined. This tag is mandatory.").fail
       } else {
         Inconsistency(s"A rudder inventory must have exactly one <rudder> tag, found ${size}").fail
       }
@@ -471,19 +485,13 @@ class FusionInventoryParser(
 
     checkNumberOfRudderTag *> (
       (for {
-        agents         <- agentList.map(_.flatten)
-        agentOK        <- ZIO.when(agents.size < 1) {
-                            Inconsistency(
-                              s"No <AGENT> entry was correctly defined in <RUDDER> extension tag (missing or see previous errors)"
-                            ).fail
-                          }
-        uuid           <- optText(xml \ "UUID").notOptional("could not parse uuid (tag UUID) from rudder specific inventory")
-        rootUser       <- uniqueValueInSeq(agents.map(_._2), "could not parse rudder user (tag OWNER) from rudder specific inventory")
-        policyServerId <-
-          uniqueValueInSeq(agents.map(_._3), "could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
+        agent         <- processAgentList(xml).toIO
+        uuid          <- optText(xml \ "UUID").notOptional("could not parse uuid (tag UUID) from rudder specific inventory")
+        rootUser       = agent._2
+        policyServerId = agent._3
         // hostname is a special case processed in `processHostname`
-        // capabilties should be per agent
-        capabilities    = processAgentCapabilities(xml)
+        // capabilities should be per agent
+        capabilities   = processAgentCapabilities(xml)
       } yield {
         (inventory
           .modify(_.node.main.rootUser)
@@ -495,16 +503,12 @@ class FusionInventoryParser(
           .modify(_.machine.id.value)
           .setTo(IdGenerator.md5Hash(uuid))
           .modify(_.node.agents)
-          .setTo(agents.map(_._1.copy(capabilities = capabilities)))
+          .setTo(List(agent._1.copy(capabilities = capabilities)))
           .modify(_.node.customProperties)
           .setTo(customProperties))
-      }) catchAll { eb =>
-        val fail = Chained(
-          s"Error when parsing <RUDDER> extention node in inventory inventory with name '${inventory.name}'. Rudder extension attribute won't be available in inventory.",
-          eb
-        )
-        InventoryProcessingLogger.error(fail.fullMsg) *> inventory.succeed
-      }
+      }).chainError(
+        s"Error when parsing <RUDDER> extension node in inventory inventory with name '${inventory.name}'. Rudder extension attribute won't be available in inventory."
+      )
     )
   }
 

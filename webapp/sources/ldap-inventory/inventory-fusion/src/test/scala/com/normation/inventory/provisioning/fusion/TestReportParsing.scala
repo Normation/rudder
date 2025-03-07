@@ -280,9 +280,9 @@ class TestInventoryParsing extends Specification with Loggable {
 
   "Rudder tag in inventory" should {
 
-    "ok-ish when not present (have an error log)" in {
+    "error not present (have an error log)" in {
       val res = parseRunEither("fusion-inventories/rudder-tag/minimal-no-rudder.ocs")
-      res must beRight
+      res must beLeft
     }
 
     "can't be two" in {
@@ -293,9 +293,9 @@ class TestInventoryParsing extends Specification with Loggable {
 
   "Agent in Inventory" should {
 
-    "be empty when there is no agent" in {
-      val agents = parseRun("fusion-inventories/rudder-tag/minimal-zero-agent.ocs").node.agents.map(_.agentType).toList
-      agents must beEmpty
+    "be error when there is no agent" in {
+      val agents = parseRunEither("fusion-inventories/rudder-tag/minimal-zero-agent.ocs")
+      agents must beLeft
     }
 
     "have one agent when using community" in {
@@ -304,9 +304,9 @@ class TestInventoryParsing extends Specification with Loggable {
       agents.node.agents.map(_.agentType).toList === (CfeCommunity :: Nil)
     }
 
-    "be empty when there is two agents, using two different policy servers" in {
+    "keep the first when there is tow agents, using two different policy servers" in {
       val agents = parseRun("fusion-inventories/rudder-tag/minimal-two-agents-fails.ocs").node.agents.map(_.agentType).toList
-      agents must beEmpty
+      agents === List(CfeCommunity)
     }
 
     "have dsc agent agent when using rudder-agent based on dsc" in {
@@ -480,8 +480,8 @@ class TestInventoryParsing extends Specification with Loggable {
     }
 
     "lead to an error if missing (no software for agent)" in {
-      val agents = parseRun("fusion-inventories/rudder-tag/minimal-two-agents.ocs").node.agents
-      agents must beEmpty
+      val agents = parseRunEither("fusion-inventories/rudder-tag/minimal-two-agents.ocs")
+      agents must beLeft
     }
 
   }

@@ -884,6 +884,11 @@
       <VIRTUALMEMORY>2432</VIRTUALMEMORY>
     </PROCESSES>
     <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <NAME>rudder-agent</NAME>
+      <VERSION>8.0.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
       <COMMENTS>scripts for handling base ACPI events such as the power button</COMMENTS>
       <FILESIZE>88</FILESIZE>
       <FROM>deb</FROM>
