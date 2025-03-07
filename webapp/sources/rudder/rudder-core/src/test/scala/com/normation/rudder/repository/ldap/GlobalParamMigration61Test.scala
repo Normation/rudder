@@ -49,6 +49,7 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.properties.GenericProperty.*
 import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.typesafe.config.ConfigValueType
 import com.unboundid.ldap.sdk.DN
@@ -99,7 +100,8 @@ class GlobalParamMigration61Test extends Specification {
     new LDAPEntityMapper(rudderDit, nodeDit, cmdbQueryParser, inventoryMapper)
   }
 
-  val baseParam: GlobalParameter = GlobalParameter.parse("test", GitVersion.DEFAULT_REV, "", None, "", None).forceGet
+  val baseParam: GlobalParameter =
+    GlobalParameter.parse("test", GitVersion.DEFAULT_REV, "", None, "", None, Visibility.default).forceGet
 
   // attribute that used to be set in GlobalParameter entry before 6.1.
   def setIs6_0(e: LDAPEntry): Unit = {

@@ -73,6 +73,7 @@ import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.ModifyToGlobalParameterDiff
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.domain.workflows.DirectiveChangeItem
@@ -770,8 +771,11 @@ class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation 
                      ) ?~! ("Missing attribute 'description' in entry type globalParameter : " + entry)
       provider     = (globalParam \ "provider").headOption.map(x => PropertyProvider(x.text))
       mode         = (globalParam \ "inheritMode").headOption.flatMap(x => InheritMode.parseString(x.text).toOption)
+      visibility   = (globalParam \ "visibility").headOption
+                       .flatMap(x => Visibility.withNameInsensitiveOption(x.text))
+                       .getOrElse(Visibility.default)
       // TODO: no version in param for now
-      g           <- GlobalParameter.parse(name, GitVersion.DEFAULT_REV, value, mode, description, provider).toBox
+      g           <- GlobalParameter.parse(name, GitVersion.DEFAULT_REV, value, mode, description, provider, visibility).toBox
     } yield {
       g // TODO: no version in param for now
 
