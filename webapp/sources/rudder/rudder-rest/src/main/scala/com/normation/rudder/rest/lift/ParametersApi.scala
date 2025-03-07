@@ -363,8 +363,11 @@ class ParameterApiService2(
     restParameter match {
       case Full(restParameter) =>
         import GenericProperty.*
-        val parameter =
-          restParameter.updateParameter(GlobalParameter(parameterName, GitVersion.DEFAULT_REV, "".toConfigValue, None, "", None))
+        val parameter = {
+          restParameter.updateParameter(
+            GlobalParameter(parameterName, GitVersion.DEFAULT_REV, "".toConfigValue, None, "", None, Visibility.default)
+          )
+        }
 
         val diff = AddGlobalParameterDiff(parameter)
         createChangeRequestAndAnswer(
@@ -499,7 +502,7 @@ class ParameterApiService14(
       qc: QueryContext
   ): IOResult[JRGlobalParameter] = {
     import GenericProperty.*
-    val baseParameter = GlobalParameter.apply("", GitVersion.DEFAULT_REV, "".toConfigValue, None, "", None)
+    val baseParameter = GlobalParameter.apply("", GitVersion.DEFAULT_REV, "".toConfigValue, None, "", None, Visibility.default)
     val parameter     = restParameter.updateParameter(baseParameter)
     val diff          = AddGlobalParameterDiff(parameter)
     for {

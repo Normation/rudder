@@ -1486,13 +1486,29 @@ class MockGlobalParam() {
     InheritMode(ObjectMode.Override, ArrayMode.Prepend, StringMode.Append)
   }
 
-  val stringParam: GlobalParameter =
-    GlobalParameter("stringParam", GitVersion.DEFAULT_REV, "some string".toConfigValue, None, "a simple string param", None)
+  val stringParam: GlobalParameter = {
+    GlobalParameter(
+      "stringParam",
+      GitVersion.DEFAULT_REV,
+      "some string".toConfigValue,
+      None,
+      "a simple string param",
+      None,
+      Visibility.default
+    )
+  }
 
   // an hidden parameter: skipped in listing, can be accessed directly or when displaying hidden is true.
   val hiddenParam: GlobalParameter = {
-    GlobalParameter("hiddenParam", GitVersion.DEFAULT_REV, "hidden value".toConfigValue, None, "a hidden param", None)
-      .withVisibility(Hidden)
+    GlobalParameter(
+      "hiddenParam",
+      GitVersion.DEFAULT_REV,
+      "hidden value".toConfigValue,
+      None,
+      "a hidden param",
+      None,
+      Visibility.Hidden
+    )
   }
 
   // json: the key will be sorted alpha-num by Config lib; array value order is kept.
@@ -1503,12 +1519,22 @@ class MockGlobalParam() {
       """{ "string":"a string", "array": [1, 3, 2], "json": { "var2":"val2", "var1":"val1"} }""",
       None,
       "a simple string param",
-      None
+      None,
+      Visibility.default
     )
     .getOrElse(throw new RuntimeException("error in mock jsonParam"))
 
-  val modeParam: GlobalParameter =
-    GlobalParameter("modeParam", GitVersion.DEFAULT_REV, "some string".toConfigValue, Some(mode), "a simple string param", None)
+  val modeParam: GlobalParameter = {
+    GlobalParameter(
+      "modeParam",
+      GitVersion.DEFAULT_REV,
+      "some string".toConfigValue,
+      Some(mode),
+      "a simple string param",
+      None,
+      Visibility.default
+    )
+  }
 
   val systemParam: GlobalParameter = GlobalParameter(
     "systemParam",
@@ -1516,7 +1542,8 @@ class MockGlobalParam() {
     "some string".toConfigValue,
     None,
     "a simple string param",
-    Some(PropertyProvider.systemPropertyProvider)
+    Some(PropertyProvider.systemPropertyProvider),
+    Visibility.default
   )
 
   val rudderConfig: GlobalParameter = GlobalParameter
@@ -1528,7 +1555,8 @@ class MockGlobalParam() {
          |}""".stripMargin,
       None,
       "rudder system config",
-      Some(PropertyProvider.systemPropertyProvider)
+      Some(PropertyProvider.systemPropertyProvider),
+      Visibility.default
     )
     .getOrElse(throw new RuntimeException("error in mock jsonParam"))
 

@@ -46,6 +46,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.properties.GenericProperty.StringToConfigValue
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.GroupProperty
+import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.zio.*
 import org.junit.runner.RunWith
@@ -71,8 +72,17 @@ class TestInheritedProperties extends ZIOSpecDefault {
 
   // there is some tests that need change in data model, that we don't want to have in all plugins.
   // For ex, the tests for inherited values
-  val badOverrideType: GlobalParameter =
-    GlobalParameter("badOverrideType", GitVersion.DEFAULT_REV, "a string".toConfigValue, None, "a string at first", None)
+  val badOverrideType: GlobalParameter = {
+    GlobalParameter(
+      "badOverrideType",
+      GitVersion.DEFAULT_REV,
+      "a string".toConfigValue,
+      None,
+      "a string at first",
+      None,
+      Visibility.default
+    )
+  }
   restTestSetUp.mockParameters.paramsRepo.paramsMap.update(m => m + (badOverrideType.name -> badOverrideType)).runNow
 
   val gProp: GroupProperty = GroupProperty
