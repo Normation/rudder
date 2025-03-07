@@ -148,7 +148,6 @@ class ScoreServiceImpl(
 
   def deleteNodeScore(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Unit] = {
     for {
-      _         <- nodeFactRepo.get(nodeId).notOptional(s"Cannot update node '${nodeId.value}' score")
       _         <- cache.update(_.removed(nodeId))
       newScores <- scoreCache.updateAndGet(_.removed(nodeId))
       _         <- scoreRepository.deleteScore(nodeId, None)
