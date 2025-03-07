@@ -124,21 +124,21 @@ bundle agent sharedfile_to_node(remote_node, file_id, file_path, ttl)
 
   classes:
     any::
-      "version_ge_8"      expression => isgreaterthan("${version_data[1]}", 7);
-      "version_ge_7_3_6"  expression => and(regcmp("Rudder agent 7\.3.*", "${version_str}"), isgreaterthan("${version_data[3]}", 5));
-      "version_ge_7_2_11" expression => and(regcmp("Rudder agent 7\.2.*", "${version_str}"), isgreaterthan("${version_data[3]}", 10));
-      "use_rudder_client" expression => "version_ge_8|version_ge_7_3_6|version_ge_7_2_11";
-
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
+
       "${canonified_path}_signed" and => { fileexists("${file_path}.sign"), isnewerthan("${file_path}.sign","${file_path}") };
 
       # classes for _classes_combine_ifthenelse
-      "${old_class_prefix}_exist_true" expression => "${old_class_prefix}_exist_kept", scope => "namespace";
-      "${old_class_prefix}_exist_false" expression => "${old_class_prefix}_exist_repaired", scope => "namespace";
-      "${class_prefix}_exist_true" expression => "${class_prefix}_exist_kept", scope => "namespace";
-      "${class_prefix}_exist_false" expression => "${class_prefix}_exist_repaired", scope => "namespace";
+      "${old_class_prefix}_exist_true"  expression => "${old_class_prefix}_exist_kept",
+                                             scope => "namespace";
+      "${old_class_prefix}_exist_false" expression => "${old_class_prefix}_exist_repaired",
+                                             scope => "namespace";
+      "${class_prefix}_exist_true"      expression => "${class_prefix}_exist_kept",
+                                             scope => "namespace";
+      "${class_prefix}_exist_false"     expression => "${class_prefix}_exist_repaired",
+                                             scope => "namespace";
 
       "file_exists"  expression => fileexists("${file_path}");
       "check_failed" expression => "${old_class_prefix}_exist_error|${class_prefix}_exist_error";
@@ -154,6 +154,11 @@ bundle agent sharedfile_to_node(remote_node, file_id, file_path, ttl)
     !file_exists::
       "report"                    usebundle => _log_v3("File ${file_path} does not exist", "${file_id}", "${old_class_prefix}", "${class_prefix}", @{args});
 
+    pass1.!pass2::
+      "${report_data.method_id}_${command}" usebundle  => push_dry_run_mode("false");
+    pass3::
+      "${report_data.method_id}_${command}" usebundle  => pop_dry_run_mode();
+
     _ncf_path_exists_curl.file_exists.!check_failed.pass3::
       "result"                    usebundle => _classes_combine_ifthenelse("${old_class_prefix}_exist", "success", "${old_class_prefix}_uploaded", "${old_class_prefix}");
       "result"                    usebundle => _classes_combine_ifthenelse("${class_prefix}_exist", "success", "${class_prefix}_uploaded", "${class_prefix}");
@@ -163,27 +168,23 @@ bundle agent sharedfile_to_node(remote_node, file_id, file_path, ttl)
   commands:
     _ncf_path_exists_curl::
       "/opt/rudder/bin/rudder-sign"
-        args => "${file_path} 1.1",
+           args => "${file_path} 1.1",
         classes => if_ok("${canonified_path}_signed"),
-        ifvarclass => "!${canonified_path}_signed";
+             if => "!${canonified_path}_signed";
 
-    use_rudder_client.pass2::
+    pass2::
       "code=`/opt/rudder/bin/rudder-client -e ${endpoint}?hash=${hash} -r -- --head` || if [ $code -eq 404 ]; then exit 22; elif [ $code -eq 200 ]; then exit 0; else exit 254; fi"
         contain => in_shell,
         classes => classes_generic_return_single_code_two("${old_class_prefix}_exist", "${class_prefix}_exist", "0", "22", "254"), # 254 = http 400 or above, 22 = http 404
-        ifvarclass => "${canonified_path}_signed";
+             if => "${canonified_path}_signed";
 
-    # remove when 7.2 and 7.3 agents are not supported anymore
-    !use_rudder_client._ncf_path_exists_curl.pass2::
-      "code=`${ncf_paths.path[curl]} ${url}?hash=${hash} ${g.rudder_verify_certs_option} --tlsv1 --location --head --output /dev/null --silent --fail --write-out %{http_code}` || if [ $code -eq 404 ]; then exit 22; elif [ $code -eq 200 ]; then exit 0; else exit 254; fi"
-        contain => in_shell,
-        classes => classes_generic_return_single_code_two("${old_class_prefix}_exist", "${class_prefix}_exist", "0", "22", "254"), # 254 = http 400 or above, 22 = http 404
-        ifvarclass => "${canonified_path}_signed";
-
-    pass2::
       "echo | cat ${file_path}.sign - ${file_path} | /opt/rudder/bin/rudder-client"
-        args => "-e ${endpoint}?ttl=${url_ttl} -- --request PUT --output /dev/null --header 'Content-Type: application/octet-stream' --data-binary @-",
+           args => "-e ${endpoint}?ttl=${url_ttl} -- --request PUT --output /dev/null --header 'Content-Type: application/octet-stream' --data-binary @-",
         contain => in_shell,
         classes => classes_generic_return_single_code_two("${old_class_prefix}_uploaded", "${class_prefix}_uploaded", "0", "999", "22"), # 22 = http 400 or above
-        ifvarclass => "${canonified_path}_signed.(${old_class_prefix}_exist_repaired|${class_prefix}_exist_repaired)";
+             if => and( "${canonified_path}_signed",
+                        or( "${old_class_prefix}_exist_repaired",
+                            "${class_prefix}_exist_repaired"
+                          )
+                      );
 }
