@@ -57,7 +57,6 @@ import com.normation.rudder.services.reports.CacheComplianceQueueAction.Expected
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpiredCompliance
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.SetNodeNoAnswer
 import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNodeInCache
-import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
