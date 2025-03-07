@@ -53,7 +53,11 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.services.policies.NodeConfigData
+import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpectedReportAction
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpiredCompliance
+import com.normation.rudder.services.reports.CacheComplianceQueueAction.SetNodeNoAnswer
+import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNodeInCache
+import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
@@ -61,6 +65,7 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
 import zio.*
+import zio.Chunk
 import zio.syntax.*
 
 /*
@@ -309,4 +314,32 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     n2 must beEqualTo(finder.reports)
     finder.updated.size must beEqualTo(9) // second time, only expired are invalidate: none here
   }
+
+  "Ensure that actions are grouped by type name " >> {
+
+    val (_, _, computer) = newServices(NodeComplianceExpiration.default)
+
+    val now = DateTime.now()
+    val res = computer.groupQueueActionByType(
+      Chunk(
+        SetNodeNoAnswer(NodeId("root"), now),
+        ExpiredCompliance(NodeId("root")),
+        ExpiredCompliance(NodeId("node1")),
+        ExpectedReportAction(InsertNodeInCache(NodeId("node1"))),
+        SetNodeNoAnswer(NodeId("root"), now),
+        ExpiredCompliance(NodeId("node2"))
+      )
+    )
+
+    res must beEqualTo(
+      Chunk(
+        Chunk(SetNodeNoAnswer(NodeId("root"), now)),
+        Chunk(ExpiredCompliance(NodeId("root")), ExpiredCompliance(NodeId("node1"))),
+        Chunk(ExpectedReportAction(InsertNodeInCache(NodeId("node1")))),
+        Chunk(SetNodeNoAnswer(NodeId("root"), now)),
+        Chunk(ExpiredCompliance(NodeId("node2")))
+      )
+    )
+  }
+
 }
