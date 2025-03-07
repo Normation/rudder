@@ -210,7 +210,7 @@ class ParameterApiService14(
       qc: QueryContext
   ): IOResult[JRGlobalParameter] = {
     import GenericProperty.*
-    val baseParameter = GlobalParameter.apply("", GitVersion.DEFAULT_REV, "".toConfigValue, None, "", None)
+    val baseParameter = GlobalParameter.apply("", GitVersion.DEFAULT_REV, "".toConfigValue, None, "", None, Visibility.default)
     val parameter     = restParameter.updateParameter(baseParameter)
     val diff          = AddGlobalParameterDiff(parameter)
     for {

@@ -72,6 +72,7 @@ import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.reports.*
@@ -1097,8 +1098,17 @@ class LDAPEntityMapper(
                         case None    => GitVersion.DEFAULT_REV
                         case Some(x) => x
                       }
+        visibility <- e(A_VISIBILITY) match {
+                        case None             => Right(Visibility.default)
+                        case Some(visibility) =>
+                          Visibility.withNameInsensitiveEither(visibility) match {
+                            case Left(err) =>
+                              Left(InventoryMappingRudderError.UnexpectedObject(err.getMessage()))
+                            case Right(x)  => Right(x)
+                          }
+                      }
       } yield {
-        GlobalParameter(name, rev, parsed, mode, description, provider)
+        GlobalParameter(name, rev, parsed, mode, description, provider, visibility)
       }
     } else {
       Left(
@@ -1117,6 +1127,7 @@ class LDAPEntityMapper(
     entry.resetValuesTo(A_DESCRIPTION, parameter.description)
     parameter.provider.foreach(p => entry.resetValuesTo(A_PROPERTY_PROVIDER, p.value))
     parameter.inheritMode.foreach(m => entry.resetValuesTo(A_INHERIT_MODE, m.value))
+    entry.resetValuesTo(A_VISIBILITY, parameter.visibility.entryName)
     entry
   }
 

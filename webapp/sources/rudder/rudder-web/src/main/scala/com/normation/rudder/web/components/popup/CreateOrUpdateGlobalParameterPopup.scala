@@ -49,6 +49,7 @@ import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.ModifyToGlobalParameterDiff
+import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
@@ -152,7 +153,8 @@ class CreateOrUpdateGlobalParameterPopup(
                      value,
                      InheritMode.parseString(parameterInheritMode.get).toOption,
                      parameterDescription.get,
-                     None
+                     None,
+                     Visibility.default
                    )
           diff  <- globalParamDiffFromAction(param)
           cr     = ChangeRequestService.createChangeRequestFromGlobalParameter(

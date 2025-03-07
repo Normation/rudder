@@ -1316,9 +1316,12 @@ object GlobalParameter {
       value:       String,
       mode:        Option[InheritMode],
       description: String,
-      provider:    Option[PropertyProvider]
+      provider:    Option[PropertyProvider],
+      visibility:  Visibility
   ): PureResult[GlobalParameter] = {
-    GenericProperty.parseConfig(name, rev, value, mode, provider, Some(description), None).map(c => new GlobalParameter(c))
+    GenericProperty
+      .parseConfig(name, rev, value, mode, provider, Some(description), Some(visibility))
+      .map(c => new GlobalParameter(c))
   }
   def apply(
       name:        String,
@@ -1326,9 +1329,10 @@ object GlobalParameter {
       value:       ConfigValue,
       mode:        Option[InheritMode],
       description: String,
-      provider:    Option[PropertyProvider]
+      provider:    Option[PropertyProvider],
+      visibility:  Visibility
   ): GlobalParameter = {
-    new GlobalParameter(GenericProperty.toConfig(name, rev, value, mode, provider, Some(description), None))
+    new GlobalParameter(GenericProperty.toConfig(name, rev, value, mode, provider, Some(description), Some(visibility)))
   }
 
 }

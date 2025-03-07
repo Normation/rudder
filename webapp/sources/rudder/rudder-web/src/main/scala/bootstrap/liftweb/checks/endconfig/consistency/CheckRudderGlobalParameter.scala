@@ -50,6 +50,7 @@ import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.repository.WoParameterRepository
 import com.normation.utils.StringUuidGenerator
@@ -136,7 +137,8 @@ final private[checks] case class JsonParam(
     description: String,
     value:       JValue,
     inheritMode: Option[String],
-    provider:    Option[String]
+    provider:    Option[String],
+    visibility:  Option[String]
 ) {
   def toGlobalParam: GlobalParameter = {
     GlobalParameter(
@@ -145,7 +147,8 @@ final private[checks] case class JsonParam(
       GenericProperty.fromJsonValue(value),
       inheritMode.flatMap(InheritMode.parseString(_).toOption),
       description,
-      provider.map(PropertyProvider.apply)
+      provider.map(PropertyProvider.apply),
+      visibility.flatMap(Visibility.withNameInsensitiveOption).getOrElse(Visibility.default)
     )
   }
 }
