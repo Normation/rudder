@@ -1,0 +1,69 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2025 Normation SAS
+## same as directive-new without source
+type: object
+properties:
+  id:
+    description: An optional ID for that account. It needs to match [a-zA-Z0-9_-]+
+    type: string
+    example: oidc-provided-opaque-id-5154cbb63a18
+  name:
+    description: Human readable name of the API account
+    type: string
+    example: Audit directives
+  description:
+    description: One line API account description
+    type: string
+    example: Read-only account for directive audit
+  status:
+    description: Status of that API account
+    type: string
+    enum:
+      - enabled
+      - disabled
+    example: enabled
+  generateToken:
+    description: Optionally specify if the token need to be generated (default true)
+    type: boolean
+  expirationPolicy:
+    description: >-
+      Optionally specify the expiration policy of the API account. Default: never
+    type: string
+    enum:
+      - never
+      - datetime
+    example: never
+  expirationDate:
+    description: Optional expiration date of the API account
+    type: string
+    format: rfc3339
+    example: 2025-05-10T23:59:59Z
+  tenants:
+    description: a comma separated list of tenants allowed for that account. See tenant documentation for syntax.
+    type: string
+    example: "*"
+  authorizationType:
+    description: >-
+      Authorization type for that account: 
+      - ro: read-only (GET) access to all APIs
+      - rw: read (GET) and write (other verbs) access to all APIs
+      - acl: access control list based permission for API (need api-authorization plugin)
+    type: string
+    enum:
+      - rw
+      - ro
+      - acl
+  acl:
+    description: in case of ACL authorization type, the actual ACL
+    type: array
+    items:
+      type: object
+      properties:
+        path:
+          description: API path managed by that access control
+          type: string
+          example: directives/1ebee8c7-c898-4ee5-9470-139bfd80c442
+        verb:
+          description: HTTP verb allowed
+          type: string
+          example: get

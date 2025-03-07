@@ -1,0 +1,86 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2025 Normation SAS
+## same as directive-new without source
+type: object
+properties:
+  id:
+    description: API account id
+    type: string
+    format: uuid
+    example: 91252ea2-feb2-412d-8599-c6945fee02c4
+  name:
+    description: Human readable name of the API account
+    type: string
+    example: Audit directives
+  description:
+    description: One line API account description
+    type: string
+    example: Read-only account for directive audit
+  status:
+    description: Status of that API account
+    type: string
+    enum:
+      - enabled
+      - disabled
+    example: enabled
+  creationDate:
+    description: Creation date of the API account
+    type: string
+    format: rfc3339
+  expirationPolicy:
+    description: Expiration policy of the API account (not the token)
+    type: string
+    enum:
+      - never
+      - datetime
+    example: never
+  expirationDate:
+    description: Optional expiration date of the API account
+    type: string
+    format: rfc3339
+    example: 2025-05-10T23:59:59Z
+  tokenState:
+    description: State of the token for that account. An account with token state 'missing' means that there is no token for that account.
+    type: string
+    enum:
+      - generated
+      - missing
+    example: missing
+  token:
+    description: The token secret. It will be returned only once when a new token is generated.
+    type: string
+    example: t1-ca5a50899d25cd3ff148350843a9d435
+  tokenGenerationDate:
+    description: Optional generation date for the token when tokenState is 'generated'
+    type: string
+    format: rfc3339
+    example: 2025-02-12T10:55:00Z
+  tenants:
+    description: a comma separated list of tenants allowed for that account. See tenant documentation for syntax.
+    type: string
+    example: "*"
+  authorizationType:
+    description: >-
+      Authorization type for that account: 
+      - ro: read-only (GET) access to all APIs
+      - rw: read (GET) and write (other verbs) access to all APIs
+      - acl: access control list based permission for API (need api-authorization plugin)
+    type: string
+    enum:
+      - rw
+      - ro
+      - acl
+  acl:
+    description: in case of ACL authorization type, the actual ACL
+    type: array
+    items:
+      type: object
+      properties:
+        path:
+          description: API path managed by that access control
+          type: string
+          example: directives/1ebee8c7-c898-4ee5-9470-139bfd80c442
+        verb:
+          description: HTTP verb allowed
+          type: string
+          example: get
