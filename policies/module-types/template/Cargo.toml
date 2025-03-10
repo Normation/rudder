@@ -22,3 +22,4 @@ gumdrop = "0.8.0"
 [dev-dependencies]
 rudder_commons_test = { path = "../../rudder-commons-test" }
 tempfile = "3"
+assert_cmd = "2.0.14"
