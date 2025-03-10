@@ -23,19 +23,14 @@ impl FromStr for Engine {
 pub struct Cli {
     #[options(help = "print help message")]
     help: bool,
-
     #[options(help = "be verbose")]
     verbose: bool,
-
     #[options(help = "template engine", default = "minijinja")]
     engine: Engine,
-
     #[options(required, help = "source template")]
     template: PathBuf,
-
     #[options(required, help = "source data file")]
     data: PathBuf,
-
     #[options(required, help = "destination path")]
     out: PathBuf,
 }
@@ -46,10 +41,8 @@ impl Cli {
         if opts.verbose {
             println!("Parsed options: {:#?}", &opts);
         }
-
         let data = read_to_string(opts.data)?;
         let value: Value = serde_json::from_str(&data)?;
-
         let output = opts
             .engine
             .render(Some(opts.template.as_path()), None, value)?;
