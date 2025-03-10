@@ -17,7 +17,7 @@ fn test_default_template_engine() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn test_jinja_template_engine() -> Result<(), Box<dyn std::error::Error>> {
+fn test_minijinja_template_engine() -> Result<(), Box<dyn std::error::Error>> {
     let output_file = NamedTempFile::new()?;
     let mut cmd = Command::cargo_bin("rudder-module-template")?;
 
