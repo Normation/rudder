@@ -24,6 +24,9 @@ pub struct Cli {
     #[options(help = "print help message")]
     help: bool,
 
+    #[options(help = "be verbose")]
+    verbose: bool,
+
     #[options(help = "template engine", default = "minijinja")]
     engine: Engine,
 
@@ -40,6 +43,9 @@ pub struct Cli {
 impl Cli {
     pub fn run() -> Result<()> {
         let opts = Self::parse_args_default_or_exit();
+        if opts.verbose {
+            println!("Parsed options: {:#?}", &opts);
+        }
 
         let data = read_to_string(opts.data)?;
         let value: Value = serde_json::from_str(&data)?;
