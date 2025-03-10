@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
+mod cli;
+use crate::cli::Cli;
+
 use std::{
     fs,
     fs::read_to_string,
@@ -217,6 +220,6 @@ fn main() -> Result<(), anyhow::Error> {
     if called_from_agent() {
         run_module(promise_type)
     } else {
-        unimplemented!("Only CFEngine mode is supported")
+        Cli::run()
     }
 }
