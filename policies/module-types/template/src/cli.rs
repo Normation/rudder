@@ -44,7 +44,9 @@ impl Cli {
         if opts.verbose {
             println!("Parsed options: {:#?}", &opts);
         }
-        let data = read_to_string(opts.data)?;
+        let data = read_to_string(&opts.data)
+            .with_context(|| format!("Failed to load data {}", opts.data.display()))?;
+
         let value: Value = serde_json::from_str(&data)?;
         let output = opts
             .engine
