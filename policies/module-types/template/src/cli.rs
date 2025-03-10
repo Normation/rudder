@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2021 Normation SAS
+
 use crate::Engine;
 
 use anyhow::{Context, Result};
