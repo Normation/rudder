@@ -135,18 +135,17 @@ pub fn method_call(
         ].into_iter().flatten().collect(),
         (_, false) => vec![
             reporting_context,
-            Promise::usebundle(
-                "log_na_rudder",
-                Some(&report_component),
-                vec![
-                    quoted(&format!(
-                        "'{}' method is not available on classic Rudder agent, skip",
-                        report_parameter,
-                    )),
-                    quoted(&report_parameter),
-                    "@{args}".to_string(),
-                ],
-            )
+            Promise::usebundle("_classes_noop", Some(&report_component), vec![na_condition.clone()]),
+            Promise::usebundle("log_rudder", Some(&report_component),  vec![
+                quoted(&format!(
+                    "'{}' method is not available on classic Rudder agent, skip",
+                    m.name,
+                )),
+                quoted(&report_parameter),
+                na_condition.clone(),
+                na_condition,
+                "@{args}".to_string()
+            ])
         ],
     };
 
