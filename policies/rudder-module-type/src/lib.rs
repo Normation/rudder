@@ -206,7 +206,7 @@ pub fn run_module<T: ModuleType0>(module_type: T) -> Result<(), Error> {
     #[cfg(target_family = "unix")]
     CfengineRunner::new().run(module_type)?;
     #[cfg(not(target_family = "unix"))]
-    unimplemented!("Only Unix-like systems are supported")?;
+    unimplemented!("Only Unix-like systems are supported");
 
     Ok(())
 }
@@ -250,6 +250,7 @@ pub mod inventory {
     }
 }
 
+#[cfg(target_family = "unix")]
 pub fn ensure_root_user() -> Result<()> {
     use anyhow::bail;
     use std::os::unix::fs::MetadataExt;
