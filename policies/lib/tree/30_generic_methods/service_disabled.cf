@@ -25,7 +25,7 @@
 # @parameter_rename service_name name
 # @class_prefix service_disabled
 # @class_parameter name
-# @agent_support = ["cfengine-community"]
+# @agent_support = ["cfengine-community", "dsc"]
 
 bundle agent service_disabled(name)
 {
