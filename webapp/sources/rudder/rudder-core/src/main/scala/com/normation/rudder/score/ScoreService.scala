@@ -157,15 +157,8 @@ class ScoreServiceImpl(
   }
   def cleanScore(name: String)(implicit qc: QueryContext): IOResult[Unit] = {
     for {
-      nodeIds   <- nodeFactRepo.getAll().map(_.keySet)
-      _         <- cache.update(_.map {
-                     case (id, gscore) if nodeIds.contains(id) => (id, gscore)
-                     case (id, gscore)                         => (id, gscore.copy(details = gscore.details.filterNot(_.scoreId == name)))
-                   })
-      newScores <- scoreCache.updateAndGet(_.map {
-                     case (id, scores) if nodeIds.contains(id) => (id, scores)
-                     case (id, scores)                         => (id, scores.filterNot(_.scoreId == name))
-                   })
+      _         <- cache.update(_.map { case (id, gscore) => (id, gscore.copy(details = gscore.details.filterNot(_.scoreId == name))) })
+      newScores <- scoreCache.updateAndGet(_.map { case (id, scores) => (id, scores.filterNot(_.scoreId == name)) })
       _         <- update(newScores)
     } yield {}
   }
