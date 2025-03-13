@@ -175,10 +175,10 @@ impl ModuleType0 for Template {
         let mut reported_diff = diff(content, output.clone());
         let max_reported_diff = 10_000;
 
-        if reported_diff.as_bytes().len() > max_reported_diff {
+        if reported_diff.len() > max_reported_diff {
             reported_diff = format!(
                 "Changes to {} could not be reported. The diff output exceeds the maximum size limit.",
-                output_file_d.to_string()
+                output_file_d
             )
         }
 
@@ -196,7 +196,7 @@ impl ModuleType0 for Template {
             (false, PolicyMode::Enforce) => {
                 // Backup current file
                 if already_present {
-                    backup_file(&output_file, &parameters.backup_dir)?;
+                    backup_file(output_file, &parameters.backup_dir)?;
                 }
 
                 // Write file
