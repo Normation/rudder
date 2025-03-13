@@ -172,7 +172,15 @@ impl ModuleType0 for Template {
             false
         };
 
-        let reported_diff = diff(content, output.clone());
+        let mut reported_diff = diff(content, output.clone());
+        let max_reported_diff = 10_000;
+
+        if reported_diff.as_bytes().len() > max_reported_diff {
+            reported_diff = format!(
+                "Changes to {} could not be reported. The diff output exceeds the maximum size limit.",
+                output_file_d.to_string()
+            )
+        }
 
         let outcome = match (already_correct, mode) {
             (true, _) => Outcome::success(),
@@ -219,7 +227,7 @@ impl ModuleType0 for Template {
 pub fn diff(old: String, new: String) -> String {
     let diff = TextDiff::from_lines(&old, &new);
     let mut unified = diff.unified_diff();
-    return unified.context_radius(3).header("old", "new").to_string();
+    unified.context_radius(3).header("old", "new").to_string()
 }
 
 fn backup_file(output_file: &Path, backup_dir: &Path) -> Result<(), anyhow::Error> {
