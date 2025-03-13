@@ -1222,6 +1222,10 @@
       <STATUS>available</STATUS>
     </SLOTS>
     <SOFTWARES>
+      <NAME>rudder-agent</NAME>
+      <VERSION>8.0.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
       <ARCH>ppc</ARCH>
       <COMMENTS>A command line CD/DVD recording program.</COMMENTS>
       <FILESIZE>746727</FILESIZE>
