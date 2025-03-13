@@ -106,6 +106,13 @@ pub struct TemplateParameters {
     /// Data to use for templating
     #[serde(default)]
     data: Value,
+    /// Controls output of diffs in the report
+    #[serde(default = "default_as_true")]
+    show_content: bool,
+}
+
+fn default_as_true() -> bool {
+    true
 }
 
 // Module
@@ -172,15 +179,24 @@ impl ModuleType0 for Template {
             false
         };
 
-        let mut reported_diff = diff(content, output.clone());
-        let max_reported_diff = 10_000;
+        let reported_diff = if p.show_content {
+            let reported_diff = diff(content, output.clone());
+            let max_reported_diff = 10_000;
 
-        if reported_diff.len() > max_reported_diff {
-            reported_diff = format!(
-                "Changes to {} could not be reported. The diff output exceeds the maximum size limit.",
+            if reported_diff.len() > max_reported_diff {
+                format!(
+                    "Changes to {} could not be reported. The diff output exceeds the maximum size limit.",
+                    output_file_d
+                )
+            } else {
+                reported_diff
+            }
+        } else {
+            format!(
+                "Changes to {} could not be reported. The diff output is disabled.",
                 output_file_d
             )
-        }
+        };
 
         let outcome = match (already_correct, mode) {
             (true, _) => Outcome::success(),
