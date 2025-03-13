@@ -57,6 +57,27 @@ const equalsCheck = (a, b) =>
     a.length === b.length &&
     a.every((v, i) => v === b[i]);
 
+// Shared config for DataTables Button CSV
+const csvButtonConfig = (filename) => ({
+  extend: 'csv',
+  className: 'btn btn-primary btn-export',
+  filename: filename,
+  text: 'Export',
+  exportOptions: {
+    customizeData: function (data) {
+      // export compliance percent
+      const complianceColumnIdx = data.header.findIndex(s => s.toLowerCase() === "compliance")
+      if (complianceColumnIdx >= 0) {
+        data.body.forEach((row, idx) => {
+          data.body[idx][complianceColumnIdx] = computeCompliancePercentFromString(row[complianceColumnIdx]).toString() + "%"
+        })
+      }
+      return data
+    }
+  }
+})
+
+
 /*
  * This function is used to resort a table after its sorting data were changed ( like sorting function below)
  */
@@ -1508,7 +1529,7 @@ function createNodeTable(gridId, refresh, scores) {
     , "drawCallback": function( oSettings ) {
         initBsTooltips();
       }
-    , "dom": ` <"dataTables_wrapper_top newFilter "<"#first_line_header" f <"dataTables_refresh"> <"#${gridId}_wrapper"> <"#edit-columns">> <"#select-columns"> >rt<"dataTables_wrapper_bottom"lip>`
+    , "dom": ` <"dataTables_wrapper_top newFilter "<"#first_line_header.d-flex" <"d-flex flex-fill" <"me-2" f> <"#edit-columns">> <"d-flex ms-auto my-auto" <"me-2" B> <"dataTables_refresh">>> <"#select-columns"> >rt<"dataTables_wrapper_bottom"lip>`
   };
 
 
@@ -2429,6 +2450,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
     , "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ]
     , "pageLength": 25
     , "retrieve" : true
+    , "buttons": [ csvButtonConfig(gridId) ]
   };
   if (storageId !== undefined) {
     var storageParams = {
