@@ -94,7 +94,7 @@ class Archives extends DispatchSnippet with Loggable {
       ModificationId(uuidGen.newUuid),
       qc.actor,
       new DateTime(),
-      Some("User requested archive restoration to commit %s".format(commit.value)),
+      Some("User requested backup restoration to commit %s".format(commit.value)),
       None,
       qc.nodePerms
     )
@@ -109,11 +109,11 @@ class Archives extends DispatchSnippet with Loggable {
     actionFormBuilder(
       formName = "allForm",
       archiveButtonId = "exportAllButton",
-      archiveButtonName = "Archive everything",
+      archiveButtonName = "Backup everything",
       archiveFunction = itemArchiver.exportAll,
-      archiveErrorMessage = "Error when exporting groups, parameters, directive library and rules.",
+      archiveErrorMessage = "Error when backing-up groups, parameters, directive library and rules.",
       archiveSuccessDebugMessage =
-        s => s"Exporting groups, parameters, directive library and rules on user request, archive id: ${s}",
+        s => s"Backup-ing groups, parameters, directive library and rules on user request, archive id: ${s}",
       archiveDateSelectId = "importAllSelect",
       archiveListFunction = () => itemArchiver.getFullArchiveTags,
       restoreButtonId = "importAllButton",
@@ -121,7 +121,7 @@ class Archives extends DispatchSnippet with Loggable {
       restoreFunction =
         restoreWithImport((ps: ImportFuncParams) => (cc: ChangeContext) => (itemArchiver.importAll(ps._1, ps._2, ps._3)(cc))),
       restoreErrorMessage = "Error when importing groups, parameters, directive library and rules.",
-      restoreSuccessDebugMessage = "Importing groups, parameters, directive library and rules on user request",
+      restoreSuccessDebugMessage = "Restoring groups, parameters, directive library and rules on user request",
       downloadButtonId = "downloadAllButton",
       downloadButtonName = DL_NAME,
       downloadRestAction = ArchiveType.All
@@ -132,10 +132,10 @@ class Archives extends DispatchSnippet with Loggable {
     actionFormBuilder(
       formName = "rulesForm",
       archiveButtonId = "exportRulesButton",
-      archiveButtonName = "Archive rules",
+      archiveButtonName = "Backup rules",
       archiveFunction = (a, b, c, d, e) => itemArchiver.exportRules(a, b, c, d, e).map(x => (x, noElements)),
-      archiveErrorMessage = "Error when exporting rules.",
-      archiveSuccessDebugMessage = s => "Exporting rules on user request, archive id: %s".format(s),
+      archiveErrorMessage = "Error when backing-up rules.",
+      archiveSuccessDebugMessage = s => "Backup-ing rules on user request, archive id: %s".format(s),
       archiveDateSelectId = "importRulesSelect",
       archiveListFunction = () => itemArchiver.getRulesTags,
       restoreButtonId = "importRulesButton",
@@ -143,7 +143,7 @@ class Archives extends DispatchSnippet with Loggable {
       restoreFunction =
         restoreWithImport((ps: ImportFuncParams) => (cc: ChangeContext) => (itemArchiver.importRules(ps._1, ps._2, ps._3)(cc))),
       restoreErrorMessage = "Error when importing rules.",
-      restoreSuccessDebugMessage = "Importing rules on user request",
+      restoreSuccessDebugMessage = "Restoring rules on user request",
       downloadButtonId = "downloadRulesButton",
       downloadButtonName = DL_NAME,
       downloadRestAction = ArchiveType.Rules
@@ -154,10 +154,10 @@ class Archives extends DispatchSnippet with Loggable {
     actionFormBuilder(
       formName = "directiveLibraryForm",
       archiveButtonId = "exportDirectiveLibraryButton",
-      archiveButtonName = "Archive directive library",
+      archiveButtonName = "Backup directive library",
       archiveFunction = itemArchiver.exportTechniqueLibrary,
-      archiveErrorMessage = "Error when exporting directive library.",
-      archiveSuccessDebugMessage = s => "Exporting directive library on user request, archive id: %s".format(s),
+      archiveErrorMessage = "Error when backing-up directive library.",
+      archiveSuccessDebugMessage = s => "Backup-ing directive library on user request, archive id: %s".format(s),
       archiveDateSelectId = "importDirectiveLibrarySelect",
       archiveListFunction = () => itemArchiver.getTechniqueLibraryTags,
       restoreButtonId = "importDirectiveLibraryButton",
@@ -166,7 +166,7 @@ class Archives extends DispatchSnippet with Loggable {
         (cc: ChangeContext) => (itemArchiver.importTechniqueLibrary(ps._1, ps._2, ps._3)(cc))
       ),
       restoreErrorMessage = "Error when importing directive library.",
-      restoreSuccessDebugMessage = "Importing directive library on user request",
+      restoreSuccessDebugMessage = "Restoring directive library on user request",
       downloadButtonId = "downloadDirectiveLibraryButton",
       downloadButtonName = DL_NAME,
       downloadRestAction = ArchiveType.Directives
@@ -177,10 +177,10 @@ class Archives extends DispatchSnippet with Loggable {
     actionFormBuilder(
       formName = "groupLibraryForm",
       archiveButtonId = "exportGroupLibraryButton",
-      archiveButtonName = "Archive groups",
+      archiveButtonName = "Backup groups",
       archiveFunction = (a, b, c, d, e) => itemArchiver.exportGroupLibrary(a, b, c, d, e).map(x => (x, noElements)),
-      archiveErrorMessage = "Error when exporting groups.",
-      archiveSuccessDebugMessage = s => "Exporting groups on user request, archive id: %s".format(s),
+      archiveErrorMessage = "Error when backing-up groups.",
+      archiveSuccessDebugMessage = s => "Backup-ing groups on user request, archive id: %s".format(s),
       archiveDateSelectId = "importGroupLibrarySelect",
       archiveListFunction = () => itemArchiver.getGroupLibraryTags,
       restoreButtonId = "importGroupLibraryButton",
@@ -189,7 +189,7 @@ class Archives extends DispatchSnippet with Loggable {
         (cc: ChangeContext) => (itemArchiver.importGroupLibrary(ps._1, ps._2, ps._3)(cc))
       ),
       restoreErrorMessage = "Error when importing groups.",
-      restoreSuccessDebugMessage = "Importing groups on user request",
+      restoreSuccessDebugMessage = "Restoring groups on user request",
       downloadButtonId = "downloadGroupLibraryButton",
       downloadButtonName = DL_NAME,
       downloadRestAction = ArchiveType.Groups
@@ -200,10 +200,10 @@ class Archives extends DispatchSnippet with Loggable {
     actionFormBuilder(
       formName = "parametersForm",
       archiveButtonId = "exportParametersButton",
-      archiveButtonName = "Archive global properties",
+      archiveButtonName = "Backup global properties",
       archiveFunction = (a, b, c, d, e) => itemArchiver.exportParameters(a, b, c, d, e).map(x => (x, noElements)),
-      archiveErrorMessage = "Error when exporting global properties.",
-      archiveSuccessDebugMessage = s => "Exporting global properties on user request, archive id: %s".format(s),
+      archiveErrorMessage = "Error when backing-up global properties.",
+      archiveSuccessDebugMessage = s => "Backup-ing global properties on user request, archive id: %s".format(s),
       archiveDateSelectId = "importParametersSelect",
       archiveListFunction = () => itemArchiver.getParametersTags,
       restoreButtonId = "importParametersButton",
@@ -212,7 +212,7 @@ class Archives extends DispatchSnippet with Loggable {
         (cc: ChangeContext) => (itemArchiver.importParameters(ps._1, ps._2, ps._3)(cc))
       ),
       restoreErrorMessage = "Error when importing global properties.",
-      restoreSuccessDebugMessage = "Importing global properties on user request",
+      restoreSuccessDebugMessage = "Restoring global properties on user request",
       downloadButtonId = "downloadParametersButton",
       downloadButtonName = DL_NAME,
       downloadRestAction = ArchiveType.Parameters
@@ -278,21 +278,21 @@ class Archives extends DispatchSnippet with Loggable {
 
       if (!elements.isEmpty) {
         val cats = elements.categories.map {
-          case CategoryNotArchived(catId, f) => "Error when archiving category with id '%s': %s".format(catId.value, f.fullMsg)
+          case CategoryNotArchived(catId, f) => "Error when backing-up category with id '%s': %s".format(catId.value, f.fullMsg)
         }
         val ats  = elements.activeTechniques.map {
           case ActiveTechniqueNotArchived(atId, f) =>
-            "Error when archiving active technique with id '%s': %s".format(atId.value, f.fullMsg)
+            "Error when backing-up active technique with id '%s': %s".format(atId.value, f.fullMsg)
         }
         val dirs = elements.directives.map {
-          case DirectiveNotArchived(dirId, f) => "Error when archiving directive with id '%s': %s".format(dirId.value, f.fullMsg)
+          case DirectiveNotArchived(dirId, f) => "Error when backing-up directive with id '%s': %s".format(dirId.value, f.fullMsg)
         }
 
         val all = cats ++ ats ++ dirs
 
         all.foreach(logger.warn(_))
 
-        val error = "The archive was created but some element have not been archived." ++ all.map(msg => msg).mkString(". ")
+        val error = "The archive was created but some element have not been backed-up." ++ all.map(msg => msg).mkString(". ")
         JsRaw(s"""createWarningNotification(${error})""") // JsRaw ok, no user inputs
       }
 
@@ -310,7 +310,7 @@ class Archives extends DispatchSnippet with Loggable {
                       commiter,
                       ModificationId(uuidGen.newUuid),
                       CurrentUser.actor,
-                      Some("User requested archive creation"),
+                      Some("User requested backup creation"),
                       false
                     )
       } yield {
@@ -323,7 +323,7 @@ class Archives extends DispatchSnippet with Loggable {
 
     def restore(): JsCmd = {
       selectedCommitId match {
-        case None         => error(Empty, "A valid archive must be chosen")
+        case None         => error(Empty, "A valid backup must be chosen")
         case Some(commit) =>
           (for {
             commiter <- personIdentService.getPersonIdentOrDefault(CurrentUser.actor.name)
@@ -341,7 +341,7 @@ class Archives extends DispatchSnippet with Loggable {
 
     def download(): JsCmd = {
       selectedCommitId match {
-        case None         => error(Empty, "A valid archive must be chosen")
+        case None         => error(Empty, "A valid backup must be chosen")
         case Some(commit) =>
           systemApiService.getZip(commit.value, downloadRestAction) match {
             case Left(err)                => error(Empty, err)
@@ -355,7 +355,7 @@ class Archives extends DispatchSnippet with Loggable {
 
     def buildCommitIdList: List[(Option[GitCommitId], String)] = {
       val baseOptions: List[(Option[GitCommitId], String)] = {
-        (None, "Choose an archive to restore...") ::
+        (None, "Choose a backup to restore...") ::
         (Some(GitCommitId("HEAD")), "Latest Git commit") ::
         Nil
       }
@@ -363,10 +363,10 @@ class Archives extends DispatchSnippet with Loggable {
       // and perhaps we have also some dates/rev tags
       val tagOptions: List[(Option[GitCommitId], String)] = archiveListFunction().toBox match {
         case Empty =>
-          logger.debug("No archive available from tags")
+          logger.debug("No backup available from tags")
           Nil
         case f: Failure =>
-          logger.error(f ?~! "Error when looking for archives from tags")
+          logger.error(f ?~! "Error when looking for backups from tags")
           Nil
 
         case Full(m) =>
@@ -384,7 +384,7 @@ class Archives extends DispatchSnippet with Loggable {
       SHtml.ajaxSubmit(archiveButtonName, archive _, ("id" -> archiveButtonId), ("class", "btn btn-primary btn-archive"))
     } &
     ("#" + archiveDateSelectId) #> {
-      // we have at least "Choose an archive to restore..." and "get archive from current Git HEAD"
+      // we have at least "Choose a backup to restore..." and "get archive from current Git HEAD"
       SHtml.selectObj[Option[GitCommitId]](
         buildCommitIdList,
         Full(selectedCommitId),

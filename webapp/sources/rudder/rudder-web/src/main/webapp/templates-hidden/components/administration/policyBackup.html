@@ -24,7 +24,7 @@
         function enableIfNonEmpty(selectId, buttonId) {
           $("#"+selectId).change(function () {
             $("#" + selectId + " option:selected").each(function () {
-              if($(this).text() != "Choose an archive to restore...") {
+              if($(this).text() != "Choose a backup to restore...") {
                 $("#"+buttonId).prop("disabled", false);
               } else {
                 $("#"+buttonId).prop("disabled", true);
@@ -38,13 +38,13 @@
 
     <div>
       <div class="inner-portlet">
-        <h3 class="page-title mt-0">Global archive</h3>
+        <h3 class="page-title mt-0">Global backup</h3>
         <div class="portlet-content">
           <div class="callout-fade callout-info">
             <div class="marker">
               <span class="fa fa-info-circle"></span>
             </div>
-            Archive or restore settings (groups, rules, directives and active techniques) from Rudder to backup, restore or transfer items between Rudder instances.
+            Backup or restore settings (groups, rules, directives and active techniques) from Rudder to backup, restore or transfer items between Rudder instances.
           </div>
           <span class="lift:administration.Archives.allForm archiveAction" id="allForm">
             <form class="lift:form.ajax">
@@ -66,13 +66,13 @@
       </div>
 
       <div class="inner-portlet">
-        <h3 class="page-title">Archive groups</h3>
+        <h3 class="page-title">Backup groups</h3>
         <div class="portlet-content">
           <div class="callout-fade callout-info">
             <div class="marker">
               <span class="fa fa-info-circle"></span>
             </div>
-            <div>Archive or restore groups only.</div>
+            <div>Backup or restore groups only.</div>
           </div>
           <div class="lift:administration.Archives.groupLibraryForm archiveAction" id="groupLibraryForm">
             <form class="lift:form.ajax">
@@ -94,13 +94,13 @@
       </div>
 
       <div class="inner-portlet">
-        <h3 class="page-title">Archive rules</h3>
+        <h3 class="page-title">Backup rules</h3>
         <div class="portlet-content">
           <div class="callout-fade callout-info">
             <div class="marker">
               <span class="fa fa-info-circle"></span>
             </div>
-            <div>Archive or restore rules only.</div>
+            <div>Backup or restore rules only.</div>
           </div>
           <div class="lift:administration.Archives.rulesForm archiveAction" id="rulesForm">
             <form class="lift:form.ajax">
@@ -122,13 +122,13 @@
       </div>
 
       <div class="inner-portlet">
-        <h3 class="page-title">Archive directives and active techniques</h3>
+        <h3 class="page-title">Backup directives and active techniques</h3>
         <div class="portlet-content">
           <div class="callout-fade callout-info">
             <div class="marker">
               <span class="fa fa-info-circle"></span>
             </div>
-            <div>Archive or restore directives and active techniques only.</div>
+            <div>Backup or restore directives and active techniques only.</div>
           </div>
           <div class="lift:administration.Archives.directiveLibraryForm archiveAction" id="directiveLibraryForm">
             <form class="lift:form.ajax">
@@ -150,13 +150,13 @@
       </div>
 
       <div class="inner-portlet">
-        <h3 class="page-title">Archive parameters</h3>
+        <h3 class="page-title">Backup parameters</h3>
         <div class="portlet-content">
           <div class="callout-fade callout-info">
             <div class="marker">
               <span class="fa fa-info-circle"></span>
             </div>
-            <div>Archive or restore parameters only.</div>
+            <div>Backup or restore parameters only.</div>
           </div>
           <div class="lift:administration.Archives.parametersForm archiveAction" id="parametersForm">
             <form class="lift:form.ajax">
@@ -177,31 +177,6 @@
         </div>
       </div>
     </div>
-
-    <div id="archivesPopup" class="modal fade" tabindex="-1" aria-hidden="true" data-bs-backdrop="false" data-bs-dismiss="modal">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 id="archivesPopupTitle" class="modal-title"></h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <div class="row space-bottom">
-              <div class="col-xl-12">
-                <h4 class="text-center">
-                  You are overwriting the current configuration on <strong>this server</strong>, are you sure you want to continue ?
-                </h4>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
-            <button id="archivesPopupSubmit" type="button" class="btn btn-success" data-bs-dismiss="modal">Confirm</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
 
     <div id="archivesPopup" class="modal fade" tabindex="-1" aria-hidden="true" data-bs-backdrop="false" data-bs-dismiss="modal">
       <div class="modal-dialog">
