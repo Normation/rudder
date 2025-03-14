@@ -402,14 +402,14 @@ vars.sys.arch
         assert_eq!(res, r);
 
         let c = "${var}";
-        let r = "([Rudder.Condition]::canonify([Rudder.Datastate]::Render('{{{' + @'\n\
+        let r = "([Rudder.Condition]::Canonify([Rudder.Datastate]::Render('{{{' + @'\n\
                 vars.var\n\
                 '@ + '}}}')))";
         let res = canonify_condition(c).unwrap();
         assert_eq!(res, r);
 
         let c = "${my_cond}.debian|${sys.${plouf}}";
-        let r = r#"([Rudder.Condition]::canonify(([Rudder.Datastate]::Render('{{{' + @'
+        let r = r#"([Rudder.Condition]::Canonify(([Rudder.Datastate]::Render('{{{' + @'
 vars.my_cond
 '@ + '}}}')) + @'
 .debian|

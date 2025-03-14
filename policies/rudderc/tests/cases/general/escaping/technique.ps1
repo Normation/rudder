@@ -60,11 +60,9 @@ vars.host
             TechniqueName = $techniqueName
         }
         
-        $class = ([Rudder.Condition]::canonify(([Rudder.Datastate]::Render('{{{' + @'
+        $class = (([Rudder.Condition]::Canonify([Rudder.Datastate]::Render('{{{' + @'
 vars.my_cond
-'@ + '}}}')) + @'
-.debian|
-'@ + ([Rudder.Datastate]::Render('{{{' + @'
+'@ + '}}}'))) + '.debian|' + ([Rudder.Condition]::Canonify([Rudder.Datastate]::Render('{{{' + @'
 vars.sys.
 '@ + [Rudder.Datastate]::Render('{{{' + @'
 vars.plouf
