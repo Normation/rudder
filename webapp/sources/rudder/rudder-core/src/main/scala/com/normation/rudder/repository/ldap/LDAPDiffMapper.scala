@@ -606,12 +606,10 @@ class LDAPDiffMapper(
                                     diffDate.map(date => (SimpleDiff(oldAccount.tokenGenerationDate, date)))
                                   )
                                 }
-                              case A_CREATION_DATETIME =>
+                              case A_CREATION_DATETIME           =>
                                 nonNull(diff, mod.getOptValueDefault("")) { (d, value) =>
                                   val diffDate = GeneralizedTime.parse(value).map(_.dateTime)
-                                  d.copy(modTokenGenerationDate =
-                                    diffDate.map(date => (SimpleDiff(oldAccount.creationDate, date)))
-                                  )
+                                  d.copy(modCreationDate = diffDate.map(date => (SimpleDiff(oldAccount.creationDate, date))))
                                 }
                               case A_API_EXPIRATION_DATETIME     =>
                                 val expirationDate = oldAccount.kind match {

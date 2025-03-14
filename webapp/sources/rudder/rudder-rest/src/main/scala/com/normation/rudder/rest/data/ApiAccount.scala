@@ -180,11 +180,11 @@ sealed trait ApiAccountDetails {
   def name:                ApiAccountName               // used in event log to know who did actions.
   def description:         String
   def status:              ApiAccountStatus
-  def creationDate:        ZonedDateTime
+  def creationDate:        ZonedDateTime                // this is the account creation date, mapped to creationTimestamp
   def expirationPolicy:    ApiAccountExpirationPolicy   // this is expiration for the whole account
   def expirationDate:      Option[ZonedDateTime]        // this is expiration for the whole account
   def tokenState:          ApiTokenState
-  def tokenGenerationDate: Option[ZonedDateTime]
+  def tokenGenerationDate: Option[ZonedDateTime]        // this is the token generation date, mapped to apiTokenCreationTimestamp
   def tenants:             NodeSecurityContext
   def authorizationType:   Option[ApiAuthorizationKind] // ApiAuthorization.kind
   def acl:                 Option[List[JsonApiPerm]]
