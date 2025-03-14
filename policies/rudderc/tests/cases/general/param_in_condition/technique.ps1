@@ -75,13 +75,9 @@ vars.param_in_condition.file
             TechniqueName = $techniqueName
         }
         
-        $class = ([Rudder.Condition]::canonify(@'
-file_check_exists__tmp_
-'@ + ([Rudder.Datastate]::Render('{{{' + @'
+        $class = ('file_check_exists__tmp_' + ([Rudder.Condition]::Canonify([Rudder.Datastate]::Render('{{{' + @'
 vars.param_in_condition.file
-'@ + '}}}')) + @'
-_kept
-'@))
+'@ + '}}}'))) + '_kept')
         if ([Rudder.Datastate]::Evaluate($class)) {
             $methodParams = @{
                 Command = @'
