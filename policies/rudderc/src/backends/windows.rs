@@ -59,7 +59,7 @@ struct TechniqueTemplate<'a> {
 
 /// Filters for the technique template
 pub mod filters {
-    use std::fmt::{Debug, Display};
+    use std::fmt::Display;
 
     use anyhow::Error;
     use rudder_commons::{Escaping, PolicyMode, Target};
@@ -175,7 +175,7 @@ pub mod filters {
             Expression::Sequence(s) => {
                 let sum = s
                     .into_iter()
-                    .map(|x| canonify_expression(x))
+                    .map(canonify_expression)
                     .collect::<Vec<String>>()
                     .join(" + ");
                 format!("({})", sum)
