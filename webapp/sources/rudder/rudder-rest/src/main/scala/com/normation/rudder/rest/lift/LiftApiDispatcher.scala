@@ -71,7 +71,7 @@ trait LiftApiModule extends ApiModule[Req, Full[LiftResponse], AuthzToken, Defau
     try {
       // prettify is always given in the param list
       val defaultPrettify = false
-      val prettify        = req.params.get("pretiffy") match {
+      val prettify        = req.params.get("prettify") match {
         case None               => defaultPrettify
         case Some(value :: Nil) =>
           value.toLowerCase match {
