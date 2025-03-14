@@ -379,19 +379,29 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val cc = ChangeContext(
-        ModificationId(uuidGen.newUuid),
-        authzToken.qc.actor,
-        new DateTime(),
-        params.reason,
-        Some(req.remoteAddr),
-        authzToken.qc.nodePerms
-      )
 
       (for {
         restNode <- restExtractor.extractUpdateNode(req).toIO
-        reason   <- extractReason(req)
-        result   <- nodeApiService.updateRestNode(NodeId(id), restNode)
+        cc       <- extractReason(restNode).map(
+                      ChangeContext(
+                        ModificationId(uuidGen.newUuid),
+                        authzToken.qc.actor,
+                        new DateTime(),
+                        _,
+                        Some(req.remoteAddr),
+                        authzToken.qc.nodePerms
+                      )
+                    )
+        result   <- nodeApiService.updateRestNode(NodeId(id), restNode)(
+                      ChangeContext(
+                        ModificationId(uuidGen.newUuid),
+                        authzToken.qc.actor,
+                        new DateTime(),
+                        restNode.reason,
+                        Some(req.remoteAddr),
+                        authzToken.qc.nodePerms
+                      )
+                    )
         // await all properties update to guarantee that properties are resolved after node modification
         _        <- nodePropertiesService.updateAll()
       } yield {
@@ -736,13 +746,12 @@ class NodeApi(
       DeriveJsonEncoder.gen[JRNodeDetailLevel]
   }
 
-  // TODO: known to be duplicated in change-validation. Some day we will need to factor this out in zio (moving prop service to rudder-core)
-  private def extractReason(req: Req): IOResult[Option[String]] = {
+  private def extractReason(restNode: JQUpdateNode): IOResult[Option[String]] = {
     import ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior match {
       case Disabled => ZIO.none
       case mode     =>
-        val reason = req.params.get("reason").flatMap(_.headOption)
+        val reason = restNode.reason
         (mode: @unchecked) match {
           case Mandatory =>
             reason
