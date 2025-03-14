@@ -1,0 +1,147 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2025 Normation SAS
+get:
+  summary: Get an API account details
+  description: Get all information about an API account. The token secret won't be returned.
+  operationId: getAccount
+  parameters:
+    - $ref: ../../components/parameters/api-account-id.yml
+  responses:
+    "200":
+      description: API account information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - id
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              id:
+                type: string
+                description: Id of the API account
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - getAccount
+              data:
+                type: object
+                required:
+                  - accounts
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/api-account.yml
+  tags:
+    - API accounts
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/api-accounts/get.sh
+delete:
+  summary: Delete an API account
+  description: Delete an API account
+  operationId: deleteAccount
+  parameters:
+    - $ref: ../../components/parameters/api-account-id.yml
+  responses:
+    "200":
+      description: API account information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              id:
+                type: string
+                description: Id of the API account
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - deleteAccount
+              data:
+                type: object
+                required:
+                  - accounts
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/api-account.yml
+  tags:
+    - API account management
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/api-accounts/delete.sh
+post:
+  summary: Update an API account details
+  description: Update an API account details
+  operationId: updateAccount
+  parameters:
+    - $ref: ../../components/parameters/api-account-id.yml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../../components/schemas/api-account-update.yml
+  responses:
+    "200":
+      description: Directives information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - updateDirective
+              data:
+                type: object
+                required:
+                  - accounts
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/api-account.yml
+  tags:
+    - API account management
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/api-accounts/update.sh
