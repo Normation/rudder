@@ -25,7 +25,7 @@ import Url.Builder exposing (QueryParameter)
 -- GET    /techniques/${id}/${version}/resources : get resources for an existing technique
 -- GET    /techniques/draft/${id}/1.0/resources : get resources for a newly created technique
 -- GET    /techniques/draft/${id}/${version}/resources : get resources for a newly cloned technique
-
+-- GET    /directives : list all directives
 
 getUrl: Model -> String -> String
 getUrl m url =
@@ -192,6 +192,22 @@ copyResourcesToDraft draftId technique optId model =
         , url     = url
         , body    = emptyBody
         , expect  = Detailed.expectWhatever CopyResources
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+  in
+    req
+
+getDirectives : Model -> Cmd Msg
+getDirectives model =
+  let
+    req =
+      request
+        { method  = "GET"
+        , headers = [header "X-Requested-With" "XMLHttpRequest"]
+        , url     = getUrl model "directives"
+        , body    = emptyBody
+        , expect  = Detailed.expectJson GetDirectives ( Json.Decode.at ["data", "directives" ] (Json.Decode.list decodeDirective))
         , timeout = Nothing
         , tracker = Nothing
         }

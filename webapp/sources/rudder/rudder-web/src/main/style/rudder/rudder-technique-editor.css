@@ -1707,3 +1707,7 @@ textarea.yaml-editor {
   width: 100%;
   margin-top: 10px;
 }
+
+.used {
+  color: #13beb7 !important;
+}

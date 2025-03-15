@@ -390,6 +390,15 @@ showTechnique model technique origin ui editInfo =
               ]
             ]
           ]
+          , li[class "nav-item"]
+            [ button
+              [  attribute "role" "tab", type_ "button", class ("nav-link " ++ (activeTabClass Directives)), onClick (SwitchTab Directives)]
+              [ text "Directives"
+              , span [ class ( "badge badge-secondary badge-resources " ++ if List.isEmpty model.directives then "empty" else "") ] [
+                  span [] [ text (String.fromInt (List.length  model.directives)) ]
+                ]
+              ]
+            ]
         , if (Maybe.Extra.isJust technique.output) then
           li [ class "nav-item" ]
           [ button

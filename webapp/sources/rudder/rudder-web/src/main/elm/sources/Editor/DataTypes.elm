@@ -15,16 +15,12 @@ import Editor.MethodConditions exposing (..)
 --
 
 type alias TechniqueId = {value : String}
-
 type alias MethodId = {value : String}
-
 type alias CallId = {value : String}
-
 type alias ParameterId = {value : String}
-
 type alias DraftId = {value : String}
-
 type alias Draft = { technique : Technique, origin : Maybe Technique, id : DraftId, date : Posix}
+type alias DirectiveId = { value : String }
 
 type AgentValue = Value String | Variable (List AgentValue)
 
@@ -75,6 +71,26 @@ type alias CompilationOutput =
   , stderr:     String
   }
 
+type alias Directive =
+  { id : DirectiveId
+  , displayName : String
+  , shortDescription : String
+  , longDescription :  String
+  , techniqueName : String
+  , techniqueVersion : String
+  --, parameters :
+  , priority : Int
+  , enabled : Bool
+  , system : Bool
+  , policyMode : PolicyMode
+  --, tags : List (String,String)
+  }
+
+getDirectivesBaseOnTechnique : TechniqueId -> List Directive -> List Directive
+getDirectivesBaseOnTechnique techniqueId directives =
+  List.filter (\d -> d.techniqueName == techniqueId.value) directives
+
+
 type alias Technique =
   { id            : TechniqueId
   , version       : String
@@ -96,7 +112,7 @@ type WorstReportKind = WorstReportWeightedOne | WorstReportWeightedSum | FocusWo
 
 type ReportingLogic = WorstReport WorstReportKind | WeightedReport | FocusReport String
 
-type PolicyMode = Audit | Enforce
+type PolicyMode = Audit | Enforce | Default
 
 type alias MethodBlock =
   { id : CallId
@@ -167,6 +183,7 @@ type alias Model =
   , methods            : Dict String Method
   , categories         : TechniqueCategory
   , drafts             : Dict String Draft
+  , directives         : List Directive
   , mode               : Mode
   , contextPath        : String
   , techniqueFilter    : TreeFilters
@@ -246,7 +263,7 @@ type alias TechniqueEditInfo =
 type MethodCallTab = CallParameters | CallConditions | Result | CallReporting
 type MethodBlockTab = BlockConditions | BlockReporting | Children
 type MethodCallMode = Opened | Closed
-type Tab = General | Parameters | Resources | Output | None
+type Tab = General | Parameters | Resources | Directives | Output | None
 type Mode = Introduction | TechniqueDetails Technique TechniqueState TechniqueUiInfo TechniqueEditInfo
 
 type CheckMode = Import String | EditYaml String | CheckJson Technique
@@ -256,6 +273,7 @@ type CheckMode = Import String | EditYaml String | CheckJson Technique
 type Msg =
     SelectTechnique (Either Technique Draft)
   | GetTechniques   (Result (Http.Detailed.Error String) ( Http.Metadata, List Technique ))
+  | GetDirectives   (Result (Http.Detailed.Error String) ( Http.Metadata, List Directive ))
   | GetYaml         (Result (Http.Detailed.Error String) ( Http.Metadata, String ))
   | SaveTechnique   (Result (Http.Detailed.Error String) ( Http.Metadata, Technique ))
   | UpdateTechnique Technique
