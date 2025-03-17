@@ -31,8 +31,6 @@ pipeline {
                         }
                     }
                     steps {
-                        script {
-                        }
                         dir("policies/lib") {
                             sh script: 'cargo test', label: 'methods tests'
                         }
@@ -61,8 +59,6 @@ pipeline {
                         }
                     }
                     steps {
-                        script {
-                        }
                         dir("policies/lib") {
                             sh script: 'avocado run --disable-sysinfo tests/quick', label: 'quick method tests'
                         }
@@ -655,8 +651,6 @@ pipeline {
                         }
                     }
                     steps {
-                        script {
-                        }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('policies/rudderc') {
                                 dir('target/repos') {
