@@ -194,7 +194,7 @@ docLink { id, abiVersion } =
                 |> List.take 2
                 |> String.join "."
     in
-    String.join "/" [ "https://docs.rudder.io/reference", rudderVersion, "plugins", id ++ ".html" ]
+    String.join "/" [ "/rudder-doc/reference", rudderVersion, "plugins", id ++ ".html" ]
 
 
 setInstallStatus : InstallStatus -> Plugin -> Plugin
