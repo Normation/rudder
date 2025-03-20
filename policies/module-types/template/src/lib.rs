@@ -5,6 +5,10 @@ mod cli;
 use crate::cli::Cli;
 use clap::ValueEnum;
 use similar::TextDiff;
+use std::io::Write;
+use std::os::unix::fs::PermissionsExt;
+use std::process::{Command, Stdio};
+use tempfile::{NamedTempFile, TempPath};
 
 use std::{
     fs,
@@ -28,6 +32,7 @@ use serde_json::Value;
 pub enum Engine {
     Mustache,
     MiniJinja,
+    Jinja2,
 }
 
 impl Default for Engine {
@@ -42,10 +47,12 @@ impl Engine {
         template_path: Option<&Path>,
         template_src: Option<String>,
         data: Value,
+        temporary_dir: &Path,
     ) -> Result<String> {
         Ok(match self {
             Engine::Mustache => Self::mustache(template_path, template_src, data)?,
             Engine::MiniJinja => Self::mini_jinja(template_path, template_src, data)?,
+            Engine::Jinja2 => Self::jinja2(template_path, template_src, data, temporary_dir)?,
         })
     }
 
@@ -68,6 +75,64 @@ impl Engine {
         env.add_template("rudder", &template)?;
         let tmpl = env.get_template("rudder").unwrap();
         Ok(tmpl.render(data)?)
+    }
+
+    fn jinja2(
+        template_path: Option<&Path>,
+        template_src: Option<String>,
+        data: Value,
+        temporary_dir: &Path,
+    ) -> Result<String> {
+        let named: TempPath;
+        let template_path = match (&template_path, template_src) {
+            (Some(p), _) => p.to_str().unwrap(),
+            (_, Some(s)) => {
+                let mut tmp_file = NamedTempFile::new().expect("Failed to create tempfile");
+                tmp_file
+                    .write_all(s.to_string().as_bytes())
+                    .expect("Failed to write template in tempfile");
+                named = tmp_file.into_temp_path();
+                named.to_str().unwrap()
+            }
+            _ => unreachable!(),
+        };
+
+        let templating_script_content = include_str!("../jinja2-templating.py");
+        let script_name = "jinja2-templating.py";
+
+        let mut path = PathBuf::from(temporary_dir);
+        path.push(script_name);
+        let templating_script_path = path.to_str().unwrap();
+
+        if !fs::exists(templating_script_path)? {
+            fs::write(templating_script_path, templating_script_content)?;
+            let perms = fs::Permissions::from_mode(0o755);
+            fs::set_permissions(templating_script_path, perms)?;
+        }
+
+        let output = if cfg!(target_os = "linux") {
+            let mut child = Command::new(templating_script_path)
+                .args([template_path])
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .spawn()
+                .unwrap_or_else(|_| panic!("Failed to execute {}", templating_script_path));
+
+            let stdin = child.stdin.as_mut().unwrap();
+            stdin
+                .write_all(data.to_string().as_bytes())
+                .expect("Failed to write to stdin");
+
+            let output_info = child.wait_with_output()?;
+            let output = String::from_utf8_lossy(&output_info.stdout).to_string();
+            if !output_info.status.success() {
+                bail!("Error {} failed with : {}", script_name, output);
+            }
+            output
+        } else {
+            bail!("Jinja@ templating engine is not supported on Windows")
+        };
+        Ok(output)
     }
 
     fn mustache(
@@ -154,9 +219,12 @@ impl ModuleType0 for Template {
         let output_file_d = output_file.display();
 
         // Compute output
-        let output = p
-            .engine
-            .render(p.template_path.as_deref(), p.template_src, p.data)?;
+        let output = p.engine.render(
+            p.template_path.as_deref(),
+            p.template_src,
+            p.data,
+            parameters.temporary_dir.as_path(),
+        )?;
 
         let already_present = output_file.exists();
 
