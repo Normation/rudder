@@ -365,6 +365,18 @@ object errors {
     }
   }
 
+  /*
+   * TODO : faire chimney error vers rudder pureresult
+   */
+  implicit class AccumulatedFromValidate[A](val in: cats.data.ValidatedNel[A]) extends AnyVal {
+    def asPureResult = {
+      in match {
+        case Validated.Valid(a)   => Right(a)
+        case Validated.Invalid(e) => ???
+      }
+    }
+  }
+
   /**
    *  Some box compatibility methods
    */

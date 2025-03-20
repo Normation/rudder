@@ -48,6 +48,7 @@ import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.users.UserService
 import com.normation.utils.StringUuidGenerator
+import com.softwaremill.quicklens.*
 import io.scalaland.chimney.syntax.*
 import net.liftweb.http.*
 import org.joda.time.DateTime
@@ -69,6 +70,7 @@ class ApiAccountApi(
       case API.CreateAccount   => CreateAccount
       case API.UpdateAccount   => UpdateAccount
       case API.RegenerateToken => RegenerateToken
+      case API.DeleteToken     => DeleteToken
       case API.DeleteAccount   => DeleteAccount
     }
   }
@@ -132,6 +134,17 @@ class ApiAccountApi(
     }
   }
 
+  object DeleteToken extends LiftApiModule {
+    val schema: API.DeleteToken.type = API.DeleteToken
+
+    def process(v: ApiVersion, path: ApiPath, s: String, req: Req, params: DefaultParams, t: AuthzToken): LiftResponse = {
+      (for {
+        id <- toId(s)
+        r  <- service.deleteToken(id)
+      } yield r).toLiftResponseOne(params, schema, Some(s))
+    }
+  }
+
   object DeleteAccount extends LiftApiModule {
     val schema: API.DeleteAccount.type = API.DeleteAccount
 
@@ -150,6 +163,7 @@ trait ApiAccountApiService {
   def saveAccount(account: NewRestApiAccount): IOResult[ApiAccountDetails]
   def updateAccount(id:    ApiAccountId, data: UpdateApiAccount): IOResult[ApiAccountDetails.Public]
   def regenerateToken(id:  ApiAccountId): IOResult[ApiAccountDetails]
+  def deleteToken(id:      ApiAccountId): IOResult[ApiAccountDetails]
   def deleteAccount(id:    ApiAccountId): IOResult[Option[ApiAccountDetails.Public]]
 }
 
@@ -213,6 +227,14 @@ class ApiAccountApiServiceV1(
       pair <- mapper.updateToken(a)
       _    <- writeApi.save(pair._1, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor)
     } yield mapper.toDetailsWithSecret.tupled(pair)
+  }
+
+  override def deleteToken(id: ApiAccountId): IOResult[ApiAccountDetails] = {
+    for {
+      a <- readApi.getById(id).notOptional(s"API account with ID '${id.value}' was not found")
+      u  = a.modify(_.token).setTo(None)
+      _ <- writeApi.save(u, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor)
+    } yield u.transformInto[ApiAccountDetails.Public]
   }
 
   override def deleteAccount(id: ApiAccountId): IOResult[Option[ApiAccountDetails.Public]] = {

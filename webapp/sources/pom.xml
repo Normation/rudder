@@ -926,6 +926,11 @@ limitations under the License.
       <artifactId>chimney_${scala-binary-version}</artifactId>
       <version>${chimney-version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.scalaland</groupId>
+      <artifactId>chimney-cats_${scala-binary-version}</artifactId>
+      <version>${chimney-version}</version>
+    </dependency>
     <!-- zio/cats compat -->
     <dependency>
       <groupId>dev.zio</groupId>

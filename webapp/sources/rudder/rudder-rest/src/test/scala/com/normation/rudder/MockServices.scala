@@ -112,6 +112,7 @@ import com.normation.rudder.users.UserStatus
 import com.normation.utils.DateFormaterService
 import com.normation.utils.DateFormaterService.DateTimeCodecs
 import com.normation.zio.UnsafeRun
+import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigFactory
 import io.scalaland.chimney.syntax.*
 import java.io.InputStream
@@ -1119,6 +1120,14 @@ class MockApiAccountService() {
         pair <- mapper.updateToken(a)
         _    <- accounts.update(_.updated(id, pair._1))
       } yield mapper.toDetailsWithSecret.tupled(pair)
+    }
+
+    override def deleteToken(id: ApiAccountId): IOResult[ApiAccountDetails.Public] = {
+      for {
+        a <- accounts.get.map(_.get(id)).notOptional(s"No account with '${id.value}' exists")
+        u  = a.modify(_.token).setTo(None)
+        _ <- accounts.update(_.updated(id, u))
+      } yield u.transformInto[ApiAccountDetails.Public]
     }
 
     override def deleteAccount(id: ApiAccountId): IOResult[Option[ApiAccountDetails.Public]] = {

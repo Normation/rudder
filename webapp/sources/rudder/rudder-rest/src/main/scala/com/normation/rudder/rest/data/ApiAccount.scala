@@ -38,6 +38,7 @@
 package com.normation.rudder.rest.data
 
 import cats.implicits.*
+import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.rudder.api.AclPath
 import com.normation.rudder.api.ApiAccount
@@ -53,12 +54,15 @@ import com.normation.rudder.api.ApiTokenHash
 import com.normation.rudder.api.ApiTokenSecret
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.facts.nodes.NodeSecurityContext
+import com.normation.rudder.repository.ldap.JsonApiAcl
 import com.normation.rudder.rest.data.NewRestApiAccount.transformNewRestApiAccount
 import com.normation.utils.DateFormaterService.DateTimeCodecs
 import com.softwaremill.quicklens.*
 import enumeratum.Enum
 import enumeratum.EnumEntry
 import io.scalaland.chimney.*
+import io.scalaland.chimney.cats.*
+import io.scalaland.chimney.partial.Result
 import io.scalaland.chimney.syntax.*
 import java.time.ZonedDateTime
 import org.joda.time.DateTime
@@ -123,25 +127,6 @@ object ApiAccountExpirationPolicy       extends Enum[ApiAccountExpirationPolicy]
 
 // Output DATA
 
-/**
- * ACL
- * Between front and backend, we exchange a JsonAcl list, where JsonAcl are *just*
- * one path and one verb. The grouping is done in extractor.
- * The objects are sorted by verb.
- */
-final case class JsonApiPerm(path: String, verb: String)
-object JsonApiPerm {
-
-  /**
-   * Enforce that permissions are sorted by path first, then by verb
-   */
-  def from(acls: List[ApiAclElement]): List[JsonApiPerm] =
-    acls.flatMap(acl => acl.actions.map(a => JsonApiPerm(acl.path.value, a.name)).toList).sorted
-
-  implicit private val ordering: Ordering[JsonApiPerm] =
-    Ordering[String].on[JsonApiPerm](_.path).orElse(Ordering[String].on[JsonApiPerm](_.verb))
-}
-
 // default codecs for API accounts
 trait ApiAccountCodecs extends DateTimeCodecs {
 
@@ -156,20 +141,6 @@ trait ApiAccountCodecs extends DateTimeCodecs {
   implicit val authorizationTypeEncoder:    JsonEncoder[ApiAuthorizationKind] = JsonEncoder.string.contramap(_.name)
   implicit val decoderApiAuthorizationKind: JsonDecoder[ApiAuthorizationKind] =
     JsonDecoder.string.mapOrFail(ApiAuthorizationKind.parse)
-  implicit val aclPermCodec:                JsonCodec[JsonApiPerm]            = DeriveJsonCodec.gen[JsonApiPerm]
-  // for acl, we decode into our business object to check for validity ASAP
-  implicit val decoderAcl:                  JsonDecoder[List[ApiAclElement]]  = JsonDecoder[List[JsonApiPerm]].mapOrFail {
-    _.traverse {
-      case JsonApiPerm(path, verb) =>
-        for {
-          p <- AclPath.parse(path)
-          v <- HttpAction.parse(verb)
-        } yield (p, v)
-    }.map(_.groupBy(_._1).toList.map {
-      case (p, seq) =>
-        ApiAclElement(p, seq.map(_._2).toSet)
-    })
-  }
   implicit val encoderNodeSecurityContext:  JsonEncoder[NodeSecurityContext]  = JsonEncoder.string.contramap(_.serialize)
   implicit val decoderNodeSecurityContext:  JsonDecoder[NodeSecurityContext]  =
     JsonDecoder.string.mapOrFail(s => NodeSecurityContext.parse(Some(s)).left.map(_.fullMsg))
@@ -187,7 +158,7 @@ sealed trait ApiAccountDetails {
   def tokenGenerationDate: Option[ZonedDateTime]
   def tenants:             NodeSecurityContext
   def authorizationType:   Option[ApiAuthorizationKind] // ApiAuthorization.kind
-  def acl:                 Option[List[JsonApiPerm]]
+  def acl:                 Option[JsonApiAcl]
 }
 
 final case class ClearTextSecret(value: String)
@@ -221,7 +192,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
       tokenGenerationDate: Option[ZonedDateTime],
       tenants:             NodeSecurityContext,
       authorizationType:   Option[ApiAuthorizationKind],
-      acl:                 Option[List[JsonApiPerm]]
+      acl:                 Option[JsonApiAcl]
   ) extends ApiAccountDetails
 
   final case class WithToken(
@@ -237,7 +208,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
       token:               ClearTextSecret,
       tenants:             NodeSecurityContext,
       authorizationType:   Option[ApiAuthorizationKind],
-      acl:                 Option[List[JsonApiPerm]]
+      acl:                 Option[JsonApiAcl]
   ) extends ApiAccountDetails
 
   // only encode, no decoder for that
@@ -261,7 +232,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
     case _                                                          => ApiAccountExpirationPolicy.Never
   }
 
-  implicit val transformApiAclElement: Transformer[List[ApiAclElement], List[JsonApiPerm]] = JsonApiPerm.from _
+  implicit val transformApiAclElement: Transformer[List[ApiAclElement], JsonApiAcl] = JsonApiAcl.from _
 
   // authorization name is only defined for public API
   implicit val transformApiAccountKindAuthz: Transformer[ApiAccountKind, Option[ApiAuthorizationKind]] = {
@@ -270,8 +241,8 @@ object ApiAccountDetails extends ApiAccountCodecs {
   }
 
   // ACLs are only defined for authorization kind = ACLs (and we ungroup path on each verb)
-  implicit val transformApiAccountKindAcl: Transformer[ApiAccountKind, Option[List[JsonApiPerm]]] = {
-    case PublicApi(ApiAuthorization.ACL(list), _) => Some(list.transformInto[List[JsonApiPerm]])
+  implicit val transformApiAccountKindAcl: Transformer[ApiAccountKind, Option[JsonApiAcl]] = {
+    case PublicApi(ApiAuthorization.ACL(list), _) => Some(list.transformInto[JsonApiAcl])
     case _                                        => None
   }
 
@@ -282,7 +253,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
     .withFieldComputed(_.expirationDate, _.kind.transformInto[Option[ZonedDateTime]])
     .withFieldComputed(_.tokenState, x => if (x.token.isEmpty) ApiTokenState.Missing else ApiTokenState.Generated)
     .withFieldComputed(_.authorizationType, _.kind.transformInto[Option[ApiAuthorizationKind]])
-    .withFieldComputed(_.acl, _.kind.transformInto[Option[List[JsonApiPerm]]])
+    .withFieldComputed(_.acl, _.kind.transformInto[Option[JsonApiAcl]])
 
   implicit val transformPublicApi: Transformer[ApiAccount, ApiAccountDetails.Public] = {
     transformApiAccountDetails[ApiAccountDetails.Public]
@@ -316,7 +287,7 @@ final case class NewRestApiAccount(
     expirationPolicy:  Option[ApiAccountExpirationPolicy],
     expirationDate:    Option[ZonedDateTime],
     authorizationType: Option[ApiAuthorizationKind],
-    acl:               Option[List[ApiAclElement]]
+    acl:               Option[JsonApiAcl]
 )
 
 /**
@@ -330,15 +301,20 @@ object NewRestApiAccount extends ApiAccountCodecs {
       d:  DateTime,
       id: ApiAccountId,
       t:  Option[ApiTokenHash]
-  ): Transformer[NewRestApiAccount, ApiAccount] = {
-    Transformer
+  ): PartialTransformer[NewRestApiAccount, ApiAccount] = {
+    PartialTransformer
       .define[NewRestApiAccount, ApiAccount]
       .withFieldConst(_.id, id)
-      .withFieldComputed(
+      .withFieldComputedPartial(
         _.kind,
         x => {
-          ApiAccountMapping
-            .apiKind(x.authorizationType.getOrElse(ApiAuthorizationKind.None), x.acl, d, x.expirationPolicy, x.expirationDate)
+          (x.acl match {
+            case None    => partial.Result.Value(None)
+            case Some(v) => v.transformIntoPartial[List[ApiAclElement]].map(Some.apply)
+          }).map(opt => {
+            ApiAccountMapping
+              .apiKind(x.authorizationType.getOrElse(ApiAuthorizationKind.None), opt, d, x.expirationPolicy, x.expirationDate)
+          })
         }
       )
       .withFieldComputed(_.description, _.description.getOrElse(""))
@@ -358,7 +334,7 @@ final case class UpdateApiAccount(
     expirationPolicy:  Option[ApiAccountExpirationPolicy],
     expirationDate:    Option[ZonedDateTime],
     authorizationType: Option[ApiAuthorizationKind],
-    acl:               Option[List[ApiAclElement]]
+    acl:               Option[JsonApiAcl]
 )
 
 object UpdateApiAccount extends ApiAccountCodecs {
@@ -391,7 +367,8 @@ class ApiAccountMapping(
                   case None    => None.succeed
                 }
       d      <- creationDate
-    } yield (transformNewRestApiAccount(d, id, token).transform(newApiAccount), secret)
+      r      <- transformNewRestApiAccount(d, id, token).transform(newApiAccount).asValidatedNel.toEither
+    } yield (r, secret)
   }
 
   /**
