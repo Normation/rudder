@@ -441,7 +441,6 @@ showMethodTab model method parentId call uiInfo =
                        |> addAction ("click", (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_kept")))
                        |> appendChild (element "i" |> addClass "ion ion-clipboard")
                     ]
-
                 , element "div"
                   |> addClass "input-group result-repaired"
                   |> appendChildList
@@ -466,7 +465,6 @@ showMethodTab model method parentId call uiInfo =
                        |> addAction ("click", (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_repaired")))
                        |> appendChild (element "i" |> addClass "ion ion-clipboard")
                     ]
-
                 , element "div"
                   |> addClass "input-group result-error"
                   |> appendChildList
@@ -491,65 +489,9 @@ showMethodTab model method parentId call uiInfo =
                        |> addAction ("click", (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_error")))
                        |> appendChild (element "i" |> addClass "ion ion-clipboard")
                     ]
-
-                ]
-
-            , element "div"
-              |> addClass "form-horizontal editForm result-class"
-              |> appendChildList
-                [ element "div"
-                  |> addClass "input-group result-repaired"
-                  |> appendChild (element "div"
-                    |> addClass "input-group-text"
-                    |> appendText "Repaired"
-                  )
-                , element "input"
-                  |> addClass "form-control"
-                  |> addAttributeList
-                    [ readonly True
-                    , type_ "text"
-                    , value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_repaired")
-                    , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
-                    , stopPropagationOn "click" (Json.Decode.succeed (DisableDragDrop, True))
-                    ]
-                , element "button"
-                   |> addClass "btn btn-outline-secondary clipboard"
-                   |> addAttributeList
-                     [ type_ "button"
-                     , title "Copy to clipboard"
-                     ]
-                   |> addAction ("click", (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_repaired")))
-                   |> appendChild (element "i" |> addClass "ion ion-clipboard")
-                ]
-
-            , element "div"
-              |> addClass "form-horizontal editForm result-class"
-              |> appendChildList
-                [ element "div"
-                  |> addClass "input-group result-error"
-                  |> appendChild (element "div"
-                    |> addClass "input-group-text"
-                    |> appendText "Error"
-                  )
-                , element "input"
-                  |> addClass "form-control"
-                  |> addAttributeList
-                    [ readonly True
-                    , type_ "text"
-                    , value (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_error")
-                    , stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True))
-                    , stopPropagationOn "click" (Json.Decode.succeed (DisableDragDrop, True))
-                    ]
-                , element "button"
-                   |> addClass "btn btn-outline-secondary clipboard"
-                   |> addAttributeList
-                     [ type_ "button"
-                     , title "Copy to clipboard"
-                     ]
-                   |> addAction ("click", (Copy (method.classPrefix ++ "_" ++ (canonify paramValue) ++ "_error")))
-                   |> appendChild (element "i" |> addClass "ion ion-clipboard")
                 ]
             ]
+
     CallForEach ->
       displayTabForeach (CallUiInfo uiInfo call)
 
