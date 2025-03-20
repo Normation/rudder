@@ -812,11 +812,12 @@ function navScroll(event, target, container){
   return false;
 }
 
-function buildScrollSpyNav(){
-    $("#navbar-scrollspy > ul").html("");
+function buildScrollSpyNav(navbarId, containerId){
+    const navbarUl = "#" + navbarId + " > ul";
+    $(navbarUl).html("");
     var linkText, tmp, link, listItem;
     var regex = /[^a-z0-9]/gmi
-    $(".page-title, .page-subtitle").each(function(){
+    $("#"+containerId).find(".page-title, .page-subtitle").each(function(){
       linkText = $(this).text();
       tmp      = linkText.replace(regex, "-");
       $(this).attr('id', tmp);
@@ -826,7 +827,7 @@ function buildScrollSpyNav(){
       var subClass = $(this).hasClass("page-subtitle") ? "subtitle" : ""
       link.attr("href","#"+tmp).text(linkText).addClass(subClass).on('click',function(event){navScroll(event, targetLink, ".main-details[data-bs-spy='scroll']")});
       listItem.addClass("nav-item").append(link);
-      $("#navbar-scrollspy > ul").append(listItem);
+      $(navbarUl).append(listItem);
     });
 }
 
