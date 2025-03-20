@@ -112,6 +112,7 @@ import com.normation.rudder.users.UserStatus
 import com.normation.utils.DateFormaterService
 import com.normation.utils.DateFormaterService.DateTimeCodecs
 import com.normation.zio.UnsafeRun
+import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigFactory
 import io.scalaland.chimney.syntax.*
 import java.io.InputStream
@@ -1068,7 +1069,7 @@ class MockApiAccountService() {
       new ApiAccountMapping(creationDate, generateId, generateSecret, generateToken)
     }
 
-    private val accounts = Ref
+    private val accounts = Ref.Synchronized
       .make(
         // this part is done at repository level in real implementation
         apiAccounts.filter(_._2.kind.isInstanceOf[ApiAccountKind.PublicApi])
@@ -1101,12 +1102,10 @@ class MockApiAccountService() {
     override def updateAccount(id: ApiAccountId, data: UpdateApiAccount): IOResult[ApiAccountDetails.Public] = {
       for {
         a <- accounts
-               .modify(m => {
+               .modifyZIO(m => {
                  m.get(id) match {
-                   case Some(x) =>
-                     val up = mapper.update(x, data)
-                     (Some(up), m.updated(id, up))
-                   case None    => (None, m)
+                   case Some(x) => mapper.update(x, data).toIO.map(up => (Some(up), m.updated(id, up)))
+                   case None    => (None, m).succeed
                  }
                })
                .notOptional(s"No account with '${id.value}' exists")
@@ -1119,6 +1118,14 @@ class MockApiAccountService() {
         pair <- mapper.updateToken(a)
         _    <- accounts.update(_.updated(id, pair._1))
       } yield mapper.toDetailsWithSecret.tupled(pair)
+    }
+
+    override def deleteToken(id: ApiAccountId): IOResult[ApiAccountDetails.Public] = {
+      for {
+        a <- accounts.get.map(_.get(id)).notOptional(s"No account with '${id.value}' exists")
+        u  = a.modify(_.token).setTo(None)
+        _ <- accounts.update(_.updated(id, u))
+      } yield u.transformInto[ApiAccountDetails.Public]
     }
 
     override def deleteAccount(id: ApiAccountId): IOResult[Option[ApiAccountDetails.Public]] = {
