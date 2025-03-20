@@ -93,7 +93,9 @@ pub mod filters {
             .force_long_name_for_technique_params(Target::Windows, t_id, t_params.to_owned())
             .map_err(|e: Error| askama::Error::Custom(e.into()))?;
         match simplified_expr {
-            Expression::Scalar(_) => Ok(format!("'{}'", simplified_expr.fmt(Target::Windows))),
+            Expression::Scalar(_) => {
+                Ok(format!("@'\n{}\n'@", simplified_expr.fmt(Target::Windows)))
+            }
             _ => Ok(simplified_expr.fmt(Target::Windows)),
         }
     }
