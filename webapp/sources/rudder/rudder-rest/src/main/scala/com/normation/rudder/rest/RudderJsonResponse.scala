@@ -96,7 +96,9 @@ object RudderJsonResponse {
   final case class LiftJsonResponse[A](json: A, prettify: Boolean, code: Int)(implicit encoder: JsonEncoder[A])
       extends LiftResponse {
     def toResponse: InMemoryResponse = {
-      val indent = if (prettify) Some(2) else None
+      // Indent is not the number of space per indentation, but the level of indentation for this elem starts...
+      // if we set 2, it will think it is at level 2 already, hence produce 4 four spaces
+      val indent = if (prettify) Some(0) else None
       val bytes  = encoder.encodeJson(json, indent).toString.getBytes("UTF-8")
       InMemoryResponse(
         bytes,
