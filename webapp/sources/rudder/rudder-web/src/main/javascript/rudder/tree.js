@@ -636,7 +636,7 @@ function allEventsRegisterTree() {
   const allNodes = $('li.techniqueNode > a[id^="lift-event-js-"], li.techniqueNode > * > span[id^="lift-event-js-"], li.directiveNode > a[id^="lift-event-js-"], li.directiveNode > * > span[id^="lift-event-js-"]');
   allNodes.each(function () {
     const events = $._data(this, 'events')?.click;
-    if (events && events[0]) {
+    if (Array.isArray(events) && events.length !== 0) {
       allEvents.set(this.id, [...events]) // make copy because events array is a reference
     }
   })
