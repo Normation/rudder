@@ -833,6 +833,7 @@ class InventoryMapper(
           case WindowsVista  => win.addValues(A_OS_NAME, A_OS_WIN_VISTA)
           case WindowsSeven  => win.addValues(A_OS_NAME, A_OS_WIN_SEVEN)
           case Windows10     => win.addValues(A_OS_NAME, A_OS_WIN_10)
+          case Windows11     => win.addValues(A_OS_NAME, A_OS_WIN_11)
           case Windows2000   => win.addValues(A_OS_NAME, A_OS_WIN_2000)
           case Windows2003   => win.addValues(A_OS_NAME, A_OS_WIN_2003)
           case Windows2008   => win.addValues(A_OS_NAME, A_OS_WIN_2008)
