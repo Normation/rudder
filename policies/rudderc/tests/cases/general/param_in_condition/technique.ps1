@@ -35,7 +35,9 @@ vars.param_in_condition.file
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("file_check_exists_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Check if a file exists'
+            ComponentName = @'
+Check if a file exists
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
@@ -64,11 +66,15 @@ vars.param_in_condition.file
 
     $reportId=$reportIdBase + "e8362340-dc50-4231-9b7f-748b51e9fa07"
     try {
-        $componentKey = 'echo "May be executed or not"'
+        $componentKey = @'
+echo "May be executed or not"
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("command_execution_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Execute only if...'
+            ComponentName = @'
+Execute only if...
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false

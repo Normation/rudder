@@ -27,11 +27,15 @@
 
     $reportId=$reportIdBase + "d982a7e6-494a-40a5-aea1-7d9a185eed61"
     try {
-        $componentKey = '/some/path'
+        $componentKey = @'
+/some/path
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("file_lines_present_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'File content'
+            ComponentName = @'
+File content
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
