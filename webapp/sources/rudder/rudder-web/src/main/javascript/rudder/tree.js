@@ -36,26 +36,21 @@
 */
 
 
-  var allEvents = [];
+const allEvents = new Map();
 
-  // Since #24062, we inlined on click events from our lift generated nodes,
-  // there nodes are transformed into a tree using jstree
-  // jstree does not keep the event that were bound to the previous nodes
-  // We need to reattach the events here
-  function attachInlinedEvents( id ) {
-    var child = $(id).find('[id^="lift-event-js-"]'); // all nested child elements with a 'lift-event-js-...' id
-    child.each(function () {
-      var nodeId = this.id;
-      var nodes = allEvents.find(function (x) { return x[0].id === nodeId });
-      if (nodes && nodes[1]) {
-        var event = nodes[1];
-        if (event) {
-          $(this).off("click");
-          $(this).on("click", event.handler);
-        }
-      }
-    });
+// Since #24062, we inlined on click events from our lift generated nodes,
+// there nodes are transformed into a tree using jstree
+// jstree does not keep the event that were bound to the previous nodes
+// We need to reattach the events here
+function attachInlinedEvents( id ) {
+  for (let [id, events] of allEvents) {
+    if (events) {
+      $("#" + id).off("click").on("click", function(e) {
+        events.forEach(function (event) { event.handler(e) })
+      })
+    }
   }
+}
 
 /*
  * Reference Technique library tree
@@ -634,13 +629,15 @@ function openTreeNodes(treeId, settingsStorageId, data){
 }
 
 /**
- * Function that fills the `allEvent` global variable with js-tree event handlers. By default, techniqueNode and directiveNode selectors are used as tree nodes.
+ * Function that fills the `allEvents` map with js-tree event handlers. By default, techniqueNode and directiveNode selectors are used as tree nodes.
  */
 function allEventsRegisterTree() {
   // Save node event handlers, in order to customize node by reassigning the click event handler
-  var allNodes = $('li.techniqueNode > a[id^="lift-event-js-"], li.techniqueNode > * > span[id^="lift-event-js-"], li.directiveNode > a[id^="lift-event-js-"], li.directiveNode > * > span[id^="lift-event-js-"]');
-  var events =  allNodes.map(function () {
-    return $._data(this, 'events')["click"]; // we need to intercept the click now, the object will change after the jstree init
-  }).get().map(function (x, i) { return [allNodes[i], x] });  // cannot use a node object as key, so keep a [node, events] array
-  allEvents.push(...events);
+  const allNodes = $('li.techniqueNode > a[id^="lift-event-js-"], li.techniqueNode > * > span[id^="lift-event-js-"], li.directiveNode > a[id^="lift-event-js-"], li.directiveNode > * > span[id^="lift-event-js-"]');
+  allNodes.each(function () {
+    const events = $._data(this, 'events')?.click;
+    if (Array.isArray(events) && events.length !== 0) {
+      allEvents.set(this.id, [...events]) // make copy because events array is a reference
+    }
+  })
 }
