@@ -1,8 +1,8 @@
 <lift:surround data-lift="with-enabled-csp" with="common-layout" at="content">
 
   <head_merge>
-    <title>Rudder - Event logs</title>
-    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-eventlogs.css" media="screen">
+    <title>Rudder - Change logs</title>
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-changelogs.css" media="screen">
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/jsondiffpatch.umd.slim.js"></script>
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/libs/html.css" />
   </head_merge>
@@ -11,18 +11,18 @@
       <div class="main-header">
         <div class="header-title">
           <h1>
-            <span>Event logs</span>
+            <span>Change logs</span>
           </h1>
         </div>
         <div id="filterLogs">
-          Get event logs between
+          Get change logs between
           <input type="text" class="pickStartInput form-control input-xs"/>
           and
           <input type="text" class="pickEndInput form-control input-xs"/>
-          <button id="filterLogsButton" type="button" class="btn btn-default btn-sm">Get events</button>
+          <button id="filterLogsButton" type="button" class="btn btn-default btn-sm">Get changes</button>
           <span id="limitEventDisplayer"></span>
         </div>
-        <span id="eventLogsError"></span>
+        <span id="changeLogsError"></span>
       </div>
       <div class="one-col-main">
         <div class="template-main">
@@ -31,11 +31,11 @@
               <div class="inner-portlet">
                 <div class="portlet-content">
 
-                  <table id="eventLogsGrid" class="display" cellspacing="0"></table>
+                  <table id="changeLogsGrid" class="display" cellspacing="0"></table>
 
-                  <div id="eventDetailPopup" class="d-none">
+                  <div id="changeDetailPopup" class="d-none">
                     <lift:ignore>
-                      This div gets the content of the eventDetailPopup injected within
+                      This div gets the content of the changeDetailPopup injected within
                     </lift:ignore>
                   </div>
 
@@ -70,6 +70,6 @@
       </fieldset>
     </div>
   </script>
-  <div class="lift:administration.EventLogsViewer.display"></div>
+  <div class="lift:configuration.ChangeLogsViewer.display"></div>
 
 </lift:surround>
