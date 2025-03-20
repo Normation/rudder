@@ -14,7 +14,7 @@ use reqwest::{
 };
 use secrecy::ExposeSecret;
 use tempfile::tempdir;
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::license::Licenses;
 use crate::{
@@ -215,7 +215,7 @@ impl Repository {
             }
             Licenses::update_from_archive(local_archive_path, license_folder)?;
         } else {
-            debug!("Not updating licenses as no configured credentials were found")
+            warn!("Not updating licenses as no configured credentials were found")
         }
         Ok(())
     }
