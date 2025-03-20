@@ -71,24 +71,23 @@
 bundle agent condition_from_expression_persistent(condition, expression, duration)
 {
   vars:
-      "old_class_prefix"  string => canonify("condition_from_expression_persistent_${condition}");
-      "args"               slist => { "${condition}", "${expression}", "${duration}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("condition_from_expression_persistent_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"  string => canonify("condition_from_expression_persistent_${condition}");
 
   classes:
-      "${condition}_true"   expression => "${expression}",
-                                  persistence => "${duration}",
-                                        scope => "namespace";
+      "${condition}_true"    expression => "${expression}",
+                            persistence => "${duration}",
+                                  scope => "namespace";
 
-      "${condition}_false"  expression => "!(${expression})",
-                                  persistence => "${duration}",
-                                        scope => "namespace";
+      "${condition}_false"   expression => "!(${expression})",
+                            persistence => "${duration}",
+                                  scope => "namespace";
 
   methods:
-      "success" usebundle => _classes_success("${old_class_prefix}");
-      "success" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
 
-      "report"  usebundle => _log_v3("Create the persistent condition ${condition}_{true,false} with ${expression}", "${condition}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => log_rudder_v4("${condition}", "The condition ${condition}_true was defined and will persist for ${duration} minutes", ""),
+                                        if => "${expression}";
+      "${report_data.method_id}" usebundle => log_rudder_v4("${condition}", "The condition ${condition}_false was defined and will persist for ${duration} minutes", ""),
+                                        if => "!(${expression})";
 }

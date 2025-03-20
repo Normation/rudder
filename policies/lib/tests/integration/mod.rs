@@ -4,9 +4,16 @@
 #[cfg(test)]
 pub mod command_execution_test;
 #[cfg(test)]
+pub mod condition_from_expression_test;
+#[cfg(test)]
+pub mod condition_from_variable_existence_test;
+#[cfg(test)]
+pub mod condition_from_variable_match_test;
+#[cfg(test)]
 pub mod file_absent_test;
 #[cfg(test)]
 pub mod file_check_exists_test;
+
 use log::debug;
 use rudder_commons::methods::Methods;
 use std::mem::ManuallyDrop;

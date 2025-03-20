@@ -170,4 +170,84 @@ impl MethodToTest {
             ..Self::new()
         }
     }
+    pub fn condition_from_expression(condition: String, expression: String) -> MethodToTest {
+        MethodToTest {
+            name: "condition_from_expression".to_string(),
+            params: HashMap::from([
+                ("condition".to_string(), condition),
+                ("expression".to_string(), expression),
+            ]),
+            method_info: get_lib()
+                .get("condition_from_expression")
+                .context("Looking for the method metadata from the parsed library")
+                .unwrap(),
+            ..Self::new()
+        }
+    }
+    pub fn condition_from_variable_match(
+        condition: String,
+        variable_name: String,
+        expected_match: String,
+    ) -> MethodToTest {
+        MethodToTest {
+            name: "condition_from_variable_match".to_string(),
+            params: HashMap::from([
+                ("condition".to_string(), condition),
+                ("variable_name".to_string(), variable_name),
+                ("expected_match".to_string(), expected_match),
+            ]),
+            method_info: get_lib()
+                .get("condition_from_variable_match")
+                .context("Looking for the method metadata from the parsed library")
+                .unwrap(),
+            ..Self::new()
+        }
+    }
+    pub fn condition_from_variable_existence(
+        condition: String,
+        variable_name: String,
+    ) -> MethodToTest {
+        MethodToTest {
+            name: "condition_from_variable_existence".to_string(),
+            params: HashMap::from([
+                ("condition".to_string(), condition),
+                ("variable_name".to_string(), variable_name),
+            ]),
+            method_info: get_lib()
+                .get("condition_from_variable_existence")
+                .context("Looking for the method metadata from the parsed library")
+                .unwrap(),
+            ..Self::new()
+        }
+    }
+    pub fn variable_string(prefix: String, name: String, value: String) -> MethodToTest {
+        MethodToTest {
+            name: "variable_string".to_string(),
+            params: HashMap::from([
+                ("prefix".to_string(), prefix),
+                ("name".to_string(), name),
+                ("value".to_string(), value),
+            ]),
+            method_info: get_lib()
+                .get("variable_string")
+                .context("Looking for the method metadata from the parsed library")
+                .unwrap(),
+            ..Self::new()
+        }
+    }
+    pub fn variable_dict(prefix: String, name: String, value: String) -> MethodToTest {
+        MethodToTest {
+            name: "variable_dict".to_string(),
+            params: HashMap::from([
+                ("prefix".to_string(), prefix),
+                ("name".to_string(), name),
+                ("value".to_string(), value),
+            ]),
+            method_info: get_lib()
+                .get("variable_dict")
+                .context("Looking for the method metadata from the parsed library")
+                .unwrap(),
+            ..Self::new()
+        }
+    }
 }
