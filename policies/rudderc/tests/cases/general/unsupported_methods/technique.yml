@@ -1,0 +1,31 @@
+id: unsupported_methods
+name: unsupported_methods
+version: '1.0'
+category: ncf_techniques
+items:
+  - id: 64bed1d2-8ed1-423b-85f6-09f785aa5326
+    name: Windows
+    reporting:
+      mode: weighted
+    condition: windows
+    items:
+      - id: 82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532
+        name: Linux user group on Windows
+        method: user_group
+        params:
+          login: bob
+          group_name: rudder
+  - id: 74d6b213-a239-48c8-8a02-c788118d51f1
+    name: Linux
+    reporting:
+      mode: weighted
+    condition: linux
+    items:
+      - id: 0a9dcb32-e310-488c-b3e8-cbcfc6ae284a
+        name: Powershell exec on Linux
+        method: powershell_execution
+        params:
+          command: Write-Host "hello world"
+          successRegex: success
+          repairedRegex: .*
+
