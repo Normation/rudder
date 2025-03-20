@@ -486,6 +486,10 @@ TZEW7+Ri43DsMyRwYiCafuVThL+J
       <UUID>f9a71efb-7c27-11e5-957f-f01faf3ee752</UUID>
     </RUDDER>
     <SOFTWARES>
+      <NAME>rudder-agent</NAME>
+      <VERSION>8.0.0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
       <COMMENTS>Automatically configure source code on many Un*x platforms</COMMENTS>
       <NAME>autoconf</NAME>
       <VERSION>2.69</VERSION>

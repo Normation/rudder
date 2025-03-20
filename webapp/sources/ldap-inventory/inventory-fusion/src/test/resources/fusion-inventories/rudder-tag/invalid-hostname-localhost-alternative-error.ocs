@@ -9,9 +9,21 @@
       <VERSION>5.0.8</VERSION>
       <FQDN>::1</FQDN>
     </OPERATINGSYSTEM>
+    <SOFTWARES>
+      <NAME>rudder-agent</NAME>
+      <VERSION>8.1.0</VERSION>
+    </SOFTWARES>
     <RUDDER>
       <HOSTNAME>localhost</HOSTNAME>
       <UUID>b9a71482-5030-4699-984d-b03d28bbbf36</UUID>
+      <AGENT>
+        <AGENT_NAME>cfengine-community</AGENT_NAME>
+        <AGENT_CERT>-----BEGIN RSA PUBLIC KEY-----plop-----END RSA PUBLIC KEY-----
+        </AGENT_CERT>
+        <OWNER>root</OWNER>
+        <POLICY_SERVER_HOSTNAME>192.168.110.47</POLICY_SERVER_HOSTNAME>
+        <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
+      </AGENT>
     </RUDDER>
   </CONTENT>
   <QUERY>INVENTORY</QUERY>
