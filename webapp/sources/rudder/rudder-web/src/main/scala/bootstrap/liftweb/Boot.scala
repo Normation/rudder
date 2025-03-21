@@ -811,7 +811,7 @@ class Boot extends Loggable {
           >> Hidden,
         Menu("240-global-parameters", <span>Global properties</span>) / "secure" / "configurationManager" / "parameterManagement"
           >> needPerms(Authz.Parameter.Read),
-        Menu("280-event-logs", <span>History</span>) / "secure" / "configurationManager" / "eventLogs"
+        Menu("280-event-logs", <span>Change logs</span>) / "secure" / "configurationManager" / "changeLogs"
           >> needPerms(Authz.Administration.Read)
       )
     }

@@ -62,9 +62,7 @@ import scala.xml.*
  */
 class EventListDisplayer(repos: EventLogRepository) extends Loggable {
 
-  private val gridName = "eventLogsGrid"
-
-  def display(refreshEvents: () => Box[Seq[EventLog]]): NodeSeq = {
+  def display(gridName: String, refreshEvents: () => Box[Seq[EventLog]]): NodeSeq = {
     // common part between last events and interval
     def displayEvents(events: Box[Seq[EventLog]]): JsCmd = {
       events match {
