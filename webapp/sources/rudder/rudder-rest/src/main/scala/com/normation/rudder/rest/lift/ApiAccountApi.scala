@@ -216,7 +216,7 @@ class ApiAccountApiServiceV1(
   override def updateAccount(id: ApiAccountId, data: UpdateApiAccount): IOResult[ApiAccountDetails.Public] = {
     for {
       a <- readApi.getById(id).notOptional(s"API account with ID '${id.value}' was not found")
-      up = mapper.update(a, data)
+      up <- mapper.update(a, data).toIO
       _ <- writeApi.save(up, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor)
     } yield up.transformInto[ApiAccountDetails.Public]
   }

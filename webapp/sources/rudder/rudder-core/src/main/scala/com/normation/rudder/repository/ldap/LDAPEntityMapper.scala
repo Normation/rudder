@@ -89,6 +89,7 @@ import scala.annotation.nowarn
 import zio.*
 import zio.json.*
 import zio.syntax.*
+import com.softwaremill.quicklens.*
 
 object NodeStateEncoder {
   implicit def enc(state: NodeState): String = state.name
@@ -1183,10 +1184,15 @@ object JsonApiAcl {
   implicit val decoderJsonApiAcl: JsonDecoder[JsonApiAcl] = JsonDecoder.list[JsonApiAuthz].map(JsonApiAcl.apply)
   implicit val encoderJsonApiAcl: JsonEncoder[JsonApiAcl] = JsonEncoder.list[JsonApiAuthz].contramap(_.acl)
 
+  /*
+   * When we get JsonApiAcl, we always group/sort by path when transforming into business elements
+   */
   implicit val transformJsonApiAcl: PartialTransformer[JsonApiAcl, List[ApiAclElement]] = {
     PartialTransformer.apply[JsonApiAcl, List[ApiAclElement]] {
       case JsonApiAcl(acl) =>
-        partial.Result.traverse(acl.iterator, (x:JsonApiAuthz) => x.transformIntoPartial[ApiAclElement], true)
+        partial.Result.traverse(acl.iterator, (x:JsonApiAuthz) => x.transformIntoPartial[ApiAclElement], true).map(x =>
+          x.groupMapReduce(_.path)(identity)((a,b) => a.modify(_.actions).setTo(a.actions ++ b.actions)).values.toList.sortBy(_.path)
+        )
     }
   }
 

@@ -1069,7 +1069,7 @@ class MockApiAccountService() {
       new ApiAccountMapping(creationDate, generateId, generateSecret, generateToken)
     }
 
-    private val accounts = Ref
+    private val accounts = Ref.Synchronized
       .make(
         // this part is done at repository level in real implementation
         apiAccounts.filter(_._2.kind.isInstanceOf[ApiAccountKind.PublicApi])
@@ -1102,12 +1102,10 @@ class MockApiAccountService() {
     override def updateAccount(id: ApiAccountId, data: UpdateApiAccount): IOResult[ApiAccountDetails.Public] = {
       for {
         a <- accounts
-               .modify(m => {
+               .modifyZIO(m => {
                  m.get(id) match {
-                   case Some(x) =>
-                     val up = mapper.update(x, data)
-                     (Some(up), m.updated(id, up))
-                   case None    => (None, m)
+                   case Some(x) => mapper.update(x, data).toIO.map(up => (Some(up), m.updated(id, up)))
+                   case None    => (None, m).succeed
                  }
                })
                .notOptional(s"No account with '${id.value}' exists")

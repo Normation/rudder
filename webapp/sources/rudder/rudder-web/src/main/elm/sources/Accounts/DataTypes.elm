@@ -41,7 +41,7 @@ type TenantMode
     | ByTenants --give access to object in any of the listed tenants
 
 type Token
-    = New String 
+    = New String
     | Hashed
     | ClearText
 
@@ -84,14 +84,14 @@ type alias Account =
     }
 
 
-type ExpirationPolicy 
+type ExpirationPolicy
     = NeverExpire
     | ExpireAtDate Posix
 
 
 type alias AccessControl =
     { path : String
-    , verb : String
+    , actions : String
     }
 
 
@@ -132,7 +132,7 @@ type Msg
 
 
 expirationDate : ExpirationPolicy -> Maybe Posix
-expirationDate policy = 
+expirationDate policy =
     case policy of
         ExpireAtDate d ->
             Just d

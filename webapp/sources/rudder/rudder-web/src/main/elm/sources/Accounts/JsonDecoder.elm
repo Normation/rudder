@@ -35,7 +35,7 @@ decodeAccount datePickerInfo =
         |> optional "token" (string |> andThen toToken) Token.ClearText
         |> optional "tokenGenerationDate" (maybe string) Nothing
         |> custom (decodeExpirationPolicy datePickerInfo)
-        |> optional "acl" (map Just (list <| decodeAcl)) Nothing
+        |> optional "acl" (map Just (list <| decodeAcls)) Nothing
         |> required "tenants" (string |> andThen toTenantMode)
         |> required "tenants" (string |> andThen toTenantList)
 
@@ -57,11 +57,14 @@ decodeEnabledStatus =
             )
 
 
-decodeAcl : Decoder AccessControl
-decodeAcl =
+-- we flatten the possible several action into a list of unit ACL which is what is understood by UI
+decodeAcls : Decoder (List AccessControl)
+decodeAcls =
+    field "actions" (list string)
+      |> andThen
     succeed AccessControl
         |> required "path" string
-        |> required "verb" string
+        |> required "actions" string
 
 
 decodeExpirationPolicy : DatePickerInfo -> Decoder ExpirationPolicy

@@ -37,10 +37,8 @@
 
 package com.normation.rudder.rest.data
 
-import cats.implicits.*
 import com.normation.errors.*
 import com.normation.errors.IOResult
-import com.normation.rudder.api.AclPath
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.api.ApiAccountKind
@@ -52,7 +50,6 @@ import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.api.ApiAuthorizationKind
 import com.normation.rudder.api.ApiTokenHash
 import com.normation.rudder.api.ApiTokenSecret
-import com.normation.rudder.api.HttpAction
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.repository.ldap.JsonApiAcl
 import com.normation.rudder.rest.data.NewRestApiAccount.transformNewRestApiAccount
@@ -61,7 +58,6 @@ import com.softwaremill.quicklens.*
 import enumeratum.Enum
 import enumeratum.EnumEntry
 import io.scalaland.chimney.*
-import io.scalaland.chimney.cats.*
 import io.scalaland.chimney.partial.Result
 import io.scalaland.chimney.syntax.*
 import java.time.ZonedDateTime
@@ -124,6 +120,21 @@ object ApiAccountExpirationPolicy       extends Enum[ApiAccountExpirationPolicy]
     JsonDecoder.string.mapOrFail(withNameInsensitiveEither(_).left.map(_.getMessage()))
   )
 }
+
+// encapsulate Option[JsonAcl] into a type so that it's easier to map to business object
+object MaybeAcl {
+  type tpeFrom = Option[JsonApiAcl]
+  type tpeTo   = Option[List[ApiAclElement]]
+
+  implicit val transformtpe: PartialTransformer[tpeFrom, tpeTo] = {
+    PartialTransformer.apply[tpeFrom, tpeTo] {
+      case None      => Result.Value(None)
+      case Some(acl) => acl.transformIntoPartial[List[ApiAclElement]].map(Some.apply)
+    }
+  }
+}
+
+import MaybeAcl.transformtpe
 
 // Output DATA
 
@@ -308,15 +319,11 @@ object NewRestApiAccount extends ApiAccountCodecs {
       .withFieldComputedPartial(
         _.kind,
         x => {
-          (x.acl match {
-            case None    => partial.Result.Value(None)
-            case Some(v) => v.transformIntoPartial[List[ApiAclElement]].map(Some.apply)
-          }).map(opt => {
+          x.acl.transformIntoPartial[MaybeAcl.tpeTo].map { opt =>
             ApiAccountMapping
               .apiKind(x.authorizationType.getOrElse(ApiAuthorizationKind.None), opt, d, x.expirationPolicy, x.expirationDate)
-          })
-        }
-      )
+          }
+        })
       .withFieldComputed(_.description, _.description.getOrElse(""))
       .withFieldConst(_.token, t)
       .withFieldComputed(_.isEnabled, _.status == ApiAccountStatus.Enabled)
@@ -367,38 +374,43 @@ class ApiAccountMapping(
                   case None    => None.succeed
                 }
       d      <- creationDate
-      r      <- transformNewRestApiAccount(d, id, token).transform(newApiAccount).asValidatedNel.toEither
+      r      <- transformNewRestApiAccount(d, id, token).transform(newApiAccount).toIO
     } yield (r, secret)
   }
 
   /**
    * Update an ApiAccount from Rest data
    */
-  def update(account: ApiAccount, up: UpdateApiAccount): ApiAccount = {
-    account
-      .modify(_.name)
-      .setToIfDefined(up.name)
-      .modify(_.isEnabled)
-      .setToIfDefined(up.status.map(_ == ApiAccountStatus.Enabled))
-      .modify(_.tenants)
-      .setToIfDefined(up.tenants)
-      .modify(_.kind)
-      .using {
-        case ApiAccountKind.PublicApi(a, e) =>
-          val authz = up.authorizationType.map(x => ApiAccountMapping.authz(x, up.acl))
-          val exp   = {
-            // if we go from "never" to "datetime" without a date, now + 1 month
-            (e, up.expirationPolicy, up.expirationDate) match {
-              case (None, None, None)                                        => None
-              case (_, Some(ApiAccountExpirationPolicy.Never), _)            => None
-              case (_, _, Some(d))                                           => Some(d.transformInto[DateTime])
-              case (None, Some(ApiAccountExpirationPolicy.AtDateTime), None) => Some(DateTime.now())
-              case (Some(e), _, None)                                        => Some(e)
-            }
+  def update(account: ApiAccount, up: UpdateApiAccount): PureResult[ApiAccount] = {
+    up.acl
+      .transformIntoPartial[MaybeAcl.tpeTo]
+      .map { acl =>
+        account
+          .modify(_.name)
+          .setToIfDefined(up.name)
+          .modify(_.isEnabled)
+          .setToIfDefined(up.status.map(_ == ApiAccountStatus.Enabled))
+          .modify(_.tenants)
+          .setToIfDefined(up.tenants)
+          .modify(_.kind)
+          .using {
+            case ApiAccountKind.PublicApi(a, e) =>
+              val authz = up.authorizationType.map(x => ApiAccountMapping.authz(x, acl))
+              val exp   = {
+                // if we go from "never" to "datetime" without a date, now + 1 month
+                (e, up.expirationPolicy, up.expirationDate) match {
+                  case (None, None, None)                                        => None
+                  case (_, Some(ApiAccountExpirationPolicy.Never), _)            => None
+                  case (_, _, Some(d))                                           => Some(d.transformInto[DateTime])
+                  case (None, Some(ApiAccountExpirationPolicy.AtDateTime), None) => Some(DateTime.now())
+                  case (Some(e), _, None)                                        => Some(e)
+                }
+              }
+              ApiAccountKind.PublicApi(authz.getOrElse(a), exp)
+            case x                              => x
           }
-          ApiAccountKind.PublicApi(authz.getOrElse(a), exp)
-        case x                              => x
       }
+      .toPureResult
   }
 
   def updateToken(account: ApiAccount): IOResult[(ApiAccount, ClearTextSecret)] = {
