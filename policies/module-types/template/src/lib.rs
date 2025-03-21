@@ -205,10 +205,6 @@ impl ModuleType0 for Template {
     }
 
     fn init(&mut self) -> rudder_module_type::ProtocolResult {
-        match get_python_version() {
-            Ok(python_version) => self.python_version = python_version,
-            Err(err) => return ProtocolResult::Error(err.to_string()),
-        }
         ProtocolResult::Success
     }
 
@@ -344,7 +340,7 @@ fn backup_file(output_file: &Path, backup_dir: &Path) -> Result<(), anyhow::Erro
 
 pub fn entry() -> Result<(), anyhow::Error> {
     let promise_type = Template {
-        python_version: "".to_string(),
+        python_version: get_python_version()?,
     };
 
     if called_from_agent() {
