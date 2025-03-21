@@ -189,6 +189,8 @@ class HomePage extends StatefulSnippet {
   }
 
   def getAllCompliance(): NodeSeq = {
+    // this needs to be outside of the zio for-comprehension context to see the right node facts
+    val nodes = HomePage.nodeFacts.get.keys.toSet
 
     (for {
       n2                <- currentTimeMillis
@@ -197,7 +199,7 @@ class HomePage extends StatefulSnippet {
       _                  = TimingDebugLogger.trace(s"Get rules: ${n3 - n2}ms")
       // reports contains the reports for user rules, used in the donut
       reports           <-
-        reportingService.findRuleNodeStatusReports(HomePage.nodeFacts.get.keys.toSet, userRules)(CurrentUser.queryContext)
+        reportingService.findRuleNodeStatusReports(nodes, userRules)(CurrentUser.queryContext)
       n4                <- currentTimeMillis
       _                  = TimingDebugLogger.trace(s"Compute Rule Node status reports for all nodes: ${n4 - n3}ms")
       // global compliance is a unique number, used in the top right hand size, based on
