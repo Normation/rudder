@@ -24,11 +24,15 @@
 
     $reportId=$reportIdBase + "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532"
     try {
-        $componentKey = 'bob'
+        $componentKey = @'
+bob
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("user_group_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Linux user group on Windows'
+            ComponentName = @'
+Linux user group on Windows
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
@@ -57,11 +61,15 @@
 
     $reportId=$reportIdBase + "0a9dcb32-e310-488c-b3e8-cbcfc6ae284a"
     try {
-        $componentKey = 'Write-Host "hello world"'
+        $componentKey = @'
+Write-Host "hello world"
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("powershell_execution_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Powershell exec on Linux'
+            ComponentName = @'
+Powershell exec on Linux
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
