@@ -358,7 +358,7 @@ fn get_python_version() -> Result<String> {
     let args = ["-c", "import jinja2"];
     let python_versions = ["python3", "python2", "python"];
     for version in &python_versions {
-        let status = Command::new(*version).args(&args).status()?;
+        let status = Command::new(*version).args(args).status()?;
         match status.success() {
             true => return Ok(version.to_string()),
             false => continue,
