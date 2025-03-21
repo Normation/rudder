@@ -20,6 +20,9 @@ pub enum Given {
 }
 
 impl Given {
+    pub fn method_call(m: MethodToTest) -> Given {
+        Given::MethodCall(m)
+    }
     pub fn file_present(file_path: String) -> Given {
         Given::Setup(FilePresent(FilePresentStruct { path: file_path }))
     }

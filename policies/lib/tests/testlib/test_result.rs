@@ -73,4 +73,16 @@ impl ExecutionResult {
             matching.join(",\n  ")
         )
     }
+
+    pub fn assert_conditions_are_defined(&self, conditions: Vec<String>) {
+        conditions
+            .iter()
+            .for_each(|c| assert!(self.conditions.contains(c)))
+    }
+
+    pub fn assert_conditions_are_undefined(&self, conditions: Vec<String>) {
+        conditions
+            .iter()
+            .for_each(|c| assert!(!self.conditions.contains(c)))
+    }
 }
