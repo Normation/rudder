@@ -64,8 +64,7 @@ decodeNodesInfo =
 decodePluginInfo : Decoder PluginInfo
 decodePluginInfo =
   D.succeed PluginInfo
-    |> required "id" string
-    |> required "name" string
+    |> required "name" ( string |> andThen (\name -> succeed (String.replace "rudder-plugins-" "" name)) )
     |> required "version" string
     |> required "abiVersion" string
     |> optional "license" (D.maybe decodeLicenseInfo) Nothing
@@ -77,4 +76,3 @@ decodeLicenseInfo =
     |> required "startDate" string
     |> required "endDate" string
     |> required "allowedNodesNumber" int
-    |> required "supportedVersions" string

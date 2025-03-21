@@ -156,25 +156,24 @@ view model =
                             showList = ui.showPlugins
                             pluginRow : PluginInfo -> Html Msg
                             pluginRow plugin =
-                              let
-                                license = case plugin.license of
-                                  Nothing -> [
-                                      td[][]
-                                    , td[][]
-                                    , td[][]
-                                    , td[][]]
-                                  Just l -> [
-                                      td[][text l.licensee]
-                                    , td[][text ("from " ++ l.startDate ++ " to " ++ l.endDate)]
-                                    , td[][text (String.fromInt l.allowedNodesNumber)]
-                                    , td[][text l.supportedVersions]]
-                              in
-                                tr[]
-                                ([ td[][text plugin.id]
-                                , td[][text plugin.name]
-                                , td[][text plugin.version]
-                                , td[][text plugin.abiVersion]
-                                ] ++ license)
+                                let
+                                    license = case plugin.license of
+                                        Nothing ->
+                                            [ td[][]
+                                            , td[][]
+                                            , td[][]
+                                            ]
+                                        Just l ->
+                                            [ td[][text l.licensee]
+                                            , td[][text ("from " ++ l.startDate ++ " to " ++ l.endDate)]
+                                            , td[][text (String.fromInt l.allowedNodesNumber)]
+                                            ]
+                                in
+                                    tr[]
+                                    ([ td[][text plugin.name]
+                                    , td[][text plugin.version]
+                                    , td[][text plugin.abiVersion]
+                                    ] ++ license)
 
                             nbPlugins = String.fromInt (List.length plugins)
                         in
@@ -204,18 +203,16 @@ view model =
                                             [ table[class "dataTable mt-1"]
                                                 [ thead[]
                                                     [ tr[class "head"]
-                                                        [ th[][text "ID"]
-                                                        , th[][text "Name"]
+                                                        [ th[][text "Name"]
                                                         , th[][text "Version"]
                                                         , th[][text "ABI version"]
                                                         , th[][text "Licensee"]
                                                         , th[][text "Validity period"]
                                                         , th[][text "Node limit"]
-                                                        , th[][text "Supported versions"]
                                                         ]
                                                     ]
                                                 , tbody[]
-                                                    (plugins |> List.sortBy .id |> List.map pluginRow)
+                                                    (plugins |> List.sortBy .name |> List.map pluginRow)
                                                 ]
                                             ]
                                     )

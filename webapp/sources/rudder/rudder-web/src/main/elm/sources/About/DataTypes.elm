@@ -42,8 +42,7 @@ type alias NodesInfo =
     }
 
 type alias PluginInfo =
-    { id : String
-    , name : String
+    { name : String
     , version : String
     , abiVersion : String
     , license    : Maybe LicenseInfo
@@ -54,7 +53,6 @@ type alias LicenseInfo =
     , startDate : String
     , endDate : String
     , allowedNodesNumber : Int
-    , supportedVersions : String
     }
 
 

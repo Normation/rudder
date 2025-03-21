@@ -53,8 +53,7 @@ encodeNodesInfo nodesInfo =
 encodePluginInfo : PluginInfo -> Value
 encodePluginInfo pluginInfo =
     object
-        [ ( "id", string pluginInfo.id )
-        , ( "name", string pluginInfo.name )
+        [ ( "name", string pluginInfo.name )
         , ( "version", string pluginInfo.version )
         , ( "abiVersion", string pluginInfo.abiVersion )
         , ( "license", encodeLicenseInfo pluginInfo.license )
@@ -69,7 +68,6 @@ encodeLicenseInfo licenseInfo =
         , ( "startDate", string li.startDate )
         , ( "endDate", string li.endDate )
         , ( "allowedNodesNumber", int li.allowedNodesNumber )
-        , ( "supportedVersions", string li.supportedVersions )
         ]
 
 encodeAboutInfo : AboutInfo -> Value
