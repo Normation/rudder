@@ -376,7 +376,8 @@ pipeline {
                         dockerfile {
                             label 'generic-docker'
                             filename 'policies/Dockerfile'
-                            additionalBuildArgs  "--build-arg RUDDER_VER=${env.RUDDER_VERSION}-nightly --build-arg PSANALYZER_VER=1.20.0"
+                            // FIXME: replace by Rudder version once 9.0 builds
+                            additionalBuildArgs  "--build-arg RUDDER_VER=8.3-nightly --build-arg PSANALYZER_VER=1.20.0"
                             args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache -v /srv/cache/cargo-vet:/root/.cache/cargo-vet'
                         }
                     }
@@ -645,7 +646,7 @@ pipeline {
                         dockerfile {
                             label 'generic-docker'
                             filename 'policies/Dockerfile'
-                            additionalBuildArgs  "--build-arg RUDDER_VER=${env.RUDDER_VERSION}-nightly"
+                            additionalBuildArgs  "--build-arg RUDDER_VER=8.3-nightly"
                             // mount cache
                             args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache'
                         }
