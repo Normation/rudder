@@ -311,7 +311,9 @@ impl Augeas {
 
         aug.save()?;
 
-        // FIXME reload in case the tree is not clean?
+        // NOTE: Here we could reload the library in case of error somewhere to avoid
+        // influencing the following calls. But for now no cases where it is needed have been
+        // identified.
 
         // Get information about changes
         let modified = true;
@@ -331,7 +333,8 @@ impl Augeas {
         }
 
         if is_err {
-            bail!("Error in script: {report}");
+            // The full error is in the report.
+            bail!("Script failed");
         }
         Ok(Outcome::Repaired(report))
     }
