@@ -118,6 +118,9 @@ impl Augeas {
     ) -> CheckApplyResult {
         let aug = &mut self.aug;
 
+        let mut report = String::new();
+        let mut is_err = false;
+
         let already_exists = p.path.exists();
         let path_str = p.path.display().to_string();
 
@@ -223,11 +226,36 @@ impl Augeas {
 
         if do_script {
             rudder_debug!("Running script: {:?}", p.script);
-            interpreter.run(
+            let res = interpreter.run(
                 InterpreterPerms::ReadWriteTree,
                 CheckMode::StackErrors,
                 &p.script,
-            )?;
+            );
+
+            match res {
+                Ok(InterpreterOut {
+                    outcome,
+                    output,
+                    quit,
+                }) => {
+                    if quit {
+                        bail!("Script quit unexpectedly: {output}");
+                    }
+                    match outcome {
+                        InterpreterOutcome::Ok => {}
+                        InterpreterOutcome::CheckErrors(errors) => {
+                            for e in errors {
+                                report.push_str(format!("{:?}", e).as_str());
+                            }
+                            is_err = true;
+                        }
+                    }
+                }
+                Err(e) => {
+                    report.push_str(format!("{:?}", e).as_str());
+                    is_err = true;
+                }
+            }
 
             /*
             if already_exists {
@@ -298,7 +326,14 @@ impl Augeas {
             }
         }
 
-        Ok(Outcome::Repaired("5 success".to_string()))
+        if let Some(r) = p.report_file {
+            fs::write(r, &report)?;
+        }
+
+        if is_err {
+            bail!("Error in script: {report}");
+        }
+        Ok(Outcome::Repaired(report))
     }
 }
 

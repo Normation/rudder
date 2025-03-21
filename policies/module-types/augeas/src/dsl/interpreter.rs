@@ -218,6 +218,7 @@ impl<'a> Interpreter<'a> {
         ))
     }
 
+    // FIXME Vec<Result, we need to treat all matching paths and stack errors.
     fn eval(&mut self, expr: &Expr) -> Result<Vec<InterpreterOut>> {
         rudder_trace!("Running expression: {:?}", expr);
 
@@ -345,15 +346,15 @@ impl<'a> Interpreter<'a> {
                             InterpreterOut::from_out(if value_type.check(&value).is_ok() {
                                 format!("type of {value} is {value_type}")
                             } else if let (Some(s), Some(c)) = (span, &self.file_content) {
-                                format_report_from_span(
+                                bail!(format_report_from_span(
                                     "Type check error",
                                     &format!("type of {value} is NOT {value_type}"),
                                     s,
                                     c,
                                     None,
-                                )
+                                ))
                             } else {
-                                format!("type of {value} is NOT {value_type}")
+                                bail!(format!("type of {value} is NOT {value_type}"))
                             })?
                         }
                         CheckExpr::PasswordScore(min_score) => {
