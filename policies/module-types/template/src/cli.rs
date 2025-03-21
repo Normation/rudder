@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
-use crate::Engine;
+use crate::{Engine, get_python_version};
 
 use anyhow::{Context, Result};
 use clap::Parser;
@@ -51,9 +51,14 @@ impl Cli {
         let value: Value = serde_json::from_str(&data)?;
         let tmp = tempdir()?;
         let temporary_dir = tmp.path();
-        let output = cli
-            .engine
-            .render(Some(cli.template.as_path()), None, value, temporary_dir)?;
+        let python_version = get_python_version()?;
+        let output = cli.engine.render(
+            Some(cli.template.as_path()),
+            None,
+            value,
+            temporary_dir,
+            &python_version,
+        )?;
 
         fs::write(&cli.out, output)
             .with_context(|| format!("Failed to write file {}", cli.out.display()))?;

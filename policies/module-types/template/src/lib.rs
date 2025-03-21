@@ -4,6 +4,7 @@
 mod cli;
 use crate::cli::Cli;
 use clap::ValueEnum;
+use rudder_module_type::ProtocolResult;
 use similar::TextDiff;
 use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
@@ -48,11 +49,18 @@ impl Engine {
         template_src: Option<String>,
         data: Value,
         temporary_dir: &Path,
+        python_version: &str,
     ) -> Result<String> {
         Ok(match self {
             Engine::Mustache => Self::mustache(template_path, template_src, data)?,
             Engine::MiniJinja => Self::mini_jinja(template_path, template_src, data)?,
-            Engine::Jinja2 => Self::jinja2(template_path, template_src, data, temporary_dir)?,
+            Engine::Jinja2 => Self::jinja2(
+                template_path,
+                template_src,
+                data,
+                temporary_dir,
+                python_version,
+            )?,
         })
     }
 
@@ -82,8 +90,8 @@ impl Engine {
         template_src: Option<String>,
         data: Value,
         temporary_dir: &Path,
+        python: &str,
     ) -> Result<String> {
-        let python = get_python_version()?;
         let named: TempPath;
         let template_path = match (&template_path, template_src) {
             (Some(p), _) => p.to_str().unwrap(),
@@ -183,7 +191,9 @@ fn default_as_true() -> bool {
 
 // Module
 
-struct Template {}
+struct Template {
+    python_version: String,
+}
 
 impl ModuleType0 for Template {
     fn metadata(&self) -> ModuleTypeMetadata {
@@ -192,6 +202,14 @@ impl ModuleType0 for Template {
         ModuleTypeMetadata::from_metadata(meta)
             .expect("invalid metadata")
             .documentation(docs)
+    }
+
+    fn init(&mut self) -> rudder_module_type::ProtocolResult {
+        match get_python_version() {
+            Ok(python_version) => self.python_version = python_version,
+            Err(err) => return ProtocolResult::Error(err.to_string()),
+        }
+        ProtocolResult::Success
     }
 
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
@@ -225,6 +243,7 @@ impl ModuleType0 for Template {
             p.template_src,
             p.data,
             parameters.temporary_dir.as_path(),
+            &self.python_version,
         )?;
 
         let already_present = output_file.exists();
@@ -324,7 +343,9 @@ fn backup_file(output_file: &Path, backup_dir: &Path) -> Result<(), anyhow::Erro
 }
 
 pub fn entry() -> Result<(), anyhow::Error> {
-    let promise_type = Template {};
+    let promise_type = Template {
+        python_version: "".to_string(),
+    };
 
     if called_from_agent() {
         run_module(promise_type)
