@@ -292,7 +292,7 @@ impl<'a> Interpreter<'a> {
                                 expected_value
                             )
                         } else {
-                            format!(
+                            bail!(
                                 "values '{}' does not include the expected value {}",
                                 values_str.join(", "),
                                 expected_value
@@ -300,22 +300,57 @@ impl<'a> Interpreter<'a> {
                         })?)
                     }
                     CheckExpr::ValuesNotInclude(expected_value) => {
-                        let _is_ok = !values_str.contains(expected_value);
-                        todo!()
+                        let is_ok = !values_str.contains(expected_value);
+                        Some(InterpreterOut::from_out(if is_ok {
+                            format!(
+                                "values '{}' does not include the forbidden value {}",
+                                values_str.join(", "),
+                                expected_value
+                            )
+                        } else {
+                            bail!(
+                                "values '{}' includes the forbidden value {}",
+                                values_str.join(", "),
+                                expected_value
+                            )
+                        })?)
                     }
-                    CheckExpr::ValuesEqual(_expected_values) => {
-                        todo!()
+                    CheckExpr::ValuesEqual(expected_values) => {
+                        let expected_sorted = {
+                            let mut v = expected_values.clone();
+                            v.sort();
+                            v
+                        };
+                        let values_sorted = {
+                            let mut v = values_str.clone();
+                            v.sort();
+                            v
+                        };
+
+                        let is_ok = expected_sorted == values_sorted;
+                        Some(InterpreterOut::from_out(if is_ok {
+                            format!(
+                                "values '{}' match the expected values in any order",
+                                values_str.join(", ")
+                            )
+                        } else {
+                            bail!(
+                                "values '{}' do not match the expected values in any order '{}'",
+                                values_str.join(", "),
+                                expected_values.join(", ")
+                            )
+                        })?)
                     }
                     CheckExpr::ValuesEqualOrdered(expected_values) => {
                         let is_ok = *expected_values == values_str;
                         Some(InterpreterOut::from_out(if is_ok {
                             format!(
-                                "values '{}' match the expected values in order",
+                                "values '{}' match the expected values in given order",
                                 values_str.join(", ")
                             )
                         } else {
-                            format!(
-                                "values '{}' do not match the expected values in order '{}'",
+                            bail!(
+                                "values '{}' do not match the expected values in given order '{}'",
                                 values_str.join(", "),
                                 expected_values.join(", ")
                             )
@@ -327,9 +362,7 @@ impl<'a> Interpreter<'a> {
                             if comparator.numeric_compare(&len, size) {
                                 format!("number of matches {len} matches {comparator} {size}")
                             } else {
-                                format!(
-                                    "number of matches {len} does not match {comparator} {size}"
-                                )
+                                bail!("number of matches {len} does not match {comparator} {size}")
                             },
                         )?)
                     }

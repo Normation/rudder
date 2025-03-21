@@ -381,7 +381,7 @@ mod tests {
                 None,
             )
             .unwrap();
-        assert_eq!(r, Outcome::repaired("5 success".to_string()));
+        assert_eq!(r, Outcome::repaired("".to_string()));
         let content = read_to_string(&f).unwrap();
         assert_eq!(content.trim(), "hello world");
     }
@@ -407,7 +407,7 @@ mod tests {
                 None,
             )
             .unwrap();
-        assert_eq!(r, Outcome::repaired("5 success".to_string()));
+        assert_eq!(r, Outcome::repaired("".to_string()));
         let content = read_to_string(&f).unwrap();
         assert_eq!(content.trim(), "world");
     }
