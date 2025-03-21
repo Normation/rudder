@@ -17,6 +17,7 @@ pub struct AugeasParameters {
     /// Expressions to run
     pub script: String,
     // only_if
+    #[serde(default)]
     pub if_script: String,
     /// Prefix to add to all expressions.
     ///

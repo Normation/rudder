@@ -1,6 +1,6 @@
 ---
-name: Directory
-description: Ensure the state of a directory
+name: Augeas
+description: Ensure the of a file using augeas
 version: "0.0.1"
 supported_targets: ["unix", "windows"]
 parameters:
