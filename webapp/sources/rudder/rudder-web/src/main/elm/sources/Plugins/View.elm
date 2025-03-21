@@ -90,7 +90,7 @@ displayMainHeader v license now loading contextPath =
         [ h1 []
             [ span [] [ text "Plugins management" ]
             ]
-        , settingError
+        , div [class "text-danger"] [settingError]
         ]
         :: (if loading then
                 []
