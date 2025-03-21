@@ -83,6 +83,7 @@ impl Engine {
         data: Value,
         temporary_dir: &Path,
     ) -> Result<String> {
+        let python = get_python_version()?;
         let named: TempPath;
         let template_path = match (&template_path, template_src) {
             (Some(p), _) => p.to_str().unwrap(),
@@ -111,8 +112,8 @@ impl Engine {
         }
 
         let output = if cfg!(target_os = "linux") {
-            let mut child = Command::new(templating_script_path)
-                .args([template_path])
+            let mut child = Command::new(python)
+                .args([templating_script_path, template_path])
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
                 .spawn()
@@ -329,5 +330,22 @@ pub fn entry() -> Result<(), anyhow::Error> {
         run_module(promise_type)
     } else {
         Cli::run()
+    }
+}
+
+fn get_python_version() -> Result<String> {
+    let args = ["-c", "import jinja2"];
+    let status = Command::new("python3").args(args).status()?;
+    if status.success() {
+        Ok("python3".to_string())
+    } else {
+        let status = Command::new("python2").args(args).status()?;
+        if status.success() {
+            Ok("python2".to_string())
+        } else {
+            bail!(
+                "Could not found python with Jinja2 installed: 'python3 -c import jinja2` and 'python2 -c import jinja2` failed"
+            )
+        }
     }
 }
