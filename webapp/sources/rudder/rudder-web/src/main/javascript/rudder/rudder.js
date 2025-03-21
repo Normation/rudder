@@ -375,6 +375,8 @@ $(document).ready(function() {
   sidebarControl();
   // Init tooltips
   initBsTooltips();
+  // Init and check tab states
+  initAndCheckTabs();
 
   // Hide any open tooltips when the anywhere else in the body is clicked
   $('body').on('click', function (e) {
@@ -915,10 +917,40 @@ function initBsTabs(){
   triggerTabList.forEach(function (triggerEl) {
     var tabTrigger = new bootstrap.Tab(triggerEl);
     triggerEl.addEventListener('click', function (event) {
-      event.preventDefault()
-      tabTrigger.show()
+      tabTrigger.show();
+      event.preventDefault();
+
+      // TODO: improve that
+      window.location.hash = this.getAttribute("data-bs-target");
+
+      return false;
     });
-});
+  });
+}
+
+function waitForElement(selector) {
+  return new Promise((resolve) => {
+    const observer = new MutationObserver((mutations, observer) => {
+      const element = document.querySelector(selector);
+      if (element) {
+        observer.disconnect();
+        resolve(element);
+      }
+    });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+  });
+}
+
+function initAndCheckTabs(){
+  initBsTabs();
+  if (window.location.hash === "") return false;
+  var tabSelector = '[data-bs-target="' + window.location.hash + '"]';
+  waitForElement(tabSelector).then((tab) => {
+    bootstrap.Tab.getInstance(tab).show();
+  });
 }
 
 function copy(value) {
