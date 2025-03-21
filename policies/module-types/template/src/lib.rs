@@ -335,17 +335,18 @@ pub fn entry() -> Result<(), anyhow::Error> {
 
 fn get_python_version() -> Result<String> {
     let args = ["-c", "import jinja2"];
-    let status = Command::new("python3").args(args).status()?;
-    if status.success() {
-        Ok("python3".to_string())
-    } else {
-        let status = Command::new("python2").args(args).status()?;
-        if status.success() {
-            Ok("python2".to_string())
-        } else {
-            bail!(
-                "Could not found python with Jinja2 installed: 'python3 -c import jinja2` and 'python2 -c import jinja2` failed"
-            )
+    let python_versions = ["python3", "python2", "python"];
+    for version in &python_versions {
+        let status = Command::new(*version).args(&args).status()?;
+        match status.success() {
+            true => return Ok(version.to_string()),
+            false => continue,
         }
     }
+    bail!(
+        "Failed to locate a Python interpreter with Jinja2 installed. Tried the following commands:\n\
+    - 'python3 -c import jinja2'\n\
+    - 'python2 -c import jinja2'\n\
+    - 'python -c import jinja2'"
+    )
 }
