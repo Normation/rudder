@@ -24,11 +24,15 @@
 
     $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907"
     try {
-        $componentKey = 'vim'
+        $componentKey = @'
+vim
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Install a package'
+            ComponentName = @'
+Install a package
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
@@ -75,11 +79,15 @@ latest
 
     $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907"
     try {
-        $componentKey = 'htop'
+        $componentKey = @'
+htop
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("package_present_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Install a package'
+            ComponentName = @'
+Install a package
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
@@ -122,11 +130,15 @@ htop
 
     $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5"
     try {
-        $componentKey = 'bob'
+        $componentKey = @'
+bob
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("user_group_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Create home'
+            ComponentName = @'
+Create home
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
@@ -155,11 +167,15 @@ htop
 
     $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5"
     try {
-        $componentKey = 'bob'
+        $componentKey = @'
+bob
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("user_group_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Create home'
+            ComponentName = @'
+Create home
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
@@ -188,11 +204,15 @@ htop
 
     $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e"
     try {
-        $componentKey = '/home/bob/.vimrc'
+        $componentKey = @'
+/home/bob/.vimrc
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("file_from_shared_folder_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Deploy file ~/.vimrc'
+            ComponentName = @'
+Deploy file ~/.vimrc
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
@@ -240,11 +260,15 @@ sha256
 
     $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e"
     try {
-        $componentKey = '/home/bob/.bashrc'
+        $componentKey = @'
+/home/bob/.bashrc
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("file_from_shared_folder_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Deploy file ~/.bashrc'
+            ComponentName = @'
+Deploy file ~/.bashrc
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
@@ -292,11 +316,15 @@ sha256
 
     $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5"
     try {
-        $componentKey = 'alice'
+        $componentKey = @'
+alice
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("user_group_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Create home'
+            ComponentName = @'
+Create home
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
@@ -325,11 +353,15 @@ sha256
 
     $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5"
     try {
-        $componentKey = 'alice'
+        $componentKey = @'
+alice
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("user_group_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Create home'
+            ComponentName = @'
+Create home
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
@@ -358,11 +390,15 @@ sha256
 
     $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e"
     try {
-        $componentKey = '/home/alice/.vimrc'
+        $componentKey = @'
+/home/alice/.vimrc
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("file_from_shared_folder_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Deploy file ~/.vimrc'
+            ComponentName = @'
+Deploy file ~/.vimrc
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
@@ -410,11 +446,15 @@ sha256
 
     $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e"
     try {
-        $componentKey = '/home/alice/.bashrc'
+        $componentKey = @'
+/home/alice/.bashrc
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("file_from_shared_folder_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Deploy file ~/.bashrc'
+            ComponentName = @'
+Deploy file ~/.bashrc
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false

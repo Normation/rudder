@@ -24,11 +24,15 @@
 
     $reportId=$reportIdBase + "845f731a-2800-41c8-967e-7d1ce89bd1b9"
     try {
-        $componentKey = '/home/bob/.vimrc'
+        $componentKey = @'
+/home/bob/.vimrc
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("file_from_shared_folder_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Do something'
+            ComponentName = @'
+Do something
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
@@ -72,11 +76,15 @@ sha256
 
     $reportId=$reportIdBase + "845f731a-2800-41c8-967e-7d1ce89bd1b9"
     try {
-        $componentKey = '/home/bob/.bashrc'
+        $componentKey = @'
+/home/bob/.bashrc
+'@
         $reportParams = @{
             ClassPrefix = ([Rudder.Condition]::canonify(("file_from_shared_folder_" + $componentKey)))
             ComponentKey = $componentKey
-            ComponentName = 'Do something'
+            ComponentName = @'
+Do something
+'@
             PolicyMode = $policyMode
             ReportId = $reportId
             DisableReporting = $false
