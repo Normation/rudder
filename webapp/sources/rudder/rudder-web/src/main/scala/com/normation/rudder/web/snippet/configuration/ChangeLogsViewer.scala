@@ -35,7 +35,7 @@
  *************************************************************************************
  */
 
-package com.normation.rudder.web.snippet.administration
+package com.normation.rudder.web.snippet.configuration
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
@@ -45,14 +45,21 @@ import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import scala.xml.NodeSeq
 
-class EventLogsViewer extends DispatchSnippet with Loggable {
+class ChangeLogsViewer extends DispatchSnippet with Loggable {
+  /*
+   * Be careful, that page used to be named "Event Logs" and so the
+   * internal service still use that nomenclature.
+   */
   private val repos     = RudderConfig.eventLogRepository
   private val eventList = RudderConfig.eventListDisplayer
+  private val gridName  = "changeLogsGrid"
 
   def getLastEvents: Box[Seq[EventLog]] = {
     repos.getEventLogByCriteria(None, Some(1000), List(Fragment.const("id DESC"))).toBox
   }
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "display" => _ => eventList.display(() => getLastEvents) }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "display" => { _ => eventList.display(gridName, () => getLastEvents) }
+  }
 
 }
