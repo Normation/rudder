@@ -67,7 +67,7 @@ encodeLicenseInfo licenseInfo =
         [ ( "licensee", string li.licensee )
         , ( "startDate", string li.startDate )
         , ( "endDate", string li.endDate )
-        , ( "allowedNodesNumber", int li.allowedNodesNumber )
+        , ( "allowedNodesNumber", Maybe.map int li.allowedNodesNumber |> Maybe.withDefault null )
         ]
 
 encodeAboutInfo : AboutInfo -> Value

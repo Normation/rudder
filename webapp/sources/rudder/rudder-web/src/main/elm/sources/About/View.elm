@@ -166,7 +166,7 @@ view model =
                                         Just l ->
                                             [ td[][text l.licensee]
                                             , td[][text ("from " ++ l.startDate ++ " to " ++ l.endDate)]
-                                            , td[][text (String.fromInt l.allowedNodesNumber)]
+                                            , td[][text (l.allowedNodesNumber |> Maybe.map String.fromInt |> Maybe.withDefault "Unlimited")]
                                             ]
                                 in
                                     tr[]

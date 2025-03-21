@@ -52,7 +52,7 @@ type alias LicenseInfo =
     { licensee : String
     , startDate : String
     , endDate : String
-    , allowedNodesNumber : Int
+    , allowedNodesNumber : Maybe Int
     }
 
 

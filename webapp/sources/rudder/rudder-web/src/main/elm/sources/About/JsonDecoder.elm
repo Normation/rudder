@@ -75,4 +75,5 @@ decodeLicenseInfo =
     |> required "licensee" string
     |> required "startDate" string
     |> required "endDate" string
-    |> required "allowedNodesNumber" int
+    |> optional "allowedNodesNumber" (D.maybe int) Nothing
+
