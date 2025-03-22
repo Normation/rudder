@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2023 Normation SAS
+
 use crate::signature::{SignatureVerifier, VerificationSuccess};
 use anyhow::bail;
 use sequoia_openpgp::cert::CertParser;

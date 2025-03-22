@@ -1,6 +1,10 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2023 Normation SAS
+
 use crate::cmd::CmdOutput;
 use crate::signature::{SignatureVerifier, VerificationSuccess};
 use anyhow::bail;
+
 use std::fs::read_to_string;
 use std::path::{Path, PathBuf};
 use std::process::Command;
