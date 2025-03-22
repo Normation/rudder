@@ -51,16 +51,15 @@ impl From<&RepositoryError> for ExitCode {
     }
 }
 
-#[derive(Clone)]
 pub struct Repository {
     inner: Client,
     creds: Option<Credentials>,
     pub server: Url,
-    verifier: SignatureVerifier,
+    verifier: Box<dyn SignatureVerifier>,
 }
 
 impl Repository {
-    pub fn new(config: &Configuration, verifier: SignatureVerifier) -> Result<Self> {
+    pub fn new(config: &Configuration, verifier: Box<dyn SignatureVerifier>) -> Result<Self> {
         let mut client = Client::builder()
             .use_native_tls()
             // Enforce HTTPS at client level
@@ -228,13 +227,13 @@ mod tests {
     use tempfile::NamedTempFile;
 
     use super::Repository;
-    use crate::{config::Configuration, signature::SignatureVerifier};
+    use crate::config::Configuration;
+    use crate::signature::verifier;
 
     #[test]
     fn it_downloads_unverified_files() {
         let config = Configuration::parse("").unwrap();
-        let verifier =
-            SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
+        let verifier = verifier(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
         let repo = Repository::new(&config, verifier).unwrap();
         let dst = NamedTempFile::new().unwrap();
         repo.download_unsafe("../rpm/rudder_rpm_key.pub", dst.path())
@@ -246,8 +245,7 @@ mod tests {
     #[test]
     fn it_downloads_verified_files() {
         let config = Configuration::parse("").unwrap();
-        let verifier =
-            SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
+        let verifier = verifier(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
         let repo = Repository::new(&config, verifier).unwrap();
         let dst = NamedTempFile::new().unwrap();
         repo.download(
