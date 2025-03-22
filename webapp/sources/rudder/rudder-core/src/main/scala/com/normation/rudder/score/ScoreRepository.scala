@@ -56,10 +56,11 @@ import zio.json.ast.Json
 trait ScoreRepository {
 
   def getAll(): IOResult[Map[NodeId, List[Score]]]
-  def getScore(nodeId:    NodeId, scoreId: Option[String]): IOResult[List[Score]]
-  def getOneScore(nodeId: NodeId, scoreId: String):         IOResult[Score]
-  def saveScore(nodeId:   NodeId, score:   Score):          IOResult[Unit]
-  def deleteScore(nodeId: NodeId, scoreId: Option[String]): IOResult[Unit]
+  def getAllOneScore(scoreId: String): IOResult[Map[NodeId, Score]]
+  def getScore(nodeId:        NodeId, scoreId: Option[String]): IOResult[List[Score]]
+  def getOneScore(nodeId:     NodeId, scoreId: String):         IOResult[Score]
+  def saveScore(nodeId:       NodeId, score:   Score):          IOResult[Unit]
+  def deleteScore(nodeId:     NodeId, scoreId: Option[String]): IOResult[Unit]
 
 }
 
@@ -69,6 +70,13 @@ trait ScoreRepository {
 class InMemoryScoreRepository extends ScoreRepository {
   private[this] val cache:                                           Ref[Map[NodeId, List[Score]]]      = Ref.make(Map[NodeId, List[Score]]()).runNow
   override def getAll():                                             IOResult[Map[NodeId, List[Score]]] = cache.get
+  override def getAllOneScore(scoreId: String):                      IOResult[Map[NodeId, Score]]       = {
+    for {
+      c <- cache.get
+    } yield {
+      c.flatMap { case (id, scores) => scores.find(_.scoreId == scoreId).map((id, _)) }
+    }
+  }
   override def getScore(nodeId: NodeId, scoreId: Option[String]):    IOResult[List[Score]]              = cache.get.map { c =>
     val nodeScore = c.get(nodeId).getOrElse(Nil)
     scoreId match {
@@ -135,13 +143,21 @@ class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
       .map(_.groupMap(_._1)(_._2))
   }
 
+  override def getAllOneScore(scoreId: String): IOResult[Map[NodeId, Score]] = {
+
+    val whereName = fr"scoreId = ${scoreId}"
+    val where     = Fragments.whereAnd(whereName)
+    val q         = sql"select nodeid, scoreId, score, message, details from scoreDetails " ++ where
+    transactIOResult(s"error when getting one score for all nodes")(xa => q.query[(NodeId, Score)].toMap.transact(xa))
+  }
+
   override def getScore(nodeId: NodeId, scoreId: Option[String]): IOResult[List[Score]] = {
 
     val whereNode = Some(fr"nodeId = ${nodeId.value}")
     val whereName = scoreId.map(n => fr"scoreId = ${n}")
     val where     = Fragments.whereAndOpt(whereNode, whereName)
     val q         = sql"select scoreId, score, message, details from scoreDetails " ++ where
-    transactIOResult(s"error when getting scores for node")(xa => q.query[Score].to[List].transact(xa))
+    transactIOResult(s"error when getting scores for node ${nodeId} ")(xa => q.query[Score].to[List].transact(xa))
   }
 
   override def getOneScore(nodeId: NodeId, scoreId: String): IOResult[Score] = {

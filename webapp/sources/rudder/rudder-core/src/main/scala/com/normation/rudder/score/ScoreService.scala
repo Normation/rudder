@@ -57,6 +57,7 @@ trait ScoreService {
   def getAvailableScore(): IOResult[List[(String, String)]]
   def init():              IOResult[Unit]
   def deleteNodeScore(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Unit]
+  def removeScore(nodeId:     NodeId, scoreId:     String)(implicit qc: QueryContext): IOResult[Unit]
 }
 
 class ScoreServiceImpl(
@@ -201,6 +202,18 @@ class ScoreServiceImpl(
 
   def getAvailableScore(): IOResult[List[(String, String)]] = {
     availableScore.get
+  }
+
+  override def removeScore(nodeId: NodeId, scoreId: String)(implicit qc: QueryContext): IOResult[Unit] = {
+    for {
+      scores    <- cache.updateAndGet(
+                     _.updatedWith(nodeId)(_.map(gscore => gscore.copy(details = gscore.details.filterNot(_.scoreId == scoreId))))
+                   )
+      newScores <- scoreCache.updateAndGet(_.updatedWith(nodeId)(_.map(_.filterNot(_.scoreId == scoreId))))
+      _         <- ZIO.foreach(scores.get(nodeId))(globalScoreRepository.save(nodeId, _))
+
+      _ <- scoreRepository.deleteScore(nodeId, Some(scoreId))
+    } yield {}
   }
 }
 
