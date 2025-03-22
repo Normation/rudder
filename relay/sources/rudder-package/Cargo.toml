@@ -33,7 +33,7 @@ tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_t
 which = "7"
 flate2 = "1.0.28"
 cli-table = "0.4.7"
-sequoia-openpgp = "1"
+sequoia-openpgp = { version = "1", optional = true }
 spinners = "4.1.1"
 rudder_cli = { path = "../../../policies/rudder-cli" }
 itertools = "0.14"
@@ -47,3 +47,7 @@ rstest = "0.24.0"
 assert-json-diff = "2.0.2"
 dir-diff = "0.3.2"
 pretty_assertions = "1.4.0"
+
+[features]
+sequoia = ["sequoia-openpgp"]
+default = ["sequoia"]
