@@ -55,19 +55,28 @@ encodeAccount { zone } account =
         )
 
 
+-- this one is used to talk to the Rudder API
+-- we don't need to group ACL on the same path for different verbs, the scala part will do that for us.
 encodeAcl : AccessControl -> Value
 encodeAcl acl =
+    object
+        [ ( "path", string acl.path )
+        , ( "actions", list string [acl.verb] ) -- in elm UI, we have only pair of (path, verb) and json, (path, [actions])
+        ]
+
+-- this one is used to talk to the JS port
+encodePortAcl : AccessControl -> Value
+encodePortAcl acl =
     object
         [ ( "path", string acl.path )
         , ( "verb", string acl.verb )
         ]
 
-
 encodeTokenAcl : String -> List AccessControl -> Value
 encodeTokenAcl tokenId acl =
     object
         [ ( "id", string tokenId )
-        , ( "acl", list encodeAcl acl )
+        , ( "acl", list encodePortAcl acl )
         ]
 
 

@@ -379,9 +379,9 @@ object ApiAuthorizationKind extends Enum[ApiAuthorizationKind] {
 /**
  * Api authorisation kind.
  * We have 3 levels:
- * - no authorizations (for ex, an unknown user)
+ * - no authorisations (for ex, an unknown user)
  * - read-only / read-write: coarse grained authz with access to all GET (resp everything)
- * - ACL: fine grained authz.
+ * - ACL: fine-grained authz.
  */
 sealed trait ApiAuthorization { def kind: ApiAuthorizationKind }
 object ApiAuthorization       {

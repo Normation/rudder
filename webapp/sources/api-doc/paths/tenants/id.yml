@@ -39,7 +39,7 @@ get:
                     items:
                       $ref: ../../components/schemas/tenant.yml
   tags:
-    - Tenants
+    - 🧩 Multi-tenants
   x-codeSamples:
     - lang: curl
       source:

@@ -56,7 +56,9 @@ properties:
           description: API path managed by that access control
           type: string
           example: directives/1ebee8c7-c898-4ee5-9470-139bfd80c442
-        verb:
-          description: HTTP verb allowed
-          type: string
-          example: get
+        actions:
+          description: List of HTTP verb allowed
+          type: array
+          items:
+              type: string
+              example: get

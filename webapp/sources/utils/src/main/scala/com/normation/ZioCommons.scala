@@ -36,6 +36,7 @@ import com.normation.errors.PureResult
 import com.normation.errors.RudderError
 import com.normation.errors.SystemError
 import com.normation.errors.effectUioUnit
+import io.scalaland.chimney.partial.*
 import java.util.concurrent.TimeUnit
 import net.liftweb.common.{Logger as _, *}
 import org.slf4j.Logger
@@ -318,7 +319,7 @@ object errors {
     }
 
     /*
-     * Execute in parallel, non ordered, and accumulate error, using at max N fibers
+     * Execute in parallel, non-ordered, and accumulate error, using at max N fibers
      */
     def accumulateParNELN[R, E, B](n: Int)(f: A => ZIO[R, E, B]): ZIO[R, NonEmptyList[E], List[B]] = {
       ZIO.partitionPar(in)(f).flatMap(toNEL).withParallelism(n)
@@ -344,7 +345,7 @@ object errors {
     }
 
     /*
-     * Execute in parallel, non ordered, and accumulate error, using at max N fibers
+     * Execute in parallel, non-ordered, and accumulate error, using at max N fibers
      */
     def accumulateParN[R, E <: RudderError, B](n: Int)(f: A => ZIO[R, E, B]): ZIO[R, Accumulated[E], List[B]] = {
       in.accumulateParNELN(n)(f).mapError(Accumulated(_))
@@ -363,6 +364,29 @@ object errors {
       case err :: t => Left(Accumulated(NonEmptyList.of(err, t*)))
       case Nil      => Right(())
     }
+  }
+
+  implicit class ChimneyErrorToPureResult[A](val in: io.scalaland.chimney.partial.Result[A]) extends AnyVal {
+
+    private def errorToString(e: Error): String = s"${e.path.asString}: ${e.message.asString}"
+
+    def toPureResult: PureResult[A] = {
+      in match {
+        case Result.Value(value)   => Right(value)
+        case Result.Errors(errors) =>
+          val err = errors.iterator.toList match {
+            case Nil       => // we know that case is impossible, but there isn't anything to change to NonEmptyList
+              Unexpected(s"A chimney NonEmptyErrorsChain was empty, please call developers")
+            case h :: tail =>
+              val first = Unexpected(errorToString(h))
+              if (tail.isEmpty) first
+              else Accumulated(NonEmptyList(first, tail.map(e => Unexpected(errorToString(e)))))
+          }
+          Left(err)
+      }
+    }
+
+    def toIO: IOResult[A] = ZIO.fromEither(toPureResult)
   }
 
   /**
