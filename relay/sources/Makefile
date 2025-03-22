@@ -114,7 +114,7 @@ install: build
 	install -m 644 ../../target/rudder.bash $(DESTDIR)/etc/bash_completion.d/rudder-package.sh
 	install -m 644 rudder-package/tools/rudder_plugins_key.asc $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.asc
 	# Keyring file created with:
-    # gpg --no-default-keyring --homedir=. --keyring=./rudder_plugins_key.gpg --import tools/rudder_plugins_key.asc
+	# gpg --no-default-keyring --homedir=. --keyring=./rudder_plugins_key.gpg --import tools/rudder_plugins_key.asc
 	install -m 644 rudder-package/tools/rudder_plugins_key.gpg $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder_plugins_key.gpg
 	install -m 755 rudder-package/tools/rudder-package.sh $(DESTDIR)/opt/rudder/share/commands/package
 	install -m 644 rudder-package/tools/rudder-pkg.conf $(DESTDIR)/opt/rudder/etc/rudder-pkg/rudder-pkg.conf
