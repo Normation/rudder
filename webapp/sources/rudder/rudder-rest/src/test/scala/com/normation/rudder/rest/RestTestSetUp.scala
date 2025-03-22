@@ -129,6 +129,7 @@ import com.normation.rudder.services.policies.PromiseGenerationService
 import com.normation.rudder.services.policies.RuleApplicationStatusServiceImpl
 import com.normation.rudder.services.policies.RuleVal
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
+import com.normation.rudder.services.policies.write.RuleValGeneratedHookService
 import com.normation.rudder.services.queries.DynGroupService
 import com.normation.rudder.services.queries.DynGroupUpdaterServiceImpl
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
@@ -420,6 +421,8 @@ class RestTestSetUp {
         errorMessagePath: String
     ): Box[Unit] = ???
     override def invalidateComplianceCache(actions: Seq[(NodeId, CacheExpectedReportAction)]): IOResult[Unit] = ???
+
+    override def ruleValGeneratedHookService: RuleValGeneratedHookService = new RuleValGeneratedHookService()
   }
   val bootGuard:                     Promise[Nothing, Unit]        = (for {
     p <- Promise.make[Nothing, Unit]
