@@ -31,6 +31,11 @@ target/man/rudder-relayd.1.gz:
 	$(GET) target/man/rudder-relayd.1 https://docs.rudder.io/man/${RUDDER_MAJOR_VERSION}/rudder-relayd.1 ""
 	gzip -f target/man/rudder-relayd.1
 
+CARGO_FEATURES_GPG=""
+ifneq (false,$(USE_APT))
+CARGO_FEATURES_GPG="apt"
+endif
+
 CACHE=cache() { [ -x ../../../../../build-caching ] && ../../../../../build-caching "$$@"; [ -x ../../../../../../build-caching ] && ../../../../../../build-caching "$$@" ; } ; cache
 build: man
 	# Build rust binaries
@@ -43,7 +48,7 @@ build: man
 	$(CACHE) put relayd/target/ --with-env name=relayd major=$(RUDDER_MAJOR_VERSION) || true
 	### rudder-package
 	$(CACHE) get rudder-package/target/ --with-env name=rudder-package major=$(RUDDER_MAJOR_VERSION) || true
-	cd rudder-package && COMPLETION_OUT_DIR=../../../target make build
+	cd rudder-package && COMPLETION_OUT_DIR=../../../target make CARGO_FEATURES="sequoia" build
 	# Modify completion to make it callable by our global completion function
 	sed -i "s@_rudder() {@_rudderpkg() {@" ../../target/rudder.bash
 	sed -i '/^if/,$$d' ../../target/rudder.bash 
