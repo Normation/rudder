@@ -48,7 +48,7 @@ build: man
 	$(CACHE) put relayd/target/ --with-env name=relayd major=$(RUDDER_MAJOR_VERSION) || true
 	### rudder-package
 	$(CACHE) get rudder-package/target/ --with-env name=rudder-package major=$(RUDDER_MAJOR_VERSION) || true
-	cd rudder-package && COMPLETION_OUT_DIR=../../../target make CARGO_FEATURES="sequoia" build
+	cd rudder-package && COMPLETION_OUT_DIR=../../../target make CARGO_FEATURES="${CARGO_FEATURES_GPG}" build
 	# Modify completion to make it callable by our global completion function
 	sed -i "s@_rudder() {@_rudderpkg() {@" ../../target/rudder.bash
 	sed -i '/^if/,$$d' ../../target/rudder.bash 
