@@ -31,9 +31,12 @@ target/man/rudder-relayd.1.gz:
 	$(GET) target/man/rudder-relayd.1 https://docs.rudder.io/man/${RUDDER_MAJOR_VERSION}/rudder-relayd.1 ""
 	gzip -f target/man/rudder-relayd.1
 
-CARGO_FEATURES_GPG=""
-ifneq (false,$(USE_APT))
-CARGO_FEATURES_GPG="apt"
+# Don't use sequoia on SLES as we build on an SP
+# having a different libnettle version from supported servers.
+ifeq (, $(shell which zypper))
+    CARGO_FEATURES_GPG="sequoia"
+else
+    CARGO_FEATURES_GPG=""
 endif
 
 CACHE=cache() { [ -x ../../../../../build-caching ] && ../../../../../build-caching "$$@"; [ -x ../../../../../../build-caching ] && ../../../../../../build-caching "$$@" ; } ; cache
