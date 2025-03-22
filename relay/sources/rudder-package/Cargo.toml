@@ -50,4 +50,3 @@ pretty_assertions = "1.4.0"
 
 [features]
 sequoia = ["sequoia-openpgp"]
-default = ["sequoia"]
