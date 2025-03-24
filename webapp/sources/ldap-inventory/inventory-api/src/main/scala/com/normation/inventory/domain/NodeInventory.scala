@@ -160,6 +160,7 @@ object WindowsType {
       :: WindowsVista
       :: WindowsSeven
       :: Windows10
+      :: Windows11
       :: Windows2000
       :: Windows2003
       :: Windows2008
@@ -180,6 +181,7 @@ case object WindowsXP          extends WindowsType { val name = "WindowsXP"     
 case object WindowsVista       extends WindowsType { val name = "WindowsVista"  }
 case object WindowsSeven       extends WindowsType { val name = "WindowsSeven"  }
 case object Windows10          extends WindowsType { val name = "Windows10"     }
+case object Windows11          extends WindowsType { val name = "Windows11"     }
 case object Windows2000        extends WindowsType { val name = "Windows2000"   }
 case object Windows2003        extends WindowsType { val name = "Windows2003"   }
 case object Windows2008        extends WindowsType { val name = "Windows2008"   }
@@ -351,6 +353,7 @@ object ParseOSType {
         else if (x.contains("vista")) WindowsVista
         else if (x.contains("seven")) WindowsSeven
         else if (x.contains("10")) Windows10
+        else if (x.contains("11")) Windows11
         else if (x.contains("2000")) Windows2000
         else if (x.contains("2003")) Windows2003
         else if (x.contains("2008 r2")) Windows2008R2 // must be before 2008 for obvious reason
