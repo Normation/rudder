@@ -44,27 +44,6 @@ impl Default for Engine {
 }
 
 impl Engine {
-    fn render(
-        self,
-        template_path: Option<&Path>,
-        template_src: Option<String>,
-        data: Value,
-        temporary_dir: &Path,
-        python_version: &str,
-    ) -> Result<String> {
-        Ok(match self {
-            Engine::Mustache => Self::mustache(template_path, template_src, data)?,
-            Engine::MiniJinja => Self::mini_jinja(template_path, template_src, data)?,
-            Engine::Jinja2 => Self::jinja2(
-                template_path,
-                template_src,
-                data,
-                temporary_dir,
-                python_version,
-            )?,
-        })
-    }
-
     fn mini_jinja(
         template_path: Option<&Path>,
         template_src: Option<String>,
@@ -233,26 +212,34 @@ impl ModuleType0 for Template {
         let p: TemplateParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
         let output_file = &p.path;
         let output_file_d = output_file.display();
-        let mut python_version = String::new();
 
-        if p.engine == Engine::Jinja2 {
-            if self.python_version.is_none() {
-                self.python_version = Some(get_python_version());
+        let output = match p.engine {
+            Engine::Mustache => {
+                Engine::mustache(p.template_path.as_deref(), p.template_src, p.data)?
             }
-            if self.python_version.unwrap().is_err() {
-                // FIXME:
+            Engine::MiniJinja => {
+                Engine::mini_jinja(p.template_path.as_deref(), p.template_src, p.data)?
             }
-            python_version = self.python_version.unwrap()?;
-        }
+            Engine::Jinja2 => {
+                // Only detect if necessary
+                if self.python_version.is_none() {
+                    self.python_version = Some(get_python_version());
+                }
 
-        // Compute output
-        let output = p.engine.render(
-            p.template_path.as_deref(),
-            p.template_src,
-            p.data,
-            parameters.temporary_dir.as_path(),
-            &python_version,
-        )?;
+                let python_bin = match self.python_version {
+                    Some(Ok(ref v)) => v,
+                    Some(Err(ref e)) => bail!("Could not get python version: {}", e),
+                    None => unreachable!(),
+                };
+                Engine::jinja2(
+                    p.template_path.as_deref(),
+                    p.template_src,
+                    p.data,
+                    parameters.temporary_dir.as_path(),
+                    python_bin,
+                )?
+            }
+        };
 
         let already_present = output_file.exists();
 
