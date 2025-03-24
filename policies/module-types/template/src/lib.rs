@@ -120,7 +120,7 @@ impl Engine {
             }
             output
         } else {
-            bail!("Jinja@ templating engine is not supported on Windows")
+            bail!("Jinja2 templating engine is not supported on Windows")
         };
         Ok(output)
     }
