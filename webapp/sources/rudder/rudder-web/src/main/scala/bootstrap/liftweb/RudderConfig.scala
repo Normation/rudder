@@ -1508,6 +1508,7 @@ case class RudderServiceApi(
     propertiesRepository:                PropertiesRepository,
     propertiesService:                   NodePropertiesService,
     techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService,
+    ruleValGeneratedHookService:         RuleValGeneratedHookService,
     instanceIdService:                   InstanceIdService,
     systemInfoService:                   SystemInfoService
 )
@@ -3038,8 +3039,8 @@ object RudderConfigInit {
       eventLogRepository
     )
     lazy val policyServerManagementService = psMngtService
-
-    lazy val deploymentService = {
+    lazy val ruleValGeneratedHookService   = new RuleValGeneratedHookService()
+    lazy val deploymentService             = {
       new PromiseGenerationServiceImpl(
         roLdapRuleRepository,
         woLdapRuleRepository,
@@ -3073,7 +3074,8 @@ object RudderConfigInit {
         UPDATED_NODE_IDS_COMPABILITY,
         GENERATION_FAILURE_MSG_PATH,
         allNodeCertificatesPemFile = better.files.File("/var/rudder/lib/ssl/allnodescerts.pem"),
-        POSTGRESQL_IS_LOCAL
+        POSTGRESQL_IS_LOCAL,
+        ruleValGeneratedHookService
       )
     }
 
@@ -3861,6 +3863,7 @@ object RudderConfigInit {
       propertiesRepository,
       propertiesService,
       techniqueCompilationCache,
+      ruleValGeneratedHookService,
       instanceIdService,
       systemInfoService
     )
