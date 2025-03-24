@@ -46,7 +46,6 @@ import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
-import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.utils.Utils.isEmpty
 import net.liftweb.common.*
@@ -97,7 +96,7 @@ final class NodeGrid(
       aoColumns:  String = "",
       searchable: Boolean = true,
       paginate:   Boolean = true
-  )(implicit qr: QueryContext): NodeSeq = {
+  )(implicit qc: QueryContext): NodeSeq = {
     display(servers, tableId, columns, aoColumns) ++
     Script(initJs(tableId, columns, aoColumns, searchable, paginate))
   }
@@ -115,7 +114,7 @@ final class NodeGrid(
       aoColumns:  String = "",
       searchable: Boolean,
       paginate:   Boolean
-  )(implicit qr: QueryContext): JsCmd = {
+  )(implicit qc: QueryContext): JsCmd = {
     val jsTableId = StringEscapeUtils.escapeEcmaScript(tableId)
 
     JsRaw(s"""
@@ -261,7 +260,7 @@ final class NodeGrid(
       status     <- InventoryStatus(arg.status).notOptional("Status parameter is mandatory")
       nodeId      = NodeId(arg.id)
       nodeFact   <- nodeFactRepo
-                      .slowGetCompat(nodeId, status, SelectFacts.noSoftware)(CurrentUser.queryContext)
+                      .slowGetCompat(nodeId, status, SelectFacts.noSoftware)
                       .notOptional(s"Error when trying to find information for node '${nodeId.value}'")
       globalMode <- configService
                       .rudder_global_policy_mode()

@@ -56,6 +56,7 @@ import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.services.policies.DontCare
@@ -113,12 +114,16 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private val dependencyService   = RudderConfig.dependencyAndDeletionService
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "head"                 => { _ => head() }
-    case "userLibrary"          => { _ => displayDirectiveLibrary() }
-    case "showDirectiveDetails" => { _ => initDirectiveDetails() }
-    case "techniqueDetails"     => { xml =>
-      techniqueDetails = initTechniqueDetails()
-      techniqueDetails.apply(xml)
+    implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+
+    {
+      case "head"                 => { _ => head() }
+      case "userLibrary"          => { _ => displayDirectiveLibrary() }
+      case "showDirectiveDetails" => { _ => initDirectiveDetails() }
+      case "techniqueDetails"     => { xml =>
+        techniqueDetails = initTechniqueDetails()
+        techniqueDetails.apply(xml)
+      }
     }
   }
 
@@ -144,6 +149,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * Head information (JsTree dependencies,...)
    */
   def head(): NodeSeq = {
+    implicit val qc: QueryContext = CurrentUser.queryContext
     (
       <head>
         {Script(OnLoad(parseJsArg()))}
@@ -157,9 +163,9 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    *
    * We want to look for #{ "directiveId":"XXXXXXXXXXXX" , "rev":"XXXX" }
    */
-  private def parseJsArg(): JsCmd = {
+  private def parseJsArg()(implicit qc: QueryContext): JsCmd = {
 
-    def displayDetails(jsonId: String) = {
+    def displayDetails(jsonId: String)(implicit qc: QueryContext) = {
       jsonId.fromJson[JsonDirectiveRId].toOption match {
         case None     =>
           Noop
@@ -202,7 +208,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * Almost same as Technique/activeTechniquesTree
    * TODO : factor out that part
    */
-  def displayDirectiveLibrary(): NodeSeq = {
+  def displayDirectiveLibrary()(implicit qc: QueryContext): NodeSeq = {
     (
       <div id={htmlId_activeTechniquesTree} class="col-sm-12">{
         (directiveLibrary.toBox, rules.toBox, configService.rudder_global_policy_mode().toBox) match {
@@ -260,7 +266,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     """) // JsRaw ok, const
   }
 
-  def initDirectiveDetails(): NodeSeq = directiveId match {
+  def initDirectiveDetails()(implicit qc: QueryContext): NodeSeq = directiveId match {
     case Full(id) =>
       (<div id={htmlId_policyConf} />: NodeSeq) ++
       // Here, we MUST add a Noop because of a Lift bug that add a comment on the last JsLine.
@@ -268,7 +274,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     case _        => <div id={htmlId_policyConf}></div>
   }
 
-  def initTechniqueDetails(): MemoizeTransform = {
+  def initTechniqueDetails()(implicit qc: QueryContext): MemoizeTransform = {
     SHtml.memoize {
       "#techniqueDetails *" #> (
         currentTechnique match {
@@ -373,7 +379,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                 "#techniqueDescription" #> technique.description &
                 "#isSingle *" #> showIsSingle(technique) &
                 "#isDisabled" #> {
-                  def showPopup(nextStatus: NextStatus): JsCmd = {
+                  def showPopup(nextStatus: NextStatus)(implicit qc: QueryContext): JsCmd = {
                     SetHtml(
                       "showTechniqueValidationPopup",
                       showTechniquePopup("showTechniqueValidationPopup", fullActiveTechnique, nextStatus)
@@ -445,7 +451,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private def showVersions(
       activeTechnique: FullActiveTechnique,
       validTechniques: Seq[(TechniqueVersion, Technique, DateTime)]
-  ): NodeSeq = {
+  )(implicit qc: QueryContext): NodeSeq = {
 
     val techniqueVersionInfo    = validTechniques.map {
       case (v, t, timeStamp) =>
@@ -528,7 +534,9 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
   // validation / warning pop-up when enabling a technique
 
-  def showTechniquePopup(popupId: String, technique: FullActiveTechnique, nextStatus: NextStatus): NodeSeq = {
+  def showTechniquePopup(popupId: String, technique: FullActiveTechnique, nextStatus: NextStatus)(implicit
+      qc: QueryContext
+  ): NodeSeq = {
     def closePopup(): JsCmd = SetHtml(popupId, NodeSeq.Empty)
 
     dependencyService
@@ -624,7 +632,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * Configure a Rudder internal Technique to be usable in the
    * user Technique (private) library.
    */
-  private def showDirectiveDetails(): NodeSeq = {
+  private def showDirectiveDetails()(implicit qc: QueryContext): NodeSeq = {
     currentDirectiveSettingForm.get match {
       case Failure(m, ex, _) =>
         <div id={htmlId_policyConf} class="col-lg-offset-2 col-lg-8" style="margin-top:50px">
@@ -684,7 +692,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private def newDirective(technique: Technique, activeTechnique: FullActiveTechnique) = {
+  private def newDirective(technique: Technique, activeTechnique: FullActiveTechnique)(implicit qc: QueryContext) = {
     configService.rudder_global_policy_mode().toBox match {
       case Full(globalMode) =>
         val allDefaults          = techniqueRepository.getTechniquesInfo().directivesDefaultNames
@@ -734,7 +742,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   def updateDirectiveForm(
       directiveInfo: Either[Directive, DirectiveId],
       oldDirective:  Option[Directive]
-  ): JsCmd = {
+  )(implicit qc: QueryContext): JsCmd = {
     val directiveId = directiveInfo match {
       case Left(directive)    => directive.id
       case Right(directiveId) => directiveId
@@ -786,7 +794,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       oldDirective:         Option[Directive],
       isADirectiveCreation: Boolean,
       globalMode:           GlobalPolicyMode
-  ): Unit = {
+  )(implicit qc: QueryContext): Unit = {
 
     def createForm(dir: Directive, oldDir: Option[Directive], technique: Technique, errorMsg: Option[String]) = {
       new DirectiveEditForm(
@@ -846,7 +854,9 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * If it is given a directive, it updated the form, else goes to the changerequest page
    */
 
-  private def directiveEditFormSuccessCallBack()(returns: Either[Directive, ChangeRequestId]): JsCmd = {
+  private def directiveEditFormSuccessCallBack()(
+      returns: Either[Directive, ChangeRequestId]
+  )(implicit qc: QueryContext): JsCmd = {
 
     returns match {
       case Left(dir) => // ok, we've received a directive, show it
@@ -858,11 +868,11 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private def onRemoveSuccessCallBack(): JsCmd = {
+  private def onRemoveSuccessCallBack()(implicit qc: QueryContext): JsCmd = {
     updateDirectiveLibrary()
   }
 
-  private def updateDirectiveLibrary(): JsCmd = {
+  private def updateDirectiveLibrary()(implicit qc: QueryContext): JsCmd = {
     directiveLibrary = getDirectiveLib()
     rules = getRules()
     Replace(htmlId_activeTechniquesTree, displayDirectiveLibrary())
@@ -883,7 +893,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     JsRaw(s"""this.window.location.hash = "#" + JSON.stringify(${json})""".stripMargin)
   }
 
-  private def onClickActiveTechnique(fullActiveTechnique: FullActiveTechnique): JsCmd = {
+  private def onClickActiveTechnique(fullActiveTechnique: FullActiveTechnique)(implicit qc: QueryContext): JsCmd = {
     currentTechnique = fullActiveTechnique.newestAvailableTechnique.map(fat => (fullActiveTechnique, fat.id.version))
     currentDirectiveSettingForm.set(Empty)
     // Update UI and reset hash location : we do not have hash for techniques, see https://issues.rudder.io/issues/26206
@@ -892,7 +902,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     JsRaw("""this.window.location.hash = ""; initBsTooltips();""".stripMargin) // JsRaw ok, const
   }
 
-  private def onClickTechnique(id: ActiveTechniqueId): JsCmd = {
+  private def onClickTechnique(id: ActiveTechniqueId)(implicit qc: QueryContext): JsCmd = {
     onClickActiveTechnique(directiveLibrary.runNow.allActiveTechniques(id))
   }
 
