@@ -39,7 +39,7 @@ except ImportError:
 
 PY3 = sys.version_info > (3,)
 
-def render(opts, args):
+def render(args):
     if len(args) == 1:
         data = sys.stdin.read()
     else:
@@ -71,8 +71,7 @@ def render(opts, args):
             loader=FileSystemLoader(os.path.dirname(template_path)),
         )
 
-    if opts.strict:
-        env.undefined = StrictUndefined
+    env.undefined = StrictUndefined
 
     # Register custom filters
     sys.path.append(os.path.join(os.path.dirname(__file__), "..", "extensions"))
@@ -103,19 +102,15 @@ def render(opts, args):
 
 def main():
     parser = OptionParser(
-        usage="usage: %prog [options] <template_file> [data_file]",
+        usage="usage: %prog <template_file> [data_file]",
     )
-    parser.add_option(
-        '--strict',
-        help='fail when using undefined variables in the template',
-        dest='strict', action='store_true')
-    opts, args = parser.parse_args()
+    _, args = parser.parse_args()
 
     if len(args) not in [1, 2]:
         parser.print_help()
         sys.exit(1)
 
-    render(opts, args)
+    render(args)
     sys.exit(0)
 
 if __name__ == '__main__':
