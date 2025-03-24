@@ -118,6 +118,9 @@ impl Augeas {
     ) -> CheckApplyResult {
         let aug = &mut self.aug;
 
+        let mut report = String::new();
+        let mut is_err = false;
+
         let already_exists = p.path.exists();
         let path_str = p.path.display().to_string();
 
@@ -223,11 +226,36 @@ impl Augeas {
 
         if do_script {
             rudder_debug!("Running script: {:?}", p.script);
-            interpreter.run(
+            let res = interpreter.run(
                 InterpreterPerms::ReadWriteTree,
                 CheckMode::StackErrors,
                 &p.script,
-            )?;
+            );
+
+            match res {
+                Ok(InterpreterOut {
+                    outcome,
+                    output,
+                    quit,
+                }) => {
+                    if quit {
+                        bail!("Script quit unexpectedly: {output}");
+                    }
+                    match outcome {
+                        InterpreterOutcome::Ok => {}
+                        InterpreterOutcome::CheckErrors(errors) => {
+                            for e in errors {
+                                report.push_str(format!("{:?}", e).as_str());
+                            }
+                            is_err = true;
+                        }
+                    }
+                }
+                Err(e) => {
+                    report.push_str(format!("{:?}", e).as_str());
+                    is_err = true;
+                }
+            }
 
             /*
             if already_exists {
@@ -283,7 +311,9 @@ impl Augeas {
 
         aug.save()?;
 
-        // FIXME reload in case the tree is not clean?
+        // NOTE: Here we could reload the library in case of error somewhere to avoid
+        // influencing the following calls. But for now no cases where it is needed have been
+        // identified.
 
         // Get information about changes
         let modified = true;
@@ -298,7 +328,15 @@ impl Augeas {
             }
         }
 
-        Ok(Outcome::Repaired("5 success".to_string()))
+        if let Some(r) = p.report_file {
+            fs::write(r, &report)?;
+        }
+
+        if is_err {
+            // The full error is in the report.
+            bail!("Script failed");
+        }
+        Ok(Outcome::Repaired(report))
     }
 }
 
@@ -346,7 +384,7 @@ mod tests {
                 None,
             )
             .unwrap();
-        assert_eq!(r, Outcome::repaired("5 success".to_string()));
+        assert_eq!(r, Outcome::repaired("".to_string()));
         let content = read_to_string(&f).unwrap();
         assert_eq!(content.trim(), "hello world");
     }
@@ -372,7 +410,7 @@ mod tests {
                 None,
             )
             .unwrap();
-        assert_eq!(r, Outcome::repaired("5 success".to_string()));
+        assert_eq!(r, Outcome::repaired("".to_string()));
         let content = read_to_string(&f).unwrap();
         assert_eq!(content.trim(), "world");
     }
