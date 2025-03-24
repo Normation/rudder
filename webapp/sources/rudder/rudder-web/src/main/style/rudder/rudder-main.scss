@@ -2861,7 +2861,6 @@ $node-logo-size: 50px;
   &.windowsxp,
   &.windowsvista,
   &.windowsseven,
-  &.windows10,
   &.windows2000,
   &.windows2003,
   &.windows2008,
@@ -2874,6 +2873,8 @@ $node-logo-size: 50px;
   &.windows2016,
   &.windows2016r2,
   &.windows2019,
+  &.windows10,
+  &.windows11,
   &.windows2022,
   &.windows2025{
     background-image: url(../../images/os/windows-2012-logo.svg);
