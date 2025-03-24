@@ -81,10 +81,9 @@ class CreateOrUpdateGlobalParameterPopup(
 
   private val userPropertyService = RudderConfig.userPropertyService
   private[this] val uuidGen       = RudderConfig.stringUuidGenerator
+  implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "popupContent" => { _ => popupContent()(CurrentUser.queryContext) }
-  }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
 
   /* Text variation for
    * - Global Parameter

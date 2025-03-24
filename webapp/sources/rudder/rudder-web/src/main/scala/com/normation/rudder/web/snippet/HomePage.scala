@@ -152,6 +152,8 @@ class HomePage extends StatefulSnippet {
   private val roRuleRepo       = RudderConfig.roRuleRepository
   private val scoreService     = RudderConfig.rci.scoreService
 
+  implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+
   override val dispatch: DispatchIt = {
     case "pendingNodes"       => pendingNodes
     case "acceptedNodes"      => acceptedNodes
@@ -188,10 +190,9 @@ class HomePage extends StatefulSnippet {
     displayCount(() => countAllTechniques(), "techniques")
   }
 
-  def getAllCompliance(): NodeSeq = {
+  def getAllCompliance()(implicit qc: QueryContext): NodeSeq = {
     // this needs to be outside of the zio for-comprehension context to see the right node facts
-    val nodes       = HomePage.nodeFacts.get.keys.toSet
-    implicit val qc = CurrentUser.queryContext
+    val nodes = HomePage.nodeFacts.get.keys.toSet
 
     (for {
       n2                <- currentTimeMillis

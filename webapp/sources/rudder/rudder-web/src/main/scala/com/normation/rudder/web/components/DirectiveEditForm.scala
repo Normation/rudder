@@ -48,6 +48,7 @@ import com.normation.rudder.domain.policies.PolicyMode.*
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
 import com.normation.rudder.domain.workflows.*
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
@@ -137,7 +138,7 @@ class DirectiveEditForm(
       throw new RuntimeException("Error when retrieving the rule root category - it is most likelly a bug. Pleae report.")
     )
   val directiveApp = new DirectiveApplicationManagement(directive, rules, rootCategory)
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { _ => showForm() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { _ => showForm()(CurrentUser.queryContext) } }
 
   def isNcfTechnique(id: TechniqueId): Boolean = {
     val test = for {
@@ -154,7 +155,7 @@ class DirectiveEditForm(
     }
   }
 
-  def showForm(): NodeSeq = {
+  def showForm()(implicit qc: QueryContext): NodeSeq = {
     (
       "#container [id]" #> htmlId_policyConf &
       "#editForm" #> showDirectiveForm()
@@ -193,7 +194,7 @@ class DirectiveEditForm(
       ("#deprecation-warning [class+]" #> "d-none")
   }
 
-  def showDirectiveForm(): NodeSeq = {
+  def showDirectiveForm()(implicit qc: QueryContext): NodeSeq = {
 
     val ruleDisplayer = {
       new RuleDisplayer(
@@ -400,7 +401,7 @@ class DirectiveEditForm(
 
   def addFormMsg(msg: NodeSeq): Unit = formTracker.addFormError(msg)
 
-  private def onFailure(hasVariableErrors: Boolean = false): JsCmd = {
+  private def onFailure(hasVariableErrors: Boolean = false)(implicit qc: QueryContext): JsCmd = {
     formTracker.addFormError(error("There was a problem with your request."))
     val cmd = if (hasVariableErrors) {
       showVariablesErrorNotifications()
@@ -411,7 +412,7 @@ class DirectiveEditForm(
     cmd
   }
 
-  private def onNothingToDo(): JsCmd = {
+  private def onNothingToDo()(implicit qc: QueryContext): JsCmd = {
     formTracker.addFormError(error("There are no modifications to save."))
     showErrorNotifications()
   }
@@ -421,7 +422,7 @@ class DirectiveEditForm(
     onFailureCallback() & Replace("notification", displayNotifications())
   }
 
-  private def showErrorNotifications(): JsCmd = {
+  private def showErrorNotifications()(implicit qc: QueryContext): JsCmd = {
     onFailureCallback() & Replace("editForm", showDirectiveForm())
   }
 
@@ -697,7 +698,7 @@ class DirectiveEditForm(
     }
   }
 
-  private def onSubmitSave(): JsCmd = {
+  private def onSubmitSave()(implicit qc: QueryContext): JsCmd = {
     val hasVariableErrors = checkVariables()
 
     if (formTracker.hasErrors) {
@@ -775,7 +776,7 @@ class DirectiveEditForm(
   }
 
   // action must be 'enable' or 'disable'
-  private def onSubmitDisable(action: DGModAction): JsCmd = {
+  private def onSubmitDisable(action: DGModAction)(implicit qc: QueryContext): JsCmd = {
     displayConfirmationPopup(
       action,
       directive.copy(_isEnabled = !directive._isEnabled),
@@ -784,7 +785,7 @@ class DirectiveEditForm(
     )
   }
 
-  private def onSubmitDelete(): JsCmd = {
+  private def onSubmitDelete()(implicit qc: QueryContext): JsCmd = {
     displayConfirmationPopup(
       DGModAction.Delete,
       directive,
@@ -801,7 +802,7 @@ class DirectiveEditForm(
       newDirective: Directive,
       baseRules:    List[Rule],
       updatedRules: List[Rule]
-  ): JsCmd = {
+  )(implicit qc: QueryContext): JsCmd = {
     val optOriginal = { if (isADirectiveCreation) None else if (oldDirective.isEmpty) Some(directive) else oldDirective }
     // Find old root section if there is an initial State
     val rootSection = optOriginal
