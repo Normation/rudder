@@ -49,19 +49,21 @@ impl Cli {
             .with_context(|| format!("Failed to load data {}", cli.data.display()))?;
 
         let value: Value = serde_json::from_str(&data)?;
-        let tmp = tempdir()?;
-        let temporary_dir = tmp.path();
-        let python_version = get_python_version()?;
         let output = match cli.engine {
             Engine::Mustache => Engine::mustache(Some(cli.template.as_path()), None, value)?,
             Engine::MiniJinja => Engine::mini_jinja(Some(cli.template.as_path()), None, value)?,
-            Engine::Jinja2 => Engine::jinja2(
-                Some(cli.template.as_path()),
-                None,
-                value,
-                temporary_dir,
-                &python_version,
-            )?,
+            Engine::Jinja2 => {
+                let tmp = tempdir()?;
+                let temporary_dir = tmp.path();
+                let python_version = get_python_version()?;
+                Engine::jinja2(
+                    Some(cli.template.as_path()),
+                    None,
+                    value,
+                    temporary_dir,
+                    &python_version,
+                )?
+            }
         };
 
         fs::write(&cli.out, output)
