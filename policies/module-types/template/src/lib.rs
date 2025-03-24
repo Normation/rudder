@@ -7,6 +7,7 @@ use clap::ValueEnum;
 use core::panic;
 use rudder_module_type::ProtocolResult;
 use similar::TextDiff;
+use std::collections::HashMap;
 use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
 use std::process::{Command, Stdio};
@@ -351,18 +352,21 @@ pub fn entry() -> Result<(), anyhow::Error> {
 
 fn get_python_version() -> Result<String> {
     let args = ["-c", "import jinja2"];
-    let python_versions = ["python3", "python2", "python"];
-    for version in &python_versions {
-        let status = Command::new(*version).args(args).status()?;
-        match status.success() {
-            true => return Ok(version.to_string()),
-            false => continue,
+    let python_versions = HashMap::from([
+        ("python3", "- python3 -c import jinja2"),
+        ("python2", "- python2 -c import jinja2"),
+        ("python", "- python -c import jinja2"),
+    ]);
+    let mut used_cmd: Vec<&str> = vec![];
+    for (version, cmd) in python_versions {
+        let status = Command::new(version).args(args).status();
+        if status.is_ok() && status?.success() {
+            return Ok(version.to_string());
         }
+        used_cmd.push(cmd);
     }
     bail!(
-        "Failed to locate a Python interpreter with Jinja2 installed. Tried the following commands:\n\
-    - 'python3 -c import jinja2'\n\
-    - 'python2 -c import jinja2'\n\
-    - 'python -c import jinja2'"
+        "Failed to locate a Python interpreter with Jinja2 installed. Tried the following commands:\n{}",
+        used_cmd.join("\n")
     )
 }
