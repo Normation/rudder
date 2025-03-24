@@ -90,6 +90,7 @@ import com.normation.rudder.services.policies.nodeconfig.FileBasedNodeConfigurat
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHashRepository
 import com.normation.rudder.services.policies.write.PolicyWriterService
+import com.normation.rudder.services.policies.write.RuleValGeneratedHookService
 import com.normation.rudder.services.reports.CachedNodeConfigurationService
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.reports.FindNewNodeStatusReports
@@ -144,6 +145,8 @@ object NodePriority {
  * their dependencies.
  */
 trait PromiseGenerationService {
+
+  def ruleValGeneratedHookService: RuleValGeneratedHookService
 
   /**
    * All mighy method that take all modified rules, find their
@@ -339,21 +342,26 @@ trait PromiseGenerationService {
                                                             ///// - number of nodes: only node somehow targeted by a rule have to be considered.
                                                             ///// - number of rules: any rule without target or with only target with no node can be skipped
 
-                                                            ruleValTime      = System.currentTimeMillis
-                                                            arePolicyServers = nodeFacts.mapValues(_.rudderSettings.isPolicyServer)
-                                                            activeRuleIds    = getAppliedRuleIds(allRules, groupLib, directiveLib, arePolicyServers)
-                                                            ruleVals        <- buildRuleVals(
-                                                                                 activeRuleIds,
-                                                                                 allRules,
-                                                                                 directiveLib,
-                                                                                 groupLib,
-                                                                                 arePolicyServers
-                                                                               ) ?~! "Cannot build Rule vals"
-                                                            timeRuleVal      = (System.currentTimeMillis - ruleValTime)
-                                                            _                = PolicyGenerationLogger.timing.debug(
-                                                                                 s"RuleVals built in ${timeRuleVal} ms, start to expand their values."
-                                                                               )
-
+                                                            ruleValTime                               = System.currentTimeMillis
+                                                            arePolicyServers                          = nodeFacts.mapValues(_.rudderSettings.isPolicyServer)
+                                                            activeRuleIds                             = getAppliedRuleIds(allRules, groupLib, directiveLib, arePolicyServers)
+                                                            ruleVals                                 <- buildRuleVals(
+                                                                                                          activeRuleIds,
+                                                                                                          allRules,
+                                                                                                          directiveLib,
+                                                                                                          groupLib,
+                                                                                                          arePolicyServers
+                                                                                                        ) ?~! "Cannot build Rule vals"
+                                                            timeRuleVal                               = (System.currentTimeMillis - ruleValTime)
+                                                            _                                         = PolicyGenerationLogger.timing.debug(
+                                                                                                          s"RuleVals built in ${timeRuleVal} ms, run rule vals post hooks"
+                                                                                                        )
+                                                            ruleValPostTime                           = System.currentTimeMillis
+                                                            hookRes                                  <- ruleValGeneratedHookService.runHooks(ruleVals).toBox
+                                                            timeRuleValPost                           = (System.currentTimeMillis - ruleValPostTime)
+                                                            _                                         = PolicyGenerationLogger.timing.debug(
+                                                                                                          s"RuleVals post hook in ${timeRuleValPost}, start to expand their values."
+                                                                                                        )
                                                             nodeContextsTime                          = System.currentTimeMillis
                                                             activeNodeIds                             = ruleVals.foldLeft(Set[NodeId]()) { case (s, r) => s ++ r.nodeIds }
                                                             NodesContextResult(nodeContexts, errors) <-
@@ -849,7 +857,8 @@ class PromiseGenerationServiceImpl(
     override val postGenerationHookCompabilityMode: Option[Boolean],
     override val GENERATION_FAILURE_MSG_PATH:       String,
     override val allNodeCertificatesPemFile:        File,
-    override val isPostgresqlLocal:                 Boolean
+    override val isPostgresqlLocal:                 Boolean,
+    override val ruleValGeneratedHookService:       RuleValGeneratedHookService
 ) extends PromiseGenerationService with PromiseGeneration_performeIO with PromiseGeneration_NodeCertificates
     with PromiseGeneration_BuildNodeContext with PromiseGeneration_buildRuleVals with PromiseGeneration_buildNodeConfigurations
     with PromiseGeneration_updateAndWriteRule with PromiseGeneration_setExpectedReports with PromiseGeneration_Hooks {
