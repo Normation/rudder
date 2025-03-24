@@ -94,7 +94,6 @@ import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.NodeApi as API
 import com.normation.rudder.rest.OneParam
-import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.rest.RudderJsonResponse
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.data.Creation.CreationError
@@ -377,19 +376,29 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      implicit val cc = ChangeContext(
-        ModificationId(uuidGen.newUuid),
-        authzToken.qc.actor,
-        new DateTime(),
-        params.reason,
-        Some(req.remoteAddr),
-        authzToken.qc.nodePerms
-      )
 
       (for {
         restNode <- restExtractor.extractUpdateNode(req).toIO
-        reason   <- extractReason(req).toIO
-        result   <- nodeApiService.updateRestNode(NodeId(id), restNode)
+        cc       <- extractReason(restNode).map(
+                      ChangeContext(
+                        ModificationId(uuidGen.newUuid),
+                        authzToken.qc.actor,
+                        new DateTime(),
+                        _,
+                        Some(req.remoteAddr),
+                        authzToken.qc.nodePerms
+                      )
+                    )
+        result   <- nodeApiService.updateRestNode(NodeId(id), restNode)(
+                      ChangeContext(
+                        ModificationId(uuidGen.newUuid),
+                        authzToken.qc.actor,
+                        new DateTime(),
+                        restNode.reason,
+                        Some(req.remoteAddr),
+                        authzToken.qc.nodePerms
+                      )
+                    )
         // await all properties update to guarantee that properties are resolved after node modification
         _        <- nodePropertiesService.updateAll()
       } yield {
@@ -733,6 +742,24 @@ class NodeApi(
       DeriveJsonEncoder.gen[JRNodeDetailLevel]
   }
 
+  private def extractReason(restNode: JQUpdateNode): IOResult[Option[String]] = {
+    import com.normation.rudder.config.ReasonBehavior.*
+    (userPropertyService.reasonsFieldBehavior match {
+      case Disabled => ZIO.none
+      case mode     =>
+        val reason = restNode.reason
+        (mode: @unchecked) match {
+          case Mandatory =>
+            reason
+              .notOptional("Reason field is mandatory and should be at least 5 characters long")
+              .reject {
+                case s if s.lengthIs < 5 => Inconsistency("Reason field should be at least 5 characters long")
+              }
+              .map(Some(_))
+          case Optional => reason.succeed
+        }
+    }).chainError("There was an error while extracting reason message")
+  }
 }
 
 class NodeApiInheritedProperties(

@@ -481,7 +481,8 @@ object JsonQueryObjects {
       policyMode:    Option[Option[PolicyMode]],
       state:         Option[NodeState],
       agentKey:      Option[JQAgentKey],
-      documentation: Option[String]
+      documentation: Option[String],
+      reason:        Option[String]
   ) {
     val keyInfo: (Option[SecurityToken], Option[KeyStatus]) = agentKey.map(_.toKeyInfo).getOrElse((None, None))
   }
@@ -1014,8 +1015,9 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
       state      <- params.parseString("state", NodeState.parse(_))
       agentKey   <- params.parse("agentKey", JsonDecoder[JQAgentKey])
       doc         = params.optGet("documentation")
+      reason      = params.optGet("reason")
     } yield {
-      JQUpdateNode(properties, policyMode, state, agentKey, doc)
+      JQUpdateNode(properties, policyMode, state, agentKey, doc, reason)
     }
   }
 
