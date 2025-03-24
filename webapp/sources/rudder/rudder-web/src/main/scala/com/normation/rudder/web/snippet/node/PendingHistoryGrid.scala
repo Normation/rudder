@@ -89,7 +89,7 @@ object PendingHistoryGrid extends Loggable {
 
   def jsVarNameForId() = "pendingNodeHistoryTable"
 
-  def initJs(entries: Seq[EventLog] = Seq())(implicit qr: QueryContext): JsCmd = {
+  def initJs(entries: Seq[EventLog] = Seq())(implicit qc: QueryContext): JsCmd = {
     JsRaw("""
         var #table_var#;
         /* Formating function for row details */
@@ -180,7 +180,7 @@ object PendingHistoryGrid extends Loggable {
    * You will have to do that for line added after table
    * initialization.
    */
-  def initJsCallBack(entries: Seq[EventLog])(implicit qr: QueryContext): JsCmd = {
+  def initJsCallBack(entries: Seq[EventLog])(implicit qc: QueryContext): JsCmd = {
     val eventWithDetails = entries.flatMap(event => logDetailsService.getDeleteNodeLogDetails(event.details).map((event, _)))
     // Group the events by node id, then drop the event details. Set default Map value to an empty Seq
     val deletedNodes     = eventWithDetails.groupMap(_._2.nodeId)(_._1).withDefaultValue(Seq())
@@ -214,7 +214,7 @@ object PendingHistoryGrid extends Loggable {
     )
   }
 
-  def displayPastInventory(deletedNodes: Map[NodeId, Seq[EventLog]])(s: String)(implicit qr: QueryContext): JsCmd = {
+  def displayPastInventory(deletedNodes: Map[NodeId, Seq[EventLog]])(s: String)(implicit qc: QueryContext): JsCmd = {
 
     val arr = s.split("\\|")
     if (arr.length != 4) {

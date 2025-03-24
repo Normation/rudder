@@ -105,12 +105,12 @@ class AcceptNode extends Loggable {
    * This is the main (and only) entry point of the snippet,
    * drawing the pending nodes table.
    */
-  def list(html: NodeSeq): NodeSeq = {
+  def list(html: NodeSeq)(implicit qc: QueryContext): NodeSeq = {
 
-    newNodeManager.listNewNodes()(CurrentUser.queryContext).toBox match {
+    newNodeManager.listNewNodes().toBox match {
       case Empty                => <div>Error, no server found</div>
       case f @ Failure(_, _, _) => <div>Error while retrieving pending nodes list</div>
-      case Full(seq)            => display(html, seq)(CurrentUser.queryContext)
+      case Full(seq)            => display(html, seq)
     }
   }
 

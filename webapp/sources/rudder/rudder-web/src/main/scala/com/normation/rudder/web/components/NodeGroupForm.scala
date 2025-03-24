@@ -124,7 +124,7 @@ class NodeGroupForm(
   private val searchNodeComponent   = new LocalSnippet[SearchNodeComponent]
 
   private var query:   Option[Query]          = nodeGroup.toOption.flatMap(_.query)
-  private var srvList: Box[Seq[CoreNodeFact]] = getNodeList(nodeGroup)
+  private var srvList: Box[Seq[CoreNodeFact]] = getNodeList(nodeGroup)(CurrentUser.queryContext)
 
   private def setSearchNodeComponent: Unit = {
     searchNodeComponent.set(
@@ -142,10 +142,10 @@ class NodeGroupForm(
     )
   }
 
-  private def getNodeList(target: Either[NonGroupRuleTarget, NodeGroup]): Box[Seq[CoreNodeFact]] = {
+  private def getNodeList(target: Either[NonGroupRuleTarget, NodeGroup])(implicit qc: QueryContext): Box[Seq[CoreNodeFact]] = {
 
     for {
-      nodes <- nodeFactRepo.getAll()(CurrentUser.queryContext).toBox
+      nodes <- nodeFactRepo.getAll().toBox
       setIds = target match {
                  case Right(nodeGroup_) => nodeGroup_.serverList
                  case Left(target)      =>

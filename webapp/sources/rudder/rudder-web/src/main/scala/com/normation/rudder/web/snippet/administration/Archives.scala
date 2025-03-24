@@ -75,11 +75,12 @@ class Archives extends DispatchSnippet with Loggable {
   private val systemApiService: SystemApiService11 = RudderConfig.systemApiService
 
   private val noElements = NotArchivedElements(Seq(), Seq(), Seq())
+  implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "allForm"              => allForm(CurrentUser.queryContext)
+    case "allForm"              => allForm
     case "rulesForm"            => rulesForm
-    case "groupLibraryForm"     => groupLibraryForm(CurrentUser.queryContext)
+    case "groupLibraryForm"     => groupLibraryForm
     case "directiveLibraryForm" => directiveLibraryForm
     case "parametersForm"       => parametersForm
   }
@@ -88,17 +89,19 @@ class Archives extends DispatchSnippet with Loggable {
   type ImportFuncParams = (GitCommitId, PersonIdent, Boolean)
   private def restoreWithImport(
       importFunction: ImportFuncParams => ChangeContext => IOResult[GitCommitId]
-  ): (GitCommitId, PersonIdent, Boolean) => IOResult[GitCommitId] = (commit, commiter, includeSystem) => {
-    implicit val qc: QueryContext  = CurrentUser.queryContext
-    implicit val cc: ChangeContext = ChangeContext(
-      ModificationId(uuidGen.newUuid),
-      qc.actor,
-      new DateTime(),
-      Some("User requested backup restoration to commit %s".format(commit.value)),
-      None,
-      qc.nodePerms
-    )
-    importFunction((commit, commiter, false))(cc)
+  )(implicit qc: QueryContext): (GitCommitId, PersonIdent, Boolean) => IOResult[GitCommitId] = {
+    (commit, commiter, includeSystem) =>
+      {
+        implicit val cc: ChangeContext = ChangeContext(
+          ModificationId(uuidGen.newUuid),
+          qc.actor,
+          new DateTime(),
+          Some("User requested backup restoration to commit %s".format(commit.value)),
+          None,
+          qc.nodePerms
+        )
+        importFunction((commit, commiter, false))(cc)
+      }
   }
 
   /**

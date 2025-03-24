@@ -49,6 +49,7 @@ import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.RunAnalysisKind as R
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.RudderSettings
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -98,7 +99,7 @@ class ReportDisplayer(
       getReports:    NodeId => Box[NodeStatusReport],
       addOverridden: Boolean,
       onlySystem:    Boolean
-  ): NodeSeq = {
+  )(implicit qc: QueryContext): NodeSeq = {
     val i        = configService.agent_run_interval().option.runNow.getOrElse(10)
     val callback = {
       SHtml.ajaxInvoke(() =>
@@ -136,7 +137,7 @@ class ReportDisplayer(
       getReports:         NodeId => Box[NodeStatusReport],
       addOverridden:      Boolean,
       defaultRunInterval: Int
-  ): AnonFunc = {
+  )(implicit qc: QueryContext): AnonFunc = {
     implicit val next: ProvideNextName = LiftProvideNextName
     def refreshData:   Box[JsCmd]      = {
       for {
@@ -392,7 +393,7 @@ class ReportDisplayer(
       addOverridden:      Boolean,
       onlySystem:         Boolean,
       defaultRunInterval: Int
-  ): NodeSeq = {
+  )(implicit qc: QueryContext): NodeSeq = {
     val boxXml = (if (node.rudderSettings.state == NodeState.Ignored) {
                     Full(
                       <div><div class="col-md-3"><p class="center alert alert-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>
@@ -579,10 +580,10 @@ class ReportDisplayer(
       nodeId:        NodeId,
       reportStatus:  NodeStatusReport,
       addOverridden: Boolean
-  ): Box[RuleComplianceLines] = {
+  )(implicit qc: QueryContext): Box[RuleComplianceLines] = {
     for {
       directiveLib <- directiveRepository.getFullDirectiveLibrary().toBox
-      allNodeInfos <- nodeFactRepo.getAll()(CurrentUser.queryContext).toBox
+      allNodeInfos <- nodeFactRepo.getAll().toBox
       rules        <- ruleRepository.getAll(true).toBox
       globalMode   <- configService.rudder_global_policy_mode().toBox
     } yield {

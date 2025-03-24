@@ -530,7 +530,7 @@ object DisplayNode extends Loggable {
       creationDate:        Option[DateTime],
       salt:                String = "",
       isDisplayingInPopup: Boolean = false
-  )(implicit qr: QueryContext): NodeSeq = {
+  )(implicit qc: QueryContext): NodeSeq = {
 
     val nodePolicyMode     = {
       (globalMode.overridable, nodeFact.rudderSettings.policyMode) match {
@@ -828,7 +828,7 @@ object DisplayNode extends Loggable {
     }
   }
 
-  private def displayPolicyServerInfos(sm: FullInventory)(implicit qr: QueryContext): NodeSeq = {
+  private def displayPolicyServerInfos(sm: FullInventory)(implicit qc: QueryContext): NodeSeq = {
     nodeFactRepository.get(sm.node.main.policyServerId).either.runNow match {
       case Left(err)                        =>
         val e = s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${escapeHTML(

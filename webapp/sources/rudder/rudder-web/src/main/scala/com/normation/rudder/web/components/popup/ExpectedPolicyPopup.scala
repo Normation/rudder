@@ -42,6 +42,8 @@ import com.normation.box.*
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.servers.Srv
+import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.DisplayColumn
 import com.normation.rudder.web.components.RuleGrid
@@ -80,6 +82,8 @@ class ExpectedPolicyPopup(
     val rulesGrid: NodeSeq = getDependantRulesForNode match {
       case Full(seq) =>
         val noDisplay = DisplayColumn.Force(display = false)
+        implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+
         (new RuleGrid(
           "dependentRulesGrid",
           None,

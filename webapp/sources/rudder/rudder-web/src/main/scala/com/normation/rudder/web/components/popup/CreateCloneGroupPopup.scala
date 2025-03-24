@@ -48,7 +48,11 @@ class CreateCloneGroupPopup(
   var createContainer = false
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "popupContent" => { _ => popupContent()(CurrentUser.queryContext) }
+    case "popupContent" =>
+      _ => {
+        implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+        popupContent()
+      }
   }
 
   def popupContent()(implicit qc: QueryContext): NodeSeq = {

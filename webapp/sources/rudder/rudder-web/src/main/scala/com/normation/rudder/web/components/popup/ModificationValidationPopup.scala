@@ -52,6 +52,7 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.DGModAction
 import com.normation.rudder.services.workflows.DirectiveChangeRequest
@@ -214,10 +215,16 @@ class ModificationValidationPopup(
   private val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
   private val woDirectiveRepository = RudderConfig.woDirectiveRepository
 
-  // fonction to read state of things
+  // function to read state of things
   private val getGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "popupContent" =>
+      _ => {
+        implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+        popupContent()
+      }
+  }
 
   private val disabled = item match {
     case Left(item)  => !item.newDirective.isEnabled
@@ -266,7 +273,7 @@ class ModificationValidationPopup(
     }
   }
 
-  val popupWarningMessages: Option[(NodeSeq, NodeSeq)] = {
+  def popupWarningMessages(implicit qc: QueryContext): Option[(NodeSeq, NodeSeq)] = {
 
     rules match {
       // Error while fetch dependent Rules => display message and error
@@ -299,7 +306,7 @@ class ModificationValidationPopup(
   }
 
   // _1 is explanation message, _2 is dependant rules
-  def popupContent(): NodeSeq = {
+  def popupContent()(implicit qc: QueryContext): NodeSeq = {
 
     def workflowMessage(directiveCreation: Boolean): NodeSeq = (
       <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Request</h4>
@@ -365,7 +372,7 @@ class ModificationValidationPopup(
     )(html)
   }
 
-  private def showDependentRules(rules: Set[Rule]): NodeSeq = {
+  private def showDependentRules(rules: Set[Rule])(implicit qc: QueryContext): NodeSeq = {
     action match {
       case DGModAction.CreateSolo => NodeSeq.Empty
       case _ if (rules.size <= 0) => NodeSeq.Empty
@@ -443,11 +450,11 @@ class ModificationValidationPopup(
   /**
    * Update the form when something happened
    */
-  private def updateFormClientSide(): JsCmd = {
+  private def updateFormClientSide()(implicit qc: QueryContext): JsCmd = {
     SetHtml(htmlId_popupContainer, popupContent())
   }
 
-  private def onSubmitStartWorkflow(): JsCmd = {
+  private def onSubmitStartWorkflow()(implicit qc: QueryContext): JsCmd = {
     onSubmit()
   }
 
@@ -628,7 +635,7 @@ class ModificationValidationPopup(
     }
   }
 
-  def onSubmit(): JsCmd = {
+  def onSubmit()(implicit qc: QueryContext): JsCmd = {
     if (formTracker.hasErrors) {
       onFailure
     } else {
@@ -693,7 +700,7 @@ class ModificationValidationPopup(
     }
   }
 
-  private def onFailure: JsCmd = {
+  private def onFailure(implicit qc: QueryContext): JsCmd = {
     formTracker.addFormError(error("There was a problem with your request"))
     updateFormClientSide() & JsRaw(
       """scrollToElementPopup('#notifications', 'confirmUpdateActionDialogconfirmUpdateActionDialog')"""
