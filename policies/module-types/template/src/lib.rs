@@ -4,6 +4,7 @@
 mod cli;
 use crate::cli::Cli;
 use clap::ValueEnum;
+use core::panic;
 use rudder_module_type::ProtocolResult;
 use similar::TextDiff;
 use std::io::Write;
@@ -192,7 +193,7 @@ fn default_as_true() -> bool {
 // Module
 
 struct Template {
-    python_version: String,
+    python_version: Option<Result<String>>,
 }
 
 impl ModuleType0 for Template {
@@ -232,6 +233,17 @@ impl ModuleType0 for Template {
         let p: TemplateParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
         let output_file = &p.path;
         let output_file_d = output_file.display();
+        let mut python_version = String::new();
+
+        if p.engine == Engine::Jinja2 {
+            if self.python_version.is_none() {
+                self.python_version = Some(get_python_version());
+            }
+            if self.python_version.unwrap().is_err() {
+                // FIXME:
+            }
+            python_version = self.python_version.unwrap()?;
+        }
 
         // Compute output
         let output = p.engine.render(
@@ -239,7 +251,7 @@ impl ModuleType0 for Template {
             p.template_src,
             p.data,
             parameters.temporary_dir.as_path(),
-            &self.python_version,
+            &python_version,
         )?;
 
         let already_present = output_file.exists();
@@ -340,7 +352,7 @@ fn backup_file(output_file: &Path, backup_dir: &Path) -> Result<(), anyhow::Erro
 
 pub fn entry() -> Result<(), anyhow::Error> {
     let promise_type = Template {
-        python_version: get_python_version()?,
+        python_version: None,
     };
 
     if called_from_agent() {
