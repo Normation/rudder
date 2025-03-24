@@ -431,9 +431,9 @@ function parseSearchHash(queryCallback) {
 }
 
 function updateHashString(key, value) {
-  var hash = parseURLHash();
+  const hash = parseURLHash();
   hash[key] = value;
-  var baseUrl = window.location.href.split('#')[0];
+  const baseUrl = window.location.href.split('#')[0];
   window.location.replace(baseUrl + '#' + JSON.stringify(hash));
 }
 
@@ -912,21 +912,22 @@ function hideBsModal(modalName){
   if(modal === null || modal === undefined) return false;
   modal.hide();
 }
-function initBsTabs(){
-  var triggerTabList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tab"]'));
+function initBsTabs(isJsonHash = false){
+  const triggerTabList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tab"]'));
   triggerTabList.forEach(function (triggerEl) {
-    var tabTrigger = new bootstrap.Tab(triggerEl);
+    const tabTrigger = new bootstrap.Tab(triggerEl);
+
     triggerEl.addEventListener('click', function (event) {
-      tabTrigger.show();
       event.preventDefault();
+      tabTrigger.show();
 
-      // TODO: improve that
-      let newHash = this.getAttribute("data-bs-target");
+      const newHash = this.getAttribute("data-bs-target");
 
-      //window.location.hash = newHash;
-      //location.replace(newHash);
-      history.replaceState(undefined, undefined, newHash)
-
+      if (isJsonHash) {
+        updateHashString("tab",newHash);
+      }else{
+        history.replaceState(undefined, undefined, newHash);
+      }
       return false;
     });
   });
@@ -949,12 +950,25 @@ function waitForElement(selector) {
 }
 
 function initAndCheckTabs(){
-  initBsTabs();
-  if (window.location.hash === "") return false;
-  var tabSelector = '[data-bs-target="' + window.location.hash + '"]';
+  const isNodePage = window.location.pathname.includes("nodeManager/nodes");
+
+  initBsTabs(isNodePage);
+  let hash = window.location.hash;
+
+  // If the anchor corresponds to a tab ID then this tab is opened automatically,
+  // else nothing happens
+  if (hash === "") return false;
+
+  // An exception is made for the for the Nodes page,
+  // which uses the anchor to store the search query AND the tab ID in a json object.
+  if (isNodePage) {
+    let tab = parseURLHash().tab;
+    if (tab === undefined) return false;
+    hash = tab;
+  }
+  const tabSelector = '[data-bs-target="' + hash + '"]';
   waitForElement(tabSelector).then((tab) => {
     bootstrap.Tab.getInstance(tab).show();
-    //$(tabSelector).click();
   });
 }
 

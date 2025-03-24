@@ -1180,13 +1180,13 @@ function propertyFunction(value, inherited) { return function (nTd, sData, oData
 function callbackElement(oData, displayCompliance) {
   var elem = $("<a></a>");
   if("callback" in oData) {
-      elem.click(function(e) {
-        oData.callback(displayCompliance);
-        e.stopPropagation();
-      });
-      elem.attr("href","javascript://");
+    elem.click(function(e) {
+      oData.callback(displayCompliance);
+      e.stopPropagation();
+    });
   } else {
-      elem.attr("href",contextPath+'/secure/nodeManager/node/'+oData.id+'?displayCompliance='+displayCompliance);
+    let complianceTab = displayCompliance ? "#node_reports" : "";
+    elem.attr("href", contextPath + '/secure/nodeManager/node/' + oData.id + complianceTab);
   }
   return elem;
 }
