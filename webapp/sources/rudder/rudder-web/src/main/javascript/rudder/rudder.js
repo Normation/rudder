@@ -921,7 +921,11 @@ function initBsTabs(){
       event.preventDefault();
 
       // TODO: improve that
-      window.location.hash = this.getAttribute("data-bs-target");
+      let newHash = this.getAttribute("data-bs-target");
+
+      //window.location.hash = newHash;
+      //location.replace(newHash);
+      history.replaceState(undefined, undefined, newHash)
 
       return false;
     });
@@ -950,6 +954,7 @@ function initAndCheckTabs(){
   var tabSelector = '[data-bs-target="' + window.location.hash + '"]';
   waitForElement(tabSelector).then((tab) => {
     bootstrap.Tab.getInstance(tab).show();
+    //$(tabSelector).click();
   });
 }
 
