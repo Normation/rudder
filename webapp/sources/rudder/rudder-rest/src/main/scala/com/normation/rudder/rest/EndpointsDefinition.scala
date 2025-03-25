@@ -1553,7 +1553,13 @@ object ApiAccounts       extends Enum[ApiAccounts] with ApiModuleProvider[ApiAcc
   case object RegenerateToken extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Regenerate a token for an API account"
-    val (action, path) = POST / "apiaccounts" / "{id}" / "regenerate"
+    val (action, path) = POST / "apiaccounts" / "{id}" / "token" / "regenerate"
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
+  }
+  case object DeleteToken     extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {
+    val z: Int = implicitly[Line].value
+    val description    = "Delete a token for an API account"
+    val (action, path) = DELETE / "apiaccounts" / "{id}" / "token"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
   case object DeleteAccount   extends ApiAccounts with OneParam with StartsAtVersion21 with SortIndex  {

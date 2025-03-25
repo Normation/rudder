@@ -1049,7 +1049,7 @@ class RestTestSetUp {
     )
     .runNow
 
-  val mockApiAccounts = new MockApiAccountService()
+  val mockApiAccounts = new MockApiAccountService(userService)
   val apiAccountApi: ApiAccountApi = new ApiAccountApi(mockApiAccounts.service)
 
   val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema with SortIndex]] = List(

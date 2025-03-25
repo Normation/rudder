@@ -35,7 +35,7 @@ decodeAccount datePickerInfo =
         |> optional "token" (string |> andThen toToken) Token.ClearText
         |> optional "tokenGenerationDate" (maybe string) Nothing
         |> custom (decodeExpirationPolicy datePickerInfo)
-        |> optional "acl" (map Just (list <| decodeAcl)) Nothing
+        |> optional "acl" (map Just (list decodeAcls |> map List.concat)) Nothing
         |> required "tenants" (string |> andThen toTenantMode)
         |> required "tenants" (string |> andThen toTenantList)
 
@@ -57,11 +57,26 @@ decodeEnabledStatus =
             )
 
 
-decodeAcl : Decoder AccessControl
-decodeAcl =
+-- this one is used to talk to the Rudder API
+-- we flatten the possible several actions into a list of unit ACL which is what is understood by UI
+-- It's why in the JSON, we have [actions] and in elm we have "verb"
+decodeAcls : Decoder (List AccessControl)
+decodeAcls =
+  let
+    path = field "path" string
+    actions = field "actions" (list string)
+    acls = map2 (\p -> \l -> List.map (\a -> AccessControl p a) l) path actions
+  in
+    acls
+
+-- this one is used to talk to the JS port
+decodePortAcl : Decoder AccessControl
+decodePortAcl =
     succeed AccessControl
         |> required "path" string
         |> required "verb" string
+
+
 
 
 decodeExpirationPolicy : DatePickerInfo -> Decoder ExpirationPolicy

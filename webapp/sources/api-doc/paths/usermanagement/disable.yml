@@ -67,7 +67,7 @@ put:
                 description: Details of the error
                 example: "Could not disable user 'johndoe'; cause was: Inconsistency: User 'johndoe' does not exist therefore cannot be disabled"
   tags:
-    - 🧩 User Management
+    - User management
   x-codeSamples:
     - lang: curl
       source:

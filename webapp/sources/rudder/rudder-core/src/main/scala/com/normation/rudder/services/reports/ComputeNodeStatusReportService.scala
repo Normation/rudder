@@ -154,7 +154,7 @@ class ScoreNodeStatusReportUpdateHook(scoreServiceManager: ScoreServiceManager) 
 /**
  * Manage the computation of node status reports.
  * The logic is:
- * - access to `findRuleNodeStatusReports` use data from cache and returns immediatly,
+ * - access to `findRuleNodeStatusReports` use data from cache and returns immediately,
  *   filtering for expired reports
  * - the only path to update the cache is through an async blocking queue of `InvalidateComplianceCacheMsg`
  * - the dequeue actor computes updated reports for invalidated nodes and update the NodeStatusReportsRepo
