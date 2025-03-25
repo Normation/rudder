@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
 mod cli;
+pub mod minijinja_filters;
 use crate::cli::Cli;
 use clap::ValueEnum;
 use core::panic;
@@ -34,7 +35,7 @@ use serde_json::Value;
 #[serde(rename_all = "snake_case")]
 pub enum Engine {
     Mustache,
-    MiniJinja,
+    Minijinja,
     Jinja2,
 }
 
@@ -45,7 +46,7 @@ impl Default for Engine {
 }
 
 impl Engine {
-    fn mini_jinja(
+    fn minijinja(
         template_path: Option<&Path>,
         template_src: Option<String>,
         data: Value,
@@ -61,7 +62,17 @@ impl Engine {
         let mut env = minijinja::Environment::new();
         // Fail on non-defined values, even in iteration
         env.set_undefined_behavior(UndefinedBehavior::Strict);
+        minijinja_contrib::add_to_environment(&mut env);
         env.add_template("rudder", &template)?;
+        env.add_filter("b64encode", minijinja_filters::b64encode);
+        env.add_filter("b64decode", minijinja_filters::b64decode);
+        env.add_filter("basename", minijinja_filters::basename);
+        env.add_filter("dirname", minijinja_filters::dirname);
+        env.add_filter("urldecode", minijinja_filters::urldecode);
+        env.add_filter("hash", minijinja_filters::hash);
+        env.add_filter("quote", minijinja_filters::quote);
+        env.add_filter("regex_escape", minijinja_filters::regex_escape);
+        env.add_filter("regex_replace", minijinja_filters::regex_replace);
         let tmpl = env.get_template("rudder").unwrap();
         Ok(tmpl.render(data)?)
     }
@@ -218,8 +229,8 @@ impl ModuleType0 for Template {
             Engine::Mustache => {
                 Engine::mustache(p.template_path.as_deref(), p.template_src, p.data)?
             }
-            Engine::MiniJinja => {
-                Engine::mini_jinja(p.template_path.as_deref(), p.template_src, p.data)?
+            Engine::Minijinja => {
+                Engine::minijinja(p.template_path.as_deref(), p.template_src, p.data)?
             }
             Engine::Jinja2 => {
                 // Only detect if necessary

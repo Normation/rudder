@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
-use std::{env, fs, fs::read_to_string, path::Path};
+use std::{
+    env,
+    fs::{self, read_to_string},
+    path::Path,
+};
 
 use anyhow::anyhow;
 use rudder_commons_test::module_type::unix;
@@ -11,7 +15,7 @@ use tempfile::tempdir;
 const BIN: &str = concat!("../../../target/debug/", env!("CARGO_PKG_NAME"));
 
 #[test]
-fn it_renders_mini_jinja_inlined() {
+fn it_renders_minijinja_inlined() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
 
@@ -20,7 +24,7 @@ fn it_renders_mini_jinja_inlined() {
         &format!(
             r#"{{"path": "{}", "engine": "{}", "template_src": "Hello {{{{ name }}}}!", "data": {{ "name": "ximou" }} }}"#,
             test_path.display(),
-            "mini_jinja"
+            "minijinja"
         ),
         PolicyMode::Enforce,
         Ok(Outcome::repaired("".to_string())),
@@ -39,7 +43,7 @@ fn it_fails_on_undefined_values() {
         &format!(
             r#"{{"path": "{}", "engine": "{}", "template_src": "Hello {{{{ doesnotexist }}}}!", "data": {{ "name": "ximou" }} }}"#,
             test_path.display(),
-            "mini_jinja"
+            "minijinja"
         ),
         PolicyMode::Enforce,
         Err(anyhow!("")),
@@ -48,7 +52,7 @@ fn it_fails_on_undefined_values() {
 }
 
 #[test]
-fn it_renders_mini_jinja_from_file() {
+fn it_renders_minijinja_from_file() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
 
@@ -57,7 +61,7 @@ fn it_renders_mini_jinja_from_file() {
         &format!(
             r#"{{"path": "{}", "engine": "{}", "template_path": "./tests/template.j2", "data": {{ "name": "you" }} }}"#,
             test_path.display(),
-            "mini_jinja"
+            "minijinja"
         ),
         PolicyMode::Enforce,
         Ok(Outcome::repaired("".to_string())),
@@ -67,7 +71,7 @@ fn it_renders_mini_jinja_from_file() {
 }
 
 #[test]
-fn it_checks_mini_jinja() {
+fn it_checks_minijinja() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
 
@@ -76,7 +80,7 @@ fn it_checks_mini_jinja() {
         &format!(
             r#"{{"path": "{}", "engine": "{}", "template_src": "Hello {{{{ name }}}}!", "data": {{ "name": "ximou" }} }}"#,
             test_path.display(),
-            "mini_jinja"
+            "minijinja"
         ),
         PolicyMode::Audit,
         Err(anyhow!("")),
@@ -85,7 +89,7 @@ fn it_checks_mini_jinja() {
 }
 
 #[test]
-fn it_checks_correct_mini_jinja() {
+fn it_checks_correct_minijinja() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
     fs::write(&test_path, "Hello World!").unwrap();
@@ -95,7 +99,7 @@ fn it_checks_correct_mini_jinja() {
         &format!(
             r#"{{"path": "{}", "engine": "{}", "template_src": "Hello {{{{ name }}}}!", "data": {{ "name": "World" }} }}"#,
             test_path.display(),
-            "mini_jinja"
+            "minijinja"
         ),
         PolicyMode::Audit,
         Ok(Outcome::success()),
