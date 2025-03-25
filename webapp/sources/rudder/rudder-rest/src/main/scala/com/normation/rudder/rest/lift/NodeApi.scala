@@ -756,7 +756,7 @@ class NodeApi(
                 case s if s.lengthIs < 5 => Inconsistency("Reason field should be at least 5 characters long")
               }
               .map(Some(_))
-          case Optional => reason.succeed
+          case Optional  => reason.succeed
         }
     }).chainError("There was an error while extracting reason message")
   }
