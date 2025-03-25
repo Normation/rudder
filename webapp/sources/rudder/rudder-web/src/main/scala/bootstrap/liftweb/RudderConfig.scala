@@ -1720,8 +1720,9 @@ object RudderConfigInit {
 
     lazy val yamlTechniqueSerializer = new YamlTechniqueSerializer(resourceFileService)
 
-    lazy val linkUtil           = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeFactRepository)
-    // REST API
+    lazy val linkUtil = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeFactRepository)
+
+    // REST API - old
     lazy val restDataSerializer = RestDataSerializerImpl(techniqueRepository, diffService)
 
     lazy val restQuicksearch = new RestQuicksearch(
@@ -1739,34 +1740,6 @@ object RudderConfigInit {
     )
     lazy val restCompletion  = new RestCompletion(new RestCompletionService(roDirectiveRepository, roRuleRepository))
 
-    lazy val ruleApiService13 = {
-      new RuleApiService14(
-        roRuleRepository,
-        woRuleRepository,
-        configurationRepository,
-        stringUuidGenerator,
-        asyncDeploymentAgent,
-        workflowLevelService,
-        roRuleCategoryRepository,
-        woRuleCategoryRepository,
-        roDirectiveRepository,
-        roNodeGroupRepository,
-        nodeFactRepository,
-        configService.rudder_global_policy_mode _,
-        ruleApplicationStatus
-      )
-    }
-
-    lazy val parameterApiService14 = {
-      new ParameterApiService14(
-        roLDAPParameterRepository,
-        stringUuidGenerator,
-        workflowLevelService
-      )
-    }
-
-    // System API
-
     lazy val clearCacheService = new ClearCacheServiceImpl(
       nodeConfigurationHashRepo,
       asyncDeploymentAgent,
@@ -1774,48 +1747,11 @@ object RudderConfigInit {
       stringUuidGenerator,
       clearableCache
     )
-
-    lazy val hookApiService = new HookApiService(HOOKS_D, HOOKS_IGNORE_SUFFIXES)
-
     lazy val systemInfoService: SystemInfoService = new SystemInfoServiceImpl(
       getNodeMetrics,
       nodeFactRepository,
       instanceIdService,
       policyServerManagementService
-    )
-
-    lazy val systemApiService11 = new SystemApiService11(
-      updateTechniqueLibrary,
-      debugScript,
-      clearCacheService,
-      asyncDeploymentAgent,
-      stringUuidGenerator,
-      updateDynamicGroups,
-      itemArchiveManager,
-      personIdentService,
-      gitConfigRepo
-    )
-
-    lazy val systemApiService13 = new SystemApiService13(
-      healthcheckService,
-      healthcheckNotificationService,
-      restDataSerializer,
-      deprecated.softwareService
-    )
-
-    lazy val ruleInternalApiService =
-      new RuleInternalApiService(roRuleRepository, roNodeGroupRepository, roRuleCategoryRepository, nodeFactRepository)
-
-    lazy val groupInternalApiService = new GroupInternalApiService(roNodeGroupRepository)
-
-    lazy val complianceAPIService = new ComplianceAPIService(
-      roRuleRepository,
-      nodeFactRepository,
-      roNodeGroupRepository,
-      reportingService,
-      roDirectiveRepository,
-      globalComplianceModeService.getGlobalComplianceMode,
-      configService.rudder_global_policy_mode()
     )
 
     lazy val techniqueArchiver = new TechniqueArchiverImpl(
@@ -1827,6 +1763,7 @@ object RudderConfigInit {
       techniqueCompiler,
       RUDDER_GROUP_OWNER_CONFIG_REPO
     )
+
     lazy val techniqueCompiler: TechniqueCompiler = new RuddercTechniqueCompiler(
       new RuddercServiceImpl(RUDDERC_CMD, 5.seconds),
       _.path,
@@ -1904,7 +1841,6 @@ object RudderConfigInit {
       r
     } else NoopFactStorage
 
-    // TODO WARNING POC: this can't work on a machine with lots of node
     lazy val ldapNodeFactStorage = new LdapNodeFactStorage(
       rwLdap,
       nodeDit,
@@ -2067,38 +2003,6 @@ object RudderConfigInit {
       )
     }
 
-    lazy val archiveApi = {
-      val archiveBuilderService = {
-        new ZipArchiveBuilderService(
-          new FileArchiveNameService(),
-          configurationRepository,
-          gitParseTechniqueLibrary,
-          roLdapNodeGroupRepository
-        )
-      }
-      // fixe archive name to make it simple to test
-      val rootDirName           = "archive".succeed
-      new com.normation.rudder.rest.lift.ArchiveApi(
-        archiveBuilderService,
-        rootDirName,
-        new ZipArchiveReaderImpl(queryParser, techniqueParser),
-        new SaveArchiveServicebyRepo(
-          techniqueArchiver,
-          techniqueReader,
-          roDirectiveRepository,
-          woDirectiveRepository,
-          roNodeGroupRepository,
-          woNodeGroupRepository,
-          roRuleRepository,
-          woRuleRepository,
-          updateTechniqueLibrary,
-          asyncDeploymentAgent,
-          stringUuidGenerator
-        ),
-        new CheckArchiveServiceImpl(techniqueRepository)
-      )
-    }
-
     /*
      * API versions are incremented each time incompatible changes are made (like adding or deleting endpoints - modification
      * of an existing endpoint, if done in a purely compatible way, don't change api version).
@@ -2122,162 +2026,269 @@ object RudderConfigInit {
     lazy val jsonPluginDefinition = new ReadPluginPackageInfo(pluginsIndexFile)
 
     lazy val resourceFileService = new GitResourceFileService(gitConfigRepo)
-    lazy val apiDispatcher       = new RudderEndpointDispatcher(LiftApiProcessingLogger)
 
-    // need to be out of RudderApi else "Platform restriction: a parameter list's length cannot exceed 254."
-    lazy val apiModules = {
-      import com.normation.rudder.rest.lift.*
-      List(
-        new ComplianceApi(restExtractorService, complianceAPIService, roDirectiveRepository),
-        new GroupsApi(
-          propertiesService,
-          zioJsonExtractor,
-          stringUuidGenerator,
-          userPropertyService,
-          new GroupApiService14(
-            nodeFactRepository,
-            roNodeGroupRepository,
-            woNodeGroupRepository,
-            propertiesRepository,
-            propertiesService,
-            stringUuidGenerator,
-            asyncDeploymentAgent,
-            workflowLevelService,
-            queryParser,
-            queryProcessor,
-            restDataSerializer
-          )
-        ),
-        new DirectiveApi(
-          zioJsonExtractor,
-          stringUuidGenerator,
-          new DirectiveApiService14(
-            roDirectiveRepository,
-            configurationRepository,
-            woDirectiveRepository,
-            stringUuidGenerator,
-            asyncDeploymentAgent,
-            workflowLevelService,
-            directiveEditorService,
-            restDataSerializer,
-            techniqueRepositoryImpl
-          )
-        ),
-        new NodeApi(
-          zioJsonExtractor,
-          propertiesService,
-          restDataSerializer,
-          new NodeApiService(
-            rwLdap,
-            nodeFactRepository,
-            propertiesRepository,
-            roAgentRunsRepository,
-            ldapEntityMapper,
-            stringUuidGenerator,
-            nodeDit,
-            pendingNodesDit,
-            acceptedNodesDit,
-            newNodeManagerImpl,
-            removeNodeServiceImpl,
-            zioJsonExtractor,
-            reportingService,
-            queryProcessor,
-            inventoryQueryChecker,
-            () => configService.rudder_global_policy_mode().toBox,
-            RUDDER_RELAY_API,
-            scoreService
-          ),
-          userPropertyService,
-          new NodeApiInheritedProperties(propertiesRepository),
-          stringUuidGenerator,
-          DeleteMode.Erase // only supported mode for Rudder 8.0
-        ),
-        new ParameterApi(zioJsonExtractor, parameterApiService14),
-        new SettingsApi(
-          restExtractorService,
-          configService,
-          asyncDeploymentAgent,
-          stringUuidGenerator,
-          policyServerManagementService,
-          nodeFactRepository
-        ),
-        new TechniqueApi(
-          restExtractorService,
-          new TechniqueAPIService14(
-            roDirectiveRepository,
-            gitParseTechniqueLibrary,
-            ncfTechniqueReader,
-            techniqueSerializer,
-            restDataSerializer,
-            techniqueCompiler
-          ),
-          ncfTechniqueWriter,
-          ncfTechniqueReader,
-          techniqueRepository,
-          techniqueSerializer,
-          stringUuidGenerator,
-          userPropertyService,
-          resourceFileService,
-          RUDDER_GIT_ROOT_CONFIG_REPO
-        ),
-        new RuleApi(
-          zioJsonExtractor,
-          ruleApiService13,
-          stringUuidGenerator
-        ),
-        new SystemApi(
-          restExtractorService,
-          systemApiService11,
-          systemApiService13,
-          systemInfoService
-        ),
-        new UserManagementApiImpl(
-          userRepository,
-          rudderUserListProvider,
-          new UserManagementService(
-            userRepository,
-            rudderUserListProvider,
-            passwordEncoderDispatcher,
-            UserFileProcessing.getUserResourceFile()
-          ),
-          tenantService,
-          () => authenticationProviders.getProviderProperties().view.mapValues(_.providerRoleExtension).toMap,
-          () => authenticationProviders.getConfiguredProviders().map(_.name).toSet
-        ),
-        new ApiAccountApi(
-          new ApiAccountApiServiceV1(
-            roApiAccountRepository,
-            woApiAccountRepository,
-            tokenGenerator,
-            stringUuidGenerator,
-            userService
-          )
-        ),
-        new InventoryApi(restExtractorService, inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
-        new PluginApi(restExtractorService, pluginSettingsService, PluginsInfo.pluginJsonInfos.succeed),
-        new PluginInternalApi(pluginSystemService),
-        new RecentChangesAPI(recentChangesService, restExtractorService),
-        new RulesInternalApi(ruleInternalApiService, ruleApiService13),
-        new GroupsInternalApi(groupInternalApiService),
-        new CampaignApi(
-          campaignRepo,
-          campaignSerializer,
-          campaignEventRepo,
-          mainCampaignService,
-          stringUuidGenerator
-        ),
-        new HookApi(hookApiService),
-        archiveApi,
-        new ScoreApiImpl(restExtractorService, scoreService),
-        eventLogApi
-        // info api must be resolved latter, because else it misses plugin apis !
-      )
-    }
+    /* **********************
+     *         API
+     * **********************
+     */
+
+    /*
+     * Some API need to be exposed
+     */
+
+    // RudderConfig.complianceService used in NodeGroupForm
+    lazy val complianceAPIService = new ComplianceAPIService(
+      roRuleRepository,
+      nodeFactRepository,
+      roNodeGroupRepository,
+      reportingService,
+      roDirectiveRepository,
+      globalComplianceModeService.getGlobalComplianceMode,
+      configService.rudder_global_policy_mode()
+    )
+
+    // need to be exposed for Snapshot page
+    lazy val systemApiService11 = new SystemApiService11(
+      updateTechniqueLibrary,
+      debugScript,
+      clearCacheService,
+      asyncDeploymentAgent,
+      stringUuidGenerator,
+      updateDynamicGroups,
+      itemArchiveManager,
+      personIdentService,
+      gitConfigRepo
+    )
+
+    lazy val apiDispatcher = new RudderEndpointDispatcher(LiftApiProcessingLogger)
 
     lazy val systemTokenSecret = ApiTokenSecret.generate(tokenGenerator, suffix = "system")
 
+    // we need to init API internal services into the {} block to avoid bug https://issues.rudder.io/issues/26416
     lazy val rudderApi = {
       import com.normation.rudder.rest.lift.*
+      // need to be out of RudderApi else "Platform restriction: a parameter list's length cannot exceed 254."
+
+      lazy val ruleApiService13 = {
+        new RuleApiService14(
+          roRuleRepository,
+          woRuleRepository,
+          configurationRepository,
+          stringUuidGenerator,
+          asyncDeploymentAgent,
+          workflowLevelService,
+          roRuleCategoryRepository,
+          woRuleCategoryRepository,
+          roDirectiveRepository,
+          roNodeGroupRepository,
+          nodeFactRepository,
+          configService.rudder_global_policy_mode _,
+          ruleApplicationStatus
+        )
+      }
+
+      lazy val parameterApiService14 = {
+        new ParameterApiService14(
+          roLDAPParameterRepository,
+          stringUuidGenerator,
+          workflowLevelService
+        )
+      }
+
+      lazy val hookApiService = new HookApiService(HOOKS_D, HOOKS_IGNORE_SUFFIXES)
+
+      lazy val ruleInternalApiService =
+        new RuleInternalApiService(roRuleRepository, roNodeGroupRepository, roRuleCategoryRepository, nodeFactRepository)
+
+      lazy val groupInternalApiService = new GroupInternalApiService(roNodeGroupRepository)
+
+      lazy val systemApiService13 = new SystemApiService13(
+        healthcheckService,
+        healthcheckNotificationService,
+        restDataSerializer,
+        deprecated.softwareService
+      )
+
+      lazy val archiveApi = {
+        val archiveBuilderService = {
+          new ZipArchiveBuilderService(
+            new FileArchiveNameService(),
+            configurationRepository,
+            gitParseTechniqueLibrary,
+            roLdapNodeGroupRepository
+          )
+        }
+        // fixe archive name to make it simple to test
+        val rootDirName           = "archive".succeed
+        new com.normation.rudder.rest.lift.ArchiveApi(
+          archiveBuilderService,
+          rootDirName,
+          new ZipArchiveReaderImpl(queryParser, techniqueParser),
+          new SaveArchiveServicebyRepo(
+            techniqueArchiver,
+            techniqueReader,
+            roDirectiveRepository,
+            woDirectiveRepository,
+            roNodeGroupRepository,
+            woNodeGroupRepository,
+            roRuleRepository,
+            woRuleRepository,
+            updateTechniqueLibrary,
+            asyncDeploymentAgent,
+            stringUuidGenerator
+          ),
+          new CheckArchiveServiceImpl(techniqueRepository)
+        )
+      }
+
+      lazy val apiModules = {
+        import com.normation.rudder.rest.lift.*
+        List(
+          new ComplianceApi(restExtractorService, complianceAPIService, roDirectiveRepository),
+          new GroupsApi(
+            propertiesService,
+            zioJsonExtractor,
+            stringUuidGenerator,
+            userPropertyService,
+            new GroupApiService14(
+              nodeFactRepository,
+              roNodeGroupRepository,
+              woNodeGroupRepository,
+              propertiesRepository,
+              propertiesService,
+              stringUuidGenerator,
+              asyncDeploymentAgent,
+              workflowLevelService,
+              queryParser,
+              queryProcessor,
+              restDataSerializer
+            )
+          ),
+          new DirectiveApi(
+            zioJsonExtractor,
+            stringUuidGenerator,
+            new DirectiveApiService14(
+              roDirectiveRepository,
+              configurationRepository,
+              woDirectiveRepository,
+              stringUuidGenerator,
+              asyncDeploymentAgent,
+              workflowLevelService,
+              directiveEditorService,
+              restDataSerializer,
+              techniqueRepositoryImpl
+            )
+          ),
+          new NodeApi(
+            zioJsonExtractor,
+            propertiesService,
+            restDataSerializer,
+            new NodeApiService(
+              rwLdap,
+              nodeFactRepository,
+              propertiesRepository,
+              roAgentRunsRepository,
+              ldapEntityMapper,
+              stringUuidGenerator,
+              nodeDit,
+              pendingNodesDit,
+              acceptedNodesDit,
+              newNodeManagerImpl,
+              removeNodeServiceImpl,
+              zioJsonExtractor,
+              reportingService,
+              queryProcessor,
+              inventoryQueryChecker,
+              () => configService.rudder_global_policy_mode().toBox,
+              RUDDER_RELAY_API,
+              scoreService
+            ),
+            userPropertyService,
+            new NodeApiInheritedProperties(propertiesRepository),
+            stringUuidGenerator,
+            DeleteMode.Erase // only supported mode for Rudder 8.0
+          ),
+          new ParameterApi(zioJsonExtractor, parameterApiService14),
+          new SettingsApi(
+            restExtractorService,
+            configService,
+            asyncDeploymentAgent,
+            stringUuidGenerator,
+            policyServerManagementService,
+            nodeFactRepository
+          ),
+          new TechniqueApi(
+            restExtractorService,
+            new TechniqueAPIService14(
+              roDirectiveRepository,
+              gitParseTechniqueLibrary,
+              ncfTechniqueReader,
+              techniqueSerializer,
+              restDataSerializer,
+              techniqueCompiler
+            ),
+            ncfTechniqueWriter,
+            ncfTechniqueReader,
+            techniqueRepository,
+            techniqueSerializer,
+            stringUuidGenerator,
+            userPropertyService,
+            resourceFileService,
+            RUDDER_GIT_ROOT_CONFIG_REPO
+          ),
+          new RuleApi(
+            zioJsonExtractor,
+            ruleApiService13,
+            stringUuidGenerator
+          ),
+          new SystemApi(
+            restExtractorService,
+            systemApiService11,
+            systemApiService13,
+            systemInfoService
+          ),
+          new UserManagementApiImpl(
+            userRepository,
+            rudderUserListProvider,
+            new UserManagementService(
+              userRepository,
+              rudderUserListProvider,
+              passwordEncoderDispatcher,
+              UserFileProcessing.getUserResourceFile()
+            ),
+            tenantService,
+            () => authenticationProviders.getProviderProperties().view.mapValues(_.providerRoleExtension).toMap,
+            () => authenticationProviders.getConfiguredProviders().map(_.name).toSet
+          ),
+          new ApiAccountApi(
+            new ApiAccountApiServiceV1(
+              roApiAccountRepository,
+              woApiAccountRepository,
+              tokenGenerator,
+              stringUuidGenerator,
+              userService
+            )
+          ),
+          new InventoryApi(restExtractorService, inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
+          new PluginApi(restExtractorService, pluginSettingsService, PluginsInfo.pluginJsonInfos.succeed),
+          new PluginInternalApi(pluginSystemService),
+          new RecentChangesAPI(recentChangesService, restExtractorService),
+          new RulesInternalApi(ruleInternalApiService, ruleApiService13),
+          new GroupsInternalApi(groupInternalApiService),
+          new CampaignApi(
+            campaignRepo,
+            campaignSerializer,
+            campaignEventRepo,
+            mainCampaignService,
+            stringUuidGenerator
+          ),
+          new HookApi(hookApiService),
+          archiveApi,
+          new ScoreApiImpl(restExtractorService, scoreService),
+          eventLogApi
+          // info api must be resolved latter, because else it misses plugin apis !
+        )
+      }
 
       val api = new LiftHandler(
         apiDispatcher,
