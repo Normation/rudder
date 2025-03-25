@@ -101,6 +101,7 @@ import com.normation.rudder.repository.ldap.*
 import com.normation.rudder.repository.xml.*
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.rest.*
+import com.normation.rudder.rest.data.ApiAccountMapping
 import com.normation.rudder.rest.internal.*
 import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rule.category.*
@@ -2264,7 +2265,7 @@ object RudderConfigInit {
             new ApiAccountApiServiceV1(
               roApiAccountRepository,
               woApiAccountRepository,
-              tokenGenerator,
+              ApiAccountMapping.build(stringUuidGenerator, tokenGenerator),
               stringUuidGenerator,
               userService
             )

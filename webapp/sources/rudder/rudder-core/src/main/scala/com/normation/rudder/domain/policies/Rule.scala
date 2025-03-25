@@ -86,11 +86,11 @@ final case class Rule(
     shortDescription: String = "",
     longDescription:  String = "",
     isEnabledStatus:  Boolean = false,
-    isSystem:         Boolean = false, /*
+    isSystem:         Boolean = false,
+    /*
      * Optionally, Rule can have Tags
      */
-
-    tags: Tags = Tags(Set())
+    tags:             Tags = Tags(Set())
 ) {
   // system object must ALWAYS be ENABLED.
   def isEnabled: Boolean = isSystem || (isEnabledStatus && !targets.isEmpty && !directiveIds.isEmpty)

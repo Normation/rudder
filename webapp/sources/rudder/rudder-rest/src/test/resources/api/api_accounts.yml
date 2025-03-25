@@ -36,7 +36,7 @@ response:
             "acl" : [
               {
                 "path" : "some/endpoint/*",
-                "verb" : "get"
+                "actions" : ["get"]
               }
             ]
           }
@@ -85,7 +85,7 @@ response:
       "errorDetails" : "Inconsistency: 'user+1' is not a valid API account ID, only [a-zA-Z0-9_-]+ is allowed"
     }
 ---
-description: Create a new API account (no ID provided, token generated, default exp)
+description: Create a new API account (no ID provided, token generated, default exp) and check merge of ACLs
 method: POST
 url: /secure/api/apiaccounts
 headers:
@@ -102,15 +102,19 @@ body: >-
       "acl":[
         {
           "path":"rules/tree",
-          "verb":"get"
+          "actions":["get" ]
+        },
+        {
+          "path":"rules/tree",
+          "actions":[ "POST" ]
         },
         {
           "path":"rules/categories/*",
-          "verb":"get"
+          "actions":["get"]
         },
         {
           "path":"compliance/*",
-          "verb":"get"
+          "actions":["get"]
         }
       ]
     }
@@ -139,15 +143,15 @@ response:
             "acl":[
               {
                 "path":"compliance/*",
-                "verb":"get"
+                "actions":["get"]
               },
               {
                 "path":"rules/categories/*",
-                "verb":"get"
+                "actions":["get"]
               },
               {
                 "path":"rules/tree",
-                "verb":"get"
+                "actions":["get", "post"]
               }
             ]
           }
@@ -195,9 +199,34 @@ response:
       }
     }
 ---
+description: Error when creating new API account with and existing ID
+method: POST
+url: /secure/api/apiaccounts
+headers:
+  - "Content-Type: application/json"
+body: >-
+    {
+      "id": "e16114be-94ee-497f-8d17-7b258c8e5624",
+      "name":"overriding account 2",
+      "description":"an account with that ID already exists",
+      "expirationDate":"2025-05-22T17:35:00Z",
+      "status": "disabled",
+      "generateToken":false,
+      "tenants":"-",
+      "authorizationType":"none"
+    }
+response:
+  code: 500
+  content: >-
+    {
+      "action":"createAccount",
+      "result" : "error",
+      "errorDetails" : "Inconsistency: Error: an account with id e16114be-94ee-497f-8d17-7b258c8e5624 already exists"
+    }
+---
 description: Regenerate a token for a given api account
 method: POST
-url: /secure/api/apiaccounts/e16114be-94ee-497f-8d17-7b258c8e5624/regenerate
+url: /secure/api/apiaccounts/e16114be-94ee-497f-8d17-7b258c8e5624/token/regenerate
 headers:
   - "Content-Type: application/json"
 response:
@@ -271,7 +300,6 @@ response:
   content: >-
     {
       "action":"deleteAccount",
-      "id":"e16114be-94ee-497f-8d17-7b258c8e5624",
       "result":"success",
       "data":{
         "accounts":[
@@ -288,6 +316,22 @@ response:
             "tenants":"-",
             "authorizationType":"none"
           }
+        ]
+      }
+    }
+---
+description: We can't delete system API account
+method: DELETE
+url: /secure/api/apiaccounts/system-token
+comment: here, we don't have anything in the array of deleted account since we can't delete system
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteAccount",
+      "result":"success",
+      "data":{
+        "accounts":[
         ]
       }
     }
