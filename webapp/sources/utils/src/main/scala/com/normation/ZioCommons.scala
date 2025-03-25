@@ -36,6 +36,8 @@ import com.normation.errors.PureResult
 import com.normation.errors.RudderError
 import com.normation.errors.SystemError
 import com.normation.errors.effectUioUnit
+import io.scalaland.chimney.cats.*
+import io.scalaland.chimney.partial.*
 import java.util.concurrent.TimeUnit
 import net.liftweb.common.{Logger as _, *}
 import org.slf4j.Logger
@@ -318,7 +320,7 @@ object errors {
     }
 
     /*
-     * Execute in parallel, non ordered, and accumulate error, using at max N fibers
+     * Execute in parallel, non-ordered, and accumulate error, using at max N fibers
      */
     def accumulateParNELN[R, E, B](n: Int)(f: A => ZIO[R, E, B]): ZIO[R, NonEmptyList[E], List[B]] = {
       ZIO.partitionPar(in)(f).flatMap(toNEL).withParallelism(n)
@@ -344,7 +346,7 @@ object errors {
     }
 
     /*
-     * Execute in parallel, non ordered, and accumulate error, using at max N fibers
+     * Execute in parallel, non-ordered, and accumulate error, using at max N fibers
      */
     def accumulateParN[R, E <: RudderError, B](n: Int)(f: A => ZIO[R, E, B]): ZIO[R, Accumulated[E], List[B]] = {
       in.accumulateParNELN(n)(f).mapError(Accumulated(_))
@@ -363,6 +365,17 @@ object errors {
       case err :: t => Left(Accumulated(NonEmptyList.of(err, t*)))
       case Nil      => Right(())
     }
+  }
+
+  implicit class ChimneyErrorToPureResult[A](val in: io.scalaland.chimney.partial.Result[A]) extends AnyVal {
+
+    private def errorToString(e: Error): String = s"${e.path.asString}: ${e.message.asString}"
+
+    def toPureResult: PureResult[A] = {
+      in.asValidatedNel.leftMap(e => Accumulated(e.map(err => Inconsistency(errorToString(err))))).toEither
+    }
+
+    def toIO: IOResult[A] = ZIO.fromEither(toPureResult)
   }
 
   /**

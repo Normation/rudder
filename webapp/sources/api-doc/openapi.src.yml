@@ -99,7 +99,7 @@ tags:
 
 
       Manage web interface customization.
-  - name: "🧩 Secret Management"
+  - name: "🧩 Secret management"
     description: >-
       **Requires that the `secret-management` plugin is installed on the server.**
 
