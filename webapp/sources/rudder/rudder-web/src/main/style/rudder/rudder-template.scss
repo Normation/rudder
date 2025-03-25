@@ -737,6 +737,10 @@ ul {
   height: calc(100vh - 50px);
   overflow: hidden;
 }
+.rudder-template .one-col .template-main .main-container,
+.rudder-template .one-col .template-main > .main-table{
+  height: 100%;
+}
 #headerBar ~ .content-wrapper .rudder-template .template-main .main-container{
   height: calc(100vh - 80px);
 }
@@ -998,6 +1002,9 @@ ul {
 .rudder-template .one-col-main {
   display: flex;
   overflow: hidden;
+}
+.rudder-template .one-col > .one-col-main {
+  flex: 1;
 }
 .rudder-template .one-col .sidebar-left ul.nav{
   border: none !important;
