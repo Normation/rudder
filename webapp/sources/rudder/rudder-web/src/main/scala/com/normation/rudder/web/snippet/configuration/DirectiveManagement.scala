@@ -119,7 +119,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     {
       case "head"                 => { _ => head() }
       case "userLibrary"          => { _ => displayDirectiveLibrary() }
-      case "showDirectiveDetails" => { _ => initDirectiveDetails() }
+      case "showDirectiveDetails" => { _ => initDirectiveDetails() } // Used in directiveManagement.html
       case "techniqueDetails"     => { xml =>
         techniqueDetails = initTechniqueDetails()
         techniqueDetails.apply(xml)
