@@ -123,7 +123,7 @@ class TechniqueWriterImpl(
   ): IOResult[EditorTechnique] = {
     for {
       updated              <-
-        compileArchiveTechnique(technique, modId, committer, syncStatus = false) // sync is already0done in library update
+        compileArchiveTechnique(technique, modId, committer, syncStatus = false) // sync is already done in library update
       (updatedTechnique, _) = updated
       libUpdate            <-
         techLibUpdate
@@ -184,7 +184,7 @@ class TechniqueWriterImpl(
       _                <- compilationStatusService.syncOne(compilationResult)
       time_3           <- currentTimeMillis
       id               <- TechniqueVersion.parse(technique.version.value).toIO.map(v => TechniqueId(TechniqueName(technique.id.value), v))
-      // resources files are missing the the "resources/" prefix
+      // resources files are missing the "resources/" prefix
       resources         = technique.resources.map(r => ResourceFile("resources/" + r.path, r.state))
       _                <- archiver.saveTechnique(
                             id,

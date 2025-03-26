@@ -102,10 +102,10 @@ trait TechniqueReader {
    * You can provide a revision id. It's the only one that will be used, even in
    * the case of a technique resource.
    *
-   * Optionnaly, give an extension to happen to the resource name
+   * Optionally, give an extension to happen to the resource name
    * (used for example for template)
    *
-   * If the resources exists, then a Some(input stream), open at the
+   * If the resource exists, then a Some(input stream), open at the
    * beginning of the template is given to the caller.
    * If not, a None is given.
    * The implementation must take care of correct closing of the input
