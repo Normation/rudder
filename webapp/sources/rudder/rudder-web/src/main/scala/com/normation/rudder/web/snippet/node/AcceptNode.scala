@@ -67,7 +67,7 @@ import zio.json.*
  * accept or refuse them.
  *
  */
-class AcceptNode extends Loggable {
+class AcceptNode extends DispatchSnippet with Loggable {
   import AcceptNodeJson.*
 
   val newNodeManager     = RudderConfig.newNodeManager
@@ -90,6 +90,12 @@ class AcceptNode extends Loggable {
     "refuse_new_server-template"
   )
 
+  override def dispatch: DispatchIt = {
+    implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+
+    { case "list" => listAll(_) }
+  }
+
   /*
    * List all server that have there isAccpeted tag to pending.
    * For all servers, provides an Accept / Refuse link.
@@ -105,7 +111,7 @@ class AcceptNode extends Loggable {
    * This is the main (and only) entry point of the snippet,
    * drawing the pending nodes table.
    */
-  def list(html: NodeSeq)(implicit qc: QueryContext): NodeSeq = {
+  private def listAll(html: NodeSeq)(implicit qc: QueryContext): NodeSeq = {
 
     newNodeManager.listNewNodes().toBox match {
       case Empty                => <div>Error, no server found</div>
