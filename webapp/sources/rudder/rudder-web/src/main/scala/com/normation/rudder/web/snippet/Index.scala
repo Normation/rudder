@@ -50,13 +50,9 @@ class Index {
 
   def administration(xhtml: NodeSeq): NodeSeq = {
     if (CurrentUser.checkRights(AuthorizationType.Administration.Read)) {
-      S.redirectTo("policyServerManagement")
+      S.redirectTo("/secure/administration/settings")
     } else {
-      if (CurrentUser.checkRights(AuthorizationType.Technique.Read)) {
-        S.redirectTo("techniqueLibraryManagement")
-      } else {
-        S.redirectTo("/secure/index")
-      }
+      S.redirectTo("/secure/index")
     }
   }
 
