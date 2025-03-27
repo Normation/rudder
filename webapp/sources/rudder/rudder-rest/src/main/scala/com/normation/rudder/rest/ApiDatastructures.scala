@@ -40,6 +40,7 @@ package com.normation.rudder.rest
 import cats.data.*
 import cats.implicits.*
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
 
@@ -230,6 +231,9 @@ trait EndpointSchema {
   // Nil means special `any_righs`, ie special admin role, is needed, so
   // that removing the last right effectively remove all permissions
   def authz: List[AuthorizationType]
+
+  // specific mapping of ACL that has access to some part of this endpoint
+  def otherAcls: Map[AuthorizationType, List[ApiAclElement]] = Map.empty
 }
 
 trait EndpointSchema0 extends EndpointSchema {
