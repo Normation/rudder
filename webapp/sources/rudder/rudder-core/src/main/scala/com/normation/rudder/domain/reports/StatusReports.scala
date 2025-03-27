@@ -108,10 +108,8 @@ trait BlockCompliance[Sub] extends ComponentCompliance {
       case WeightedReport => ComplianceLevel.sum(subs.map(_.compliance))
       // worst case bubble up, and its weight can be either 1 or the sum of sub-component weight
       case worst: WorstReportWeightedReportingLogic =>
-        val worstReport    = ReportType.getWorseType(subs.flatMap(_.allReports))
+        val worstReport    = ReportType.getWorseType(allReports)
         val weightedReport = allReports.map(_ => worstReport)
-        println(subs)
-        println(weightedReport)
         val kept           = worst match {
           case WorstReportWeightedOne => worstReport :: Nil
           case WorstReportWeightedSum => weightedReport
@@ -139,9 +137,53 @@ trait BlockCompliance[Sub] extends ComponentCompliance {
   }
 }
 
-sealed trait StatusReport extends HasCompliance {
-  def compliance: ComplianceLevel
+trait ComponentComplianceByNode extends ComponentCompliance {
+  def componentName: String
+  def reportsByNode: Map[NodeId, Seq[ReportType]]
 }
+
+trait BlockComplianceByNode[Sub] extends ComponentComplianceByNode with BlockCompliance[Sub] {
+
+  def subs:          List[Sub & ComponentComplianceByNode]
+  def reportsByNode: Map[NodeId, Seq[ReportType]] = {
+    subs.flatMap(_.reportsByNode).groupMapReduce(_._1)(_._2)(_ ++ _)
+  }
+
+  override def compliance: ComplianceLevel = {
+    import ReportingLogic.*
+    reportingLogic match {
+      // simple weighted compliance, as usual
+      case WeightedReport => super.compliance
+      // worst case bubble up, and its weight can be either 1 or the sum of sub-component weight
+      case worst: WorstReportWeightedReportingLogic =>
+        val worstReport = reportsByNode.toList.map {
+          case (_, reports) =>
+            val worst = ReportType.getWorseType(reports)
+            (worst, reports.map(_ => worst))
+        }
+        val kept        = worst match {
+          case WorstReportWeightedOne => worstReport.map(_._1)
+          case WorstReportWeightedSum => worstReport.flatMap(_._2)
+        }
+        ComplianceLevel.compute(kept)
+      case FocusWorst =>
+        // Get reports of sub-components to find the worst by percent
+        val worst = subs
+          .flatMap(_.reportsByNode.map(c => (c._1, ComplianceLevel.compute(c._2))))
+          .groupMapReduce(_._1)(_._2) {
+            case (c1, c2) => if (c1.computePercent().compliance <= c2.computePercent().compliance) c1 else c2
+          }
+          .values
+
+        // Find worst by percent: compute numeric compliance with default precision
+        ComplianceLevel.sum(worst)
+      // focus on a given sub-component name (can be present several time, or 0 which leads to N/A)
+      case FocusReport(_) => super.compliance
+    }
+  }
+}
+
+sealed trait StatusReport extends HasCompliance
 
 /**
  * Define two aggregated view of compliance: by node (for

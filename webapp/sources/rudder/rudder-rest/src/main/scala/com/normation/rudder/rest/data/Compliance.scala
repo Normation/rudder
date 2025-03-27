@@ -47,8 +47,6 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
-import com.normation.rudder.domain.reports.ComplianceLevel
-import com.normation.rudder.domain.reports.HasCompliance
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.web.services.ComputePolicyMode
@@ -56,7 +54,6 @@ import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
 import enumeratum.*
 import java.lang
 import net.liftweb.json.*
-import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonDSL.*
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.QuoteMode
@@ -178,7 +175,7 @@ final case class ByRuleDirectiveCompliance(
     components:     Seq[ByRuleComponentCompliance]
 )
 
-sealed trait ByRuleComponentCompliance extends HasCompliance with ComponentCompliance {
+sealed trait ByRuleComponentCompliance extends ComponentComplianceByNode {
   def name:       String
   def compliance: ComplianceLevel
 }
@@ -187,7 +184,7 @@ final case class ByRuleBlockCompliance(
     name:           String,
     reportingLogic: ReportingLogic,
     subComponents:  Seq[ByRuleComponentCompliance]
-) extends ByRuleComponentCompliance with BlockCompliance[ByRuleComponentCompliance] {
+) extends ByRuleComponentCompliance with BlockComplianceByNode[ByRuleComponentCompliance] {
   override def subs: List[ByRuleComponentCompliance with ComponentCompliance] = subComponents.toList
 
   override def componentName: String = name
@@ -200,7 +197,10 @@ final case class ByRuleValueCompliance(
 ) extends ByRuleComponentCompliance {
   override def componentName: String = name
 
-  override def allReports: List[ReportType] = nodes.flatMap(_.values).flatMap(c => c.messages.map(_ => c.status))
+  override def allReports: List[ReportType] = reportsByNode.values.flatten.toList
+
+  override def reportsByNode: Map[NodeId, Seq[ReportType]] =
+    nodes.map(n => (n.id, n.values.flatMap(c => c.messages.map(_ => c.status)))).toMap
 }
 
 final case class ByRuleNodeCompliance(
