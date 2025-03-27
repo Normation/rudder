@@ -15,7 +15,7 @@ impl std::fmt::Display for Engine {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let engine = match self {
             Engine::Mustache => "mustache".to_string(),
-            Engine::MiniJinja => "mini-jinja".to_string(),
+            Engine::Minijinja => "minijinja".to_string(),
             Engine::Jinja2 => "jinja2".to_string(),
         };
         write!(f, "{}", engine)
@@ -26,7 +26,7 @@ impl std::fmt::Display for Engine {
 #[command(version, about, long_about = None)]
 pub struct Cli {
     /// Template engine
-    #[arg(short, long, default_value_t = Engine::MiniJinja)]
+    #[arg(short, long, default_value_t = Engine::Minijinja)]
     engine: Engine,
 
     /// Template file
@@ -51,7 +51,7 @@ impl Cli {
         let value: Value = serde_json::from_str(&data)?;
         let output = match cli.engine {
             Engine::Mustache => Engine::mustache(Some(cli.template.as_path()), None, value)?,
-            Engine::MiniJinja => Engine::mini_jinja(Some(cli.template.as_path()), None, value)?,
+            Engine::Minijinja => Engine::minijinja(Some(cli.template.as_path()), None, value)?,
             Engine::Jinja2 => {
                 let tmp = tempdir()?;
                 let temporary_dir = tmp.path();
