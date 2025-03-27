@@ -38,8 +38,11 @@
 package com.normation.rudder.repository.xml
 
 import com.normation.NamedZioLogger
+import com.normation.cfclerk.domain.RootTechniqueCategoryId
 import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.SubTechniqueCategoryId
 import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueCategoryMetadata
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
@@ -242,6 +245,17 @@ trait TechniqueArchiver {
       msg:         String
   ): IOResult[Unit]
 
+  /*
+   * Delete a category with all files and techniques it contains.
+   * WARNING: you should probably not do that.
+   */
+  def deleteCategoryRecursively(
+      categoryId: TechniqueCategoryId,
+      modId:      ModificationId,
+      committer:  EventActor,
+      msg:        String
+  ): IOResult[Unit]
+
   def saveTechnique(
       techniqueId:     TechniqueId,
       categories:      Seq[String],
@@ -258,6 +272,28 @@ trait TechniqueArchiver {
       committer:  EventActor,
       msg:        String
   ): IOResult[Unit]
+
+  /*
+   * Add or update a technique category with all its content, recursively.
+   * In intent, it's a:
+   * `git -a categoryPath; git -u categoryPath; git commit`
+   * If the category path doesn't exists, it's a no-op.
+   */
+  def updateTechniqueCategoryRecursively(
+      category:  TechniqueCategoryId,
+      modId:     ModificationId,
+      committer: EventActor,
+      msg:       String
+  ): IOResult[Unit]
+
+  /*
+   * Parse technique at given path.
+   * Useful to check if well-formed before saving it.
+   * The technique ID is given because it is expected that the path was
+   * already analysed for consistency.
+   */
+  def parseTechnique(techniqueId: TechniqueId, techniquePath: better.files.File): IOResult[Technique]
+
 }
 
 /*
@@ -340,6 +376,24 @@ class TechniqueArchiverImpl(
     } yield {
       s"${relativePath}/${categoryPath}/${techniqueId.serialize}"
     }).chainError(s"error when deleting and committing Technique '${techniqueId.serialize}").unit
+  }
+
+  def deleteCategoryRecursively(
+      categoryId: TechniqueCategoryId,
+      modId:      ModificationId,
+      committer:  EventActor,
+      msg:        String
+  ): IOResult[Unit] = {
+    (for {
+      ident        <- personIdentservice.getPersonIdentOrDefault(committer.name)
+      // construct the path to the technique. Root category is "/", so we filter out all / to be sure
+      categoryPath <- categoryId match {
+                        case RootTechniqueCategoryId => Inconsistency("You can't delete root technique category").fail
+                        case s: SubTechniqueCategoryId => s.getPathFromRoot.tail.map(_.value).mkString("/").succeed
+                      }
+      _            <- IOResult.attempt(gitRepo.git.rm.addFilepattern(s"${relativePath}/${categoryPath}").call())
+      _            <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+    } yield ()).chainError(s"error when deleting and committing category '${categoryId.toString}").unit
   }
 
   /*
@@ -426,6 +480,15 @@ class TechniqueArchiverImpl(
     } yield ()).chainError(s"error when committing Technique '${techniqueId.serialize}'").unit
   }
 
+  override def parseTechnique(techniqueId: TechniqueId, techniquePath: better.files.File): IOResult[Technique] = {
+    // to have a future-proof version, we should deal with the different kinds of technique descriptor: yml, xml
+    // as it is done ArchiveApi checkParseTechniqueDescriptor
+    for {
+      metadata <- IOResult.attempt(XML.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
+      tech     <- techniqueParser.parseXml(metadata, techniqueId).toIO
+    } yield tech
+  }
+
   def saveTechniqueCategory(
       categories: Seq[String], // path (inclusive) to the category
       metadata:   TechniqueCategoryMetadata,
@@ -460,6 +523,26 @@ class TechniqueArchiverImpl(
                       }
         } yield ()).chainError(s"error when committing technique category '${catGitPath}'").unit
     }
+  }
+
+  override def updateTechniqueCategoryRecursively(
+      categoryId: TechniqueCategoryId,
+      modId:      ModificationId,
+      committer:  EventActor,
+      msg:        String
+  ): IOResult[Unit] = {
+    (for {
+      ident       <- personIdentservice.getPersonIdentOrDefault(committer.name)
+      // construct the path to the technique. Root category is "/", so we filter out all / to be sure
+      categoryPath = categoryId match {
+                       case RootTechniqueCategoryId => ""
+                       case s: SubTechniqueCategoryId => s.getPathFromRoot.tail.map(_.value).mkString("/")
+                     }
+      filePattern  = s"${relativePath}/${categoryPath}"
+      _           <- IOResult.attempt(gitRepo.git.add.addFilepattern(filePattern).call())
+      _           <- IOResult.attempt(gitRepo.git.add.setUpdate(true).addFilepattern(filePattern).call())
+      _           <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+    } yield ()).chainError(s"error when adding/updating and committing category '${categoryId.toString}").unit
   }
 }
 
