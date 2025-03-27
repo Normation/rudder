@@ -416,6 +416,84 @@ techniqueTab model technique creation ui =
             ]
           ]
         ]
+    Directives ->
+      div [class "table-title"] [
+         div [class "table-header extra-filters"]
+           [ div [class "main-filters"]
+             [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value model.ui.directiveFilters.tableFilters.filter
+             , onInput (\s -> UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | filter = s}} )][]
+             , button [class "btn btn-default btn-sm btn-icon", onClick (UpdateComplianceFilters {complianceFilters | showComplianceFilters = not complianceFilters.showComplianceFilters}), style "min-width" "170px"]
+               [ text ((if complianceFilters.showComplianceFilters then "Hide " else "Show ") ++ "compliance filters")
+               , i [class ("fa " ++ (if complianceFilters.showComplianceFilters then "fa-minus" else "fa-plus"))][]
+               ]
+             , button [class "btn btn-default btn-sm btn-refresh", onCustomClick (RefreshComplianceTable rule.id)][i [class "fa fa-refresh"][]]
+             ]
+           , displayComplianceFilters complianceFilters UpdateComplianceFilters
+           ]
+         , div[class "table-container"] [(
+           let
+             filteredDirectives = model.directives
+               |> List.filter (\d -> d.enabled && (filterSearch model.ui.directiveFilters.tableFilters.filter (searchFieldDirectives d)))
+               |> List.sortWith (\d1 d2 -> N.compare d1.displayName d2.displayName)
+             sortedDirectives   = case tableFilters.sortOrder of
+               Asc  -> filteredDirectives
+               Desc -> List.reverse filteredDirectives
+             toggleSortOrder o = if o == Asc then Desc else Asc
+           in
+             if rule.enabled && not noNodes then
+               table [class "dataTable compliance-table"]
+               [ thead []
+                 [ tr [ class "head" ] (List.map (\row -> th [onClick (ToggleRowSort rowId row (if row == sortId then newOrder else Asc)), class ("sorting" ++ (if row == sortId then "_"++order else ""))] [ text row ]) directiveRows)
+                 ]
+               , tbody [] (
+                 if List.length childs <= 0 then
+                   [ tr[]
+                     [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "This rule does not apply any directive."] ]
+                   ]
+                 else if List.length directivesChildren == 0 then
+                   [ tr[]
+                     [ td[class "empty", colspan 2][i [class"fa fa-exclamation-triangle"][], text "No directives match your filter."] ]
+                   ]
+                 else
+                   List.concatMap (\d ->  showComplianceDetails fun d "" ui.openedRows model) directivesChildren
+                 )
+               ]
+             else
+               table [class "dataTable"]
+               [ thead []
+                 [ tr [ class "head" ]
+                   [ th [onClick (UpdateDirectiveFilters {directiveFilters | tableFilters = {tableFilters | sortOrder = toggleSortOrder tableFilters.sortOrder}}), class ("sorting_" ++ (if tableFilters.sortOrder == Asc then "asc" else "desc"))] [ text "Directive" ]
+                   ]
+                 ]
+               , tbody [] (
+                 if List.length ruleDirectives <= 0 then
+                   [ tr[]
+                     [ td[class "empty"][i [class"fa fa-exclamation-triangle"][], text "This rule does not apply any directive."] ]
+                   ]
+                 else if List.length filteredDirectives == 0 then
+                   [ tr[]
+                     [ td[class "empty"][i [class"fa fa-exclamation-triangle"][], text "No directives match your filter."] ]
+                   ]
+                 else
+                   sortedDirectives
+                   |> List.map (\d ->
+                   tr []
+                   [ td[]
+                     [ a []
+                       [ badgePolicyMode model.policyMode d.policyMode
+                       , span [class "item-name"][text d.displayName]
+                       , buildTagsTree d.tags
+                       , div [class "treeActions-container"]
+                       [ span [class "treeActions"][ span [class "fa action-icon accept"][]]
+                       ]
+                       , goToBtn (getDirectiveLink model.contextPath  d.id)
+                       ]
+                     ]
+                   ])
+                 )
+               ]
+           )]
+         ]
     Output ->
       case technique.output of
         Nothing -> text ""
