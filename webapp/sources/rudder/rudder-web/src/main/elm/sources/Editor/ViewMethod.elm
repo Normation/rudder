@@ -89,8 +89,8 @@ showParam model call state methodParam params =
               |> appendChild (element "span" |> appendText (String.Extra.toTitleCase methodParam.name.value))
               |> appendChild isMandatory
               |> appendChild (element "span" |> appendText " -")
-              |> appendChild (element "span" |> addClass "badge badge-secondary ng-binding" |> appendText methodParam.type_)
-            , element "small" |> appendText (" " ++ methodParam.description)
+              |> appendChild (element "span" |> addClass "badge badge-secondary d-inline-flex align-items-center" |> appendText methodParam.type_)
+            , element "small" |> appendText (" " ++ methodParam.description) |> addClass "ms-2"
             ]
         , element "textarea"
           |> addAttributeList
@@ -654,7 +654,7 @@ callBody model ui techniqueUi call pid =
                            Nothing -> ""
     methodNameLabelClass =
       if List.isEmpty (Maybe.Extra.toList (Dict.get method.id.value model.methods)) then
-        "gm-label-unknown-name"
+        " gm-label-unknown-name"
       else
         ""
 
@@ -674,7 +674,7 @@ callBody model ui techniqueUi call pid =
                               )
                            |> appendChild
                               ( element "div"
-                                |> addClass ("gm-label rudder-label gm-label-name " ++ methodNameLabelClass)
+                                |> addClass ("gm-label rudder-label gm-label-name" ++ methodNameLabelClass)
                                 |> appendText method.name
                               )
                            |> foreachLabel call.foreachName call.foreach
@@ -690,7 +690,7 @@ callBody model ui techniqueUi call pid =
                         (Maybe.Extra.isJust call.policyMode)
 
           Opened -> element "div"
-                      |> addClass ("gm-labels " ++ methodNameLabelClass)
+                      |> addClass ("gm-labels policy-mode-label" ++ methodNameLabelClass)
                       |> appendChild
                           ( element "div" |> addClass "gm-label rudder-label gm-label-label" |> appendText "Policy mode override:")
                       |> appendChild
@@ -746,7 +746,7 @@ callBody model ui techniqueUi call pid =
                                              |> addClass "title-input-name"
                                              |> appendText "Name"
                                            , element "input"
-                                             |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, type_ "text", name "component", style "width" "100%", class "form-control", value call.component,  placeholder "A friendly name for this component" ]
+                                             |> addAttributeList [ readonly (not model.hasWriteRights), stopPropagationOn "mousedown" (Json.Decode.succeed (DisableDragDrop, True)), onFocus DisableDragDrop, type_ "text", name "component", class "form-control", value call.component,  placeholder "A friendly name for this component" ]
                                              |> addInputHandler  (\s -> MethodCallModified (Call pid {call  | component = s }) Nothing)
                                            ]
                                        )
