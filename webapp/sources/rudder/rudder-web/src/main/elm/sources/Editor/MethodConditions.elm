@@ -56,7 +56,7 @@ type LinuxOS = DebianFamily
 -- Treat all Windows versions as specific enum variants. Numbering is inconsistant
 -- and trying to use integers would be misleading to users.
 -- We don't have anything generic other server vs. non server, so we only have one enum
-type WindowsOS = Seven | Eight | EightDotOne | WinTen | Eleven | V2008 | V2008R2 | V2012 | V2012R2 | V2016 | V2019 | V2022
+type WindowsOS = Seven | Eight | EightDotOne | WinTen | Eleven | V2008 | V2008R2 | V2012 | V2012R2 | V2016 | V2019 | V2022 | V2025
 showWindowsOS: WindowsOS -> String
 showWindowsOS os =
   case os of
@@ -72,6 +72,7 @@ showWindowsOS os =
     V2016   -> "Server 2016"
     V2019   -> "Server 2019"
     V2022   -> "Server 2022"
+    V2025   -> "Server 2025"
 
 osName: Maybe OS -> String
 osName maybeOs =
@@ -139,6 +140,7 @@ conditionWin os =
     V2016   -> "windows_server_2016"
     V2019   -> "windows_server_2019"
     V2022   -> "windows_server_2022"
+    V2025   -> "windows_server_2025"
 
 conditionLinux: LinuxOS -> String
 conditionLinux os =
@@ -364,6 +366,7 @@ osList =
   , Just (Windows (Just V2016))
   , Just (Windows (Just V2019))
   , Just (Windows (Just V2022))
+  , Just (Windows (Just V2025))
   , Just (Windows (Just Seven))
   , Just (Windows (Just Eight))
   , Just (Windows (Just EightDotOne))
