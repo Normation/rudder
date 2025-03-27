@@ -828,7 +828,7 @@ class Boot extends Loggable {
 
     def administrationMenu = {
       (Menu(MenuUtils.administrationMenu, <i class="fa fa-gear"></i> ++ <span>Administration</span>: NodeSeq) /
-      "secure" / "administration" / "index" >> needPerms(Authz.Administration.Read, Authz.Technique.Read)).submenus(
+      "secure" / "administration" / "index" >> needPerms(Authz.Administration.Read)).submenus(
         Menu("910-settings", <span>Settings</span>) / "secure" / "administration" / "settings"
           >> needPerms(Authz.Administration.Read),
         Menu("920-maintenance", <span>Maintenance</span>) / "secure" / "administration" / "maintenance"

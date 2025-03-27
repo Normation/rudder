@@ -38,6 +38,8 @@
 package com.normation.rudder.rest
 
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.api.AclPathSegment
+import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.api.HttpAction.*
 import com.normation.rudder.rest.EndpointSchema.syntax.*
 import enumeratum.*
@@ -679,6 +681,31 @@ object SettingsApi       extends Enum[SettingsApi] with ApiModuleProvider[Settin
     val description    = "Get information about given Rudder setting"
     val (action, path) = GET / "settings" / "{key}"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+
+    // with some authorization, we can have access to given keys, as a singleton segment
+    override val otherAcls: Map[AuthorizationType, List[ApiAclElement]] = Map(
+      AuthorizationType.Node.Read      ->
+      (
+        AclPathSegment.Segment("global_policy_mode") ::
+        AclPathSegment.Segment("global_policy_mode_overridable") :: Nil
+      ).map(segment => AuthzForApi.withValues(this, List(segment))),
+      AuthorizationType.Rule.Read      -> (
+        AclPathSegment.Segment("enable_change_message") ::
+        AclPathSegment.Segment("enable_change_request") ::
+        AclPathSegment.Segment("enable_self_deployment") ::
+        AclPathSegment.Segment("enable_self_validation") ::
+        AclPathSegment.Segment("enable_validate_all") :: Nil
+      ).map(segment => AuthzForApi.withValues(this, List(segment))),
+      AuthorizationType.Validator.Read -> (
+        AclPathSegment.Segment("enable_change_message") ::
+        AclPathSegment.Segment("mandatory_change_message") ::
+        AclPathSegment.Segment("change_message_prompt") ::
+        AclPathSegment.Segment("enable_change_request") ::
+        AclPathSegment.Segment("enable_self_deployment") ::
+        AclPathSegment.Segment("enable_self_validation") ::
+        AclPathSegment.Segment("enable_validate_all") :: Nil
+      ).map(segment => AuthzForApi.withValues(this, List(segment)))
+    )
   }
   case object ModifySettings extends SettingsApi with ZeroParam with StartsAtVersion6 with SortIndex {
     val z: Int = implicitly[Line].value
