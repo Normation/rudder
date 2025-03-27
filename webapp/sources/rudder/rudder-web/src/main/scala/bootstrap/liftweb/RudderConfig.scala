@@ -1257,6 +1257,7 @@ object RudderConfig extends Loggable {
   val gitRevisionProvider:                 GitRevisionProvider                        = rci.gitRevisionProvider
   val healthcheckNotificationService:      HealthcheckNotificationService             = rci.healthcheckNotificationService
   val historizeNodeCountBatch:             IOResult[Unit]                             = rci.historizeNodeCountBatch
+  val instanceIdService:                   InstanceIdService                          = rci.instanceIdService
   val interpolationCompiler:               InterpolatedValueCompilerImpl              = rci.interpolationCompiler
   val inventoryEventLogService:            InventoryEventLogService                   = rci.inventoryEventLogService
   val inventoryHistoryJdbcRepository:      InventoryHistoryJdbcRepository             = rci.inventoryHistoryJdbcRepository
@@ -1317,14 +1318,14 @@ object RudderConfig extends Loggable {
   val srvGrid:                             SrvGrid                                    = rci.srvGrid
   val stringUuidGenerator:                 StringUuidGenerator                        = rci.stringUuidGenerator
   val techniqueRepository:                 TechniqueRepository                        = rci.techniqueRepository
+  val techniqueArchiver:                   TechniqueArchiver                          = rci.techniqueArchiver
+  val techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService      = rci.techniqueCompilationStatusService
   val tenantService:                       TenantService                              = rci.tenantService
   val tokenGenerator:                      TokenGeneratorImpl                         = rci.tokenGenerator
   val updateDynamicGroups:                 UpdateDynamicGroups                        = rci.updateDynamicGroups
   val updateDynamicGroupsService:          DynGroupUpdaterService                     = rci.updateDynamicGroupsService
   val updateTechniqueLibrary:              UpdateTechniqueLibrary                     = rci.updateTechniqueLibrary
-  val techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService      = rci.techniqueCompilationStatusService
   val userPropertyService:                 UserPropertyService                        = rci.userPropertyService
-  val instanceIdService:                   InstanceIdService                          = rci.instanceIdService
   val userRepository:                      UserRepository                             = rci.userRepository
   val userService:                         UserService                                = rci.userService
   val woApiAccountRepository:              WoApiAccountRepository                     = rci.woApiAccountRepository
@@ -1387,6 +1388,7 @@ case class RudderServiceApi(
     roNodeGroupRepository:               RoNodeGroupRepository,
     woNodeGroupRepository:               WoNodeGroupRepository,
     techniqueRepository:                 TechniqueRepository,
+    techniqueArchiver:                   TechniqueArchiver,
     updateTechniqueLibrary:              UpdateTechniqueLibrary,
     roDirectiveRepository:               RoDirectiveRepository,
     woDirectiveRepository:               WoDirectiveRepository,
@@ -3753,6 +3755,7 @@ object RudderConfigInit {
       roLdapNodeGroupRepository,
       woLdapNodeGroupRepository,
       techniqueRepositoryImpl,
+      techniqueArchiver,
       techniqueRepositoryImpl,
       roLdapDirectiveRepository,
       woLdapDirectiveRepository,
