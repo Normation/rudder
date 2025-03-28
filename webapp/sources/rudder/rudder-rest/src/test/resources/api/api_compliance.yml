@@ -3339,50 +3339,22 @@ response:
           "name" : "R1",
           "compliance" : 100.0,
           "mode" : "full-compliance",
-          "policyMode" : "enforce",
+          "policyMode" : "mixed",
           "complianceDetails" : {
             "successAlreadyOK" : 100.0
           },
           "directives" : [
             {
-              "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-              "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+              "id" : "directive-techniqueWithBlocks",
+              "name" : "25. Testing blocks",
               "compliance" : 100.0,
-              "policyMode" : "enforce",
+              "policyMode" : "audit",
               "complianceDetails" : {
                 "successAlreadyOK" : 100.0
               },
               "components" : [
                 {
-                  "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n2",
-                  "compliance" : 100.0,
-                  "complianceDetails" : {
-                    "successAlreadyOK" : 100.0
-                  },
-                  "nodes" : [
-                    {
-                      "id" : "n2",
-                      "name" : "node1.localhost",
-                      "compliance" : 100.0,
-                      "policyMode" : "enforce",
-                      "complianceDetails" : {
-                        "successAlreadyOK" : 100.0
-                      },
-                      "values" : [
-                        {
-                          "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n2",
-                          "reports" : [
-                            {
-                              "status" : "successAlreadyOK"
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  ]
-                },
-                {
-                  "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n1",
+                  "name" : "directive-techniqueWithBlocks-component-r1-n1",
                   "compliance" : 100.0,
                   "complianceDetails" : {
                     "successAlreadyOK" : 100.0
@@ -3398,7 +3370,35 @@ response:
                       },
                       "values" : [
                         {
-                          "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n1",
+                          "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
+                          "reports" : [
+                            {
+                              "status" : "successAlreadyOK"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name" : "directive-techniqueWithBlocks-component-r1-n2",
+                  "compliance" : 100.0,
+                  "complianceDetails" : {
+                    "successAlreadyOK" : 100.0
+                  },
+                  "nodes" : [
+                    {
+                      "id" : "n2",
+                      "name" : "node1.localhost",
+                      "compliance" : 100.0,
+                      "policyMode" : "enforce",
+                      "complianceDetails" : {
+                        "successAlreadyOK" : 100.0
+                      },
+                      "values" : [
+                        {
+                          "value" : "directive-techniqueWithBlocks-component-value-r1-n2",
                           "reports" : [
                             {
                               "status" : "successAlreadyOK"
@@ -3423,23 +3423,23 @@ response:
               },
               "directives" : [
                 {
-                  "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                  "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                  "id" : "directive-techniqueWithBlocks",
+                  "name" : "25. Testing blocks",
                   "compliance" : 100.0,
-                  "policyMode" : "enforce",
+                  "policyMode" : "audit",
                   "complianceDetails" : {
                     "successAlreadyOK" : 100.0
                   },
                   "components" : [
                     {
-                      "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n2",
+                      "name" : "directive-techniqueWithBlocks-component-r1-n2",
                       "compliance" : 100.0,
                       "complianceDetails" : {
                         "successAlreadyOK" : 100.0
                       },
                       "values" : [
                         {
-                          "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n2",
+                          "value" : "directive-techniqueWithBlocks-component-value-r1-n2",
                           "reports" : [
                             {
                               "status" : "successAlreadyOK"
@@ -3462,23 +3462,23 @@ response:
               },
               "directives" : [
                 {
-                  "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                  "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                  "id" : "directive-techniqueWithBlocks",
+                  "name" : "25. Testing blocks",
                   "compliance" : 100.0,
-                  "policyMode" : "enforce",
+                  "policyMode" : "audit",
                   "complianceDetails" : {
                     "successAlreadyOK" : 100.0
                   },
                   "components" : [
                     {
-                      "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n1",
+                      "name" : "directive-techniqueWithBlocks-component-r1-n1",
                       "compliance" : 100.0,
                       "complianceDetails" : {
                         "successAlreadyOK" : 100.0
                       },
                       "values" : [
                         {
-                          "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n1",
+                          "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
                           "reports" : [
                             {
                               "status" : "successAlreadyOK"
@@ -5280,73 +5280,6 @@ response:
                 ]
               },
               {
-                "id" : "r1",
-                "name" : "R1",
-                "compliance" : 100.0,
-                "policyMode" : "enforce",
-                "complianceDetails" : {
-                  "successAlreadyOK" : 100.0
-                },
-                "components" : [
-                  {
-                    "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n2",
-                    "compliance" : 100.0,
-                    "complianceDetails" : {
-                      "successAlreadyOK" : 100.0
-                    },
-                    "nodes" : [
-                      {
-                        "id" : "n2",
-                        "name" : "node1.localhost",
-                        "policyMode" : "enforce",
-                        "compliance" : 100.0,
-                        "complianceDetails" : {
-                          "successAlreadyOK" : 100.0
-                        },
-                        "values" : [
-                          {
-                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n2",
-                            "reports" : [
-                              {
-                                "status" : "successAlreadyOK"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  },
-                  {
-                    "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n1",
-                    "compliance" : 100.0,
-                    "complianceDetails" : {
-                      "successAlreadyOK" : 100.0
-                    },
-                    "nodes" : [
-                      {
-                        "id" : "n1",
-                        "name" : "node1.localhost",
-                        "policyMode" : "enforce",
-                        "compliance" : 100.0,
-                        "complianceDetails" : {
-                          "successAlreadyOK" : 100.0
-                        },
-                        "values" : [
-                          {
-                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n1",
-                            "reports" : [
-                              {
-                                "status" : "successAlreadyOK"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
                 "id" : "br4",
                 "name" : "R4",
                 "compliance" : 100.0,
@@ -5656,45 +5589,6 @@ response:
                 ]
               },
               {
-                "id" : "n2",
-                "name" : "node1.localhost",
-                "policyMode" : "enforce",
-                "compliance" : 100.0,
-                "complianceDetails" : {
-                  "successAlreadyOK" : 100.0
-                },
-                "rules" : [
-                  {
-                    "id" : "r1",
-                    "name" : "R1",
-                    "compliance" : 100.0,
-                    "policyMode" : "enforce",
-                    "complianceDetails" : {
-                      "successAlreadyOK" : 100.0
-                    },
-                    "components" : [
-                      {
-                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n2",
-                        "compliance" : 100.0,
-                        "complianceDetails" : {
-                          "successAlreadyOK" : 100.0
-                        },
-                        "values" : [
-                          {
-                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n2",
-                            "reports" : [
-                              {
-                                "status" : "successAlreadyOK"
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
                 "id" : "bn3",
                 "name" : "node1.localhost",
                 "policyMode" : "enforce",
@@ -5732,6 +5626,126 @@ response:
                     ]
                   }
                 ]
+              }
+            ]
+         },
+         {
+           "id" : "directive-techniqueWithBlocks",
+           "name" : "25. Testing blocks",
+           "compliance" : 100.0,
+           "mode" : "full-compliance",
+           "policyMode" : "audit",
+           "complianceDetails" : {
+             "successAlreadyOK" : 100.0
+           },
+           "rules" : [    
+              {
+                "id" : "r1",
+                "name" : "R1",
+                "compliance" : 100.0,
+                "policyMode" : "mixed",
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "components" : [
+                  {
+                    "name" : "directive-techniqueWithBlocks-component-r1-n1",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "n1",
+                        "name" : "node1.localhost",
+                        "policyMode" : "enforce",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name" : "directive-techniqueWithBlocks-component-r1-n2",
+                    "compliance" : 100.0,
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "nodes" : [
+                      {
+                        "id" : "n2",
+                        "name" : "node1.localhost",
+                        "policyMode" : "enforce",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-techniqueWithBlocks-component-value-r1-n2",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ],
+            "nodes" : [
+              {
+                "id" : "n2",
+                "name" : "node1.localhost",
+                "policyMode" : "enforce",
+                "compliance" : 100.0,
+                "complianceDetails" : {
+                  "successAlreadyOK" : 100.0
+                },
+                "rules" : [
+                  {
+                    "id" : "r1",
+                    "name" : "R1",
+                    "compliance" : 100.0,
+                    "policyMode" : "mixed",
+                    "complianceDetails" : {
+                      "successAlreadyOK" : 100.0
+                    },
+                    "components" : [
+                      {
+                        "name" : "directive-techniqueWithBlocks-component-r1-n2",
+                        "compliance" : 100.0,
+                        "complianceDetails" : {
+                          "successAlreadyOK" : 100.0
+                        },
+                        "values" : [
+                          {
+                            "value" : "directive-techniqueWithBlocks-component-value-r1-n2",
+                            "reports" : [
+                              {
+                                "status" : "successAlreadyOK"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
               },
               {
                 "id" : "n1",
@@ -5746,20 +5760,20 @@ response:
                     "id" : "r1",
                     "name" : "R1",
                     "compliance" : 100.0,
-                    "policyMode" : "enforce",
+                    "policyMode" : "mixed",
                     "complianceDetails" : {
                       "successAlreadyOK" : 100.0
                     },
                     "components" : [
                       {
-                        "name" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-r1-n1",
+                        "name" : "directive-techniqueWithBlocks-component-r1-n1",
                         "compliance" : 100.0,
                         "complianceDetails" : {
                           "successAlreadyOK" : 100.0
                         },
                         "values" : [
                           {
-                            "value" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9-component-value-r1-n1",
+                            "value" : "directive-techniqueWithBlocks-component-value-r1-n1",
                             "reports" : [
                               {
                                 "status" : "successAlreadyOK"
