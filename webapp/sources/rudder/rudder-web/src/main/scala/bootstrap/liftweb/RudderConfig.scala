@@ -76,6 +76,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.facts.nodes.*
+import com.normation.rudder.git.GitItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
@@ -1208,133 +1209,134 @@ object RudderConfig extends Loggable {
   // human understandable when the directory is not up
   val rci: RudderServiceApi = RudderConfigInit.init()
 
-  val ApiVersions:                         List[ApiVersion]                           = rci.apiVersions
-  val acceptedNodeQueryProcessor:          QueryProcessor                             = rci.acceptedNodeQueryProcessor
-  val acceptedNodesDit:                    InventoryDit                               = rci.acceptedNodesDit
-  val agentRegister:                       AgentRegister                              = rci.agentRegister
-  val aggregateReportScheduler:            FindNewReportsExecution                    = rci.aggregateReportScheduler
-  val apiAuthorizationLevelService:        DefaultApiAuthorizationLevel               = rci.apiAuthorizationLevelService
-  val apiDispatcher:                       RudderEndpointDispatcher                   = rci.apiDispatcher
-  val asyncComplianceService:              AsyncComplianceService                     = rci.asyncComplianceService
-  val asyncDeploymentAgent:                AsyncDeploymentActor                       = rci.asyncDeploymentAgent
-  val asyncWorkflowInfo:                   AsyncWorkflowInfo                          = rci.asyncWorkflowInfo
-  val authenticationProviders:             AuthBackendProvidersManager                = rci.authenticationProviders
-  val authorizationApiMapping:             ExtensibleAuthorizationApiMapping          = rci.authorizationApiMapping
-  val automaticReportLogger:               AutomaticReportLogger                      = rci.automaticReportLogger
-  val automaticReportsCleaning:            AutomaticReportsCleaning                   = rci.automaticReportsCleaning
-  val campaignEventRepo:                   CampaignEventRepositoryImpl                = rci.campaignEventRepo
-  val campaignSerializer:                  CampaignSerializer                         = rci.campaignSerializer
-  val categoryHierarchyDisplayer:          CategoryHierarchyDisplayer                 = rci.categoryHierarchyDisplayer
-  val changeRequestChangesSerialisation:   ChangeRequestChangesSerialisation          = rci.changeRequestChangesSerialisation
-  val changeRequestChangesUnserialisation: ChangeRequestChangesUnserialisation        = rci.changeRequestChangesUnserialisation
-  val changeRequestEventLogService:        ChangeRequestEventLogService               = rci.changeRequestEventLogService
-  val checkTechniqueLibrary:               CheckTechniqueLibrary                      = rci.checkTechniqueLibrary
-  val clearCacheService:                   ClearCacheService                          = rci.clearCacheService
-  val cmdbQueryParser:                     CmdbQueryParser                            = rci.cmdbQueryParser
-  val commitAndDeployChangeRequest:        CommitAndDeployChangeRequestService        = rci.commitAndDeployChangeRequest
-  val complianceService:                   ComplianceAPIService                       = rci.complianceService
-  val configService:                       ReadConfigService with UpdateConfigService = rci.configService
-  val configurationRepository:             ConfigurationRepository                    = rci.configurationRepository
-  val databaseManager:                     DatabaseManager                            = rci.databaseManager
-  val debugScript:                         DebugInfoService                           = rci.debugScript
-  val dependencyAndDeletionService:        DependencyAndDeletionService               = rci.dependencyAndDeletionService
-  val deploymentService:                   PromiseGeneration_Hooks                    = rci.deploymentService
-  val diffDisplayer:                       DiffDisplayer                              = rci.diffDisplayer
-  val diffService:                         DiffService                                = rci.diffService
-  val directiveEditorService:              DirectiveEditorService                     = rci.directiveEditorService
-  val ditQueryData:                        DitQueryData                               = rci.ditQueryData
-  val doobie:                              Doobie                                     = rci.doobie
-  val dynGroupService:                     DynGroupService                            = rci.dynGroupService
-  val eventListDisplayer:                  EventListDisplayer                         = rci.eventListDisplayer
-  val eventLogApi:                         EventLogAPI                                = rci.eventLogApi
-  val systemApiService:                    SystemApiService11                         = rci.systemApiService
-  val eventLogDeploymentService:           EventLogDeploymentService                  = rci.eventLogDeploymentService
-  val eventLogDetailsService:              EventLogDetailsService                     = rci.eventLogDetailsService
-  val eventLogRepository:                  EventLogRepository                         = rci.eventLogRepository
-  val findExpectedReportRepository:        FindExpectedReportRepository               = rci.findExpectedReportRepository
-  val gitModificationRepository:           GitModificationRepository                  = rci.gitModificationRepository
-  val gitRepo:                             GitRepositoryProvider                      = rci.gitRepo
-  val gitRevisionProvider:                 GitRevisionProvider                        = rci.gitRevisionProvider
-  val healthcheckNotificationService:      HealthcheckNotificationService             = rci.healthcheckNotificationService
-  val historizeNodeCountBatch:             IOResult[Unit]                             = rci.historizeNodeCountBatch
-  val interpolationCompiler:               InterpolatedValueCompilerImpl              = rci.interpolationCompiler
-  val inventoryEventLogService:            InventoryEventLogService                   = rci.inventoryEventLogService
-  val inventoryHistoryJdbcRepository:      InventoryHistoryJdbcRepository             = rci.inventoryHistoryJdbcRepository
-  val inventoryWatcher:                    InventoryFileWatcher                       = rci.inventoryWatcher
-  val itemArchiveManager:                  ItemArchiveManager                         = rci.itemArchiveManager
-  val jsTreeUtilService:                   JsTreeUtilService                          = rci.jsTreeUtilService
-  val jsonPluginDefinition:                ReadPluginPackageInfo                      = rci.jsonPluginDefinition
-  val jsonReportsAnalyzer:                 JSONReportsAnalyser                        = rci.jsonReportsAnalyzer
-  val linkUtil:                            LinkUtil                                   = rci.linkUtil
-  val logDisplayer:                        LogDisplayer                               = rci.logDisplayer
-  val mainCampaignService:                 MainCampaignService                        = rci.mainCampaignService
-  val ncfTechniqueReader:                  ncf.EditorTechniqueReader                  = rci.ncfTechniqueReader
-  val newNodeManager:                      NewNodeManager                             = rci.newNodeManager
-  val nodeDit:                             NodeDit                                    = rci.nodeDit
-  val nodeFactRepository:                  NodeFactRepository                         = rci.nodeFactRepository
-  val nodeGrid:                            NodeGrid                                   = rci.nodeGrid
-  val pendingNodeCheckGroup:               CheckPendingNodeInDynGroups                = rci.pendingNodeCheckGroup
-  val pendingNodesDit:                     InventoryDit                               = rci.pendingNodesDit
-  val personIdentService:                  PersonIdentService                         = rci.personIdentService
-  val pluginSettingsService:               PluginSettingsService                      = rci.pluginSettingsService
-  val policyGenerationBootGuard:           zio.Promise[Nothing, Unit]                 = rci.policyGenerationBootGuard
-  val policyServerManagementService:       PolicyServerManagementService              = rci.policyServerManagementService
-  val propertyEngineService:               PropertyEngineService                      = rci.propertyEngineService
-  val propertiesRepository:                PropertiesRepository                       = rci.propertiesRepository
-  val propertiesService:                   NodePropertiesService                      = rci.propertiesService
-  val purgeDeletedInventories:             PurgeDeletedInventories                    = rci.purgeDeletedInventories
-  val purgeUnreferencedSoftwares:          PurgeUnreferencedSoftwares                 = rci.purgeUnreferencedSoftwares
-  val readOnlySoftwareDAO:                 ReadOnlySoftwareDAO                        = rci.readOnlySoftwareDAO
-  val recentChangesService:                NodeChangesService                         = rci.recentChangesService
-  val removeNodeService:                   RemoveNodeService                          = rci.removeNodeService
-  val reportDisplayer:                     ReportDisplayer                            = rci.reportDisplayer
-  val reportingService:                    ReportingService                           = rci.reportingService
-  val reportsRepository:                   ReportsRepository                          = rci.reportsRepository
-  val restCompletion:                      RestCompletion                             = rci.restCompletion
-  val restDataSerializer:                  RestDataSerializer                         = rci.restDataSerializer
-  val restExtractorService:                RestExtractorService                       = rci.restExtractorService
-  val restQuicksearch:                     RestQuicksearch                            = rci.restQuicksearch
-  val roleApiMapping:                      RoleApiMapping                             = rci.roleApiMapping
-  val roAgentRunsRepository:               RoReportsExecutionRepository               = rci.roAgentRunsRepository
-  val roApiAccountRepository:              RoApiAccountRepository                     = rci.roApiAccountRepository
-  val roDirectiveRepository:               RoDirectiveRepository                      = rci.roDirectiveRepository
-  val roLDAPConnectionProvider:            LDAPConnectionProvider[RoLDAPConnection]   = rci.roLDAPConnectionProvider
-  val roLDAPParameterRepository:           RoLDAPParameterRepository                  = rci.roLDAPParameterRepository
-  val woLDAPParameterRepository:           WoLDAPParameterRepository                  = rci.woLDAPParameterRepository
-  val roNodeGroupRepository:               RoNodeGroupRepository                      = rci.roNodeGroupRepository
-  val roParameterService:                  RoParameterService                         = rci.roParameterService
-  val roRuleCategoryRepository:            RoRuleCategoryRepository                   = rci.roRuleCategoryRepository
-  val roRuleRepository:                    RoRuleRepository                           = rci.roRuleRepository
-  val rudderApi:                           LiftHandler                                = rci.rudderApi
-  val rudderDit:                           RudderDit                                  = rci.rudderDit
-  val rudderUserListProvider:              FileUserDetailListProvider                 = rci.rudderUserListProvider
-  val ruleApplicationStatus:               RuleApplicationStatusService               = rci.ruleApplicationStatus
-  val ruleCategoryService:                 RuleCategoryService                        = rci.ruleCategoryService
-  val rwLdap:                              LDAPConnectionProvider[RwLDAPConnection]   = rci.rwLdap
-  val secretEventLogService:               SecretEventLogService                      = rci.secretEventLogService
-  val sharedFileApi:                       SharedFilesAPI                             = rci.sharedFileApi
-  val snippetExtensionRegister:            SnippetExtensionRegister                   = rci.snippetExtensionRegister
-  val srvGrid:                             SrvGrid                                    = rci.srvGrid
-  val stringUuidGenerator:                 StringUuidGenerator                        = rci.stringUuidGenerator
-  val techniqueRepository:                 TechniqueRepository                        = rci.techniqueRepository
-  val tenantService:                       TenantService                              = rci.tenantService
-  val tokenGenerator:                      TokenGeneratorImpl                         = rci.tokenGenerator
-  val updateDynamicGroups:                 UpdateDynamicGroups                        = rci.updateDynamicGroups
-  val updateDynamicGroupsService:          DynGroupUpdaterService                     = rci.updateDynamicGroupsService
-  val updateTechniqueLibrary:              UpdateTechniqueLibrary                     = rci.updateTechniqueLibrary
-  val techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService      = rci.techniqueCompilationStatusService
-  val userPropertyService:                 UserPropertyService                        = rci.userPropertyService
-  val instanceIdService:                   InstanceIdService                          = rci.instanceIdService
-  val userRepository:                      UserRepository                             = rci.userRepository
-  val userService:                         UserService                                = rci.userService
-  val woApiAccountRepository:              WoApiAccountRepository                     = rci.woApiAccountRepository
-  val woDirectiveRepository:               WoDirectiveRepository                      = rci.woDirectiveRepository
-  val woNodeGroupRepository:               WoNodeGroupRepository                      = rci.woNodeGroupRepository
-  val woRuleCategoryRepository:            WoRuleCategoryRepository                   = rci.woRuleCategoryRepository
-  val woRuleRepository:                    WoRuleRepository                           = rci.woRuleRepository
-  val workflowEventLogService:             WorkflowEventLogService                    = rci.workflowEventLogService
-  val workflowLevelService:                DefaultWorkflowLevel                       = rci.workflowLevelService
-  val systemInfoService:                   SystemInfoService                          = rci.systemInfoService
+  val ApiVersions:                         List[ApiVersion]                         = rci.apiVersions
+  val acceptedNodeQueryProcessor:          QueryProcessor                           = rci.acceptedNodeQueryProcessor
+  val acceptedNodesDit:                    InventoryDit                             = rci.acceptedNodesDit
+  val agentRegister:                       AgentRegister                            = rci.agentRegister
+  val aggregateReportScheduler:            FindNewReportsExecution                  = rci.aggregateReportScheduler
+  val apiAuthorizationLevelService:        DefaultApiAuthorizationLevel             = rci.apiAuthorizationLevelService
+  val apiDispatcher:                       RudderEndpointDispatcher                 = rci.apiDispatcher
+  val asyncComplianceService:              AsyncComplianceService                   = rci.asyncComplianceService
+  val asyncDeploymentAgent:                AsyncDeploymentActor                     = rci.asyncDeploymentAgent
+  val asyncWorkflowInfo:                   AsyncWorkflowInfo                        = rci.asyncWorkflowInfo
+  val authenticationProviders:             AuthBackendProvidersManager              = rci.authenticationProviders
+  val authorizationApiMapping:             ExtensibleAuthorizationApiMapping        = rci.authorizationApiMapping
+  val automaticReportLogger:               AutomaticReportLogger                    = rci.automaticReportLogger
+  val automaticReportsCleaning:            AutomaticReportsCleaning                 = rci.automaticReportsCleaning
+  val campaignEventRepo:                   CampaignEventRepositoryImpl              = rci.campaignEventRepo
+  val campaignSerializer:                  CampaignSerializer                       = rci.campaignSerializer
+  val categoryHierarchyDisplayer:          CategoryHierarchyDisplayer               = rci.categoryHierarchyDisplayer
+  val changeRequestChangesSerialisation:   ChangeRequestChangesSerialisation        = rci.changeRequestChangesSerialisation
+  val changeRequestChangesUnserialisation: ChangeRequestChangesUnserialisation      = rci.changeRequestChangesUnserialisation
+  val changeRequestEventLogService:        ChangeRequestEventLogService             = rci.changeRequestEventLogService
+  val checkTechniqueLibrary:               CheckTechniqueLibrary                    = rci.checkTechniqueLibrary
+  val clearCacheService:                   ClearCacheService                        = rci.clearCacheService
+  val cmdbQueryParser:                     CmdbQueryParser                          = rci.cmdbQueryParser
+  val commitAndDeployChangeRequest:        CommitAndDeployChangeRequestService      = rci.commitAndDeployChangeRequest
+  val complianceService:                   ComplianceAPIService                     = rci.complianceService
+  val configService:                       ReadConfigService & UpdateConfigService  = rci.configService
+  val configurationRepository:             ConfigurationRepository                  = rci.configurationRepository
+  val databaseManager:                     DatabaseManager                          = rci.databaseManager
+  val debugScript:                         DebugInfoService                         = rci.debugScript
+  val dependencyAndDeletionService:        DependencyAndDeletionService             = rci.dependencyAndDeletionService
+  val deploymentService:                   PromiseGeneration_Hooks                  = rci.deploymentService
+  val diffDisplayer:                       DiffDisplayer                            = rci.diffDisplayer
+  val diffService:                         DiffService                              = rci.diffService
+  val directiveEditorService:              DirectiveEditorService                   = rci.directiveEditorService
+  val ditQueryData:                        DitQueryData                             = rci.ditQueryData
+  val doobie:                              Doobie                                   = rci.doobie
+  val dynGroupService:                     DynGroupService                          = rci.dynGroupService
+  val eventListDisplayer:                  EventListDisplayer                       = rci.eventListDisplayer
+  val eventLogApi:                         EventLogAPI                              = rci.eventLogApi
+  val systemApiService:                    SystemApiService11                       = rci.systemApiService
+  val eventLogDeploymentService:           EventLogDeploymentService                = rci.eventLogDeploymentService
+  val eventLogDetailsService:              EventLogDetailsService                   = rci.eventLogDetailsService
+  val eventLogRepository:                  EventLogRepository                       = rci.eventLogRepository
+  val findExpectedReportRepository:        FindExpectedReportRepository             = rci.findExpectedReportRepository
+  val gitModificationRepository:           GitModificationRepository                = rci.gitModificationRepository
+  val gitRepo:                             GitRepositoryProvider                    = rci.gitRepo
+  val gitRevisionProvider:                 GitRevisionProvider                      = rci.gitRevisionProvider
+  val healthcheckNotificationService:      HealthcheckNotificationService           = rci.healthcheckNotificationService
+  val historizeNodeCountBatch:             IOResult[Unit]                           = rci.historizeNodeCountBatch
+  val instanceIdService:                   InstanceIdService                        = rci.instanceIdService
+  val interpolationCompiler:               InterpolatedValueCompilerImpl            = rci.interpolationCompiler
+  val inventoryEventLogService:            InventoryEventLogService                 = rci.inventoryEventLogService
+  val inventoryHistoryJdbcRepository:      InventoryHistoryJdbcRepository           = rci.inventoryHistoryJdbcRepository
+  val inventoryWatcher:                    InventoryFileWatcher                     = rci.inventoryWatcher
+  val itemArchiveManager:                  ItemArchiveManager                       = rci.itemArchiveManager
+  val jsTreeUtilService:                   JsTreeUtilService                        = rci.jsTreeUtilService
+  val jsonPluginDefinition:                ReadPluginPackageInfo                    = rci.jsonPluginDefinition
+  val jsonReportsAnalyzer:                 JSONReportsAnalyser                      = rci.jsonReportsAnalyzer
+  val linkUtil:                            LinkUtil                                 = rci.linkUtil
+  val logDisplayer:                        LogDisplayer                             = rci.logDisplayer
+  val mainCampaignService:                 MainCampaignService                      = rci.mainCampaignService
+  val ncfTechniqueReader:                  ncf.EditorTechniqueReader                = rci.ncfTechniqueReader
+  val newNodeManager:                      NewNodeManager                           = rci.newNodeManager
+  val nodeDit:                             NodeDit                                  = rci.nodeDit
+  val nodeFactRepository:                  NodeFactRepository                       = rci.nodeFactRepository
+  val nodeGrid:                            NodeGrid                                 = rci.nodeGrid
+  val pendingNodeCheckGroup:               CheckPendingNodeInDynGroups              = rci.pendingNodeCheckGroup
+  val pendingNodesDit:                     InventoryDit                             = rci.pendingNodesDit
+  val personIdentService:                  PersonIdentService                       = rci.personIdentService
+  val pluginSettingsService:               PluginSettingsService                    = rci.pluginSettingsService
+  val policyGenerationBootGuard:           zio.Promise[Nothing, Unit]               = rci.policyGenerationBootGuard
+  val policyServerManagementService:       PolicyServerManagementService            = rci.policyServerManagementService
+  val propertyEngineService:               PropertyEngineService                    = rci.propertyEngineService
+  val propertiesRepository:                PropertiesRepository                     = rci.propertiesRepository
+  val propertiesService:                   NodePropertiesService                    = rci.propertiesService
+  val purgeDeletedInventories:             PurgeDeletedInventories                  = rci.purgeDeletedInventories
+  val purgeUnreferencedSoftwares:          PurgeUnreferencedSoftwares               = rci.purgeUnreferencedSoftwares
+  val readOnlySoftwareDAO:                 ReadOnlySoftwareDAO                      = rci.readOnlySoftwareDAO
+  val recentChangesService:                NodeChangesService                       = rci.recentChangesService
+  val removeNodeService:                   RemoveNodeService                        = rci.removeNodeService
+  val reportDisplayer:                     ReportDisplayer                          = rci.reportDisplayer
+  val reportingService:                    ReportingService                         = rci.reportingService
+  val reportsRepository:                   ReportsRepository                        = rci.reportsRepository
+  val restCompletion:                      RestCompletion                           = rci.restCompletion
+  val restDataSerializer:                  RestDataSerializer                       = rci.restDataSerializer
+  val restExtractorService:                RestExtractorService                     = rci.restExtractorService
+  val restQuicksearch:                     RestQuicksearch                          = rci.restQuicksearch
+  val roleApiMapping:                      RoleApiMapping                           = rci.roleApiMapping
+  val roAgentRunsRepository:               RoReportsExecutionRepository             = rci.roAgentRunsRepository
+  val roApiAccountRepository:              RoApiAccountRepository                   = rci.roApiAccountRepository
+  val roDirectiveRepository:               RoDirectiveRepository                    = rci.roDirectiveRepository
+  val roLDAPConnectionProvider:            LDAPConnectionProvider[RoLDAPConnection] = rci.roLDAPConnectionProvider
+  val roLDAPParameterRepository:           RoLDAPParameterRepository                = rci.roLDAPParameterRepository
+  val woLDAPParameterRepository:           WoLDAPParameterRepository                = rci.woLDAPParameterRepository
+  val roNodeGroupRepository:               RoNodeGroupRepository                    = rci.roNodeGroupRepository
+  val roParameterService:                  RoParameterService                       = rci.roParameterService
+  val roRuleCategoryRepository:            RoRuleCategoryRepository                 = rci.roRuleCategoryRepository
+  val roRuleRepository:                    RoRuleRepository                         = rci.roRuleRepository
+  val rudderApi:                           LiftHandler                              = rci.rudderApi
+  val rudderDit:                           RudderDit                                = rci.rudderDit
+  val rudderUserListProvider:              FileUserDetailListProvider               = rci.rudderUserListProvider
+  val ruleApplicationStatus:               RuleApplicationStatusService             = rci.ruleApplicationStatus
+  val ruleCategoryService:                 RuleCategoryService                      = rci.ruleCategoryService
+  val rwLdap:                              LDAPConnectionProvider[RwLDAPConnection] = rci.rwLdap
+  val secretEventLogService:               SecretEventLogService                    = rci.secretEventLogService
+  val sharedFileApi:                       SharedFilesAPI                           = rci.sharedFileApi
+  val snippetExtensionRegister:            SnippetExtensionRegister                 = rci.snippetExtensionRegister
+  val srvGrid:                             SrvGrid                                  = rci.srvGrid
+  val stringUuidGenerator:                 StringUuidGenerator                      = rci.stringUuidGenerator
+  val techniqueRepository:                 TechniqueRepository                      = rci.techniqueRepository
+  val techniqueArchiver:                   TechniqueArchiver & GitItemRepository    = rci.techniqueArchiver
+  val techniqueCompilationStatusService:   TechniqueCompilationStatusSyncService    = rci.techniqueCompilationStatusService
+  val tenantService:                       TenantService                            = rci.tenantService
+  val tokenGenerator:                      TokenGeneratorImpl                       = rci.tokenGenerator
+  val updateDynamicGroups:                 UpdateDynamicGroups                      = rci.updateDynamicGroups
+  val updateDynamicGroupsService:          DynGroupUpdaterService                   = rci.updateDynamicGroupsService
+  val updateTechniqueLibrary:              UpdateTechniqueLibrary                   = rci.updateTechniqueLibrary
+  val userPropertyService:                 UserPropertyService                      = rci.userPropertyService
+  val userRepository:                      UserRepository                           = rci.userRepository
+  val userService:                         UserService                              = rci.userService
+  val woApiAccountRepository:              WoApiAccountRepository                   = rci.woApiAccountRepository
+  val woDirectiveRepository:               WoDirectiveRepository                    = rci.woDirectiveRepository
+  val woNodeGroupRepository:               WoNodeGroupRepository                    = rci.woNodeGroupRepository
+  val woRuleCategoryRepository:            WoRuleCategoryRepository                 = rci.woRuleCategoryRepository
+  val woRuleRepository:                    WoRuleRepository                         = rci.woRuleRepository
+  val workflowEventLogService:             WorkflowEventLogService                  = rci.workflowEventLogService
+  val workflowLevelService:                DefaultWorkflowLevel                     = rci.workflowLevelService
+  val systemInfoService:                   SystemInfoService                        = rci.systemInfoService
 
   /**
    * A method to call to force initialisation of all object and services.
@@ -1387,6 +1389,7 @@ case class RudderServiceApi(
     roNodeGroupRepository:               RoNodeGroupRepository,
     woNodeGroupRepository:               WoNodeGroupRepository,
     techniqueRepository:                 TechniqueRepository,
+    techniqueArchiver:                   TechniqueArchiver & GitItemRepository,
     updateTechniqueLibrary:              UpdateTechniqueLibrary,
     roDirectiveRepository:               RoDirectiveRepository,
     woDirectiveRepository:               WoDirectiveRepository,
@@ -3753,6 +3756,7 @@ object RudderConfigInit {
       roLdapNodeGroupRepository,
       woLdapNodeGroupRepository,
       techniqueRepositoryImpl,
+      techniqueArchiver,
       techniqueRepositoryImpl,
       roLdapDirectiveRepository,
       woLdapDirectiveRepository,
