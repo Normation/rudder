@@ -61,6 +61,7 @@ import com.normation.rudder.configuration.ConfigurationRepositoryImpl
 import com.normation.rudder.configuration.DirectiveRevisionRepository
 import com.normation.rudder.configuration.GroupRevisionRepository
 import com.normation.rudder.configuration.RuleRevisionRepository
+import com.normation.rudder.db.DB
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.archives.ParameterArchiveId
@@ -75,11 +76,16 @@ import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.reports.NodeComplianceExpirationMode
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.facts.nodes.*
+import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
 import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.ncf.EditorTechnique
+import com.normation.rudder.ncf.TechniqueCompilationOutput
+import com.normation.rudder.ncf.TechniqueCompiler
+import com.normation.rudder.ncf.TechniqueCompilerApp
 import com.normation.rudder.properties.InMemoryPropertiesRepository
 import com.normation.rudder.properties.NodePropertiesServiceImpl
 import com.normation.rudder.properties.PropertiesRepository
@@ -88,6 +94,8 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.repository.xml.GitParseGroupLibrary
 import com.normation.rudder.repository.xml.GitParseRules
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
+import com.normation.rudder.repository.xml.RudderPrettyPrinter
+import com.normation.rudder.repository.xml.TechniqueArchiverImpl
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rule.category.*
 import com.normation.rudder.score.*
@@ -99,6 +107,7 @@ import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.reports.NodePropertyBasedComplianceExpirationService
 import com.normation.rudder.services.servers.*
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
+import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
@@ -112,6 +121,7 @@ import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.annotation.tailrec
@@ -215,6 +225,12 @@ class MockGitConfigRepo(prefixTestResources: String = "", configRepoDirName: Str
       ZIO.unit
     }
   }
+
+  val gitModificationRepository: GitModificationRepository = new GitModificationRepository {
+    override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
+    override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] =
+      DB.GitCommitJoin(commit, modId).succeed
+  }
 }
 
 object MockTechniques {
@@ -312,6 +328,36 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
   val globalSystemVariables: Map[String, Variable] = systemVariableService
     .getGlobalSystemVariables(globalAgentRun)
     .openOrThrowException("I should get global system variable in test!")
+
+  // a false technique compiler that just error
+  val techniqueCompiler: TechniqueCompiler = new TechniqueCompiler {
+    override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
+      TechniqueCompilationOutput(
+        TechniqueCompilerApp.Rudderc,
+        1,
+        Chunk.empty,
+        s"error: test compiler for ${technique.id.value}",
+        "",
+        ""
+      ).succeed
+    }
+    override def getCompilationOutputFile(technique: EditorTechnique): File = File("compilation-config.yml")
+    override def getCompilationConfigFile(technique: EditorTechnique): File = File("compilation-output.yml")
+  }
+
+  val techniqueArchiver: TechniqueArchiverImpl = new TechniqueArchiverImpl(
+    mockGit.gitRepo,
+    new RudderPrettyPrinter(Int.MaxValue, 2),
+    mockGit.gitModificationRepository,
+    new PersonIdentService {
+      override def getPersonIdentOrDefault(username: String): IOResult[PersonIdent] = {
+        new PersonIdent("test-technique-archiver", "test@technique.archiver").succeed
+      }
+    },
+    techniqueParser,
+    techniqueCompiler,
+    System.getProperty("user.name")
+  )
 }
 
 object TV {

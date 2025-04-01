@@ -41,6 +41,7 @@ import better.files.File
 import com.normation.cfclerk.domain
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.RootTechniqueCategory
+import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueCategory
 import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueCategoryMetadata
@@ -131,6 +132,16 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         committer:   EventActor,
         msg:         String
     ): IOResult[Unit] = ZIO.unit
+
+    override def deleteCategoryRecursively(
+        categoryId: TechniqueCategoryId,
+        modId:      ModificationId,
+        committer:  EventActor,
+        msg:        String
+    ): IOResult[Unit] = {
+      ZIO.unit
+    }
+
     override def saveTechnique(
         techniqueId:     TechniqueId,
         categories:      Seq[String],
@@ -147,6 +158,19 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         committer:  EventActor,
         msg:        String
     ): IOResult[Unit] = ZIO.unit
+
+    override def updateTechniqueCategoryRecursively(
+        category:  TechniqueCategoryId,
+        modId:     ModificationId,
+        committer: EventActor,
+        msg:       String
+    ): IOResult[Unit] = {
+      ZIO.unit
+    }
+
+    override def parseTechnique(techniqueId: TechniqueId, techniquePath: File): IOResult[Technique] = {
+      Unexpected("parseTechnique is not implemented").fail
+    }
   }
 
   object TestLibUpdater extends UpdateTechniqueLibrary {
