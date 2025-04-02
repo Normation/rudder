@@ -20,9 +20,9 @@
 # @description Manage files using Augeas
 # @documentation See TODO.
 # @parameter            path Path of the file
+# @parameter            script Commands to run on the file
 # @parameter            if_script Only run the script if this script succeeds
 # @parameter_constraint if_script "allow_empty_string" : true
-# @parameter            script Commands to run on the file
 # @parameter            lens Lens to use (defaults to detecting the lens based on file path)
 # @parameter_constraint lens "allow_empty_string" : true
 # @parameter            show_content Show the file content in the report (defaults to true)
@@ -49,7 +49,7 @@ bundle agent file_augeas(path, script, if_script, lens, show_content) {
   methods:
     pass3.has_module::
       "${report_data.method_id}" usebundle => call_method("${module_method}");
-      "${report_data.method_id}" usebundle => ${module_method}("${name}", "${version}", "${architecture}", "${provider}", "absent", "");
+      "${report_data.method_id}" usebundle => ${module_method}("${path}", "${script}", "${if_script}", "${lens}", "${show_content}");
       "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
       "${report_data.method_id}" usebundle => call_method_classes_caller;
       "${report_data.method_id}" usebundle => call_method_end("${module_method}");
@@ -59,4 +59,8 @@ bundle agent file_augeas(path, script, if_script, lens, show_content) {
       "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
       "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
       "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Augeas module is not supported on this agent", "");
+
 }
+
+
+
