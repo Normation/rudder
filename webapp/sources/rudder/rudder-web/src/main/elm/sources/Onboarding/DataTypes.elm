@@ -22,7 +22,7 @@ type MetricsState
   | Complete -}
 
 type alias AccountSettings =
-  { username      : Maybe String
+  { username      : Maybe String --- username == Licence ID
   , password      : Maybe String
   }
 
