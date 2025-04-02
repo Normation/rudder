@@ -148,15 +148,12 @@ impl<'a> Interpreter<'a> {
     }
 
     pub fn preview(&mut self, file: &Path) -> Result<Option<String>> {
-        println!("{}", self.aug.print("")?);
+        //self.aug.set("/augeas/context", format!("/files")).unwrap();
 
-        let path = format!("{}", file.display());
+        //let file = file.strip_prefix("/").unwrap();
+        //dbg!(&path);
 
-        let path = path.strip_prefix("/").unwrap();
-        dbg!(path);
-
-        self.aug.set("/augeas/context", "")?;
-        self.aug.preview(path).map_err(Into::into)
+        self.aug.preview(file).map_err(Into::into)
     }
 
     pub fn run(
@@ -433,5 +430,28 @@ impl<'a> Interpreter<'a> {
             Expr::Quit => vec![InterpreterOut::ok_quit()?],
         });
         Ok(res)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::dsl::interpreter::Interpreter;
+    use raugeas::{Augeas, Flags};
+    use std::fs;
+    use std::path::Path;
+
+    #[test]
+    fn preview_interpreter() {
+        let mut flags = Flags::NONE;
+
+        // BREAKS preview ?!
+        flags.insert(Flags::ENABLE_SPAN);
+
+        let mut a = Augeas::init(None::<&str>, "", flags).unwrap();
+        let mut i = Interpreter::new(&mut a, None);
+
+        // First: system file
+        let r = i.preview(Path::new("/etc/hosts")).unwrap();
+        assert_eq!(r, Some(fs::read_to_string("/etc/hosts").unwrap()));
     }
 }

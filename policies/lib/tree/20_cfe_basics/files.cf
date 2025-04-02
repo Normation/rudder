@@ -763,8 +763,8 @@ bundle agent rudder_actual_file_augeas(path, script, if_script, lens, show_conte
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
-  files:
-    pass3::
+  files:  
+    passii3::
       # Cleanup files
       "/var/rudder/tmp/rudder-module-augeas-*"
         delete => tidy;
@@ -781,12 +781,10 @@ bundle agent rudder_actual_file_augeas(path, script, if_script, lens, show_conte
         data                    => parsejson('{
           "path": "${path}",
           "script": "${script}",
-          "if_script": "${if_script}",
-          "context": "${context}",
-          "lens": "${lens}",
-          "data": datastate(),
-          "data_file": "${data_file}",
-          "show_file_content": "${show_content}",
-          "report_file": "${report_file}",
+          "show_file_content": true,
+          "max_file_size": "10MB",
+          "report_file": "${report_file}"
         }');
+
 }
+

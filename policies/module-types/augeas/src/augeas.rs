@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+use crate::report::diff;
 use crate::{
     AugeasParameters, RUDDER_LENS_LIB,
     dsl::{
@@ -257,18 +258,30 @@ impl Augeas {
                 }
             }
 
-            /*
+            // We have run the script once.
+            //
+            // Now let's check for idempotency by running it again.
+
+            // FIXME: do it on new files too.
             if already_exists {
                 dbg!(&p.path);
 
+                dbg!("RUN0");
+
                 // FIXME : bug in preview??
                 let content_after1 = interpreter.preview(&p.path)?.unwrap();
+
+                dbg!("RUN1");
 
                 interpreter.run(
                     InterpreterPerms::ReadWriteTree,
                     CheckMode::StackErrors,
                     &p.script,
                 )?;
+
+                dbg!("RUN2");
+
+                // TODO check result?
 
                 let content_after2 = interpreter.preview(&p.path)?.unwrap();
 
@@ -277,11 +290,6 @@ impl Augeas {
                     bail!("Non-idempotent script: {}, stopping:\n{}", p.script, diff);
                 }
             }
-
-
-             */
-
-            // FIXME: try to detect non-convergence on new files too!
 
             // TODO check:
             // - is if_script now returns false
