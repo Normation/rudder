@@ -34,11 +34,11 @@ bundle agent init
       "other[1]" string => "r";
 
       "files[2]" string => "file2";
-      "user[2]"  string => "unknow_user:rx";
+      "user[2]"  string => "unknown_user:rx";
       "group[2]" string => "";
       "other[2]" string => "r";
 
-      "files[3]" string => "unknow_file";
+      "files[3]" string => "unknown_file";
       "user[3]"  string => "";
       "group[3]" string => "";
       "other[3]" string => "r";
