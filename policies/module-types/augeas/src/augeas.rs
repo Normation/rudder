@@ -268,7 +268,6 @@ impl Augeas {
 
                 dbg!("RUN0");
 
-                // FIXME : bug in preview??
                 let content_after1 = interpreter.preview(&p.path)?.unwrap();
 
                 dbg!("RUN1");

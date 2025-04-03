@@ -148,10 +148,11 @@ impl<'a> Interpreter<'a> {
     }
 
     pub fn preview(&mut self, file: &Path) -> Result<Option<String>> {
-        //self.aug.set("/augeas/context", format!("/files")).unwrap();
+        // FIXME should not be necessary
+        self.aug.set("/augeas/context", format!("/files"))?;
 
-        //let file = file.strip_prefix("/").unwrap();
-        //dbg!(&path);
+        let file = file.strip_prefix("/")?;
+        dbg!(&file);
 
         self.aug.preview(file).map_err(Into::into)
     }
