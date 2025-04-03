@@ -405,7 +405,7 @@ class NodeGroupForm(
     & "group-container" #> groupContainer.readOnlyValue
     & "group-static" #> NodeSeq.Empty
     & "group-showgroup" #> NodeSeq.Empty
-    & "group-clone" #> group.map(systemGroupCloneButton).getOrElse(NodeSeq.Empty)
+    & "group-clone" #> systemGroupCloneButton()
     & "group-close" #>
     <button class="btn btn-default" onclick={
       s"""$$('#${htmlIdCategory}').trigger("group-close-detail")"""
@@ -449,7 +449,7 @@ class NodeGroupForm(
     }
   }
 
-  private def systemGroupCloneButton(group: NodeGroup) = {
+  private def systemGroupCloneButton() = {
     if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
       SHtml.ajaxButton(
         <span>Clone

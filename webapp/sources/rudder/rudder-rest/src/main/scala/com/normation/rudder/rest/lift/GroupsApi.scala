@@ -1341,6 +1341,9 @@ class GroupApiService14(
     for {
       root      <- readGroup.getFullGroupLibrary().toBox
       category  <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
+      _         <- if (category.isSystem)
+                     Failure(s"Could not update group category '${id.value}', cause is: system categories cannot be updated.")
+                   else Full(())
       oldParent <- Box(root.parentCategories.get(id)) ?~! s"Cannot find Group category '${id.value}' parent"
       parent     = restData.parent.getOrElse(oldParent.id)
       update     = restData.update(category)
