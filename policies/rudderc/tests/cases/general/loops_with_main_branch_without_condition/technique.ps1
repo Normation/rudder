@@ -22,7 +22,7 @@
     }
 
 
-    $reportId=$reportIdBase + "845f731a-2800-41c8-967e-7d1ce89bd1b9"
+    $reportId=$reportIdBase + "845f731a-2800-41c8-967e-7d1ce89bd1b9-0"
     try {
         $componentKey = @'
 /home/bob/.vimrc
@@ -74,7 +74,7 @@ sha256
         Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "845f731a-2800-41c8-967e-7d1ce89bd1b9"
+    $reportId=$reportIdBase + "845f731a-2800-41c8-967e-7d1ce89bd1b9-1"
     try {
         $componentKey = @'
 /home/bob/.bashrc

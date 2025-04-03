@@ -26,14 +26,14 @@
   </AGENT>
   <SECTIONS>
     <SECTION id="5827012b-6947-4a42-95f6-5d493b0e44d8" name="Main block" reporting="weighted" component="true" multivalued="true">
-      <SECTION name="Do something" id="845f731a-2800-41c8-967e-7d1ce89bd1b9" component="true" multivalued="true">
+      <SECTION name="Do something" id="845f731a-2800-41c8-967e-7d1ce89bd1b9-0" component="true" multivalued="true">
         <REPORTKEYS>
-          <VALUE id="845f731a-2800-41c8-967e-7d1ce89bd1b9">/home/bob/.vimrc</VALUE>
+          <VALUE id="845f731a-2800-41c8-967e-7d1ce89bd1b9-0">/home/bob/.vimrc</VALUE>
         </REPORTKEYS>
       </SECTION>
-      <SECTION name="Do something" id="845f731a-2800-41c8-967e-7d1ce89bd1b9" component="true" multivalued="true">
+      <SECTION name="Do something" id="845f731a-2800-41c8-967e-7d1ce89bd1b9-1" component="true" multivalued="true">
         <REPORTKEYS>
-          <VALUE id="845f731a-2800-41c8-967e-7d1ce89bd1b9">/home/bob/.bashrc</VALUE>
+          <VALUE id="845f731a-2800-41c8-967e-7d1ce89bd1b9-1">/home/bob/.bashrc</VALUE>
         </REPORTKEYS>
       </SECTION>
     </SECTION>

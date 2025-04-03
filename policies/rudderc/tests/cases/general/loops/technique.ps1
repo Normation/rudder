@@ -22,7 +22,7 @@
     }
 
 
-    $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907"
+    $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907-0"
     try {
         $componentKey = @'
 vim
@@ -77,7 +77,7 @@ latest
         Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907"
+    $reportId=$reportIdBase + "d86ce2e5-d5b6-45cc-87e8-c11cca71d907-1"
     try {
         $componentKey = @'
 htop
@@ -128,7 +128,7 @@ htop
         Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5"
+    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-0"
     try {
         $componentKey = @'
 bob
@@ -165,7 +165,7 @@ Create home
         Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5"
+    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-1"
     try {
         $componentKey = @'
 bob
@@ -202,7 +202,7 @@ Create home
         Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e"
+    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e-0-0"
     try {
         $componentKey = @'
 /home/bob/.vimrc
@@ -258,7 +258,7 @@ sha256
         Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e"
+    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e-0-1"
     try {
         $componentKey = @'
 /home/bob/.bashrc
@@ -314,7 +314,7 @@ sha256
         Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5"
+    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-0"
     try {
         $componentKey = @'
 alice
@@ -351,7 +351,7 @@ Create home
         Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5"
+    $reportId=$reportIdBase + "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-1"
     try {
         $componentKey = @'
 alice
@@ -388,7 +388,7 @@ Create home
         Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e"
+    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e-1-0"
     try {
         $componentKey = @'
 /home/alice/.vimrc
@@ -444,7 +444,7 @@ sha256
         Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
     }
 
-    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e"
+    $reportId=$reportIdBase + "20676b22-2de2-4029-a4e2-e0be2453e78e-1-1"
     try {
         $componentKey = @'
 /home/alice/.bashrc
