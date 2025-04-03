@@ -3200,7 +3200,6 @@ object RudderConfigInit {
     lazy val computeNodeStatusReportService: ComputeNodeStatusReportService & HasNodeStatusReportUpdateHook = {
       new ComputeNodeStatusReportServiceImpl(
         nodeStatusReportRepository,
-        nodeFactRepository,
         findNewNodeStatusReports,
         new NodePropertyBasedComplianceExpirationService(
           propertiesRepository,
