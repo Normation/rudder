@@ -920,13 +920,16 @@ function initBsTabs(isJsonHash = false){
     triggerEl.addEventListener('click', function (event) {
       event.preventDefault();
       tabTrigger.show();
-
       const newHash = this.getAttribute("data-bs-target");
 
       if (isJsonHash) {
         updateHashString("tab",newHash);
       }else{
         history.replaceState(undefined, undefined, newHash);
+      }
+
+      if (window.location.pathname.includes("nodeManager/nodes")){
+        $("#nodes, #serverGrid").DataTable({"retrieve": true}).columns.adjust().draw();
       }
       return false;
     });
