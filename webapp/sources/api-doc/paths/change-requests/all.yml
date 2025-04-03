@@ -28,14 +28,9 @@ get:
                 enum:
                   - listChangeRequests
               data:
-                type: object
-                required:
-                  - rules
-                properties:
-                  rules:
-                    type: array
-                    items:
-                      $ref: ../../components/schemas/change-request.yml
+                type: array
+                items:
+                  $ref: ../../components/schemas/change-request.yml
   tags:
     - 🧩 Change requests
   x-codeSamples:
