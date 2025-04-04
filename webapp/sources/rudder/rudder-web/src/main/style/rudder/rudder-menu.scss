@@ -329,8 +329,9 @@ header.main-header .logo-lg img{
 }
 .sidebar-menu .treeview-menu>li>a {
   padding: 5px 5px 5px 15px;
-  display: block;
-  font-size: 14px
+  display: flex;
+  align-items: baseline;
+  font-size: 14px;
 }
 .sidebar-menu .treeview-menu>li>a > .fa, .sidebar-menu .treeview-menu>li>a > .ion {
   width: 20px
@@ -341,12 +342,12 @@ header.main-header .logo-lg img{
 @media (min-width: 768px) {
   .sidebar-mini.sidebar-collapse .content-wrapper{
     margin-left:50px!important;
-    z-index: 840
+    z-index: 1040
   }
   .sidebar-mini.sidebar-collapse .main-sidebar {
     transform: translate(0,0);
     width: 50px!important;
-    z-index: 850
+    z-index: 1050
   }
   .sidebar-mini.sidebar-collapse .sidebar-menu>li {
     position: relative
