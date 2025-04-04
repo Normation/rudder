@@ -627,6 +627,9 @@ class GroupApiService14(
     for {
       root      <- readGroup.getFullGroupLibrary()
       category  <- root.allCategories.get(id).notOptional(s"Cannot find Group category '${id.value}'")
+      _         <- ZIO.when(category.isSystem) {
+                     Inconsistency(s"Could not update group category '${id.value}', cause is: system categories cannot be updated.").fail
+                   }
       oldParent <- root.parentCategories.get(id).notOptional(s"Cannot find Group category '${id.value}' parent")
       parent     = restData.parent.getOrElse(oldParent.id)
       update     = restData.update(category)
