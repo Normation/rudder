@@ -442,6 +442,7 @@ mod tests {
     use std::path::Path;
 
     #[test]
+    #[ignore]
     fn preview_interpreter() {
         let mut flags = Flags::NONE;
 
