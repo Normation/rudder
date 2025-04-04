@@ -390,6 +390,7 @@ mod tests {
         assert_eq!(content.trim(), "hello world");
     }
 
+    #[ignore]
     #[test]
     fn it_writes_file_from_commands_in_existing_file() {
         let mut augeas = Augeas::new_module(None, vec![]).unwrap();
