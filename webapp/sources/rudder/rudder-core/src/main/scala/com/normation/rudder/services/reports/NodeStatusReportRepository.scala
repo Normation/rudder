@@ -253,7 +253,7 @@ class JdbcNodeStatusReportStorage(doobie: Doobie, jdbcBatchSize: Int) extends No
     ZIO
       .validate(reports.sliding(jdbcBatchSize).to(Iterable)) { rs =>
         val rows = toRows(rs)
-        ComplianceLoggerPure.debug(s"Saving compliance state for ${reports.size} nodes in base") *>
+        ComplianceLoggerPure.debug(s"Saving compliance state for ${rs.size} nodes in base") *>
         transactIOResult(s"error when saving compliance for nodes")(xa => query.updateMany(rows).transact(xa))
       }
       .mapError(errs => Accumulated(NonEmptyList(errs.head, errs.tail)))
