@@ -16,8 +16,8 @@
 #
 #####################################################################################
 
-# @name File augeas
-# @description Manage files using Augeas
+# @name File augeas (beta)
+# @description Manage files using Augeas - in beta
 # @documentation See TODO.
 # @parameter            path Path of the file
 # @parameter            script Commands to run on the file
