@@ -3193,12 +3193,13 @@ object RudderConfigInit {
     lazy val nodeStatusReportRepository: NodeStatusReportRepositoryImpl = {
       (for {
         x <- Ref.make(Map[NodeId, NodeStatusReport]())
-        s  = new JdbcNodeStatusReportStorage(doobie)
+        s  = new JdbcNodeStatusReportStorage(doobie, RUDDER_JDBC_BATCH_MAX_SIZE)
       } yield new NodeStatusReportRepositoryImpl(s, x)).runNow
     }
 
     lazy val computeNodeStatusReportService: ComputeNodeStatusReportService & HasNodeStatusReportUpdateHook = {
       new ComputeNodeStatusReportServiceImpl(
+        nodeFactRepository,
         nodeStatusReportRepository,
         findNewNodeStatusReports,
         new NodePropertyBasedComplianceExpirationService(

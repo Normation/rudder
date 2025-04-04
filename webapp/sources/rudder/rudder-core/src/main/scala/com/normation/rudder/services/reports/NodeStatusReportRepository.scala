@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.reports
 
+import cats.data.NonEmptyList
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
@@ -223,7 +224,7 @@ class InMemoryNodeStatusReportStorage(storage: Ref[Map[NodeId, NodeStatusReport]
 /*
  * A JDBC implementation using the `NodeLastCompliance` table as backend
  */
-class JdbcNodeStatusReportStorage(doobie: Doobie) extends NodeStatusReportStorage {
+class JdbcNodeStatusReportStorage(doobie: Doobie, jdbcBatchSize: Int) extends NodeStatusReportStorage {
   import doobie.*
 
   override def getAll(): IOResult[Map[NodeId, NodeStatusReport]] = {
@@ -237,18 +238,26 @@ class JdbcNodeStatusReportStorage(doobie: Doobie) extends NodeStatusReportStorag
 
   override def save(reports: Iterable[(NodeId, NodeStatusReport)]): IOResult[Unit] = {
     val t = DateTime.now()
-    val rows: Vector[(NodeId, DateTime, JNodeStatusReport)] = reports.map {
-      case (a, b) => (a, t, JNodeStatusReport.from(b))
-    }.toVector
+
+    def toRows(rs: Iterable[(NodeId, NodeStatusReport)]): Vector[(NodeId, DateTime, JNodeStatusReport)] = {
+      rs.map { case (a, b) => (a, t, JNodeStatusReport.from(b)) }.toVector
+    }
 
     val query = Update[(NodeId, DateTime, JNodeStatusReport)](
       """INSERT INTO NodeLastCompliance (nodeId, computationDateTime, details) VALUES (?,?,?)
         |  ON CONFLICT (nodeId) DO UPDATE
         |  SET computationDateTime = excluded.computationDateTime, details = excluded.details ;""".stripMargin
-    ).updateMany(rows)
+    )
 
-    ComplianceLoggerPure.debug(s"Saving compliance state for ${reports.size} nodes in base") *>
-    transactIOResult(s"error when saving compliance for nodes")(xa => query.transact(xa)).unit
+    // batch update, don't fail on first error
+    ZIO
+      .validate(reports.sliding(jdbcBatchSize).to(Iterable)) { rs =>
+        val rows = toRows(rs)
+        ComplianceLoggerPure.debug(s"Saving compliance state for ${rs.size} nodes in base") *>
+        transactIOResult(s"error when saving compliance for nodes")(xa => query.updateMany(rows).transact(xa))
+      }
+      .mapError(errs => Accumulated(NonEmptyList(errs.head, errs.tail)))
+      .unit
   }
 
   override def delete(nodes: Iterable[NodeId]): IOResult[Unit] = {
