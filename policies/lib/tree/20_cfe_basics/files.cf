@@ -764,7 +764,7 @@ bundle agent rudder_actual_file_augeas(path, script, if_script, lens, show_conte
       "pass1" expression => "any";
 
   files:  
-    passii3::
+    pass3::
       # Cleanup files
       "/var/rudder/tmp/rudder-module-augeas-*"
         delete => tidy;

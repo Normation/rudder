@@ -266,19 +266,13 @@ impl Augeas {
             if already_exists {
                 dbg!(&p.path);
 
-                dbg!("RUN0");
-
                 let content_after1 = interpreter.preview(&p.path)?.unwrap();
-
-                dbg!("RUN1");
 
                 interpreter.run(
                     InterpreterPerms::ReadWriteTree,
                     CheckMode::StackErrors,
                     &p.script,
                 )?;
-
-                dbg!("RUN2");
 
                 // TODO check result?
 
