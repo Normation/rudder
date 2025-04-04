@@ -177,17 +177,25 @@ pub fn method_call(
     ];
     // If the item is a result of a foreach loop, we must assume that one of the branch could define
     // a condition, and so, each branch should call the bundle using the method_call_condition
+    //match condition {
+    //    Condition::Expression(_) => {
+    //        call_parameters.push(cfengine_canonify_condition(condition.as_ref()));
+    //        method_parameters.push("method_call_condition".to_string())
+    //    }
+    //    Condition::NotDefined | Condition::Defined => {
+    //        if m.resolved_foreach_state.is_some() {
+    //            call_parameters.push(cfengine_canonify_condition(condition.as_ref()));
+    //            method_parameters.push("method_call_condition".to_string())
+    //        }
+    //    }
+    //}
+    // Code above is commented as a temporary fix for the 8.3.0.
     match condition {
         Condition::Expression(_) => {
             call_parameters.push(cfengine_canonify_condition(condition.as_ref()));
-            method_parameters.push("method_call_condition".to_string())
+            method_parameters.push("method_call_condition".to_string());
         }
-        Condition::NotDefined | Condition::Defined => {
-            if m.resolved_foreach_state.is_some() {
-                call_parameters.push(cfengine_canonify_condition(condition.as_ref()));
-                method_parameters.push("method_call_condition".to_string())
-            }
-        }
+        _ => (),
     }
 
     call_parameters.append(&mut parameters);
@@ -200,7 +208,12 @@ pub fn method_call(
     Ok((
         bundle_call,
         match m.resolved_foreach_state {
-            Some(ForeachResolvedState::Virtual) => None,
+            //Some(ForeachResolvedState::Virtual) => None,
+            Some(ForeachResolvedState::Virtual) => Some(
+                Bundle::agent(bundle_name)
+                    .parameters(method_parameters)
+                    .promise_group(bundle_content),
+            ),
             Some(ForeachResolvedState::Main) => Some(
                 Bundle::agent(bundle_name)
                     .parameters(method_parameters)
