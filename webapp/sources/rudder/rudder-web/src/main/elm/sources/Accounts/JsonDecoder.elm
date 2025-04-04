@@ -2,6 +2,7 @@ module Accounts.JsonDecoder exposing (..)
 
 import Accounts.DataTypes as TenantMode exposing (..)
 import Accounts.DataTypes as Token exposing (..)
+import Accounts.DataTypes as TokenState exposing (..)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import List exposing (drop, head)
@@ -32,7 +33,8 @@ decodeAccount datePickerInfo =
         |> optional "kind" string "public"
         |> required "status" decodeEnabledStatus
         |> required "creationDate" string
-        |> optional "token" (string |> andThen toToken) Token.ClearText
+        |> required "tokenState" decodeTokenState
+        |> optional "token" (maybe decodeToken) Nothing
         |> optional "tokenGenerationDate" (maybe string) Nothing
         |> custom (decodeExpirationPolicy datePickerInfo)
         |> optional "acl" (map Just (list decodeAcls |> map List.concat)) Nothing
@@ -115,9 +117,20 @@ parseToken str =
     _   -> Token.New str
 
 
-toToken : String -> Decoder Token
-toToken str =
-    succeed (parseToken str)
+decodeToken : Decoder Token
+decodeToken =
+  andThen (\s -> succeed (parseToken s)) string
+
+parseTokenState: String -> TokenState
+parseTokenState str =
+  case str of
+    "generatedv1" -> TokenState.GeneratedV1
+    "generatedv2" -> TokenState.GeneratedV2
+    _             -> TokenState.Undef
+
+decodeTokenState : Decoder TokenState
+decodeTokenState =
+  andThen (\s -> succeed (parseTokenState s)) string
 
 
 -- the string for a tenant mode is '*', '-', or a comma separated list of non-empty string

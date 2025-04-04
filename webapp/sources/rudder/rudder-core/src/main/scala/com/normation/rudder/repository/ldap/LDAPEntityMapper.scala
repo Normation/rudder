@@ -950,9 +950,9 @@ class LDAPEntityMapper(
         tokenCreationDatetime <- e.requiredAs[GeneralizedTime](_.getAsGTime, A_API_TOKEN_CREATION_DATETIME)
         isEnabled              = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         description            = e(A_DESCRIPTION).getOrElse("")
-        // expiration date is optionnal
+        // expiration date is optional
         expirationDate         = e.getAsGTime(A_API_EXPIRATION_DATETIME)
-        // api authz kind/acl are not optionnal, but may be missing for Rudder < 4.3 migration
+        // api authz kind/acl are not optional, but may be missing for Rudder < 4.3 migration
         // in that case, use the defaultACL
         accountType            = e(A_API_KIND) match {
                                    case None    => ApiAccountType.PublicApi // this is the default
@@ -963,9 +963,7 @@ class LDAPEntityMapper(
                                      if (accountType == ApiAccountType.PublicApi) {
                                        logEffect.warn(s"Missing API authorizations level kind for token '${name.value}' with id '${id.value}'")
                                      }
-                                     Right(
-                                       ApiAuthorization.None
-                                     ) // for Rudder < 4.3, it should have been migrated. So here, we just don't gave any access.
+                                     Right(ApiAuthorization.None)
                                    case Some(s) =>
                                      ApiAuthorizationKind.parse(s) match {
                                        case Left(error) => Left(Err.UnexpectedObject(error))
@@ -1018,13 +1016,18 @@ class LDAPEntityMapper(
             ApiAccountKind.PublicApi(authz, expirationDate.map(_.dateTime))
         }
 
+        // as of 8.3, we disable an API account with token version < 2
+        val isEnabledAndVersionOk = token match {
+          case Some(t) => if (t.version() >= 2) isEnabled else false
+          case None    => isEnabled
+        }
         ApiAccount(
           id,
           accountKind,
           name,
           token,
           description,
-          isEnabled,
+          isEnabledAndVersionOk,
           creationDatetime.dateTime,
           tokenCreationDatetime.dateTime,
           tenants

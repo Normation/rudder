@@ -5,10 +5,7 @@ import Http.Detailed
 import Json.Decode as D exposing (..)
 import SingleDatePicker exposing (DatePicker, Settings, TimePickerVisibility(..), defaultSettings, defaultTimePickerSettings)
 import Time exposing (Posix, Zone)
-
 import Ui.Datatable exposing (TableFilters)
-import Agentpolicymode.JsonEncoder exposing (policyModeToString)
-import Maybe.Extra
 
 
 --
@@ -40,6 +37,11 @@ type TenantMode
     = AllAccess -- special "*" permission giving access to objects in any/no tenants
     | NoAccess -- special "-" permission giving access to no object, whatever the tenant or its absence
     | ByTenants --give access to object in any of the listed tenants
+
+type TokenState
+    = Undef
+    | GeneratedV1
+    | GeneratedV2
 
 type Token
     = New String
@@ -76,7 +78,8 @@ type alias Account =
     , kind : String
     , enabled : Bool
     , creationDate : String
-    , token : Token
+    , tokenState: TokenState
+    , token : Maybe Token
     , tokenGenerationDate : Maybe String
     , expirationPolicy: ExpirationPolicy
     , acl : Maybe (List AccessControl)

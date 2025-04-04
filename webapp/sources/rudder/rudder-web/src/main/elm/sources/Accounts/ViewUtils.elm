@@ -5,12 +5,10 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onCheck)
 import List
 import NaturalOrdering as N exposing (compare)
-
 import Accounts.ApiCalls exposing (..)
 import Accounts.DataTypes exposing (..)
-import Accounts.DatePickerUtils exposing (posixToString, checkIfExpired)
-import String exposing (isEmpty, slice)
-
+import Accounts.DatePickerUtils exposing (checkIfExpired, checkIfTokenV1, posixToString)
+import String exposing (slice)
 import Ui.Datatable exposing (thClass, sortTable, SortOrder(..), filterSearch)
 import Maybe.Extra
 
@@ -97,6 +95,7 @@ displayAccountsTable model =
         , displayAccountDescription a
         , span [class "badge badge-grey"][ text (getAuthorisationType a.authorisationType) ]
         , (if checkIfExpired model.ui.datePickerInfo a then span[class "badge-expired"][] else text "")
+        , (if checkIfTokenV1 a then span[class "badge-disabled"][] else text "")
         ]
         , td []
         [ span [class "token-txt"][ text a.id ] ]
@@ -217,8 +216,8 @@ htmlEscape s =
     |> String.replace "'" "&#x27;"
     |> String.replace "\\" "&#x2F;"
 
-exposeToken : Token -> String
+exposeToken : Maybe Token -> String
 exposeToken t =
   case t of
-    New s -> s
-    _ -> ""
+    Just (New s) -> s
+    _            -> ""
