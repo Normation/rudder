@@ -6,11 +6,10 @@ import Accounts.DatePickerUtils exposing (..)
 import Accounts.JsonDecoder exposing (parseTenants)
 import Accounts.JsonEncoder exposing (encodeTenants)
 import Html exposing (..)
-import Html.Attributes exposing (attribute, checked, class, disabled, for, id, name, placeholder, selected, style, title, type_, value)
+import Html.Attributes exposing (checked, class, disabled, for, id, name, placeholder, selected, style, title, type_, value)
 import Html.Events exposing (onCheck, onClick, onInput)
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
 import Time.Extra as Time exposing (Interval(..), add)
-import Maybe.Extra
 
 buildModal : String -> Html Msg -> Html Msg -> Html Msg
 buildModal modalTitle modalBody modalBtn =
