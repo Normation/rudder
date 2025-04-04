@@ -142,15 +142,14 @@ class NodeGroupCategoryForm(
 
     (
       "category-name" #> name
-      & "directive-name" #> name.toForm_!
-      & "directive-description" #> description.toForm_!
-      & "directive-container" #> container.toForm_!
+      & "directive-name" #> (if (_nodeGroupCategory.isSystem) name.readOnlyValue else name.toForm_!)
+      & "directive-description" #> (if (_nodeGroupCategory.isSystem) description.readOnlyValue else description.toForm_!)
+      & "directive-container" #> (if (_nodeGroupCategory.isSystem) container.readOnlyValue else container.toForm_!)
       & "directive-notifications" #> updateAndDisplayNotifications()
       & (if (_nodeGroupCategory.isSystem) {
            (
              "input [disabled]" #> "true"
-             & "textarea [disabled]" #> "true"
-             & "directive-save" #> SHtml.ajaxSubmit("Update", onSubmit _, ("class", "btn btn-success"))
+             & "directive-save" #> NodeSeq.Empty
              & "directive-delete" #> deleteButton
            )
          } else {
