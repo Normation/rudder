@@ -3,7 +3,6 @@ module Accounts.ApiCalls exposing (..)
 import Http exposing (..)
 import Url.Builder exposing (QueryParameter)
 import Http.Detailed as Detailed
-
 import Accounts.DataTypes exposing (..)
 import Accounts.JsonDecoder exposing (..)
 import Accounts.JsonEncoder exposing (..)

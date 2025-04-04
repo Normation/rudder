@@ -112,6 +112,7 @@ import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.UnsafeRun
 import com.typesafe.config.ConfigFactory
+import io.scalaland.chimney.syntax.*
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import org.apache.commons.io.IOUtils
@@ -1012,6 +1013,18 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         tokenGenerationDate = accountCreationDate,
         NodeSecurityContext.All
       ),
+      // a standard admin account with v1 token: as of 8.3, it is disabled in entry2ApiAccount whatever ldap content says
+      ApiAccount(
+        ApiAccountId("old1"),
+        ApiAccountKind.PublicApi(ApiAuthorization.RW, None),
+        ApiAccountName("old account"),
+        Some(ApiTokenHash.fromHashValue("some-clear-token")),
+        "old account",
+        isEnabled = false,     // done when reading account
+        creationDate = accountCreationDate,
+        tokenGenerationDate = accountCreationDate,
+        NodeSecurityContext.All
+      ),
       // a standard admin account with rights on everything/all tenants
       ApiAccount(
         ApiAccountId("user1"),
@@ -1092,7 +1105,8 @@ class MockApiAccountService(userService: com.normation.rudder.users.UserService)
         case h :: t => (ClearTextSecret(h), t)
       }
 
-      def generateToken(secret: ClearTextSecret): IOResult[ApiTokenHash] = ApiTokenHash.disabled().succeed
+      def generateToken(secret: ClearTextSecret): IOResult[ApiTokenHash] =
+        ApiTokenHash.fromSecret(secret.transformInto[ApiTokenSecret]).succeed
 
       new ApiAccountMapping(creationDate, generateId, generateSecret, generateToken)
     }

@@ -92,12 +92,13 @@ object ApiAccountStatus       extends Enum[ApiAccountStatus] {
 }
 
 /**
- * Token state: deleted, generated
+ * Token state: undef, generated
  */
 sealed trait ApiTokenState extends EnumEntry with EnumEntry.Lowercase
 object ApiTokenState       extends Enum[ApiTokenState] {
-  case object Missing   extends ApiTokenState
-  case object Generated extends ApiTokenState
+  case object Undef       extends ApiTokenState
+  case object GeneratedV1 extends ApiTokenState
+  case object GeneratedV2 extends ApiTokenState
 
   override def values: IndexedSeq[ApiTokenState] = findValues
 
@@ -264,7 +265,16 @@ object ApiAccountDetails extends ApiAccountCodecs {
     .withFieldComputed(_.status, x => if (x.isEnabled) ApiAccountStatus.Enabled else ApiAccountStatus.Disabled)
     .withFieldComputed(_.expirationPolicy, _.kind.transformInto[ApiAccountExpirationPolicy])
     .withFieldComputed(_.expirationDate, _.kind.transformInto[Option[ZonedDateTime]])
-    .withFieldComputed(_.tokenState, x => if (x.token.isEmpty) ApiTokenState.Missing else ApiTokenState.Generated)
+    .withFieldComputed(
+      _.tokenState,
+      x => {
+        x.token match {
+          case Some(t) if t.version() < 2  => ApiTokenState.GeneratedV1
+          case Some(t) if t.version() == 2 => ApiTokenState.GeneratedV2
+          case _                           => ApiTokenState.Undef
+        }
+      }
+    )
     .withFieldComputed(_.authorizationType, _.kind.transformInto[Option[ApiAuthorizationKind]])
     .withFieldComputed(_.acl, _.kind.transformInto[Option[JsonApiAcl]])
 

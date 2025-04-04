@@ -10,13 +10,25 @@ response:
       "data" : {
         "accounts" : [
           {
+           "id" : "old1",
+           "name" : "old account",
+           "description" : "old account",
+           "status" : "disabled",
+           "creationDate" : "2025-02-12T10:55:00Z",
+           "expirationPolicy" : "never",
+           "tokenState" : "generatedv1",
+           "tokenGenerationDate" : "2025-02-12T10:55:00Z",
+           "tenants" : "*",
+           "authorizationType" : "rw"
+         },
+         {
             "id" : "user1",
             "name" : "user one",
             "description" : "number one user",
             "status" : "enabled",
             "creationDate" : "2025-02-12T10:55:00Z",
             "expirationPolicy" : "never",
-            "tokenState" : "generated",
+            "tokenState" : "generatedv2",
             "tokenGenerationDate" : "2025-02-12T10:55:00Z",
             "tenants" : "*",
             "authorizationType" : "rw"
@@ -29,7 +41,7 @@ response:
             "creationDate" : "2025-02-12T10:55:00Z",
             "expirationPolicy" : "datetime",
             "expirationDate" : "2025-08-12T00:00:00Z",
-            "tokenState" : "generated",
+            "tokenState" : "generatedv2",
             "tokenGenerationDate" : "2025-02-12T10:55:00Z",
             "tenants" : "zone1",
             "authorizationType" : "acl",
@@ -63,7 +75,7 @@ response:
             "status" : "enabled",
             "creationDate" : "2025-02-12T10:55:00Z",
             "expirationPolicy" : "never",
-            "tokenState" : "generated",
+            "tokenState" : "generatedv2",
             "tokenGenerationDate" : "2025-02-12T10:55:00Z",
             "tenants" : "*",
             "authorizationType" : "rw"
@@ -135,7 +147,7 @@ response:
             "creationDate": "2025-02-10T16:37:19Z",
             "expirationPolicy": "datetime",
             "expirationDate":"2025-03-10T16:37:19Z",
-            "tokenState" : "generated",
+            "tokenState" : "generatedv2",
             "tokenGenerationDate":"2025-02-10T16:37:19Z",
             "token":"t1-ca5a50899d25cd3ff148350843a9d435",
             "tenants":"*",
@@ -191,7 +203,7 @@ response:
             "creationDate": "2025-02-10T16:37:19Z",
             "expirationPolicy": "datetime",
             "expirationDate":"2025-05-22T17:35:00Z",
-            "tokenState":"missing",
+            "tokenState":"undef",
             "tenants":"-",
             "authorizationType":"none"
           }
@@ -246,7 +258,7 @@ response:
             "creationDate": "2025-02-10T16:37:19Z",
             "expirationPolicy": "datetime",
             "expirationDate":"2025-05-22T17:35:00Z",
-            "tokenState":"generated",
+            "tokenState":"generatedv2",
             "tokenGenerationDate":"2025-02-10T16:37:19Z",
             "token":"t2-29d5c3cdca39bd7ba81e7e0f88084689",
             "tenants":"-",
@@ -283,7 +295,7 @@ response:
             "creationDate": "2025-02-10T16:37:19Z",
             "expirationPolicy": "datetime",
             "expirationDate":"2025-05-22T17:35:00Z",
-            "tokenState":"generated",
+            "tokenState":"generatedv2",
             "tokenGenerationDate":"2025-02-10T16:37:19Z",
             "tenants":"-",
             "authorizationType":"none"
@@ -311,7 +323,7 @@ response:
             "creationDate": "2025-02-10T16:37:19Z",
             "expirationPolicy": "datetime",
             "expirationDate":"2025-05-22T17:35:00Z",
-            "tokenState":"generated",
+            "tokenState":"generatedv2",
             "tokenGenerationDate":"2025-02-10T16:37:19Z",
             "tenants":"-",
             "authorizationType":"none"
