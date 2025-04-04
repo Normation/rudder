@@ -44,7 +44,7 @@ import scala.reflect.ClassTag
 import scala.xml.NodeSeq
 
 class RudderCompanyAccount()(implicit val ttag: ClassTag[Settings]) extends SnippetExtensionPoint[Settings] {
-  private val tabId = "companyAccountTab"
+  private val tabId = "welcomeSetupTab"
 
   private def template: NodeSeq =
     ChooseTemplate("templates-hidden" :: "components" :: "administration" :: "setup" :: Nil, "component-body")
