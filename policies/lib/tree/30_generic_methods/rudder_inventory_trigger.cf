@@ -39,7 +39,7 @@ bundle agent rudder_inventory_trigger(id)
   files:
       "${flag_file}"
         create        => "true",
-        classes       => classes_generic_two("${report_data.report_id}", "${class_prefix}");
+        classes       => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
   methods:
       "${report_data.method_id}" usebundle => log_rudder_v4("${id}", "Trigger an inventory", "");
