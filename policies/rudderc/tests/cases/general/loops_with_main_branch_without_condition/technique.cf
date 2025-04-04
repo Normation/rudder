@@ -50,3 +50,24 @@ bundle agent call_technique_with_loops_with_main_branch_without_condition_845f73
                                 unless => "${method_call_condition}";
 
 }
+bundle agent call_technique_with_loops_with_main_branch_without_condition_845f731a_2800_41c8_967e_7d1ce89bd1b9_1(c_name, c_key, report_id, args, class_prefix, method_call_condition, source, path, hash_type) {
+
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
+  methods:
+    "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
+    "index_${local_index}_1" usebundle => file_from_shared_folder("${source}", "${path}", "${hash_type}"),
+                                    if => "${method_call_condition}";
+    "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_file_from_shared_folder_${c_key}")),
+                                unless => "${method_call_condition}";
+    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "/home/bob/.bashrc", canonify("${class_prefix}_file_from_shared_folder_${c_key}"), canonify("${class_prefix}_file_from_shared_folder_${c_key}"), @{args}),
+                                unless => "${method_call_condition}";
+
+}
