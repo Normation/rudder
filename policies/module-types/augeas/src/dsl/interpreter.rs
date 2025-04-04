@@ -149,7 +149,7 @@ impl<'a> Interpreter<'a> {
 
     pub fn preview(&mut self, file: &Path) -> Result<Option<String>> {
         // FIXME should not be necessary
-        self.aug.set("/augeas/context", format!("/files"))?;
+        self.aug.set("/augeas/context", "/files")?;
 
         let file = file.strip_prefix("/")?;
         dbg!(&file);
