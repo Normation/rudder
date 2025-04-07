@@ -190,12 +190,9 @@ pub fn method_call(
     //    }
     //}
     // Code above is commented as a temporary fix for the 8.3.0.
-    match condition {
-        Condition::Expression(_) => {
-            call_parameters.push(cfengine_canonify_condition(condition.as_ref()));
-            method_parameters.push("method_call_condition".to_string());
-        }
-        _ => (),
+    if let Condition::Expression(_) = condition {
+        call_parameters.push(cfengine_canonify_condition(condition.as_ref()));
+        method_parameters.push("method_call_condition".to_string());
     }
 
     call_parameters.append(&mut parameters);
