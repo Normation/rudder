@@ -39,15 +39,15 @@ bundle agent file_augeas(path, script, if_script, lens, show_content) {
       "module_method" string => "rudder_actual_file_augeas";
       "class_prefix" string => "file_augeas_${path}";
 
+  defaults:
+      "show_content" string => "true", if_match_regex => "";
+
   classes:
       "has_module"   expression => fileexists("${module_file}");
 
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
-
-  defaults:
-      "show_content" string => "true", if_match_regex => "";
 
   methods:
     pass3.has_module::
