@@ -3178,6 +3178,14 @@ class MockCampaign() {
     def campaignType(): PartialFunction[String, CampaignType] = { case DumbCampaignType.value => DumbCampaignType }
   }
 
+  object campaignArchive extends CampaignArchiver {
+    override def saveCampaign(campaignId: CampaignId)(implicit cc: ChangeContext): IOResult[Unit] = ().succeed
+
+    override def deleteCampaign(campaignId: CampaignId)(implicit cc: ChangeContext): IOResult[Unit] = ().succeed
+
+    override def init(implicit changeContext: ChangeContext): IOResult[Unit] = ().succeed
+  }
+
   object dumbCampaignEventRepository extends CampaignEventRepository {
     val items: Ref[Map[CampaignEventId, CampaignEvent]] = Ref.make(Map[CampaignEventId, CampaignEvent]((e0.id -> e0))).runNow
 
@@ -3310,6 +3318,7 @@ class MockCampaign() {
     }
   }
 
-  val mainCampaignService = new MainCampaignService(dumbCampaignEventRepository, repo, new StringUuidGeneratorImpl(), 0, 0)
+  val mainCampaignService =
+    new MainCampaignService(dumbCampaignEventRepository, repo, campaignArchive, new StringUuidGeneratorImpl(), 0, 0)
 
 }

@@ -3429,7 +3429,9 @@ object RudderConfigInit {
       .make(campaignSerializer, campaignPath, campaignEventRepo)
       .runOrDie(err => new RuntimeException(s"Error during initialization of campaign repository: " + err.fullMsg))
 
-    lazy val mainCampaignService = new MainCampaignService(campaignEventRepo, campaignRepo, uuidGen, 1, 1)
+    lazy val campaignArchiver = new CampaignArchiverImpl(gitConfigRepo, "campaigns", personIdentService)
+
+    lazy val mainCampaignService = new MainCampaignService(campaignEventRepo, campaignRepo, campaignArchiver, uuidGen, 1, 1)
     lazy val jsonReportsAnalyzer = JSONReportsAnalyser(reportsRepository, propertyRepository)
 
     /*
