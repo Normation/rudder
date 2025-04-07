@@ -781,12 +781,12 @@ bundle agent rudder_actual_file_augeas(path, script, if_script, lens, show_conte
         data                    => parsejson('{
           "path": "${path}",
           "script": "${script}",
-          "if_script": "${if_script}",
-          "context": "${context}",
+          "show_file_content": ${show_content},
           "lens": "${lens}",
-          "data": datastate(),
-          "data_file": "${data_file}",
-          "show_file_content": "${show_content}",
-          "report_file": "${report_file}",
+          "if_script": "${if_script}",
+          "max_file_size": "10MB",
+          "report_file": "${report_file}"
         }');
+
 }
+
