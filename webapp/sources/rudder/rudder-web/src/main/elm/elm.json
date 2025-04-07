@@ -34,7 +34,6 @@
             "hecrj/html-parser": "2.4.0",
             "isaacseymour/deprecated-time": "1.0.0",
             "jinjor/elm-debounce": "3.0.0",
-            "justinmimbs/date": "4.1.0",
             "justinmimbs/time-extra": "1.2.0",
             "jzxhuang/http-extras": "2.1.0",
             "matthewsj/elm-ordering": "2.0.0",
@@ -55,6 +54,7 @@
             "TSFoster/elm-md5": "2.0.1",
             "TSFoster/elm-sha1": "2.1.1",
             "danfishgold/base64-bytes": "1.1.0",
+            "justinmimbs/date": "4.1.0",
             "kuon/elm-string-normalize": "1.0.5",
             "rtfeldman/elm-hex": "1.0.0"
         }
