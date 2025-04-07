@@ -18,7 +18,7 @@
 
 # @name File augeas (beta)
 # @description Manage files using Augeas - in beta
-# @documentation See TODO.
+# @documentation Coming soon.
 # @parameter            path Path of the file
 # @parameter            script Commands to run on the file
 # @parameter            if_script Only run the script if this script succeeds
@@ -45,6 +45,9 @@ bundle agent file_augeas(path, script, if_script, lens, show_content) {
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
+
+  defaults:
+      "show_content" string => "true", if_match_regex => "";
 
   methods:
     pass3.has_module::
