@@ -264,8 +264,6 @@ impl Augeas {
 
             // FIXME: do it on new files too.
             if already_exists {
-                dbg!(&p.path);
-
                 let content_after1 = interpreter.preview(&p.path)?.unwrap();
 
                 interpreter.run(

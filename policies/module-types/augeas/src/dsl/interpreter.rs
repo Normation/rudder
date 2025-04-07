@@ -152,7 +152,6 @@ impl<'a> Interpreter<'a> {
         self.aug.set("/augeas/context", "/files")?;
 
         let file = file.strip_prefix("/")?;
-        dbg!(&file);
 
         self.aug.preview(file).map_err(Into::into)
     }
