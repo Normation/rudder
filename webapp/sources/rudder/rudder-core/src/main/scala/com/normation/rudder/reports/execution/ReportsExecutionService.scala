@@ -99,7 +99,8 @@ class ReportsExecutionService(
             logger.error(s"Could not get reports from the database, cause is: ${fail.messageChain}")
             fail
           case Full(maxReportId) =>
-            // ok, we'll manage reports from lastReportId to maxReportId - and this is only useful for changes
+            // the maxReportId isn't used for new reports since insert is done by relayd. It is only used
+            // for the hook for computing changes in intervall
 
             for {
               nodes        <- fetchRunsAndCompliance().toBox
@@ -155,8 +156,10 @@ class ReportsExecutionService(
       _                   <- ReportLoggerPure.Cache.debug(
                                s"Invalidated and updated compliance for nodes: [${nodeWithCompliances.map(_._1.value).mkString(", ")}]"
                              )
-      _                   <- complianceRepos.saveRunCompliance(nodeWithCompliances.values.toList) // unsure if here or in the queue
-      _                   <- computeNodeStatusReportService.outDatedCompliance(new DateTime(startCompliance))
+      _                   <- complianceRepos.saveRunCompliance(
+                               nodeWithCompliances.values.toList
+                             ) // for reporting plugin - unsure if here or in the queue
+      _                   <- computeNodeStatusReportService.outDatedCompliance(new DateTime(startCompliance), nodeWithCompliances.keySet)
       _                   <-
         ReportLoggerPure.Cache.debug(
           s"Computing compliance in : ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startCompliance).toPeriod())}"
