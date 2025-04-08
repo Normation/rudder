@@ -182,11 +182,7 @@ class NodeStatusReportRepositoryImpl(
                          case _                                  =>
                            m.get(id) match {
                              case Some(e) =>
-                               if (e == report) {
-                                 None
-                               } else {
-                                 Some((id, report))
-                               }
+                               if (e == report) None else Some((id, report))
                              case None    => Some((id, report))
                            }
                        }
