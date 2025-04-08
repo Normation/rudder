@@ -912,7 +912,7 @@ function hideBsModal(modalName){
   if(modal === null || modal === undefined) return false;
   modal.hide();
 }
-function initBsTabs(isJsonHash = false){
+function initBsTabs(isJsonHash = false, adjustNodeTables = false){
   const triggerTabList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tab"]'));
   triggerTabList.forEach(function (triggerEl) {
     const tabTrigger = new bootstrap.Tab(triggerEl);
@@ -928,7 +928,7 @@ function initBsTabs(isJsonHash = false){
         history.replaceState(undefined, undefined, newHash);
       }
 
-      if (window.location.pathname.includes("nodeManager/nodes")){
+      if (adjustNodeTables) {
         $("#nodes, #serverGrid").DataTable({"retrieve": true}).columns.adjust().draw();
       }
       return false;
@@ -955,7 +955,7 @@ function waitForElement(selector) {
 function initAndCheckTabs(){
   const isNodePage = window.location.pathname.includes("nodeManager/nodes");
 
-  initBsTabs(isNodePage);
+  initBsTabs(isNodePage, isNodePage);
   let hash = window.location.hash;
 
   // If the anchor corresponds to a tab ID then this tab is opened automatically,
