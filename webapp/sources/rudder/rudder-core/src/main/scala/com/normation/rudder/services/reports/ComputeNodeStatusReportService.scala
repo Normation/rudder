@@ -40,14 +40,11 @@ package com.normation.rudder.services.reports
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ComplianceLoggerPure
-import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.ReportLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
-import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -97,14 +94,8 @@ object CacheComplianceQueueAction       {
     def nodeId = action.nodeId
   }
   final case class UpdateCompliance(nodeId: NodeId, nodeCompliance: NodeStatusReport) extends CacheComplianceQueueAction
-  final case class SetNodeNoAnswer(nodeId: NodeId, actionDate: DateTime)              extends CacheComplianceQueueAction
   final case class ExpiredCompliance(nodeId: NodeId)                                  extends CacheComplianceQueueAction
 }
-
-/*
- * A callback action that should be called when a new (set of) node status reports are computed and made available.
- */
-//final case class ComputedNodeStatusReportCallback(name: String, action: Map[NodeId, NodeStatusReport] => UIO[Unit])
 
 trait InvalidateCache[T] {
   def invalidateWithAction(actions: Seq[(NodeId, T)]): IOResult[Unit]
@@ -118,14 +109,12 @@ trait ComputeNodeStatusReportService extends InvalidateCache[CacheComplianceQueu
     )
   }
 
-  def outDatedCompliance(now: DateTime): IOResult[Unit]
-
-  /*
-   * Register a callback action that should be called when a new (set of) node status reports are computed and made available.
-   * The action will be executed asynchronously. Still, they should be made to be quick.
+  /**
+   * Find in cache all outdated compliance, and add to queue to recompute them.
+   * `ignoreNodes` will be ignored for the search (ie they won't be marked expired
+   * in any case).
    */
-//  def registerCallback(callback: ComputedNodeStatusReportCallback): IOResult[Unit]
-
+  def outDatedCompliance(now: DateTime, ignoreNodes: Set[NodeId]): IOResult[Unit]
 }
 
 trait HasNodeStatusReportUpdateHook {
@@ -162,7 +151,6 @@ class ScoreNodeStatusReportUpdateHook(scoreServiceManager: ScoreServiceManager) 
  */
 class ComputeNodeStatusReportServiceImpl(
     nsrRepo:                     NodeStatusReportRepository,
-    nodeFactRepository:          NodeFactRepository,
     findNewNodeStatusReports:    FindNewNodeStatusReports,
     complianceExpirationService: ComplianceExpirationService,
     hooksRef:                    Ref[Chunk[NodeStatusReportUpdateHook]],
@@ -214,7 +202,7 @@ class ComputeNodeStatusReportServiceImpl(
   // start updating
   updateCacheFromRequest.forever.forkDaemon.runNow
 
-  /**override
+  /**
    * Do something with the action we received
    * All actions must have *exactly* the *same* type
    * WARNING: do not put I/O or slow computation here, else divergence can appear:
@@ -223,8 +211,8 @@ class ComputeNodeStatusReportServiceImpl(
    * NodeStatusReportRepository.
    */
   private def performAction(actions: Chunk[CacheComplianceQueueAction]): IOResult[Unit] = {
-    import CacheComplianceQueueAction.*
-    import CacheExpectedReportAction.*
+    import com.normation.rudder.services.reports.CacheComplianceQueueAction.*
+    import com.normation.rudder.services.reports.CacheExpectedReportAction.*
 
     // get type of action
     (actions.headOption match {
@@ -283,7 +271,7 @@ class ComputeNodeStatusReportServiceImpl(
   /*
    * handle the save and hook trigger for updated compliance in a centralized place.
    */
-  def saveUpdatedCompliance(newReports: Iterable[(NodeId, NodeStatusReport)]) = {
+  private def saveUpdatedCompliance(newReports: Iterable[(NodeId, NodeStatusReport)]): IOResult[Unit] = {
     for {
       now     <- currentTimeMillis
       _       <- ReportLoggerPure.Cache.trace(
@@ -394,22 +382,6 @@ class ComputeNodeStatusReportServiceImpl(
 
   }
 
-  private def cacheToLog(c: Map[NodeId, NodeStatusReport]): String = {
-    import com.normation.rudder.domain.logger.ComplianceDebugLogger.*
-
-    // display compliance value and expiration date.
-    c.map {
-      case (nodeId, status) =>
-        val reportsString = status.reports.flatMap {
-          case (tag, aggregate) =>
-            aggregate.reports
-              .map(r => s"${r.ruleId.serialize}:${tag.value}[exp:${r.expirationDate}]${r.compliance.toString}")
-        }.mkString("\n  ", "\n  ", "")
-
-        s"node: ${nodeId.value}${status.runInfo.toLog}${reportsString}"
-    }.mkString("\n", "\n", "")
-  }
-
   /**
    * invalidate with an action to do something
    * order is important
@@ -438,28 +410,31 @@ class ComputeNodeStatusReportServiceImpl(
   /**
    * Find in cache all outdated compliance, and add to queue to recompute them
    */
-  override def outDatedCompliance(now: DateTime): IOResult[Unit] = {
-    import RunAnalysisKind.*
+  override def outDatedCompliance(now: DateTime, ignoreNodes: Set[NodeId]): IOResult[Unit] = {
+    import com.normation.rudder.domain.reports.RunAnalysisKind.*
     nsrRepo.getAll()(QueryContext.systemQC).flatMap { cache =>
       val nodeWithOutdatedCompliance = cache.filter {
         case (id, compliance) =>
-          compliance.runInfo.kind match {
-            // here, we only want to check for compliance that expires when time pass and we
-            // were in a good state. Bad states need an external action (new config, new runs)
-            // to change back to good state
+          if (ignoreNodes.contains(id)) false
+          else {
+            compliance.runInfo.kind match {
+              // here, we only want to check for compliance that expires when time pass and we
+              // were in a good state. Bad states need an external action (new config, new runs)
+              // to change back to good state
 
-            // bad status need an external thing beyond time passing
-            case NoRunNoExpectedReport | NoExpectedReport | NoUserRulesDefined | NoReportInInterval |
-                UnexpectedVersion | UnexpectedNoVersion | UnexpectedUnknownVersion | ReportsDisabledInInterval =>
-              false
-            // good status that can become bad
-            case ComputeCompliance | KeepLastCompliance | Pending =>
-              compliance.runInfo.expirationDateTime match {
-                case Some(t) => t.isBefore(now)
-                // if there is no expiration date time, we are in a non-standard situation
-                // and we need to wait for external change
-                case None    => false
-              }
+              // bad status need an external thing beyond time passing
+              case NoRunNoExpectedReport | NoExpectedReport | NoUserRulesDefined | NoReportInInterval |
+                  UnexpectedVersion | UnexpectedNoVersion | UnexpectedUnknownVersion | ReportsDisabledInInterval =>
+                false
+              // good status that can become bad
+              case ComputeCompliance | KeepLastCompliance | Pending =>
+                compliance.runInfo.expirationDateTime match {
+                  case Some(t) => t.isBefore(now)
+                  // if there is no expiration date time, we are in a non-standard situation
+                  // and we need to wait for external change
+                  case None    => false
+                }
+            }
           }
       }.toSeq
 
@@ -474,81 +449,6 @@ class ComputeNodeStatusReportServiceImpl(
         ) *>
         // send outdated message to queue
         invalidateWithAction(nodeWithOutdatedCompliance.map(x => (x._1, CacheComplianceQueueAction.ExpiredCompliance(x._1))))
-      }
-    }
-  }
-
-  /**
-   * Look in the cache for compliance for given nodes.
-   * Only data from cache is used, and even then are filtered out for expired data, so
-   * in the end, only node with up-to-date data are returned.
-   * For missing node in cache, a cache invalidation is triggered.
-   *
-   * That means that not all parameter node will lead to a NodeStatusReport in the map.
-   * This is handled in higher level of the app and leads to "no data available" in
-   * place of compliance bar.
-   */
-  def checkAndGetCache(
-      nodeIdsToCheck: Set[NodeId]
-  )(implicit qc: QueryContext): IOResult[Map[NodeId, NodeStatusReport]] = {
-    if (nodeIdsToCheck.isEmpty) {
-      Map[NodeId, NodeStatusReport]().succeed
-    } else {
-      val now = DateTime.now
-
-      for {
-        // disabled nodes are ignored
-        allNodeIds   <- nodeFactRepository
-                          .getAll()
-                          .map(_.collect { case (_, n) if (n.rudderSettings.state != NodeState.Ignored) => n.id }.toSet)
-        // only try to update nodes that are accepted in Rudder
-        nodeIds       = nodeIdsToCheck.intersect(allNodeIds)
-        inCache      <- nsrRepo.getAll()(QueryContext.systemQC).map(_.filter { case (id, _) => nodeIds.contains(id) })
-        /*
-         * Now, we want to signal to cache that some compliance may be missing / expired
-         * for the next time.
-         *
-         * Three cases:
-         * 1/ cache does exist and up to date INCLUDING the one with "missing" (because the report is
-         *    ok and will be until a new report comes)
-         * 2/ cache exists but expiration date expired,
-         * 3/ cache does note exists.
-         *
-         * For both 2 and 3, we trigger a cache regeneration for the corresponding node.
-         * For 3, we don't return data. Compliance for that node will appear as "missing data"
-         * and will be excluded to nodes count.
-         *
-         * For 2, we need to return data because of issue https://issues.rudder.io/issues/16612
-         * Grace period is already taken into account in expiration date.
-         * We return the cached value up to 2 runs after grace period expiration (service above that
-         * one will display expiration info).
-         *
-         * The definition of expired date is the following:
-         *  - Node is Pending -> expirationDateTime is the expiration time
-         *  - There is a LastRunAvailable -> expirationDateTime is the lastRunExpiration
-         *  - Other cases: no expiration, ie a "missing report" can not expire (and that's what we want)
-         *
-         */
-        upToDate      = inCache.filter {
-                          case (_, report) =>
-                            val expired = report.runInfo.expirationDateTime match {
-                              case Some(t) => t.isBefore(now)
-                              case _       => false
-                            }
-                            !expired
-                        }
-        // starting with nodeIds, is all accepted node passed in parameter,
-        // we don't miss node ids not yet in cache
-        requireUpdate = nodeIds -- upToDate.keySet
-        _            <- invalidateWithAction(
-                          requireUpdate.toSeq.map(x => (x, CacheComplianceQueueAction.SetNodeNoAnswer(x, DateTime.now())))
-                        ).unit
-      } yield {
-        ReportLogger.Cache.debug(s"Compliance cache to reload (expired, missing):[${requireUpdate.map(_.value).mkString(" , ")}]")
-        if (ReportLogger.Cache.isTraceEnabled) {
-          ReportLogger.Cache.trace("Compliance cache hit: " + cacheToLog(upToDate))
-        }
-        inCache
       }
     }
   }
