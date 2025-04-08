@@ -152,9 +152,9 @@ impl Metadata {
 #[cfg(test)]
 mod tests {
     use crate::archive::PackageType;
+    use crate::plugin::Metadata;
     use crate::versions::{ArchiveVersion, PluginVersion, RudderVersion, RudderVersionMode};
     use std::collections::HashMap;
-    use crate::plugin::Metadata;
 
     #[test]
     fn test_deserialize_metadata() {
@@ -175,34 +175,39 @@ mod tests {
 }
         "#;
         let metadata: Metadata = serde_json::from_str(raw).unwrap();
-        assert_eq!(metadata, Metadata {
-            package_type: PackageType::Plugin,
-            name: "rudder-plugin-benchmark-cis-ubuntu-20-04".to_string(),
-            version: ArchiveVersion {
-                plugin_version: PluginVersion {
-                    major: 0,
-                    minor: 10,
-                    nightly: true,
-                },
-                rudder_version: RudderVersion {
-                    major: 8,
-                    minor: 3,
-                    patch: 0,
-                    mode: RudderVersionMode::Beta {
-                        version: 2,
+        assert_eq!(
+            metadata,
+            Metadata {
+                package_type: PackageType::Plugin,
+                name: "rudder-plugin-benchmark-cis-ubuntu-20-04".to_string(),
+                version: ArchiveVersion {
+                    plugin_version: PluginVersion {
+                        major: 0,
+                        minor: 10,
+                        nightly: true,
                     },
-                    nightly: None,
-                }
-            },
-            description: Some("Provides a security-benchmark implementation for the CIS Ubuntu 20 benchmark".to_string()),
-            build_date: "2025-04-07T16:12:45+02:00".to_string(),
-            depends: None,
-            build_commit: "90cfeb484f6212f9d19ec72bbdc85f1b34547c25".to_string(),
-            content: HashMap::from([
-                ("files.txz".to_string(), "/opt/rudder/share/plugins".to_string())
-            ]),
-            jar_files: vec![],
-            requires_license: false,
-        })
+                    rudder_version: RudderVersion {
+                        major: 8,
+                        minor: 3,
+                        patch: 0,
+                        mode: RudderVersionMode::Beta { version: 2 },
+                        nightly: None,
+                    }
+                },
+                description: Some(
+                    "Provides a security-benchmark implementation for the CIS Ubuntu 20 benchmark"
+                        .to_string()
+                ),
+                build_date: "2025-04-07T16:12:45+02:00".to_string(),
+                depends: None,
+                build_commit: "90cfeb484f6212f9d19ec72bbdc85f1b34547c25".to_string(),
+                content: HashMap::from([(
+                    "files.txz".to_string(),
+                    "/opt/rudder/share/plugins".to_string()
+                )]),
+                jar_files: vec![],
+                requires_license: false,
+            }
+        )
     }
 }
