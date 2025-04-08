@@ -381,6 +381,17 @@ final class AggregatedStatusReport private (
       })
     )
   }
+
+  override def hashCode(): Int = {
+    reports.hashCode() + 47
+  }
+
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case other: AggregatedStatusReport => this.reports == other.reports
+      case _ => false
+    }
+  }
 }
 
 object AggregatedStatusReport {

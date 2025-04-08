@@ -106,6 +106,9 @@ trait NodeStatusReportStorage {
 
 object NodeStatusReportRepositoryImpl {
 
+  /*
+   * Create a repo from a datastore, initially loading data from it.
+   */
   def makeAndInit(storage: NodeStatusReportStorage): IOResult[NodeStatusReportRepositoryImpl] = {
     for {
       reports <- storage.getAll()
@@ -178,7 +181,12 @@ class NodeStatusReportRepositoryImpl(
                          // in other case, just update what is in cache if it's actually different
                          case _                                  =>
                            m.get(id) match {
-                             case Some(e) => if (e == report) None else Some((id, report))
+                             case Some(e) =>
+                               if (e == report) {
+                                 None
+                               } else {
+                                 Some((id, report))
+                               }
                              case None    => Some((id, report))
                            }
                        }
@@ -254,6 +262,9 @@ class JdbcNodeStatusReportStorage(doobie: Doobie, jdbcBatchSize: Int) extends No
       .validate(reports.sliding(jdbcBatchSize).to(Iterable)) { rs =>
         val rows = toRows(rs)
         ComplianceLoggerPure.debug(s"Saving compliance state for ${rs.size} nodes in base") *>
+        ComplianceLoggerPure.ifTraceEnabled(
+          ComplianceLoggerPure.trace(s"Saving compliance in base for nodes: ${rs.map(_._1.value).mkString(",")}")
+        ) *>
         transactIOResult(s"error when saving compliance for nodes")(xa => query.updateMany(rows).transact(xa))
       }
       .mapError(errs => Accumulated(NonEmptyList(errs.head, errs.tail)))
