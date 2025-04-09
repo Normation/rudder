@@ -258,7 +258,7 @@ pipeline {
                 }
                 stage('relayd') {
                     // we need to use a script for side container currently
-                    agent { label 'docker' }
+                    agent { label 'generic-docker' }
                     environment {
                         POSTGRES_PASSWORD = 'PASSWORD'
                         POSTGRES_DB       = 'rudder'
@@ -270,9 +270,9 @@ pipeline {
                         }
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             script {
-                                docker.image('postgres:11-bullseye').withRun('-e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_DB=${POSTGRES_DB}', '-c listen_addresses="*"') { c ->
-                                    docker.build('relayd', "-f relay/sources/relayd/Dockerfile --build-arg USER_ID=${env.JENKINS_UID} --pull .")
-                                          .inside("-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/home/jenkins/.cache/sccache -v /srv/cache/cargo-vet:/home/jenkins/.cache/cargo-vet --link=${c.id}:postgres") {
+                                docker.image('postgres:11-bullseye').withRun('-u 0:0 -e POSTGRES_USER=${POSTGRES_USER} -e POSTGRES_PASSWORD=${POSTGRES_PASSWORD} -e POSTGRES_DB=${POSTGRES_DB}', '-c listen_addresses="*"') { c ->
+                                    docker.build('relayd', "-u 0:0 -f relay/sources/relayd/Dockerfile --build-arg USER_ID=${env.JENKINS_UID} --pull .")
+                                          .inside("-v /srv/cache/cargo:/usr/local/cargo/registry -v /srv/cache/sccache:/root/.cache/sccache -v /srv/cache/cargo-vet:/root/.cache/cargo-vet --link=${c.id}:postgres") {
                                         dir('relay/sources/relayd') {
                                             sh script: "PGPASSWORD=${POSTGRES_PASSWORD} psql -U ${POSTGRES_USER} -h postgres -d ${POSTGRES_DB} -a -f tools/create-database.sql", label: 'provision database'
                                             sh script: 'make check', label: 'relayd tests'
