@@ -322,19 +322,19 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
     def getWorkflowService(): WorkflowService = ???
 
-    def getForRule(actor: EventActor, change: RuleChangeRequest): Box[WorkflowService] = ???
+    def getForRule(actor: EventActor, change: RuleChangeRequest): IOResult[WorkflowService] = ???
 
-    def getForDirective(actor: EventActor, change: DirectiveChangeRequest): Box[WorkflowService] = ???
+    def getForDirective(actor: EventActor, change: DirectiveChangeRequest): IOResult[WorkflowService] = ???
 
-    def getForNodeGroup(actor: EventActor, change: NodeGroupChangeRequest): Box[WorkflowService] = ???
+    def getForNodeGroup(actor: EventActor, change: NodeGroupChangeRequest): IOResult[WorkflowService] = ???
 
-    def getForGlobalParam(actor: EventActor, change: GlobalParamChangeRequest): Box[WorkflowService] = ???
+    def getForGlobalParam(actor: EventActor, change: GlobalParamChangeRequest): IOResult[WorkflowService] = ???
 
-    def getByDirective(id: DirectiveUid, onlyPending: Boolean): Box[Vector[ChangeRequest]] = ???
+    def getByDirective(id: DirectiveUid, onlyPending: Boolean): IOResult[Vector[ChangeRequest]] = ???
 
-    def getByNodeGroup(id: NodeGroupId, onlyPending: Boolean): Box[Vector[ChangeRequest]] = ???
+    def getByNodeGroup(id: NodeGroupId, onlyPending: Boolean): IOResult[Vector[ChangeRequest]] = ???
 
-    def getByRule(id: RuleUid, onlyPending: Boolean): Box[Vector[ChangeRequest]] = ???
+    def getByRule(id: RuleUid, onlyPending: Boolean): IOResult[Vector[ChangeRequest]] = ???
   }
 
   def techRepo: TechniqueRepository = new TechniqueRepository {

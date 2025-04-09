@@ -79,7 +79,7 @@ trait CommitAndDeployChangeRequestService {
    * the changes it contains and the actual current
    * state of configuration.
    */
-  def save(changeRequest: ChangeRequest)(implicit cc: ChangeContext): Box[ChangeRequest]
+  def save(changeRequest: ChangeRequest)(implicit cc: ChangeContext): IOResult[ChangeRequest]
 
   /**
    * Check if a changeRequest can be merged as it is.
@@ -116,7 +116,7 @@ class CommitAndDeployChangeRequestServiceImpl(
 
   val logger = ChangeRequestLogger
 
-  def save(changeRequest: ChangeRequest)(implicit cc: ChangeContext): Box[ChangeRequest] = {
+  def save(changeRequest: ChangeRequest)(implicit cc: ChangeContext): IOResult[ChangeRequest] = {
     implicit val qc: QueryContext = cc.toQuery
 
     workflowEnabled().toBox.foreach {
@@ -141,7 +141,7 @@ class CommitAndDeployChangeRequestServiceImpl(
       }
       ChangeRequest.setModId(config, cc.modId)
     }
-  }
+  }.toIO
 
   def isMergeable(changeRequest: ChangeRequest)(implicit qc: QueryContext): Boolean = {
     changeRequest match {

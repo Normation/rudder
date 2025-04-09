@@ -780,13 +780,16 @@ class NodeGroupForm(
     val optOriginal = nodeGroup.toOption
     val change      = NodeGroupChangeRequest(action, newGroup, newCategory, optOriginal)
 
-    workflowLevelService.getForNodeGroup(CurrentUser.actor, change) match {
-      case eb: EmptyBox =>
-        val msg = s"Error when getting the validation workflow for changes in directive '${change.newGroup.name}'"
-        logger.warn(msg, eb)
-        JsRaw(s"alert('${msg}')")
+    workflowLevelService
+      .getForNodeGroup(CurrentUser.actor, change)
+      .chainError(s"Error when getting the validation workflow for changes in directive '${change.newGroup.name}'")
+      .either
+      .runNow match {
+      case Left(err) =>
+        logger.warn(err.fullMsg)
+        JsRaw(s"alert('${err.fullMsg}')")
 
-      case Full(workflowService) =>
+      case Right(workflowService) =>
         val popup = {
 
           def successCallback(crId: ChangeRequestId) = {
