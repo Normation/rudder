@@ -38,7 +38,7 @@ package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.GitVersion
-import com.normation.box.*
+import com.normation.errors.IOResult
 import com.normation.errors.PureResult
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.InventoryError.Inconsistency
@@ -59,6 +59,7 @@ import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.*
+import com.normation.zio.UnsafeRun
 import com.typesafe.config.ConfigValue
 import com.typesafe.config.ConfigValueType
 import net.liftweb.common.*
@@ -71,6 +72,7 @@ import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import scala.xml.*
+import zio.syntax.*
 
 class CreateOrUpdateGlobalParameterPopup(
     change:            GlobalParamChangeRequest,
@@ -107,17 +109,17 @@ class CreateOrUpdateGlobalParameterPopup(
     case false => NodeSeq.Empty
   }
 
-  private def globalParamDiffFromAction(newParameter: GlobalParameter): Box[ChangeRequestGlobalParameterDiff] = {
+  private def globalParamDiffFromAction(newParameter: GlobalParameter): IOResult[ChangeRequestGlobalParameterDiff] = {
     change.previousGlobalParam match {
       case None    =>
         if ((change.action == GlobalParamModAction.Update) || (change.action == GlobalParamModAction.Create))
-          Full(AddGlobalParameterDiff(newParameter))
+          AddGlobalParameterDiff(newParameter).succeed
         else
-          Failure(s"Action ${change.action.name} is not possible on a new global property")
+          Inconsistency(s"Action ${change.action.name} is not possible on a new global property").fail
       case Some(d) =>
         change.action match {
-          case GlobalParamModAction.Delete                               => Full(DeleteGlobalParameterDiff(d))
-          case GlobalParamModAction.Update | GlobalParamModAction.Create => Full(ModifyToGlobalParameterDiff(newParameter))
+          case GlobalParamModAction.Delete                               => DeleteGlobalParameterDiff(d).succeed
+          case GlobalParamModAction.Update | GlobalParamModAction.Create => ModifyToGlobalParameterDiff(newParameter).succeed
         }
     }
   }
@@ -145,7 +147,7 @@ class CreateOrUpdateGlobalParameterPopup(
       }
       val savedChangeRequest = {
         for {
-          value <- parseValue(parameterValue.get, jsonCheck).toBox
+          value <- parseValue(parameterValue.get, jsonCheck).toIO
           param  = GlobalParameter(
                      parameterName.get,
                      GitVersion.DEFAULT_REV,
@@ -165,16 +167,17 @@ class CreateOrUpdateGlobalParameterPopup(
                      CurrentUser.actor,
                      paramReasons.map(_.get)
                    )
-          id    <- workflowService.startWorkflow(cr)(
-                     ChangeContext(
-                       ModificationId(uuidGen.newUuid),
-                       qc.actor,
-                       new DateTime(),
-                       paramReasons.map(_.get),
-                       None,
-                       qc.nodePerms
+          id    <- workflowService
+                     .startWorkflow(cr)(
+                       ChangeContext(
+                         ModificationId(uuidGen.newUuid),
+                         qc.actor,
+                         new DateTime(),
+                         paramReasons.map(_.get),
+                         None,
+                         qc.nodePerms
+                       )
                      )
-                   )
         } yield {
           if (workflowEnabled) {
             closePopup() & onSuccessCallback(Right(id))
@@ -183,13 +186,15 @@ class CreateOrUpdateGlobalParameterPopup(
           }
         }
       }
-      savedChangeRequest match {
-        case Full(res) =>
-          res
-        case eb: EmptyBox =>
-          val msg = (eb ?~! "An error occurred while updating the parameter").messageChain
-          logger.error(msg)
-          formTracker.addFormError(error(msg))
+
+      savedChangeRequest
+        .chainError("An error occurred while updating the parameter")
+        .either
+        .runNow match {
+        case Right(jsCmd) => jsCmd
+        case Left(err)    =>
+          logger.error(err.fullMsg)
+          formTracker.addFormError(error(err.fullMsg))
           onFailure
       }
     }

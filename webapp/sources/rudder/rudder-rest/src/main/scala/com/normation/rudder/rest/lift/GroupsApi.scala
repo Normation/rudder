@@ -500,7 +500,6 @@ class GroupApiService14(
             change    = NodeGroupChangeRequest(DGModAction.CreateSolo, updated, restGroup.category, Some(baseGroup))
             workflow <- workflowLevelService
                           .getForNodeGroup(actor, change)
-                          .toIO
                           .chainError("Could not find workflow status for that rule creation")
           } yield {
             // we don't actually start a workflow, we only disable the group if a workflow should be
@@ -543,7 +542,7 @@ class GroupApiService14(
                 val change          = NodeGroupChangeRequest(DGModAction.Update, updatedGroup, Some(cat), Some(group))
                 implicit val cc: ChangeContext =
                   ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), None, None, qc.nodePerms)
-                createChangeRequest(reloadGroupDiff, change, params, actor).toIO
+                createChangeRequest(reloadGroupDiff, change, params, actor)
               }
               .chainError(s"Could not reload Group ${sid} details")
 
@@ -567,7 +566,7 @@ class GroupApiService14(
           val change          = NodeGroupChangeRequest(DGModAction.Delete, group, Some(cat), Some(group))
           implicit val cc: ChangeContext =
             ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), None, None, qc.nodePerms)
-          createChangeRequest(deleteGroupDiff, change, params, actor).toIO
+          createChangeRequest(deleteGroupDiff, change, params, actor)
 
         case None =>
           JRGroup.empty(id.serialize).succeed
@@ -584,7 +583,7 @@ class GroupApiService14(
       diff     = ModifyToNodeGroupDiff(updated)
       optCat   = restGroup.category.orElse(Some(pair._2))
       change   = NodeGroupChangeRequest(DGModAction.Update, updated, optCat, Some(pair._1))
-      res     <- createChangeRequest(diff, change, params, actor).toIO
+      res     <- createChangeRequest(diff, change, params, actor)
     } yield {
       res
     }

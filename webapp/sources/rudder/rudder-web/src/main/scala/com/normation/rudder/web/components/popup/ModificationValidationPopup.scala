@@ -609,16 +609,18 @@ class ModificationValidationPopup(
 
     (for {
       cr <- boxcr
-      id <- workflowService.startWorkflow(cr)(
-              ChangeContext(
-                ModificationId(uuidGen.newUuid),
-                CurrentUser.actor,
-                new DateTime(),
-                crReasons.map(_.get),
-                None,
-                CurrentUser.nodePerms
+      id <- workflowService
+              .startWorkflow(cr)(
+                ChangeContext(
+                  ModificationId(uuidGen.newUuid),
+                  CurrentUser.actor,
+                  new DateTime(),
+                  crReasons.map(_.get),
+                  None,
+                  CurrentUser.nodePerms
+                )
               )
-            )
+              .toBox
     } yield {
       id
     }) match {

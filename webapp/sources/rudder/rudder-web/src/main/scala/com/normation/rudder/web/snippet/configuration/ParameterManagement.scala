@@ -47,6 +47,7 @@ import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.popup.CreateOrUpdateGlobalParameterPopup
+import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.DispatchSnippet
@@ -237,13 +238,18 @@ class ParameterManagement extends DispatchSnippet with Loggable {
       parameter: Option[GlobalParameter]
   )(implicit qc: QueryContext): JsCmd = {
     val change = GlobalParamChangeRequest(action, parameter)
-    workflowLevelService.getForGlobalParam(CurrentUser.actor, change) match {
-      case eb: EmptyBox =>
-        val msg = "An error occured when trying to find the validation workflow to use for that change."
-        logger.error(msg, eb)
-        JsRaw(s"alert('${msg}')") // JsRaw ok, const
+    val errMsg = "An error occured when trying to find the validation workflow to use for that change."
 
-      case Full(workflowService) =>
+    workflowLevelService
+      .getForGlobalParam(CurrentUser.actor, change)
+      .chainError(errMsg)
+      .either
+      .runNow match {
+      case Left(err) =>
+        logger.error(err.fullMsg)
+        JsRaw(s"alert('${errMsg}')") // JsRaw ok, const
+
+      case Right(workflowService) =>
         parameterPopup.set(
           Full(
             new CreateOrUpdateGlobalParameterPopup(

@@ -39,15 +39,14 @@ package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
+import com.normation.errors.IOResult
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.users.CurrentUser
-import net.liftweb.common.Box
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
+import com.normation.zio.UnsafeRun
 import net.liftweb.common.Loggable
 import net.liftweb.util.Helpers.*
 import scala.xml.NodeSeq
@@ -62,24 +61,21 @@ object PendingChangeRequestDisplayer extends Loggable {
   private val workflowLevel = RudderConfig.workflowLevelService
   private val linkUtil      = RudderConfig.linkUtil
 
-  private def displayPendingChangeRequest(xml: NodeSeq, crs: Box[Seq[ChangeRequest]]): NodeSeq = {
-    crs match {
-      case eb: EmptyBox =>
-        val e = eb ?~! "Error when trying to lookup pending change request"
-        logger.error(e.messageChain)
-        e.rootExceptionCause.foreach(ex => logger.error("Exception was:", ex))
-        <span class="error">{e.messageChain}</span>
-      case Full(crs) if (crs.size == 0) =>
-        NodeSeq.Empty
-      case Full(crs) =>
-        // Need to fold the Element into one parent, or it behaves strangely (repeat the parent ...)
+  private def displayPendingChangeRequest(xml: NodeSeq, crs: IOResult[Seq[ChangeRequest]]): NodeSeq = {
+
+    val hasRights   = CurrentUser.checkRights(AuthorizationType.Validator.Read) ||
+      CurrentUser.checkRights(AuthorizationType.Deployer.Read)
+    val curUserName = CurrentUser.actor.name
+
+    crs.chainError("Error when trying to lookup pending change request").either.runNow match {
+      case Left(err)                   =>
+        logger.error(err.fullMsg)
+        <span class="error">{err.fullMsg}</span>
+      case Right(crs) if (crs.isEmpty) => NodeSeq.Empty
+      case Right(crs)                  =>
         val pendingChangeRequestLink = crs.foldLeft(NodeSeq.Empty) { (res, cr) =>
           res ++ {
-            if (
-              CurrentUser.checkRights(AuthorizationType.Validator.Read) || CurrentUser.checkRights(
-                AuthorizationType.Deployer.Read
-              ) || cr.owner == CurrentUser.actor.name
-            ) {
+            if (hasRights || cr.owner == curUserName) {
               <li><a href={linkUtil.baseChangeRequestLink(cr.id)}>CR #{cr.id}: {cr.info.name}</a></li>
             } else {
               <li>CR #{cr.id}</li>
@@ -88,10 +84,9 @@ object PendingChangeRequestDisplayer extends Loggable {
         }
         ("#changeRequestList *+" #> pendingChangeRequestLink).apply(xml)
     }
-
   }
 
-  private type checkFunction[T] = (T, Boolean) => Box[Seq[ChangeRequest]]
+  private type checkFunction[T] = (T, Boolean) => IOResult[Seq[ChangeRequest]]
 
   private def checkChangeRequest[T](
       xml:   NodeSeq,
