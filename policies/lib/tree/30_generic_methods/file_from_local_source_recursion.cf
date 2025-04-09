@@ -38,11 +38,7 @@
 bundle agent file_from_local_source_recursion(source, path, recursion)
 {
   vars:
-      "old_class_prefix" string => canonify("file_from_local_source_${path}");
-      "args"              slist => { "${source}", "${path}", "${recursion}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_from_local_source_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix" string => canonify("file_from_local_source_${path}");
 
   classes:
       # depth_search prevents from copying file/symlink
@@ -59,22 +55,20 @@ bundle agent file_from_local_source_recursion(source, path, recursion)
    !is_dir_copy::
       "${path}"
         copy_from    => ncf_local_cp_method("${source}", "digest"),
-        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes      => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
    is_dir_copy::
       "${path}"
         copy_from    => ncf_local_cp_method("${source}", "digest"),
         depth_search => recurse("${recursion}"),
-        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes      => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
   methods:
     # The reports should only be made after we know if this is a
     # directory (to apply recursion) or a file
     iteration_2.!is_dir_copy::
-      "report"
-        usebundle  => _log_v3("Copying ${path} from ${source}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Copying ${path} from ${source}", "");
 
     iteration_2.is_dir_copy::
-      "report"
-        usebundle  => _log_v3("Copying ${path} from local ${source}, recursion level ${recursion}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Copying ${path} from local ${source}, recursion level ${recursion}", "");
 }

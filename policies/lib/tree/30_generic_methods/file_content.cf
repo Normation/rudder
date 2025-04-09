@@ -70,7 +70,7 @@
 bundle agent file_content(path, lines, enforce)
 {
   vars:
-      "old_class_prefix" string => canonify("file_lines_present_${path}");
+      "class_prefix" string => canonify("file_lines_present_${path}");
 
     # We need to detect if lines is an iterator or a scalar
     !pass1::
@@ -87,13 +87,6 @@ bundle agent file_content(path, lines, enforce)
     pass1.islist::
       "args"              slist => { "${path}", "@{lines}", "${enforce}" };
 
-    pass1::
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_lines_present_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
-
-
   classes:
     !pass2::
       "islist" expression => isgreaterthan("$(length_list)", "1");
@@ -107,18 +100,18 @@ bundle agent file_content(path, lines, enforce)
         create        => "true",
         edit_line     => insert_lines("${lines}"),
         edit_defaults => ncf_empty_select("${enforce}"),
-        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes       => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     pass2.islist::
       "${path}"
         create        => "true",
         edit_line     => insert_lines("@{lines}"), # If it's a list, we don't want to iterate each time over the element
         edit_defaults => ncf_empty_select("${enforce}"),
-        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes       => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
   methods:
     pass2::
-      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
-      "report" usebundle => _log_v3("Insert content into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+      #"${report_data.method_id}" usebundle => _classes_sanitize("${report_data.method_id}");
+      #"${report_data.method_id}" usebundle => _classes_sanitize("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Insert content into ${path}", "");
 }
