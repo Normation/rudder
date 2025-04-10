@@ -15,7 +15,7 @@ pub struct ExecutionResult {
 impl ExecutionResult {
     pub fn assert_legacy_result_conditions(
         &self,
-        method_call: MethodToTest,
+        method_call: &MethodToTest,
         expected_status: Vec<MethodStatus>,
     ) {
         let expected_conditions = method_call.legacy_result_conditions(expected_status);
@@ -45,7 +45,7 @@ impl ExecutionResult {
     // the exact result condition difficult to compute, using patterns is easier
     pub fn assert_log_v4_result_conditions(
         &self,
-        method_call: MethodToTest,
+        method_call: &MethodToTest,
         expected_status: MethodStatus,
     ) {
         let expected_conditions = method_call.log_v4_result_conditions(expected_status);

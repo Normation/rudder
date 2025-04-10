@@ -40,48 +40,34 @@
 bundle agent variable_string_from_command(prefix, name, command)
 {
   vars:
-      "old_class_prefix"  string => canonify("variable_string_from_command_${name}");
-      "args"               slist => { "${prefix}", "${name}", "${command}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("variable_string_from_command_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
-    # means < 8.0, promises.cf breaks on >= 3.14
-    # can be removed when 7.X compat is dropped
-    cfengine_3_15|cfengine_3_18::
-      # only capture stdout for compatibility with previous implementation
-      # add a comment to allow executing the exact same command without hitting
-      # https://northerntech.atlassian.net/browse/CFE-4244
-      "result" data => execresult_as_data("${command} # as_data", "useshell", "stdout");
-    !(cfengine_3_15|cfengine_3_18)::
-      "result" data => execresult_as_data("${command}", "useshell", "stdout");
+      "class_prefix" string => canonify("variable_string_from_command_${name}");
+      "result"         data => execresult_as_data("${command}", "useshell", "stdout");
 
     returned_zero::
       "${prefix}.${name}" string => "${result[output]}";
 
   classes:
     pass1::
-      "returned_zero"     expression => strcmp("${result[exit_code]}", "0");
+      "returned_zero"    expression => strcmp("${result[exit_code]}", "0");
     pass2::
-      "variable_defined"  expression => isvariable("${prefix}.${name}");
+      "variable_defined" expression => isvariable("${prefix}.${name}");
 
     any::
-      "pass3" expression => "pass2";
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
+      "pass3"            expression => "pass2";
+      "pass2"            expression => "pass1";
+      "pass1"            expression => "any";
 
   methods:
     pass3.!variable_defined::
-      "error"    usebundle => _classes_failure("${old_class_prefix}");
-      "error"    usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
 
     pass3.variable_defined::
-      "success"  usebundle => _classes_success("${old_class_prefix}");
-      "success"  usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
 
     pass3::
-      "report"
-        usebundle  => _log_v3("Set the string ${prefix}.${name} to the output of '${command}'", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Set the string ${prefix}.${name} to the output of '${command}'", "");
 
   reports:
     pass3.info.returned_zero::

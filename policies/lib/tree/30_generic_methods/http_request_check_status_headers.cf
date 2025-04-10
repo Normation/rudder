@@ -34,31 +34,28 @@
 bundle agent http_request_check_status_headers(method, url, expected_status, headers)
 {
   vars:
-      "old_class_prefix" string => canonify("http_request_check_status_headers_${url}");
-      "args"              slist => { "${method}", "${url}", "${expected_status}", "${headers}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("http_request_check_status_headers_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix" string => canonify("http_request_check_status_headers_${url}");
 
   classes:
-    any::
+      "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
   methods:
-    pass2::
-      "report" usebundle => _log_v3("Performing a HTTP ${method} request on ${url}, expecting status ${expected_status}", "${url}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.!_ncf_path_exists_curl::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${url}", "Unable to perform a HTTP ${method} on ${url}: curl is not installed", "");
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${url}", "Performing a HTTP ${method} request on ${url}, expecting status ${expected_status}", "");
 
-    !_ncf_path_exists_curl::
-      "force_failure_class_old"   usebundle => _classes_failure("${old_class_prefix}");
-      "force_failure_class"       usebundle => _classes_failure("${class_prefix}");
-      "report"                    usebundle => _log_v3("Unable to perform a HTTP ${method} on ${url}: curl is not installed", "${url}", "${old_class_prefix}", "${class_prefix}", @{args});
 
   commands:
+    pass2.!pass3::
       "${ncf_paths.path[curl]}"
-        args => "-I -L -s -o /dev/null -w \"%{http_code}\" ${url} -X ${method} -H '${headers}' | ${paths.path[grep]} -q ${expected_status}",
+        args    => "-I -L -s -o /dev/null -w \"%{http_code}\" ${url} -X ${method} -H '${headers}' | ${paths.path[grep]} -q ${expected_status}",
         contain => in_shell,
         # We don't define repaired class, as we only query and expect, so using 999 to avoid using this feature
-        classes => classes_generic_return_single_code_two("${old_class_prefix}", "${class_prefix}", "0", "999", "1");
+        classes => classes_generic_return_single_code_two("${class_prefix}", "${report_data.method_id}", "0", "999", "1");
 
 }

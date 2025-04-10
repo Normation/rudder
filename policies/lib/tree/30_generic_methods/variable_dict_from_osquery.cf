@@ -75,43 +75,36 @@
 bundle agent variable_dict_from_osquery(prefix, name, query)
 {
   vars:
-      "old_class_prefix"  string => canonify("variable_dict_from_osquery_${name}");
-      "args"               slist => { "${prefix}", "${name}", "${query}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("variable_dict_from_osquery_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
+      "class_prefix"    string => canonify("variable_dict_from_osquery_${name}");
+      "tmp_var_name"    string => canonify("${report_data.method_id}_tmp");
     pass2::
-      "${prefix}.${name}" data => parsejson("${variable_dict_from_osquery_tmp.${name}}"),
-                                              if => "variable_string_from_command_${name}_ok";
+      "${prefix}.${name}" data => parsejson("${variable_dict_from_osquery_tmp.${tmp_var_name}}"),
+                            if => "${tmp_var_name}_ok";
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
-
-    pass2::
+    any::
+      "pass3"            expression => "pass2";
+      "pass2"            expression => "pass1";
+      "pass1"            expression => "any";
+    pass3::
       "variable_defined" expression => isvariable("${prefix}.${name}");
 
-    any::
-      "pass3" expression => "pass2";
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
-
   methods:
-      "disable_reporting_${class_prefix}"  usebundle => disable_reporting;
+    pass1.!pass2::
       # store string output in temp variable
-      "query" usebundle => variable_string_from_command("variable_dict_from_osquery_tmp", "${name}", "osqueryi --json \"${query}\" 2>/dev/null");
-      "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
-                                           ifvarclass => "should_report";
+      "${report_data.method_id}" usebundle => call_method("variable_string_from_command");
+      "${report_data.method_id}" usebundle => variable_string_from_command("variable_dict_from_osquery_tmp", "${tmp_var_name}", "osqueryi --json \"${query}\" 2>/dev/null");
+      "${report_data.method_id}" usebundle => call_method_classes("${tmp_var_name}");
+      "${report_data.method_id}" usebundle => call_method_end("variable_string_from_command");
 
     pass3.!variable_defined::
-      "error" usebundle => _classes_failure("${old_class_prefix}");
-      "error" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
 
     pass3.variable_defined::
-      "ok"    usebundle => _classes_success("${old_class_prefix}");
-      "ok"    usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
 
     pass3::
-      "report"
-        usebundle  => _log_v3("Set the dict ${prefix}.${name} to the result of the '${query}' query", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Set the dict ${prefix}.${name} to the result of the '${query}' query", "");
 }
