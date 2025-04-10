@@ -3,6 +3,7 @@ module Rules.View exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (checked, class, disabled, for, href, id, placeholder, style, tabindex, type_, value, attribute)
 import Html.Events exposing (onClick, onInput)
+import Html.Events.Extra exposing (onClickPreventDefault)
 import List
 import List.Extra
 import Maybe.Extra exposing (isNothing)
@@ -94,7 +95,7 @@ view model =
               Just (
                 li[class ("jstree-node" ++ foldedClass model.ui.ruleFilters.treeFilters item.id)]
                 [ i [class "jstree-icon jstree-ocl", onClick (UpdateRuleFilters (foldUnfoldCategory model.ui.ruleFilters item.id))][]
-                , a [class ("jstree-anchor" ++ classFocus), href ("/rudder/secure/configurationManager/ruleManagement/ruleCategory/" ++ item.id), onClick (OpenCategoryDetails item.id True)]
+                , a [class ("jstree-anchor" ++ classFocus), href ("/rudder/secure/configurationManager/ruleManagement/ruleCategory/" ++ item.id), onClickPreventDefault (OpenCategoryDetails item.id True)]
                   [ i [class ("jstree-icon jstree-themeicon jstree-themeicon-custom" ++ icons)][]
                   , span [class ("treeGroupCategoryName " ++ missingCatClass ++ mainMissingCat)][text item.name]
                   ]
