@@ -22,6 +22,9 @@ test-log = "*"
 serde_yaml = "0.9.34+deprecated"
 env_logger = "0.11.6"
 regex = "1.11.1"
+tiny_http = "0.12.0"
+posix-acl = "1.2.0"
+users = "0.11.0"
 
 [dev-dependencies]
 test-log = "*"

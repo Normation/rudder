@@ -2,19 +2,55 @@
 // SPDX-FileCopyrightText: 2025 Normation SAS
 
 #[cfg(test)]
-pub mod command_execution_test;
+mod audit_from_command_test;
 #[cfg(test)]
-pub mod condition_from_expression_test;
+mod audit_from_osquery_test;
 #[cfg(test)]
-pub mod condition_from_variable_existence_test;
+mod command_execution_test;
 #[cfg(test)]
-pub mod condition_from_variable_match_test;
+mod condition_from_expression_test;
 #[cfg(test)]
-pub mod file_absent_test;
+mod condition_from_variable_existence_test;
 #[cfg(test)]
-pub mod file_check_exists_test;
+mod condition_from_variable_match_test;
+#[cfg(test)]
+mod file_absent_test;
+#[cfg(test)]
+mod file_check_exists_test;
 #[cfg(test)]
 mod file_content_test;
+
+#[cfg(test)]
+mod file_block_present_test;
+#[cfg(test)]
+mod file_copy_from_local_source_recursion_test;
+#[cfg(test)]
+mod file_from_local_source_recursion_test;
+#[cfg(test)]
+mod variable_string_from_command_test;
+
+#[cfg(test)]
+mod variable_string_test;
+
+#[cfg(test)]
+mod directory_check_exists_test;
+#[cfg(test)]
+mod directory_present_test;
+#[cfg(test)]
+mod file_block_present_in_section_test;
+#[cfg(test)]
+mod file_ensure_key_value_option_test;
+#[cfg(test)]
+mod file_from_http_server_test;
+#[cfg(test)]
+mod file_from_string_mustache_test;
+#[cfg(test)]
+mod file_lines_absent_test;
+#[cfg(test)]
+mod file_replace_lines_test;
+mod permissions_group_acl_absent_test;
+#[cfg(test)]
+mod variable_string_default_test;
 
 use log::debug;
 use rudder_commons::methods::Methods;

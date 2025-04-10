@@ -37,69 +37,44 @@
 
 bundle agent file_from_http_server(source, path)
 {
-
   vars:
-
-
     _ncf_path_exists_curl::
-      "action_command"            string => "${ncf_paths.path[curl]} -f -s -L -o ${path} ${source}";
-
-
+      "action_command" string => "${ncf_paths.path[curl]} -f -s -L -o ${path} ${source}";
     !_ncf_path_exists_curl._stdlib_path_exists_wget::
-      "action_command"            string => "${paths.path[wget]} -O ${path} ${source}";
-
-
+      "action_command" string => "${paths.path[wget]} -O ${path} ${source}";
     any::
-      "canonified_path"    string => canonify("${path}");
-      "canonified_action_command" string => canonify("${action_command}");
-
-      "old_class_prefix"          string => "file_from_http_server_${canonified_path}";
-      "args"                       slist => { "${source}", "${path}" };
-      "report_param"              string => join("_", args);
-      "full_class_prefix"         string => canonify("file_from_http_server_${report_param}");
-      "class_prefix"              string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"   string => "file_from_http_server_${path}";
 
 
   classes:
-
-      "file_exists"    expression => fileexists("${path}");
-
-      "should_report"  expression => "${report_data.should_report}";
+      "pass3"       expression => "pass2";
+      "pass2"       expression => "pass1";
+      "pass1"       expression => "any";
+    !pass3::
+      "file_exists" expression => fileexists("${path}");
 
   methods:
-      "disable_reporting_${class_prefix}"
-                        usebundle => disable_reporting;
+    pass3.dry_run.!file_exists::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Unable to find file ${path}. Download file from http server", "");
+    pass3.!dry_run.(_ncf_path_exists_curl|_stdlib_path_exists_wget).!file_exists::
+      "${report_data.method_id}" usebundle => call_method("command_execution");
+      "${report_data.method_id}" usebundle => command_execution("${action_command}");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("command_execution");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Download ${source} into ${path}", "");
 
+    pass3.!_ncf_path_exists_curl.!_stdlib_path_exists_wget.!file_exists::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Unable to download ${source}: neither wget or curl are installed", "");
 
-    (_ncf_path_exists_curl|_stdlib_path_exists_wget).!file_exists::
-      "action"          usebundle => command_execution("${action_command}");
-
-    any::
-      "reenable_reporting_${class_prefix}"
-                        usebundle => enable_reporting,
-                       ifvarclass => "should_report";
-    (_ncf_path_exists_curl|_stdlib_path_exists_wget).!file_exists::
-      "class copy"      usebundle => _classes_copy("command_execution_${canonified_action_command}", "${old_class_prefix}");
-
-      "new result classes"
-                        usebundle => _classes_copy("command_execution_${canonified_action_command}", "${class_prefix}");
-
-      "report"          usebundle => _log_v3("Download ${source} into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args}),
-                       ifvarclass => "${class_prefix}_reached";
-
-
-    !_ncf_path_exists_curl.!_stdlib_path_exists_wget.!file_exists::
-      "force_failure_class"       usebundle => _classes_failure("${old_class_prefix}");
-      "new result classes"        usebundle => _classes_failure("${class_prefix}");
-      "report"                    usebundle => _log_v3("Unable to download ${source}: neither wget or curl are installed", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
-
-
-    file_exists::
-      "force_success_class"       usebundle => _classes_success("${old_class_prefix}"),
-                                 ifvarclass => "!command_execution_${canonified_action_command}_repaired";
-      "new result classes"        usebundle => _classes_success("${class_prefix}"),
-                                 ifvarclass => "!${class_prefix}_action_repaired";
-      "report"                    usebundle => _log_v3("File ${path} already downloaded", "${path}", "${old_class_prefix}", "${class_prefix}", @{args}),
-                                 ifvarclass => "!command_execution_${canonified_action_command}_repaired";
+    pass3.file_exists::
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "File ${path} already downloaded", ""),
+                                        if => "!${report_data.method_id}_repaired";
 
 }

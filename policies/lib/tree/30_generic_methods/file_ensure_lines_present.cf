@@ -33,30 +33,19 @@
 bundle agent file_ensure_lines_present(path, lines)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_ensure_lines_present_${path}");
-
-      "args"               slist => { "${path}", "${lines}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_ensure_lines_present_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
-      "full_inner_class_prefix" string => canonify("file_ensure_lines_present_${report_param}_false");
-      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
-
-
+      "class_prefix"  string => canonify("file_ensure_lines_present_${path}");
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"
-                              usebundle => disable_reporting;
-      "enforce lines content" usebundle => file_enforce_content("${path}", "${lines}", "false");
-      "reenable_reporting_${class_prefix}"
-                              usebundle => enable_reporting,
-                             ifvarclass => "should_report";
-      "new result classes"    usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
-                             ifvarclass => "${inner_class_prefix}_reached";
-
-      "report"                usebundle => _log_v3("Append content if needed into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("file_enforce_content");
+      "${report_data.method_id}" usebundle => file_enforce_content("${path}", "${lines}", "false");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("file_enforce_content");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Append content if needed into ${path}", "");
 }

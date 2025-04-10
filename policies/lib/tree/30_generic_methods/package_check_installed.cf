@@ -34,31 +34,21 @@
 bundle agent package_check_installed(name)
 {
   vars:
-      "old_class_prefix"        string => canonify("package_check_installed_${name}");
-      "args"                     slist => { "${name}" };
-
-      "report_param"            string => join("_", args);
-      "full_class_prefix"       string => canonify("package_check_installed_${report_param}");
-      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
-
-      "full_inner_class_prefix" string => canonify("package_install_${name}____latest_verify_false");
-      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+      "class_prefix" string => canonify("package_check_installed_${name}");
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"
-                        usebundle => disable_reporting;
-
-      "check install with latest version"
-                        usebundle => package_install_version_cmp_update("${name}", "==", "latest", "verify", "false");
-
-      "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
-                        ifvarclass => "should_report";
-      "copy old classes" usebundle => _classes_copy("${inner_class_prefix}", "${old_class_prefix}");
-      "copy old classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
-
-      "report"
-        usebundle  => _log_v3("Check that package ${name} is installed", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}_${name}" usebundle => push_dry_run_mode("true");
+      "${report_data.method_id}_${name}" usebundle => call_method("ncf_package");
+      "${report_data.method_id}_${name}" usebundle => ncf_package("${name}", "any", "", "", "present", "");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}_${name}" usebundle => call_method_end("ncf_package");
+      "${report_data.method_id}_${name}" usebundle => pop_dry_run_mode();
+      "${report_data.method_id}_${name}" usebundle => log_rudder_v4("${name}", "Check that package ${name} is installed", "");
 }

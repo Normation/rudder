@@ -34,27 +34,21 @@
 bundle agent package_verify_version(name, version)
 {
   vars:
-      "old_class_prefix"        string => canonify("package_install_${name}");
-      "args"                     slist => { "${name}", "${version}" };
-      "report_param"            string => join("_", args);
-      "full_class_prefix"       string => canonify("package_install_${report_param}");
-      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
-
-      # call is to package_install_version_cmp("${name}", "==", "${version}", "verify");
-      "full_inner_class_prefix"  string => canonify("package_install_${name}_==_${version}_verify");
-      "inner_class_prefix"       string => string_head("${full_inner_class_prefix}", "1000");
+      "class_prefix" string => canonify("package_install_${name}");
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"
-                           usebundle => disable_reporting;
-      "package verify"     usebundle => package_install_version_cmp("${name}", "==", "${version}", "verify");
-      "reenable_reporting_${class_prefix}"
-                           usebundle => enable_reporting,
-                          ifvarclass => "should_report";
-    "new result classes"   usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
-
-    "report"               usebundle => _log_v3("Verify that package ${name} is installed in version ${version}", "${name}", "${old_class_prefix}", "", @{args});
+    pass3::
+      "${report_data.method_id}_${name}" usebundle => push_dry_run_mode("true");
+      "${report_data.method_id}_${name}" usebundle => call_method("ncf_package");
+      "${report_data.method_id}_${name}" usebundle => ncf_package("${name}", "${version}", "", "", "present", "");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}_${name}" usebundle => call_method_end("ncf_package");
+      "${report_data.method_id}_${name}" usebundle => pop_dry_run_mode();
+      "${report_data.method_id}_${name}" usebundle => log_rudder_v4("${name}", "Verify that package ${name} is installed in version ${version}", "");
 }

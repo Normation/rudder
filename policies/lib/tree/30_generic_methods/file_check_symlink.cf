@@ -34,30 +34,23 @@
 bundle agent file_check_symlink(path)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_check_symlink_${path}");
-      "args"               slist => { "${path}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_check_symlink_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"  string => canonify("file_check_symlink_${path}");
 
   classes:
-      "file_exists_and_is_symlink"  
-        expression => islink("${path}");
+      "pass3"                      expression => "pass2";
+      "pass2"                      expression => "pass1";
+      "pass1"                      expression => "any";
+      "file_exists_and_is_symlink" expression => islink("${path}");
 
   methods:
-    file_exists_and_is_symlink::
-      "file_exists_and_is_symlink"
-        usebundle => _classes_success("${old_class_prefix}");
-      "file_exists_and_is_symlink"
-        usebundle => _classes_success("${class_prefix}");
+    pass3.file_exists_and_is_symlink::
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
 
-    !file_exists_and_is_symlink::
-      "file_dont_exists_or_is_not_a_symlink"
-        usebundle => _classes_failure("${old_class_prefix}");
-      "file_dont_exists_or_is_not_a_symlink"
-        usebundle => _classes_failure("${class_prefix}");
+    pass3.!file_exists_and_is_symlink::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
 
-    any::
-      "report"
-        usebundle => _log_v3("Check if ${path} is a symlink", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Check if ${path} is a symlink", "");
 }

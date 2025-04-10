@@ -32,31 +32,33 @@
 bundle agent file_line_present_in_xml_tag(path, tag, line)
 {
   vars:
-      "old_class_prefix" string => canonify("file_line_present_in_xml_tag_${path}");
-      "args"              slist => { "${path}", "${tag}", "${line}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_line_present_in_xml_tag_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"       string => canonify("file_line_present_in_xml_tag_${path}");
+      "inner_class_prefix" string => "${report_data.method_id}_inner";
 
   classes:
+      "pass3"              expression => "pass2";
+      "pass2"              expression => "pass1";
+      "pass1"              expression => "any";
       "opening_tag_exists" expression => regline("\s*<${tag}>\s*", "${path}");
       "closing_tag_exists" expression => regline("\s*</${tag}>\s*", "${path}");
       "tags_present"       expression => "opening_tag_exists.closing_tag_exists";
 
   files:
-    tags_present::
+    pass3.tags_present::
       "${path}"
         edit_line     => ensure_line_in_xml_tag("${tag}", "${line}"),
         edit_defaults => ncf_empty_select("false"),
-        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes       => classes_generic("${inner_class_prefix}");
 
   methods:
-    !tags_present::
-      "failure" usebundle => _classes_failure("${old_class_prefix}");
-      "failure" usebundle => _classes_failure("${class_prefix}");
+    pass3.!tags_present::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Could not find XML tag ${tag} in file ${path}, insert line(s) in xml tag into ${path}", "");
 
-    any::
-      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
-      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log_v3("Insert line(s) in xml tag into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.tags_present::
+      "${report_data.method_id}" usebundle => _classes_sanitize("${inner_class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_class_prefix}", "${report_data.method_id}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Insert line(s) in xml tag into ${path}", "");
 }

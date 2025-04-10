@@ -32,9 +32,12 @@ pipeline {
                             args '-u 0:0'
                         }
                     }
+                    environment {
+                        RUST_LOG = 'debug'
+                    }
                     steps {
                         dir("policies/lib") {
-                            sh script: 'cargo test', label: 'methods tests'
+                            sh script: 'cargo nextest run --retries 2', label: 'methods tests'
                         }
                     }
                     post {
