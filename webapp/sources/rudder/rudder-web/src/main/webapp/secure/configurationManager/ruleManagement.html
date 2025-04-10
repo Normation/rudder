@@ -52,7 +52,7 @@
       app.ports.pushUrl.subscribe(function(req) {
         const [kind, id, openNewTab] = req
         const baseUrl = contextPath + "/secure/configurationManager/ruleManagement" 
-        const url = kind !== "" ? `${baseUrl}/${kind}/${id}` : baseUrl
+        const url = (kind !== "") ? `${baseUrl}/${kind}/${id}` : baseUrl
         if (openNewTab) {
           window.open(url, '_blank')
         } else {

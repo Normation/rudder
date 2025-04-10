@@ -90,12 +90,15 @@ $(document).ready(function(){
   });
 
 
-  app.ports.pushUrl.subscribe(function(id) {
-    var url = contextPath + "/secure/configurationManager/techniqueEditor"
-    if (id !== "") {
-      url += "/technique/" + id
+  app.ports.pushUrl.subscribe(function(req) {
+    const [id, openNewTab] = req
+    const baseUrl = contextPath + "/secure/configurationManager/techniqueEditor"
+    const url = (id !== "") ? `${baseUrl}/technique/${id}` : baseUrl
+    if (openNewTab) {
+      window.open(url, '_blank')
+    } else {
+      history.pushState({}, '', url)
     }
-    history.pushState({}, '', url);
   });
 
   app.ports.getUrl.subscribe(function() {

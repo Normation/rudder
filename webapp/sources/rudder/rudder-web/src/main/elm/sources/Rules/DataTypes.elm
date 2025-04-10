@@ -305,6 +305,7 @@ type OpenMode
     | OpenKeepUrl
 
 
+-- Duplicated in Editor
 type PushUrlMode
     = KeepTab
     | NewTab
