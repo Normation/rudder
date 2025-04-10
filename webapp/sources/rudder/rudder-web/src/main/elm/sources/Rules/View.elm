@@ -1,8 +1,9 @@
 module Rules.View exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (checked, class, disabled, for, href, id, placeholder, style, tabindex, type_, value, attribute)
+import Html.Attributes exposing (checked, class, disabled, for, id, placeholder, style, tabindex, type_, value, attribute)
 import Html.Events exposing (onClick, onInput)
+import Json.Decode
 import List
 import List.Extra
 import Maybe.Extra exposing (isNothing)
@@ -18,6 +19,7 @@ import Rules.ViewUtils exposing (..)
 import Rules.ChangeRequest exposing (ChangeRequestSettings)
 
 import Ui.Datatable exposing (filterSearch, Category, getSubElems, generateLoadingTable)
+import Html.Events exposing (on)
 
 
 view : Model -> Html Msg
@@ -40,7 +42,7 @@ view model =
       in
         li [class "jstree-node jstree-leaf"]
         [ i[class "jstree-icon jstree-ocl"][]
-        , a[class ("jstree-anchor"++classDisabled++classFocus), href (model.contextPath ++ "/secure/configurationManager/ruleManagement/rule/" ++ item.id.value), onClick (OpenRuleDetails item.id True)]
+        , a[class ("jstree-anchor"++classDisabled++classFocus), onClick (OpenRuleDetails item.id (OpenPushUrl KeepTab)), on "auxclick" (Json.Decode.succeed (OpenRuleDetails item.id (OpenPushUrl NewTab)))]
           [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
           , span [class "treeGroupName"]
             [ badgePolicyMode model.policyMode item.policyMode
@@ -94,7 +96,7 @@ view model =
               Just (
                 li[class ("jstree-node" ++ foldedClass model.ui.ruleFilters.treeFilters item.id)]
                 [ i [class "jstree-icon jstree-ocl", onClick (UpdateRuleFilters (foldUnfoldCategory model.ui.ruleFilters item.id))][]
-                , a [class ("jstree-anchor" ++ classFocus), href ("/rudder/secure/configurationManager/ruleManagement/ruleCategory/" ++ item.id), onClick (OpenCategoryDetails item.id True)]
+                , a [class ("jstree-anchor" ++ classFocus), onClick (OpenCategoryDetails item.id (OpenPushUrl KeepTab)), on "auxclick" (Json.Decode.succeed (OpenCategoryDetails item.id (OpenPushUrl NewTab)))]
                   [ i [class ("jstree-icon jstree-themeicon jstree-themeicon-custom" ++ icons)][]
                   , span [class ("treeGroupCategoryName " ++ missingCatClass ++ mainMissingCat)][text item.name]
                   ]

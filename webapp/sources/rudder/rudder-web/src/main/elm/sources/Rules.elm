@@ -27,7 +27,7 @@ port linkSuccessNotification : Value -> Cmd msg
 port successNotification : String -> Cmd msg
 port warningNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
-port pushUrl             : (String,String) -> Cmd msg
+port pushUrl             : (String,String,Bool) -> Cmd msg
 port initTooltips        : String -> Cmd msg
 port readUrl : ((String, String) -> msg) -> Sub msg
 port copy : String -> Cmd msg
@@ -36,8 +36,8 @@ subscriptions : Model -> Sub Msg
 subscriptions _ =
   Sub.batch
   [ readUrl ( \(kind,id) -> case kind of
-              "rule" -> OpenRuleDetails (RuleId id) False
-              "ruleCategory" -> OpenCategoryDetails id False
+              "rule" -> OpenRuleDetails (RuleId id) OpenKeepUrl
+              "ruleCategory" -> OpenCategoryDetails id OpenKeepUrl
               _ -> Ignore
             )
   ]
@@ -233,23 +233,26 @@ update msg model =
         Err err  ->
           processApiError "Getting Nodes list" err model
 
-    OpenRuleDetails rId True ->
+    OpenRuleDetails rId (OpenPushUrl mode) ->
       let
-        modelUI = model.ui
+        openNewTab = mode == NewTab
       in
-      (model, Cmd.batch [getRuleDetails model rId, pushUrl ("rule", rId.value)])
+      (model, Cmd.batch [getRuleDetails model rId, pushUrl ("rule", rId.value, openNewTab)])
 
-    OpenRuleDetails rId False ->
+    OpenRuleDetails rId OpenKeepUrl ->
       (model, getRuleDetails model rId)
 
-    OpenCategoryDetails category True ->
-      (model, Cmd.batch [getRulesCategoryDetails model category, pushUrl ("ruleCategory" , category)])
+    OpenCategoryDetails category (OpenPushUrl mode) ->
+      let
+        openNewTab = mode == NewTab
+      in
+      (model, Cmd.batch [getRulesCategoryDetails model category, pushUrl ("ruleCategory" , category, openNewTab)])
 
-    OpenCategoryDetails category False ->
+    OpenCategoryDetails category OpenKeepUrl ->
       (model, getRulesCategoryDetails model category)
 
     CloseDetails ->
-      ( { model | mode  = RuleTable } , pushUrl ("","")  )
+      ( { model | mode  = RuleTable } , pushUrl ("","", False)  )
 
     GetRulesComplianceResult res ->
       case res of
@@ -481,7 +484,7 @@ update msg model =
 
             newModel = { model | mode = newMode, ui = { ui | crSettings = crSettings} }
           in
-            (newModel, Cmd.batch [successNotification ("Successfully deleted rule '" ++ ruleName ++  "' (id: "++ ruleId.value ++")"), getRulesTree newModel, pushUrl ("", "") ])
+            (newModel, Cmd.batch [successNotification ("Successfully deleted rule '" ++ ruleName ++  "' (id: "++ ruleId.value ++")"), getRulesTree newModel, pushUrl ("", "", False) ])
         _ -> (model, Cmd.none)
 
     DeleteRule (Err err) ->
@@ -494,7 +497,7 @@ update msg model =
             newMode  = if c.category.id == categoryId then RuleTable else model.mode
             newModel = { model | mode = newMode }
           in
-            (newModel, Cmd.batch [successNotification ("Successfully deleted category '" ++ categoryName ++  "' (id: "++ categoryId ++")"), getRulesTree newModel, pushUrl ("","") ])
+            (newModel, Cmd.batch [successNotification ("Successfully deleted category '" ++ categoryName ++  "' (id: "++ categoryId ++")"), getRulesTree newModel, pushUrl ("","", False) ])
         _ -> (model, Cmd.none)
 
     DeleteCategory (Err err) ->
