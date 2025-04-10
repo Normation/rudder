@@ -300,12 +300,22 @@ type alias Model =
     , ui : UI
     }
 
+type OpenMode
+    = OpenPushUrl PushUrlMode
+    | OpenKeepUrl
+
+
+-- Duplicated in Editor
+type PushUrlMode
+    = KeepTab
+    | NewTab
+
 
 type Msg
     = Copy String
     | GenerateId (String -> Msg)
-    | OpenRuleDetails RuleId Bool
-    | OpenCategoryDetails String Bool
+    | OpenRuleDetails RuleId OpenMode
+    | OpenCategoryDetails String OpenMode
     | CloseDetails
     | SelectGroup String Bool
     | UpdateRuleForm RuleDetails

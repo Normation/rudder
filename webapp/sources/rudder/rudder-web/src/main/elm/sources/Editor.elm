@@ -43,7 +43,7 @@ port updateResources     : (() -> msg) -> Sub msg
 port successNotification : String -> Cmd msg
 port errorNotification   : String -> Cmd msg
 port infoNotification    : String -> Cmd msg
-port pushUrl             : String -> Cmd msg
+port pushUrl             : (String, Bool) -> Cmd msg
 port getUrl              : () -> Cmd msg
 port readUrl             : (String -> msg) -> Sub msg
 port clearTooltips       : String -> Cmd msg
@@ -135,7 +135,7 @@ subscriptions model =
         [ draftsResponse parseDraftsResponse
         , updateResources (always (updateResourcesResponse model))
         , readUrl (\s -> case List.Extra.find (.id >> .value >> (==) s ) model.techniques of
-                    Just t -> SelectTechnique (Left t)
+                    Just t -> SelectTechnique (Left t) KeepTab
                     Nothing -> Ignore
                   )
         ]
@@ -146,8 +146,8 @@ defaultMethodUiInfo  =
 defaultBlockUiInfo =
   MethodBlockUiInfo Closed Children Unchanged False
 
-selectTechnique: Model -> (Either Technique Draft) -> (Model, Cmd Msg)
-selectTechnique model technique =
+selectTechnique: Model -> (Either Technique Draft) -> PushUrlMode -> (Model, Cmd Msg)
+selectTechnique model technique urlMode =
   let
     (effectiveTechnique, state, action) = case technique  of
       Left t ->
@@ -155,8 +155,9 @@ selectTechnique model technique =
           tech = case Dict.get t.id.value model.drafts of
                    Just d -> d.technique
                    Nothing -> t
+          openNewTab = urlMode == NewTab
         in
-          (tech, Edit t, pushUrl t.id.value)
+          (tech, Edit t, pushUrl (t.id.value, openNewTab))
       Right d ->
         let
          st = case d.origin of
@@ -226,15 +227,15 @@ update msg model =
       ( model, Cmd.none )
     CopyResources (Err err) ->
       ( model ,  errorNotification  ("Error when copying technique resources to draft" ) )
-    SelectTechnique technique ->
+    SelectTechnique technique urlMode ->
       case model.mode of
         TechniqueDetails t _ _ editInfo ->
           if t.id == (Either.unpack .id (.technique >> .id) technique) then
              ( { model | mode = Introduction }, initInputs "")
           else
-            selectTechnique model technique
+            selectTechnique model technique urlMode
         _ ->
-          selectTechnique model technique
+          selectTechnique model technique urlMode
 
     NewTechnique internalId ->
       let
@@ -331,7 +332,7 @@ update msg model =
             m -> (m, technique.id)
         drafts = Dict.remove idToClean.value model.drafts
       in
-        ({ model | techniques = techniques, mode = newMode, drafts = drafts}, Cmd.batch [ clearDraft idToClean.value, successNotification "Technique saved!", pushUrl technique.id.value] )
+        ({ model | techniques = techniques, mode = newMode, drafts = drafts}, Cmd.batch [ clearDraft idToClean.value, successNotification "Technique saved!", pushUrl (technique.id.value, False)] )
 
     SaveTechnique (Err err) ->
       let

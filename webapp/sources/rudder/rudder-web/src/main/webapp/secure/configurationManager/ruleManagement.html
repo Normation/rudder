@@ -49,14 +49,15 @@
       });
 
       // Change the URL upon request, inform app of the change.
-      app.ports.pushUrl.subscribe(function(url) {
-        var kind = url[0];
-        var id = url[1];
-        var url = contextPath + "/secure/configurationManager/ruleManagement"
-        if (kind !== "") {
-          url += "/" + kind + "/" + id
+      app.ports.pushUrl.subscribe(function(req) {
+        const [kind, id, openNewTab] = req
+        const baseUrl = contextPath + "/secure/configurationManager/ruleManagement" 
+        const url = (kind !== "") ? `${baseUrl}/${kind}/${id}` : baseUrl
+        if (openNewTab) {
+          window.open(url, '_blank')
+        } else {
+          history.pushState({}, '', url)
         }
-        history.pushState({}, '', url);
       });
 
       var path = window.location.pathname.split("/")

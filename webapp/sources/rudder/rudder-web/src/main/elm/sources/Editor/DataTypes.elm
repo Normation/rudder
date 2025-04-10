@@ -252,9 +252,15 @@ type Mode = Introduction | TechniqueDetails Technique TechniqueState TechniqueUi
 type CheckMode = Import String | EditYaml String | CheckJson Technique
 
 
+-- Duplicated in Rules
+type PushUrlMode
+    = KeepTab
+    | NewTab
+
+
 -- all events in the event loop
 type Msg =
-    SelectTechnique (Either Technique Draft)
+    SelectTechnique (Either Technique Draft) PushUrlMode
   | GetTechniques   (Result (Http.Detailed.Error String) ( Http.Metadata, List Technique ))
   | GetYaml         (Result (Http.Detailed.Error String) ( Http.Metadata, String ))
   | SaveTechnique   (Result (Http.Detailed.Error String) ( Http.Metadata, Technique ))

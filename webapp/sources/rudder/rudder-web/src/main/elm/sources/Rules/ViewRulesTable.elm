@@ -103,7 +103,7 @@ buildRulesTable model rules =
 
               Nothing -> span[][ status ]
       in
-            tr[onClick (OpenRuleDetails r.id True)]
+            tr[onClick (OpenRuleDetails r.id (OpenPushUrl KeepTab))]
             [ td[]
               [ badgePolicyMode model.policyMode r.policyMode
               , text r.name
