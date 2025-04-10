@@ -2,19 +2,24 @@
 // SPDX-FileCopyrightText: 2025 Normation SAS
 
 #[cfg(test)]
-pub mod command_execution_test;
+mod command_execution_test;
 #[cfg(test)]
-pub mod condition_from_expression_test;
+mod condition_from_expression_test;
 #[cfg(test)]
-pub mod condition_from_variable_existence_test;
+mod condition_from_variable_existence_test;
 #[cfg(test)]
-pub mod condition_from_variable_match_test;
+mod condition_from_variable_match_test;
 #[cfg(test)]
-pub mod file_absent_test;
+mod file_absent_test;
 #[cfg(test)]
-pub mod file_check_exists_test;
+mod file_check_exists_test;
 #[cfg(test)]
 mod file_content_test;
+#[cfg(test)]
+mod file_from_local_source_recursion_test;
+
+#[cfg(test)]
+mod file_copy_from_local_source_recursion_test;
 
 use log::debug;
 use rudder_commons::methods::Methods;
