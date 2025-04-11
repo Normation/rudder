@@ -43,8 +43,11 @@ pub fn routes_1(job_config: Arc<JobConfig>) -> BoxedFilter<(impl Reply,)> {
         });
 
     let job_config_put = job_config;
+    let max_size = job_config_put.cfg.shared_files.max_size;
     let put = method::put()
         .map(move || job_config_put.clone())
+        // Checking the header is enough as hyper will not read more.
+        .and(body::content_length_limit(max_size.as_u64()))
         .and(base)
         .and(query::<SharedFilesPutParams>())
         .and(body::bytes())
