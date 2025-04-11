@@ -44,9 +44,9 @@ impl MethodTestSuite {
         }
     }
 
-    pub fn when(&self, nm: MethodToTest) -> MethodTestSuite {
+    pub fn when(&self, nm: &MethodToTest) -> MethodTestSuite {
         let mut v = self.when.clone();
-        v.push(nm);
+        v.push(nm.clone());
         MethodTestSuite {
             given: self.given.clone(),
             when: v,

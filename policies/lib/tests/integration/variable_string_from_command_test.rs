@@ -2,88 +2,97 @@
 // SPDX-FileCopyrightText: 2025 Normation SAS
 
 use crate::integration::{end_test, get_lib_path, init_test};
-use crate::testlib::given::Given;
 use crate::testlib::method_test_suite::MethodTestSuite;
 use crate::testlib::method_to_test::{method, MethodStatus};
 
 #[test]
-fn it_should_generate_the_true_conditions_if_needed() {
+fn it_should_define_the_variable() {
     let workdir = init_test();
-    let variable_def =
-        &method("variable_string", &["my_prefix", "my_name", "hello world"]).enforce();
     let tested_method = &method(
-        "condition_from_variable_match",
-        &["plouf", "my_prefix.my_name", ".*"],
+        "variable_string_from_command",
+        &["my_prefix", "my_variable", "echo 'foo'"],
     )
     .enforce();
     let r = MethodTestSuite::new()
-        .given(Given::method_call(variable_def))
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
     r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Success]);
     r.assert_log_v4_result_conditions(tested_method, MethodStatus::Success);
-    r.assert_conditions_are_defined(vec!["plouf_true".to_string()]);
-    r.assert_conditions_are_undefined(vec!["plouf_false".to_string()]);
+    assert!(
+        r.variables["my_prefix"]["my_variable"].is_string(),
+        "The variable my_prefix.my_variable was not defined by the method execution",
+    );
+    assert_eq!(
+        r.variables["my_prefix"]["my_variable"].as_str().unwrap(),
+        "foo",
+        "The variable my_prefix.my_variable was not defined by the method execution",
+    );
     end_test(workdir);
 }
 #[test]
-fn it_should_generate_the_false_conditions_if_needed() {
+fn it_should_define_the_variable_in_audit() {
     let workdir = init_test();
-    let variable_def =
-        &method("variable_string", &["my_prefix", "my_name", "hello world"]).enforce();
     let tested_method = &method(
-        "condition_from_variable_match",
-        &["plouf", "my_prefix.my_name", "foo.*bar"],
+        "variable_string_from_command",
+        &["my_prefix", "my_variable", "echo 'foo'"],
     )
-    .enforce();
+    .audit();
     let r = MethodTestSuite::new()
-        .given(Given::method_call(variable_def))
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
     r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Success]);
     r.assert_log_v4_result_conditions(tested_method, MethodStatus::Success);
-    r.assert_conditions_are_defined(vec!["plouf_false".to_string()]);
-    r.assert_conditions_are_undefined(vec!["plouf_true".to_string()]);
+    assert!(
+        r.variables["my_prefix"]["my_variable"].is_string(),
+        "The variable my_prefix.my_variable was not defined by the method execution",
+    );
+    assert_eq!(
+        r.variables["my_prefix"]["my_variable"].as_str().unwrap(),
+        "foo",
+        "The variable my_prefix.my_variable was not defined by the method execution",
+    );
     end_test(workdir);
 }
 #[test]
-fn it_should_be_in_error_if_the_variable_is_undefined() {
+fn it_should_not_define_the_variable_if_the_command_fails() {
     let workdir = init_test();
     let tested_method = &method(
-        "condition_from_variable_match",
-        &["plouf", "my_prefix.my_name", "foo.*bar"],
+        "variable_string_from_command",
+        &["my_prefix", "my_variable", "echo 'foo' && /bin/false"],
     )
-    .enforce();
+    .audit();
     let r = MethodTestSuite::new()
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
     r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Error]);
     r.assert_log_v4_result_conditions(tested_method, MethodStatus::Error);
-    r.assert_conditions_are_defined(vec!["plouf_false".to_string()]);
-    r.assert_conditions_are_undefined(vec!["plouf_true".to_string()]);
+    assert!(
+        r.variables.get("my_prefix").is_none(),
+        "The variable my_prefix.my_variable was defined by the method execution",
+    );
     end_test(workdir);
 }
 #[test]
-fn it_should_not_work_on_dict_variable() {
-    // It succeeds as the variable is detected but the matching will always fail on a dict variable
+fn it_should_not_capture_stderr() {
     let workdir = init_test();
-    let variable_def = &method(
-        "variable_dict",
-        &["my_prefix", "my_name", r#"{"key": "hello world"}"#],
-    )
-    .enforce();
     let tested_method = &method(
-        "condition_from_variable_match",
-        &["plouf", "my_prefix.my_name", ".*"],
+        "variable_string_from_command",
+        &["my_prefix", "my_variable", "echo 'foo' && echo 'bar' >&2"],
     )
     .enforce();
     let r = MethodTestSuite::new()
-        .given(Given::method_call(variable_def))
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
     r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Success]);
     r.assert_log_v4_result_conditions(tested_method, MethodStatus::Success);
-    r.assert_conditions_are_defined(vec!["plouf_false".to_string()]);
-    r.assert_conditions_are_undefined(vec!["plouf_true".to_string()]);
+    assert!(
+        r.variables["my_prefix"]["my_variable"].is_string(),
+        "The variable my_prefix.my_variable was not defined by the method execution",
+    );
+    assert_eq!(
+        r.variables["my_prefix"]["my_variable"].as_str().unwrap(),
+        "foo",
+        "The variable my_prefix.my_variable was not defined by the method execution",
+    );
     end_test(workdir);
 }
