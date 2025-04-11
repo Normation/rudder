@@ -2,6 +2,8 @@
 // SPDX-FileCopyrightText: 2025 Normation SAS
 
 #[cfg(test)]
+mod audit_from_osquery_test;
+#[cfg(test)]
 mod command_execution_test;
 #[cfg(test)]
 mod condition_from_expression_test;
@@ -16,10 +18,11 @@ mod file_check_exists_test;
 #[cfg(test)]
 mod file_content_test;
 #[cfg(test)]
-mod file_from_local_source_recursion_test;
-
-#[cfg(test)]
 mod file_copy_from_local_source_recursion_test;
+#[cfg(test)]
+mod file_from_local_source_recursion_test;
+#[cfg(test)]
+mod variable_string_from_command_test;
 
 use log::debug;
 use rudder_commons::methods::Methods;

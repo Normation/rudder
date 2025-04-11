@@ -18,6 +18,7 @@ fn it_repairs_in_enforce_when_the_target_file_exists() {
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
     r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Repaired]);
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Repaired);
     assert!(
         !file.exists(),
         "The file '{}' should have been removed by the method execution",
@@ -38,6 +39,7 @@ fn it_errors_in_audit_when_the_target_file_exists() {
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
     r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Error]);
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Error);
     assert!(
         file.exists(),
         "The file '{}' should NOT have been removed by the method execution",
@@ -58,6 +60,7 @@ fn it_errors_in_enforce_when_the_target_exists_and_is_a_directory() {
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
     r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Error]);
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Error);
     assert!(
         dir.exists(),
         "The directory '{}' should not have been removed by the method execution",
@@ -88,6 +91,7 @@ fn it_should_be_idempotent() {
             MethodStatus::Success,
         ],
     );
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Success);
     assert!(
         !file.exists(),
         "The file '{}' should have been removed by the method execution",
