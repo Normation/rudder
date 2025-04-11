@@ -30,34 +30,31 @@
 bundle agent user_fullname(login, fullname)
 {
   vars:
-      "old_class_prefix"  string => canonify("user_fullname_${login}");
-      "args"               slist => { "${login}", "${fullname}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("user_fullname_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix" string => canonify("user_fullname_${login}");
       
   classes:
-      "user_exists"     expression => userexists("${login}");
-      "args_defined"    expression => "user_exists";
+      "user_exists" expression => userexists("${login}");
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   users:
-      "${login}"  policy        => "present",
-                  description   => "${fullname}",
-                  classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
-                  ifvarclass    => "args_defined";
+    pass3::
+      "${login}"
+             policy => "present",
+        description => "${fullname}",
+            classes => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+                 if => "user_exists";
 
   methods:
-    !args_defined::
-      "error" usebundle => _classes_failure("${old_class_prefix}");
-      "error" usebundle => _classes_failure("${class_prefix}");
-
-      "report_error"
-        usebundle => _log_v3("User ${login} does not exist. Setting user ${login} fullname set to ${fullname}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args});
-
-    args_defined::
-      "report_success"
-        usebundle => _log_v3("User ${login} fullname set to ${fullname}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
-          ifvarclass => "${old_class_prefix}_reached|${class_prefix}_reached";
+    pass3.!user_exists::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "User ${login} does not exist. Cannot Set user ${login} fullname to ${fullname}", "");
+      
+    pass3.user_exists::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "User ${login} fullname set to ${fullname}", "");
 
 }
 
