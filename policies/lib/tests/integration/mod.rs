@@ -48,6 +48,8 @@ mod file_lines_absent_test;
 mod file_replace_lines_test;
 #[cfg(test)]
 mod variable_string_default_test;
+#[cfg(test)]
+mod user_absent_test;
 
 use log::debug;
 use rudder_commons::methods::Methods;
