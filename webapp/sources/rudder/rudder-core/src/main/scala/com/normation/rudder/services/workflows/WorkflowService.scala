@@ -39,6 +39,8 @@ package com.normation.rudder.services.workflows
 
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.errors.Inconsistency
+import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.domain.nodes.NodeGroup
@@ -54,6 +56,7 @@ import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import net.liftweb.common.*
+import zio.syntax.ToZio
 
 case object WorkflowUpdate
 
@@ -141,18 +144,18 @@ trait WorkflowLevelService {
   /*
    * Find the workflow that must follow the change to be validated
    */
-  def getForRule(actor:        EventActor, change: RuleChangeRequest):        Box[WorkflowService]
-  def getForDirective(actor:   EventActor, change: DirectiveChangeRequest):   Box[WorkflowService]
-  def getForNodeGroup(actor:   EventActor, change: NodeGroupChangeRequest):   Box[WorkflowService]
-  def getForGlobalParam(actor: EventActor, change: GlobalParamChangeRequest): Box[WorkflowService]
+  def getForRule(actor:        EventActor, change: RuleChangeRequest):        IOResult[WorkflowService]
+  def getForDirective(actor:   EventActor, change: DirectiveChangeRequest):   IOResult[WorkflowService]
+  def getForNodeGroup(actor:   EventActor, change: NodeGroupChangeRequest):   IOResult[WorkflowService]
+  def getForGlobalParam(actor: EventActor, change: GlobalParamChangeRequest): IOResult[WorkflowService]
 
   /*
    * These method allow to get change request impacting a rule/directive/etc.
    * Used to display information on them on corresponding update screens.
    */
-  def getByDirective(id: DirectiveUid, onlyPending: Boolean): Box[Vector[ChangeRequest]]
-  def getByNodeGroup(id: NodeGroupId, onlyPending:  Boolean): Box[Vector[ChangeRequest]]
-  def getByRule(id:      RuleUid, onlyPending:      Boolean): Box[Vector[ChangeRequest]]
+  def getByDirective(id: DirectiveUid, onlyPending: Boolean): IOResult[Vector[ChangeRequest]]
+  def getByNodeGroup(id: NodeGroupId, onlyPending:  Boolean): IOResult[Vector[ChangeRequest]]
+  def getByRule(id:      RuleUid, onlyPending:      Boolean): IOResult[Vector[ChangeRequest]]
 }
 
 // and default implementation is: no
@@ -172,27 +175,27 @@ class DefaultWorkflowLevel(val defaultWorkflowService: WorkflowService) extends 
 
   override def getWorkflowService(): WorkflowService = level.map(_.getWorkflowService()).getOrElse(defaultWorkflowService)
 
-  override def getForRule(actor: EventActor, change: RuleChangeRequest):               Box[WorkflowService] = {
-    this.level.map(_.getForRule(actor, change)).getOrElse(Full(defaultWorkflowService))
+  override def getForRule(actor: EventActor, change: RuleChangeRequest):               IOResult[WorkflowService] = {
+    this.level.map(_.getForRule(actor, change)).getOrElse(defaultWorkflowService.succeed)
   }
-  override def getForDirective(actor: EventActor, change: DirectiveChangeRequest):     Box[WorkflowService] = {
-    this.level.map(_.getForDirective(actor, change)).getOrElse(Full(defaultWorkflowService))
+  override def getForDirective(actor: EventActor, change: DirectiveChangeRequest):     IOResult[WorkflowService] = {
+    this.level.map(_.getForDirective(actor, change)).getOrElse(defaultWorkflowService.succeed)
   }
-  override def getForNodeGroup(actor: EventActor, change: NodeGroupChangeRequest):     Box[WorkflowService] = {
-    this.level.map(_.getForNodeGroup(actor, change)).getOrElse(Full(defaultWorkflowService))
+  override def getForNodeGroup(actor: EventActor, change: NodeGroupChangeRequest):     IOResult[WorkflowService] = {
+    this.level.map(_.getForNodeGroup(actor, change)).getOrElse(defaultWorkflowService.succeed)
   }
-  override def getForGlobalParam(actor: EventActor, change: GlobalParamChangeRequest): Box[WorkflowService] = {
-    this.level.map(_.getForGlobalParam(actor, change)).getOrElse(Full(defaultWorkflowService))
+  override def getForGlobalParam(actor: EventActor, change: GlobalParamChangeRequest): IOResult[WorkflowService] = {
+    this.level.map(_.getForGlobalParam(actor, change)).getOrElse(defaultWorkflowService.succeed)
   }
 
-  override def getByDirective(id: DirectiveUid, onlyPending: Boolean): Box[Vector[ChangeRequest]] =
-    this.level.map(_.getByDirective(id, onlyPending)).getOrElse(Full(Vector()))
+  override def getByDirective(id: DirectiveUid, onlyPending: Boolean): IOResult[Vector[ChangeRequest]] =
+    this.level.map(_.getByDirective(id, onlyPending)).getOrElse(Vector().succeed)
 
-  override def getByNodeGroup(id: NodeGroupId, onlyPending: Boolean): Box[Vector[ChangeRequest]] =
-    this.level.map(_.getByNodeGroup(id, onlyPending)).getOrElse(Full(Vector()))
+  override def getByNodeGroup(id: NodeGroupId, onlyPending: Boolean): IOResult[Vector[ChangeRequest]] =
+    this.level.map(_.getByNodeGroup(id, onlyPending)).getOrElse(Vector().succeed)
 
-  override def getByRule(id: RuleUid, onlyPending: Boolean): Box[Vector[ChangeRequest]] =
-    this.level.map(_.getByRule(id, onlyPending)).getOrElse(Full(Vector()))
+  override def getByRule(id: RuleUid, onlyPending: Boolean): IOResult[Vector[ChangeRequest]] =
+    this.level.map(_.getByRule(id, onlyPending)).getOrElse(Vector().succeed)
 }
 
 /**
@@ -215,7 +218,7 @@ trait WorkflowService {
    *
    * Return the updated ChangeRequestId
    */
-  def startWorkflow(changeRequest: ChangeRequest)(implicit cc: ChangeContext): Box[ChangeRequestId]
+  def startWorkflow(changeRequest: ChangeRequest)(implicit cc: ChangeContext): IOResult[ChangeRequestId]
 
   def openSteps:   List[WorkflowNodeId]
   def closedSteps: List[WorkflowNodeId]
@@ -232,14 +235,14 @@ trait WorkflowService {
       currentUserRights: Seq[String],
       currentStep:       WorkflowNodeId,
       isCreator:         Boolean
-  ): Seq[(WorkflowNodeId, (ChangeRequestId, EventActor, Option[String]) => Box[WorkflowNodeId])]
+  ): Seq[(WorkflowNodeId, (ChangeRequestId, EventActor, Option[String]) => IOResult[WorkflowNodeId])]
 
-  def findStep(changeRequestId: ChangeRequestId): Box[WorkflowNodeId]
+  def findStep(changeRequestId: ChangeRequestId): IOResult[WorkflowNodeId]
 
   /**
    * Get workflow step of each ChangeRequest
    */
-  def getAllChangeRequestsStep(): Box[Map[ChangeRequestId, WorkflowNodeId]]
+  def getAllChangeRequestsStep(): IOResult[Map[ChangeRequestId, WorkflowNodeId]]
 
   def isEditable(currentUserRights: Seq[String], currentStep: WorkflowNodeId, isCreator: Boolean): Boolean
   def isPending(currentStep:        WorkflowNodeId): Boolean
@@ -254,12 +257,12 @@ trait WorkflowService {
 
 case class WorkflowAction(
     name:    String,
-    actions: Seq[(WorkflowNodeId, (ChangeRequestId, EventActor, Option[String]) => Box[WorkflowNodeId])]
+    actions: Seq[(WorkflowNodeId, (ChangeRequestId, EventActor, Option[String]) => IOResult[WorkflowNodeId])]
 )
 
 object NoWorkflowAction extends WorkflowAction("Nothing", Seq())
 object WorkflowAction {
-  type WorkflowStepFunction = (ChangeRequestId, EventActor, Option[String]) => Box[WorkflowNodeId]
+  type WorkflowStepFunction = (ChangeRequestId, EventActor, Option[String]) => IOResult[WorkflowNodeId]
   def apply(name: String, action: (WorkflowNodeId, WorkflowStepFunction)): WorkflowAction = WorkflowAction(name, Seq(action))
 }
 
@@ -285,17 +288,17 @@ class NoWorkflowServiceImpl(
       currentUserRights: Seq[String],
       currentStep:       WorkflowNodeId,
       isCreator:         Boolean
-  ): Seq[(WorkflowNodeId, (ChangeRequestId, EventActor, Option[String]) => Box[WorkflowNodeId])] = Seq()
+  ): Seq[(WorkflowNodeId, (ChangeRequestId, EventActor, Option[String]) => IOResult[WorkflowNodeId])] = Seq()
 
-  def findStep(changeRequestId: ChangeRequestId): Box[WorkflowNodeId] = Failure("No state when no workflow")
+  def findStep(changeRequestId: ChangeRequestId): IOResult[WorkflowNodeId] = Inconsistency("No state when no workflow").fail
 
-  def getAllChangeRequestsStep(): Box[Map[ChangeRequestId, WorkflowNodeId]] = Failure("No state when no workflow")
+  def getAllChangeRequestsStep(): IOResult[Map[ChangeRequestId, WorkflowNodeId]] = Inconsistency("No state when no workflow").fail
 
   val openSteps:   List[WorkflowNodeId] = List()
   val closedSteps: List[WorkflowNodeId] = List()
   val stepsValue:  List[WorkflowNodeId] = List()
 
-  def startWorkflow(changeRequest: ChangeRequest)(implicit cc: ChangeContext): Box[ChangeRequestId] = {
+  def startWorkflow(changeRequest: ChangeRequest)(implicit cc: ChangeContext): IOResult[ChangeRequestId] = {
     logger.debug("Automatically saving change")
     for {
       result <- commit.save(changeRequest)

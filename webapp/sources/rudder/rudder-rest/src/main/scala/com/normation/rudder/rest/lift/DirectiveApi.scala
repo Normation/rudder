@@ -426,7 +426,7 @@ class DirectiveApiService14(
       actor:     EventActor
   )(implicit cc: ChangeContext) = {
     for {
-      workflow <- workflowLevelService.getForDirective(actor, change).toIO
+      workflow <- workflowLevelService.getForDirective(actor, change)
       cr        = ChangeRequestService.createChangeRequestFromDirective(
                     params.changeRequestName.getOrElse(
                       s"${change.action.name} directive '${change.newDirective.name}' (${change.newDirective.id.uid.value}) from API"
@@ -442,7 +442,6 @@ class DirectiveApiService14(
                   )
       id       <- workflow
                     .startWorkflow(cr)
-                    .toIO
                     .chainError(s"Could not start workflow for change request creation on Directive '${change.newDirective.name}'")
     } yield {
       val optCrId = if (workflow.needExternalValidation()) Some(id) else None

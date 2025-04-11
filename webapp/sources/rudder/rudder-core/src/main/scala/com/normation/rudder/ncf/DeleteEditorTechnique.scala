@@ -150,7 +150,7 @@ class DeleteEditorTechniqueImpl(
                                         None,
                                         committer.nodePerms
                                       )
-                                    ).toIO
+                                    )
                             } yield ()
                           } else {
                             Unexpected(
