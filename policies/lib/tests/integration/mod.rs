@@ -17,6 +17,9 @@ mod file_absent_test;
 mod file_check_exists_test;
 #[cfg(test)]
 mod file_content_test;
+
+#[cfg(test)]
+mod file_block_present_test;
 #[cfg(test)]
 mod file_copy_from_local_source_recursion_test;
 #[cfg(test)]

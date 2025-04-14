@@ -42,28 +42,19 @@
 bundle agent file_from_remote_source(source, path)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_from_remote_source_${path}");
-
-      "args"               slist => { "${source}", "${path}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_from_remote_source_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
-      "full_inner_class_prefix" string => canonify("file_from_remote_source_${report_param}_0");
-      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
-
+      "class_prefix"  string => canonify("file_from_remote_source_${path}");
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"
-                               usebundle => disable_reporting;
-      "copy without recursion" usebundle => file_from_remote_source_recursion("${source}", "${path}", "0");
-      "reenable_reporting_${class_prefix}"
-                               usebundle => enable_reporting,
-                              ifvarclass => "should_report";
-      "new result classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
-
-      "report"                 usebundle => _log_v3("Copying ${path} from ${source}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("file_from_remote_source_recursion");
+      "${report_data.method_id}" usebundle => file_from_remote_source_recursion("${source}", "${path}", "0");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("file_from_remote_source_recursion");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Copying ${path} from remote ${source}", "");
 }

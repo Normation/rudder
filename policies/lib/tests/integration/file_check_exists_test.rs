@@ -21,6 +21,7 @@ fn it_succeeds_in_enforce_when_the_target_file_exists() {
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
     r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Success]);
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Success);
     end_test(workdir);
 }
 
@@ -39,6 +40,7 @@ fn it_fails_in_enforce_when_the_target_file_does_not_exist() {
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
     r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Error]);
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Error);
     end_test(workdir);
 }
 
@@ -57,6 +59,7 @@ fn it_succeeds_in_audit_when_the_target_file_exists() {
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
     r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Success]);
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Success);
     end_test(workdir);
 }
 #[test]
@@ -74,6 +77,7 @@ fn it_succeeds_in_audit_when_the_target_file_does_not_exist() {
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
     r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Error]);
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Error);
     end_test(workdir);
 }
 #[test]
@@ -91,5 +95,6 @@ fn it_succeeds_in_enforce_when_the_target_is_a_directory() {
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
     r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Success]);
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Success);
     end_test(workdir);
 }

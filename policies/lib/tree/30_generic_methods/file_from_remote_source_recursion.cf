@@ -39,11 +39,7 @@
 bundle agent file_from_remote_source_recursion(source, path, recursion)
 {
   vars:
-      "old_class_prefix" string => canonify("file_from_remote_source_${path}");
-      "args"              slist => { "${source}", "${path}", "${recursion}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_from_remote_source_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix" string => canonify("file_from_remote_source_${path}");
 
   classes:
       # depth_search prevents from copying file/symlink
@@ -53,36 +49,34 @@ bundle agent file_from_remote_source_recursion(source, path, recursion)
       "is_dir_copy"  expression => isdir("${path}");
       # We won't be able to know if it is really a directory
       # or not before the first iteration
-      "iteration_2"  expression => "iteration_1";
-      "iteration_1"  expression => "any";
+      "pass3"  expression => "pass2";
+      "pass2"  expression => "pass1";
+      "pass1"  expression => "any";
 
   files:
-
    !is_dir_copy::
       "${path}"
         copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "digest"),
-        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes      => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
    is_dir_copy::
       "${path}"
         copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "digest"),
         depth_search => recurse("${recursion}"),
-        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes      => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
   methods:
-    iteration_2::
-      "error" usebundle => _classes_failure("${old_class_prefix}"),
-        ifvarclass=> "!${class_prefix}_reached";
-      "error" usebundle => _classes_failure("${class_prefix}"),
-        ifvarclass=> "!${class_prefix}_reached";
+    pass2::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}"),
+                                        if => "!${report_data.method_id}_reached";
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}"),
+                                        if => "!${report_data.method_id}_reached";
 
     # The reports should only be made after we know if this is a
     # directory (to apply recursion) or a file
-    iteration_2.!is_dir_copy::
-      "report"
-        usebundle    => _log_v3("Copying file ${path} from ${source}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.!is_dir_copy::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Copying file ${path} from ${source}", "");
 
-    iteration_2.is_dir_copy::
-      "report"
-        usebundle    => _log_v3("Copying ${path} from ${source}, recursion level ${recursion}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.is_dir_copy::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Copying ${path} from ${source}, recursion level ${recursion}", "");
 }
