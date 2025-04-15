@@ -205,8 +205,10 @@ object AuthorizationType {
     (Configuration.values ++ Rule.values ++ Directive.values ++ Technique.values ++ Parameter.values).toSet
   val nodeKind:          Set[AuthorizationType] = (Node.values ++ Group.values).toSet
   val workflowKind:      Set[AuthorizationType] = (Validator.values ++ Deployer.values).toSet
-  val complianceKind:    Set[AuthorizationType] =
-    (Compliance.values ++ (nodeKind ++ configurationKind).collect { case x: ActionType.Read => x }).toSet
+  val complianceKind:    Set[AuthorizationType] = {
+    (Compliance.values ++
+    (nodeKind ++ Configuration.values ++ Rule.values ++ Directive.values).collect { case x: ActionType.Read => x }).toSet
+  }
 
   /*
    * Authorization are extensible but can not be removed.
