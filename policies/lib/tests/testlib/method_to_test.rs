@@ -250,4 +250,20 @@ impl MethodToTest {
             ..Self::new()
         }
     }
+
+    pub fn file_content(path: String, lines: String, enforce: String) -> MethodToTest {
+        MethodToTest {
+            name: "file_content".to_string(),
+            params: HashMap::from([
+                ("path".to_string(), path),
+                ("lines".to_string(), lines),
+                ("enforce".to_string(), enforce),
+            ]),
+            method_info: get_lib()
+                .get("file_content")
+                .context("Looking for the method metadata from the parsed library")
+                .unwrap(),
+            ..Self::new()
+        }
+    }
 }

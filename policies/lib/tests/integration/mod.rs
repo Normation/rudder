@@ -13,6 +13,8 @@ pub mod condition_from_variable_match_test;
 pub mod file_absent_test;
 #[cfg(test)]
 pub mod file_check_exists_test;
+#[cfg(test)]
+mod file_content_test;
 
 use log::debug;
 use rudder_commons::methods::Methods;
