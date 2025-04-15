@@ -27,7 +27,9 @@ pipeline {
                 stage('policies-methods') {
                     agent {
                         dockerfile {
+                            label "generic-docker"
                             filename 'ci/methods.Dockerfile'
+                            args '-u 0:0'
                         }
                     }
                     steps {
@@ -54,8 +56,10 @@ pipeline {
                 stage('python-lib') {
                     agent {
                         dockerfile {
+                            label "generic-docker"
                             filename 'ci/python-avocado.Dockerfile'
-                                additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
+                            additionalBuildArgs  "--build-arg USER_ID=${env.JENKINS_UID}"
+                            args '-u 0:0'
                         }
                     }
                     steps {
