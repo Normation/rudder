@@ -17,6 +17,7 @@ allow = [
     "CC0-1.0",
     "LGPL-2.0",    
     "MIT-0",
+    "Zlib",
 ]
 
 [advisories]

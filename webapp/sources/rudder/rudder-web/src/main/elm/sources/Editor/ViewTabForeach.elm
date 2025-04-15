@@ -193,7 +193,7 @@ displayTabForeach uiInfo =
                     , element "b"
                       |> appendChild (element "code"
                         |> addClass "cursorPointer py-2 me-1"
-                        |> addAction ("click", Copy ("${" ++ iteratorName ++ "}.x"))
+                        |> addAction ("click", Copy ("${" ++ iteratorName ++ ".x}"))
                         |> appendChild (element "span" |> appendText "${")
                         |> appendChildConditional (element "span" |> appendText iteratorName) (Maybe.Extra.isJust foreachName)
                         |> appendChildConditional (element "i" |> appendText iteratorName) (Maybe.Extra.isNothing foreachName)
