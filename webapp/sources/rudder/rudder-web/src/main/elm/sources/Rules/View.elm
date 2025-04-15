@@ -18,6 +18,7 @@ import Rules.ViewUtils exposing (..)
 import Rules.ChangeRequest exposing (ChangeRequestSettings)
 
 import Ui.Datatable exposing (filterSearch, Category, getSubElems, generateLoadingTable)
+import Ui.Utils exposing (badgePolicyMode)
 
 
 view : Model -> Html Msg

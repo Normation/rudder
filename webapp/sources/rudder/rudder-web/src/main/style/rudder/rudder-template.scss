@@ -89,11 +89,9 @@ ul {
 .content-wrapper .rudder-template .jstree .jstree-anchor:hover .btn.create{
   opacity: 1 !important;
 }
-.content-wrapper .rudder-template .jstree  .jstree-node{
-  overflow: hidden;
-}
 .content-wrapper .rudder-template .jstree > .jstree-container-ul:first-child > ul.jstree-children > .jstree-node{
   margin-left: 0px;
+  display: flex;
 }
 .content-wrapper .rudder-template .jstree li:last-child {
   background: transparent;

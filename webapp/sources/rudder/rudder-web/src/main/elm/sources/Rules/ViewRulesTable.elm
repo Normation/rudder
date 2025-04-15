@@ -13,6 +13,7 @@ import Rules.ViewUtils exposing (..)
 import Compliance.Utils exposing (getAllComplianceValues, defaultComplianceFilter)
 import Compliance.Html exposing (buildComplianceBar)
 import Ui.Datatable exposing (SortOrder(..), filterSearch)
+import Ui.Utils exposing (badgePolicyMode)
 
 
 --
