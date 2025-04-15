@@ -122,3 +122,4 @@ policyModeValue pm =
         Nothing -> "default"
         Just Audit -> "audit"
         Just Enforce -> "enforce"
+        Just Default -> "default"

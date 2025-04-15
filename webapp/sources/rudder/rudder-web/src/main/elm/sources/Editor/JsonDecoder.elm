@@ -19,6 +19,21 @@ headList decoder =
       x :: _ -> succeed x
     ) decoder
 
+decodeDirective : Decoder Directive
+decodeDirective =
+  succeed Directive
+    |> required "id" (map DirectiveId string)
+    |> required "displayName" string
+    |> required "shortDescription" string
+    |> required "longDescription" string
+    |> required "techniqueName" string
+    |> required "techniqueVersion" string
+    |> required "priority" int
+    |> required "enabled" bool
+    |> required "system" bool
+    |> required "policyMode" decodePolicyModeDirective
+    --|> required "tags" (keyValuePairs string)
+
 decodeTechniqueParameter : Decoder TechniqueParameter
 decodeTechniqueParameter =
   succeed TechniqueParameter
@@ -87,6 +102,15 @@ decodePolicyMode =
                    _ -> fail ""
           ) string
 
+decodePolicyModeDirective : Decoder PolicyMode
+decodePolicyModeDirective =
+  andThen (\s -> case s of
+                   "audit" -> succeed Audit
+                   "enforce" -> succeed Enforce
+                   "default" ->  succeed Default
+                   _ -> fail ""
+          ) string
+
 decodeBlock : Decoder MethodBlock
 decodeBlock =
   succeed MethodBlock
@@ -146,6 +170,7 @@ decodeTechnique =
     |> required "resources" (list decodeResource)
     |> required "tags" (keyValuePairs string)
     |> optional "output" (decodeOutput |> map Just) Nothing
+
 
 decodeAgent : Decoder Agent
 decodeAgent =
