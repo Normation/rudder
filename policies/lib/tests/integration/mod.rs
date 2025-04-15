@@ -19,7 +19,7 @@ use rudder_commons::methods::Methods;
 use std::mem::ManuallyDrop;
 use std::path::PathBuf;
 use std::sync::OnceLock;
-use tempfile::{tempdir, TempDir};
+use tempfile::{TempDir, tempdir};
 
 const LIBRARY_PATH: &str = "./tree";
 pub fn get_lib() -> &'static Methods {
