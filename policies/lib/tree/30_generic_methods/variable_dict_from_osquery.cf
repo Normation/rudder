@@ -76,10 +76,10 @@ bundle agent variable_dict_from_osquery(prefix, name, query)
 {
   vars:
       "class_prefix"    string => canonify("variable_dict_from_osquery_${name}");
-      "tmp_var_name"    string => canonify("${report_data.method_id}_tmp";
+      "tmp_var_name"    string => canonify("${report_data.method_id}_tmp");
     pass2::
       "${prefix}.${name}" data => parsejson("${variable_dict_from_osquery_tmp.${tmp_var_name}}"),
-                            if => "${tmp_var_name }_ok";
+                            if => "${tmp_var_name}_ok";
 
   classes:
     any::
