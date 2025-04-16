@@ -22,6 +22,7 @@ import Compliance.DataTypes exposing (..)
 import Compliance.Utils exposing (displayComplianceFilters, filterDetailsByCompliance, defaultComplianceFilter)
 import Compliance.Html exposing (buildComplianceBar)
 import Ui.Datatable exposing (SortOrder(..), filterSearch, Category, getSubElems, getAllElems)
+import Html.Events.Extra exposing (onClickPreventDefault)
 
 
 --
@@ -561,7 +562,7 @@ directivesTab model details =
                 in
                   li [class ("jstree-node jstree-leaf directiveNode" ++ disabledClass)]
                   [ i [class "jstree-icon jstree-ocl"][]
-                  , a [class ("jstree-anchor" ++ selectedClass), onClick (addDirectives d.id)]
+                  , a [class ("jstree-anchor" ++ selectedClass), onClickPreventDefault (addDirectives d.id)]
                     [ badgePolicyMode model.policyMode d.policyMode
                     , unusedWarning
                     , span [class "item-name"][text d.displayName]
@@ -869,7 +870,7 @@ groupsTab model details =
           in
             li [class ("jstree-node jstree-leaf" ++ disabledClass)]
             [ i [class "jstree-icon jstree-ocl"][]
-            , a [class ("jstree-anchor" ++ includeClass), onClick (SelectGroup item.target True)]
+            , a [class ("jstree-anchor" ++ includeClass), onClickPreventDefault (SelectGroup item.target True)]
               [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
               , span [class "item-name"][text item.name, (if item.dynamic then (small [class "greyscala"][text "- Dynamic"]) else (text ""))]
               , disabledLabel

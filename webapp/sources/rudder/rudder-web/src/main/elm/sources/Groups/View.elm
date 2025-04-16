@@ -3,6 +3,7 @@ module Groups.View exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (attribute, class, href, id, placeholder, style, title, type_, value)
 import Html.Events exposing (onClick, onInput)
+import Html.Events.Extra exposing (onClickPreventDefault)
 import NaturalOrdering as N
 import List
 import String
@@ -34,7 +35,7 @@ view model =
       in
         li [class "jstree-node jstree-leaf"]
         [ i[class "jstree-icon jstree-ocl"][]
-        , a[class ("jstree-anchor"++classDisabled {- ++classFocus -}), href (getGroupLink model.contextPath item.id.value), onClick (OpenGroupDetails item.id)]
+        , a[class ("jstree-anchor"++classDisabled {- ++classFocus -}), href (getGroupLink model.contextPath item.id.value), onClickPreventDefault (OpenGroupDetails item.id)]
           [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
           , span
             ((
@@ -82,7 +83,7 @@ view model =
               Just (
                 li[class ("jstree-node" ++ foldedClass model.ui.groupFilters.treeFilters item.id)]
                 [ i [class "jstree-icon jstree-ocl", onClick (UpdateGroupFilters (foldUnfoldCategory model.ui.groupFilters item.id))][]
-                , a [class ("jstree-anchor"{- ++ classFocus -}), onClick (OpenCategoryDetails item.id)]
+                , a [class ("jstree-anchor"{- ++ classFocus -}), onClickPreventDefault (OpenCategoryDetails item.id)]
                   [ i [class ("jstree-icon jstree-themeicon jstree-themeicon-custom" ++ icons)][]
                   , span [class "treeGroupCategoryName"][text item.name]
                   ]

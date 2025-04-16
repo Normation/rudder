@@ -227,13 +227,6 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                |    initBsTooltips();
                |  }, 800);
                |});
-               |// The timeout aims to wait that the tree is fully loaded to
-               |// to prevent href to reload the page on click
-               |setTimeout(function(){
-               |  $$('.jstree-anchor').click(function (event) {
-               |    event.preventDefault();
-               |  });
-               |}, 950);
               """.stripMargin
           )
         )

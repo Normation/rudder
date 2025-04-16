@@ -5,6 +5,7 @@ import Either exposing (Either(..))
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Html.Events.Extra exposing (onClickPreventDefault)
 import List.Extra
 import Maybe.Extra
 import NaturalOrdering as N exposing (compare)
@@ -208,7 +209,7 @@ techniqueItem model technique =
 
     li [class "jstree-node jstree-leaf"]
           [ i[class "jstree-icon jstree-ocl"][]
-          , a[class ("jstree-anchor " ++ activeClass), href (model.contextPath ++ "/secure/configurationManager/techniqueEditor/technique/" ++ technique.id.value), onClick (SelectTechnique (Left technique))]
+          , a[class ("jstree-anchor " ++ activeClass), href (model.contextPath ++ "/secure/configurationManager/techniqueEditor/technique/" ++ technique.id.value), onClickPreventDefault (SelectTechnique (Left technique))]
             [ i [class "jstree-icon jstree-themeicon fa fa-cog jstree-themeicon-custom"][]
             , span [class "treeGroupName"]
               [ text technique.name  ]
