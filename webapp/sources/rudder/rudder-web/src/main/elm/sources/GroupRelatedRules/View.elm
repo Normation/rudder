@@ -3,6 +3,7 @@ module GroupRelatedRules.View exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (checked, class, disabled, for, href, id, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput)
+import Html.Events.Extra exposing (onClickPreventDefault)
 import List.Extra
 import NaturalOrdering as N
 import Maybe.Extra
@@ -30,7 +31,7 @@ view model =
       in
         li [class "jstree-node jstree-leaf"]
         [ i[class "jstree-icon jstree-ocl"][]
-        , a[class ("jstree-anchor"++classDisabled), href (getRuleLink model.contextPath item.id), onClick (GoTo (getRuleLink model.contextPath item.id))]
+        , a[class ("jstree-anchor"++classDisabled), href (getRuleLink model.contextPath item.id), onClickPreventDefault (GoTo (getRuleLink model.contextPath item.id))]
           [ i [class "jstree-icon jstree-themeicon fa fa-sitemap jstree-themeicon-custom"][]
           , span [class "treeGroupName"]
             [ badgeIncludedExcluded model item.id
@@ -79,7 +80,7 @@ view model =
               Just (
                 li[class ("jstree-node" ++ foldedClass model.ui.ruleTreeFilters item.id)]
                 [ i [class "jstree-icon jstree-ocl", onClick (UpdateRuleFilters (foldUnfoldCategory model.ui.ruleTreeFilters item.id))][]
-                , a [class ("jstree-anchor"), href (getRuleCategoryLink model.contextPath item.id), onClick (GoTo (getRuleCategoryLink model.contextPath item.id))]
+                , a [class ("jstree-anchor"), href (getRuleCategoryLink model.contextPath item.id), onClickPreventDefault (GoTo (getRuleCategoryLink model.contextPath item.id))]
                   [ i [class ("jstree-icon jstree-themeicon jstree-themeicon-custom" ++ icons)][]
                   , span [class ("treeGroupCategoryName " ++ missingCatClass ++ mainMissingCat)][text item.name]
                   ]
