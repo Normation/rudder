@@ -397,6 +397,7 @@ class NodeGroupForm(
                     </div>
                   </div>
     & "group-cfeclasses" #> NodeSeq.Empty
+    & "#longDescriptionFieldMarkdownContainer i" #> NodeSeq.Empty
     & "#longDescriptionField" #> (groupDescription.toForm_! ++ Script(
       JsRaw(
         s"""setupMarkdown(${Str(groupDescription.defaultValue).toJsCmd}, "longDescriptionField")"""
