@@ -64,7 +64,9 @@ import scala.jdk.CollectionConverters.*
  */
 sealed trait RudderAccount
 object RudderAccount {
-  final case class User(login: String, password: String) extends RudderAccount
+  final case class User(login: String, password: String) extends RudderAccount {
+    override def toString: String = s"User(login=${login},password=[REDACTED])"
+  }
   final case class Api(api: ApiAccount)                  extends RudderAccount
 }
 
