@@ -52,6 +52,7 @@ import com.normation.rudder.domain.reports.RuleNodeStatusReport
 import com.normation.rudder.domain.reports.RuleStatusReport
 import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.services.policies.PolicyId
+import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
 import org.junit.runner.*
 import org.specs2.matcher.MatchResult
@@ -77,16 +78,18 @@ class ReportingServiceUtilsTest extends Specification {
   val expiration = new DateTime(0) // not used
 
   val noOverrides = Nil
-  def dirReport(id: DirectiveId):                                         (DirectiveId, DirectiveStatusReport) =
+  def dirReport(id: DirectiveId): (DirectiveId, DirectiveStatusReport) =
     (id, DirectiveStatusReport(id, PolicyTypes.rudderBase, None, Nil))
 
-  def dirReportOv(id: (DirectiveId, Option[RuleId])):                                         (DirectiveId, DirectiveStatusReport) =
+  def dirReportOv(id: (DirectiveId, Option[RuleId])): (DirectiveId, DirectiveStatusReport) =
     (id._1, DirectiveStatusReport(id._1, PolicyTypes.rudderBase, id._2, Nil))
 
-  def rnReport(nodeId: NodeId, ruleId: RuleId, directives: DirectiveId*): RuleNodeStatusReport                 = {
+  def rnReport(nodeId: NodeId, ruleId: RuleId, directives: DirectiveId*):                     RuleNodeStatusReport = {
     RuleNodeStatusReport(nodeId, ruleId, PolicyTypeName.rudderBase, None, None, directives.map(dirReport).toMap, expiration)
   }
-  def rnReportOv(nodeId: NodeId, ruleId: RuleId, directives: (DirectiveId, Option[RuleId])*): RuleNodeStatusReport                 = {
+
+  //used to create report where directives are overridden by the Some(ruleX)
+  def rnReportOv(nodeId: NodeId, ruleId: RuleId, directives: (DirectiveId, Option[RuleId])*): RuleNodeStatusReport = {
     RuleNodeStatusReport(nodeId, ruleId, PolicyTypeName.rudderBase, None, None, directives.map(dirReportOv).toMap, expiration)
   }
 
@@ -115,17 +118,19 @@ class ReportingServiceUtilsTest extends Specification {
 
   // a matcher which compare two RuleNodeStatusRepost
   implicit class SameRuleReportMatcher(report1: RuleStatusReport) {
-    def isSameReportAs(report2: RuleStatusReport): MatchResult[AggregatedStatusReport] = {
+    def isSameReportAs(report2: RuleStatusReport): MatchResult[Equals] = {
       (report1.forRule === report2.forRule)
       (report1.overrides === report2.overrides)
-      (report1.report === report2.report)
+      (report1.report.isSameReportAs(report2.report))
     }
   }
 
   // for aggregated status reports, we just compare directive list
   implicit class AggregatedReportMatcher(report1: AggregatedStatusReport) {
-    def isSameReportAs(report2: AggregatedStatusReport): MatchResult[Set[DirectiveId]] = {
-      report1.directives.keySet === report2.directives.keySet
+    def isSameReportAs(report2: AggregatedStatusReport): MatchResult[Set[RuleNodeStatusReport]] = {
+      report1.reports.modify(_.each.expirationDate).setTo(new DateTime(0)) === report2.reports
+        .modify(_.each.expirationDate)
+        .setTo(new DateTime(0))
     }
   }
 
@@ -157,6 +162,7 @@ class ReportingServiceUtilsTest extends Specification {
     RuleStatusReport
       .fromNodeStatusReports(rule1, reports)
       .isSameReportAs(
+        // on node2, rule1/dir1 is marked overridden by rule2
         RuleStatusReport(rule1, List(rnReport(node1, rule1, dir1), rnReportOv(node2, rule1, (dir1, Some(rule2)))), noOverrides)
       )
   }
@@ -180,9 +186,10 @@ class ReportingServiceUtilsTest extends Specification {
     RuleStatusReport
       .fromNodeStatusReports(rule1, reports)
       .isSameReportAs(
-        RuleStatusReport(rule1, List(), List(thisOverrideThatOn(rule2, rule1, dir1)))
+        RuleStatusReport(rule1, List(rnReportOv(node1, rule1, (dir1, Some(rule2)))), noOverrides)
       )
   }
+
   "directives on other rules are not kept in overrides" in {
     val reports = List(
       NodeStatusReportInternal
@@ -229,7 +236,7 @@ class ReportingServiceUtilsTest extends Specification {
     RuleStatusReport
       .fromNodeStatusReports(rule1, reports)
       .isSameReportAs(
-        RuleStatusReport(rule1, List(rnReport(node1, rule1, dir1)), noOverrides)
+        RuleStatusReport(rule1, List(rnReport(node1, rule1, dir1), rnReportOv(node2, rule1, (dir1, Some(rule2)))), noOverrides)
       ) and RuleStatusReport
       .fromNodeStatusReports(rule2, reports)
       .isSameReportAs(
@@ -256,7 +263,7 @@ class ReportingServiceUtilsTest extends Specification {
             thisOverrideThatOn2(rule2, dir1, rule1, dir3), // on rule2, both dir2 and dir3 are overridden by rule2/dir1
 
             thisOverrideThatOn2(rule2, dir1, rule2, dir2),
-            thisOverrideThatOn2(rule2, dir1, rule2, dir3), // on rule3, dir2, dir2 and dir3 are overridden by rule2/dir1
+            thisOverrideThatOn2(rule2, dir1, rule2, dir3), // on rule3, dir1, dir2 and dir3 are overridden by rule2/dir1
 
             thisOverrideThatOn2(rule2, dir1, rule3, dir1),
             thisOverrideThatOn2(rule2, dir1, rule3, dir2),
@@ -284,28 +291,27 @@ class ReportingServiceUtilsTest extends Specification {
       .isSameReportAs(
         RuleStatusReport(
           rule1,
-          List(),
-          List(thisOverrideThatOn2(rule2, dir1, rule1, dir2), thisOverrideThatOn2(rule2, dir1, rule1, dir3))
+          //rule1 doesn't have dir1, but dir2 and dir3 are overridden
+          List(rnReportOv(node1, rule1, (dir2, Some(rule2)), (dir3, Some(rule2)))),
+          noOverrides
         )
       ) and RuleStatusReport
       .fromNodeStatusReports(rule2, reports)
       .isSameReportAs(
         RuleStatusReport(
           rule2,
-          List(rnReport(node1, rule2, dir1)),
-          List(thisOverrideThatOn2(rule2, dir1, rule2, dir2), thisOverrideThatOn2(rule2, dir1, rule2, dir3))
+          // rule2/dir1 is the only not overridden case.
+          List(rnReport(node1, rule2, dir1), rnReportOv(node1, rule2, (dir2, Some(rule2)), (dir3, Some(rule2)))),
+          noOverrides
         )
       ) and RuleStatusReport
       .fromNodeStatusReports(rule3, reports)
       .isSameReportAs(
         RuleStatusReport(
           rule3,
-          List(),
-          List(
-            thisOverrideThatOn2(rule2, dir1, rule3, dir1),
-            thisOverrideThatOn2(rule2, dir1, rule3, dir2),
-            thisOverrideThatOn2(rule2, dir1, rule3, dir3)
-          )
+          // on rule3, each of dir1, dir2 and dir3 are overridden by rule 2
+          List(rnReportOv(node1, rule3, (dir1, Some(rule2)), (dir2, Some(rule2)), (dir3, Some(rule2)))),
+          noOverrides
         )
       )
   }

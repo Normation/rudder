@@ -397,6 +397,22 @@ final class AggregatedStatusReport private (
       })
     )
   }
+
+  /*
+   * equals/hashCode are needed because we compare objects with equality in
+   * NodeStatusReportRepositoryImpl.
+   * And because we're in scala, it's extremely surprising to have a broken equals anyway.
+   */
+  override def hashCode(): Int = {
+    reports.hashCode() + 47
+  }
+
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case other: AggregatedStatusReport => this.reports == other.reports
+      case _ => false
+    }
+  }
 }
 
 object AggregatedStatusReport {
@@ -457,7 +473,9 @@ object RuleNodeStatusReport {
 final case class DirectiveStatusReport(
     directiveId: DirectiveId,    // only one component status report by component name
     policyTypes: PolicyTypes,
-    overridden:  Option[RuleId], // a directive can exist in another rule of that node and be skipped here
+    // if set, this means that that directive is skipped in current rule, and is overridden by
+    // a directive in rule with given ID.
+    overridden:  Option[RuleId],
     components:  List[ComponentStatusReport]
 ) extends StatusReport {
   override lazy val compliance: ComplianceLevel = ComplianceLevel.sum(components.map(_.compliance))
