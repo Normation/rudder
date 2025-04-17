@@ -67,44 +67,35 @@
 bundle agent file_from_remote_template(source_template, destination, template_type)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_from_remote_template_${destination}");
-      "args"               slist => { "${source_template}", "${destination}", "${template_type}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_from_template_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
-      "template_folder"            string => "${sys.workdir}/tmp/templates/file_from_remote_template";
-      "template_tmp_file"          string => "${template_folder}/${destination}";
-
-      "full_copy_class_prefix"     string => canonify("file_from_remote_source_${source_template}_${template_tmp_file}");
-      "copy_class_prefix"          string => string_head("${full_copy_class_prefix}", "1000");
-      
-      "full_template_class_prefix" string => canonify("file_from_template_${template_tmp_file}_${destination}_${template_type}");
-      "template_class_prefix"      string => string_head("${full_template_class_prefix}", "1000");
-      
+      "class_prefix"         string => canonify("file_from_remote_template_${destination}");
+      "template_folder"      string => "${sys.workdir}/tmp/templates/file_from_remote_template";
+      "template_tmp_file"    string => "${template_folder}/${destination}";
+      "inner_class_prefix_1" string => "${report_data.method_id}_copy";
+      "inner_class_prefix_2" string => "${report_data.method_id}_render";
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"     usebundle => disable_reporting;
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("file_from_remote_source");
+      "${report_data.method_id}" usebundle => file_from_remote_source("${source_template}", "${template_tmp_file}");
+      "${report_data.method_id}" usebundle => call_method_classes("${inner_class_prefix_1}");
+      "${report_data.method_id}" usebundle => call_method_end("file_from_remote_source");
 
-      "get_template"                          usebundle => file_from_remote_source("${source_template}", "${template_tmp_file}");
-      "expand_template"                       usebundle => file_from_template_type("${template_tmp_file}", "${destination}", "${template_type}");
+      "${report_data.method_id}" usebundle => call_method("file_from_template_type");
+      "${report_data.method_id}" usebundle => file_from_template_type("${template_tmp_file}", "${destination}", "${template_type}");
+      "${report_data.method_id}" usebundle => call_method_classes("${inner_class_prefix_2}");
+      "${report_data.method_id}" usebundle => call_method_end("file_from_template_type");
 
-    any::
-      "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
-                                             ifvarclass => "should_report";
-      
-
-    any::
       # combine both for reporting
-      "old_result_class"    usebundle => _classes_combine_two("${copy_class_prefix}", "${template_class_prefix}", "${old_class_prefix}");
-      "result_class"    usebundle => _classes_combine_two("${copy_class_prefix}", "${template_class_prefix}", "${class_prefix}");
-
-      "report"          usebundle => _log_v3("Build file ${destination} from template ${source_template}", "${destination}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => _classes_combine_two("${inner_class_prefix_1}", "${inner_class_prefix_2}", "${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_copy("${report_data.method_id}", "${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${destination}", "Build file ${destination} from template ${source_template}", "");
 
       # Make a log_warn report if template is not updated but file destination is, and policies were not updated
-      "report" usebundle  => log_rudder_mode("log_warn", "Template expansion changed but the template was not changed - file ${destination} may have been changed on filesystem outside of configuration management", "${destination}", "${class_prefix}"),
-                ifvarclass => "!${copy_class_prefix}_repaired.${template_class_prefix}_repaired.!config";
+      "${report_data.method_id}" usebundle => log_rudder_mode("log_warn", "Template expansion changed but the template was not changed - file ${destination} may have been changed on filesystem outside of configuration management", "${destination}", "${class_prefix}"),
+                                        if => "!${inner_class_prefix_1}_repaired.${inner_class_prefix_2}_repaired.!config";
 }

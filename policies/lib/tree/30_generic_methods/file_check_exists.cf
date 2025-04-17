@@ -34,24 +34,23 @@
 bundle agent file_check_exists(path)
 {
   vars:
-      "old_class_prefix" string => canonify("file_check_exists_${path}");
-      "args"              slist => { "${path}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_check_exists_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix" string => canonify("file_check_exists_${path}");
 
   classes:
+      "pass3"        expression => "pass2";
+      "pass2"        expression => "pass1";
+      "pass1"        expression => "any";
       "file_exists"  expression => fileexists("${path}");
 
   methods:
-    file_exists::
-      "file_exists"        usebundle => _classes_success("${old_class_prefix}");
-      "file_exists"        usebundle => _classes_success("${class_prefix}");
+    pass3.file_exists::
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
 
-    !file_exists::
-      "file_dont_exists"   usebundle => _classes_failure("${old_class_prefix}");
-      "file_dont_exists"   usebundle => _classes_failure("${class_prefix}");
+    pass3.!file_exists::
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
 
-    any::
-      "report"             usebundle => _log_v3("Check if ${path} exists", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Check if ${path} exists", "");
 }

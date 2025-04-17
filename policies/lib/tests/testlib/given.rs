@@ -20,18 +20,23 @@ pub enum Given {
 }
 
 impl Given {
-    pub fn method_call(m: MethodToTest) -> Given {
-        Given::MethodCall(m)
+    pub fn method_call(m: &MethodToTest) -> Given {
+        Given::MethodCall(m.clone())
     }
-    pub fn file_present(file_path: String) -> Given {
-        Given::Setup(FilePresent(FilePresentStruct { path: file_path }))
+    pub fn file_present(file_path: &str, content: &str) -> Given {
+        Given::Setup(FilePresent(FilePresentStruct {
+            path: file_path.to_string(),
+            content: content.to_string(),
+        }))
     }
-    pub fn file_absent(file_path: String) -> Given {
-        Given::Setup(FileAbsent(FileAbsentStruct { path: file_path }))
+    pub fn file_absent(file_path: &str) -> Given {
+        Given::Setup(FileAbsent(FileAbsentStruct {
+            path: file_path.to_string(),
+        }))
     }
-    pub fn directory_present(directory_path: String) -> Given {
+    pub fn directory_present(directory_path: &str) -> Given {
         Given::Setup(DirectoryPresent(DirectoryPresentStruct {
-            path: directory_path,
+            path: directory_path.to_string(),
         }))
     }
 }
