@@ -265,14 +265,15 @@ final case class SkippedDetails(
     overridingRuleId:   RuleId,
     overridingRuleName: String
 )
+
 final case class DirectiveComplianceOverride(
     overridenRuleId:  RuleId,
-    directiveId:      DirectiveId,
-    directiveName:    String,
-    overridingRuleId: RuleId
+    directiveId:        DirectiveId,
+    directiveName:      String,
+    overridingRuleId:   RuleId,
+    overridingRuleName: String
 ) {
-  def toComplianceByRule(rules: Map[RuleId, Rule]): ByRuleDirectiveCompliance = {
-    val overridingRuleName = rules.get(overridingRuleId).map(_.name).getOrElse("unknown rule")
+  def toComplianceByRule: ByRuleDirectiveCompliance = {
     ByRuleDirectiveCompliance(
       directiveId,
       directiveName,
@@ -285,8 +286,7 @@ final case class DirectiveComplianceOverride(
     )
   }
 
-  def toComplianceByNodeRule(rules: Map[RuleId, Rule]): ByNodeDirectiveCompliance = {
-    val overridingRuleName = rules.get(overridingRuleId).map(_.name).getOrElse("unknown rule")
+  def toComplianceByNodeRule: ByNodeDirectiveCompliance = {
     ByNodeDirectiveCompliance(
       directiveId,
       directiveName,
@@ -294,31 +294,9 @@ final case class DirectiveComplianceOverride(
       ComputePolicyMode.skipped(
         s"This directive is skipped because it is overridden by the rule <b>${overridingRuleName}</b> (with id ${overridingRuleId.serialize})."
       ),
-      Some(SkippedDetails(overridingRuleId, rules.get(overridingRuleId).map(_.name).getOrElse("unknown rule"))),
+      Some(SkippedDetails(overridingRuleId, overridingRuleName)),
       List.empty
     )
-  }
-}
-
-object ComplianceOverrides {
-  def getOverridenDirective(
-      overrides:  List[OverriddenPolicy],
-      directives: Map[DirectiveId, (FullActiveTechnique, Directive)]
-  ): List[DirectiveComplianceOverride] = {
-    val overridesData = for {
-      over               <- overrides
-      (_, overridenDir)  <- directives.get(over.policy.directiveId)
-      (_, overridingDir) <- directives.get(over.overriddenBy.directiveId)
-    } yield {
-      DirectiveComplianceOverride(
-        over.policy.ruleId,
-        over.policy.directiveId,
-        overridenDir.name,
-        over.overriddenBy.ruleId
-      )
-
-    }
-    overridesData
   }
 }
 

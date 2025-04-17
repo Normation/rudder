@@ -212,8 +212,8 @@ object ComputePolicyMode {
 
           // We are not overriding global mode or we are enforcing Audit
           // Scala type system / pattern matching does not allow here to state that we have an Option[Enforce] So we will still have to treat audit case ...
-          case uniqueMode  =>
-            // If something is missing or multiple mode does not override global mode we will fallback to this
+          case _           =>
+            // If something is missing or multiple mode does not override global mode we will fall back to this
             // Use unique mode if defined
             // else use the global mode
             val (defaultMode, expl) = uniqueMode match {
@@ -276,18 +276,18 @@ object ComputePolicyMode {
 
               // We have multiple modes ! We need to go deeper
               case modes       =>
-                // Now we will replace None (non overriding mode) by it's effective mode (default one defined above)
+                // Now we will replace None (non-overriding mode) by its effective mode (default one defined above)
 
                 multipleModes.map(_.getOrElse(defaultMode)).toList match {
                   // That is treated above on the first match on the list, but still need to treat empty case
                   case Nil         => default
-                  // All modes defined are now replaced by default mode but there is only mode mode left
+                  // All modes defined are now replaced by default mode but there is only mode left
                   case mode :: Nil =>
                     mode match {
                       // Audit means that unique mode was not overriding and we that some 'multiple' modes are overriding to Audit and global mode is defined as audit
                       case Audit   =>
                         ComputedPolicyMode(Audit, s"<b>${Audit.name}</b> mode is forced by some <i><b>${multipleKind}</b></i>")
-                      // That means that unique mode was not overriding or is in enforce Mode and that some directive are overrding to default and global mode is defined as audit
+                      // That means that unique mode was not overriding or is in enforce Mode and that some directive are overriding to default and global mode is defined as audit
                       // Maybe we could look into unique mode to state if it depends on it or not
                       case Enforce =>
                         ComputedPolicyMode(
@@ -296,7 +296,7 @@ object ComputePolicyMode {
                         )
                     }
 
-                  // We still have more that one mode, we are in mixed state, use the explanation povided
+                  // We still have more than one mode, we are in mixed state, use the explanation provided
                   case _           =>
                     MixedMode(mixedExplanation)
                 }

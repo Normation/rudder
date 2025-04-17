@@ -65,6 +65,7 @@ import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.domain.reports.ComponentStatusReport
 import com.normation.rudder.domain.reports.DirectiveStatusReport
 import com.normation.rudder.domain.reports.NodeStatusReport
+import com.normation.rudder.domain.reports.RuleStatusReport
 import com.normation.rudder.domain.reports.ValueStatusReport
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
@@ -81,7 +82,6 @@ import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.services.reports.ReportingService
-import com.normation.rudder.services.reports.ReportingServiceUtils
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
 import com.normation.zio.currentTimeMillis
@@ -749,6 +749,7 @@ class ComplianceAPIService(
     for {
       t1        <- currentTimeMillis
       allGroups <- nodeGroupRepo.getAllNodeIdsChunk()
+      allRules  <- rulesRepo.getAll()
       t2        <- currentTimeMillis
       _         <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - nodeGroupRepo.getAllNodeIdsChunk in ${t2 - t1} ms")
 
@@ -781,7 +782,13 @@ class ComplianceAPIService(
 
       // make a map of directive overrides for each rule, to add to the directives of a rule
       directivesOverrides <-
-        getDirectiveOverrides[ByRuleDirectiveCompliance](ruleObjects, reportsByNode, directives, _.toComplianceByRule(_))
+        getDirectiveOverrides[ByRuleDirectiveCompliance](
+          ruleObjects,
+          reportsByNode,
+          directives,
+          allRules,
+          _.toComplianceByRule
+        )
 
       t8               <- currentTimeMillis
       _                <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - get directive overrides and rules infos in ${t8 - t7} ms")
@@ -1371,13 +1378,17 @@ class ComplianceAPIService(
   }.toBox
 
   def getRulesCompliance(level: Option[Int])(implicit qc: QueryContext): Box[Seq[ByRuleRuleCompliance]] = {
+    getRulesCompliancePure(level).toBox
+  }
+
+  def getRulesCompliancePure(level: Option[Int])(implicit qc: QueryContext): IOResult[Seq[ByRuleRuleCompliance]] = {
     for {
       rules   <- rulesRepo.getAll()
       reports <- getByRulesCompliance(rules, level)
     } yield {
       reports
     }
-  }.toBox
+  }
 
   /**
    * Get the compliance for everything
@@ -1401,7 +1412,6 @@ class ComplianceAPIService(
       rules        <- if (PolicyTypeName.rudderSystem == policyType) getSystemRules() else getAllUserRules()
       ruleMap       = rules.map { case x => (x.id, x) }.toMap
       allGroups    <- nodeGroupRepo.getAllNodeIdsChunk()
-      groupLib     <- nodeGroupRepo.getFullGroupLibrary()
       directiveLib <- directiveRepo.getFullDirectiveLibrary().map(_.allDirectives)
       allNodeFacts <- nodeFactRepos.getAll()
       nodeFacts    <- onlyNode match {
@@ -1421,7 +1431,7 @@ class ComplianceAPIService(
                         )
 
       directiveOverrides <-
-        getDirectiveOverrides[ByNodeDirectiveCompliance](ruleMap, reports, directiveLib, _.toComplianceByNodeRule(_))
+        getDirectiveOverrides[ByNodeDirectiveCompliance](ruleMap, reports, directiveLib, rules, _.toComplianceByNodeRule)
     } yield {
       // A map to access the node fqdn and settings
       val nodeInfos: Map[NodeId, (String, RudderSettings)] =
@@ -1577,7 +1587,6 @@ class ComplianceAPIService(
     } yield {
       report
     }
-
   }
 
   def getNodesCompliance(policyTypeName: PolicyTypeName)(implicit qc: QueryContext): IOResult[Seq[ByNodeNodeCompliance]] = {
@@ -1604,14 +1613,16 @@ class ComplianceAPIService(
       initialRuleObjects: Map[RuleId, Rule],
       reports:            Map[NodeId, NodeStatusReport],
       directives:         Map[DirectiveId, (FullActiveTechnique, Directive)],
-      overrideToTarget:   (DirectiveComplianceOverride, Map[RuleId, Rule]) => T
+      allRules:           Iterable[Rule],
+      overrideToTarget:   DirectiveComplianceOverride => T
   ): IOResult[MapView[RuleId, List[T]]] = {
     // make a map of directive overrides for each rule, to add to the directives of a rule
     val directiveOverridesByRules = initialRuleObjects.keys.map { ruleId =>
-      val overridenDirectives = ComplianceOverrides
-        .getOverridenDirective(
-          ReportingServiceUtils.buildRuleStatusReport(ruleId, reports).overrides,
-          directives
+      val overriddenDirectives = ComplianceOverrides
+        .getOverriddenDirective(
+          RuleStatusReport.fromNodeStatusReports(ruleId, reports).overrides,
+          directives,
+          allRules
         )
       ruleId -> overridenDirectives
     }.toMap
@@ -1619,11 +1630,8 @@ class ComplianceAPIService(
     // we need to fetch info for rules pulled from overriden directives of our rules
 
     ZIO
-      .foreach(
-        directiveOverridesByRules.values.toList
-          .flatMap(_.map(_.overridingRuleId))
-      )(rulesRepo.getOpt(_))
+      .foreach(directiveOverridesByRules.values.toList.flatMap(_.map(_.overridingRuleId)))(rulesRepo.getOpt(_))
       .map(rules => initialRuleObjects ++ rules.flatten.map(r => (r.id, r)).toMap)
-      .map(allRuleObjects => directiveOverridesByRules.view.mapValues(_.map(overrideToTarget(_, allRuleObjects))))
+      .map(_ => directiveOverridesByRules.view.mapValues(_.map(overrideToTarget(_))))
   }
 }

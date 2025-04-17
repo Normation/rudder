@@ -160,5 +160,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>jcl-over-slf4j</artifactId>
     </dependency>
 
+    <!-- tool used to profile compliance perf in
+    <dependency>
+      <groupId>tools.profiler</groupId>
+      <artifactId>async-profiler</artifactId>
+      <version>4.0</version>
+    </dependency>
   </dependencies>
 </project>

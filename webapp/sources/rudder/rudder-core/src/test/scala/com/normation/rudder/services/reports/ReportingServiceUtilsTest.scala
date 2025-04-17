@@ -146,8 +146,8 @@ class ReportingServiceUtilsTest extends Specification {
         .toNodeStatusReport()
     ).map(r => (r.nodeId, r)).toMap
 
-    ReportingServiceUtils
-      .buildRuleStatusReport(rule1, reports)
+    RuleStatusReport
+      .fromNodeStatusReports(rule1, reports)
       .isSameReportAs(
         RuleStatusReport(rule1, List(rnReport(node1, rule1, dir1)), noOverrides)
       )
@@ -169,8 +169,8 @@ class ReportingServiceUtilsTest extends Specification {
         .toNodeStatusReport()
     ).map(r => (r.nodeId, r)).toMap
 
-    ReportingServiceUtils
-      .buildRuleStatusReport(rule1, reports)
+    RuleStatusReport
+      .fromNodeStatusReports(rule1, reports)
       .isSameReportAs(
         RuleStatusReport(rule1, List(), List(thisOverrideThatOn(rule2, rule1, dir1)))
       )
@@ -188,8 +188,8 @@ class ReportingServiceUtilsTest extends Specification {
         .toNodeStatusReport()
     ).map(r => (r.nodeId, r)).toMap
 
-    ReportingServiceUtils
-      .buildRuleStatusReport(rule1, reports)
+    RuleStatusReport
+      .fromNodeStatusReports(rule1, reports)
       .isSameReportAs(
         RuleStatusReport(rule1, List(), List())
       )
@@ -218,12 +218,12 @@ class ReportingServiceUtilsTest extends Specification {
         .toNodeStatusReport()
     ).map(r => (r.nodeId, r)).toMap
 
-    ReportingServiceUtils
-      .buildRuleStatusReport(rule1, reports)
+    RuleStatusReport
+      .fromNodeStatusReports(rule1, reports)
       .isSameReportAs(
         RuleStatusReport(rule1, List(rnReport(node1, rule1, dir1)), noOverrides)
-      ) and ReportingServiceUtils
-      .buildRuleStatusReport(rule2, reports)
+      ) and RuleStatusReport
+      .fromNodeStatusReports(rule2, reports)
       .isSameReportAs(
         RuleStatusReport(rule2, List(rnReport(node2, rule2, dir2)), noOverrides)
       )
@@ -271,24 +271,24 @@ class ReportingServiceUtilsTest extends Specification {
         .toNodeStatusReport()
     ).map(r => (r.nodeId, r)).toMap
 
-    ReportingServiceUtils
-      .buildRuleStatusReport(rule1, reports)
+    RuleStatusReport
+      .fromNodeStatusReports(rule1, reports)
       .isSameReportAs(
         RuleStatusReport(
           rule1,
           List(),
           List(thisOverrideThatOn2(rule2, dir1, rule1, dir2), thisOverrideThatOn2(rule2, dir1, rule1, dir3))
         )
-      ) and ReportingServiceUtils
-      .buildRuleStatusReport(rule2, reports)
+      ) and RuleStatusReport
+      .fromNodeStatusReports(rule2, reports)
       .isSameReportAs(
         RuleStatusReport(
           rule2,
           List(rnReport(node1, rule2, dir1)),
           List(thisOverrideThatOn2(rule2, dir1, rule2, dir2), thisOverrideThatOn2(rule2, dir1, rule2, dir3))
         )
-      ) and ReportingServiceUtils
-      .buildRuleStatusReport(rule3, reports)
+      ) and RuleStatusReport
+      .fromNodeStatusReports(rule3, reports)
       .isSameReportAs(
         RuleStatusReport(
           rule3,
