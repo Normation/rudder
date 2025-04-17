@@ -201,6 +201,7 @@ impl PackageManager {
     /// Split by line and null char, remove empty lines.
     fn parse_services(i: &[String]) -> Vec<String> {
         i.iter()
+            .flat_map(|l| l.split('\n'))
             .flat_map(|l| l.split('\0'))
             .flat_map(|s| match s.trim() {
                 "" => None,
@@ -362,15 +363,16 @@ mod tests {
         let i = vec![
             "".to_string(),
             "foo  ".to_string(),
-            " bar".to_string(),
-            "baz.service".to_string(),
+            " bar\r\n".to_string(),
+            "baz.service\nbiz.service".to_string(),
             ".service".to_string(),
             "ser1\0ser2".to_string(),
             "".to_string(),
+            " ".to_string(),
         ];
         std::assert_eq!(
             PackageManager::parse_services(&i),
-            vec!["foo", "bar", "baz.service", "ser1", "ser2"]
+            vec!["foo", "bar", "baz.service", "biz.service", "ser1", "ser2"]
         );
     }
 }
