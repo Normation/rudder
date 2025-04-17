@@ -39,6 +39,7 @@ package com.normation.rudder.services.reports
 
 import ch.qos.logback.classic.Logger
 import com.normation.cfclerk.domain.ReportingLogic
+import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
@@ -57,8 +58,10 @@ import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
+import com.normation.rudder.services.policies.PolicyId
 import com.normation.rudder.services.reports.ExecutionBatch.ComputeComplianceTimer
 import com.normation.rudder.services.reports.ExecutionBatch.MergeInfo
+import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.*
@@ -106,7 +109,7 @@ class ExecutionBatchTest extends Specification {
       nbRules:         Int,
       nbDirectives:    Int,
       nbReportsPerDir: Int
-  ): (MergeInfo, IndexedSeq[ResultSuccessReport], NodeExpectedReports, NodeExpectedReports) = {
+  ): (MergeInfo, IndexedSeq[ResultSuccessReport], NodeExpectedReports, NodeExpectedReports, List[OverriddenPolicy]) = {
     val ruleIds      = (1 to nbRules).map("rule_id_" + _ + nodeId).toSeq
     val directiveIds = (1 to nbDirectives).map("directive_id_" + _ + nodeId).toSeq
     val dirPerRule   = ruleIds.map(rule => (RuleId(rule), directiveIds.map(dir => DirectiveId(DirectiveUid(dir + "@@" + rule)))))
@@ -174,7 +177,7 @@ class ExecutionBatchTest extends Specification {
 
     val mergeInfo = MergeInfo(NodeId(nodeId), Some(now), Some(nodeConfigId), now.plus(100))
 
-    (mergeInfo, executionReports, nodeExpectedReport, nodeExpectedReport)
+    (mergeInfo, executionReports, nodeExpectedReport, nodeExpectedReport, Nil)
 
   }
 
@@ -228,52 +231,6 @@ class ExecutionBatchTest extends Specification {
   val getNodeStatusByRule: ((Map[NodeId, NodeExpectedReports], Seq[Reports])) => Map[NodeId, NodeStatusReport] =
     (getNodeStatusReportsByRule _).tupled
   val one:                 NodeId                                                                              = NodeId("one")
-
-  /*
-   * Test the general run information (do we have a run, is it an expected version, etc)
-   */
-  // TODO: CORRECT TESTS
-//  "A node, an expected version, and a run" should {
-//
-//    // general configuration option: node id, run period...
-//    val root = NodeId("root")
-//
-//    val insertionId = 102030
-//    val isCompleted = true
-//
-//    val nodeConfigIdInfos = Map(root -> ResolvedAgentRunInterval(Duration.parse("PT300S"),1))
-//    val mode = GlobalComplianceMode(FullCompliance, 5)
-//
-//    val now = DateTime.now()
-//
-//    // known configuration in Rudder database
-//    val startConfig0 = now.minusMinutes(60)
-//    val startConfig1 = now.minusMinutes(37)
-//    val startConfig2 = now.minusMinutes(16)
-//    val configId0    = NodeConfigId("-1000")
-//    val configId1    = NodeConfigId( "2000")
-//    val configId2    = NodeConfigId("-4000")
-//
-//    val config0 = NodeConfigIdInfo( configId0, startConfig0, Some(startConfig1) )
-//    val config1 = NodeConfigIdInfo( configId1, startConfig1, Some(startConfig2) )
-//    val config2 = NodeConfigIdInfo( configId2, startConfig2, None               )
-//
-//    val knownConfigs = Map(root -> Some(List(config0, config1, config2)))
-//
-//    "have no report in interval if the run is older than 10 minutes" in {
-//      val runs = Map(root -> Some(AgentRun(AgentRunId(root, now.minusMinutes(11)), Some(configId2), isCompleted, insertionId)))
-//      ExecutionBatch.computeNodesRunInfo(nodeConfigIdInfos, runs, knownConfigs, mode) === Map(root -> NoReportInInterval(config2))
-//    }
-//
-//    "raise UnexpectedUnknowVersion when the run version is not know" in {
-//      val runTime = now.minusMinutes(3)
-//      val epoch = new DateTime(0)
-//      val runs = Map(root -> Some(AgentRun(AgentRunId(root, runTime), Some(NodeConfigId("123456")), isCompleted, insertionId)))
-//      ExecutionBatch.computeNodesRunInfo(nodeConfigIdInfos, runs, knownConfigs, mode) === Map(root ->
-//        UnexpectedUnknowVersion(runTime, NodeConfigId("123456"), config2, startConfig2.plusMinutes(10))
-//      )
-//    }
-//  }
 
   sequential
 
@@ -1382,7 +1339,8 @@ class ExecutionBatchTest extends Specification {
         reports,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
     val withBad  = ExecutionBatch
@@ -1391,7 +1349,8 @@ class ExecutionBatchTest extends Specification {
         badReports,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -1560,7 +1519,8 @@ class ExecutionBatchTest extends Specification {
         reportsWithLoop,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -1705,7 +1665,8 @@ class ExecutionBatchTest extends Specification {
         reportsWithLoop,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -1922,7 +1883,8 @@ class ExecutionBatchTest extends Specification {
         reports,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -1932,7 +1894,8 @@ class ExecutionBatchTest extends Specification {
         badReports,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -2137,7 +2100,8 @@ class ExecutionBatchTest extends Specification {
         reports,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -2147,7 +2111,8 @@ class ExecutionBatchTest extends Specification {
         badReports,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -2312,7 +2277,8 @@ class ExecutionBatchTest extends Specification {
         reports,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -2473,7 +2439,8 @@ class ExecutionBatchTest extends Specification {
         reports,
         mode,
         ruleExpectedReports,
-        new ComputeComplianceTimer()
+        new ComputeComplianceTimer(),
+        Nil
       )
       .collect { case r => r.directives("policy") }
 
@@ -3098,7 +3065,8 @@ class ExecutionBatchTest extends Specification {
       reports,
       mode,
       ruleExpectedReports,
-      new ComputeComplianceTimer()
+      new ComputeComplianceTimer(),
+      Nil
     )
 
     (result.size === 1) and
@@ -4515,7 +4483,7 @@ class ExecutionBatchTest extends Specification {
     }
   }
 
-  "We can split directive by policy type" should {
+  "We can split directive by policy type" >> {
     val tag1  = PolicyTypeName("tag1")
     val tag2  = PolicyTypeName("tag2")
     val param = (
@@ -4595,7 +4563,7 @@ class ExecutionBatchTest extends Specification {
     // we have only 1 node ("one")
     val nodeStatus = getNodeStatusByRule(param).head._2
 
-    "There two policy type in the report" in {
+    "There is two policy types in the report" in {
       nodeStatus.reports.size === 2
     }
     "have detailed rule report for policy1 of 50% and 100% for policy2 on tag1" in {
@@ -4610,6 +4578,161 @@ class ExecutionBatchTest extends Specification {
     "have compliance of 75% for tag1 and 100% for tag2" in {
       nodeStatus.reports(tag1).compliance === ComplianceLevel(success = 3, error = 1) and
       nodeStatus.reports(tag2).compliance === ComplianceLevel(success = 2)
+    }
+  }
+
+  "A rule with two directives, one overridden in another rule, has the overridden rule" >> {
+    val overridingPolicyId =
+      PolicyId(RuleId(RuleUid("overridingRule")), DirectiveId(DirectiveUid("policy1")), TechniqueVersion.V1_0)
+
+    val param = (
+      buildExpected(
+        List("one"),
+        "rule",
+        12,
+        List(
+          DirectiveExpectedReports(
+            directiveId = "policy1",
+            policyMode = None,
+            PolicyTypes.rudderBase,
+            components = List(
+              new ValueExpectedReport("component1", ExpectedValueMatch("value", "value") :: Nil),
+              new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
+            )
+          ),
+          DirectiveExpectedReports(
+            directiveId = "policy2",
+            policyMode = None,
+            PolicyTypes.rudderBase,
+            components = List(
+              new ValueExpectedReport("component1", ExpectedValueMatch("value", "value") :: Nil),
+              new ValueExpectedReport("component2", ExpectedValueMatch("value", "value") :: Nil)
+            )
+          )
+        )
+      ).map { // we want to say we have an overriding rule, `overridingRule`
+        case (k, v) =>
+          (
+            k,
+            v.modify(_.overrides)
+              .setTo(
+                List(
+                  OverriddenPolicy(
+                    policy = PolicyId(RuleId(RuleUid("rule")), DirectiveId(DirectiveUid("policy1")), TechniqueVersion.V1_0),
+                    overriddenBy = overridingPolicyId
+                  )
+                )
+              )
+          )
+      },
+      Seq[Reports](
+        new ResultErrorReport(
+          DateTime.now(),
+          "rule",
+          "policy1",
+          "one",
+          "report_id12",
+          "component1",
+          "value",
+          DateTime.now(),
+          "message"
+        ),
+        new ResultSuccessReport(
+          DateTime.now(),
+          "rule",
+          "policy1",
+          "one",
+          "report_id12",
+          "component2",
+          "value",
+          DateTime.now(),
+          "message"
+        ),
+        new ResultSuccessReport(
+          DateTime.now(),
+          "rule",
+          "policy2",
+          "one",
+          "report_id12",
+          "component1",
+          "value",
+          DateTime.now(),
+          "message"
+        ),
+        new ResultSuccessReport(
+          DateTime.now(),
+          "rule",
+          "policy2",
+          "one",
+          "report_id12",
+          "component2",
+          "value",
+          DateTime.now(),
+          "message"
+        )
+      )
+    )
+
+    // we have only 1 node ("one")
+    val nodeStatus = getNodeStatusByRule(param).head._2
+
+    "have detailed rule report for policy1 empty and overridden and 100% for policy2" in {
+      val policy1 = nodeStatus.reports(PolicyTypeName.rudderBase).directives("policy1")
+
+      policy1.compliance === ComplianceLevel() // it's overridden
+      policy1.overridden === Some(overridingPolicyId.ruleId)
+
+      nodeStatus.reports(PolicyTypeName.rudderBase).directives("policy2").compliance === ComplianceLevel(success = 2)
+    }
+  }
+
+  /*
+   * Rule with all directive overridden ARE present in the NodeStatusReport.
+   */
+  "A rule with one directive overridden in another rule, has the overridden rule" >> {
+    val overridingPolicyId =
+      PolicyId(RuleId(RuleUid("overridingRule")), DirectiveId(DirectiveUid("policy1")), TechniqueVersion.V1_0)
+
+    val param = (
+      buildExpected(
+        List("one"),
+        "rule",
+        12,
+        List(
+          DirectiveExpectedReports(
+            directiveId = "policy1",
+            policyMode = None,
+            PolicyTypes.rudderBase,
+            components = List()
+          )
+        )
+      ).map { // we want to say we have an overriding rule, `overridingRule`
+        case (k, v) =>
+          (
+            k,
+            v.modify(_.overrides)
+              .setTo(
+                List(
+                  OverriddenPolicy(
+                    policy = PolicyId(RuleId(RuleUid("rule")), DirectiveId(DirectiveUid("policy1")), TechniqueVersion.V1_0),
+                    overriddenBy = overridingPolicyId
+                  )
+                )
+              )
+          )
+      },
+      Seq[Reports]()
+    )
+
+    // we have only 1 node ("one")
+    val nodeStatus = getNodeStatusByRule(param).head._2
+
+    "have rule report for policy1 empty and overridden" in {
+      val policy1 = nodeStatus.reports(PolicyTypeName.rudderBase).directives.get("policy1")
+
+      policy1 must not(beEmpty)
+      policy1.get.compliance === ComplianceLevel() // it's overridden
+      policy1.get.overridden === Some(overridingPolicyId.ruleId)
     }
   }
 

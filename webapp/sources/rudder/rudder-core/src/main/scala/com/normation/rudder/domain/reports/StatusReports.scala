@@ -186,9 +186,8 @@ sealed trait StatusReport extends HasCompliance
  * a given rule) and by rules (for a given node).
  */
 final class RuleStatusReport private (
-    val forRule:   RuleId,
-    val report:    AggregatedStatusReport,
-    val overrides: List[OverriddenPolicy]
+    val forRule: RuleId,
+    val report:  AggregatedStatusReport
 ) extends StatusReport {
   lazy val compliance = report.compliance
   lazy val byNodes: Map[NodeId, AggregatedStatusReport] =
@@ -196,8 +195,16 @@ final class RuleStatusReport private (
 }
 
 object RuleStatusReport {
-  def apply(ruleId: RuleId, reports: Iterable[RuleNodeStatusReport], overrides: List[OverriddenPolicy]): RuleStatusReport = {
-    new RuleStatusReport(ruleId, AggregatedStatusReport(reports.toSet.filter(_.ruleId == ruleId)), overrides)
+  def apply(ruleId: RuleId, reports: Iterable[RuleNodeStatusReport]): RuleStatusReport = {
+    new RuleStatusReport(ruleId, AggregatedStatusReport(reports.toSet.filter(_.ruleId == ruleId)))
+  }
+
+  /*
+   * Build rule status reports from node reports, deciding which directives should be "skipped"
+   */
+  def fromNodeStatusReports(ruleId: RuleId, nodeReports: Map[NodeId, NodeStatusReport]): RuleStatusReport = {
+    val toKeep = nodeReports.values.flatMap(_.reports.flatMap(_._2.reports)).filter(_.ruleId == ruleId).toList
+    RuleStatusReport(ruleId, toKeep)
   }
 }
 
@@ -265,7 +272,6 @@ final case class NodeStatusReport(
     nodeId:     NodeId,
     runInfo:    RunAnalysis,
     statusInfo: RunComplianceInfo,
-    overrides:  List[OverriddenPolicy],
     reports:    Map[PolicyTypeName, AggregatedStatusReport]
 ) extends StatusReport {
   // for compat reason, node compliance is the sum of all aspects
@@ -287,7 +293,7 @@ final case class NodeStatusReport(
       case Some(r) => Map((t, r))
       case None    => Map.empty[PolicyTypeName, AggregatedStatusReport]
     }
-    NodeStatusReport(nodeId, runInfo, statusInfo, overrides, r)
+    NodeStatusReport(nodeId, runInfo, statusInfo, r)
   }
 }
 
@@ -324,7 +330,6 @@ object NodeStatusReport {
       nodeStatusReport.nodeId,
       nodeStatusReport.runInfo,
       nodeStatusReport.statusInfo,
-      nodeStatusReport.overrides,
       nodeStatusReport.reports.map { case (tag, r) => (tag, r.filterByRules(ruleIds)) }
     )
   }
@@ -335,7 +340,6 @@ object NodeStatusReport {
       nodeStatusReport.nodeId,
       nodeStatusReport.runInfo,
       nodeStatusReport.statusInfo,
-      nodeStatusReport.overrides,
       nodeStatusReport.reports.map { case (tag, r) => (tag, r.filterByDirectives(directiveIds)) }
     )
   }
@@ -457,9 +461,13 @@ object RuleNodeStatusReport {
 final case class DirectiveStatusReport(
     directiveId: DirectiveId, // only one component status report by component name
     policyTypes: PolicyTypes,
+    // if set, this means that that directive is skipped in current rule, and is overridden by
+    // a directive in rule with given ID.
+    overridden:  Option[RuleId],
     components:  List[ComponentStatusReport]
 ) extends StatusReport {
-  override lazy val compliance:                                    ComplianceLevel                                        = ComplianceLevel.sum(components.map(_.compliance))
+  override lazy val compliance: ComplianceLevel = ComplianceLevel.sum(components.map(_.compliance))
+
   def getValues(predicate: ComponentValueStatusReport => Boolean): Seq[(DirectiveId, String, ComponentValueStatusReport)] = {
     components.flatMap(_.getValues(predicate)).map { case v => (directiveId, v.componentValue, v) }
   }
@@ -484,8 +492,10 @@ object DirectiveStatusReport {
             case c @ ::(_, _) => PolicyTypes.fromCons(c)
           }
         }
+        // in a merge, we keep the overridden only if all directive have an override
+        val overridden    = if (reports.forall(_.overridden.isDefined)) reports.headOption.flatMap(_.overridden) else None
         val newComponents = ComponentStatusReport.merge(reports.flatMap(_.components))
-        (directiveId, DirectiveStatusReport(directiveId, tags, newComponents))
+        (directiveId, DirectiveStatusReport(directiveId, tags, overridden, newComponents))
     }
   }
 }
@@ -522,15 +532,15 @@ final case class BlockStatusReport(
     }
   }
 }
+
 final case class ValueStatusReport(
     componentName:         String,
     expectedComponentName: String, // only one ComponentValueStatusReport by values.
     componentValues:       List[ComponentValueStatusReport]
 ) extends ComponentStatusReport {
+  override lazy val compliance: ComplianceLevel = ComplianceLevel.sum(componentValues.map(_.compliance))
 
   override def toString(): String = s"${componentName}:${componentValues.sortBy(_.componentValue).mkString("[", ",", "]")}"
-
-  override lazy val compliance: ComplianceLevel = ComplianceLevel.sum(componentValues.map(_.compliance))
 
   /*
    * Get all values matching the predicate
@@ -609,10 +619,9 @@ final case class ComponentValueStatusReport(
     reportId:               String,
     messages:               List[MessageStatusReport]
 ) extends StatusReport {
+  override lazy val compliance: ComplianceLevel = ComplianceLevel.compute(messages.map(_.reportType))
 
   override def toString(): String = s"${componentValue}(<-> ${expectedComponentValue}):${messages.mkString("[", ";", "]")}"
-
-  override lazy val compliance: ComplianceLevel = ComplianceLevel.compute(messages.map(_.reportType))
 
   /*
    * It can be argued that a status for a value may make sense,
@@ -856,8 +865,6 @@ object JsonPostgresqlSerialization {
       runInfo:    JRunAnalysis,
       @jsonField("si")
       statusInfo: RunComplianceInfo,
-      @jsonField("os")
-      overrides:  List[OverriddenPolicy],
       @jsonField("rs")
       reports:    Seq[(PolicyTypeName, JAggregatedStatusReport)] // a seq so that we can enforce sorting
   ) {
@@ -966,6 +973,8 @@ object JsonPostgresqlSerialization {
       directiveId: DirectiveId,
       @jsonField("pts")
       policyTypes: PolicyTypes,
+      @jsonField("o")
+      overridden:  Option[RuleId],
       @jsonField("csrs")
       components:  List[JComponentStatusReport]
   ) {
