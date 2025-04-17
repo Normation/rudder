@@ -89,7 +89,7 @@ import zio.syntax.*
 object RunTestCompliance {
 
   // parameters of the run
-  val setUp = new SetUpCompliance(numNodes = 500, numRules = 300)
+  val setUp = new SetUpCompliance(numNodes = 5000, numRules = 300)
   // write result
   val file  = "/tmp/test_compliance_computation/%p.html"
 

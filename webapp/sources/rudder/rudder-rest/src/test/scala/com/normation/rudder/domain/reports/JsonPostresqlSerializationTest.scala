@@ -44,7 +44,6 @@ import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.*
 import com.normation.rudder.domain.reports.ReportType.*
 import com.normation.rudder.domain.reports.RunAnalysisKind.*
-import com.normation.rudder.services.policies.*
 import com.normation.utils.DateFormaterService
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
@@ -76,13 +75,6 @@ class JsonPostresqlSerializationTest extends Specification {
     def nid: NodeId         = NodeId(s)
   }
 
-  val ops: List[OverriddenPolicy] = List(
-    OverriddenPolicy(
-      PolicyId("overridden-rule".rid, "overridden-directive".did, TechniqueVersion.V1_0),
-      PolicyId("overriding-rule".rid, "overriding-directive".did, TechniqueVersion.V1_0)
-    )
-  )
-
   def runInfo(
       kind:                RunAnalysisKind,
       expectedConfigId:    Option[NodeConfigId] = None,
@@ -106,7 +98,7 @@ class JsonPostresqlSerializationTest extends Specification {
   def buildReport(runAnalysis: RunAnalysis, reports: Map[PolicyTypeName, AggregatedStatusReport])(implicit
       nid: NodeId
   ): NodeStatusReport =
-    NodeStatusReport(nid, runAnalysis, RunComplianceInfo.OK, ops, reports)
+    NodeStatusReport(nid, runAnalysis, RunComplianceInfo.OK, reports)
 
   def reports(
       rs: Map[String, Seq[(String, Option[DateTime], Option[NodeConfigId], DateTime, Map[String, List[ComponentStatusReport]])]]
@@ -276,20 +268,6 @@ object ExpectedJson {
       |  "si" : {
       |    "OK" : {}
       |  },
-      |  "os" : [
-      |    {
-      |      "policy" : [
-      |        "overridden-rule",
-      |        "overridden-directive",
-      |        "1.0"
-      |      ],
-      |      "overriddenBy" : [
-      |        "overriding-rule",
-      |        "overriding-directive",
-      |        "1.0"
-      |      ]
-      |    }
-      |  ],
       |  "rs" : [
       |    ["system", {
       |      "rnsrs" : [

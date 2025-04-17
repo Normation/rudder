@@ -188,7 +188,6 @@ sealed trait StatusReport extends HasCompliance
 final class RuleStatusReport private (
     val forRule:   RuleId,
     val report:    AggregatedStatusReport,
-    val overrides: List[OverriddenPolicy]
 ) extends StatusReport {
   lazy val compliance = report.compliance
   lazy val byNodes: Map[NodeId, AggregatedStatusReport] =
@@ -196,8 +195,8 @@ final class RuleStatusReport private (
 }
 
 object RuleStatusReport {
-  def apply(ruleId: RuleId, reports: Iterable[RuleNodeStatusReport], overrides: List[OverriddenPolicy]): RuleStatusReport = {
-    new RuleStatusReport(ruleId, AggregatedStatusReport(reports.toSet.filter(_.ruleId == ruleId)), overrides)
+  def apply(ruleId: RuleId, reports: Iterable[RuleNodeStatusReport]): RuleStatusReport = {
+    new RuleStatusReport(ruleId, AggregatedStatusReport(reports.toSet.filter(_.ruleId == ruleId)))
   }
 
   /*
@@ -205,15 +204,7 @@ object RuleStatusReport {
    */
   def fromNodeStatusReports(ruleId: RuleId, nodeReports: Map[NodeId, NodeStatusReport]): RuleStatusReport = {
     val toKeep     = nodeReports.values.flatMap(_.reports.flatMap(_._2.reports)).filter(_.ruleId == ruleId).toList
-    // we don't keep overrides for a directive which is already in "toKeep" or that don't target that rule
-    val toKeepDir  = toKeep.map(_.directives.keySet).toSet.flatten
-    val overrides  = nodeReports.values
-      .flatMap(_.overrides.filterNot(r => r.policy.ruleId != ruleId || toKeepDir.contains(r.policy.directiveId)))
-      .toList
-      .distinct
-    // and we must make overrides unique - ie, we don't keep overridden that are overridden by directive themselves in the overridden list
-    val overrides2 = overrides.filterNot(o => overrides.exists(_.policy == o.overriddenBy))
-    RuleStatusReport(ruleId, toKeep, overrides2)
+    RuleStatusReport(ruleId, toKeep)
   }
 }
 
@@ -281,7 +272,6 @@ final case class NodeStatusReport(
     nodeId:     NodeId,
     runInfo:    RunAnalysis,
     statusInfo: RunComplianceInfo,
-    overrides:  List[OverriddenPolicy],
     reports:    Map[PolicyTypeName, AggregatedStatusReport]
 ) extends StatusReport {
   // for compat reason, node compliance is the sum of all aspects
@@ -303,7 +293,7 @@ final case class NodeStatusReport(
       case Some(r) => Map((t, r))
       case None    => Map.empty[PolicyTypeName, AggregatedStatusReport]
     }
-    NodeStatusReport(nodeId, runInfo, statusInfo, overrides, r)
+    NodeStatusReport(nodeId, runInfo, statusInfo, r)
   }
 }
 
@@ -340,7 +330,6 @@ object NodeStatusReport {
       nodeStatusReport.nodeId,
       nodeStatusReport.runInfo,
       nodeStatusReport.statusInfo,
-      nodeStatusReport.overrides,
       nodeStatusReport.reports.map { case (tag, r) => (tag, r.filterByRules(ruleIds)) }
     )
   }
@@ -351,7 +340,6 @@ object NodeStatusReport {
       nodeStatusReport.nodeId,
       nodeStatusReport.runInfo,
       nodeStatusReport.statusInfo,
-      nodeStatusReport.overrides,
       nodeStatusReport.reports.map { case (tag, r) => (tag, r.filterByDirectives(directiveIds)) }
     )
   }
@@ -877,8 +865,6 @@ object JsonPostgresqlSerialization {
       runInfo:    JRunAnalysis,
       @jsonField("si")
       statusInfo: RunComplianceInfo,
-      @jsonField("os")
-      overrides:  List[OverriddenPolicy],
       @jsonField("rs")
       reports:    Seq[(PolicyTypeName, JAggregatedStatusReport)] // a seq so that we can enforce sorting
   ) {

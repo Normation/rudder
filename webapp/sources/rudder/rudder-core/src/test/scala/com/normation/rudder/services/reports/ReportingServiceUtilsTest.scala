@@ -120,7 +120,6 @@ class ReportingServiceUtilsTest extends Specification {
   implicit class SameRuleReportMatcher(report1: RuleStatusReport) {
     def isSameReportAs(report2: RuleStatusReport): MatchResult[Equals] = {
       (report1.forRule === report2.forRule)
-      (report1.overrides === report2.overrides)
       (report1.report.isSameReportAs(report2.report))
     }
   }
@@ -163,7 +162,7 @@ class ReportingServiceUtilsTest extends Specification {
       .fromNodeStatusReports(rule1, reports)
       .isSameReportAs(
         // on node2, rule1/dir1 is marked overridden by rule2
-        RuleStatusReport(rule1, List(rnReport(node1, rule1, dir1), rnReportOv(node2, rule1, (dir1, Some(rule2)))), noOverrides)
+        RuleStatusReport(rule1, List(rnReport(node1, rule1, dir1), rnReportOv(node2, rule1, (dir1, Some(rule2)))))
       )
   }
 
@@ -186,7 +185,7 @@ class ReportingServiceUtilsTest extends Specification {
     RuleStatusReport
       .fromNodeStatusReports(rule1, reports)
       .isSameReportAs(
-        RuleStatusReport(rule1, List(rnReportOv(node1, rule1, (dir1, Some(rule2)))), noOverrides)
+        RuleStatusReport(rule1, List(rnReportOv(node1, rule1, (dir1, Some(rule2)))))
       )
   }
 
@@ -206,7 +205,7 @@ class ReportingServiceUtilsTest extends Specification {
     RuleStatusReport
       .fromNodeStatusReports(rule1, reports)
       .isSameReportAs(
-        RuleStatusReport(rule1, List(), List())
+        RuleStatusReport(rule1, List())
       )
   }
 
@@ -236,11 +235,11 @@ class ReportingServiceUtilsTest extends Specification {
     RuleStatusReport
       .fromNodeStatusReports(rule1, reports)
       .isSameReportAs(
-        RuleStatusReport(rule1, List(rnReport(node1, rule1, dir1), rnReportOv(node2, rule1, (dir1, Some(rule2)))), noOverrides)
+        RuleStatusReport(rule1, List(rnReport(node1, rule1, dir1), rnReportOv(node2, rule1, (dir1, Some(rule2)))))
       ) and RuleStatusReport
       .fromNodeStatusReports(rule2, reports)
       .isSameReportAs(
-        RuleStatusReport(rule2, List(rnReport(node2, rule2, dir2)), noOverrides)
+        RuleStatusReport(rule2, List(rnReport(node2, rule2, dir2)))
       )
   }
 
@@ -292,8 +291,7 @@ class ReportingServiceUtilsTest extends Specification {
         RuleStatusReport(
           rule1,
           //rule1 doesn't have dir1, but dir2 and dir3 are overridden
-          List(rnReportOv(node1, rule1, (dir2, Some(rule2)), (dir3, Some(rule2)))),
-          noOverrides
+          List(rnReportOv(node1, rule1, (dir2, Some(rule2)), (dir3, Some(rule2))))
         )
       ) and RuleStatusReport
       .fromNodeStatusReports(rule2, reports)
@@ -301,8 +299,7 @@ class ReportingServiceUtilsTest extends Specification {
         RuleStatusReport(
           rule2,
           // rule2/dir1 is the only not overridden case.
-          List(rnReport(node1, rule2, dir1), rnReportOv(node1, rule2, (dir2, Some(rule2)), (dir3, Some(rule2)))),
-          noOverrides
+          List(rnReport(node1, rule2, dir1), rnReportOv(node1, rule2, (dir2, Some(rule2)), (dir3, Some(rule2))))
         )
       ) and RuleStatusReport
       .fromNodeStatusReports(rule3, reports)
@@ -310,8 +307,7 @@ class ReportingServiceUtilsTest extends Specification {
         RuleStatusReport(
           rule3,
           // on rule3, each of dir1, dir2 and dir3 are overridden by rule 2
-          List(rnReportOv(node1, rule3, (dir1, Some(rule2)), (dir2, Some(rule2)), (dir3, Some(rule2)))),
-          noOverrides
+          List(rnReportOv(node1, rule3, (dir1, Some(rule2)), (dir2, Some(rule2)), (dir3, Some(rule2))))
         )
       )
   }
