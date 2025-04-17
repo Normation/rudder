@@ -107,6 +107,7 @@ class TestDirectiveComplianceCsv extends Specification {
           RuleId(RuleUid("r1")),
           "Basic hardening on all systems",
           notUsed,
+          None,
           enforce,
           Seq(
             ByRuleBlockCompliance(

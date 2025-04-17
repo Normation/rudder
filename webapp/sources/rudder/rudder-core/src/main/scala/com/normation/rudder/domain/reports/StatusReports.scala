@@ -455,8 +455,9 @@ object RuleNodeStatusReport {
  * It is colored with the same PolicyTypes than its technique
  */
 final case class DirectiveStatusReport(
-    directiveId: DirectiveId, // only one component status report by component name
+    directiveId: DirectiveId,    // only one component status report by component name
     policyTypes: PolicyTypes,
+    overridden:  Option[RuleId], // a directive can exist in another rule of that node and be skipped here
     components:  List[ComponentStatusReport]
 ) extends StatusReport {
   override lazy val compliance: ComplianceLevel = ComplianceLevel.sum(components.map(_.compliance))
@@ -485,8 +486,10 @@ object DirectiveStatusReport {
             case c @ ::(_, _) => PolicyTypes.fromCons(c)
           }
         }
+        // in a merge, we keep the overridden only if all directive have an override
+        val overridden    = if (reports.forall(_.overridden.isDefined)) reports.headOption.flatMap(_.overridden) else None
         val newComponents = ComponentStatusReport.merge(reports.flatMap(_.components))
-        (directiveId, DirectiveStatusReport(directiveId, tags, newComponents))
+        (directiveId, DirectiveStatusReport(directiveId, tags, overridden, newComponents))
     }
   }
 }
@@ -966,6 +969,8 @@ object JsonPostgresqlSerialization {
       directiveId: DirectiveId,
       @jsonField("pts")
       policyTypes: PolicyTypes,
+      @jsonField("o")
+      overridden:  Option[RuleId],
       @jsonField("csrs")
       components:  List[JComponentStatusReport]
   ) {

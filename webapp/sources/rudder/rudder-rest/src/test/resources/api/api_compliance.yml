@@ -2214,6 +2214,14 @@ response:
                         ]
                       }
                     ]
+                  },
+                  {
+                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "compliance" : 0.0,
+                    "policyMode" : "skipped",
+                    "complianceDetails" : {},
+                    "components" : []
                   }
                 ]
               }
@@ -2304,6 +2312,14 @@ response:
                             ]
                           }
                         ]
+                      },
+                      {
+                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "compliance" : 0.0,
+                        "policyMode" : "skipped",
+                        "complianceDetails" : {},
+                        "components" : []
                       }
                     ]
                   }
@@ -2394,6 +2410,14 @@ response:
                             ]
                           }
                         ]
+                      },
+                      {
+                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "compliance" : 0.0,
+                        "policyMode" : "skipped",
+                        "complianceDetails" : {},
+                        "components" : []
                       }
                     ]
                   }
@@ -2500,6 +2524,14 @@ response:
                         ]
                       }
                     ]
+                  },
+                  {
+                    "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                    "compliance" : 0.0,
+                    "policyMode" : "skipped",
+                    "complianceDetails" : {},
+                    "components" : []
                   }
                 ]
               }
@@ -2551,6 +2583,14 @@ response:
                             ]
                           }
                         ]
+                      },
+                      {
+                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "compliance" : 0.0,
+                        "policyMode" : "skipped",
+                        "complianceDetails" : {},
+                        "components" : []
                       }
                     ]
                   }
@@ -2602,6 +2642,14 @@ response:
                             ]
                           }
                         ]
+                      },
+                      {
+                        "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
+                        "compliance" : 0.0,
+                        "policyMode" : "skipped",
+                        "complianceDetails" : {},
+                        "components" : []
                       }
                     ]
                   }
@@ -2652,6 +2700,14 @@ response:
               "complianceDetails" : {
                 "successAlreadyOK" : 100.0
               },
+              "components" : []
+            },
+            {
+              "id" : "br6",
+              "name" : "R6",
+              "compliance" : 0.0,
+              "policyMode" : "skipped",
+              "complianceDetails" : {},
               "components" : []
             },
             {
@@ -2904,18 +2960,6 @@ response:
                     ]
                   }
                 ]
-              },
-              {
-                "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-                "compliance" : 0.0,
-                "policyMode" : "skipped",
-                "complianceDetails" : {},
-                "skippedDetails" : {
-                  "overridingRuleId" : "br4",
-                  "overridingRuleName" : "R4"
-                },
-                "components" : []
               },
               {
                 "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
@@ -3738,18 +3782,6 @@ response:
                   ]
                 }
               ]
-            },
-            {
-              "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-              "name" : "directive e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
-              "compliance" : 0.0,
-              "policyMode" : "skipped",
-              "complianceDetails" : {},
-              "skippedDetails" : {
-                "overridingRuleId" : "br4",
-                "overridingRuleName" : "R4"
-              },
-              "components" : []
             },
             {
               "id" : "e9a1a909-2490-4fc9-95c3-9d0aa01717c9",
@@ -5196,6 +5228,14 @@ response:
                     ]
                   }
                 ]
+              },
+              {
+                "id" : "br6",
+                "name" : "R6",
+                "compliance" : 0.0,
+                "policyMode" : "skipped",
+                "complianceDetails" : {},
+                "components" : []
               },
               {
                 "id" : "br4",

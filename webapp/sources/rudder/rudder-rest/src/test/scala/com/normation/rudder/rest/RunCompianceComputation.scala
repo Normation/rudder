@@ -37,8 +37,9 @@
 
 package com.normation.rudder.rest
 
+import better.files.File
 import com.normation.cfclerk.domain.TechniqueVersionHelper
-
+import com.normation.errors
 import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -70,15 +71,10 @@ import com.normation.rudder.services.reports.NodeStatusReportInternal
 import com.normation.rudder.services.reports.NodeStatusReportRepositoryImpl
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.reports.ReportingServiceImpl2
-
-import better.files.File
-
 import com.normation.zio.*
 import org.joda.time.DateTime
-
 import scala.collection.MapView
 import scala.collection.immutable.SortedMap
-
 import zio.*
 import zio.syntax.*
 
@@ -95,14 +91,12 @@ object RunTestCompliance {
   // parameters of the run
   val setUp = new SetUpCompliance(numNodes = 500, numRules = 300)
   // write result
-  val file = "/tmp/test_compliance_computation/%p.html"
+  val file  = "/tmp/test_compliance_computation/%p.html"
 
   File(file).parent.createDirectories()
 
   val cs       = setUp.complianceAPIService
   val profiler = one.profiler.AsyncProfiler.getInstance();
-
-
 
   def main(args: Array[String]): Unit = {
     println(s"pid: ${new java.io.File("/proc/self").getCanonicalFile().getName()}")
@@ -216,7 +210,6 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
       nodes.map(n => (n.id, n)).toMap.view.succeed
     }
 
-    override def getNumberOfManagedNodes(): IOResult[RuntimeFlags] = 8.succeed
     def registerChangeCallbackAction(callback: NodeFactChangeEventCallback): IOResult[Unit] = ???
     def getStatus(id:                          NodeId)(implicit qc:   QueryContext): IOResult[InventoryStatus] = ???
     def get(nodeId:                            NodeId)(implicit qc:   QueryContext, status:    SelectNodeStatus): IOResult[Option[CoreNodeFact]]  = ???
@@ -224,7 +217,7 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
         nodeId: NodeId
     )(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOResult[Option[NodeFact]] = ???
     def getNodesBySoftwareName(softName:       String): IOResult[List[(NodeId, Software)]] = ???
-    def slowGetAll()(implicit qc:              QueryContext, status:  SelectNodeStatus, attrs: SelectFacts):      IOStream[NodeFact]              = ???
+    def slowGetAll()(implicit qc:              QueryContext, status:  SelectNodeStatus, attrs: SelectFacts):      errors.IOStream[NodeFact]       = ???
     def save(nodeFact:                         NodeFact)(implicit cc: ChangeContext, attrs:    SelectFacts):      IOResult[NodeFactChangeEventCC] = ???
     def setSecurityTag(nodeId: NodeId, tag: Option[SecurityTag])(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] =
       ???
@@ -233,7 +226,6 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
     ): IOResult[NodeFactChangeEventCC] = ???
     def changeStatus(nodeId: NodeId, into: InventoryStatus)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = ???
     def delete(nodeId: NodeId)(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] = ???
-
   }
 
   // We want to ignore rules that are defined in `MockRules` because they may target all nodes and pollute our compliance tests
@@ -584,6 +576,7 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
         directiveId -> DirectiveStatusReport(
           directiveId,
           PolicyTypes.rudderBase,
+          None,
           List(
             ValueStatusReport(
               s"${directiveId.serialize}-component-${ruleId.serialize}-${nodeId.value}",

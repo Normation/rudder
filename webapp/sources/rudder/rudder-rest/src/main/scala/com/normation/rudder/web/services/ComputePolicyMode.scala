@@ -43,6 +43,7 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyMode.Audit
 import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyModeOverrides
+import com.normation.rudder.domain.policies.RuleId
 
 object ComputePolicyMode {
 
@@ -51,8 +52,9 @@ object ComputePolicyMode {
     * or custom results from computed modes, as explained in a message..
     */
   sealed trait ComputedPolicyMode {
-    def name:    String
-    def message: String
+    def name:      String
+    def message:   String
+    def isSkipped: Boolean
 
     def tuple: (String, String) = (name, message)
   }
@@ -79,21 +81,27 @@ object ComputePolicyMode {
   }
 
   private case class UniformMode(mode: PolicyMode, message: String) extends ComputedPolicyMode {
-    override val name: String = mode.name
+    override val name:      String  = mode.name
+    override def isSkipped: Boolean = false
   }
 
   private case class MixedMode(message: String) extends ComputedPolicyMode {
-    val name: String = "mixed"
+    val name:               String  = "mixed"
+    override def isSkipped: Boolean = false
   }
 
   // Skipped is computed and obtained for directives when there are rule overrides
   private case class SkippedMode(message: String) extends ComputedPolicyMode {
-    val name: String = "skipped"
+    val name:               String  = "skipped"
+    override def isSkipped: Boolean = true
   }
 
   def global(globalMode: GlobalPolicyMode): ComputedPolicyMode = ComputedPolicyMode.global(globalMode)
 
   def skipped(message: String): ComputedPolicyMode = SkippedMode(message)
+  def skippedBy(id: RuleId, name: String): ComputedPolicyMode = SkippedMode(
+    s"This directive is skipped because it is overridden by the rule <b>'${name}'</b> (with id ${id.serialize})."
+  )
 
   def ruleMode(
       globalMode: GlobalPolicyMode,

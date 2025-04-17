@@ -377,6 +377,7 @@ class StatusReportTest extends Specification {
                     DirectiveStatusReport(
                       d,
                       PolicyTypes.rudderBase,
+                      None,
                       List(
                         ValueStatusReport(
                           c,

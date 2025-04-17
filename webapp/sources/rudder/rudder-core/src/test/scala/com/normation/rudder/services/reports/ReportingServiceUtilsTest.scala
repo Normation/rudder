@@ -78,9 +78,16 @@ class ReportingServiceUtilsTest extends Specification {
 
   val noOverrides = Nil
   def dirReport(id: DirectiveId):                                         (DirectiveId, DirectiveStatusReport) =
-    (id, DirectiveStatusReport(id, PolicyTypes.rudderBase, Nil))
+    (id, DirectiveStatusReport(id, PolicyTypes.rudderBase, None, Nil))
+
+  def dirReportOv(id: (DirectiveId, Option[RuleId])):                                         (DirectiveId, DirectiveStatusReport) =
+    (id._1, DirectiveStatusReport(id._1, PolicyTypes.rudderBase, id._2, Nil))
+
   def rnReport(nodeId: NodeId, ruleId: RuleId, directives: DirectiveId*): RuleNodeStatusReport                 = {
-    RuleNodeStatusReport(nodeId, ruleId, PolicyTypeName.rudderBase, None, None, directives.map(dirReport _).toMap, expiration)
+    RuleNodeStatusReport(nodeId, ruleId, PolicyTypeName.rudderBase, None, None, directives.map(dirReport).toMap, expiration)
+  }
+  def rnReportOv(nodeId: NodeId, ruleId: RuleId, directives: (DirectiveId, Option[RuleId])*): RuleNodeStatusReport                 = {
+    RuleNodeStatusReport(nodeId, ruleId, PolicyTypeName.rudderBase, None, None, directives.map(dirReportOv).toMap, expiration)
   }
 
   // a case where the same directive is on two rules
@@ -88,9 +95,10 @@ class ReportingServiceUtilsTest extends Specification {
     OverriddenPolicy(
       PolicyId(overridden, directive, TechniqueVersionHelper("1.0")), // this one is
 
-      PolicyId(overrider, directive, TechniqueVersionHelper("1.0")) // overriden by that one
+      PolicyId(overrider, directive, TechniqueVersionHelper("1.0")) // overridden by that one
     )
   }
+
   // a case where two directive from the same unique technique are on two rules
   def thisOverrideThatOn2(
       overrider:  RuleId,
@@ -105,12 +113,12 @@ class ReportingServiceUtilsTest extends Specification {
     )
   }
 
-  // a matcher which compare two RuleNodeStatusReporst
+  // a matcher which compare two RuleNodeStatusRepost
   implicit class SameRuleReportMatcher(report1: RuleStatusReport) {
-    def isSameReportAs(report2: RuleStatusReport): MatchResult[Equals] = {
-      (report1.forRule === report2.forRule) and
-      (report1.overrides === report2.overrides) and
-      (report1.report.isSameReportAs(report2.report))
+    def isSameReportAs(report2: RuleStatusReport): MatchResult[AggregatedStatusReport] = {
+      (report1.forRule === report2.forRule)
+      (report1.overrides === report2.overrides)
+      (report1.report === report2.report)
     }
   }
 
@@ -149,12 +157,12 @@ class ReportingServiceUtilsTest extends Specification {
     RuleStatusReport
       .fromNodeStatusReports(rule1, reports)
       .isSameReportAs(
-        RuleStatusReport(rule1, List(rnReport(node1, rule1, dir1)), noOverrides)
+        RuleStatusReport(rule1, List(rnReport(node1, rule1, dir1), rnReportOv(node2, rule1, (dir1, Some(rule2)))), noOverrides)
       )
   }
 
   /*
-   * rule1/dir1 on node1 is overriden (and node has nothing) => skipped
+   * rule1/dir1 on node1 is overridden (and node has nothing) => skipped
    */
   "only overridden leads to skip" in {
     val reports = List(
@@ -235,7 +243,7 @@ class ReportingServiceUtilsTest extends Specification {
    * - 3 rules: rule1 has dir2, dir3 (skipped),  rule2 has all 3 (so dir1 ok, other skipped), rule3 has all 3 (skipped)
    * There is no duplication of reports.
    */
-  "a rule not overridden on all nodes is not written overriden" in {
+  "a rule not overridden on all nodes is not written overridden" in {
     val reports = List(
       NodeStatusReportInternal
         .buildWith(

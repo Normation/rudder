@@ -123,7 +123,7 @@ class JsonPostresqlSerializationTest extends Specification {
                 pt.pt,
                 art,
                 cid,
-                ds.map { case (id, x) => (id.did, DirectiveStatusReport(id.did, PolicyTypes.fromTypes(pt.pt), x)) },
+                ds.map { case (id, x) => (id.did, DirectiveStatusReport(id.did, PolicyTypes.fromTypes(pt.pt), None, x)) },
                 exp
               )
           })

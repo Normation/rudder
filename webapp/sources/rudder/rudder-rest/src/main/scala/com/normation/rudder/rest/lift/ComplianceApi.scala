@@ -64,8 +64,6 @@ import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.domain.reports.CompliancePrecision
 import com.normation.rudder.domain.reports.ComponentStatusReport
 import com.normation.rudder.domain.reports.DirectiveStatusReport
-import com.normation.rudder.domain.reports.NodeStatusReport
-import com.normation.rudder.domain.reports.RuleStatusReport
 import com.normation.rudder.domain.reports.ValueStatusReport
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
@@ -699,20 +697,34 @@ class ComplianceAPIService(
 
                   // if rule cannot be found in "rules" it means the level prevent from returning rule details, so : no compliance
                   rules.find(_.id == ruleId).map { rule =>
-                    val nodeIds    = RoNodeGroupRepository
+                    val nodeIds = RoNodeGroupRepository
                       .getNodeIdsChunk(allGroups, rule.targets, nodeFacts.mapValues(_.rudderSettings.isPolicyServer))
                       .toSet
-                    val policyMode = getRulePolicyMode(
-                      rule,
-                      allDirectives,
-                      nodeIds.toSet,
-                      nodeFacts.mapValues(_.rudderSettings).toMap,
-                      globalPolicyMode
+
+                    val defaultMode                   = (
+                      None,
+                      getRulePolicyMode(
+                        rule,
+                        allDirectives,
+                        nodeIds,
+                        nodeFacts.mapValues(_.rudderSettings).toMap,
+                        globalPolicyMode
+                      )
                     )
+                    // if all directive on that rules are skipped, the rule is skipped too
+                    val (overrideDetails, policyMode) = if (ruleDirectiveReports.forall(_._2.overridden.nonEmpty)) {
+                      ruleDirectiveReports.collectFirst {
+                        case (_, DirectiveStatusReport(_, _, Some(rid), _)) =>
+                          val rname = rules.collectFirst { case r if r.id == rid => r.name }.getOrElse("unknown")
+                          (Some(SkippedDetails(rid, rname)), ComputePolicyMode.skippedBy(rid, rname))
+                      }.getOrElse(defaultMode)
+                    } else defaultMode
+
                     ByDirectiveByRuleCompliance(
                       ruleId,
                       rule.name,
                       ComplianceLevel.sum(componentsCompliance.map(_.compliance)),
+                      overrideDetails,
                       policyMode,
                       componentsDetails
                     )
@@ -780,16 +792,6 @@ class ComplianceAPIService(
       t7            = System.currentTimeMillis()
       _            <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - group reports by rules in ${t7 - t6} ms")
 
-      // make a map of directive overrides for each rule, to add to the directives of a rule
-      directivesOverrides <-
-        getDirectiveOverrides[ByRuleDirectiveCompliance](
-          ruleObjects,
-          reportsByNode,
-          directives,
-          allRules,
-          _.toComplianceByRule
-        )
-
       t8               <- currentTimeMillis
       _                <- TimingDebugLoggerPure.trace(s"getByRulesCompliance - get directive overrides and rules infos in ${t8 - t7} ms")
       globalPolicyMode <- getGlobalPolicyMode
@@ -841,15 +843,19 @@ class ComplianceAPIService(
               case (directiveId, nodeDirectives) =>
                 val directive     = directives.get(directiveId)
                 val nodeModes     = nodeDirectives.map(_._1).flatMap(nodeFacts.get).map(_.rudderSettings.policyMode).toSet
-                val directiveMode =
-                  ComputePolicyMode.directiveModeOnRule(nodeModes, globalPolicyMode)(directive.flatMap(_._2.policyMode))
+                val overridden    = computeOverridingMode(directiveId, allRules, nodeDirectives)
+                val directiveMode = overridden match {
+                  case Some(x) => ComputePolicyMode.skippedBy(x.overridingRuleId, x.overridingRuleName)
+                  case None    =>
+                    ComputePolicyMode.directiveModeOnRule(nodeModes, globalPolicyMode)(directive.flatMap(_._2.policyMode))
+                }
                 ByRuleDirectiveCompliance(
                   directiveId,
                   directive.map(_._2.name).getOrElse("Unknown directive"),
                   ComplianceLevel.sum(
                     nodeDirectives.map(_._2.compliance)
                   ),
-                  None,
+                  overridden,
                   directiveMode, {
                     // here we want the compliance by components of the directive.
                     // if level is high enough, get all components and group by their name
@@ -870,7 +876,7 @@ class ComplianceAPIService(
       val t8            = System.currentTimeMillis()
       TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - Compute non empty rules in ${t8 - t7} ms")
 
-      // if any rules is in the list in parameter an not in the nonEmptyRules, then it means
+      // if any rules is in the list in parameter and not in the nonEmptyRules, then it means
       // there's no compliance for it, so it's empty
       // we need to set the ByRuleCompliance with a compliance of NoAnswer
       val rulesWithoutCompliance = ruleObjects.keySet -- reportsByRule.keySet
@@ -903,13 +909,31 @@ class ComplianceAPIService(
 
       // return the full list
       val singleRuleCompliance = nonEmptyRules ++ initializedCompliances
-      // add overrides to that result
-      val result               = singleRuleCompliance.map(r => r.copy(directives = r.directives ++ directivesOverrides(r.id)))
 
       val t10 = System.currentTimeMillis()
       TimingDebugLoggerPure.logEffect.trace(s"getByRulesCompliance - Compute result in ${t10 - t9} ms")
-      result
+      singleRuleCompliance
     }
+  }
+
+  /*
+   * For a set of directive status reports for the same directiveId, compute an aggregated "SkippedDetails" value.
+   * The rule is that you put it only if it's one ALL nodeId (meaning they are likely from the same target, and so
+   * the directive is skipped everywhere).
+   */
+  def computeOverridingMode(
+      id1:      DirectiveId,
+      allRules: Iterable[Rule],
+      reports:  Iterable[(NodeId, DirectiveStatusReport)]
+  ): Option[SkippedDetails] = {
+    if (reports.forall(_._2.overridden.isDefined)) {
+      // here, we COULD keep the list of all overriding rules/directives, but it's not don't
+      // to avoid risking duplicating "skipped" instance.
+      reports.collectFirst {
+        case (_, DirectiveStatusReport(id2, _, Some(ruleId), _)) if (id1 == id2) =>
+          SkippedDetails(ruleId, allRules.collectFirst { case r if r.id == ruleId => r.name }.getOrElse("unknown"))
+      }
+    } else None
   }
 
   private def getByNodeGroupCompliance(
@@ -977,20 +1001,33 @@ class ComplianceAPIService(
                   mode,
                   byDirectives.map {
                     case (directiveId, nodeDirectives) =>
-                      val directive     = allDirectives.get(directiveId).map(_._2)
-                      val directiveMode = ComputePolicyMode.directiveModeOnRule(
-                        nodeDirectives.map(_._1).toSet.map((n: NodeId) => nodeSettings.get(n).flatMap(_.policyMode)),
-                        globalMode
-                      )(
-                        directive.flatMap(_.policyMode)
+                      val directive                     = allDirectives.get(directiveId).map(_._2)
+                      val defaultMode                   = (
+                        None,
+                        ComputePolicyMode.directiveModeOnRule(
+                          nodeDirectives.map(_._1).toSet.map((n: NodeId) => nodeSettings.get(n).flatMap(_.policyMode)),
+                          globalMode
+                        )(
+                          directive.flatMap(_.policyMode)
+                        )
                       )
+                      val (overrideDetails, policyMode) = if (nodeDirectives.forall(_._2.overridden.nonEmpty)) {
+                        nodeDirectives.collectFirst {
+                          case (_, DirectiveStatusReport(_, _, Some(rid), _)) =>
+                            val rname = rules.get(rid).map(_._1.name)
+                            (
+                              Some(SkippedDetails(rid, rname.getOrElse("unknown"))),
+                              ComputePolicyMode.skippedBy(rid, r.name)
+                            )
+                        }.getOrElse(defaultMode)
+                      } else defaultMode
+
                       ByNodeGroupByRuleDirectiveCompliance(
                         directiveId,
                         directive.map(_.name).getOrElse("Unknown directive"),
-                        ComplianceLevel.sum(
-                          nodeDirectives.map(_._2.compliance)
-                        ),
-                        directiveMode,
+                        ComplianceLevel.sum(nodeDirectives.map(_._2.compliance)),
+                        overrideDetails,
+                        policyMode,
                         // here we want the compliance by components of the directive.
                         // if level is high enough, get all components and group by their name
                         {
@@ -1063,26 +1100,45 @@ class ComplianceAPIService(
             ComplianceLevel.sum(reports.map(_.compliance)),
             nodeMode,
             reports.map(r => {
+              val directives = r.directives.toSeq.map {
+                case (_, directiveReport) =>
+                  val d      = allDirectives.get(directiveReport.directiveId)
+                  val (p, o) = directiveReport.overridden match {
+                    case Some(overridingRuleId) =>
+                      val ruleName = rules.get(overridingRuleId).map(_._1.name).getOrElse("unknown")
+                      (
+                        ComputePolicyMode.skippedBy(overridingRuleId, ruleName),
+                        Some(SkippedDetails(overridingRuleId, ruleName))
+                      )
+                    case None                   =>
+                      (
+                        ComputePolicyMode
+                          .directiveModeOnNode(nodePolicyMode, globalMode)(
+                            d.flatMap(_._2.policyMode)
+                          ),
+                        None
+                      )
+                  }
+                  ByNodeDirectiveCompliance(
+                    directiveReport.directiveId,
+                    d.map(_._2.name).getOrElse("Unknown Directive"),
+                    directiveReport.compliance,
+                    o,
+                    p,
+                    directiveReport.components
+                  )
+              }
               ByNodeRuleCompliance(
                 r.ruleId,
                 rules.get(r.ruleId).map(_._1.name).getOrElse("Unknown rule"),
                 r.compliance,
-                ComputePolicyMode
-                  .ruleModeOnNode(nodePolicyMode, globalMode)(
-                    r.directives.flatMap(d => allDirectives.get(d._1).map(_._2.policyMode)).toSet
-                  ),
-                r.directives.toSeq.map {
-                  case (_, directiveReport) =>
-                    val d = allDirectives.get(directiveReport.directiveId)
-                    ByNodeDirectiveCompliance(
-                      directiveReport,
-                      ComputePolicyMode
-                        .directiveModeOnNode(nodePolicyMode, globalMode)(
-                          d.flatMap(_._2.policyMode)
-                        ),
-                      d.map(_._2.name).getOrElse("Unknown Directive")
-                    )
-                }
+                if (directives.forall(_.policyMode.isSkipped)) ComputePolicyMode.skipped(s"All directives on rule are skipped")
+                else
+                  ComputePolicyMode
+                    .ruleModeOnNode(nodePolicyMode, globalMode)(
+                      r.directives.flatMap(d => allDirectives.get(d._1).map(_._2.policyMode)).toSet
+                    ),
+                directives
               )
             })
           )
@@ -1424,14 +1480,8 @@ class ComplianceAPIService(
                       }
       globalMode   <- getGlobalPolicyMode
       compliance   <- getGlobalComplianceMode
-      reports      <- reportingService
-                        .findRuleNodeStatusReports(
-                          nodeFacts.keySet.toSet,
-                          ruleMap.keySet
-                        )
+      reports      <- reportingService.findRuleNodeStatusReports(nodeFacts.keySet.toSet, ruleMap.keySet)
 
-      directiveOverrides <-
-        getDirectiveOverrides[ByNodeDirectiveCompliance](ruleMap, reports, directiveLib, rules, _.toComplianceByNodeRule)
     } yield {
       // A map to access the node fqdn and settings
       val nodeInfos: Map[NodeId, (String, RudderSettings)] =
@@ -1491,11 +1541,11 @@ class ComplianceAPIService(
                           id,
                           directive.map(_._2.name).getOrElse("Unknown Directive"),
                           ComplianceLevel(noAnswer = 1),
-                          directiveMode,
                           None,
+                          directiveMode,
                           Nil
                         )
-                      }.toSeq ++ directiveOverrides.getOrElse(rule.id, Nil)
+                      }.toSeq
                     )
                 })
               )
@@ -1544,15 +1594,31 @@ class ComplianceAPIService(
                       rulePolicyMode,
                       r.directives.toSeq.map {
                         case (_, directiveReport) =>
+                          val (p, o) = directiveReport.overridden match {
+                            case Some(overridingRuleId) =>
+                              val ruleName = ruleMap.get(overridingRuleId).map(_.name).getOrElse("unknown")
+                              (
+                                ComputePolicyMode.skippedBy(overridingRuleId, ruleName),
+                                Some(SkippedDetails(overridingRuleId, ruleName))
+                              )
+                            case None                   =>
+                              (
+                                ComputePolicyMode
+                                  .directiveModeOnNode(nodeInfos.get(nodeId).flatMap(_._2.policyMode), globalMode)(
+                                    directiveLib.get(directiveReport.directiveId).flatMap(_._2.policyMode)
+                                  ),
+                                None
+                              )
+                          }
                           ByNodeDirectiveCompliance(
-                            directiveReport,
-                            ComputePolicyMode
-                              .directiveModeOnNode(nodeInfos.get(nodeId).flatMap(_._2.policyMode), globalMode)(
-                                directiveLib.get(directiveReport.directiveId).flatMap(_._2.policyMode)
-                              ),
-                            directiveLib.get(directiveReport.directiveId).map(_._2.name).getOrElse("Unknown Directive")
+                            directiveReport.directiveId,
+                            directiveLib.get(directiveReport.directiveId).map(_._2.name).getOrElse("Unknown Directive"),
+                            directiveReport.compliance,
+                            o,
+                            p,
+                            directiveReport.components
                           )
-                      } ++ directiveOverrides.getOrElse(r.ruleId, Nil)
+                      }
                     )
                 }
             )
@@ -1607,31 +1673,5 @@ class ComplianceAPIService(
         nodeSettings.filter(!_._2.isPolicyServer).keySet
       case PolicyServerTarget(nodeId)   => Set(nodeId)
     }
-  }
-
-  private[this] def getDirectiveOverrides[T](
-      initialRuleObjects: Map[RuleId, Rule],
-      reports:            Map[NodeId, NodeStatusReport],
-      directives:         Map[DirectiveId, (FullActiveTechnique, Directive)],
-      allRules:           Iterable[Rule],
-      overrideToTarget:   DirectiveComplianceOverride => T
-  ): IOResult[MapView[RuleId, List[T]]] = {
-    // make a map of directive overrides for each rule, to add to the directives of a rule
-    val directiveOverridesByRules = initialRuleObjects.keys.map { ruleId =>
-      val overriddenDirectives = ComplianceOverrides
-        .getOverriddenDirective(
-          RuleStatusReport.fromNodeStatusReports(ruleId, reports).overrides,
-          directives,
-          allRules
-        )
-      ruleId -> overridenDirectives
-    }.toMap
-
-    // we need to fetch info for rules pulled from overriden directives of our rules
-
-    ZIO
-      .foreach(directiveOverridesByRules.values.toList.flatMap(_.map(_.overridingRuleId)))(rulesRepo.getOpt(_))
-      .map(rules => initialRuleObjects ++ rules.flatten.map(r => (r.id, r)).toMap)
-      .map(_ => directiveOverridesByRules.view.mapValues(_.map(overrideToTarget(_))))
   }
 }
