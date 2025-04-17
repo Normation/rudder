@@ -176,6 +176,7 @@ showTechnique model technique origin ui editInfo =
     areErrorOnMethodParameters = List.isEmpty (Dict.keys statesByMethodIdParameter)
     areErrorOnMethodCondition = List.isEmpty (Dict.keys statesByMethodIdCondition)
     isMethodListEmpty = List.isEmpty (technique.elems)
+    areResourceUpdated = List.any (.state >> (/=) Untouched) technique.resources
     -- Check if enum type is chosen, then we should verify that the list on enum is not empty
     isEnumListIsEmpty =
       if (List.isEmpty technique.parameters) then
@@ -228,7 +229,7 @@ showTechnique model technique origin ui editInfo =
              |> List.map (\(required, values) -> required && List.any String.isEmpty values)
          )
 
-    isUnchanged = case origin of
+    isUnchanged = (not areResourceUpdated) && case origin of
                     Edit t -> t == technique
                     Creation _ -> False
                     Clone t _ _ -> t == technique
@@ -359,7 +360,16 @@ showTechnique model technique origin ui editInfo =
               text (if (editInfo.open) then "Visual editor " else "YAML editor")
             , i [ class "fa fa-pen"] []
             ]
-          , btnSave ui.saving (isUnchanged || not (isValid technique ui) || String.isEmpty technique.name || isMethodListEmpty || not areErrorOnMethodParameters || not areErrorOnMethodCondition || not areBlockOnError || isEnumListIsEmpty || isEnumWithEmptyName || isEnumWithEmptyValue) StartSaving
+          , btnSave ui.saving (isUnchanged ||
+                               not (isValid technique ui) ||
+                               String.isEmpty technique.name ||
+                               isMethodListEmpty ||
+                               not areErrorOnMethodParameters ||
+                               not areErrorOnMethodCondition ||
+                               not areBlockOnError ||
+                               isEnumListIsEmpty ||
+                               isEnumWithEmptyName ||
+                               isEnumWithEmptyValue) StartSaving
           ]
         ]
       ]
