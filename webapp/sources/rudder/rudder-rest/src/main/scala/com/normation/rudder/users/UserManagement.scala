@@ -41,23 +41,126 @@ import com.normation.rudder.Rights
 import com.normation.rudder.Role
 import com.normation.rudder.Role.Custom
 import com.normation.rudder.rest.ProviderRoleExtension
+import com.normation.rudder.users.UserPassword.*
 import com.normation.utils.DateFormaterService
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.dsl.*
+import java.security.SecureRandom
 import net.liftweb.common.Logger
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
+import org.springframework.security.crypto.password.PasswordEncoder
 import scala.xml.Node
 import zio.json.*
 import zio.json.ast.Json
 
-case class UserFileInfo(userOrigin: List[User], digest: String)
+sealed trait UserPassword {
 
-case class User(username: String, password: String, permissions: Set[String], tenants: Option[String]) {
-  def toNode: Node = <user name={username} password={password} permissions={permissions.mkString(",")} tenants={tenants.orNull}/>
+  /**
+   * Override the toString when needed for subtypes
+   */
+  override def toString: String = "[REDACTED UserPassword]"
 }
-object User                                                                                            {
-  def make(username: String, password: String, permissions: Set[String], tenants: String): User = {
+
+object UserPassword {
+
+  private val secureRandom = new SecureRandom()
+
+  sealed trait StorableUserPassword extends UserPassword {
+    def exposeValue(): String
+  }
+
+  case class HashedUserPassword private[UserPassword] (private val value: String) extends StorableUserPassword {
+    // FIXME: maybe display first chars, to know at least the hash algo ?
+    override def toString: String = "[REDACTED HashedUserPassword]"
+
+    override def exposeValue(): String = value
+  }
+
+  /**
+   * When the password is raw user input that was not hashed
+   */
+  case class SecretUserPassword private[UserPassword] (private val secret: String) extends UserPassword {
+    override def toString: String = "[REDACTED SecretUserPassword]"
+
+    def toHashed(implicit encoder: PasswordEncoder): HashedUserPassword = HashedUserPassword(encoder.encode(secret))
+  }
+
+  /**
+   * For cases when user cannot have a password e.g. with remote authentication, it should never match
+   */
+  case class UnknownPassword(value: String) extends StorableUserPassword {
+    override def exposeValue(): String = value
+  }
+
+  implicit def transformSecretToHashed(using PasswordEncoder): Transformer[SecretUserPassword, HashedUserPassword] =
+    _.toHashed
+
+  implicit def transformToStorable(using PasswordEncoder): Transformer[UserPassword, StorableUserPassword] = {
+    Transformer
+      .define[UserPassword, StorableUserPassword]
+      .withSealedSubtypeHandled[SecretUserPassword](_.transformInto[HashedUserPassword])
+      .buildTransformer
+  }
+
+  object UnsafeInstances {
+    implicit val transformStorableToString: Transformer[StorableUserPassword, String] = _.exposeValue()
+  }
+
+  def apply(s: String): StorableUserPassword = {
+    if (s.strip().nonEmpty) {
+      HashedUserPassword(s)
+    } else {
+      UnknownPassword(s)
+    }
+  }
+
+  // password can be optional when an other authentication backend is used.
+  // When the tag is omitted, we generate a 32 bytes random value in place of the pass internally
+  // to avoid any cases where the empty string will be used if all other backend are in failure.
+  // Also forbid empty or all blank passwords.
+  // If the attribute is defined several times, use the first occurrence.
+  // see https://stackoverflow.com/a/44227131
+  // produce a random hexa string of 32 chars
+  def randomHexa32: UnknownPassword = {
+    // here, we can be unlucky with the chosen token which convert to an int starting with one or more 0.
+    // In that case, just complete the string
+    def randInternal: String = {
+      val token = new Array[Byte](16)
+      secureRandom.nextBytes(token)
+      new java.math.BigInteger(1, token).toString(16)
+    }
+
+    var s = randInternal
+    while (s.length < 32) { // we can be very unlucky and keep drawing 000s
+      s = s + randInternal.substring(0, 32 - s.length)
+    }
+    UnknownPassword(s)
+  }
+
+  def fromSecret(s: String): SecretUserPassword = SecretUserPassword(s)
+  def unknown: UnknownPassword = UnknownPassword("") // this is allowed to be stored, not used as hash
+
+  object checkHashedPassword {
+    def unapply(s: String): Option[HashedUserPassword] = apply(s) match {
+      case h: HashedUserPassword => Some(h)
+      case _ => None
+    }
+  }
+
+  object HashedUserPassword {
+    // only define the instance from String, other needing to expose the value should explicitly import the unsafe instance
+    implicit val transformer: Transformer[String, UserPassword] = UserPassword(_)
+  }
+}
+
+case class User(username: String, password: StorableUserPassword, permissions: Set[String], tenants: Option[String]) {
+  def toNode: Node = <user name={username} password={password.exposeValue()} permissions={permissions.mkString(",")} tenants={
+    tenants.orNull
+  }/>
+}
+object User                                                                                                          {
+  def make(username: String, password: StorableUserPassword, permissions: Set[String], tenants: String): User = {
     User(username, password, permissions, if (tenants.isEmpty) None else Some(tenants))
   }
 }
@@ -71,12 +174,12 @@ object UserManagementLogger extends Logger {
 
 final case class UpdateUserFile(
     username:    String,
-    password:    String,
+    password:    UserPassword,
     permissions: Set[String]
 )
 
 object UpdateUserFile {
-  implicit val transformer: Transformer[UpdateUserFile, User] =
+  implicit def transformer(using PasswordEncoder): Transformer[UpdateUserFile, User] =
     Transformer.define[UpdateUserFile, User].enableOptionDefaultsToNone.buildTransformer
 }
 
@@ -177,10 +280,12 @@ final case class JsonProviderInfo(
 )
 
 object JsonProviderInfo {
-  def fromUser(u: RudderUserDetail, provider: String)(implicit allRoles: Set[Role]): JsonProviderInfo = {
+  def from(userRoles: Set[Role], authz: Rights, provider: String)(implicit
+      allRoles: Set[Role]
+  ): JsonProviderInfo = {
     val (_, customUserRights) = {
       UserManagementService
-        .computeRoleCoverage(allRoles, u.authz.authorizationTypes)
+        .computeRoleCoverage(allRoles, authz.authorizationTypes)
         .getOrElse(Set.empty)
         .partitionMap {
           case Custom(customRights) => Right(customRights.authorizationTypes)
@@ -189,14 +294,14 @@ object JsonProviderInfo {
     }
 
     // custom anonymous roles and permissions are already inside roleCoverage and customRights fields
-    val roles = u.roles.filter {
+    val roles = userRoles.filter {
       case _: Custom => false
       case _ => true
     }.map(_.name)
 
     JsonProviderInfo(
       provider,
-      u.authz.transformInto[JsonRights],
+      authz.transformInto[JsonRights],
       JsonRoles(roles),
       Rights(customUserRights.flatten).transformInto[JsonRights]
     )
@@ -390,6 +495,7 @@ final case class JsonInternalUserData(
 )
 
 object JsonInternalUserData {
+  import UserPassword.UnsafeInstances.*
   implicit val transformer: Transformer[User, JsonInternalUserData] = Transformer.derive[User, JsonInternalUserData]
 }
 
@@ -444,10 +550,26 @@ final case class JsonUserFormData(
 )
 
 object JsonUserFormData {
-  implicit val transformer:           Transformer[JsonUserFormData, User]           =
-    Transformer.define[JsonUserFormData, User].enableOptionDefaultsToNone.buildTransformer
-  implicit val transformerUpdateUser: Transformer[JsonUserFormData, UpdateUserFile] =
-    Transformer.derive[JsonUserFormData, UpdateUserFile]
+  implicit def transformer(using passwordEncoder: PasswordEncoder): Transformer[JsonUserFormData, User]           = {
+    Transformer
+      .define[JsonUserFormData, User]
+      .enableOptionDefaultsToNone
+      .withFieldComputed(
+        _.password,
+        json => if (json.isPreHashed) UserPassword(json.password) else UserPassword.fromSecret(json.password).toHashed
+      )
+      .buildTransformer
+  }
+  implicit val transformerUpdateUser:                               Transformer[JsonUserFormData, UpdateUserFile] = {
+    Transformer
+      .define[JsonUserFormData, UpdateUserFile]
+      .enableOptionDefaultsToNone
+      .withFieldComputed(
+        _.password,
+        json => if (json.isPreHashed) UserPassword(json.password) else UserPassword.fromSecret(json.password)
+      )
+      .buildTransformer
+  }
 }
 
 final case class JsonCoverage(

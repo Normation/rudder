@@ -128,7 +128,7 @@ object RudderPasswordEncoder {
 
   // see https://stackoverflow.com/a/44227131
   // produce a random hexa string of 32 chars
-  def randomHexa32: String = {
+  def randomHexa32: UserPassword = {
     // here, we can be unlucky with the chosen token which convert to an int starting with one or more 0.
     // In that case, just complete the string
     def randInternal: String = {
@@ -140,7 +140,7 @@ object RudderPasswordEncoder {
     while (s.size < 32) { // we can be very unlucky and keep drawing 000s
       s = s + randInternal.substring(0, 32 - s.size)
     }
-    s
+    UserPassword(s)
   }
 
   // Proper password hash functions
@@ -454,7 +454,12 @@ object UserFileProcessing {
 
   // utility classes for a parsed custom role/user/everything before sanity check is done on them
   final case class ParsedRole(name: String, permissions: List[String])
-  final case class ParsedUser(name: String, password: String, permissions: List[String], tenants: Option[List[String]])
+  final case class ParsedUser(
+      name:        String,
+      password:    UserPassword,
+      permissions: List[String],
+      tenants:     Option[List[String]]
+  )
   final case class ParsedUserFile(
       encoder:         PasswordEncoderType,
       isCaseSensitive: Boolean,
@@ -637,14 +642,9 @@ object UserFileProcessing {
             getCommaSeparatedList("tenants", node)
           ) match {
             case (Some(name :: Nil), pwd, permissions, tenants) if (name.size > 0) =>
-              // password can be optional when an other authentication backend is used.
-              // When the tag is omitted, we generate a 32 bytes random value in place of the pass internally
-              // to avoid any cases where the empty string will be used if all other backend are in failure.
-              // Also forbid empty or all blank passwords.
-              // If the attribute is defined several times, use the first occurrence.
               val p = pwd match {
-                case Some(p :: _) if (p.strip().size > 0) => p
-                case _                                    => RudderPasswordEncoder.randomHexa32
+                case Some(UserPassword.checkHashedPassword(p) :: _) => p
+                case _                                              => UserPassword.randomHexa32
               }
               Some(ParsedUser(name, p, permissions, tenants)).succeed
 
