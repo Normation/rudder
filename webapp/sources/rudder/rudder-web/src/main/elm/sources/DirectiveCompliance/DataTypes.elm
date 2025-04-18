@@ -26,6 +26,7 @@ type alias RuleCompliance value =
   { ruleId            : RuleId
   , name              : String
   , compliance        : Float
+  , policyMode        : String
   , complianceDetails : ComplianceDetails
   , components        : List (ComponentCompliance value)
   }
