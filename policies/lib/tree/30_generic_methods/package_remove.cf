@@ -36,20 +36,19 @@
 bundle agent package_remove(name)
 {
   vars:
-      "canonified_name"         string => canonify("${name}");
-      "old_class_prefix"        string => "package_remove_${canonified_name}";
-      "args"                    slist => { "${name}" };
+      "class_prefix" string => canonify("package_remove_${name}");
 
-      "report_param"            string => join("_", args);
-      "full_class_prefix"       string => canonify("package_remove_${report_param}");
-      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
-
-  packages:
-      "${name}"
-                        package_policy  => "delete",
-                        package_method  => generic,
-                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "placeholder"        usebundle => _log_v3("Remove package ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("ncf_package");
+      "${report_data.method_id}" usebundle => ncf_package("${name}", "", "", "", "absent", "");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("ncf_package");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Remove package ${name}", "");
 }

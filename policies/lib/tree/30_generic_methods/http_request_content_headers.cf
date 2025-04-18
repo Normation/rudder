@@ -35,31 +35,29 @@
 bundle agent http_request_content_headers(method, url, content, headers)
 {
   vars:
-      "old_class_prefix" string => canonify("http_request_content_headers_${url}");
-      "args"              slist => { "${method}", "${url}", "${content}", "${headers}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("http_request_content_headers_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix" string => canonify("http_request_content_headers_${url}");
 
   classes:
     any::
+      "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
   methods:
-    pass2::
-      "report" usebundle => _log_v3("Performing a HTTP ${method} request on ${url} with specific content", "${url}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.!_ncf_path_exists_curl::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${url}", "Unable to perform a HTTP ${method} on ${url}: curl is not installed", "");
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${url}", "Performing a HTTP ${method} request on ${url} with specific content", "");
 
-    !_ncf_path_exists_curl::
-      "force_failure_class old"   usebundle => _classes_failure("${old_class_prefix}");
-      "force_failure_class"       usebundle => _classes_failure("${class_prefix}");
-      "report"                    usebundle => _log_v3("Unable to perform a HTTP ${method} on ${url}: curl is not installed", "${url}", "${old_class_prefix}", "${class_prefix}", @{args});
 
   commands:
+    pass2::
       "/bin/echo \"${content}\" | ${ncf_paths.path[curl]}"
-        args => "${url} -L -X ${method} -H '${headers}' -o /dev/null -s -f -d @-",
+        args    => "${url} -L -X ${method} -H '${headers}' -o /dev/null -s -f -d @-",
         contain => in_shell,
-        classes => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        classes => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
 }
 
