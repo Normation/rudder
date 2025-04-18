@@ -100,8 +100,17 @@ class JsonPostresqlSerializationTest extends Specification {
   ): NodeStatusReport =
     NodeStatusReport(nid, runAnalysis, RunComplianceInfo.OK, reports)
 
+  /*
+   * Create a reports of:
+   * tagName -> (
+   *   ruleId, lastRun, configId, expiration,
+   *   (directive -> (optOverridingRule, [components]))
+   * )
+   */
   def reports(
-      rs: Map[String, Seq[(String, Option[DateTime], Option[NodeConfigId], DateTime, Map[String, List[ComponentStatusReport]])]]
+      rs: Map[String, Seq[
+        (String, Option[DateTime], Option[NodeConfigId], DateTime, Map[String, (Option[String], List[ComponentStatusReport])])
+      ]]
   )(implicit nid: NodeId): Map[PolicyTypeName, AggregatedStatusReport] = {
     rs.map {
       case (pt, rs) =>
@@ -115,7 +124,9 @@ class JsonPostresqlSerializationTest extends Specification {
                 pt.pt,
                 art,
                 cid,
-                ds.map { case (id, x) => (id.did, DirectiveStatusReport(id.did, PolicyTypes.fromTypes(pt.pt), None, x)) },
+                ds.map {
+                  case (id, (ov, x)) => (id.did, DirectiveStatusReport(id.did, PolicyTypes.fromTypes(pt.pt), ov.map(_.rid), x))
+                },
                 exp
               )
           })
@@ -183,7 +194,7 @@ class JsonPostresqlSerializationTest extends Specification {
             config0,
             exp,
             Map(
-              "directive0" -> List(
+              "directive0" -> (None, List(
                 block(
                   "block0",
                   WeightedReport,
@@ -212,8 +223,8 @@ class JsonPostresqlSerializationTest extends Specification {
                     )
                   )
                 )
-              ),
-              "directive1" -> List(
+              )),
+              "directive1" -> (None, List(
                 block(
                   "block3",
                   FocusReport("check4"),
@@ -228,11 +239,11 @@ class JsonPostresqlSerializationTest extends Specification {
                     )
                   )
                 )
-              )
+              ))
             )
           )
         ),
-        "user"   -> List()
+        "user"   -> List(("rule1", lastRun0, config0, exp, Map("directive2" -> (Some("rule2"), List()))))
       )
     )
   )
@@ -482,7 +493,26 @@ object ExpectedJson {
       |      ]
       |    }],
       |    ["user", {
-      |      "rnsrs" : []
+      |       "rnsrs" : [
+      |         {
+      |           "nid" : "n0",
+      |           "rid" : "rule1",
+      |           "ct" : "user",
+      |           "art" : "2024-01-05T05:05:00Z",
+      |           "cid" : "config0_0",
+      |           "exp" : "2024-01-12T03:03:03Z",
+      |           "dsrs" : [
+      |             {
+      |               "did" : "directive2",
+      |               "pts" : [
+      |                 "user"
+      |               ],
+      |               "o" : "rule2",
+      |               "csrs" : []
+      |             }
+      |           ]
+      |         }
+      |       ]
       |    }]
       |  ]
       |}

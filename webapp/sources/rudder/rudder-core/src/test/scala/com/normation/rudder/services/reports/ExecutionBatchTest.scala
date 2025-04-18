@@ -4686,4 +4686,54 @@ class ExecutionBatchTest extends Specification {
     }
   }
 
+  /*
+   * Rule with all directive overridden ARE present in the NodeStatusReport.
+   */
+  "A rule with one directive overridden in another rule, has the overridden rule" >> {
+    val overridingPolicyId =
+      PolicyId(RuleId(RuleUid("overridingRule")), DirectiveId(DirectiveUid("policy1")), TechniqueVersion.V1_0)
+
+    val param = (
+      buildExpected(
+        List("one"),
+        "rule",
+        12,
+        List(
+          DirectiveExpectedReports(
+            directiveId = "policy1",
+            policyMode = None,
+            PolicyTypes.rudderBase,
+            components = List()
+          )
+        )
+      ).map { // we want to say we have an overriding rule, `overridingRule`
+        case (k, v) =>
+          (
+            k,
+            v.modify(_.overrides)
+              .setTo(
+                List(
+                  OverriddenPolicy(
+                    policy = PolicyId(RuleId(RuleUid("rule")), DirectiveId(DirectiveUid("policy1")), TechniqueVersion.V1_0),
+                    overriddenBy = overridingPolicyId
+                  )
+                )
+              )
+          )
+      },
+      Seq[Reports]()
+    )
+
+    // we have only 1 node ("one")
+    val nodeStatus = getNodeStatusByRule(param).head._2
+
+    "have rule report for policy1 empty and overridden" in {
+      val policy1 = nodeStatus.reports(PolicyTypeName.rudderBase).directives.get("policy1")
+
+      policy1 must not(beEmpty)
+      policy1.get.compliance === ComplianceLevel() // it's overridden
+      policy1.get.overridden === Some(overridingPolicyId.ruleId)
+    }
+  }
+
 }

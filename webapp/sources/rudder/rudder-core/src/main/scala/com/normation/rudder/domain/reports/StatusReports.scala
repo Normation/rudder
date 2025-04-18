@@ -186,8 +186,8 @@ sealed trait StatusReport extends HasCompliance
  * a given rule) and by rules (for a given node).
  */
 final class RuleStatusReport private (
-    val forRule:   RuleId,
-    val report:    AggregatedStatusReport,
+    val forRule: RuleId,
+    val report:  AggregatedStatusReport
 ) extends StatusReport {
   lazy val compliance = report.compliance
   lazy val byNodes: Map[NodeId, AggregatedStatusReport] =
@@ -203,7 +203,7 @@ object RuleStatusReport {
    * Build rule status reports from node reports, deciding which directives should be "skipped"
    */
   def fromNodeStatusReports(ruleId: RuleId, nodeReports: Map[NodeId, NodeStatusReport]): RuleStatusReport = {
-    val toKeep     = nodeReports.values.flatMap(_.reports.flatMap(_._2.reports)).filter(_.ruleId == ruleId).toList
+    val toKeep = nodeReports.values.flatMap(_.reports.flatMap(_._2.reports)).filter(_.ruleId == ruleId).toList
     RuleStatusReport(ruleId, toKeep)
   }
 }
@@ -459,7 +459,7 @@ object RuleNodeStatusReport {
  * It is colored with the same PolicyTypes than its technique
  */
 final case class DirectiveStatusReport(
-    directiveId: DirectiveId,    // only one component status report by component name
+    directiveId: DirectiveId, // only one component status report by component name
     policyTypes: PolicyTypes,
     // if set, this means that that directive is skipped in current rule, and is overridden by
     // a directive in rule with given ID.

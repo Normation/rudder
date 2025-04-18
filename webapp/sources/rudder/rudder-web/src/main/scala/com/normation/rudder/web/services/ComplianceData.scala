@@ -408,11 +408,11 @@ object ComplianceData extends Loggable {
     } yield {
       val nodeMode = allNodeInfos.get(nodeId).flatMap(_.rudderSettings.policyMode)
       val details  = getDirectivesComplianceDetails(
-          aggregate.directives.values.toList,
-          directiveLib,
-          globalMode,
-          ComputePolicyMode.directiveModeOnNode(nodeMode, globalMode)
-        )
+        aggregate.directives.values.toList,
+        directiveLib,
+        globalMode,
+        ComputePolicyMode.directiveModeOnNode(nodeMode, globalMode)
+      )
 
       val directivesMode            = aggregate.directives.keys.map(x => directiveLib.allDirectives.get(x).flatMap(_._2.policyMode)).toList
       val (policyMode, explanation) = ComputePolicyMode.ruleModeOnNode(nodeMode, globalMode)(directivesMode.toSet).tuple
@@ -429,7 +429,6 @@ object ComplianceData extends Loggable {
     JsTableData(ruleComplianceLine.toList.sortBy(_.id.serialize))
   }
 
-
   //////////////// Directive Report ///////////////
 
   // From Rule Point of view
@@ -439,7 +438,7 @@ object ComplianceData extends Loggable {
       nodeFacts:    MapView[NodeId, CoreNodeFact],
       directiveLib: FullActiveTechniqueCategory,
       groupLib:     FullNodeGroupCategory,
-      globalMode: GlobalPolicyMode
+      globalMode:   GlobalPolicyMode
   ): JsTableData[DirectiveComplianceLine] = {
     // restrict mode computing to nodes really targeted by that rule
     val appliedNodes = groupLib.getNodeIds(rule.targets, nodeFacts.mapValues(_.rudderSettings.isPolicyServer))

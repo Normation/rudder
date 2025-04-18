@@ -84,11 +84,11 @@ class ReportingServiceUtilsTest extends Specification {
   def dirReportOv(id: (DirectiveId, Option[RuleId])): (DirectiveId, DirectiveStatusReport) =
     (id._1, DirectiveStatusReport(id._1, PolicyTypes.rudderBase, id._2, Nil))
 
-  def rnReport(nodeId: NodeId, ruleId: RuleId, directives: DirectiveId*):                     RuleNodeStatusReport = {
+  def rnReport(nodeId: NodeId, ruleId: RuleId, directives: DirectiveId*): RuleNodeStatusReport = {
     RuleNodeStatusReport(nodeId, ruleId, PolicyTypeName.rudderBase, None, None, directives.map(dirReport).toMap, expiration)
   }
 
-  //used to create report where directives are overridden by the Some(ruleX)
+  // used to create report where directives are overridden by the Some(ruleX)
   def rnReportOv(nodeId: NodeId, ruleId: RuleId, directives: (DirectiveId, Option[RuleId])*): RuleNodeStatusReport = {
     RuleNodeStatusReport(nodeId, ruleId, PolicyTypeName.rudderBase, None, None, directives.map(dirReportOv).toMap, expiration)
   }
@@ -290,7 +290,7 @@ class ReportingServiceUtilsTest extends Specification {
       .isSameReportAs(
         RuleStatusReport(
           rule1,
-          //rule1 doesn't have dir1, but dir2 and dir3 are overridden
+          // rule1 doesn't have dir1, but dir2 and dir3 are overridden
           List(rnReportOv(node1, rule1, (dir2, Some(rule2)), (dir3, Some(rule2))))
         )
       ) and RuleStatusReport
