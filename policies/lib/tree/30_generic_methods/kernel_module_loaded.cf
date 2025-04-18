@@ -55,12 +55,12 @@ bundle agent kernel_module_loaded(name)
       "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
 
     "pass3.!${c_name}_was_loaded.${c_name}_is_loaded"::
-      "${report_data.method_id}" usebundle => _classes_repaired("${report_data.method_id}"),
-      "${report_data.method_id}" usebundle => _classes_repaired("${class_prefix}"),
+      "${report_data.method_id}" usebundle => _classes_repaired("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_repaired("${class_prefix}");
 
     "pass3.${c_name}_was_loaded"::
-      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}"),
-      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}"),
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
 
     pass3::
       "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Check that the kernel module ${name} is loaded on the system", "");

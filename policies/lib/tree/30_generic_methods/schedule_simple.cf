@@ -89,16 +89,16 @@ bundle agent schedule_simple(job_id, agent_periodicity,
                                                               "${mode}");
 
     "pass3.!job_${c_job_id}_run.!job_${c_job_id}_error"::
-      "${report_data.method_id}"  usebundle => _classes_success("${report_data.method_id}"),
-      "${report_data.method_id}"  usebundle => _classes_success("${class_prefix}"),
+      "${report_data.method_id}"  usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}"  usebundle => _classes_success("${class_prefix}");
 
     "pass3.job_${c_job_id}_run"::
-      "${report_data.method_id}" usebundle => _classes_repaired("${report_data.method_id}"),
-      "${report_data.method_id}" usebundle => _classes_repaired("${class_prefix}"),
+      "${report_data.method_id}" usebundle => _classes_repaired("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_repaired("${class_prefix}");
 
     "pass3.job_${c_job_id}_error"::
-      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}"),
-      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}"),
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
 
     pass3::
       "${report_data.method_id}" usebundle => log_rudder_v4("${job_id}", "Scheduling ${job_id}", "");
