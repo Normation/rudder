@@ -274,8 +274,7 @@ class StatusReportTest extends Specification {
        n2, r1, 0, d1, c0  , v0  , "", success   , pending msg
        n3, r1, 0, d1, c1  , v1  , "", error     , pending msg
        n4, r2, 0, d1, c0  , v0  , "", pending   , pending msg
-    """),
-      Nil
+    """)
     )
 
     "Filter out r2" in {
@@ -377,6 +376,7 @@ class StatusReportTest extends Specification {
                     DirectiveStatusReport(
                       d,
                       PolicyTypes.rudderBase,
+                      None,
                       List(
                         ValueStatusReport(
                           c,

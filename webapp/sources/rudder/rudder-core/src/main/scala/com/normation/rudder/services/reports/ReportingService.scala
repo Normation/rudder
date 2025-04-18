@@ -126,7 +126,7 @@ object ReportingService {
         val result = reports.view.mapValues {
           case status =>
             NodeStatusReport.filterByRules(status, ruleIds)
-        }.filter { case (_, v) => v.reports.nonEmpty || v.overrides.nonEmpty }
+        }.filter { case (_, v) => v.reports.nonEmpty }
         val n2     = System.currentTimeMillis
         TimingDebugLogger.trace(s"Filter Node Status Reports on ${ruleIds.size} in : ${n2 - n1}ms")
         result
@@ -145,7 +145,7 @@ object ReportingService {
         val result = reports.view.mapValues {
           case status =>
             NodeStatusReport.filterByDirectives(status, directiveIds)
-        }.filter { case (_, v) => v.reports.nonEmpty || v.overrides.nonEmpty }
+        }.filter { case (_, v) => v.reports.nonEmpty }
         val n2     = System.currentTimeMillis
         TimingDebugLogger.trace(s"Filter Node Status Reports on ${directiveIds.size} Directives in : ${n2 - n1}ms")
         result
