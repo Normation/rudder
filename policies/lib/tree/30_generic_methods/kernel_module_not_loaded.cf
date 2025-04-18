@@ -33,12 +33,8 @@
 bundle agent kernel_module_not_loaded(name)
 {
   vars:
-      "canonified_module_name" string => canonify("${name}");
-      "old_class_prefix"       string => canonify("kernel_module_not_loaded_${name}");
-      "args"                    slist => { "${name}" };
-      "report_param"           string => join("_", args);
-      "full_class_prefix"      string => canonify("kernel_module_not_loaded_${report_param}");
-      "class_prefix"           string => string_head("${full_class_prefix}", "1000");
+      "c_name"       string => canonify("${name}");
+      "class_prefix" string => canonify("kernel_module_not_loaded_${name}");
 
   classes:
       "pass3" expression => "pass2";
@@ -46,29 +42,28 @@ bundle agent kernel_module_not_loaded(name)
       "pass1" expression => "any";
 
     pass1.!pass2::
-      "module_not_loaded_init_${canonified_module_name}"  not => returnszero("/sbin/lsmod | cut -d ' '  -f 1 | grep -q ^${name}$ #Initial check for unloading ${name}", "useshell");
+      "${c_name}_was_not_loaded"  not => returnszero("/sbin/lsmod | cut -d ' '  -f 1 | grep -q ^${name}$ #Initial check for unloading ${name}", "useshell");
     pass1.!pass2.!(global_dry_run|dry_run)::
-      "module_unloading_${canonified_module_name}" expression => returnszero("/sbin/modprobe -r ${name}", "useshell"),
-        ifvarclass => "!module_loaded_init_${canonified_module_name}";
+      "${c_name}_unload"   expression => returnszero("/sbin/modprobe -r ${name}", "useshell"),
+                                   if => and( "!${c_name}_was_not_loaded",
+                                              "!(global_dry_run|dry_run)"
+                                            );
     pass3::
-      "module_not_loaded_final_${canonified_module_name}" not => returnszero("/sbin/lsmod | cut -d ' '  -f 1 | grep -q ^${name}$ #Final check for unloading ${name}", "useshell");
+      "${c_name}_is_not_loaded"   not => returnszero("/sbin/lsmod | cut -d ' '  -f 1 | grep -q ^${name}$ #Final check for unloading ${name}", "useshell");
 
   methods:
+    "pass3.!${c_name}_is_not_loaded"::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+
+    "pass3.!${c_name}_was_not_loaded.${c_name}_is_not_loaded"::
+      "${report_data.method_id}" usebundle => _classes_repaired("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_repaired("${class_prefix}");
+
+    "pass3.${c_name}_was_not_loaded.${c_name}_is_not_loaded"::
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+
     pass3::
-      "failure" usebundle => _classes_failure("${old_class_prefix}"),
-        ifvarclass => "!module_not_loaded_final_${name}";
-      "failure" usebundle => _classes_failure("${class_prefix}"),
-        ifvarclass => "!module_not_loaded_final_${name}";
-
-      "repaired" usebundle => _classes_repaired("${old_class_prefix}"),
-        ifvarclass => "!module_not_loaded_init_${canonified_module_name}.module_not_loaded_final_${name}";
-      "repaired" usebundle => _classes_repaired("${class_prefix}"),
-        ifvarclass => "!module_not_loaded_init_${canonified_module_name}.module_not_loaded_final_${name}";
-
-      "success" usebundle => _classes_success("${old_class_prefix}"),
-        ifvarclass => "module_not_loaded_init_${canonified_module_name}.module_not_loaded_final_${name}";
-      "success" usebundle => _classes_success("${class_prefix}"),
-        ifvarclass => "module_not_loaded_init_${canonified_module_name}.module_not_loaded_final_${name}";
-
-      "report"  usebundle => _log_v3("Check that the kernel module ${name} is not loaded on the system", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Check that the kernel module ${name} is not loaded on the system", "");
 }

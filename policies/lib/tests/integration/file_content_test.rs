@@ -3,22 +3,20 @@
 
 use crate::integration::{end_test, get_lib_path, init_test};
 use crate::testlib::method_test_suite::MethodTestSuite;
-use crate::testlib::method_to_test::{MethodStatus, MethodToTest};
+use crate::testlib::method_to_test::{MethodStatus, method};
 use std::fs;
 
 #[test]
 fn it_writes_content_to_file() {
     let workdir = init_test();
     let file = workdir.path().join("file_to_edit");
-    let file_path = file.clone().to_string_lossy().into_owned();
+    let file_path = &file.clone().to_string_lossy().into_owned();
 
-    let tested_method =
-        MethodToTest::file_content(file_path.clone(), "toto".to_string(), "false".to_string())
-            .enforce();
+    let tested_method = &method("file_content", &[file_path, "toto", "false"]).enforce();
     let r = MethodTestSuite::new()
-        .when(tested_method.clone())
+        .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
-    r.assert_legacy_result_conditions(tested_method.clone(), vec![MethodStatus::Repaired]);
+    r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Repaired]);
     r.assert_log_v4_result_conditions(tested_method, MethodStatus::Repaired);
 
     assert_eq!(
