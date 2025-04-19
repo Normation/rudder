@@ -195,7 +195,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
       y   = new TestFindNewStatusReports()
       r2 <- Ref.make(Chunk[NodeStatusReportUpdateHook]())
     } yield {
-      (x, y, new ComputeNodeStatusReportServiceImpl(x, y, new DummyComplianceExpirationService(policy), r2, 3))
+      (x, y, new ComputeNodeStatusReportServiceImpl(nodeFactRepo, x, y, new DummyComplianceExpirationService(policy), r2, 3))
     }).runNow
   }
 

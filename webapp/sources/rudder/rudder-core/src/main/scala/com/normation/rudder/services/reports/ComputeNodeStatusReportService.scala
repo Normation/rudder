@@ -45,6 +45,7 @@ import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -150,6 +151,7 @@ class ScoreNodeStatusReportUpdateHook(scoreServiceManager: ScoreServiceManager) 
  *   and then, in case of success, the hooks accordingly.
  */
 class ComputeNodeStatusReportServiceImpl(
+    nodeRepo:                    NodeFactRepository,
     nsrRepo:                     NodeStatusReportRepository,
     findNewNodeStatusReports:    FindNewNodeStatusReports,
     complianceExpirationService: ComplianceExpirationService,
@@ -164,23 +166,33 @@ class ComputeNodeStatusReportServiceImpl(
 
   /**
    * The queue of invalidation request.
-   * The queue size is 1 and new request need to merge with existing request
-   * It's a List and not a Set, because we want to keep the precedence in
-   * invalidation request.
+   * The size is based on the number of nodes x 10, with a minimum of 1000.
+   *   The reasoning is that we can always live with a 1000 elements queue, and it will handle the
+   *   cases when Rudder is bootstrapped and nodes are added to it.
+   * The strategy is sliding, meaning that newer invalidation will be kept against older ones.
    */
-  private val invalidateComplianceRequest = Queue.dropping[Chunk[(NodeId, CacheComplianceQueueAction)]](1).runNow
+  private val (queueSize, invalidateComplianceRequest) = {
+    implicit val qc = QueryContext.systemQC
+    for {
+      nbNodes <- nodeRepo.getAll().map(_.size)
+      size     = Math.max(1000, 10 * nbNodes)
+      queue   <- Queue.sliding[(NodeId, CacheComplianceQueueAction)](size)
+    } yield (size, queue)
+  }.runNow
 
   /**
-   * We need a semaphore to protect queue content merge-update
+   * Update logic. We take message from queue all in one time, and we sort/process them.
+   * Becareful, `takeAll` is non blocking, while `takeBetween` is.
    */
-  private val invalidateMergeUpdateSemaphore = Semaphore.make(1).runNow
+  private val updateCacheFromRequest: IO[Nothing, Unit] = {
+    invalidateComplianceRequest.takeBetween(1, queueSize).flatMap(processComplianceInvalidationActions)
+  }
 
-  /**
-   * Update logic. We take message from queue one at a time, and process.
-   */
+  // start updating
+  updateCacheFromRequest.forever.forkDaemon.runNow
 
-  private val updateCacheFromRequest: IO[Nothing, Unit] = invalidateComplianceRequest.take.flatMap(invalidatedIds => {
-    ZIO.foreachDiscard(groupQueueActionByType(invalidatedIds.map(x => x._2)))(actions =>
+  private def processComplianceInvalidationActions(actions: Chunk[(NodeId, CacheComplianceQueueAction)]): UIO[Unit] = {
+    ZIO.foreachDiscard(groupQueueActionByType(actions.map(x => x._2)))(actions =>
       // several strategy:
       // * we have a compliance: yeah, put it in the cache
       // * new policy generation, a new nodeexpectedreports is available: compute compliance for last run of the node, based on this nodeexpectedreports
@@ -197,10 +209,8 @@ class ComputeNodeStatusReportServiceImpl(
         })
       }
     )
-  })
 
-  // start updating
-  updateCacheFromRequest.forever.forkDaemon.runNow
+  }
 
   /**
    * Do something with the action we received
@@ -248,7 +258,8 @@ class ComputeNodeStatusReportServiceImpl(
             } yield ()
 
           // need to compute compliance
-          case _                                            =>
+          case ExpiredCompliance(_) | ExpectedReportAction(InsertNodeInCache(_)) |
+              ExpectedReportAction(UpdateNodeConfiguration(_, _)) =>
             val impactedNodeIds = actions.map(x => x.nodeId)
             for {
               _ <- ZIO.foreach(impactedNodeIds.grouped(batchSize).to(Seq)) { updatedNodes =>
@@ -392,11 +403,7 @@ class ComputeNodeStatusReportServiceImpl(
         ReportLoggerPure.Cache.debug(
           s"Compliance cache: invalidation request for nodes with action: [${actions.map(_._1).map(_.value).mkString(",")}]"
         ) *>
-        invalidateMergeUpdateSemaphore.withPermit(for {
-          elements  <- invalidateComplianceRequest.takeAll
-          allActions = (elements.flatten ++ actions)
-          _         <- invalidateComplianceRequest.offer(allActions)
-        } yield ())
+        invalidateComplianceRequest.offerAll(actions)
       }
       .unit
   }
