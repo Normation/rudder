@@ -938,6 +938,8 @@ ul {
 }
 .rudder-template .dataTable td .progress.progress-flex {
   margin: 0;
+  height: initial;
+  font-size: 0.7rem;
 }
 .rudder-template .dataTable td.empty{
   padding: 20px 15px;
