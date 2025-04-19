@@ -523,7 +523,7 @@ object NodeApi       extends Enum[NodeApi] with ApiModuleProvider[NodeApi] {
     val z: Int = implicitly[Line].value
     val description    = "Getting data to build a Node table"
     val (action, path) = POST / "nodes" / "details"
-    val authz: List[AuthorizationType] = AuthorizationType.Group.Read :: Nil
+    val authz: List[AuthorizationType] = AuthorizationType.Node.Read :: Nil
   }
   case object NodeDetailsSoftware extends NodeApi with InternalApi with OneParam with StartsAtVersion13 with SortIndex {
     val z: Int = implicitly[Line].value
