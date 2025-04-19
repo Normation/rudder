@@ -105,6 +105,9 @@ trait NodeStatusReportStorage {
 
 object NodeStatusReportRepositoryImpl {
 
+  /*
+   * Create a repo from a datastore, initially loading data from it.
+   */
   def makeAndInit(storage: NodeStatusReportStorage): IOResult[NodeStatusReportRepositoryImpl] = {
     for {
       reports <- storage.getAll()
@@ -177,7 +180,8 @@ class NodeStatusReportRepositoryImpl(
                          // in other case, just update what is in cache if it's actually different
                          case _                                  =>
                            m.get(id) match {
-                             case Some(e) => if (e == report) None else Some((id, report))
+                             case Some(e) =>
+                               if (e == report) None else Some((id, report))
                              case None    => Some((id, report))
                            }
                        }

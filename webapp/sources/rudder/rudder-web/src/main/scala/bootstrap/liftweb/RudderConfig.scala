@@ -3191,6 +3191,13 @@ object RudderConfigInit {
 
     // we need to expose impl at that level to call `.init()` in bootstrap checks
     lazy val nodeStatusReportRepository: NodeStatusReportRepositoryImpl = {
+      /*
+       * We added the table in Rudder 8.2, and so for migration, we need a bit of
+       * logic to check if we init compliance from table or from runs, see: LoadNodeComplianceCache.
+       * And so, we are for initing it to empty here.
+       * In Rudder 9.0, we will be able to remove the bootstrap check and just use
+       * `NodeStatusReportRepositoryImpl.make`.
+       */
       (for {
         x <- Ref.make(Map[NodeId, NodeStatusReport]())
         s  = new JdbcNodeStatusReportStorage(doobie)
@@ -3211,8 +3218,8 @@ object RudderConfigInit {
       )
     }
 
-    // to avoid a StackOverflowError, we set the compliance cache once it'z ready,
-    // and can construct the nodeconfigurationservice without the comlpince cache
+    // to avoid a StackOverflowError, we set the compliance cache once it's ready,
+    // and can construct the nodeConfigurationService without the compliance cache
     cachedNodeConfigurationService.addHook(computeNodeStatusReportService)
 
     lazy val reportingService: ReportingService = new ReportingServiceImpl2(nodeStatusReportRepository)
