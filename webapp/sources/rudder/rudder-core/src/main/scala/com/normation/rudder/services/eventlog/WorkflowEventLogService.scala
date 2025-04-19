@@ -36,7 +36,7 @@
  */
 package com.normation.rudder.services.eventlog
 
-import com.normation.box.*
+import com.normation.errors.IOResult
 import com.normation.eventlog.*
 import com.normation.rudder.domain.eventlog.*
 import com.normation.rudder.domain.workflows.*
@@ -46,35 +46,34 @@ import net.liftweb.common.*
 
 trait WorkflowEventLogService {
 
-  def saveEventLog(stepChange: WorkflowStepChange, actor: EventActor, reason: Option[String]): Box[EventLog]
+  def saveEventLog(stepChange: WorkflowStepChange, actor: EventActor, reason: Option[String]): IOResult[EventLog]
 
-  def getChangeRequestHistory(id: ChangeRequestId): Box[Seq[WorkflowStepChanged]]
+  def getChangeRequestHistory(id: ChangeRequestId): IOResult[Seq[WorkflowStepChanged]]
 
-  def getLastLog(id: ChangeRequestId): Box[Option[WorkflowStepChanged]]
+  def getLastLog(id: ChangeRequestId): IOResult[Option[WorkflowStepChanged]]
 
   /**
    * Get Last Workflow event for each change Request
    */
-  def getLastWorkflowEvents(): Box[Map[ChangeRequestId, EventLog]]
+  def getLastWorkflowEvents(): IOResult[Map[ChangeRequestId, EventLog]]
 }
 
 class WorkflowEventLogServiceImpl(
     eventLogRepository: EventLogRepository,
     uuidGen:            StringUuidGenerator
 ) extends WorkflowEventLogService with Loggable {
-  def saveEventLog(stepChange: WorkflowStepChange, actor: EventActor, reason: Option[String]): Box[EventLog] = {
+  def saveEventLog(stepChange: WorkflowStepChange, actor: EventActor, reason: Option[String]): IOResult[EventLog] = {
     val modId = ModificationId(uuidGen.newUuid)
-    eventLogRepository.saveWorkflowStep(modId, actor, stepChange, reason).toBox
+    eventLogRepository.saveWorkflowStep(modId, actor, stepChange, reason)
   }
 
-  def getChangeRequestHistory(id: ChangeRequestId): Box[Seq[WorkflowStepChanged]] = {
+  def getChangeRequestHistory(id: ChangeRequestId): IOResult[Seq[WorkflowStepChanged]] = {
     eventLogRepository
       .getEventLogByChangeRequest(id, "/entry/workflowStep/changeRequestId/text()", eventTypeFilter = List(WorkflowStepChanged))
       .map(_.collect { case w: WorkflowStepChanged => w })
-      .toBox
   }
 
-  def getLastLog(id: ChangeRequestId): Box[Option[WorkflowStepChanged]] = {
+  def getLastLog(id: ChangeRequestId): IOResult[Option[WorkflowStepChanged]] = {
     eventLogRepository
       .getEventLogByChangeRequest(
         id,
@@ -84,10 +83,9 @@ class WorkflowEventLogServiceImpl(
         eventTypeFilter = List(WorkflowStepChanged)
       )
       .map(_.collect { case w: WorkflowStepChanged => w }.headOption)
-      .toBox
   }
 
-  def getLastWorkflowEvents(): Box[Map[ChangeRequestId, EventLog]] = {
-    eventLogRepository.getLastEventByChangeRequest("/entry/workflowStep/changeRequestId/text()", List(WorkflowStepChanged)).toBox
+  def getLastWorkflowEvents(): IOResult[Map[ChangeRequestId, EventLog]] = {
+    eventLogRepository.getLastEventByChangeRequest("/entry/workflowStep/changeRequestId/text()", List(WorkflowStepChanged))
   }
 }

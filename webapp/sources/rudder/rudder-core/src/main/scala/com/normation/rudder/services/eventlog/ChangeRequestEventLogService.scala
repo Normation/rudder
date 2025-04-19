@@ -37,7 +37,7 @@
 
 package com.normation.rudder.services.eventlog
 
-import com.normation.box.*
+import com.normation.errors.IOResult
 import com.normation.eventlog.*
 import com.normation.rudder.domain.eventlog.ChangeRequestDiff
 import com.normation.rudder.domain.eventlog.ChangeRequestEventLog
@@ -58,12 +58,12 @@ trait ChangeRequestEventLogService {
       principal: EventActor,
       diff:      ChangeRequestDiff,
       reason:    Option[String]
-  ): Box[EventLog]
+  ): IOResult[EventLog]
 
   /**
    * Return the complet history, unsorted
    */
-  def getChangeRequestHistory(id: ChangeRequestId): Box[Seq[ChangeRequestEventLog]]
+  def getChangeRequestHistory(id: ChangeRequestId): IOResult[Seq[ChangeRequestEventLog]]
 
   /**
    * Return the first logged action for the given ChangeRequest.
@@ -71,7 +71,7 @@ trait ChangeRequestEventLogService {
    * Else, Full(Some(action)) in case of success, and a Failure
    * describing what happened in other cases.
    */
-  def getFirstLog(id: ChangeRequestId): Box[Option[ChangeRequestEventLog]]
+  def getFirstLog(id: ChangeRequestId): IOResult[Option[ChangeRequestEventLog]]
 
   /**
    * Return the last logged action for the given ChangeRequest.
@@ -79,9 +79,9 @@ trait ChangeRequestEventLogService {
    * Else, Full(Some(action)) in case of success, and a Failure
    * describing what happened in other cases.
    */
-  def getLastLog(id: ChangeRequestId): Box[Option[ChangeRequestEventLog]]
+  def getLastLog(id: ChangeRequestId): IOResult[Option[ChangeRequestEventLog]]
 
-  def getLastCREvents: Box[Map[ChangeRequestId, EventLog]]
+  def getLastCREvents: IOResult[Map[ChangeRequestId, EventLog]]
 }
 
 class ChangeRequestEventLogServiceImpl(
@@ -93,26 +93,25 @@ class ChangeRequestEventLogServiceImpl(
       principal: EventActor,
       diff:      ChangeRequestDiff,
       reason:    Option[String]
-  ): Box[EventLog] = {
-    eventLogRepository.saveChangeRequest(modId, principal, diff, reason).toBox
+  ): IOResult[EventLog] = {
+    eventLogRepository.saveChangeRequest(modId, principal, diff, reason)
   }
 
-  def getChangeRequestHistory(id: ChangeRequestId): Box[Seq[ChangeRequestEventLog]] = {
+  def getChangeRequestHistory(id: ChangeRequestId): IOResult[Seq[ChangeRequestEventLog]] = {
     eventLogRepository
       .getEventLogByChangeRequest(id, "/entry/changeRequest/id/text()", eventTypeFilter = ChangeRequestLogsFilter.eventList)
       .map(_.collect { case c: ChangeRequestEventLog => c })
-      .toBox
   }
 
-  def getFirstLog(id: ChangeRequestId): Box[Option[ChangeRequestEventLog]] = {
+  def getFirstLog(id: ChangeRequestId): IOResult[Option[ChangeRequestEventLog]] = {
     getFirstOrLastLog(id, "creationDate asc")
   }
 
-  def getLastLog(id: ChangeRequestId): Box[Option[ChangeRequestEventLog]] = {
+  def getLastLog(id: ChangeRequestId): IOResult[Option[ChangeRequestEventLog]] = {
     getFirstOrLastLog(id, "creationDate desc")
   }
 
-  private def getFirstOrLastLog(id: ChangeRequestId, sortMethod: String): Box[Option[ChangeRequestEventLog]] = {
+  private def getFirstOrLastLog(id: ChangeRequestId, sortMethod: String): IOResult[Option[ChangeRequestEventLog]] = {
     eventLogRepository
       .getEventLogByChangeRequest(
         id,
@@ -122,13 +121,12 @@ class ChangeRequestEventLogServiceImpl(
         ChangeRequestLogsFilter.eventList
       )
       .map(_.collect { case c: ChangeRequestEventLog => c }.headOption)
-      .toBox
   }
 
   /**
    * Get Last Change Request event for all change Request
    */
-  def getLastCREvents: Box[Map[ChangeRequestId, EventLog]] = {
-    eventLogRepository.getLastEventByChangeRequest("/entry/changeRequest/id/text()", ChangeRequestLogsFilter.eventList).toBox
+  def getLastCREvents: IOResult[Map[ChangeRequestId, EventLog]] = {
+    eventLogRepository.getLastEventByChangeRequest("/entry/changeRequest/id/text()", ChangeRequestLogsFilter.eventList)
   }
 }

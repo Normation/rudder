@@ -61,6 +61,7 @@ import com.normation.rudder.services.policies.DependencyAndDeletionService
 import com.normation.rudder.services.queries.DynGroupUpdaterService
 import com.normation.utils.Control.*
 import com.normation.utils.StringUuidGenerator
+import com.normation.zio.UnsafeRun
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import net.liftweb.common.*
@@ -79,7 +80,7 @@ trait CommitAndDeployChangeRequestService {
    * the changes it contains and the actual current
    * state of configuration.
    */
-  def save(changeRequest: ChangeRequest)(implicit cc: ChangeContext): Box[ChangeRequest]
+  def save(changeRequest: ChangeRequest)(implicit cc: ChangeContext): IOResult[ChangeRequest]
 
   /**
    * Check if a changeRequest can be merged as it is.
@@ -116,14 +117,14 @@ class CommitAndDeployChangeRequestServiceImpl(
 
   val logger = ChangeRequestLogger
 
-  def save(changeRequest: ChangeRequest)(implicit cc: ChangeContext): Box[ChangeRequest] = {
+  def save(changeRequest: ChangeRequest)(implicit cc: ChangeContext): IOResult[ChangeRequest] = {
     implicit val qc: QueryContext = cc.toQuery
 
-    workflowEnabled().toBox.foreach {
-      if (_) {
-        logger.info(s"Saving and deploying change request ${changeRequest.id.value}")
-      }
+    workflowEnabled().either.runNow match {
+      case Right(b) => if (b) logger.info(s"Saving and deploying change request ${changeRequest.id.value}")
+      case _        => ()
     }
+
     for {
       (config, trigger) <- changeRequest match {
                              case config: ConfigurationChangeRequest =>
@@ -141,7 +142,7 @@ class CommitAndDeployChangeRequestServiceImpl(
       }
       ChangeRequest.setModId(config, cc.modId)
     }
-  }
+  }.toIO
 
   def isMergeable(changeRequest: ChangeRequest)(implicit qc: QueryContext): Boolean = {
     changeRequest match {

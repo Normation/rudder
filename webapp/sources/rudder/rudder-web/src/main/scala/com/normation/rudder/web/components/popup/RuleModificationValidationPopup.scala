@@ -37,7 +37,9 @@
 package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
+import com.normation.errors.IOResult
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.ChangeContext
@@ -48,6 +50,7 @@ import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.*
+import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.SHtml
@@ -57,6 +60,7 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import scala.xml.*
+import zio.syntax.ToZio
 
 /**
  * Validation pop-up for modification on rules only.
@@ -227,23 +231,23 @@ class RuleModificationValidationPopup(
     SetHtml(htmlId_popupContainer, popupContent())
   }
 
-  private def ruleDiffFromAction(): Box[ChangeRequestRuleDiff] = {
+  private def ruleDiffFromAction(): IOResult[ChangeRequestRuleDiff] = {
     import RuleModAction.*
 
     changeRequest.previousRule match {
       case None =>
         changeRequest.action match {
           case Update | Create =>
-            Full(AddRuleDiff(changeRequest.newRule))
+            AddRuleDiff(changeRequest.newRule).succeed
           case _               =>
-            Failure(s"Action ${changeRequest.action.name} is not possible on a new Rule")
+            Inconsistency(s"Action ${changeRequest.action.name} is not possible on a new Rule").fail
         }
 
       case Some(d) =>
         changeRequest.action match {
-          case Delete                             => Full(DeleteRuleDiff(changeRequest.newRule))
-          case Update | Disable | Enable | Create => Full(ModifyToRuleDiff(changeRequest.newRule))
-          case _                                  => Failure(s"Action ${changeRequest.action.name} is not possible on a existing Rule")
+          case Delete                             => DeleteRuleDiff(changeRequest.newRule).succeed
+          case Update | Disable | Enable | Create => ModifyToRuleDiff(changeRequest.newRule).succeed
+          case _                                  => Inconsistency(s"Action ${changeRequest.action.name} is not possible on a existing Rule").fail
         }
     }
   }
@@ -265,34 +269,34 @@ class RuleModificationValidationPopup(
                     CurrentUser.actor,
                     crReasons.map(_.get)
                   )
-          id   <- workflowService.startWorkflow(cr)(
-                    ChangeContext(
-                      ModificationId(uuidGen.newUuid),
-                      CurrentUser.actor,
-                      new DateTime(),
-                      crReasons.map(_.get),
-                      None,
-                      CurrentUser.nodePerms
+          id   <- workflowService
+                    .startWorkflow(cr)(
+                      ChangeContext(
+                        ModificationId(uuidGen.newUuid),
+                        CurrentUser.actor,
+                        new DateTime(),
+                        crReasons.map(_.get),
+                        None,
+                        CurrentUser.nodePerms
+                      )
                     )
-                  )
         } yield {
           id
         }
       }
-      savedChangeRequest match {
-        case Full(id) =>
-          if (validationNeeded)
+      savedChangeRequest
+        .chainError("Error when trying to save your modification")
+        .either
+        .runNow match {
+        case Right(id) =>
+          if (validationNeeded) {
             closePopup() & onSuccessCallBack(Right(id))
-          else
+          } else {
             closePopup() & onSuccessCallBack(Left(changeRequest.newRule))
-        case eb: EmptyBox =>
-          val e = (eb ?~! "Error when trying to save your modification")
-          parentFormTracker.map(_.addFormError(error(e.messageChain)))
-          logger.error(e.messageChain)
-          e.chain.foreach { ex =>
-            parentFormTracker.map(x => x.addFormError(error(ex.messageChain)))
-            logger.error(s"Exception when trying to update a change request:", ex)
           }
+        case Left(err) =>
+          parentFormTracker.map(_.addFormError(error(err.fullMsg)))
+          logger.error(err.fullMsg)
           onFailureCallback()
       }
     }
