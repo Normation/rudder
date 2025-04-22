@@ -57,6 +57,7 @@ import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
 import com.normation.rudder.web.model.*
+import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -819,11 +820,14 @@ class DirectiveEditForm(
       updatedRules
     )
 
-    workflowLevelService.getForDirective(CurrentUser.actor, change) match {
-      case eb: EmptyBox =>
-        val msg = s"Error when getting the validation workflow for changes in directive '${change.newDirective.name}'"
-        logger.warn(msg, eb)
-      case Full(workflowService) =>
+    workflowLevelService
+      .getForDirective(CurrentUser.actor, change)
+      .chainError(s"Error when getting the validation workflow for changes in directive '${change.newDirective.name}'")
+      .either
+      .runNow match {
+      case Left(err)              =>
+        logger.warn(err.fullMsg)
+      case Right(workflowService) =>
         val popup = {
           // if it's not a creation and we have workflow, then we redirect to the CR
           val (successCallback, failureCallback) = {

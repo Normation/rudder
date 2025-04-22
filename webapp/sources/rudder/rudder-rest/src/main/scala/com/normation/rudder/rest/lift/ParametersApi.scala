@@ -63,7 +63,6 @@ import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.StringUuidGenerator
-import net.liftweb.common.Box
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
@@ -170,7 +169,7 @@ class ParameterApiService14(
       change:    GlobalParamChangeRequest,
       params:    DefaultParams,
       actor:     EventActor
-  )(implicit qc: QueryContext): Box[JRGlobalParameter] = {
+  )(implicit qc: QueryContext): IOResult[JRGlobalParameter] = {
     implicit val cc: ChangeContext =
       ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), params.reason, None, qc.nodePerms)
     for {
@@ -216,7 +215,7 @@ class ParameterApiService14(
     for {
       _   <- restParameter.id.notOptional(s"'id' is mandatory but was empty")
       cr   = GlobalParamChangeRequest(GlobalParamModAction.Create, None)
-      res <- createChangeRequest(diff, parameter, cr, params, actor).toIO
+      res <- createChangeRequest(diff, parameter, cr, params, actor)
     } yield res
   }
 
@@ -229,7 +228,7 @@ class ParameterApiService14(
       updatedParam = restParameter.updateParameter(param)
       diff         = ModifyToGlobalParameterDiff(updatedParam)
       change       = GlobalParamChangeRequest(GlobalParamModAction.Update, Some(param))
-      result      <- createChangeRequest(diff, updatedParam, change, params, actor).toIO
+      result      <- createChangeRequest(diff, updatedParam, change, params, actor)
     } yield {
       result
     }
@@ -244,7 +243,7 @@ class ParameterApiService14(
       case Some(parameter) =>
         val diff   = DeleteGlobalParameterDiff(parameter)
         val change = GlobalParamChangeRequest(GlobalParamModAction.Delete, Some(parameter))
-        createChangeRequest(diff, parameter, change, params, actor).toIO
+        createChangeRequest(diff, parameter, change, params, actor)
     }
   }
 

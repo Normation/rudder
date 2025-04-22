@@ -325,7 +325,7 @@ class RuleApiService14(
       actor:  EventActor
   )(implicit qc: QueryContext) = {
     for {
-      workflow     <- workflowLevelService.getForRule(actor, change).toIO
+      workflow     <- workflowLevelService.getForRule(actor, change)
       cr            = ChangeRequestService.createChangeRequestFromRule(
                         params.changeRequestName.getOrElse(
                           s"${change.action.name} rule '${change.newRule.name}' (${change.newRule.id.serialize}) by API request"
@@ -341,7 +341,6 @@ class RuleApiService14(
                         .startWorkflow(cr)(
                           ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), params.reason, None, qc.nodePerms)
                         )
-                        .toIO
       directiveLib <- readDirectives.getFullDirectiveLibrary()
       groupLib     <- readGroup.getFullGroupLibrary()
       nodesLib     <- nodeFactRepos.getAll()
@@ -444,7 +443,6 @@ class RuleApiService14(
           for {
             workflow <- workflowLevelService
                           .getForRule(actor, change)
-                          .toIO
                           .chainError("Could not find workflow status for that rule creation")
           } yield {
             // we don't actually start a workflow, we only disable the rule if a workflow should be
