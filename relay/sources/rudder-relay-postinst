@@ -14,6 +14,10 @@ LOG_FILE="/var/log/rudder/install/rudder-relay-$(date +%Y%m%d%H%M%S).log"
 
 echo "$(date) - Starting rudder-relay post installation script" >> ${LOG_FILE}
 
+# Cleanup misplaced and useless backup files
+# created between 7.2 and <8.3
+rm -f /rudder-apache-*.conf
+
 # Create groups ans users before managing the services
 if ! getent group rudder > /dev/null; then
   groupadd --system rudder >> ${LOG_FILE}
