@@ -1,6 +1,6 @@
 module Rules.ViewRulesTable exposing (..)
 
-import Html exposing (Html, text,  tr, td, i, span)
+import Html exposing (Html, text,  tr, td, i, span, div)
 import Html.Attributes exposing (class, colspan, attribute, title)
 import Html.Events exposing (onClick)
 import List
@@ -85,7 +85,7 @@ buildRulesTable model rules =
           case getRuleCompliance model r.id of
             Just co ->
               buildComplianceBar defaultComplianceFilter co.complianceDetails
-            Nothing -> text "No report"
+            Nothing -> div[class "skeleton-loading"][span[][]]
 
         changes = text (String.fromFloat (countRecentChanges r.id model.changes))
 
