@@ -442,8 +442,8 @@ limitations under the License.
     <commons-fileupload>2.0.0-M2</commons-fileupload>
     <commons-csv-version>1.12.0</commons-csv-version>
     <jgit-version>7.0.0.202409031743-r</jgit-version>
-    <spring-version>6.1.17</spring-version>
-    <spring-security-version>6.3.7</spring-security-version>
+    <spring-version>6.1.18</spring-version>
+    <spring-security-version>6.3.8</spring-security-version>
     <cglib-version>3.3.0</cglib-version>
     <asm-version>9.7.1</asm-version>
     <!-- Level of Java compatibility, here 1.8+ -->
