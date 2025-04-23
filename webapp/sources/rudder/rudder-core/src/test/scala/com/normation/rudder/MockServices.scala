@@ -3184,6 +3184,8 @@ class MockCampaign() {
     override def deleteCampaign(campaignId: CampaignId)(implicit cc: ChangeContext): IOResult[Unit] = ().succeed
 
     override def init(implicit changeContext: ChangeContext): IOResult[Unit] = ().succeed
+
+    override def campaignPath: File = File("/tmp")
   }
 
   object dumbCampaignEventRepository extends CampaignEventRepository {
