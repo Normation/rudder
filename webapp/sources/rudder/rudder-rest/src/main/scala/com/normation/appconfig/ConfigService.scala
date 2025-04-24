@@ -197,8 +197,6 @@ trait ReadConfigService {
    */
   def rudder_compute_changes():              IOResult[Boolean]
   def rudder_generation_compute_dyngroups(): IOResult[Boolean]
-  def rudder_save_db_compliance_levels():    IOResult[Boolean]
-  def rudder_save_db_compliance_details():   IOResult[Boolean]
 
   def rudder_generation_max_parallelism(): IOResult[String]
   def rudder_generation_delay():           IOResult[Duration]
@@ -331,8 +329,6 @@ trait UpdateConfigService {
 
   def set_rudder_compute_changes(value:              Boolean): IOResult[Unit]
   def set_rudder_generation_compute_dyngroups(value: Boolean): IOResult[Unit]
-  def set_rudder_save_db_compliance_levels(value:    Boolean): IOResult[Unit]
-  def set_rudder_save_db_compliance_details(value:   Boolean): IOResult[Unit]
 
   def set_rudder_generation_max_parallelism(value: String):                  IOResult[Unit]
   def set_rudder_generation_delay(value:           Duration):                IOResult[Unit]
@@ -400,8 +396,6 @@ class GenericConfigService(
        rudder.node.onaccept.default.policyMode=default
        rudder.compute.changes=true
        rudder.generation.compute.dyngroups=true
-       rudder.save.db.compliance.levels=false
-       rudder.save.db.compliance.details=false
        rudder.generation.max.parallelism=x0.5
        rudder.generation.js.timeout=30
        rudder.generation.continue.on.error=false
@@ -719,10 +713,6 @@ class GenericConfigService(
   def set_rudder_compute_changes(value: Boolean): IOResult[Unit] = save("rudder_compute_changes", value)
   def rudder_generation_compute_dyngroups(): IOResult[Boolean] = get("rudder_generation_compute_dyngroups")
   def set_rudder_generation_compute_dyngroups(value: Boolean): IOResult[Unit] = save("rudder_generation_compute_dyngroups", value)
-  def rudder_save_db_compliance_levels(): IOResult[Boolean] = get("rudder_save_db_compliance_levels")
-  def set_rudder_save_db_compliance_levels(value: Boolean): IOResult[Unit] = save("rudder_save_db_compliance_levels", value)
-  def rudder_save_db_compliance_details(): IOResult[Boolean] = get("rudder_save_db_compliance_details")
-  def set_rudder_save_db_compliance_details(value: Boolean): IOResult[Unit] = save("rudder_save_db_compliance_details", value)
 
   /// generation: js timeout, parallelism
   def rudder_generation_max_parallelism(): IOResult[String] = get("rudder_generation_max_parallelism")

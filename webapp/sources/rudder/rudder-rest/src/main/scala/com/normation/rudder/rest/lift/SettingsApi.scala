@@ -124,8 +124,6 @@ class SettingsApi(
     RestOnAcceptPolicyMode ::
     RestComputeChanges ::
     RestGenerationComputeDynGroups ::
-    RestPersistComplianceLevels ::
-    RestPersistComplianceDetails ::
     RestGenerationMaxParallelism ::
     RestGenerationJsTimeout ::
     RestContinueGenerationOnError ::
@@ -721,22 +719,7 @@ class SettingsApi(
       configService.set_rudder_generation_compute_dyngroups(value)
   }
 
-  case object RestPersistComplianceLevels extends RestBooleanSetting {
-    val startPolicyGeneration = false
-    val key                   = "rudder_save_db_compliance_levels"
-    def get: IOResult[Boolean]                                       = configService.rudder_save_db_compliance_levels()
-    def set: (Boolean, EventActor, Option[String]) => IOResult[Unit] = (value: Boolean, _, _) =>
-      configService.set_rudder_save_db_compliance_levels(value)
-  }
-
-  case object RestPersistComplianceDetails extends RestBooleanSetting {
-    val startPolicyGeneration = false
-    val key                   = "rudder_save_db_compliance_details"
-    def get: IOResult[Boolean]                                       = configService.rudder_save_db_compliance_details()
-    def set: (Boolean, EventActor, Option[String]) => IOResult[Unit] = (value: Boolean, _, _) =>
-      configService.set_rudder_save_db_compliance_details(value)
-  }
-  case object RestGenerationMaxParallelism extends RestStringSetting  {
+  case object RestGenerationMaxParallelism extends RestStringSetting {
     val startPolicyGeneration = false
     val key                   = "rudder_generation_max_parallelism"
     def get: IOResult[String]                                       = configService.rudder_generation_max_parallelism()
