@@ -5,10 +5,11 @@ mod common;
 
 use std::{fs, thread};
 
+use crate::common::random_ports;
 use common::{fake_server_start, fake_server_stop};
 use rudder_relayd::{configuration::cli::CliConfiguration, init_logger, start};
 
-fn upstream_call_ok(client: &reqwest::blocking::Client, should_be_ok: bool) {
+fn upstream_call_ok(client: &reqwest::blocking::Client, should_be_ok: bool, port: u16) {
     let params_sync = [
         ("asynchronous", "false"),
         ("keep_output", "true"),
@@ -17,7 +18,9 @@ fn upstream_call_ok(client: &reqwest::blocking::Client, should_be_ok: bool) {
     ];
 
     let response = client
-        .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
+        .post(format!(
+            "http://localhost:{port}/rudder/relay-api/1/remote-run/nodes"
+        ))
         .form(&params_sync)
         .send()
         .unwrap();
@@ -30,10 +33,12 @@ fn upstream_call_ok(client: &reqwest::blocking::Client, should_be_ok: bool) {
     }
 }
 
-fn reload_config(client: &reqwest::blocking::Client) {
+fn reload_config(client: &reqwest::blocking::Client, port: u16) {
     let response: serde_json::Value = serde_json::from_str(
         &client
-            .post("http://localhost:3030/rudder/relay-api/1/system/reload")
+            .post(format!(
+                "http://localhost:{port}/rudder/relay-api/1/system/reload"
+            ))
             .send()
             .unwrap()
             .text()
@@ -50,18 +55,27 @@ fn reload_config(client: &reqwest::blocking::Client) {
 #[test]
 fn it_reloads_http_clients() {
     let cli_cfg = CliConfiguration::new("tests/files/config/", false);
+    let (api_port, https_port) = random_ports();
 
     thread::spawn(move || {
-        start(cli_cfg, init_logger().unwrap()).unwrap();
+        start(
+            cli_cfg,
+            init_logger().unwrap(),
+            Some((api_port, https_port)),
+        )
+        .unwrap();
     });
 
-    assert!(common::start_api().is_ok());
+    assert!(common::start_api(api_port).is_ok());
     let client = reqwest::blocking::Client::new();
 
-    fake_server_start("37817c4d-fbf7-4850-a985-50021f4e8f41".to_string());
+    fake_server_start(
+        "37817c4d-fbf7-4850-a985-50021f4e8f41".to_string(),
+        https_port,
+    );
 
     // First successful request
-    upstream_call_ok(&client, true);
+    upstream_call_ok(&client, true, api_port);
 
     fs::copy(
         "tests/files/keys/nodescerts.pem",
@@ -76,10 +90,10 @@ fn it_reloads_http_clients() {
     .unwrap();
 
     // Reload configuration
-    reload_config(&client);
+    reload_config(&client, api_port);
 
     // Fail as certificate is wrong
-    upstream_call_ok(&client, false);
+    upstream_call_ok(&client, false, api_port);
 
     // Put correct cert back in place
     fs::copy(
@@ -89,10 +103,10 @@ fn it_reloads_http_clients() {
     .unwrap();
 
     // Reload configuration
-    reload_config(&client);
+    reload_config(&client, api_port);
 
     // Should be back
-    upstream_call_ok(&client, true);
+    upstream_call_ok(&client, true, api_port);
 
-    fake_server_stop();
+    fake_server_stop(https_port);
 }
