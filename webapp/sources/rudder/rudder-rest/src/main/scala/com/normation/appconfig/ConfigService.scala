@@ -400,7 +400,7 @@ class GenericConfigService(
        rudder.node.onaccept.default.policyMode=default
        rudder.compute.changes=true
        rudder.generation.compute.dyngroups=true
-       rudder.save.db.compliance.levels=true
+       rudder.save.db.compliance.levels=false
        rudder.save.db.compliance.details=false
        rudder.generation.max.parallelism=x0.5
        rudder.generation.js.timeout=30

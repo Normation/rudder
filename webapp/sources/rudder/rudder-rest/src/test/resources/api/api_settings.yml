@@ -56,7 +56,7 @@ response:
           "rudder_generation_policy":"all",
           "rudder_report_protocol_default":"HTTPS",
           "rudder_save_db_compliance_details":false,
-          "rudder_save_db_compliance_levels":true,
+          "rudder_save_db_compliance_levels":false,
           "rudder_setup_done":false,
           "run_frequency":5,
           "send_metrics":"not_defined",
