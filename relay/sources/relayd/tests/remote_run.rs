@@ -7,6 +7,7 @@ use std::{
     thread, time,
 };
 
+use crate::common::random_ports;
 use common::{fake_server_start, fake_server_stop};
 use rudder_relayd::{configuration::cli::CliConfiguration, init_logger, start};
 
@@ -15,12 +16,18 @@ mod common;
 #[test]
 fn it_runs_remote_run() {
     let cli_cfg = CliConfiguration::new("tests/files/config/", false);
+    let (api_port, https_port) = random_ports();
 
     thread::spawn(move || {
-        start(cli_cfg, init_logger().unwrap()).unwrap();
+        start(
+            cli_cfg,
+            init_logger().unwrap(),
+            Some((api_port, https_port)),
+        )
+        .unwrap();
     });
+    assert!(common::start_api(api_port).is_ok());
 
-    assert!(common::start_api().is_ok());
     let client = reqwest::blocking::Client::new();
 
     // Async & keep
@@ -33,7 +40,9 @@ fn it_runs_remote_run() {
         ("nodes", "root"),
     ];
     let response = client
-        .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
+        .post(format!(
+            "http://localhost:{api_port}/rudder/relay-api/1/remote-run/nodes"
+        ))
         .form(&params_async)
         .send()
         .unwrap();
@@ -52,7 +61,9 @@ fn it_runs_remote_run() {
         ("nodes", "e745a140-40bc-4b86-b6dc-084488fc906b"),
     ];
     let response = client
-        .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
+        .post(format!(
+            "http://localhost:{api_port}/rudder/relay-api/1/remote-run/nodes"
+        ))
         .form(&params_async)
         .send()
         .unwrap();
@@ -70,7 +81,7 @@ fn it_runs_remote_run() {
         ("classes", "class2,class46"),
     ];
     let response = client
-            .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes/e745a140-40bc-4b86-b6dc-084488fc906b")
+            .post(format!("http://localhost:{api_port}/rudder/relay-api/1/remote-run/nodes/e745a140-40bc-4b86-b6dc-084488fc906b"))
             .form(&params_async)
             .send()
             .unwrap();
@@ -91,7 +102,9 @@ fn it_runs_remote_run() {
         ("nodes", "root"),
     ];
     let response = client
-        .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
+        .post(format!(
+            "http://localhost:{api_port}/rudder/relay-api/1/remote-run/nodes"
+        ))
         .form(&params_sync)
         .send()
         .unwrap();
@@ -114,7 +127,9 @@ fn it_runs_remote_run() {
         ("nodes", "root"),
     ];
     let response = client
-        .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
+        .post(format!(
+            "http://localhost:{api_port}/rudder/relay-api/1/remote-run/nodes"
+        ))
         .form(&params_sync)
         .send()
         .unwrap();
@@ -137,23 +152,33 @@ fn it_runs_remote_run() {
     ];
 
     // Wrong certificate
-    fake_server_start("e745a140-40bc-4b86-b6dc-084488fc906b".to_string());
+    fake_server_start(
+        "e745a140-40bc-4b86-b6dc-084488fc906b".to_string(),
+        https_port,
+    );
     let response = client
-        .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
+        .post(format!(
+            "http://localhost:{api_port}/rudder/relay-api/1/remote-run/nodes"
+        ))
         .form(&params_sync)
         .send()
         .unwrap();
-    fake_server_stop();
+    fake_server_stop(https_port);
     assert_eq!(response.status(), hyper::StatusCode::OK);
 
     // Good certificate
-    fake_server_start("37817c4d-fbf7-4850-a985-50021f4e8f41".to_string());
+    fake_server_start(
+        "37817c4d-fbf7-4850-a985-50021f4e8f41".to_string(),
+        https_port,
+    );
     let response = client
-        .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
+        .post(format!(
+            "http://localhost:{api_port}/rudder/relay-api/1/remote-run/nodes"
+        ))
         .form(&params_sync)
         .send()
         .unwrap();
-    fake_server_stop();
+    fake_server_stop(https_port);
 
     assert_eq!(response.status(), hyper::StatusCode::OK);
     assert_eq!(response.text().unwrap(), "OK\nEND\nREMOTE\n".to_string());
@@ -173,7 +198,9 @@ fn it_runs_remote_run() {
         ("nodes", "root"),
     ];
     let response = client
-        .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
+        .post(format!(
+            "http://localhost:{api_port}/rudder/relay-api/1/remote-run/nodes"
+        ))
         .form(&params_sync)
         .send()
         .unwrap();
@@ -193,7 +220,9 @@ fn it_runs_remote_run() {
         ("nodes", "node2.rudder.local,server.rudder.local"),
     ];
     let response = client
-        .post("http://localhost:3030/rudder/relay-api/1/remote-run/nodes")
+        .post(format!(
+            "http://localhost:{api_port}/rudder/relay-api/1/remote-run/nodes"
+        ))
         .form(&params)
         .send()
         .unwrap();
