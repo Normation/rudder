@@ -310,6 +310,10 @@ object Rights {
 
   val AnyRights: Rights = Rights.forAuthzs(AuthorizationType.AnyRights)
 
+  def apply(authorizationTypes: AuthorizationType*): Rights = {
+    apply(authorizationTypes)
+  }
+
   def apply(authorizationTypes: Iterable[AuthorizationType]): Rights = {
     if (authorizationTypes.isEmpty) {
       NoRights
@@ -320,7 +324,7 @@ object Rights {
 
   def forAuthzs(authorizationTypes: AuthorizationType*): Rights = apply(authorizationTypes.toSeq)
 
-  def combineAll(rights: Iterable[Rights]): Rights = Rights(rights.map(_.authorizationTypes).toList.combineAll)
+  def combineAll(rights: Iterable[Rights]): Rights = apply(rights.map(_.authorizationTypes).toList.combineAll)
 }
 
 /*
