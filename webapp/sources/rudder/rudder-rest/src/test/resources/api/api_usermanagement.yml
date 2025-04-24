@@ -222,9 +222,7 @@ response:
             "directive_read",
             "group_read",
             "node_read",
-            "parameter_read",
             "rule_read",
-            "technique_read",
             "compliance_all",
             "userAccount_all"
           ]
@@ -247,9 +245,7 @@ response:
             "directive_read",
             "group_read",
             "node_read",
-            "parameter_read",
             "rule_read",
-            "technique_read",
             "compliance_all",
             "deployer_all",
             "userAccount_all"
@@ -314,9 +310,7 @@ response:
             "directive_read",
             "group_read",
             "node_read",
-            "parameter_read",
             "rule_read",
-            "technique_read",
             "compliance_all",
             "userAccount_all",
             "validator_all"
@@ -329,9 +323,7 @@ response:
             "directive_read",
             "group_read",
             "node_read",
-            "parameter_read",
             "rule_read",
-            "technique_read",
             "compliance_all",
             "deployer_all",
             "userAccount_all",
