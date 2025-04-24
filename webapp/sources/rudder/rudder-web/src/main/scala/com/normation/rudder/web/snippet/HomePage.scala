@@ -150,6 +150,7 @@ class HomePage extends StatefulSnippet {
   private val reportingService = RudderConfig.reportingService
   private val roRuleRepo       = RudderConfig.roRuleRepository
   private val scoreService     = RudderConfig.rci.scoreService
+  private val directiveRepo    = RudderConfig.roDirectiveRepository
 
   override val dispatch: DispatchIt = {
     case "pendingNodes"       => pendingNodes
@@ -436,9 +437,14 @@ class HomePage extends StatefulSnippet {
   }.toBox
 
   private def countAllTechniques(): Box[Int] = {
-    ldap.flatMap { con =>
-      con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, AND(IS(OC_ACTIVE_TECHNIQUE), EQ(A_IS_SYSTEM, FALSE.toLDAPString)), "1.1")
-    }.map(x => x.size)
+    // for techniques, we can't easily rely on LDAP attribute, because we can have a mix of isSystem/policyType.
+    // So just use the repo.
+    directiveRepo
+      .getFullDirectiveLibrary()
+      .map(_.allActiveTechniques.collect {
+        // here, we only want to count one technique whatever the number of versions, but only the ones enabled and of type "base"
+        case (_, at) if at.policyTypes.isBase && at.isEnabled => Math.min(1, at.techniques.count(_._2.policyTypes.isBase))
+      }.sum)
   }.toBox
 
   private def countAllGroups(): Box[Int] = {
