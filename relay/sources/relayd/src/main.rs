@@ -47,7 +47,7 @@ fn main() {
             }
         };
 
-        if let Err(e) = start(cli_cfg, reload_handle) {
+        if let Err(e) = start(cli_cfg, reload_handle, None) {
             // Debug to get anyhow error stack
             error!("{:?}", e);
             exit(ExitStatus::StartError(e).code());

@@ -13,7 +13,7 @@ use tokio::{
     signal::unix::{signal, SignalKind},
     sync::RwLock,
 };
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 use tracing_subscriber::{
     filter::EnvFilter,
     fmt::{
@@ -105,7 +105,11 @@ pub fn init_logger() -> Result<LogHandle, Error> {
     Ok(reload_handle)
 }
 
-pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), Error> {
+pub fn start(
+    cli_cfg: CliConfiguration,
+    reload_handle: LogHandle,
+    force_ports: Option<(u16, u16)>,
+) -> Result<(), Error> {
     // Start by setting log config
     let log_cfg = LogConfig::new(&cli_cfg.config)?;
     reload_handle.reload(log_cfg.to_string())?;
@@ -120,13 +124,18 @@ pub fn start(cli_cfg: CliConfiguration, reload_handle: LogHandle) -> Result<(), 
 
     // ---- Setup data structures ----
 
-    let cfg = Configuration::new(cli_cfg.config.clone())?;
+    let mut cfg = Configuration::new(cli_cfg.config.clone())?;
+    if let Some((api, https)) = force_ports {
+        warn!("Overriding listen port to {api}");
+        cfg.general.listen = format!("127.0.0.1:{api}");
+        warn!("Overriding https port to {https}");
+        cfg.general.https_port = https;
+    }
     let job_config = JobConfig::new(cli_cfg, cfg, reload_handle)?;
 
     // ---- Start server ----
 
     // Optimize for big servers: use multi-threaded scheduler
-
     let mut builder = tokio::runtime::Builder::new_multi_thread();
     if let Some(threads) = job_config.cfg.general.core_threads {
         builder.worker_threads(threads);
