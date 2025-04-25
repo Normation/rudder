@@ -3204,17 +3204,12 @@ object RudderConfigInit {
 
     lazy val reportingService: ReportingService = new ReportingServiceImpl2(nodeStatusReportRepository)
 
-    lazy val pgIn                     = new PostgresqlInClause(70)
-    lazy val findExpectedRepo         = new FindExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
-    lazy val updateExpectedRepo       = new UpdateExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
-    lazy val reportsRepositoryImpl    = new ReportsJdbcRepository(doobie)
-    lazy val reportsRepository        = reportsRepositoryImpl
-    lazy val complianceRepositoryImpl = new ComplianceJdbcRepository(
-      doobie,
-      () => configService.rudder_save_db_compliance_details().toBox,
-      () => configService.rudder_save_db_compliance_levels().toBox
-    )
-    lazy val dataSourceProvider       = new RudderDatasourceProvider(
+    lazy val pgIn                  = new PostgresqlInClause(70)
+    lazy val findExpectedRepo      = new FindExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
+    lazy val updateExpectedRepo    = new UpdateExpectedReportsJdbcRepository(doobie, pgIn, RUDDER_JDBC_BATCH_MAX_SIZE)
+    lazy val reportsRepositoryImpl = new ReportsJdbcRepository(doobie)
+    lazy val reportsRepository     = reportsRepositoryImpl
+    lazy val dataSourceProvider    = new RudderDatasourceProvider(
       RUDDER_JDBC_DRIVER,
       RUDDER_JDBC_URL,
       RUDDER_JDBC_USERNAME,
@@ -3222,7 +3217,7 @@ object RudderConfigInit {
       RUDDER_JDBC_MAX_POOL_SIZE,
       JDBC_GET_CONNECTION_TIMEOUT.asScala
     )
-    lazy val doobie                   = {
+    lazy val doobie                = {
       // execute pre connection checks before anything else. Both here and in the other connection to ensure it's
       // executed before everything.
       earlyChecks.initialize()
@@ -3480,6 +3475,7 @@ object RudderConfigInit {
         gitConfigRepo.rootDirectory.pathAsString
       ),
       new FixedPathLoggerMigration(),
+      new DropNodeComplianceTables(doobie),
       new TriggerPolicyUpdate(
         asyncDeploymentAgent,
         stringUuidGenerator
@@ -3624,8 +3620,7 @@ object RudderConfigInit {
         updatesEntryJdbcRepository,
         recentChangesService,
         computeNodeStatusReportService,
-        findNewNodeStatusReports,
-        complianceRepositoryImpl
+        findNewNodeStatusReports
       )
     }
 
