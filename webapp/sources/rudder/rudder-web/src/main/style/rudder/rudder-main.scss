@@ -792,13 +792,15 @@ pre.json-beautify code.elmsh {
 .content-wrapper .rudder-label.label-error + .tooltip b, .content-wrapper .label-text.label-error:after, .content-wrapper .label-text.label-error  + .tooltip b, .text-Error{
   color: #DA291C;
 }
-.content-wrapper .rudder-label.label-overridden:before,.content-wrapper .label-text.label-overridden:after{
+.content-wrapper .rudder-label.label-overriden:before,.content-wrapper .label-text.label-overriden:after,
+.content-wrapper .rudder-label.label-skipped:before,.content-wrapper .label-text.label-skipped:after{
   content: "Skipped";
 }
-.content-wrapper .rudder-label.label-overridden{
+.content-wrapper .rudder-label.label-overriden,.content-wrapper .rudder-label.label-skipped{
   background-color: #eda800;
 }
-.content-wrapper .rudder-label.label-overridden + .tooltip b, .content-wrapper .label-text.label-overridden:after, .content-wrapper .label-text.label-overridden  + .tooltip b, .text-overridden {
+.content-wrapper .rudder-label.label-overriden + .tooltip b, .content-wrapper .label-text.label-overriden:after, .content-wrapper .label-text.label-overriden  + .tooltip b, .text-overriden ,
+.content-wrapper .rudder-label.label-skipped + .tooltip b, .content-wrapper .label-text.label-skipped:after, .content-wrapper .label-text.label-skipped  + .tooltip b, .text-skipped {
   color: #eda800;
 }
 .content-wrapper .rudder-label.label-included:before,.content-wrapper .label-text.label-included:after{

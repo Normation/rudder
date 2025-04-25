@@ -394,29 +394,17 @@ object ComplianceData extends Loggable {
    * addOverridden decides if we add overridden policies in the result (policy tab) or not (policy tab)
    */
   def getNodeByRuleComplianceDetails(
-      nodeId:        NodeId,
-      report:        NodeStatusReport,
-      tag:           PolicyTypeName,
-      allNodeInfos:  Map[NodeId, CoreNodeFact],
-      directiveLib:  FullActiveTechniqueCategory,
-      rules:         Seq[Rule],
-      globalMode:    GlobalPolicyMode,
-      addOverridden: Boolean
+      nodeId:       NodeId,
+      report:       NodeStatusReport,
+      tag:          PolicyTypeName,
+      allNodeInfos: Map[NodeId, CoreNodeFact],
+      directiveLib: FullActiveTechniqueCategory,
+      rules:        Seq[Rule],
+      globalMode:   GlobalPolicyMode
   ): RuleComplianceLines = {
 
-    // add overridden directive in the list under there rule
-    val overridesByRules = if (addOverridden) {
-      report.overrides.groupBy(_.policy.ruleId)
-    } else {
-      Map[RuleId, List[OverriddenPolicy]]()
-    }
-
-    // we can have rules with only overridden reports, so we just prepend them. When
-    // a rule is defined for that id, it will override that default.
-    val overridesRules = overridesByRules.view.mapValues(_ => AggregatedStatusReport(Nil)).toMap
-
     val ruleComplianceLine = for {
-      (ruleId, aggregate) <- (overridesRules ++ report.reports
+      (ruleId, aggregate) <- (report.reports
                                .getOrElse(tag, AggregatedStatusReport(Nil))
                                .reports
                                .groupBy(_.ruleId)
@@ -424,12 +412,11 @@ object ComplianceData extends Loggable {
       rule                <- rules.find(_.id == ruleId)
     } yield {
       val nodeMode = allNodeInfos.get(nodeId).flatMap(_.rudderSettings.policyMode)
-      val details  = getOverriddenDirectiveDetails(overridesByRules.getOrElse(ruleId, Nil), directiveLib, rules, None) ++
-        getDirectivesComplianceDetails(
-          aggregate.directives.values.toList,
-          directiveLib,
-          ComputePolicyMode.directiveModeOnNode(nodeMode, globalMode)
-        )
+      val details  = getDirectivesComplianceDetails(
+        aggregate.directives.values.toList,
+        directiveLib,
+        ComputePolicyMode.directiveModeOnNode(nodeMode, globalMode)
+      )
 
       val directivesMode            = aggregate.directives.keys.map(x => directiveLib.allDirectives.get(x).flatMap(_._2.policyMode)).toList
       val (policyMode, explanation) = ComputePolicyMode.ruleModeOnNode(nodeMode, globalMode)(directivesMode.toSet).tuple
@@ -444,50 +431,6 @@ object ComplianceData extends Loggable {
       )
     }
     RuleComplianceLines(ruleComplianceLine.toList.sortBy(_.id.serialize))
-  }
-
-  private def getOverriddenDirectiveDetails(
-      overrides:    List[OverriddenPolicy],
-      directiveLib: FullActiveTechniqueCategory,
-      rules:        Seq[Rule],
-      onRuleScreen: Option[Rule] // if we are on a rule, we want to adapt message
-  ): List[DirectiveComplianceLine] = {
-    val overridesData = for {
-      // we don't want to write an overridden directive several time for the same overriding rule/directive.
-      over                            <- overrides
-      (overriddenTech, overriddenDir) <- directiveLib.allDirectives.get(over.policy.directiveId)
-      overridingRule                  <- rules.find(_.id == over.overriddenBy.ruleId)
-      (overridingTech, overridingDir) <- directiveLib.allDirectives.get(over.overriddenBy.directiveId)
-    } yield {
-      val overriddenTechName    =
-        overriddenTech.techniques.get(overriddenDir.techniqueVersion).map(_.name).getOrElse("Unknown technique")
-      val overriddenTechVersion = overriddenDir.techniqueVersion
-
-      val policyMode  = "overridden"
-      val explanation = "This directive is unique: only one directive derived from its technique can be set on a given node " +
-        s"at the same time. This one is overridden by directive '<i><b>${overridingDir.name}</b></i>'" +
-        (onRuleScreen match {
-          case None                                   =>
-            s" in rule '<i><b>${overridingRule.name}</b></i>' on that node."
-          case Some(r) if (r.id == overridingRule.id) =>
-            s" in that rule."
-          case Some(r)                                => // it means that that directive is skipped on all nodes on that rule
-            s" in rule '<i><b>${overridingRule.name}</b></i>' on all nodes."
-        })
-
-      DirectiveComplianceLine(
-        overriddenDir,
-        overriddenTechName,
-        overriddenTechVersion,
-        ComplianceLevel(),
-        Nil,
-        policyMode,
-        explanation,
-        overriddenDir.tags
-      )
-    }
-
-    overridesData
   }
 
   //////////////// Directive Report ///////////////

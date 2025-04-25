@@ -83,8 +83,7 @@ class ComplianceLineTest extends Specification with JsonSpecMatcher {
         nodes.toMap,
         directives,
         mockCompliance.simpleExample.simpleCustomRules,
-        GlobalPolicyMode(Enforce, PolicyModeOverrides.Always),
-        true
+        GlobalPolicyMode(Enforce, PolicyModeOverrides.Always)
       )
       .toJson
 

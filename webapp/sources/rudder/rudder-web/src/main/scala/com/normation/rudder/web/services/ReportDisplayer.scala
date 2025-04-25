@@ -92,19 +92,16 @@ class ReportDisplayer(
    * addOverridden decides if we need to add overridden policies (policy tab), or not (system tab)
    */
   def asyncDisplay(
-      node:          CoreNodeFact,
-      tabId:         String,
-      containerId:   String,
-      tableId:       String,
-      getReports:    NodeId => Box[NodeStatusReport],
-      addOverridden: Boolean,
-      onlySystem:    Boolean
+      node:        CoreNodeFact,
+      tabId:       String,
+      containerId: String,
+      tableId:     String,
+      getReports:  NodeId => Box[NodeStatusReport],
+      onlySystem:  Boolean
   )(implicit qc: QueryContext): NodeSeq = {
     val i        = configService.agent_run_interval().option.runNow.getOrElse(10)
     val callback = {
-      SHtml.ajaxInvoke(() =>
-        SetHtml(containerId, displayReports(node, getReports, tabId, tableId, containerId, addOverridden, onlySystem, i))
-      )
+      SHtml.ajaxInvoke(() => SetHtml(containerId, displayReports(node, getReports, tabId, tableId, containerId, onlySystem, i)))
     }
     Script(OnLoad(JsRaw(s"""
       const triggerEl = document.querySelector("[aria-controls='${tabId}']");
@@ -135,14 +132,13 @@ class ReportDisplayer(
       node:               CoreNodeFact,
       tableId:            String,
       getReports:         NodeId => Box[NodeStatusReport],
-      addOverridden:      Boolean,
       defaultRunInterval: Int
   )(implicit qc: QueryContext): AnonFunc = {
     implicit val next: ProvideNextName = LiftProvideNextName
     def refreshData:   Box[JsCmd]      = {
       for {
         report <- getReports(node.id)
-        data   <- getComplianceData(node.id, report, addOverridden)
+        data   <- getComplianceData(node.id, report)
         runDate: Option[DateTime] = getRunDate(report.runInfo)
       } yield {
         import net.liftweb.util.Helpers.encJs
@@ -390,7 +386,6 @@ class ReportDisplayer(
       tabId:              String,
       tableId:            String,
       containerId:        String,
-      addOverridden:      Boolean,
       onlySystem:         Boolean,
       defaultRunInterval: Int
   )(implicit qc: QueryContext): NodeSeq = {
@@ -420,7 +415,7 @@ class ReportDisplayer(
                         if (node.rudderAgent.agentType == AgentType.CfeCommunity) {
                           <div id="triggerAgent">
             <button id="triggerBtn" class="btn btn-primary btn-trigger"  onclick={
-                            s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, addOverridden, defaultRunInterval).toJsCmd});"
+                            s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, defaultRunInterval).toJsCmd});"
                           }>
               <span>Trigger agent</span>
               &nbsp;
@@ -577,9 +572,8 @@ class ReportDisplayer(
   // this method cannot return an IOResult, as it uses S.
   // Only check for base compliance.
   private def getComplianceData(
-      nodeId:        NodeId,
-      reportStatus:  NodeStatusReport,
-      addOverridden: Boolean
+      nodeId:       NodeId,
+      reportStatus: NodeStatusReport
   )(implicit qc: QueryContext): Box[RuleComplianceLines] = {
     for {
       directiveLib <- directiveRepository.getFullDirectiveLibrary().toBox
@@ -594,8 +588,7 @@ class ReportDisplayer(
         allNodeInfos.toMap,
         directiveLib,
         rules,
-        globalMode,
-        addOverridden
+        globalMode
       )
     }
   }
