@@ -200,15 +200,15 @@ view model =
         Nothing -> []
 
   in
-    div [class "d-flex"]
-    [ div [class "template-sidebar sidebar-left"]
+    div [class "d-flex h-100"]
+    [ div [class "template-sidebar sidebar-left h-100"]
       [ div [class "sidebar-body"]
         [ ul[class "wizard-timeline"]
             (model.sections
               |> List.map sidebarSection)
         ]
       ]
-    , div [class "template-main"]
+    , div [class "template-main h-100"]
       [ div [class "main-container"]
         [ div [class "main-details pt-5"]
           [ div [class "wizard-section"] activeSection ]
