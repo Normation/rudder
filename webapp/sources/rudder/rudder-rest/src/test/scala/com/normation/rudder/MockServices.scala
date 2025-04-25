@@ -725,6 +725,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
         directiveId -> DirectiveStatusReport(
           directiveId,
           PolicyTypes.rudderBase,
+          None,
           List(
             ValueStatusReport(
               s"${directiveId.serialize}-component-${ruleId.serialize}-${nodeId.value}",

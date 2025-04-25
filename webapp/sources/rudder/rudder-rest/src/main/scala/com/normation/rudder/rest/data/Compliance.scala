@@ -42,14 +42,10 @@ import cats.data.NonEmptyList
 import cats.syntax.list.*
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.reports.ComplianceModeName
-import com.normation.rudder.repository.FullActiveTechnique
-import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
 import enumeratum.*
 import java.lang
@@ -109,11 +105,13 @@ final case class ByDirectiveCompliance(
 }
 
 final case class ByDirectiveByRuleCompliance(
-    id:         RuleId,
-    name:       String,
-    compliance: ComplianceLevel,
-    policyMode: ComputedPolicyMode,
-    components: Seq[ByRuleComponentCompliance]
+    id:             RuleId,
+    name:           String,
+    compliance:     ComplianceLevel,
+    // this one is a rule and has the skipped details because it is on an reversed hierarchy with directives
+    skippedDetails: Option[SkippedDetails],
+    policyMode:     ComputedPolicyMode,
+    components:     Seq[ByRuleComponentCompliance]
 )
 
 final case class ByDirectiveNodeCompliance(
@@ -159,11 +157,12 @@ final case class ByNodeGroupRuleCompliance(
 )
 
 final case class ByNodeGroupByRuleDirectiveCompliance(
-    id:         DirectiveId,
-    name:       String,
-    compliance: ComplianceLevel,
-    policyMode: ComputedPolicyMode,
-    components: Seq[ByRuleComponentCompliance]
+    id:             DirectiveId,
+    name:           String,
+    compliance:     ComplianceLevel,
+    skippedDetails: Option[SkippedDetails],
+    policyMode:     ComputedPolicyMode,
+    components:     Seq[ByRuleComponentCompliance]
 )
 
 final case class ByRuleDirectiveCompliance(
@@ -229,11 +228,12 @@ final case class GroupComponentCompliance(
 )
 
 final case class ByRuleByNodeByDirectiveCompliance(
-    id:         DirectiveId,
-    name:       String,
-    compliance: ComplianceLevel,
-    policyMode: ComputedPolicyMode,
-    components: Seq[ByRuleByNodeByDirectiveByComponentCompliance]
+    id:             DirectiveId,
+    name:           String,
+    compliance:     ComplianceLevel,
+    skippedDetails: Option[SkippedDetails],
+    policyMode:     ComputedPolicyMode,
+    components:     Seq[ByRuleByNodeByDirectiveByComponentCompliance]
 )
 
 sealed trait ByRuleByNodeByDirectiveByComponentCompliance extends ComponentCompliance {
@@ -265,62 +265,6 @@ final case class SkippedDetails(
     overridingRuleId:   RuleId,
     overridingRuleName: String
 )
-final case class DirectiveComplianceOverride(
-    overriddenRuleId: RuleId,
-    directiveId:      DirectiveId,
-    directiveName:    String,
-    overridingRuleId: RuleId
-) {
-  def toComplianceByRule(rules: Map[RuleId, Rule]): ByRuleDirectiveCompliance = {
-    val overridingRuleName = rules.get(overridingRuleId).map(_.name).getOrElse("unknown rule")
-    ByRuleDirectiveCompliance(
-      directiveId,
-      directiveName,
-      ComplianceLevel(),
-      Some(SkippedDetails(overridingRuleId, overridingRuleName)),
-      ComputePolicyMode.skipped(
-        s"This directive is skipped because it is overridden by the rule <b>${overridingRuleName}</b> (with id ${overridingRuleId.serialize})."
-      ),
-      Seq.empty
-    )
-  }
-
-  def toComplianceByNodeRule(rules: Map[RuleId, Rule]): ByNodeDirectiveCompliance = {
-    val overridingRuleName = rules.get(overridingRuleId).map(_.name).getOrElse("unknown rule")
-    ByNodeDirectiveCompliance(
-      directiveId,
-      directiveName,
-      ComplianceLevel(),
-      ComputePolicyMode.skipped(
-        s"This directive is skipped because it is overridden by the rule <b>${overridingRuleName}</b> (with id ${overridingRuleId.serialize})."
-      ),
-      Some(SkippedDetails(overridingRuleId, rules.get(overridingRuleId).map(_.name).getOrElse("unknown rule"))),
-      List.empty
-    )
-  }
-}
-
-object ComplianceOverrides {
-  def getOverriddenDirective(
-      overrides:  List[OverriddenPolicy],
-      directives: Map[DirectiveId, (FullActiveTechnique, Directive)]
-  ): List[DirectiveComplianceOverride] = {
-    val overridesData = for {
-      over               <- overrides
-      (_, overriddenDir) <- directives.get(over.policy.directiveId)
-      (_, overridingDir) <- directives.get(over.overriddenBy.directiveId)
-    } yield {
-      DirectiveComplianceOverride(
-        over.policy.ruleId,
-        over.policy.directiveId,
-        overriddenDir.name,
-        over.overriddenBy.ruleId
-      )
-
-    }
-    overridesData
-  }
-}
 
 object GroupComponentCompliance {
   // ordering that is required when creating sorted maps from cats strict groupByNel
@@ -390,13 +334,14 @@ object GroupComponentCompliance {
                             // All components were regrouped by nodes
                             case (nodeId, s) =>
                               val subs = s.map(_._2)
-                              // Rebuild a Directtive compliance for a Node
+                              // Rebuild a Directive compliance for a Node
                               (
                                 nodeId,
                                 ByRuleByNodeByDirectiveCompliance(
                                   d.id,
                                   d.name,
                                   ComplianceLevel.sum(subs.map(_.compliance)),
+                                  d.skippedDetails,
                                   d.policyMode,
                                   subs
                                 )
@@ -478,9 +423,8 @@ final case class ByNodeNodeCompliance(
  * - directiveCompliances: status for each directive, for that rule.
  */
 final case class ByNodeRuleCompliance(
-    id:   RuleId,
-    name: String, // compliance by directive (by nodes)
-
+    id:         RuleId,
+    name:       String, // compliance by directive (by nodes)
     compliance: ComplianceLevel,
     policyMode: ComputedPolicyMode,
     directives: Seq[ByNodeDirectiveCompliance]
@@ -490,17 +434,10 @@ final case class ByNodeDirectiveCompliance(
     id:             DirectiveId,
     name:           String,
     compliance:     ComplianceLevel,
-    policyMode:     ComputedPolicyMode,
     skippedDetails: Option[SkippedDetails],
+    policyMode:     ComputedPolicyMode,
     components:     List[ComponentStatusReport]
 )
-
-object ByNodeDirectiveCompliance {
-
-  def apply(d: DirectiveStatusReport, policyMode: ComputedPolicyMode, directiveName: String): ByNodeDirectiveCompliance = {
-    new ByNodeDirectiveCompliance(d.directiveId, directiveName, d.compliance, policyMode, None, d.components)
-  }
-}
 
 /*
  * These objects are only used to export compliance in CSV format, for example in directive screen.

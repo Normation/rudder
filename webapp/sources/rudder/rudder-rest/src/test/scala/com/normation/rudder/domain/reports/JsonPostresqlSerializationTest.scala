@@ -44,7 +44,6 @@ import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.*
 import com.normation.rudder.domain.reports.ReportType.*
 import com.normation.rudder.domain.reports.RunAnalysisKind.*
-import com.normation.rudder.services.policies.*
 import com.normation.utils.DateFormaterService
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
@@ -76,13 +75,6 @@ class JsonPostresqlSerializationTest extends Specification {
     def nid: NodeId         = NodeId(s)
   }
 
-  val ops: List[OverriddenPolicy] = List(
-    OverriddenPolicy(
-      PolicyId("overridden-rule".rid, "overridden-directive".did, TechniqueVersion.V1_0),
-      PolicyId("overriding-rule".rid, "overriding-directive".did, TechniqueVersion.V1_0)
-    )
-  )
-
   def runInfo(
       kind:                RunAnalysisKind,
       expectedConfigId:    Option[NodeConfigId] = None,
@@ -106,10 +98,19 @@ class JsonPostresqlSerializationTest extends Specification {
   def buildReport(runAnalysis: RunAnalysis, reports: Map[PolicyTypeName, AggregatedStatusReport])(implicit
       nid: NodeId
   ): NodeStatusReport =
-    NodeStatusReport(nid, runAnalysis, RunComplianceInfo.OK, ops, reports)
+    NodeStatusReport(nid, runAnalysis, RunComplianceInfo.OK, reports)
 
+  /*
+   * Create a reports of:
+   * tagName -> (
+   *   ruleId, lastRun, configId, expiration,
+   *   (directive -> (optOverridingRule, [components]))
+   * )
+   */
   def reports(
-      rs: Map[String, Seq[(String, Option[DateTime], Option[NodeConfigId], DateTime, Map[String, List[ComponentStatusReport]])]]
+      rs: Map[String, Seq[
+        (String, Option[DateTime], Option[NodeConfigId], DateTime, Map[String, (Option[String], List[ComponentStatusReport])])
+      ]]
   )(implicit nid: NodeId): Map[PolicyTypeName, AggregatedStatusReport] = {
     rs.map {
       case (pt, rs) =>
@@ -123,7 +124,9 @@ class JsonPostresqlSerializationTest extends Specification {
                 pt.pt,
                 art,
                 cid,
-                ds.map { case (id, x) => (id.did, DirectiveStatusReport(id.did, PolicyTypes.fromTypes(pt.pt), x)) },
+                ds.map {
+                  case (id, (ov, x)) => (id.did, DirectiveStatusReport(id.did, PolicyTypes.fromTypes(pt.pt), ov.map(_.rid), x))
+                },
                 exp
               )
           })
@@ -191,7 +194,7 @@ class JsonPostresqlSerializationTest extends Specification {
             config0,
             exp,
             Map(
-              "directive0" -> List(
+              "directive0" -> (None, List(
                 block(
                   "block0",
                   WeightedReport,
@@ -220,8 +223,8 @@ class JsonPostresqlSerializationTest extends Specification {
                     )
                   )
                 )
-              ),
-              "directive1" -> List(
+              )),
+              "directive1" -> (None, List(
                 block(
                   "block3",
                   FocusReport("check4"),
@@ -236,11 +239,11 @@ class JsonPostresqlSerializationTest extends Specification {
                     )
                   )
                 )
-              )
+              ))
             )
           )
         ),
-        "user"   -> List()
+        "user"   -> List(("rule1", lastRun0, config0, exp, Map("directive2" -> (Some("rule2"), List()))))
       )
     )
   )
@@ -276,20 +279,6 @@ object ExpectedJson {
       |  "si" : {
       |    "OK" : {}
       |  },
-      |  "os" : [
-      |    {
-      |      "policy" : [
-      |        "overridden-rule",
-      |        "overridden-directive",
-      |        "1.0"
-      |      ],
-      |      "overriddenBy" : [
-      |        "overriding-rule",
-      |        "overriding-directive",
-      |        "1.0"
-      |      ]
-      |    }
-      |  ],
       |  "rs" : [
       |    ["system", {
       |      "rnsrs" : [
@@ -504,7 +493,26 @@ object ExpectedJson {
       |      ]
       |    }],
       |    ["user", {
-      |      "rnsrs" : []
+      |       "rnsrs" : [
+      |         {
+      |           "nid" : "n0",
+      |           "rid" : "rule1",
+      |           "ct" : "user",
+      |           "art" : "2024-01-05T05:05:00Z",
+      |           "cid" : "config0_0",
+      |           "exp" : "2024-01-12T03:03:03Z",
+      |           "dsrs" : [
+      |             {
+      |               "did" : "directive2",
+      |               "pts" : [
+      |                 "user"
+      |               ],
+      |               "o" : "rule2",
+      |               "csrs" : []
+      |             }
+      |           ]
+      |         }
+      |       ]
       |    }]
       |  ]
       |}
