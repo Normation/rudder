@@ -42,6 +42,7 @@ import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.PureResult
 import com.normation.errors.RudderError
+import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import org.joda.time.DateTime
@@ -67,11 +68,12 @@ object MainCampaignService {
 }
 
 class MainCampaignService(
-    repo:         CampaignEventRepository,
-    campaignRepo: CampaignRepository,
-    uuidGen:      StringUuidGenerator,
-    startDelay:   Int,
-    endDelay:     Int
+    repo:             CampaignEventRepository,
+    campaignRepo:     CampaignRepository,
+    campaignArchiver: CampaignArchiver,
+    uuidGen:          StringUuidGenerator,
+    startDelay:       Int,
+    endDelay:         Int
 ) {
 
   private var services:                    List[CampaignHandler]       = Nil
@@ -88,6 +90,7 @@ class MainCampaignService(
       case Some(s) =>
         for {
           _ <- s.deleteCampaign(c)
+          _ <- campaignArchiver.deleteCampaign(c)(ChangeContext.newForRudder())
           _ <- campaignRepo.delete(c)
         } yield { () }
       case None    => CampaignLogger.debug(s"Campaign system not initialized yet, campaign ${c.value} was not deleted")
@@ -97,6 +100,7 @@ class MainCampaignService(
   def saveCampaign(c: Campaign):       ZIO[Any, RudderError, Campaign]        = {
     for {
       _ <- campaignRepo.save(c)
+      _ <- campaignArchiver.saveCampaign(c.info.id)(ChangeContext.newForRudder())
       _ <- scheduleCampaignEvent(c, DateTime.now())
     } yield {
       c
@@ -125,6 +129,7 @@ class MainCampaignService(
                         })
                     }
         _        <- repo.deleteEvent(campaignId = Some(c))
+        _        <- campaignArchiver.deleteCampaign(c)(ChangeContext.newForRudder())
       } yield {
         ()
       }
@@ -379,6 +384,7 @@ class MainCampaignService(
           _                <- ZIO.foreach(alreadyScheduled)(ev => s.queueCampaign(ev))
           _                <- CampaignLogger.debug("queued events, check campaigns")
           campaigns        <- campaignRepo.getAll(Nil, CampaignStatusValue.Enabled :: Nil)
+          _                <- campaignArchiver.init(ChangeContext.newForRudder())
           _                <- CampaignLogger.debug(s"Got ${campaigns.size} campaigns, check all started")
           toStart           = campaigns.filterNot(c => alreadyScheduled.exists(_.campaignId == c.info.id))
           optNewEvents     <- ZIO.foreach(toStart)(c => scheduleCampaignEvent(c, DateTime.now()))
