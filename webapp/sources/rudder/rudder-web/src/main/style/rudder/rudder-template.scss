@@ -737,6 +737,14 @@ ul {
   height: calc(100vh - 50px);
   overflow: hidden;
 }
+.rudder-template .template-main .main-container:has(.main-container) {
+  & > .main-details{
+    padding: 0;
+  }
+  .main-container {
+    height: 100%;
+  }
+}
 #headerBar ~ .content-wrapper .rudder-template .template-main .main-container{
   height: calc(100vh - 80px);
 }
