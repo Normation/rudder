@@ -354,6 +354,14 @@ object errors {
   }
 
   /*
+   * Translate a ZIO[R, ::[E<:RudderError], A] to an accumulated.
+   * This happens often when using `ZIO.validate`
+   */
+  implicit class ToRudderAccumulateErrors[A](val in: ZIO[Any, ::[RudderError], A]) extends AnyVal {
+    def toAccumulated: IOResult[A] = in.mapError(l => Accumulated(NonEmptyList(l.head, l.tail)))
+  }
+
+  /*
    * Transform an Iterable[Either[IOResult, A]]] into it's accumulated PureResult[Iterable[A]]
    */
   implicit class AccumulatedEither[A](val in: Iterable[PureResult[A]]) extends AnyVal {

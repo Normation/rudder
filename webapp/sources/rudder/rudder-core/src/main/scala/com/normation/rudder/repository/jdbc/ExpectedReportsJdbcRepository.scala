@@ -468,60 +468,6 @@ class UpdateExpectedReportsJdbcRepository(
   }
 
   /**
-   * Delete all node compliance whose run timestamp is before a date
-   */
-  override def deleteNodeCompliances(date: DateTime): Box[Int] = {
-
-    val dateAt_0000 = date.toString("yyyy-MM-dd")
-    val d1          = s"delete from nodecompliance where coalesce(runtimestamp, '${dateAt_0000}') < '${dateAt_0000}'"
-
-    logger.debug(s"""Deleting NodeCompliance with SQL query: [[
-                    | ${d1}
-                    |]]""".stripMargin)
-
-    (for {
-      i <- transactRunEither(xa => (d1 :: Nil).traverse(q => Update0(q, None).run).transact(xa))
-    } yield {
-      i
-    }) match {
-      case Left(ex) =>
-        val msg = "Could not delete NodeCompliance in the database, cause is " + ex.getMessage()
-        logger.error(msg)
-        Failure(msg, Full(ex), Empty)
-      case Right(i) =>
-        logger.debug(s"Successfully deleted ${i.sum} Node Compliances before ${dateAt_0000}")
-        Full(i.sum)
-    }
-  }
-
-  /**
-   * Delete all node compliance levels whose run timestamp is before a date
-   */
-  override def deleteNodeComplianceLevels(date: DateTime): Box[Int] = {
-
-    val dateAt_0000 = date.toString("yyyy-MM-dd")
-    val d1          = s"delete from nodecompliancelevels where coalesce(runtimestamp, '${dateAt_0000}') < '${dateAt_0000}'"
-
-    logger.debug(s"""Deleting NodeCompliance with SQL query: [[
-                    | ${d1}
-                    |]]""".stripMargin)
-
-    (for {
-      i <- transactRunEither(xa => Update0(d1, None).run.transact(xa))
-    } yield {
-      i
-    }) match {
-      case Left(ex) =>
-        val msg = "Could not delete NodeCompliance in the database, cause is " + ex.getMessage()
-        logger.error(msg)
-        Failure(msg, Full(ex), Empty)
-      case Right(i) =>
-        logger.debug(s"Successfully deleted ${i} Node Compliances levels before ${dateAt_0000}")
-        Full(i)
-    }
-  }
-
-  /**
    * Delete all NodeConfigId that finished before date (meaning: all NodeConfigId that have one created before date)
    * This must be transactionnal to avoid conflict with other potential updates
    * If there aren't any nodeconfigid remaining, keep the youngest one so that we don't loose the last seen

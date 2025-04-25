@@ -168,14 +168,6 @@ settings:
       type: string
       default: "1"
       description: Set the parallelism to compute dynamic group, as a number of thread (i.e. 4), or a multiplicative of the number of core (x0.5)
-    rudder_save_db_compliance_levels:
-      type: boolean
-      default: true
-      description: Store all compliance levels in database
-    rudder_save_db_compliance_details:
-      type: boolean
-      default: false
-      description: Store all compliance details in database
     rudder_generation_max_parallelism:
       type: string
       default: "x0.5"
