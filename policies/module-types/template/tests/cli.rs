@@ -85,15 +85,15 @@ fn test_mustache_cfengine() -> Result<(), Box<dyn std::error::Error>> {
     let mut output_file = NamedTempFile::new()?;
     let mut cmd = Command::cargo_bin("rudder-module-template")?;
 
-    cmd.arg("--template").arg("tests/template.mustache2");
-    cmd.arg("--data").arg("tests/data.json");
+    cmd.arg("--template").arg("tests/template2.mustache");
+    cmd.arg("--data").arg("tests/data2.json");
     cmd.arg("--out").arg(output_file.path());
     cmd.arg("--engine").arg("mustache");
     cmd.assert().success();
 
     let mut file_content = String::new();
     output_file.read_to_string(&mut file_content)?;
-    assert_eq!(EXPECTED_FILE_CONTENT, file_content);
+    assert_eq!("[\"one\",\"two\"]\n\n", file_content);
 
     Ok(())
 }
