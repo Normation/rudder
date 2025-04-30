@@ -361,13 +361,20 @@ trait TwoParam  extends EndpointSchema  {
 
 // Generic errors that may happen when processing requests
 sealed trait ApiError extends Exception {
-  def msg:     String
-  def apiName: String
+  def msg:      String
+  def apiName:  String
+  def restCode: RestError
 }
 object ApiError {
-  final case class Authz(msg: String, apiName: String)      extends ApiError
-  final case class BadRequest(msg: String, apiName: String) extends ApiError
-  final case class BadParam(msg: String, apiName: String)   extends ApiError
+  final case class Authz(msg: String, apiName: String)      extends ApiError {
+    val restCode: RestError = ForbiddenError
+  }
+  final case class BadRequest(msg: String, apiName: String) extends ApiError {
+    val restCode: RestError = InternalError
+  }
+  final case class BadParam(msg: String, apiName: String)   extends ApiError {
+    val restCode: RestError = InternalError
+  }
 }
 
 // information needed from a request to be able to process it
@@ -698,12 +705,12 @@ trait BuildHandler[REQ, RESP, T, P] {
                     s"Handler for '${info.action.name.toUpperCase()} ${info.path.value}' executed in ${System.currentTimeMillis() - start} ms"
                   )
                   exec
-                }).fold(error => toResponse(error), identity) // align left (i.e error) and righ type
+                }).fold(error => toResponse(error), identity) // align left (i.e error) and right type
 
                 response
               })
           }
-        }).fold(error => Some(() => toResponse(error)), identity) // align left (i.e error) and righ type
+        }).fold(error => Some(() => toResponse(error)), identity) // align left (i.e error) and right type
     }
   }
 }
