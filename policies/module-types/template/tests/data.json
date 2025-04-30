@@ -1,3 +1,4 @@
 {
-    "name": "Ferris"
+    "name": "Ferris",
+    "a": ["one", "two"]
 }
