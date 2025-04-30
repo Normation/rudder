@@ -1,5 +1,6 @@
-package com.normation.rudder.users
+package com.normation.rudder.rest.users
 
+import com.normation.rudder.users.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
