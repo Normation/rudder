@@ -704,6 +704,15 @@ object SettingsApi       extends Enum[SettingsApi] with ApiModuleProvider[Settin
         AclPathSegment.Segment("enable_self_deployment") ::
         AclPathSegment.Segment("enable_self_validation") ::
         AclPathSegment.Segment("enable_validate_all") :: Nil
+      ).map(segment => AuthzForApi.withValues(this, List(segment))),
+      AuthorizationType.Deployer.Read  -> (
+        AclPathSegment.Segment("enable_change_message") ::
+        AclPathSegment.Segment("mandatory_change_message") ::
+        AclPathSegment.Segment("change_message_prompt") ::
+        AclPathSegment.Segment("enable_change_request") ::
+        AclPathSegment.Segment("enable_self_deployment") ::
+        AclPathSegment.Segment("enable_self_validation") ::
+        AclPathSegment.Segment("enable_validate_all") :: Nil
       ).map(segment => AuthzForApi.withValues(this, List(segment)))
     )
   }
