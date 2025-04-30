@@ -144,23 +144,29 @@ object ArchiveScope       extends Enum[ArchiveScope] {
   }
 }
 
-sealed trait MergePolicy extends EnumEntry         { def value: String }
-object MergePolicy       extends Enum[MergePolicy] {
+// explicitly using the entryName because it's an external API needing special care and grep-ability.
+sealed abstract class MergePolicy(override val entryName: String) extends EnumEntry
+object MergePolicy                                                extends Enum[MergePolicy] {
   // Default merge policy is "override everything", ie what is in the archive replace whatever exists in Rudder
-  case object OverrideAll    extends MergePolicy { val value = "override-all"     }
+  case object OverrideAll     extends MergePolicy("override-all")
   // A merge policy that will keep current groups for rule with an ID common with one of the archive
-  case object KeepRuleGroups extends MergePolicy { val value = "keep-rule-groups" }
+  case object KeepRuleTargets extends MergePolicy("keep-rule-targets")
+
+  // A merge policy that will always delete source groups of rule, and if rule exists, copy destination rule target (keep them)
+  case object IgnoreSourceTargets extends MergePolicy("ignore-source-targets")
 
   val values: IndexedSeq[MergePolicy] = findValues
 
+  override val extraNamesToValuesMap: Map[String, MergePolicy] = Map("keep-rule-groups" -> KeepRuleTargets)
+
   def parse(s: String): Either[String, MergePolicy] = {
-    values.find(_.value == s.toLowerCase.strip()) match {
-      case None    =>
-        Left(
-          s"Error: can not parse '${s}' as a merge policy for archive import. Accepted values are: ${values.mkString(", ")}"
-        )
-      case Some(x) => Right(x)
-    }
+    MergePolicy
+      .withNameInsensitiveEither(s)
+      .left
+      .map(err => {
+        s"Error: can not parse '${s}' as a merge policy for archive import. Accepted values are: ${values
+            .mkString(", ")}. Error was: ${err.getMessage()}"
+      })
   }
 }
 
@@ -1542,12 +1548,19 @@ class SaveArchiveServicebyRepo(
       x <- roRuleRepos.getOpt(r.id)
       _ <- x match {
              case Some(value) =>
-               // if merge policy is `keep-rule-groups`, update rule from archive with existing groups before saving
-               val ruleToSave = if (mergePolicy == MergePolicy.KeepRuleGroups) {
-                 r.copy(targets = value.targets)
-               } else r
+               // if merge policy asks for that, update rule from archive with existing groups before saving so
+               // that the rules use the actual groups meaning something in that instance.
+               val ruleToSave = {
+                 if (mergePolicy == MergePolicy.KeepRuleTargets || mergePolicy == MergePolicy.IgnoreSourceTargets) {
+                   r.copy(targets = value.targets)
+                 } else r
+               }
                woRuleRepos.update(ruleToSave, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
-             case None        => woRuleRepos.create(r, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
+             case None        =>
+               val ruleToSave = if (mergePolicy == MergePolicy.IgnoreSourceTargets) {
+                 r.copy(targets = Set())
+               } else r
+               woRuleRepos.create(ruleToSave, eventMetadata.modId, eventMetadata.actor, eventMetadata.msg)
            }
     } yield ()
   }
