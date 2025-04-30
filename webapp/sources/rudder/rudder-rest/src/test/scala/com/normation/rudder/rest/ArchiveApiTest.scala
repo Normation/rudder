@@ -343,7 +343,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
       "archive",
       zipFile.name,
       zipFile.newInputStream.readAllBytes(),
-      Map(("merge", "keep-rule-groups"))
+      Map(("merge", "keep-rule-targets"))
     ) {
       case Full(LiftJsonResponse(res, _, 200)) =>
         restTestSetUp.archiveAPIModule.archiveSaver.base.get.runNow match {
@@ -482,6 +482,232 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
           )
         )) and
         (children(testDir / s"${archiveName}/techniques").isEmpty must beTrue)
+
+      case err => ko(s"I got an error in test: ${err}")
+    }
+  }
+
+  "correctly build an archive with all rules (only)" in {
+
+    val archiveName = "archive-all-rules-no-dep"
+    restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
+
+    restTest.testGETResponse(
+      "/api/latest/archives/export?rules=all&include=none"
+    ) {
+      case Full(OutputStreamResponse(out, _, _, _, 200)) =>
+        val zipFile = testDir / s"${archiveName}.zip"
+        val zipOut  = new FileOutputStream(zipFile.toJava)
+        out(zipOut)
+        zipOut.close()
+        // unzip
+        ZipUtils.unzip(new ZipFile(zipFile.toJava), zipFile.parent.toJava).runNow
+
+        children(testDir / s"${archiveName}/rules") must containTheSameElementsAs(
+          List(
+            "10__Global_configuration_for_all_nodes.json",
+            "50__Deploy_PLOP_STACK.json",
+            "50-rule-technique-ncf.json",
+            "60-rule-technique-std-lib.json",
+            "90-copy-git-file.json",
+            "99-rule-technique-std-lib.json"
+          )
+        )
+        children(testDir / s"${archiveName}/groups") must containTheSameElementsAs(Nil)
+        children(testDir / s"${archiveName}/directives") must containTheSameElementsAs(Nil)
+        children(testDir / s"${archiveName}/techniques") must containTheSameElementsAs(Nil)
+
+      case err => ko(s"I got an error in test: ${err}")
+    }
+  }
+
+  "correctly build an archive with all directives (only)" in {
+
+    val archiveName = "archive-all-directives-no-dep"
+    restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
+
+    restTest.testGETResponse(
+      "/api/latest/archives/export?directives=all&include=none"
+    ) {
+      case Full(OutputStreamResponse(out, _, _, _, 200)) =>
+        val zipFile = testDir / s"${archiveName}.zip"
+        val zipOut  = new FileOutputStream(zipFile.toJava)
+        out(zipOut)
+        zipOut.close()
+        // unzip
+        ZipUtils.unzip(new ZipFile(zipFile.toJava), zipFile.parent.toJava).runNow
+
+        children(testDir / s"${archiveName}/rules") must containTheSameElementsAs(Nil)
+        children(testDir / s"${archiveName}/groups") must containTheSameElementsAs(Nil)
+        children(testDir / s"${archiveName}/directives") must containTheSameElementsAs(
+          List(
+            "00__Generic_Variable_Def__2.json",
+            "10__Clock_Configuration.json",
+            "99__Generic_Variable_Def__1.json",
+            "directive_16617aa8-1f02-4e4a-87b6-d0bcdfb4019f.json",
+            "directive_16d86a56-93ef-49aa-86b7-0d10102e4ea9.json",
+            "directive2.json",
+            "directive_99f4ef91-537b-4e03-97bc-e65b447514cc.json",
+            "directive-copyGitFile.json",
+            "directive_e9a1a909-2490-4fc9-95c3-9d0aa01717c9.json",
+            "test_import_export_archive_directive.json"
+          )
+        )
+        children(testDir / s"${archiveName}/techniques") must containTheSameElementsAs(Nil)
+
+      case err => ko(s"I got an error in test: ${err}")
+    }
+  }
+
+  "correctly build an archive with all techniques (only)" in {
+
+    val archiveName = "archive-all-techniques-no-dep"
+    restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
+
+    restTest.testGETResponse(
+      "/api/latest/archives/export?techniques=all&include=none"
+    ) {
+      case Full(OutputStreamResponse(out, _, _, _, 200)) =>
+        val zipFile = testDir / s"${archiveName}.zip"
+        val zipOut  = new FileOutputStream(zipFile.toJava)
+        out(zipOut)
+        zipOut.close()
+        // unzip
+        ZipUtils.unzip(new ZipFile(zipFile.toJava), zipFile.parent.toJava).runNow
+
+        children(testDir / s"${archiveName}/rules") must containTheSameElementsAs(Nil)
+        children(testDir / s"${archiveName}/groups") must containTheSameElementsAs(Nil)
+        children(testDir / s"${archiveName}/directives") must containTheSameElementsAs(Nil)
+        children(testDir / s"${archiveName}/techniques") must containTheSameElementsAs(
+          List(
+            "applications",
+            "category.json",
+            "packageManagement",
+            "1.0",
+            "changelog",
+            "metadata.xml",
+            "packageManagement.st",
+            "rpmPackageInstallation",
+            "7.0",
+            "changelog",
+            "metadata.xml",
+            "rpmPackageInstallationData.st",
+            "rpmPackageInstallation.st",
+            "fileDistribution",
+            "category.json",
+            "copyGitFile",
+            "2.3",
+            "changelog",
+            "copyFileFromSharedFolder.ps1.st",
+            "copyFileFromSharedFolder.st",
+            "metadata.xml",
+            "fileTemplate",
+            "1.0",
+            "fileTemplate.ps1.st",
+            "fileTemplate.st",
+            "fileWithIdOnPath.txt",
+            "metadata.xml",
+            "tmlWithIdOnPath.st",
+            "ncf_techniques",
+            "a_simple_yaml_technique",
+            "1.0",
+            "resources",
+            "something.txt",
+            "technique.yml",
+            "category.json",
+            "Create_file",
+            "1.0",
+            "Create_file.ps1",
+            "expected_reports.csv",
+            "metadata.xml",
+            "rudder_reporting.st",
+            "technique_any",
+            "1.0",
+            "technique.yml",
+            "2.0",
+            "metadata.xml",
+            "technique.cf",
+            "technique.ps1",
+            "technique_by_Rudder",
+            "1.0",
+            "technique.yml",
+            "technique_with_blocks",
+            "1.0",
+            "metadata.xml",
+            "technique.cf",
+            "technique.json",
+            "technique.ps1",
+            "technique.rd",
+            "test_import_export_archive",
+            "1.0",
+            "metadata.xml",
+            "technique.cf",
+            "technique.json",
+            "technique.ps1",
+            "systemSettings",
+            "category.json",
+            "misc",
+            "category.json",
+            "clockConfiguration",
+            "3.0",
+            "changelog",
+            "clockConfiguration.st",
+            "metadata.xml",
+            "genericVariableDefinition",
+            "1.0",
+            "changelog",
+            "genericVariableDefinition.st",
+            "metadata.xml",
+            "2.0",
+            "changelog",
+            "genericVariableDefinition.st",
+            "metadata.xml",
+            "test_only",
+            "category.json",
+            "test_18205",
+            "1.0",
+            "metadata.xml",
+            "test_18205.st"
+          )
+        )
+
+      case err => ko(s"I got an error in test: ${err}")
+    }
+  }
+
+  "correctly build an archive with all groups (only)" in {
+
+    val archiveName = "archive-all-groups-no-dep"
+    restTestSetUp.archiveAPIModule.rootDirName.set(archiveName).runNow
+
+    restTest.testGETResponse(
+      "/api/latest/archives/export?groups=all&include=none"
+    ) {
+      case Full(OutputStreamResponse(out, _, _, _, 200)) =>
+        val zipFile = testDir / s"${archiveName}.zip"
+        val zipOut  = new FileOutputStream(zipFile.toJava)
+        out(zipOut)
+        zipOut.close()
+        // unzip
+        ZipUtils.unzip(new ZipFile(zipFile.toJava), zipFile.parent.toJava).runNow
+
+        children(testDir / s"${archiveName}/rules") must containTheSameElementsAs(Nil)
+        children(testDir / s"${archiveName}/groups") must containTheSameElementsAs(
+          List(
+            "category_1", // our children also list directories
+            "category.json",
+            "Real_nodes.json",
+            "Empty_group.json",
+            "Even_nodes.json",
+            "Nodes_id_divided_by_3.json",
+            "Nodes_id_divided_by_5.json",
+            "Odd_nodes.json",
+            "only_root.json",
+            "Serveurs_______casse_s.json"
+          )
+        )
+        children(testDir / s"${archiveName}/directives") must containTheSameElementsAs(Nil)
+        children(testDir / s"${archiveName}/techniques") must containTheSameElementsAs(Nil)
 
       case err => ko(s"I got an error in test: ${err}")
     }
