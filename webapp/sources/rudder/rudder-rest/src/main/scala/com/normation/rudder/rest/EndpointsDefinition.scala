@@ -1518,7 +1518,7 @@ object UserApi       extends Enum[UserApi] with ApiModuleProvider[UserApi]      
     val z: Int = implicitly[Line].value
     val description    = "Get the feature switch configuration for the user API token from the provider config"
     val (action, path) = GET / "user" / "api" / "token" / "status"
-    val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+    val authz: List[AuthorizationType] = AuthorizationType.UserAccount.Read :: Nil
   }
 
   case object GetApiToken    extends UserApi with ZeroParam with StartsAtVersion10 with SortIndex {
