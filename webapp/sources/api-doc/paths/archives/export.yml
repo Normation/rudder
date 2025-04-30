@@ -11,7 +11,9 @@ get:
         type: array
         items:
           type: string
-      description: IDs (optionally with revision, '+' need to be escaped as '%2B') of rules to include
+      description: >-
+        IDs (optionally with revision, '+' need to be escaped as '%2B') of rules to include. 
+        The special key-word 'all' can be use to mean "all non-system rules"
       style: form
       explode: false
       examples:
@@ -27,7 +29,9 @@ get:
         type: array
         items:
           type: string
-      description: IDs (optionally with revision, '+' need to be escaped as '%2B') of directives to include
+      description: >- 
+        IDs (optionally with revision, '+' need to be escaped as '%2B') of directives to include
+        The special key-word 'all' can be use to mean "all non-system directives"
       style: form
       explode: false
       examples:
@@ -43,13 +47,15 @@ get:
         type: array
         items:
           type: string
-      description: IDs, ie technique name/technique version (optionally with revision, '+' need to be escaped as '%2B') of techniques to include
+      description: >-
+        IDs, ie technique name/technique version (optionally with revision, '+' need to be escaped as '%2B') of techniques to include
+        The special key-word 'all' can be use to mean "all non-system techniques"
       style: form
       explode: false
       examples:
         oneId:
           summary: Example of a single ID
-          value: [fileContent/3.0] 
+          value: [fileContent/3.0]
         multipleIds:
           summary: Example of multiple IDs, some with revisions
           value: [userManagement/6.3, fileContent/3.0%2B35177d0823791a374de9e16a6ab27e6466fbc8c2]
@@ -59,7 +65,9 @@ get:
         type: array
         items:
           type: string
-      description: IDs (optionally with revision, '+' need to be escaped as '%2B') of groups to include
+      description: >- 
+        IDs (optionally with revision, '+' need to be escaped as '%2B') of groups to include
+        The special key-word 'all' can be use to mean "all non-system groups"
       style: form
       explode: false
       examples:
@@ -73,11 +81,11 @@ get:
       name: include
       schema:
         type: array
-        items: 
+        items:
           type: string
-          enum: 
+          enum:
             - all (default)
-            - none 
+            - none
             - directives
             - techniques
             - groups
@@ -90,7 +98,7 @@ get:
       examples:
         none:
           summary: Do not include dependencies
-          value: [none] 
+          value: [none]
         directivesAndGroups:
           summary: Include directives and groups, but no techniques
           value: [directives, groups]
