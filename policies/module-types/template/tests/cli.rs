@@ -93,7 +93,7 @@ fn test_mustache_cfengine() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut file_content = String::new();
     output_file.read_to_string(&mut file_content)?;
-    assert_eq!("[\"one\",\"two\"]\n\n", file_content);
+    assert_eq!("[\"one\",\"two\"]\n", file_content);
 
     Ok(())
 }
