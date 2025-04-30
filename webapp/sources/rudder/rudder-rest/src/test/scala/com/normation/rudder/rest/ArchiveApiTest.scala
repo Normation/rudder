@@ -349,7 +349,7 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         restTestSetUp.archiveAPIModule.archiveSaver.base.get.runNow match {
           case None         => ko(s"No policies were saved")
           case Some((p, m)) =>
-            (m must beEqualTo(MergePolicy.KeepRuleGroups))
+            (m must beEqualTo(MergePolicy.KeepRuleTargets))
         }
 
       case err => ko(s"I got an error in test: ${err}")
