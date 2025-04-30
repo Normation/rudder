@@ -892,7 +892,10 @@ class RestTestSetUp {
       new FileArchiveNameService(),
       mockConfigRepo.configurationRepository,
       mockTechniques.techniqueRevisionRepo,
-      mockNodeGroups.groupsRepo
+      mockNodeGroups.groupsRepo,
+      mockRules.ruleRepo,
+      mockDirectives.directiveRepo,
+      mockTechniques.techniqueRepo
     )
 
     // archive name in a Ref to make it simple to change in tests

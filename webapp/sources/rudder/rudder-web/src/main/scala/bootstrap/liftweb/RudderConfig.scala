@@ -2158,7 +2158,10 @@ object RudderConfigInit {
           new FileArchiveNameService(),
           configurationRepository,
           gitParseTechniqueLibrary,
-          roLdapNodeGroupRepository
+          roLdapNodeGroupRepository,
+          roRuleRepository,
+          roDirectiveRepository,
+          techniqueRepository
         )
       }
       // fixe archive name to make it simple to test
