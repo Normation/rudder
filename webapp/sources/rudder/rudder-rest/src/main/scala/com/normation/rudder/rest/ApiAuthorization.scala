@@ -291,7 +291,7 @@ object OldInternalApiAuthz {
     if (isAuthorized) resp
     else {
       ApiLogger.warn(fail.messageChain)
-      RestUtils.toJsonError(None, fail.messageChain)
+      RestUtils.toJsonError(None, fail.messageChain, ForbiddenError)
     }
   }
 

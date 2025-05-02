@@ -191,8 +191,11 @@ object RestUtils {
     effectiveResponse(id, message, RestOk, action, prettify)
   }
 
-  def toJsonError(id: Option[String], message: JValue)(implicit action: String = "rest", prettify: Boolean): LiftResponse = {
-    effectiveResponse(id, message, InternalError, action, prettify)
+  def toJsonError(id: Option[String], message: JValue, error: RestError = InternalError)(implicit
+      action:   String = "rest",
+      prettify: Boolean
+  ): LiftResponse = {
+    effectiveResponse(id, message, error, action, prettify)
   }
 
   def response(
@@ -207,7 +210,7 @@ object RestUtils {
         val err = eb ?~! errorMessage
         // we don't get DB error in message - add them in log
         err.rootExceptionCause.foreach(ex => ApiLogger.ResponseError.info("Api error cause by exception: " + ex.getMessage))
-        toJsonError(id, err.messageChain)
+        toJsonError(id, err.messageChain, InternalError)
     }
   }
 
