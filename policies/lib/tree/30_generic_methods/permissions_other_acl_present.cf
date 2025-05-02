@@ -112,89 +112,84 @@
 bundle agent permissions_other_acl_present(path, recursive, other)
 {
   vars:
-      "old_class_prefix"    string => canonify("permissions_other_acl_present_${path}");
-      "args"                 slist => { "${path}", "${recursive}", "${other}" }; 
-      "report_param"        string => join("_", args);
-      "full_class_prefix"   string => canonify("permissions_other_acl_present_${report_param}");
-      "class_prefix"        string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"                   string => canonify("permissions_other_acl_present_${path}");
+      "other_trimmed"                  string => regex_replace("${other}", " ", "", "g");
+      "applied_aces"                    slist => { "all:${other_trimmed}" };
 
-      "other_trimmed"   string => regex_replace("${other}", " ", "", "g");
+      "file_list"                      slist  => findfiles("${path}");
+      "file_list_length"               int    => length("file_list");
+      "max_range"                      string => execresult("/usr/bin/expr ${file_list_length} - 1", "useshell");
+    pass1.!max_range_is_null::
+      "indices"                        slist  => expandrange("[0-${max_range}]", 1);
+    pass1.max_range_is_null::
+      "indices"                        slist  => { "0" };
+    pass1::
+      "file[${indices}]"               string => nth("file_list", "${indices}");
+      "inner_class_prefix[${indices}]" string => canonify("${report_data.method_id}_${indices}");
+    pass3::
+      "repaired[${indices}]"           string => "repaired: ${file[${indices}]}",
+                                           if => "${inner_class_prefix[${indices}]}_repaired";
+      "error[${indices}]"              string => "error: ${file[${indices}]}",
+                                           if => "${inner_class_prefix[${indices}]}_error";
+      "success[${indices}]"            string => "success: ${file[${indices}]}",
+                                           if => "${inner_class_prefix[${indices}]}_kept";
 
-      "file_list"                               slist  => findfiles("${path}");
-      "file_list_length"                        int    => length("file_list");
-      "file_array[${file_list}]"                string => "${file_list}";
-      "canonified_file_array[${file_list}]"     string => canonify("${file_array[${file_list}]}");
+      "repaired_list"                  slist  => getvalues("repaired");
+      "error_list"                     slist  => getvalues("error");
+      "success_list"                   slist  => getvalues("success");
 
-      "full_inner_class_prefix[${file_list}]"   string => canonify("permissions_other_acl_present_${canonified_file_array[${file_list}]}_${report_param}");
-      "inner_class_prefix[${file_list}]"        string => string_head("${full_inner_class_prefix[${file_list}]}", "1000");
-
-      "applied_aces" slist => { "all:${other_trimmed}" };
-
-    pass2::
-      "repaired[${file_list}]" string => "repaired: ${file_list}",
-        ifvarclass => "${inner_class_prefix[${file_list}]}_repaired";
-      "error[${file_list}]"    string => "error: ${file_list}",
-        ifvarclass => "${inner_class_prefix[${file_list}]}_error";
-      "success[${file_list}]"  string => "success: ${file_list}",
-        ifvarclass => "${inner_class_prefix[${file_list}]}_kept";
-
-      "repaired_list" slist  => getvalues("repaired");
-      "error_list"    slist  => getvalues("error");
-      "success_list"  slist  => getvalues("success");
-
-      "report_list"   slist  => { "@{error_list}", "@{repaired_list}", "@{success_list}" };
-      "report_string" string => join("$(const.endl)", report_list),
-        policy => "ifdefined";
-
+      "report_list"                    slist  => { "@{error_list}", "@{repaired_list}", "@{success_list}" };
+      "report_string"                  string => join("$(const.endl)", report_list),
+                                       policy => "ifdefined";
 
   defaults:
       "recursive" string => "false", if_match_regex => "";
 
   classes:
-      "is_recursive"                expression => strcmp("true", "${recursive}");
-      "files_found"                 expression => isgreaterthan("${file_list_length}", "0");
-      "path_exists_${canonified_file_array[${file_list}]}"    expression => fileexists("${file_list}");
-      "isdir_${canonified_file_array[${file_list}]}" expression => isdir("${file_list}");
-      "isrecursive_${canonified_file_array[${file_list}]}" expression => "isdir_${canonified_file_array[${file_list}]}.is_recursive";
-
-      "pass3" expression => "pass2";
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
+      "pass3"                  expression => "pass2";
+      "pass2"                  expression => "pass1";
+      "pass1"                  expression => "any";
+      "max_range_is_null"      expression => strcmp("${max_range}", "0");
+      "is_recursive"           expression => strcmp("true", "${recursive}");
+      "files_found"            expression => isgreaterthan("${file_list_length}", "0");
+      "path_exists_${indices}" expression => fileexists("${file[${indices}]}");
+      "isdir_${indices}"       expression => isdir("${file[${indices}]}");
+      "isrecursive_${indices}" expression => and( "isdir_${file[${indices}]}",
+                                                  "is_recursive");
 
   files:
     pass2::
-      "${file_array[${file_list}]}"
+      "${file[${indices}]}"
         depth_search => recurse_with_base("inf"),
-        acl => add_posix_acl(@{applied_aces}),
-        classes => classes_generic("${inner_class_prefix[${file_list}]}"),
-        ifvarclass => "path_exists_${canonified_file_array[${file_list}]}.isrecursive_${canonified_file_array[${file_list}]}";
+                 acl => add_posix_acl(@{applied_aces}),
+             classes => classes_generic("${inner_class_prefix[${indices}]}"),
+                  if => "path_exists_${indices}.isrecursive_${indices}";
 
-      "${file_array[${file_list}]}"
-        acl => add_posix_acl(@{applied_aces}),
-        classes => classes_generic("${inner_class_prefix[${file_list}]}"),
-        ifvarclass => "path_exists_${canonified_file_array[${file_list}]}.!isrecursive_${canonified_file_array[${file_list}]}";
+      "${file[${indices}]}"
+                 acl => add_posix_acl(@{applied_aces}),
+             classes => classes_generic("${inner_class_prefix[${indices}]}"),
+                  if => "path_exists_${indices}.!isrecursive_${indices}";
 
   methods:
     !files_found::
-      "No_file_found" usebundle =>  _classes_failure("${class_prefix}");
-      "No_file_found" usebundle =>  _classes_failure("${old_class_prefix}");
-      "report" usebundle => _log_v3("No files could be found matching ${path}, set POSIX acl ${other}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
-
-    pass2.files_found::
-      "failure_${file_list}" usebundle => _classes_failure("${inner_class_prefix[${file_list}]}"),
-        ifvarclass => "!path_exists_${canonified_file_array[${file_list}]}";
-
-      "sanitize single reports" usebundle => _classes_sanitize("${inner_class_prefix[${file_list}]}");
+      "${report_data.method_id}" usebundle =>  _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle =>  _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "No files could be found matching ${path}, set POSIX acl ${other}", "");
 
     pass3.files_found::
-      "merge reports"    usebundle => _classes_combine_two("${class_prefix}", "${inner_class_prefix[${file_list}]}", "${class_prefix}");
-      "sanitize reports" usebundle => _classes_sanitize("${class_prefix}");
-      "set old classes"  usebundle => _classes_copy("${class_prefix}", "${old_class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${inner_class_prefix[${indices}]}"),
+                                        if => "!path_exists_${indices}";
+      "${report_data.method_id}" usebundle => _classes_sanitize("${inner_class_prefix[${indices}]}");
+
+    pass3.files_found::
+      "${report_data.method_id}" usebundle => _classes_combine_two("${class_prefix}", "${inner_class_prefix[${indices}]}", "${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_sanitize("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_copy("${class_prefix}", "${report_data.method_id}");
 
     is_recursive.pass3.files_found::
-      "report" usebundle => _log_v3("${report_string} ${const.endl}Set POSIX acl ${other} recursively on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "${report_string} ${const.endl}Set POSIX acl ${other} recursively on ${path}", "");
 
     !is_recursive.pass3.files_found::
-      "report" usebundle => _log_v3("${report_string} ${const.endl}Set POSIX acl ${other} on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "${report_string} ${const.endl}Set POSIX acl ${other} on ${path}", "");
 
 }

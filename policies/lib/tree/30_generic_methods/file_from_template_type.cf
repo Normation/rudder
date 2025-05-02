@@ -109,55 +109,54 @@
 bundle agent file_from_template_type(source_template, path, template_type)
 {
   vars:
-      "old_class_prefix"  string => canonify("file_from_template_${path}");
-
-      "args"               slist => { "${source_template}", "${path}", "${template_type}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_from_template_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
-      # Only used in the jinja2 case
-      "full_inner_class_prefix" string => canonify("file_from_template_${source_template}_${path}");
-      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
-
+      "class_prefix"  string => canonify("file_from_template_${path}");
       # allow to avoid resolving the jinja2 bundle when not using jinja2, because of the special requirements
       "jinja2_bundle_name" string => "file_from_template_jinja2";
 
   classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
       "template_exists" expression => fileexists("${source_template}");
       "is_jinja2"       expression => strcmp("${template_type}", "jinja2");
-
-      "should_report"   expression => "${report_data.should_report}";
+      "is_mustache"     expression => strcmp("${template_type}", "mustache");
+      "is_cfengine"     expression => strcmp("${template_type}", "cfengine");
 
   files:
-    "${path}"
-      create          => "true",
-      edit_template   => "${source_template}",
-      template_method => "${template_type}",
-      edit_defaults   => ncf_empty_select("true"),
-      ifvarclass      => "!is_jinja2.template_exists",
-      classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+    pass3::
+      "${path}"
+        create          => "true",
+        edit_template   => "${source_template}",
+        template_method => "${template_type}",
+        edit_defaults   => ncf_empty_select("true"),
+        ifvarclass      => "!is_jinja2.template_exists",
+        classes         => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
   methods:
-      "disable_reporting_${class_prefix}"     usebundle => disable_reporting;
-    is_jinja2.template_exists::
-      "template" usebundle => ${jinja2_bundle_name}("${source_template}", "${path}");
+    pass3.!template_exists::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Could not find the source template ${source_template}, render file ${path}", "");
 
-    any::
-      "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
+    pass3.!is_jinja2.!is_mustache.!is_cfengine::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Unknown template type ${template_type}", "");
 
-    !template_exists::
-      "template_absent" usebundle => _classes_failure("${old_class_prefix}");
-      "template_absent" usebundle => _classes_failure("${class_prefix}");
+    pass3.is_jinja2.template_exists::
+      "${report_data.method_id}" usebundle => call_method("file_from_template_jinja2");
+      "${report_data.method_id}" usebundle => ${jinja2_bundle_name}("${source_template}", "${path}");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("file_from_template_jinja2");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Build file ${path} from Jinja2 template ${source_template}", "");
+    pass3.!is_jinja2.template_exists::
+      "${report_data.method_id}" usebundle => _classes_sanitize("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_sanitize("${class_prefix}");
 
-    is_jinja2.template_exists::
-      "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
-      "report" usebundle => _log_v3("Build file ${path} from ${template_type} template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.is_mustache.template_exists::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Build file ${path} from Mustache template ${source_template}", "");
 
-    !(is_jinja2.template_exists)::
-      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
-      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
-      "report"   usebundle => _log_v3("Build file ${path} from ${template_type} type template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
-
+    pass3.is_cfengine.template_exists::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Build file ${path} from CFEngine template ${source_template}", "");
 }
