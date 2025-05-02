@@ -550,7 +550,8 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
             "directive_99f4ef91-537b-4e03-97bc-e65b447514cc.json",
             "directive-copyGitFile.json",
             "directive_e9a1a909-2490-4fc9-95c3-9d0aa01717c9.json",
-            "test_import_export_archive_directive.json"
+            "test_import_export_archive_directive.json",
+            "25__Testing_blocks.json"
           )
         )
         children(testDir / s"${archiveName}/techniques") must containTheSameElementsAs(Nil)
