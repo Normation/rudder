@@ -193,27 +193,32 @@ object RestUtils {
     effectiveResponse(id, message, RestOk, action, prettify)
   }
 
-  def toJsonError(id: Option[String], message: JValue)(implicit action: String = "rest", prettify: Boolean): LiftResponse = {
-    effectiveResponse(id, message, InternalError, action, prettify)
+  def toJsonError(id: Option[String], message: JValue, error: RestError = InternalError)(implicit
+      action:   String = "rest",
+      prettify: Boolean
+  ): LiftResponse = {
+    effectiveResponse(id, message, error, action, prettify)
   }
 
   def notValidVersionResponse(action: String)(implicit availableVersions: List[ApiVersion]): LiftResponse = {
     val versions = "latest" :: availableVersions.map(_.value.toString)
     toJsonError(
       None,
-      JString(s"Version used does not exist, please use one of the following: ${versions.mkString("[ ", ", ", " ]")} ")
+      JString(s"Version used does not exist, please use one of the following: ${versions.mkString("[ ", ", ", " ]")} "),
+      NotFoundError
     )(action, prettify = false)
   }
 
   def missingResponse(version: Int, action: String): LiftResponse = {
-    toJsonError(None, JString(s"Version ${version} exists for this API function, but it's implementation is missing"))(
+    toJsonError(
+      None,
+      JString(s"Version ${version} exists for this API function, but it's implementation is missing"),
+      NotFoundError
+    )(
       action,
       prettify = false
     )
   }
-
-  def unauthorized: LiftResponse =
-    effectiveResponse(None, JString("You are not authorized to access that API"), ForbiddenError, "", prettify = false)
 
   def response(
       restExtractor: RestExtractorService,
@@ -228,7 +233,7 @@ object RestUtils {
         val err = eb ?~! errorMessage
         // we don't get DB error in message - add them in log
         err.rootExceptionCause.foreach(ex => ApiLogger.ResponseError.info("Api error cause by exception: " + ex.getMessage))
-        toJsonError(id, err.messageChain)
+        toJsonError(id, err.messageChain, InternalError)
     }
   }
 
@@ -258,7 +263,7 @@ object RestUtils {
         toJsonResponse(id, (dataName -> result))
       case eb: EmptyBox =>
         val message = (eb ?~! errorMessage).messageChain
-        toJsonError(id, message)
+        toJsonError(id, message, InternalError)
     }
   }
 
@@ -294,7 +299,7 @@ object RestUtils {
         toJsonResponse(id, (dataName -> result))
       case eb: EmptyBox =>
         val message = (eb ?~! errorMessage).messageChain
-        toJsonError(id, message)
+        toJsonError(id, message, InternalError)
     }
   }
 
