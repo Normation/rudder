@@ -14,25 +14,6 @@ mod condition_from_variable_existence_test;
 #[cfg(test)]
 mod condition_from_variable_match_test;
 #[cfg(test)]
-mod file_absent_test;
-#[cfg(test)]
-mod file_check_exists_test;
-#[cfg(test)]
-mod file_content_test;
-
-#[cfg(test)]
-mod file_block_present_test;
-#[cfg(test)]
-mod file_copy_from_local_source_recursion_test;
-#[cfg(test)]
-mod file_from_local_source_recursion_test;
-#[cfg(test)]
-mod variable_string_from_command_test;
-
-#[cfg(test)]
-mod variable_string_test;
-
-#[cfg(test)]
 mod directory_check_exists_test;
 #[cfg(test)]
 mod directory_present_test;
@@ -48,7 +29,28 @@ mod file_from_string_mustache_test;
 mod file_lines_absent_test;
 #[cfg(test)]
 mod file_replace_lines_test;
+#[cfg(test)]
+mod file_absent_test;
+#[cfg(test)]
+mod file_check_exists_test;
+#[cfg(test)]
+mod file_content_test;
+#[cfg(test)]
+mod file_block_present_test;
+#[cfg(test)]
+mod file_copy_from_local_source_recursion_test;
+#[cfg(test)]
+mod file_from_local_source_recursion_test;
+#[cfg(test)]
+mod variable_string_from_command_test;
+#[cfg(test)]
+mod variable_string_test;
+#[cfg(test)]
 mod permissions_group_acl_absent_test;
+#[cfg(test)]
+mod permissions_group_acl_present_test;
+#[cfg(test)]
+mod permissions_other_acl_present_test;
 #[cfg(test)]
 mod variable_string_default_test;
 
