@@ -49,7 +49,6 @@ import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.ChangesApi
 import com.normation.rudder.rest.ChangesApi as API
-import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.services.reports.NodeChangesService
 import com.normation.utils.DateFormaterService
@@ -63,8 +62,7 @@ import org.joda.time.Interval
 import zio.syntax.ToZio
 
 class RecentChangesAPI(
-    nodeChangesService:   NodeChangesService,
-    restExtractorService: RestExtractorService
+    nodeChangesService: NodeChangesService
 ) extends LiftApiModuleProvider[API] {
 
   def serialize(changesByRules: Map[RuleId, Map[Interval, Int]]): JValue = {
@@ -101,8 +99,7 @@ class RecentChangesAPI(
   }
 
   object GetRecentChanges extends LiftApiModule0 {
-    val schema:        ChangesApi.GetRecentChanges.type = API.GetRecentChanges
-    val restExtractor: RestExtractorService             = restExtractorService
+    val schema: ChangesApi.GetRecentChanges.type = API.GetRecentChanges
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val prettify: Boolean = params.prettify
@@ -119,8 +116,7 @@ class RecentChangesAPI(
   }
 
   object GetRuleRepairedReports extends LiftApiModule {
-    val schema:        ChangesApi.GetRuleRepairedReports.type = API.GetRuleRepairedReports
-    val restExtractor: RestExtractorService                   = restExtractorService
+    val schema: ChangesApi.GetRuleRepairedReports.type = API.GetRuleRepairedReports
 
     def process(
         version:    ApiVersion,

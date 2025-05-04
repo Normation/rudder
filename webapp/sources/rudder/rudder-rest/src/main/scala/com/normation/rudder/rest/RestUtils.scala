@@ -199,9 +199,8 @@ object RestUtils {
   }
 
   def response(
-      restExtractor: RestExtractorService,
-      dataName:      String,
-      id:            Option[String]
+      dataName: String,
+      id:       Option[String]
   )(function: Box[JValue], req: Req, errorMessage: String)(implicit action: String, prettify: Boolean): LiftResponse = {
     function match {
       case Full(category: JValue) =>
