@@ -1293,8 +1293,6 @@ object RudderConfig extends Loggable {
   val reportingService:                    ReportingService                         = rci.reportingService
   val reportsRepository:                   ReportsRepository                        = rci.reportsRepository
   val restCompletion:                      RestCompletion                           = rci.restCompletion
-  val restDataSerializer:                  RestDataSerializer                       = rci.restDataSerializer
-  val restExtractorService:                RestExtractorService                     = rci.restExtractorService
   val restQuicksearch:                     RestQuicksearch                          = rci.restQuicksearch
   val roleApiMapping:                      RoleApiMapping                           = rci.roleApiMapping
   val roAgentRunsRepository:               RoReportsExecutionRepository             = rci.roAgentRunsRepository
@@ -1465,7 +1463,6 @@ case class RudderServiceApi(
     ncfTechniqueReader:                  EditorTechniqueReader,
     recentChangesService:                NodeChangesService,
     ruleCategoryService:                 RuleCategoryService,
-    restExtractorService:                RestExtractorService,
     snippetExtensionRegister:            SnippetExtensionRegister,
     clearCacheService:                   ClearCacheService,
     linkUtil:                            LinkUtil,
@@ -1479,7 +1476,6 @@ case class RudderServiceApi(
     asyncWorkflowInfo:                   AsyncWorkflowInfo,
     commitAndDeployChangeRequest:        CommitAndDeployChangeRequestService,
     doobie:                              Doobie,
-    restDataSerializer:                  RestDataSerializer,
     workflowEventLogService:             WorkflowEventLogService,
     changeRequestEventLogService:        ChangeRequestEventLogService,
     changeRequestChangesUnserialisation: ChangeRequestChangesUnserialisation,
@@ -1670,20 +1666,6 @@ object RudderConfigInit {
     ///////////////////////////////////////// REST ///////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////
 
-    lazy val restExtractorService = {
-      RestExtractorService(
-        roRuleRepository,
-        roDirectiveRepository,
-        roNodeGroupRepository,
-        techniqueRepository,
-        queryParser,
-        userPropertyService,
-        workflowLevelService,
-        stringUuidGenerator,
-        typeParameterService
-      )
-    }
-
     lazy val zioJsonExtractor = new ZioJsonExtractor(queryParser)
 
     lazy val tokenGenerator = new TokenGeneratorImpl(32)
@@ -1727,8 +1709,6 @@ object RudderConfigInit {
     lazy val linkUtil = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeFactRepository)
 
     // REST API - old
-    lazy val restDataSerializer = RestDataSerializerImpl(techniqueRepository, diffService)
-
     lazy val restQuicksearch = new RestQuicksearch(
       new FullQuickSearchService()(
         roLDAPConnectionProvider,
@@ -2109,7 +2089,6 @@ object RudderConfigInit {
       lazy val systemApiService13 = new SystemApiService13(
         healthcheckService,
         healthcheckNotificationService,
-        restDataSerializer,
         deprecated.softwareService
       )
 
@@ -2151,7 +2130,7 @@ object RudderConfigInit {
       lazy val apiModules = {
         import com.normation.rudder.rest.lift.*
         List(
-          new ComplianceApi(restExtractorService, complianceAPIService, roDirectiveRepository),
+          new ComplianceApi(complianceAPIService, roDirectiveRepository),
           new GroupsApi(
             propertiesService,
             zioJsonExtractor,
@@ -2167,8 +2146,7 @@ object RudderConfigInit {
               asyncDeploymentAgent,
               workflowLevelService,
               queryParser,
-              queryProcessor,
-              restDataSerializer
+              queryProcessor
             )
           ),
           new DirectiveApi(
@@ -2182,14 +2160,12 @@ object RudderConfigInit {
               asyncDeploymentAgent,
               workflowLevelService,
               directiveEditorService,
-              restDataSerializer,
               techniqueRepositoryImpl
             )
           ),
           new NodeApi(
             zioJsonExtractor,
             propertiesService,
-            restDataSerializer,
             new NodeApiService(
               rwLdap,
               nodeFactRepository,
@@ -2217,7 +2193,6 @@ object RudderConfigInit {
           ),
           new ParameterApi(zioJsonExtractor, parameterApiService14),
           new SettingsApi(
-            restExtractorService,
             configService,
             asyncDeploymentAgent,
             stringUuidGenerator,
@@ -2225,13 +2200,11 @@ object RudderConfigInit {
             nodeFactRepository
           ),
           new TechniqueApi(
-            restExtractorService,
             new TechniqueAPIService14(
               roDirectiveRepository,
               gitParseTechniqueLibrary,
               ncfTechniqueReader,
               techniqueSerializer,
-              restDataSerializer,
               techniqueCompiler
             ),
             ncfTechniqueWriter,
@@ -2249,7 +2222,6 @@ object RudderConfigInit {
             stringUuidGenerator
           ),
           new SystemApi(
-            restExtractorService,
             systemApiService11,
             systemApiService13,
             systemInfoService
@@ -2276,10 +2248,10 @@ object RudderConfigInit {
               userService
             )
           ),
-          new InventoryApi(restExtractorService, inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
-          new PluginApi(restExtractorService, pluginSettingsService, PluginsInfo.pluginJsonInfos.succeed),
+          new InventoryApi(inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
+          new PluginApi(pluginSettingsService, PluginsInfo.pluginJsonInfos.succeed),
           new PluginInternalApi(pluginSystemService),
-          new RecentChangesAPI(recentChangesService, restExtractorService),
+          new RecentChangesAPI(recentChangesService),
           new RulesInternalApi(ruleInternalApiService, ruleApiService13),
           new GroupsInternalApi(groupInternalApiService),
           new CampaignApi(
@@ -2291,7 +2263,7 @@ object RudderConfigInit {
           ),
           new HookApi(hookApiService),
           archiveApi,
-          new ScoreApiImpl(restExtractorService, scoreService),
+          new ScoreApiImpl(scoreService),
           eventLogApi
           // info api must be resolved latter, because else it misses plugin apis !
         )
@@ -2309,7 +2281,7 @@ object RudderConfigInit {
 
     // Internal APIs
     lazy val sharedFileApi     =
-      new SharedFilesAPI(restExtractorService, userService, RUDDER_DIR_SHARED_FILES_FOLDER, RUDDER_GIT_ROOT_CONFIG_REPO)
+      new SharedFilesAPI(userService, RUDDER_DIR_SHARED_FILES_FOLDER, RUDDER_GIT_ROOT_CONFIG_REPO)
     lazy val eventLogApi       = {
       new EventLogAPI(
         new EventLogService(eventLogRepository, eventLogDetailsGenerator, personIdentService),
@@ -3841,7 +3813,6 @@ object RudderConfigInit {
       ncfTechniqueReader,
       recentChangesService,
       ruleCategoryService,
-      restExtractorService,
       snippetExtensionRegister,
       clearCacheService,
       linkUtil,
@@ -3855,7 +3826,6 @@ object RudderConfigInit {
       asyncWorkflowInfo,
       commitAndDeployChangeRequest,
       doobie,
-      restDataSerializer,
       workflowEventLogService,
       changeRequestEventLogService,
       changeRequestChangesUnserialisation,

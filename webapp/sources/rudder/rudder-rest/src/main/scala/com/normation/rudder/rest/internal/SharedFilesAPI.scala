@@ -43,7 +43,6 @@ import com.normation.box.*
 import com.normation.errors.*
 import com.normation.errors.IOResult
 import com.normation.rudder.rest.OldInternalApiAuthz
-import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.users.UserService
 import com.normation.utils.FileUtils.*
 import com.normation.zio.*
@@ -83,7 +82,6 @@ object SharedFilesAPI {
 }
 
 class SharedFilesAPI(
-    restExtractor:    RestExtractorService,
     userService:      UserService,
     sharedFolderPath: String,
     configRepoPath:   String

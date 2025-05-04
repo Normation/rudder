@@ -140,7 +140,7 @@ class TestRestPluginInfo extends Specification {
     )
   )
 
-  val pluginApi = new PluginApi(null, null, pluginInfo.succeed)
+  val pluginApi = new PluginApi(null, pluginInfo.succeed)
   val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema with SortIndex]] = List(pluginApi)
 
   val (handlers, rules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, List(ApiVersion(42, deprecated = false)), None)

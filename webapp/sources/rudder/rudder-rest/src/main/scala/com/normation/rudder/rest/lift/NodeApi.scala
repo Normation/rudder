@@ -54,7 +54,6 @@ import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.apidata.RenderInheritedProperties
-import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.config.ReasonBehavior
@@ -155,7 +154,6 @@ import zio.syntax.*
 class NodeApi(
     zioJsonExtractor:      ZioJsonExtractor,
     nodePropertiesService: NodePropertiesService,
-    serializer:            RestDataSerializer,
     nodeApiService:        NodeApiService,
     userPropertyService:   UserPropertyService,
     inheritedProperties:   NodeApiInheritedProperties,
