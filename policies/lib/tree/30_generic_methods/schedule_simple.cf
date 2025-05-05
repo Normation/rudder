@@ -66,43 +66,41 @@ bundle agent schedule_simple(job_id, agent_periodicity,
 {
   vars:
     any::
-      "canonified_job_id" string => canonify("${job_id}");
-      "old_class_prefix"  string => "schedule_simple_${canonified_job_id}";
-
-      "args"               slist => { "${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}",
-                                      "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
-                                      "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "${mode}" };
-
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("schedule_simple_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
+      "c_job_id"     string => canonify("${job_id}");
+      "class_prefix" string => canonify("schedule_simple_${job_id}");
 
   classes:
-      "should_report"    expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"     usebundle => disable_reporting;
+    pass3::
+      "${report_data.method_id}" usebundle => schedule_simple_generic("${c_job_id}",
+                                                              "${agent_periodicity}",
+                                                              "${max_execution_delay_minutes}",
+                                                              "${max_execution_delay_hours}",
+                                                              "${start_on_minutes}",
+                                                              "${start_on_hours}",
+                                                              "${start_on_day_of_week}",
+                                                              "${periodicity_minutes}",
+                                                              "${periodicity_hours}",
+                                                              "${periodicity_days}",
+                                                              "${mode}");
 
-      "simple scheduler" usebundle => schedule_simple_generic("${canonified_job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}", 
-                                                              "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
-                                                              "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "${mode}");
+    "pass3.!job_${c_job_id}_run.!job_${c_job_id}_error"::
+      "${report_data.method_id}"  usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}"  usebundle => _classes_success("${class_prefix}");
 
-      "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
-                             ifvarclass => "should_report";
-      "kept"     usebundle => _classes_success("${old_class_prefix}"),
-                 ifvarclass => "!job_${canonified_job_id}_run.!job_${canonified_job_id}_error";
-      "kept"     usebundle => _classes_success("${class_prefix}"),
-                 ifvarclass => "!job_${canonified_job_id}_run.!job_${canonified_job_id}_error";
-      "repaired" usebundle => _classes_repaired("${old_class_prefix}"),
-                 ifvarclass => "job_${canonified_job_id}_run";
-      "repaired" usebundle => _classes_repaired("${class_prefix}"),
-                 ifvarclass => "job_${canonified_job_id}_run";
-      "error"    usebundle => _classes_failure("${old_class_prefix}"),
-                 ifvarclass => "job_${canonified_job_id}_error";
-      "error"    usebundle => _classes_failure("${class_prefix}"),
-                 ifvarclass => "job_${canonified_job_id}_error";
+    "pass3.job_${c_job_id}_run"::
+      "${report_data.method_id}" usebundle => _classes_repaired("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_repaired("${class_prefix}");
 
-      "report"    usebundle => _log_v3("Scheduling ${job_id}", "${job_id}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "pass3.job_${c_job_id}_error"::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${job_id}", "Scheduling ${job_id}", "");
 }
 

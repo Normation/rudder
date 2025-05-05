@@ -35,29 +35,19 @@
 bundle agent permissions_recurse(path, mode, owner, group)
 {
   vars:
-      "old_class_prefix"        string => canonify("permissions_${path}");
-
-      "args"                     slist => { "${path}", "${mode}", "${owner}", "${group}" };
-      "report_param"            string => join("_", args);
-      "full_class_prefix"       string => canonify("permissions_${report_param}");
-      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
-
-      "full_inner_class_prefix" string => canonify("permissions_${report_param}_all_inf");
-      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
-
-
+      "class_prefix" string => canonify("permissions_${path}");
 
   classes:
-      "should_report"       expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-      "disable_reporting_${class_prefix}"
-                                   usebundle => disable_reporting;
-      "permission with recursion"  usebundle => permissions_type_recursion("${path}", "${mode}", "${owner}", "${group}", "all", "inf");
-      "reenable_reporting_${class_prefix}"
-                                   usebundle => enable_reporting,
-                                  ifvarclass => "should_report";
-      "new result classes"         usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
-
-      "report"                     usebundle => _log_v3("Ensure recursive permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("permissions_type_recursion");
+      "${report_data.method_id}" usebundle => permissions_type_recursion("${path}", "${mode}", "${owner}", "${group}", "all", "inf");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("permissions_type_recursion");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Ensure recursive permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "");
 }

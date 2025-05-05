@@ -48,29 +48,26 @@
 bundle agent variable_string_escaped(name)
 {
   vars:
-      "old_class_prefix"  string => canonify("variable_string_escaped_${name}");
-      "args"               slist => { "${name}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("variable_string_escaped_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
+      "class_prefix"    string => canonify("variable_string_escaped_${name}");
       # define the variable within the same namespace
       "${name}_escaped" string => escape("${${name}}");
 
   classes:
-     "variable_defined" expression => isvariable("${name}_escaped");
+      "pass3"            expression => "pass2";
+      "pass2"            expression => "pass1";
+      "pass1"            expression => "any";
+      "variable_defined" expression => isvariable("${name}_escaped");
 
   methods:
-    !variable_defined::
-      "error"    usebundle => _classes_failure("${old_class_prefix}");
-      "error"    usebundle => _classes_failure("${class_prefix}");
+    pass3.!variable_defined::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
 
-    variable_defined::
-      "success"  usebundle => _classes_success("${old_class_prefix}");
-      "success"  usebundle => _classes_success("${class_prefix}");
+    pass3.variable_defined::
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
 
-    any::
-      "report"
-        usebundle  => _log_v3("Set the string ${name}_escaped to the escaped value of ${name}", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Set the string ${name}_escaped to the escaped value of ${name}", "");
 }
 

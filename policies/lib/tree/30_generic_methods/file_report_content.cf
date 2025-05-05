@@ -75,13 +75,9 @@ bundle agent file_report_content(path, regex, context)
   vars:
     !pass1::
       # to avoid rewriting class prefix when setting default
-      "old_class_prefix"  string => canonify("file_report_content_${path}");
-      "args"               slist => { "${path}", "${regex}", "${context}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("file_report_content_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"  string => canonify("file_report_content_${path}");
 
-    pass1.file_exists::
+    pass2.file_exists::
       "content" string => readfile("${path}", "0"),
                     if => "full_file";
       "content" string => execresult("${paths.path[grep]} -E \"${regex}\" -C${context} \"${path}\"", "useshell"),
@@ -93,21 +89,21 @@ bundle agent file_report_content(path, regex, context)
   classes:
       "file_exists" expression => fileexists("${path}");
       "full_file"   expression => strcmp("${regex}", "");
-
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
+      "pass3"       expression => "pass2";
+      "pass2"       expression => "pass1";
+      "pass1"       expression => "any";
 
   methods:
-    pass2.!file_exists::
-      "error"   usebundle => _classes_failure("${old_class_prefix}");
-      "error"   usebundle => _classes_failure("${class_prefix}");
-      "report"  usebundle => _log_v3("${path} does not exist", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.!file_exists::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "${path} does not exist", "");
 
-    pass2.file_exists::
-      "success" usebundle => _classes_success("${old_class_prefix}");
-      "success" usebundle => _classes_success("${class_prefix}");
-      "report"  usebundle => _log_v3("${path} contains :${const.n}---${const.n}${content}---${const.n}file content report", "${path}", "${old_class_prefix}", "${class_prefix}", @{args}),
-                       if => "full_file";
-      "report"  usebundle => _log_v3("Searching for '${regex}' in ${path} gives:${const.n}---${const.n}${content}${const.n}---${const.n}file content report", "${path}", "${old_class_prefix}", "${class_prefix}", @{args}),
-                       if => "!full_file";
+    pass3.file_exists::
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "${path} contains :${const.n}---${const.n}${content}---${const.n}file content report", ""),
+                                        if => "full_file";
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Searching for '${regex}' in ${path} gives:${const.n}---${const.n}${content}${const.n}---${const.n}file content report", ""),
+                                        if => "!full_file";
 }

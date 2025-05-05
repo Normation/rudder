@@ -32,29 +32,31 @@
 bundle agent monitoring_template(template)
 {
   vars:
-      "monitoring_file"   string => "/var/rudder/tmp/rudder_monitoring.csv";
-
-      "old_class_prefix"  string => canonify("monitoring_template_${template}");
-
-      "args"               slist => {"${template}"}; 
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("monitoring_template_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
-      "full_inner_class_prefix" string => canonify("file_ensure_lines_present_${monitoring_file}_template,${template}");
-      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+      "monitoring_file"    string => "/var/rudder/tmp/rudder_monitoring.csv";
+      "class_prefix"       string => canonify("monitoring_template_${template}");
+      "inner_class_prefix" string => canonify("inner_${report_data.method_id}");
 
   classes:
-  
-      "should_report" expression => "${report_data.should_report}";
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   methods:
-    
-      "disable_reporting_${class_prefix}"  usebundle => disable_reporting;
-      "Write csv file"                         usebundle => file_ensure_lines_present("${monitoring_file}", "template,${template}");
-      "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
-                                              ifvarclass => "should_report";
-      "result classes"                         usebundle => _classes_copy_invert_kept_repaired(canonify("file_ensure_lines_present_${monitoring_file}"), "${old_class_prefix}");
-      "new result classes"                     usebundle => _classes_copy_invert_kept_repaired("${inner_class_prefix}", "${class_prefix}");
-      "report"                                 usebundle => _log_v3("Host follows ${template} monitoring template", "${template}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("file_ensure_lines_present");
+      "${report_data.method_id}" usebundle => file_ensure_lines_present("${monitoring_file}", "template,${template}");
+      "${report_data.method_id}" usebundle => call_method_classes("${inner_class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_end("file_ensure_lines_present");
+
+      # As the monitoring file is cleaned up by the system technique, we want to avoid to report a repair everytime
+      # so repaired and success cases are reported as success
+      # Success/Repaired
+    "pass3.${inner_class_prefix}_ok"::
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+    "pass3.!${inner_class_prefix}_ok"::
+      "${report_data.method_id}" usebundle => _classes_error("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_error("${class_prefix}");
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${template}", "Host follows ${template} monitoring template", "");
 }

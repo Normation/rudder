@@ -38,19 +38,21 @@
 bundle agent sharedfile_from_node(remote_node, file_id, file_path)
 {
   vars:
-      "old_class_prefix"  string => canonify("sharedfile_from_node_${file_id}");
-      "args"              slist  => { "${remote_node}", "${file_id}", "${file_path}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("sharedfile_from_node_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix" string => canonify("sharedfile_from_node_${file_id}");
+      "source"       string => "/var/rudder/shared-files/${g.uuid}/files/${remote_node}/${file_id}";
 
-      "source"            string => "/var/rudder/shared-files/${g.uuid}/files/${remote_node}/${file_id}";
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   files:
+    pass3::
       "${file_path}"
-        copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "digest"),
-        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+        copy_from => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "digest"),
+        classes   => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
   methods:
-      "report" usebundle => _log_v3("Retrieving ${file_id} from ${remote_node} into ${file_path}", "${file_id}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${file_id}", "Retrieving ${file_id} from ${remote_node} into ${file_path}", "");
 }

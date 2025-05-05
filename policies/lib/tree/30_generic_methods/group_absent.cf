@@ -30,30 +30,23 @@
 bundle agent group_absent(name)
 {
   vars:
-      "old_class_prefix"  string => canonify("group_absent_${name}");
-      "args"               slist => { "${name}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("group_absent_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"  string => canonify("group_absent_${name}");
 
   classes:
       "group_present" expression => groupexists("${name}");
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
+      "pass3"         expression => "pass2";
+      "pass2"         expression => "pass1";
+      "pass1"         expression => "any";
 
   methods:
-    !group_present::
-      "success"     usebundle => _classes_success("${old_class_prefix}");
-      "success"     usebundle => _classes_success("${class_prefix}");
+    pass3.!group_present::
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
 
-    pass2::
-      "report"
-        usebundle => _log_v3("Group ${name} absent", "${name}", "${old_class_prefix}", "${class_prefix}", @{args}),
-        ifvarclass => "${old_class_prefix}_reached|${class_prefix}_reached";
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${name}", "Group ${name} absent", "");
 
   commands:
-    group_present.!aix::
-      "/usr/sbin/groupdel ${name}" classes => classes_generic_two("${old_class_prefix}", "${class_prefix}");
-    group_present.aix::
-      "/usr/bin/rmgroup ${name}"   classes => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+    pass2.group_present::
+      "/usr/sbin/groupdel ${name}" classes => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 }
