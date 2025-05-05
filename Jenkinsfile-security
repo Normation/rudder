@@ -116,6 +116,33 @@ pipeline {
                 }
             }
         }
+        stage('deps-rust-pr') {
+            when { changeRequest() }
+            agent {
+                dockerfile {
+                    label 'generic-docker'
+                    filename 'relay/sources/relayd/Dockerfile'
+                    // mount cache
+                    args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry'
+                }
+            }
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    sh script: 'mkdir -p target', label: 'create target directory'
+                    sh script: 'cargo deny check license sources bans', label: 'check rust dependencies'
+                }
+            }
+            post {
+                failure {
+                    script {
+                        errors.add("rust")
+                        failedBuild = true
+                        slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on rust projects - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                    }
+                }
+            }
+        }
         stage('End') {
             steps {
                 script {
