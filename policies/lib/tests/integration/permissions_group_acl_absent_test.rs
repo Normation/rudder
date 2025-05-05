@@ -4,7 +4,7 @@ use crate::testlib::given::posix_acl_present::Perms;
 use crate::testlib::method_test_suite::MethodTestSuite;
 use crate::testlib::method_to_test::{MethodStatus, method};
 use posix_acl::{PosixACL, Qualifier};
-use users::{get_current_uid, get_user_by_uid};
+use uzers::{get_current_uid, get_user_by_uid};
 
 #[ignore]
 #[test]
@@ -21,7 +21,7 @@ fn it_should_remove_group_acl_entry_from_file() {
         &[
             file_path_str,
             "false",
-            users::get_current_groupname().unwrap().to_str().unwrap(),
+            uzers::get_current_groupname().unwrap().to_str().unwrap(),
         ],
     )
     .enforce();
@@ -62,7 +62,7 @@ fn it_should_not_remove_group_acl_entry_from_file_in_audit() {
     let current_gid = get_user_by_uid(get_current_uid())
         .unwrap()
         .primary_group_id();
-    let current_group_name = users::get_current_groupname()
+    let current_group_name = uzers::get_current_groupname()
         .unwrap()
         .into_string()
         .unwrap();
@@ -108,11 +108,11 @@ fn it_should_success_in_audit_if_the_acl_is_absent() {
     let file_path = workdir.path().join("testfile.txt");
     let file_path_str = file_path.to_str().unwrap();
 
-    let current_group_name = users::get_current_groupname()
+    let current_group_name = uzers::get_current_groupname()
         .unwrap()
         .into_string()
         .unwrap();
-    let current_user_name = users::get_current_username()
+    let current_user_name = uzers::get_current_username()
         .unwrap()
         .into_string()
         .unwrap();
