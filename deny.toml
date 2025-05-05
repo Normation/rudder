@@ -1,5 +1,18 @@
 # Only non-default values are listed here
 
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+
+
+allow-git = [
+    "https://github.com/fennewald/format_serde_error",
+    "https://github.com/JamesGuthrie/test-generator",
+]
+
+[sources.allow-org]
+github = ["Normation"]
+
 [licenses]
 # List of explicitly allowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
@@ -20,11 +33,10 @@ allow = [
     "MIT-0",
     "Zlib",
 ]
+unused-allowed-license = "allow"
 
 [advisories]
 ignore = [
-    # Not vulnerable to puny-code masking
-    "RUSTSEC-2024-0421",
 ]
 
 [bans]
