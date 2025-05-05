@@ -45,6 +45,11 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
+import com.normation.errors.BoxToEither
+import com.normation.errors.OptionToPureResult
+import com.normation.errors.PureResult
+import com.normation.errors.RudderError
+import com.normation.errors.Unexpected
 import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.*
@@ -84,9 +89,12 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.Control.traverse
-import net.liftweb.common.*
+import net.liftweb.common.Box
 import net.liftweb.common.Box.*
+import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.format.ISODateTimeFormat
@@ -203,23 +211,22 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
 
 class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisation {
 
-  def unserialise(entry: XNode): Box[NodeGroupCategory] = {
+  private[this] def getPureAttribute[A](attributeOpt: Option[A], attributeName: String, entry: XNode): PureResult[A] = {
+    attributeOpt.notOptionalPure("Missing attribute '" + attributeName + "' in entry type groupLibraryCategory : " + entry)
+  }
+
+  def unserialise(entry: XNode): PureResult[NodeGroupCategory] = {
+
     for {
       category     <- {
-        if (entry.label == XML_TAG_NODE_GROUP_CATEGORY) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_NODE_GROUP_CATEGORY, entry))
+        if (entry.label == XML_TAG_NODE_GROUP_CATEGORY) Right(entry)
+        else Left(Unexpected("Entry type is not a <%s>: %s".format(XML_TAG_NODE_GROUP_CATEGORY, entry)))
       }
-      fileFormatOk <- TestFileFormat(category)
-      id           <- (category \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type groupLibraryCategory : " + entry)
-      name         <- (category \ "displayName").headOption.map(
-                        _.text.trim
-                      ) ?~! ("Missing attribute 'displayName' in entry type groupLibraryCategory : " + entry)
-      description  <- (category \ "description").headOption.map(
-                        _.text
-                      ) ?~! ("Missing attribute 'description' in entry type groupLibraryCategory : " + entry)
-      isSystem     <- (category \ "isSystem").headOption.flatMap(s =>
-                        tryo(s.text.toBoolean)
-                      ) ?~! ("Missing attribute 'isSystem' in entry type groupLibraryCategory : " + entry)
+      fileFormatOk <- TestFileFormat(category).toPureResult
+      id           <- getPureAttribute((category \ "id").headOption.map(_.text), "id", entry)
+      name         <- getPureAttribute((category \ "displayName").headOption.map(_.text.trim), "displayName", entry)
+      description  <- getPureAttribute((category \ "description").headOption.map(_.text), "description", entry)
+      isSystem     <- getPureAttribute((category \ "isSystem").headOption.flatMap(s => tryo(s.text.toBoolean)), "isSystem", entry)
     } yield {
       NodeGroupCategory(
         id = NodeGroupCategoryId(id),
@@ -236,40 +243,36 @@ class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisat
 class NodeGroupUnserialisationImpl(
     cmdbQueryParser: CmdbQueryParser
 ) extends NodeGroupUnserialisation {
-  def unserialise(entry: XNode): Box[NodeGroup] = {
+
+  def getPureAttribute[A](attributeOpt: Option[A], attributeName: String, entry: XNode): PureResult[A] = {
+    attributeOpt.notOptionalPure("Missing attribute '" + attributeName + "' in entry type nodeGroup : " + entry)
+  }
+
+  def unserialise(entry: XNode): PureResult[NodeGroup] = {
     for {
       group        <- {
-        if (entry.label == XML_TAG_NODE_GROUP) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_NODE_GROUP, entry))
+        if (entry.label == XML_TAG_NODE_GROUP) Right(entry)
+        else Left(Unexpected("Entry type is not a <%s>: %s".format(XML_TAG_NODE_GROUP, entry)))
       }
-      fileFormatOk <- TestFileFormat(group)
-      sid          <- (group \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type nodeGroup : " + entry)
-      id           <- NodeGroupId.parse(sid).toBox
-      name         <- (group \ "displayName").headOption.map(
-                        _.text.trim
-                      ) ?~! ("Missing attribute 'displayName' in entry type nodeGroup : " + entry)
-      description  <-
-        (group \ "description").headOption.map(_.text) ?~! ("Missing attribute 'description' in entry type nodeGroup : " + entry)
+      fileFormatOk <- TestFileFormat(group).toPureResult
+      sid          <- getPureAttribute((group \ "id").headOption.map(_.text), "id", entry)
+      id           <- NodeGroupId.parse(sid)[RudderError]: PureResult[NodeGroupId]
+      name         <- getPureAttribute((group \ "displayName").headOption.map(_.text.trim), "displayName", entry)
+      description  <- getPureAttribute((group \ "description").headOption.map(_.text), "description", entry)
       query        <- (group \ "query").headOption match {
-                        case None    => Full(None)
+                        case None    => Right(None)
                         case Some(s) =>
-                          if (s.text.isEmpty) Full(None)
-                          else cmdbQueryParser(s.text).map(Some(_))
+                          if (s.text.isEmpty) Right(None)
+                          else cmdbQueryParser(s.text).map(Some(_)).toPureResult
                       }
-      isDynamic    <- (group \ "isDynamic").headOption.flatMap(s =>
-                        tryo(s.text.toBoolean)
-                      ) ?~! ("Missing attribute 'isDynamic' in entry type nodeGroup : " + entry)
+      isDynamic    <- getPureAttribute((group \ "isDynamic").headOption.flatMap(s => tryo(s.text.toBoolean)), "isDynamic", entry)
       serverList    = if (isDynamic) {
                         Set[NodeId]()
                       } else {
                         (group \ "nodeIds" \ "id").map(n => NodeId(n.text)).toSet
                       }
-      isEnabled    <- (group \ "isEnabled").headOption.flatMap(s =>
-                        tryo(s.text.toBoolean)
-                      ) ?~! ("Missing attribute 'isEnabled' in entry type nodeGroup : " + entry)
-      isSystem     <- (group \ "isSystem").headOption.flatMap(s =>
-                        tryo(s.text.toBoolean)
-                      ) ?~! ("Missing attribute 'isSystem' in entry type nodeGroup : " + entry)
+      isEnabled    <- getPureAttribute((group \ "isEnabled").headOption.flatMap(s => tryo(s.text.toBoolean)), "isEnabled", entry)
+      isSystem     <- getPureAttribute((group \ "isSystem").headOption.flatMap(s => tryo(s.text.toBoolean)), "isSystem", entry)
       properties   <- traverse((group \ "properties" \ "property").toList) {
                         // format: off
                         case <property>{p @ _*}</property> =>
@@ -289,7 +292,7 @@ class NodeGroupUnserialisationImpl(
                               .toBox
                           }
                         case xml                           => Failure(s"Found unexpected xml under <properties> tag: ${xml}")
-                      }
+                      }.toPureResult
     } yield {
       NodeGroup(
         id = id,
@@ -533,17 +536,19 @@ class ChangeRequestChangesUnserialisationImpl(
     techRepo:                TechniqueRepository,
     sectionSpecUnserialiser: SectionSpecParser
 ) extends ChangeRequestChangesUnserialisation with Loggable {
-  def unserialise(xml: XNode): Box[
+  def unserialise(xml: XNode): PureResult[
     (
-        Box[Map[DirectiveId, DirectiveChanges]],
+        Map[DirectiveId, DirectiveChanges],
         Map[NodeGroupId, NodeGroupChanges],
         Map[RuleId, RuleChanges],
         Map[String, GlobalParameterChanges]
     )
   ] = {
-    def unserialiseNodeGroupChange(changeRequest: XNode): Box[Map[NodeGroupId, NodeGroupChanges]] = {
-      (for {
-        groupsNode <- (changeRequest \ "groups").headOption ?~! s"Missing child 'groups' in entry type changeRequest : ${xml}"
+    def unserialiseNodeGroupChange(changeRequest: XNode): PureResult[Map[NodeGroupId, NodeGroupChanges]] = {
+      for {
+        groupsNode <-
+          (changeRequest \ "groups").headOption.notOptionalPure(s"Missing child 'groups' in entry type changeRequest : ${xml}")
+
       } yield {
         (groupsNode \ "group").iterator.flatMap { group =>
           for {
@@ -553,7 +558,7 @@ class ChangeRequestChangesUnserialisationImpl(
             initialNode  <- (group \ "initialState").headOption
             initialState <- (initialNode \ "nodeGroup").headOption match {
                               case Some(initialState) =>
-                                nodeGroupUnserialiser.unserialise(initialState) match {
+                                nodeGroupUnserialiser.unserialise(initialState).toBox match {
                                   case Full(group) => Full(Some(group))
                                   case eb: EmptyBox => eb ?~! "could not unserialize group"
                                 }
@@ -566,7 +571,7 @@ class ChangeRequestChangesUnserialisationImpl(
             reason       = (changeNode \\ "reason").headOption.map(_.text)
             diff        <- (changeNode \\ "diff").headOption.flatMap(_.attribute("action").headOption.map(_.text))
             diffGroup   <- (changeNode \\ "nodeGroup").headOption
-            changeGroup <- nodeGroupUnserialiser.unserialise(diffGroup)
+            changeGroup <- nodeGroupUnserialiser.unserialise(diffGroup).toBox
             change      <- diff match {
                              case "add"      => Full(AddNodeGroupDiff(changeGroup))
                              case "delete"   => Full(DeleteNodeGroupDiff(changeGroup))
@@ -579,13 +584,14 @@ class ChangeRequestChangesUnserialisationImpl(
             (nodeGroupId -> NodeGroupChanges(groupChange, Seq()))
           }
         }.toMap
-      })
+      }
     }
 
-    def unserialiseDirectiveChange(changeRequest: XNode): Box[Map[DirectiveId, DirectiveChanges]] = {
+    def unserialiseDirectiveChange(changeRequest: XNode): PureResult[Map[DirectiveId, DirectiveChanges]] = {
       (for {
-        directivesNode <-
-          (changeRequest \ "directives").headOption ?~! s"Missing child 'directives' in entry type changeRequest : ${xml}"
+        directivesNode <- (changeRequest \ "directives").headOption.notOptionalPure(
+                            s"Missing child 'directives' in entry type changeRequest : ${xml}"
+                          )
       } yield {
         (directivesNode \ "directive").iterator.flatMap { directive =>
           for {
@@ -646,9 +652,11 @@ class ChangeRequestChangesUnserialisationImpl(
       })
     }
 
-    def unserialiseRuleChange(changeRequest: XNode): Box[Map[RuleId, RuleChanges]] = {
+    def unserialiseRuleChange(changeRequest: XNode): PureResult[Map[RuleId, RuleChanges]] = {
       (for {
-        rulesNode <- (changeRequest \ "rules").headOption ?~! s"Missing child 'rules' in entry type changeRequest : ${xml}"
+        rulesNode <-
+          (changeRequest \ "rules").headOption.notOptionalPure(s"Missing child 'rules' in entry type changeRequest : ${xml}")
+
       } yield {
 
         (rulesNode \ "rule").iterator.flatMap { rule =>
@@ -687,10 +695,12 @@ class ChangeRequestChangesUnserialisationImpl(
       })
     }
 
-    def unserialiseGlobalParameterChange(changeRequest: XNode): Box[Map[String, GlobalParameterChanges]] = {
+    def unserialiseGlobalParameterChange(changeRequest: XNode): PureResult[Map[String, GlobalParameterChanges]] = {
       (for {
         paramsNode <-
-          (changeRequest \ "globalParameters").headOption ?~! s"Missing child 'globalParameters' in entry type changeRequest : ${xml}"
+          (changeRequest \ "globalParameters").headOption.notOptionalPure(
+            s"Missing child 'globalParameters' in entry type changeRequest : ${xml}"
+          )
       } yield {
         (paramsNode \ "globalParameter").iterator.flatMap { param =>
           for {
@@ -730,18 +740,18 @@ class ChangeRequestChangesUnserialisationImpl(
 
     for {
       changeRequest <- {
-        if (xml.label == XML_TAG_CHANGE_REQUEST) Full(xml)
-        else Failure("Entry type is not a <%s>: ".format(XML_TAG_CHANGE_REQUEST, xml))
+        if (xml.label == XML_TAG_CHANGE_REQUEST) Right(xml)
+        else Left(Unexpected("Entry type is not a <%s>: ".format(XML_TAG_CHANGE_REQUEST, xml)))
       }
-      fileFormatOk  <- TestFileFormat(changeRequest)
+      fileFormatOk  <- TestFileFormat(changeRequest).toPureResult
       groups        <- unserialiseNodeGroupChange(changeRequest)
-      directives     = {
+      directives    <- {
         Try {
           unserialiseDirectiveChange(changeRequest)
         } match {
           case Success(change) => change
           case Catch(e)        =>
-            Failure(s"Could not deserialize directives changes cause ${e.getMessage()}")
+            Left(Unexpected(s"Could not deserialize directives changes cause ${e.getMessage()}"))
         }
       }
       rules         <- unserialiseRuleChange(changeRequest)

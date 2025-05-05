@@ -38,6 +38,7 @@
 package com.normation.rudder.services.marshalling
 
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.errors.PureResult
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroup
@@ -110,7 +111,7 @@ trait NodeGroupCategoryUnserialisation {
         <isSystem>{cat.isSystem}</isSystem>
       </nodeGroupCategory>
    */
-  def unserialise(xml: XNode): Box[NodeGroupCategory]
+  def unserialise(xml: XNode): PureResult[NodeGroupCategory]
 }
 
 /**
@@ -135,7 +136,7 @@ trait NodeGroupUnserialisation {
        </nodeIds>
      </nodeGroup>
    */
-  def unserialise(xml: XNode): Box[NodeGroup]
+  def unserialise(xml: XNode): PureResult[NodeGroup]
 }
 
 /**
@@ -412,9 +413,9 @@ trait ChangeRequestChangesUnserialisation {
         </globalParameters>
       </changeRequest>
    */
-  def unserialise(xml: XNode): Box[
+  def unserialise(xml: XNode): PureResult[
     (
-        Box[Map[DirectiveId, DirectiveChanges]],
+        Map[DirectiveId, DirectiveChanges],
         Map[NodeGroupId, NodeGroupChanges],
         Map[RuleId, RuleChanges],
         Map[String, GlobalParameterChanges]
