@@ -40,7 +40,6 @@ package com.normation.rudder.repository.jdbc
 import cats.implicits.*
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.db.DB
 import com.normation.rudder.db.DBCommon
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
@@ -51,6 +50,7 @@ import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.zio.*
+import doobie.*
 import doobie.implicits.*
 import net.liftweb.common.*
 import org.joda.time.DateTime
@@ -106,6 +106,33 @@ class ReportsTest extends DBCommon {
   val run2: DateTime = DateTime.now.minusMinutes(5 * 4)
   val run3: DateTime = DateTime.now.minusMinutes(5 * 3)
 
+  private def insertReports(reports: List[Reports]) = {
+
+    val sql = """
+      insert into ruddersysevents
+        (executiondate, nodeid, directiveid, ruleid, reportid, component, keyvalue, executiontimestamp, eventtype, policy, msg)
+      values (?,?,?, ?,?,?, ?,?,?, ?,?)
+    """
+    import com.normation.rudder.db.Doobie.*
+    Update[(DateTime, NodeId, DirectiveId, RuleId, String, String, String, DateTime, String, String, String)](sql).updateMany(
+      reports.map { r =>
+        (
+          r.executionDate,
+          r.nodeId,
+          r.directiveId,
+          r.ruleId,
+          r.reportId,
+          r.component,
+          r.keyValue,
+          r.executionTimestamp,
+          r.severity,
+          "policy",
+          r.message
+        )
+      }
+    )
+  }
+
   implicit def toAgentIds(ids: Set[(String, DateTime)]): Set[AgentRunId] = {
     ids.map(t => AgentRunId(NodeId(t._1), t._2))
   }
@@ -130,7 +157,7 @@ class ReportsTest extends DBCommon {
         )
     )
     "correctly init info" in {
-      transacRun(xa => DB.insertReports(reports.values.toList.flatten).transact(xa))
+      transacRun(xa => insertReports(reports.values.toList.flatten).transact(xa))
       transacRun(xa => sql"""select id from ruddersysevents""".query[Long].to[Vector].transact(xa)).size === 8
     }
 
@@ -194,7 +221,7 @@ class ReportsTest extends DBCommon {
     )
     step {
       cleanTables()
-      transacRun(xa => DB.insertReports(reports.values.toList.flatten).transact(xa))
+      transacRun(xa => insertReports(reports.values.toList.flatten).transact(xa))
     }
 
     /* TODO:
