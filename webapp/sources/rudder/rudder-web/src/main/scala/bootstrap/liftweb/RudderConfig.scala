@@ -3258,6 +3258,7 @@ object RudderConfigInit {
         new CreateTableNodeFacts(doobie),
         new CheckTableScore(doobie),
         new CheckTableUsers(doobie),
+        new CheckTableNodeLastCompliance(doobie),
         new MigrateEventLogEnforceSchema(doobie),
         new MigrateChangeValidationEnforceSchema(doobie),
         new CheckTableReportsExecutionTz(doobie),
