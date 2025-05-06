@@ -260,7 +260,7 @@ trait DirectiveUnserialisation {
        </section>
      </directive>
    */
-  def unserialise(xml: XNode): Box[(TechniqueName, Directive, SectionVal)]
+  def unserialise(xml: XNode): PureResult[(TechniqueName, Directive, SectionVal)]
 
   /**
    * A section val look like:

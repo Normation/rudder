@@ -49,6 +49,7 @@ import com.normation.errors.BoxToEither
 import com.normation.errors.Inconsistency
 import com.normation.errors.OptionToPureResult
 import com.normation.errors.PureResult
+import com.normation.errors.RudderError
 import com.normation.errors.Unexpected
 import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.NodeId
@@ -151,41 +152,51 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
     }
   }
 
-  override def unserialise(xml: XNode): Box[(TechniqueName, Directive, SectionVal)] = {
+  override def unserialise(xml: XNode): PureResult[(TechniqueName, Directive, SectionVal)] = {
     for {
       directive        <- {
-        if (xml.label == XML_TAG_DIRECTIVE) Full(xml)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_DIRECTIVE, xml))
+        if (xml.label == XML_TAG_DIRECTIVE) Right(xml)
+        else Left(Unexpected("Entry type is not a <%s>: %s".format(XML_TAG_DIRECTIVE, xml)))
       }
-      fileFormatOk     <- TestFileFormat(directive)
-      sid              <- (directive \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type directive : " + xml)
-      id               <- DirectiveId.parse(sid).toBox
-      ptName           <- (directive \ "techniqueName").headOption.map(
-                            _.text
-                          ) ?~! ("Missing attribute 'techniqueName' in entry type directive : " + xml)
-      name             <- (directive \ "displayName").headOption.map(
-                            _.text.trim
-                          ) ?~! ("Missing attribute 'displayName' in entry type directive : " + xml)
-      techniqueVersion <- (directive \ "techniqueVersion").headOption.flatMap(x =>
-                            TechniqueVersion.parse(x.text).toBox
-                          ) ?~! ("Missing attribute 'techniqueVersion' in entry type directive : " + xml)
-      sectionVal       <- parseSectionVal(directive)
-      shortDescription <- (directive \ "shortDescription").headOption.map(
-                            _.text
-                          ) ?~! ("Missing attribute 'shortDescription' in entry type directive : " + xml)
-      longDescription  <- (directive \ "longDescription").headOption.map(
-                            _.text
-                          ) ?~! ("Missing attribute 'longDescription' in entry type directive : " + xml)
-      isEnabled        <- (directive \ "isEnabled").headOption.flatMap(s =>
-                            tryo(s.text.toBoolean)
-                          ) ?~! ("Missing attribute 'isEnabled' in entry type directive : " + xml)
-      priority         <- (directive \ "priority").headOption.flatMap(s =>
-                            tryo(s.text.toInt)
-                          ) ?~! ("Missing or bad attribute 'priority' in entry type directive : " + xml)
-      isSystem         <- (directive \ "isSystem").headOption.flatMap(s =>
-                            tryo(s.text.toBoolean)
-                          ) ?~! ("Missing attribute 'isSystem' in entry type directive : " + xml)
-      policyMode        = (directive \ "policyMode").headOption.flatMap(s => PolicyMode.parse(s.text).toBox)
+      fileFormatOk     <- TestFileFormat(directive).toPureResult
+      sid              <- (directive \ "id").headOption
+                            .map(_.text)
+                            .notOptionalPure(s"Missing attribute 'id' in entry type directive : ${xml}")
+      id               <- DirectiveId.parse(sid) match {
+                            case Left(err)  => Left(Unexpected(err))
+                            case Right(res) => Right(res)
+                          }
+      ptName           <- (directive \ "techniqueName").headOption
+                            .map(_.text)
+                            .notOptionalPure(s"Missing attribute 'techniqueName' in entry type directive : ${xml}")
+      name             <- (directive \ "displayName").headOption
+                            .map(_.text.trim)
+                            .notOptionalPure(s"Missing attribute 'displayName' in entry type directive : ${xml}")
+      techniqueVersion <- (directive \ "techniqueVersion").headOption
+                            .notOptionalPure(s"Missing attribute 'techniqueVersion' in entry type directive : ${xml}")
+                            .flatMap(x => {
+                              TechniqueVersion.parse(x.text) match {
+                                case Right(res) => Right(res)
+                                case Left(err)  => Left(Unexpected(err))
+                              }
+                            })
+      sectionVal       <- parseSectionVal(directive).toPureResult
+      shortDescription <- (directive \ "shortDescription").headOption
+                            .map(_.text)
+                            .notOptionalPure(s"Missing attribute 'shortDescription' in entry type directive : ${xml}")
+      longDescription  <- (directive \ "longDescription").headOption
+                            .map(_.text)
+                            .notOptionalPure(s"Missing attribute 'longDescription' in entry type directive : ${xml}")
+      isEnabled        <- (directive \ "isEnabled").headOption
+                            .flatMap(s => s.text.toBooleanOption)
+                            .notOptionalPure(s"Missing attribute 'isEnabled' in entry type directive : ${xml}")
+      priority         <- (directive \ "priority").headOption
+                            .flatMap(s => s.text.toIntOption)
+                            .notOptionalPure(s"Missing or bad attribute 'priority' in entry type directive : ${xml}")
+      isSystem         <- (directive \ "isSystem").headOption
+                            .flatMap(s => s.text.toBooleanOption)
+                            .notOptionalPure(s"Missing attribute 'isSystem' in entry type directive : ${xml}")
+      policyMode        = (directive \ "policyMode").headOption.flatMap(s => PolicyMode.parse(s.text).toOption)
       tags              = TagsXml.getTags(directive \ "tags")
     } yield {
       (
@@ -572,22 +583,23 @@ class ChangeRequestChangesUnserialisationImpl(
 
             sid          <- getPureAttributeCR(group.attribute("id").map(id => id.text), "id", group)
             nodeGroupId  <- NodeGroupId.parse(sid) match {
-                              case Right(res) => Right(res)
-                              case Left(err)  => Left(Inconsistency(err))
+                              case Right(res)   => Right(res)
+                              case Left(errMsg) => Left(Inconsistency(errMsg))
                             }
-            initialNode  <- (group \ "initialState").headOption.notOptionalPure("")
+            initialNode  <- (group \ "initialState").headOption.notOptionalPure("todo")
             initialState <- (initialNode \ "nodeGroup").headOption match {
                               case Some(initialState) =>
                                 nodeGroupUnserialiser.unserialise(initialState).map(group => Some(group))
-                              case None               => Left(Inconsistency(""))
+                              case None               => Left(Inconsistency("todo"))
                             }
-            changeNode   <- (group \ "firstChange" \ "change").headOption.notOptionalPure("")
+            changeNode   <- (group \ "firstChange" \ "change").headOption.notOptionalPure("todo")
             actor        <- PureResult.attempt(changeNode \\ "actor").map(actor => EventActor(actor.text))
             date         <-
               PureResult.attempt(changeNode \\ "date").map(date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text))
             reason        = (changeNode \\ "reason").headOption.map(_.text)
-            diff         <- (changeNode \\ "diff").headOption.flatMap(_.attribute("action").headOption.map(_.text)).notOptionalPure("")
-            diffGroup    <- (changeNode \\ "nodeGroup").headOption.notOptionalPure("")
+            diff         <-
+              (changeNode \\ "diff").headOption.flatMap(_.attribute("action").headOption.map(_.text)).notOptionalPure("todo")
+            diffGroup    <- (changeNode \\ "nodeGroup").headOption.notOptionalPure("todo")
             changeGroup  <- nodeGroupUnserialiser.unserialise(diffGroup)
             change       <- diff match {
                               case "add"      => Right(AddNodeGroupDiff(changeGroup))
@@ -602,6 +614,7 @@ class ChangeRequestChangesUnserialisationImpl(
             (nodeGroupId -> NodeGroupChanges(groupChange, Seq()))
           })
 
+          // Compatibility : the errors are not included in the final result and will only be logged
           res match {
             case Left(err)  =>
               logger.error(err.fullMsg)
@@ -620,31 +633,46 @@ class ChangeRequestChangesUnserialisationImpl(
                           )
       } yield {
         (directivesNode \ "directive").iterator.flatMap { directive =>
-          for {
-            directiveId  <- directive.attribute("id").flatMap(id => DirectiveId.parse(id.text).toBox) ?~!
-                            s"Missing attribute 'id' in entry type changeRequest directive changes  : ${directive}"
-            initialNode  <- (directive \ "initialState").headOption
+          val res = (for {
+
+            directiveId <-
+              directive
+                .attribute("id")
+                .notOptionalPure(s"Missing attribute 'id' in entry type changeRequest directive changes  : ${directive}")
+                .flatMap { id =>
+                  DirectiveId.parse(id.text) match {
+                    case Left(err)  => Left(Inconsistency(err))
+                    case Right(res) => Right(res)
+                  }
+                }
+
+            initialNode  <- (directive \ "initialState").headOption.notOptionalPure("todo")
             initialState <- (initialNode \\ "directive").headOption match {
                               case Some(initialState) =>
                                 directiveUnserialiser.unserialise(initialState) match {
-                                  case Full((techName, directive, _)) => Full(Some((techName, directive)))
-                                  case eb: EmptyBox => eb ?~! "could not unserialize directive"
+                                  case Right((techName, directive, _)) => Right(Some((techName, directive)))
+                                  case Left(_)                         => Left(Inconsistency("could not unserialize directive"))
                                 }
-                              case None               => Full(None)
+                              case None               => Left(Inconsistency("todo"))
                             }
 
-            changeNode    <- (directive \ "firstChange" \ "change").headOption
-            actor         <- (changeNode \\ "actor").headOption.map(actor => EventActor(actor.text))
-            date          <- (changeNode \\ "date").headOption.map(date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text))
+            changeNode    <- (directive \ "firstChange" \ "change").headOption.notOptionalPure("todo")
+            actor         <- (changeNode \\ "actor").headOption.map(actor => EventActor(actor.text)).notOptionalPure("todo")
+            date          <- (changeNode \\ "date").headOption
+                               .map(date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text))
+                               .notOptionalPure("todo")
             reason         = (changeNode \\ "reason").headOption.map(_.text)
-            diff          <- (changeNode \\ "diff").headOption.flatMap(_.attribute("action").headOption.map(_.text))
-            diffDirective <- (changeNode \\ "directive").headOption
+            diff          <-
+              (changeNode \\ "diff").headOption.flatMap(_.attribute("action").headOption.map(_.text)).notOptionalPure("todo")
+            diffDirective <- (changeNode \\ "directive").headOption.notOptionalPure("")
 
-            (techniqueName, changeDirective, _) <- directiveUnserialiser.unserialise(diffDirective)
-            change                              <- {
+            directive      <- directiveUnserialiser.unserialise(diffDirective)
+            techniqueName   = directive._1
+            changeDirective = directive._2
+            change         <- {
               diff match {
-                case "add"      => Full(AddDirectiveDiff(techniqueName, changeDirective))
-                case "delete"   => Full(DeleteDirectiveDiff(techniqueName, changeDirective))
+                case "add"      => Right(AddDirectiveDiff(techniqueName, changeDirective))
+                case "delete"   => Right(DeleteDirectiveDiff(techniqueName, changeDirective))
                 case "modifyTo" =>
                   (changeNode \\ "rootSection").headOption match {
                     case Some(rsXml) =>
@@ -652,12 +680,11 @@ class ChangeRequestChangesUnserialisationImpl(
                       sectionSpecUnserialiser
                         .parseSectionsInPolicy(rsXml, techId, techniqueName.value)
                         .map(rootSection => ModifyToDirectiveDiff(techniqueName, changeDirective, Some(rootSection)))
-                        .toBox
-                    case None        => Failure(s"Could not find rootSection node in ${changeNode}")
+                    case None        => Left(Unexpected(s"Could not find rootSection node in ${changeNode}"))
 
                   }
 
-                case _ => Failure("should not happen")
+                case _ => Left(Inconsistency("should not happen"))
               }
 
             }
@@ -673,7 +700,16 @@ class ChangeRequestChangesUnserialisationImpl(
             )
 
             (directiveId -> DirectiveChanges(directiveChange, Seq()))
+          }): PureResult[(DirectiveId, DirectiveChanges)]
+
+          // Compatibility : the errors are not included in the final result and will only be logged
+          res match {
+            case Left(err)  =>
+              logger.error(err.fullMsg)
+              None
+            case Right(res) => Some(res)
           }
+
         }.toMap
       })
     }
