@@ -522,7 +522,7 @@ class EventLogDetailsServiceImpl(
         if (groupXml.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
         else Failure("nodeGroup attribute does not have changeType=%s: ".format(changeType) + entry)
       }
-      group           <- groupUnserialiser.unserialise(groupXml)
+      group           <- groupUnserialiser.unserialise(groupXml).toBox
     } yield {
       group
     }

@@ -46,9 +46,9 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
 import com.normation.errors.BoxToEither
+import com.normation.errors.Inconsistency
 import com.normation.errors.OptionToPureResult
 import com.normation.errors.PureResult
-import com.normation.errors.RudderError
 import com.normation.errors.Unexpected
 import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.NodeId
@@ -226,7 +226,7 @@ class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisat
       id           <- getPureAttribute((category \ "id").headOption.map(_.text), "id", entry)
       name         <- getPureAttribute((category \ "displayName").headOption.map(_.text.trim), "displayName", entry)
       description  <- getPureAttribute((category \ "description").headOption.map(_.text), "description", entry)
-      isSystem     <- getPureAttribute((category \ "isSystem").headOption.flatMap(s => tryo(s.text.toBoolean)), "isSystem", entry)
+      isSystem     <- getPureAttribute((category \ "isSystem").headOption.flatMap(s => s.text.toBooleanOption), "isSystem", entry)
     } yield {
       NodeGroupCategory(
         id = NodeGroupCategoryId(id),
@@ -256,7 +256,10 @@ class NodeGroupUnserialisationImpl(
       }
       fileFormatOk <- TestFileFormat(group).toPureResult
       sid          <- getPureAttribute((group \ "id").headOption.map(_.text), "id", entry)
-      id           <- NodeGroupId.parse(sid)[RudderError]: PureResult[NodeGroupId]
+      id           <- NodeGroupId.parse(sid) match {
+                        case Right(res) => Right(res)
+                        case Left(err)  => Left(Inconsistency(err))
+                      }
       name         <- getPureAttribute((group \ "displayName").headOption.map(_.text.trim), "displayName", entry)
       description  <- getPureAttribute((group \ "description").headOption.map(_.text), "description", entry)
       query        <- (group \ "query").headOption match {
@@ -536,6 +539,16 @@ class ChangeRequestChangesUnserialisationImpl(
     techRepo:                TechniqueRepository,
     sectionSpecUnserialiser: SectionSpecParser
 ) extends ChangeRequestChangesUnserialisation with Loggable {
+
+  private[this] def getPureAttribute[A](
+      entryType:     String,
+      attributeOpt:  Option[A],
+      attributeName: String,
+      entry:         XNode
+  ): PureResult[A] = {
+    attributeOpt.notOptionalPure("Missing attribute '" + attributeName + "' in entry type " + entryType + " : " + entry)
+  }
+
   def unserialise(xml: XNode): PureResult[
     (
         Map[DirectiveId, DirectiveChanges],
@@ -544,6 +557,10 @@ class ChangeRequestChangesUnserialisationImpl(
         Map[String, GlobalParameterChanges]
     )
   ] = {
+
+    def getPureAttributeCR[A](attributeOpt: Option[A], attributeName: String, entry: XNode) =
+      getPureAttribute("changeRequest", attributeOpt, attributeName, entry)
+
     def unserialiseNodeGroupChange(changeRequest: XNode): PureResult[Map[NodeGroupId, NodeGroupChanges]] = {
       for {
         groupsNode <-
@@ -551,38 +568,47 @@ class ChangeRequestChangesUnserialisationImpl(
 
       } yield {
         (groupsNode \ "group").iterator.flatMap { group =>
-          for {
-            sid          <- group.attribute("id").map(id => id.text) ?~!
-                            s"Missing attribute 'id' in entry type changeRequest group changes  : ${group}"
-            nodeGroupId  <- NodeGroupId.parse(sid).toBox
-            initialNode  <- (group \ "initialState").headOption
+          val res = (for {
+
+            sid          <- getPureAttributeCR(group.attribute("id").map(id => id.text), "id", group)
+            nodeGroupId  <- NodeGroupId.parse(sid) match {
+                              case Right(res) => Right(res)
+                              case Left(err)  => Left(Inconsistency(err))
+                            }
+            initialNode  <- (group \ "initialState").headOption.notOptionalPure("")
             initialState <- (initialNode \ "nodeGroup").headOption match {
                               case Some(initialState) =>
-                                nodeGroupUnserialiser.unserialise(initialState).toBox match {
-                                  case Full(group) => Full(Some(group))
-                                  case eb: EmptyBox => eb ?~! "could not unserialize group"
-                                }
-                              case None               => Full(None)
+                                nodeGroupUnserialiser.unserialise(initialState).map(group => Some(group))
+                              case None               => Left(Inconsistency(""))
+                            }
+            changeNode   <- (group \ "firstChange" \ "change").headOption.notOptionalPure("")
+            actor        <- PureResult.attempt(changeNode \\ "actor").map(actor => EventActor(actor.text))
+            date         <-
+              PureResult.attempt(changeNode \\ "date").map(date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text))
+            reason        = (changeNode \\ "reason").headOption.map(_.text)
+            diff         <- (changeNode \\ "diff").headOption.flatMap(_.attribute("action").headOption.map(_.text)).notOptionalPure("")
+            diffGroup    <- (changeNode \\ "nodeGroup").headOption.notOptionalPure("")
+            changeGroup  <- nodeGroupUnserialiser.unserialise(diffGroup)
+            change       <- diff match {
+                              case "add"      => Right(AddNodeGroupDiff(changeGroup))
+                              case "delete"   => Right(DeleteNodeGroupDiff(changeGroup))
+                              case "modifyTo" => Right(ModifyToNodeGroupDiff(changeGroup))
+                              case _          => Left(Unexpected("should not happen"))
                             }
 
-            changeNode  <- (group \ "firstChange" \ "change").headOption
-            actor       <- (changeNode \\ "actor").headOption.map(actor => EventActor(actor.text))
-            date        <- (changeNode \\ "date").headOption.map(date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text))
-            reason       = (changeNode \\ "reason").headOption.map(_.text)
-            diff        <- (changeNode \\ "diff").headOption.flatMap(_.attribute("action").headOption.map(_.text))
-            diffGroup   <- (changeNode \\ "nodeGroup").headOption
-            changeGroup <- nodeGroupUnserialiser.unserialise(diffGroup).toBox
-            change      <- diff match {
-                             case "add"      => Full(AddNodeGroupDiff(changeGroup))
-                             case "delete"   => Full(DeleteNodeGroupDiff(changeGroup))
-                             case "modifyTo" => Full(ModifyToNodeGroupDiff(changeGroup))
-                             case _          => Failure("should not happen")
-                           }
           } yield {
             val groupChange = NodeGroupChange(initialState, NodeGroupChangeItem(actor, date, reason, change), Seq())
 
             (nodeGroupId -> NodeGroupChanges(groupChange, Seq()))
+          })
+
+          res match {
+            case Left(err)  =>
+              logger.error(err.fullMsg)
+              None
+            case Right(res) => Some(res)
           }
+
         }.toMap
       }
     }
@@ -729,6 +755,7 @@ class ChangeRequestChangesUnserialisationImpl(
                              case "modifyTo" => Full(ModifyToGlobalParameterDiff(changeParam))
                              case _          => Failure("should not happen")
                            }
+
           } yield {
             val paramChange = GlobalParameterChange(initialState, GlobalParameterChangeItem(actor, date, reason, change), Seq())
 

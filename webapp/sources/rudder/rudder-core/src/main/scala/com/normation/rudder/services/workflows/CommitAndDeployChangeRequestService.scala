@@ -247,7 +247,7 @@ class CommitAndDeployChangeRequestServiceImpl(
       def getCurrentValue(group: NodeGroup) = roNodeGroupRepo.getNodeGroup(group.id).map(_._1).toBox
       def compareMethod(initial: NodeGroup, current: NodeGroup) = CheckDivergenceForMerge.compareGroups(initial, current)
       def xmlSerialize(group:    NodeGroup): Box[Node] = Full(xmlSerializer.group.serialise(group))
-      def xmlUnserialize(xml:    Node) = xmlUnserializer.group.unserialise(xml)
+      def xmlUnserialize(xml:    Node) = xmlUnserializer.group.unserialise(xml).toBox
     }
 
     case object CheckGlobalParameter extends CheckChanges[GlobalParameter] {
