@@ -37,6 +37,7 @@
 
 package com.normation.rudder.apidata
 
+import com.normation.box.PureResultToBox
 import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.NodeId
@@ -309,7 +310,7 @@ final case class RestDataSerializerImpl(
     }
 
     for {
-      item <- change.change
+      item <- change.change.toBox
       diff  = item.diff
     } yield {
       diff match {
@@ -352,7 +353,7 @@ final case class RestDataSerializerImpl(
     }
 
     for {
-      item <- change.change
+      item <- change.change.toBox
       diff  = item.diff
     } yield {
       diff match {
@@ -409,7 +410,7 @@ final case class RestDataSerializerImpl(
     }
 
     for {
-      item <- change.change
+      item <- change.change.toBox
       diff  = item.diff
     } yield {
       diff match {
@@ -479,7 +480,7 @@ final case class RestDataSerializerImpl(
     }
 
     for {
-      item <- change.change
+      item <- change.change.toBox
       diff  = item.diff
     } yield {
       diff match {

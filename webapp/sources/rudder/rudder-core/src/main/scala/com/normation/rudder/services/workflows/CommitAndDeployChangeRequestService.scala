@@ -320,7 +320,7 @@ class CommitAndDeployChangeRequestServiceImpl(
       }.toBox
 
       for {
-        change <- directiveChanges.changes.change
+        change <- directiveChanges.changes.change.toBox
         diff   <- change.diff match {
                     case DeleteDirectiveDiff(tn, d)       =>
                       dependencyService
@@ -340,7 +340,7 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     def doNodeGroupChange(change: NodeGroupChanges)(implicit qc: QueryContext): Box[TriggerDeploymentDiff] = {
       for {
-        change <- change.changes.change
+        change <- change.changes.change.toBox
         diff   <- change.diff match {
                     case DeleteNodeGroupDiff(n)   =>
                       dependencyService
@@ -368,7 +368,7 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     def doRuleChange(change: RuleChanges): Box[TriggerDeploymentDiff] = {
       for {
-        change <- change.changes.change
+        change <- change.changes.change.toBox
         diff   <- (change.diff match {
                     case DeleteRuleDiff(r)   =>
                       woRuleRepository.delete(r.id, modId, change.actor, change.reason)
@@ -385,7 +385,7 @@ class CommitAndDeployChangeRequestServiceImpl(
 
     def doParamChange(change: GlobalParameterChanges): Box[TriggerDeploymentDiff] = {
       for {
-        change <- change.changes.change
+        change <- change.changes.change.toBox
         diff   <- (change.diff match {
                     case DeleteGlobalParameterDiff(param)   =>
                       woParameterRepository
@@ -443,7 +443,7 @@ class CommitAndDeployChangeRequestServiceImpl(
             case (_, _: AddGlobalParameterDiff)                               => false
             case _                                                            => true
           }
-        }).openOr(true)
+        }).getOrElse(true)
     }
 
     val sortedGroups = cr.nodeGroups.values.toSeq.sortWith {
@@ -458,7 +458,7 @@ class CommitAndDeployChangeRequestServiceImpl(
             case (_, _: AddNodeGroupDiff)                         => false
             case _                                                => true
           }
-        }).openOr(true)
+        }).getOrElse(true)
     }
 
     val sortedDirectives = cr.directives.values.toSeq.sortWith {
@@ -473,7 +473,7 @@ class CommitAndDeployChangeRequestServiceImpl(
             case (_, _: AddDirectiveDiff)                         => false
             case _                                                => true
           }
-        }).openOr(true)
+        }).getOrElse(true)
     }
 
     val sortedRules = cr.rules.values.toSeq.sortWith {
@@ -488,7 +488,7 @@ class CommitAndDeployChangeRequestServiceImpl(
             case (_, _: AddRuleDiff)                    => false
             case _                                      => true
           }
-        }).openOr(true)
+        }).getOrElse(true)
     }
 
     val params     = bestEffort(sortedParam)(param => doParamChange(param))
