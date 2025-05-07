@@ -384,7 +384,7 @@ class EventLogDetailsServiceImpl(
         if (directiveXml.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
         else Failure("Directive attribute does not have changeType=%s: ".format(changeType) + entry)
       }
-      unserialised    <- piUnserialiser.unserialise(directiveXml)
+      unserialised    <- piUnserialiser.unserialise(directiveXml).toBox
     } yield {
       unserialised
     }

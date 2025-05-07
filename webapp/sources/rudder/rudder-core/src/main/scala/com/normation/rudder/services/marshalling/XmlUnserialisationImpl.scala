@@ -49,7 +49,6 @@ import com.normation.errors.BoxToEither
 import com.normation.errors.Inconsistency
 import com.normation.errors.OptionToPureResult
 import com.normation.errors.PureResult
-import com.normation.errors.RudderError
 import com.normation.errors.Unexpected
 import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.NodeId
@@ -119,14 +118,14 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
 
   override def parseSectionVal(xml: NodeSeq): Box[SectionVal] = {
     def recValParseSection(elt: XNode): Box[(String, SectionVal)] = {
-      if (elt.label != "section") Failure("Bad XML, awaiting a <section> and get: " + elt)
+      if (elt.label != "section") Failure(s"Bad XML, expected a <section> but got: ${elt}")
       else {
         for {
-          name     <- (elt \ "@name").headOption ?~! ("Missing required attribute 'name' for <section>: " + elt)
+          name     <- (elt \ "@name").headOption ?~! s"Missing required attribute 'name' for <section>: ${elt}"
           // Seq( (var name , var value ) )
           vars     <- traverse(elt \ "var") { xmlVar =>
                         for {
-                          n <- (xmlVar \ "@name").headOption ?~! ("Missing required attribute 'name' for <var>: " + xmlVar)
+                          n <- (xmlVar \ "@name").headOption ?~! s"Missing required attribute 'name' for <var>: ${xmlVar}"
                         } yield {
                           (n.text, xmlVar.text)
                         }
@@ -142,9 +141,9 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
 
     for {
       root            <- (xml \ "section").toList match {
-                           case Nil         => Failure("Missing required tag <section> in: " + xml)
+                           case Nil         => Failure(s"Missing required tag <section> in: ${xml}")
                            case node :: Nil => Full(node)
-                           case x           => Failure("Found several <section> tag in XML, but only one root section is allowed: " + xml)
+                           case x           => Failure(s"Found several <section> tag in XML, but only one root section is allowed: ${xml}")
                          }
       (_, sectionVal) <- recValParseSection(root)
     } yield {
@@ -156,7 +155,7 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
     for {
       directive        <- {
         if (xml.label == XML_TAG_DIRECTIVE) Right(xml)
-        else Left(Unexpected("Entry type is not a <%s>: %s".format(XML_TAG_DIRECTIVE, xml)))
+        else Left(Unexpected(s"Entry type is not a ${XML_TAG_DIRECTIVE}: ${xml}"))
       }
       fileFormatOk     <- TestFileFormat(directive).toPureResult
       sid              <- (directive \ "id").headOption
@@ -223,7 +222,7 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
 class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisation {
 
   private[this] def getPureAttribute[A](attributeOpt: Option[A], attributeName: String, entry: XNode): PureResult[A] = {
-    attributeOpt.notOptionalPure("Missing attribute '" + attributeName + "' in entry type groupLibraryCategory : " + entry)
+    attributeOpt.notOptionalPure(s"Missing attribute '${attributeName}' in entry type groupLibraryCategory : ${entry}")
   }
 
   def unserialise(entry: XNode): PureResult[NodeGroupCategory] = {
@@ -231,7 +230,7 @@ class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisat
     for {
       category     <- {
         if (entry.label == XML_TAG_NODE_GROUP_CATEGORY) Right(entry)
-        else Left(Unexpected("Entry type is not a <%s>: %s".format(XML_TAG_NODE_GROUP_CATEGORY, entry)))
+        else Left(Unexpected(s"Entry type is not a ${XML_TAG_NODE_GROUP_CATEGORY}: ${entry}"))
       }
       fileFormatOk <- TestFileFormat(category).toPureResult
       id           <- getPureAttribute((category \ "id").headOption.map(_.text), "id", entry)
@@ -256,14 +255,14 @@ class NodeGroupUnserialisationImpl(
 ) extends NodeGroupUnserialisation {
 
   def getPureAttribute[A](attributeOpt: Option[A], attributeName: String, entry: XNode): PureResult[A] = {
-    attributeOpt.notOptionalPure("Missing attribute '" + attributeName + "' in entry type nodeGroup : " + entry)
+    attributeOpt.notOptionalPure(s"Missing attribute '${attributeName}' in entry type nodeGroup : ${entry}")
   }
 
   def unserialise(entry: XNode): PureResult[NodeGroup] = {
     for {
       group        <- {
         if (entry.label == XML_TAG_NODE_GROUP) Right(entry)
-        else Left(Unexpected("Entry type is not a <%s>: %s".format(XML_TAG_NODE_GROUP, entry)))
+        else Left(Unexpected(s"Entry type is not a ${XML_TAG_NODE_GROUP}: ${entry}"))
       }
       fileFormatOk <- TestFileFormat(group).toPureResult
       sid          <- getPureAttribute((group \ "id").headOption.map(_.text), "id", entry)
@@ -328,29 +327,29 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
     for {
       rule             <- {
         if (entry.label == XML_TAG_RULE) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_RULE, entry))
+        else Failure(s"Entry type is not a ${XML_TAG_RULE}: ${entry}")
       }
       fileFormatOk     <- TestFileFormat(rule)
       sid              <- (rule \ "id").headOption.map(_.text) ?~!
-                          ("Missing attribute 'id' in entry type rule: " + entry)
+                          s"Missing attribute 'id' in entry type rule: ${entry}"
       id               <- RuleId.parse(sid).toBox
       category         <- (rule \ "category").headOption.map(n => RuleCategoryId(n.text)) ?~!
-                          ("Missing attribute 'category' in entry type rule: " + entry)
+                          s"Missing attribute 'category' in entry type rule: ${entry}"
       name             <- (rule \ "displayName").headOption.map(_.text.trim) ?~!
-                          ("Missing attribute 'displayName' in entry type rule: " + entry)
+                          s"Missing attribute 'displayName' in entry type rule: ${entry}"
       revision          = ParseRev((rule \ "revision").headOption.map(_.text.trim))
       shortDescription <- (rule \ "shortDescription").headOption.map(_.text) ?~!
-                          ("Missing attribute 'shortDescription' in entry type rule: " + entry)
+                          s"Missing attribute 'shortDescription' in entry type rule: ${entry}"
       longDescription  <- (rule \ "longDescription").headOption.map(_.text) ?~!
-                          ("Missing attribute 'longDescription' in entry type rule: " + entry)
+                          s"Missing attribute 'longDescription' in entry type rule: ${entry}"
       isEnabled        <- (rule \ "isEnabled").headOption.flatMap(s => tryo(s.text.toBoolean)) ?~!
-                          ("Missing attribute 'isEnabled' in entry type rule: " + entry)
+                          s"Missing attribute 'isEnabled' in entry type rule: ${entry}"
       isSystem         <- (rule \ "isSystem").headOption.flatMap(s => tryo(s.text.toBoolean)) ?~!
-                          ("Missing attribute 'isSystem' in entry type rule: " + entry)
+                          s"Missing attribute 'isSystem' in entry type rule: ${entry}"
       targets          <- traverse((rule \ "targets" \ "target")) { t =>
                             RuleTarget.unser(t.text)
                           } ?~!
-                          ("Invalid attribute in 'target' entry: " + entry)
+                          (s"Invalid attribute in 'target' entry: ${entry}")
       directiveIds      = (rule \ "directiveIds" \ "id").map { n =>
                             DirectiveId(DirectiveUid(n.text), ParseRev((n \ "@revision").text))
                           }.toSet
@@ -379,19 +378,19 @@ class RuleCategoryUnserialisationImpl extends RuleCategoryUnserialisation {
     for {
       category     <- {
         if (entry.label == XML_TAG_RULE_CATEGORY) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_RULE_CATEGORY, entry))
+        else Failure(s"Entry type is not a ${XML_TAG_RULE_CATEGORY}: ${entry}")
       }
       fileFormatOk <- TestFileFormat(category)
-      id           <- (category \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type groupLibraryCategory : " + entry)
+      id           <- (category \ "id").headOption.map(_.text) ?~! s"Missing attribute 'id' in entry type groupLibraryCategory : ${entry}"
       name         <- (category \ "displayName").headOption.map(
                         _.text.trim
-                      ) ?~! ("Missing attribute 'displayName' in entry type groupLibraryCategory : " + entry)
+                      ) ?~! s"Missing attribute 'displayName' in entry type groupLibraryCategory : ${entry}"
       description  <- (category \ "description").headOption.map(
                         _.text
-                      ) ?~! ("Missing attribute 'description' in entry type groupLibraryCategory : " + entry)
+                      ) ?~! s"Missing attribute 'description' in entry type groupLibraryCategory : ${entry}"
       isSystem     <- (category \ "isSystem").headOption.flatMap(s =>
                         tryo(s.text.toBoolean)
-                      ) ?~! ("Missing attribute 'isSystem' in entry type groupLibraryCategory : " + entry)
+                      ) ?~! s"Missing attribute 'isSystem' in entry type groupLibraryCategory : ${entry}"
     } yield {
       RuleCategory(
         id = RuleCategoryId(id),
@@ -410,19 +409,19 @@ class ActiveTechniqueCategoryUnserialisationImpl extends ActiveTechniqueCategory
     for {
       uptc         <- {
         if (entry.label == XML_TAG_ACTIVE_TECHNIQUE_CATEGORY) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_ACTIVE_TECHNIQUE_CATEGORY, entry))
+        else Failure(s"Entry type is not a ${XML_TAG_ACTIVE_TECHNIQUE_CATEGORY}: ${entry}")
       }
       fileFormatOk <- TestFileFormat(uptc)
-      id           <- (uptc \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type policyLibraryCategory : " + entry)
+      id           <- (uptc \ "id").headOption.map(_.text) ?~! s"Missing attribute 'id' in entry type policyLibraryCategory : ${entry}"
       name         <- (uptc \ "displayName").headOption.map(
                         _.text
-                      ) ?~! ("Missing attribute 'displayName' in entry type policyLibraryCategory : " + entry)
+                      ) ?~! s"Missing attribute 'displayName' in entry type policyLibraryCategory : ${entry}"
       description  <- (uptc \ "description").headOption.map(
                         _.text
-                      ) ?~! ("Missing attribute 'description' in entry type policyLibraryCategory : " + entry)
+                      ) ?~! s"Missing attribute 'description' in entry type policyLibraryCategory : ${entry}"
       isSystem     <- (uptc \ "isSystem").headOption.flatMap(s =>
                         tryo(s.text.toBoolean)
-                      ) ?~! ("Missing attribute 'isSystem' in entry type policyLibraryCategory : " + entry)
+                      ) ?~! s"Missing attribute 'isSystem' in entry type policyLibraryCategory : ${entry}"
     } yield {
       ActiveTechniqueCategory(
         id = ActiveTechniqueCategoryId(id),
@@ -445,15 +444,15 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
     for {
       activeTechnique  <- {
         if (entry.label == XML_TAG_ACTIVE_TECHNIQUE) Full(entry)
-        else Failure("Entry type is not a <%s>: ".format(XML_TAG_ACTIVE_TECHNIQUE, entry))
+        else Failure(s"Entry type is not a ${XML_TAG_ACTIVE_TECHNIQUE}: ${entry}")
       }
       fileFormatOk     <- TestFileFormat(activeTechnique)
       id               <- (activeTechnique \ "id").headOption.map(
                             _.text
-                          ) ?~! ("Missing attribute 'id' in entry type policyLibraryTemplate : " + entry)
+                          ) ?~! (s"Missing attribute 'id' in entry type policyLibraryTemplate : ${entry}")
       ptName           <- (activeTechnique \ "techniqueName").headOption.map(
                             _.text
-                          ) ?~! ("Missing attribute 'displayName' in entry type policyLibraryTemplate : " + entry)
+                          ) ?~! (s"Missing attribute 'displayName' in entry type policyLibraryTemplate : ${entry}")
       policyTypes       = (activeTechnique \ "policyTypes").headOption
                             .flatMap(s => s.text.fromJson[PolicyTypes].toBox)
                             .getOrElse(
@@ -462,17 +461,15 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
                             )
       isEnabled        <- (activeTechnique \ "isEnabled").headOption.flatMap(s =>
                             tryo(s.text.toBoolean)
-                          ) ?~! ("Missing attribute 'isEnabled' in entry type policyLibraryTemplate : " + entry)
+                          ) ?~! (s"Missing attribute 'isEnabled' in entry type policyLibraryTemplate : ${entry}")
       acceptationDates <- traverse(activeTechnique \ "versions" \ "version") { version =>
                             for {
                               ptVersionName   <-
                                 version
                                   .attribute("name")
-                                  .map(_.text) ?~! "Missing attribute 'name' for acceptation date in PT '%s' (%s): '%s'".format(
-                                  ptName,
-                                  id,
-                                  version
-                                )
+                                  .map(
+                                    _.text
+                                  ) ?~! s"Missing attribute 'name' for acceptation date in PT '${ptName}' (${id}): '${version}'"
                               ptVersion       <- TechniqueVersion
                                                    .parse(ptVersionName)
                                                    .toBox ?~! s"Error when trying to parse '${ptVersionName}' as a technique version."
@@ -485,7 +482,7 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
         val map = acceptationDates.toMap
         if (map.size != acceptationDates.size) {
           Failure(
-            "There exists a duplicate polity template version in the acceptation date map: " + acceptationDates.mkString("; ")
+            s"There exists a duplicate polity template version in the acceptation date map: ${acceptationDates.mkString("; ")}"
           )
         } else Full(map)
       }
@@ -507,21 +504,21 @@ class DeploymentStatusUnserialisationImpl extends DeploymentStatusUnserialisatio
     for {
       depStatus    <- {
         if (entry.label == XML_TAG_DEPLOYMENT_STATUS) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_DEPLOYMENT_STATUS, entry))
+        else Failure(s"Entry type is not a ${XML_TAG_DEPLOYMENT_STATUS}: ${entry}")
       }
       fileFormatOk <- TestFileFormat(depStatus)
       id           <- (depStatus \ "id").headOption.flatMap(s =>
                         tryo(s.text.toLong)
-                      ) ?~! ("Missing attribute 'id' in entry type deploymentStatus : " + entry)
+                      ) ?~! (s"Missing attribute 'id' in entry type deploymentStatus : ${entry}")
       status       <-
-        (depStatus \ "status").headOption.map(_.text) ?~! ("Missing attribute 'status' in entry type deploymentStatus : " + entry)
+        (depStatus \ "status").headOption.map(_.text) ?~! (s"Missing attribute 'status' in entry type deploymentStatus : ${entry}")
 
       started      <- (depStatus \ "started").headOption.flatMap(s =>
                         tryo(ISODateTimeFormat.dateTimeParser.parseDateTime(s.text))
-                      ) ?~! ("Missing or bad attribute 'started' in entry type deploymentStatus : " + entry)
+                      ) ?~! (s"Missing or bad attribute 'started' in entry type deploymentStatus : ${entry}")
       ended        <- (depStatus \ "ended").headOption.flatMap(s =>
                         tryo(ISODateTimeFormat.dateTimeParser.parseDateTime(s.text))
-                      ) ?~! ("Missing or bad attribute 'ended' in entry type deploymentStatus : " + entry)
+                      ) ?~! (s"Missing or bad attribute 'ended' in entry type deploymentStatus : ${entry}")
       errorMessage <- (depStatus \ "errorMessage").headOption match {
                         case None    => Full(None)
                         case Some(s) =>
@@ -557,7 +554,7 @@ class ChangeRequestChangesUnserialisationImpl(
       attributeName: String,
       entry:         XNode
   ): PureResult[A] = {
-    attributeOpt.notOptionalPure("Missing attribute '" + attributeName + "' in entry type " + entryType + " : " + entry)
+    attributeOpt.notOptionalPure(s"Missing attribute '${attributeName}' in entry type ${entryType} : ${entry}")
   }
 
   def unserialise(xml: XNode): PureResult[
@@ -804,7 +801,7 @@ class ChangeRequestChangesUnserialisationImpl(
     for {
       changeRequest <- {
         if (xml.label == XML_TAG_CHANGE_REQUEST) Right(xml)
-        else Left(Unexpected("Entry type is not a <%s>: ".format(XML_TAG_CHANGE_REQUEST, xml)))
+        else Left(Unexpected(s"Entry type is not a ${XML_TAG_CHANGE_REQUEST}: ${xml}"))
       }
       fileFormatOk  <- TestFileFormat(changeRequest).toPureResult
       groups        <- unserialiseNodeGroupChange(changeRequest)
@@ -831,17 +828,17 @@ class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation 
     for {
       globalParam  <- {
         if (entry.label == XML_TAG_GLOBAL_PARAMETER) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_GLOBAL_PARAMETER, entry))
+        else Failure(s"Entry type is not a ${XML_TAG_GLOBAL_PARAMETER}: ${entry}")
       }
       fileFormatOk <- TestFileFormat(globalParam)
 
       name        <-
-        (globalParam \ "name").headOption.map(_.text) ?~! ("Missing attribute 'name' in entry type globalParameter : " + entry)
+        (globalParam \ "name").headOption.map(_.text) ?~! s"Missing attribute 'name' in entry type globalParameter : ${entry}"
       value       <-
-        (globalParam \ "value").headOption.map(_.text) ?~! ("Missing attribute 'value' in entry type globalParameter : " + entry)
+        (globalParam \ "value").headOption.map(_.text) ?~! s"Missing attribute 'value' in entry type globalParameter : ${entry}"
       description <- (globalParam \ "description").headOption.map(
                        _.text
-                     ) ?~! ("Missing attribute 'description' in entry type globalParameter : " + entry)
+                     ) ?~! s"Missing attribute 'description' in entry type globalParameter : ${entry}"
       provider     = (globalParam \ "provider").headOption.map(x => PropertyProvider(x.text))
       mode         = (globalParam \ "inheritMode").headOption.flatMap(x => InheritMode.parseString(x.text).toOption)
       visibility   = (globalParam \ "visibility").headOption
@@ -896,31 +893,31 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
     for {
       apiAccount     <- {
         if (entry.label == XML_TAG_API_ACCOUNT) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_API_ACCOUNT, entry))
+        else Failure(s"Entry type is not a ${XML_TAG_API_ACCOUNT}: ${entry}")
       }
       fileFormatOk   <- TestFileFormat(apiAccount)
-      id             <- (apiAccount \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type API Account : " + entry)
-      name           <- (apiAccount \ "name").headOption.map(_.text) ?~! ("Missing attribute 'name' in entry type API Account : " + entry)
+      id             <- (apiAccount \ "id").headOption.map(_.text) ?~! (s"Missing attribute 'id' in entry type API Account : ${entry}")
+      name           <- (apiAccount \ "name").headOption.map(_.text) ?~! (s"Missing attribute 'name' in entry type API Account : ${entry}")
       token          <-
-        (apiAccount \ "token").headOption.map(_.text) ?~! ("Missing attribute 'token' in entry type API Account : " + entry)
+        (apiAccount \ "token").headOption.map(_.text) ?~! (s"Missing attribute 'token' in entry type API Account : ${entry}")
       description    <- (apiAccount \ "description").headOption.map(
                           _.text
-                        ) ?~! ("Missing attribute 'description' in entry type API Account : " + entry)
+                        ) ?~! (s"Missing attribute 'description' in entry type API Account : ${entry}")
       isEnabled      <- (apiAccount \ "isEnabled").headOption.flatMap(s =>
                           tryo(s.text.toBoolean)
-                        ) ?~! ("Missing attribute 'isEnabled' in entry type API Account : " + entry)
+                        ) ?~! (s"Missing attribute 'isEnabled' in entry type API Account : ${entry}")
       creationDate   <- (apiAccount \ "creationDate").headOption.flatMap(s =>
                           tryo(dateFormatter.parseDateTime(s.text))
-                        ) ?~! ("Missing attribute 'creationDate' in entry type API Account : " + entry)
+                        ) ?~! (s"Missing attribute 'creationDate' in entry type API Account : ${entry}")
       tokenGenDate   <- (apiAccount \ "tokenGenerationDate").headOption.flatMap(s =>
                           tryo(dateFormatter.parseDateTime(s.text))
-                        ) ?~! ("Missing attribute 'tokenGenerationDate' in entry type API Account : " + entry)
+                        ) ?~! (s"Missing attribute 'tokenGenerationDate' in entry type API Account : ${entry}")
       expirationDate <- (apiAccount \ "expirationDate").headOption match {
                           case None    => Full(None)
                           case Some(s) =>
                             tryo {
                               Some(dateFormatter.parseDateTime(s.text))
-                            } ?~! ("Bad date format for field 'expirationDate' in entry type API Account : " + entry)
+                            } ?~! (s"Bad date format for field 'expirationDate' in entry type API Account : ${entry}")
                         }
       authz          <- (apiAccount \ "authorization").headOption match {
                           case None =>
@@ -971,12 +968,12 @@ class SecretUnserialisationImpl extends SecretUnserialisation {
     for {
       secret       <- {
         if (entry.label == XML_TAG_SECRET) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_SECRET, entry))
+        else Failure(s"Entry type is not a ${XML_TAG_SECRET}: ${entry}")
       }
       fileFormatOk <- TestFileFormat(secret)
-      name         <- (secret \ "name").headOption.map(_.text) ?~! ("Missing attribute 'name' in entry type secret : " + entry)
+      name         <- (secret \ "name").headOption.map(_.text) ?~! s"Missing attribute 'name' in entry type secret : ${entry}"
       description  <-
-        (secret \ "description").headOption.map(_.text) ?~! ("Missing attribute 'description' in entry type secret : " + entry)
+        (secret \ "description").headOption.map(_.text) ?~! s"Missing attribute 'description' in entry type secret : ${entry}"
     } yield {
       Secret(name, "", description)
     }

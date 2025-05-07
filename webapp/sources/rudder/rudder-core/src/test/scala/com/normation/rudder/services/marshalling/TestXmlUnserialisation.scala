@@ -93,7 +93,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
 
       val expected = (TechniqueName(techniqueName), directive, SectionVal(Map(), Map()))
 
-      unserialized mustFullEq (expected)
+      unserialized must beRight(expected)
     }
 
     "be able to correctly unserialize a change request" in {

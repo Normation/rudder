@@ -239,7 +239,7 @@ class CommitAndDeployChangeRequestServiceImpl(
             xmlSerializer.directive.serialise(techniqueName, rootSection, directive)
         }
       }
-      def xmlUnserialize(xml: Node) = xmlUnserializer.directive.unserialise(xml).map(_._2)
+      def xmlUnserialize(xml: Node) = xmlUnserializer.directive.unserialise(xml).map(_._2).toBox
     }
 
     case object CheckGroup extends CheckChanges[NodeGroup] {
