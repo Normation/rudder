@@ -61,7 +61,7 @@ class TestBlockCompliance extends Specification {
       override val componentName: String,
       override val reportsByNode: Map[NodeId, Seq[ReportType]]
   ) extends DummyComponentComplianceByNode {
-    override def allReports: List[ReportType] = reportsByNode.values.flatten.toList
+    override def allReports: List[ReportType] = reportsByNode.values.toList.flatten
     override def compliance: ComplianceLevel  = ComplianceLevel.compute(allReports)
   }
 
