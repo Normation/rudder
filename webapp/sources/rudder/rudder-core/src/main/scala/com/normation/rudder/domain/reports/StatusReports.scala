@@ -514,7 +514,6 @@ sealed trait ComponentStatusReport extends StatusReport with ComponentCompliance
   def withFilteredElement(predicate: ComponentValueStatusReport => Boolean): Option[ComponentStatusReport]
   def componentValues: List[ComponentValueStatusReport]
   def componentValues(v: String): List[ComponentValueStatusReport] = componentValues.filter(_.componentValue == v)
-  def status: ReportType
 }
 
 final case class BlockStatusReport(
