@@ -41,7 +41,7 @@ pub enum Engine {
 
 impl Default for Engine {
     fn default() -> Self {
-        Self::Mustache
+        Self::Minijinja
     }
 }
 
