@@ -162,7 +162,7 @@ trait RuleUnserialisation {
         <isSystem>{rule.isSystem}</isSystem>
       </rule>
    */
-  def unserialise(xml: XNode): Box[Rule]
+  def unserialise(xml: XNode): PureResult[Rule]
 }
 
 /**
@@ -301,7 +301,7 @@ trait GlobalParameterUnserialisation {
        <overridable>{param.overridable}</overridable>
      </globalParameter>
    */
-  def unserialise(xml: XNode): Box[GlobalParameter]
+  def unserialise(xml: XNode): PureResult[GlobalParameter]
 }
 
 /**
