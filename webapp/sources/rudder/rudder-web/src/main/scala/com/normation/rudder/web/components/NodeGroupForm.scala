@@ -59,7 +59,7 @@ import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.popup.CreateCloneGroupPopup
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
 import com.normation.rudder.web.model.*
-import com.normation.zio.*
+import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.LocalSnippet
@@ -207,7 +207,8 @@ class NodeGroupForm(
       dependencyService
         .targetDependencies(target)
         .map(_.rules.toSet.filter(!_.isSystem).map(_.id))
-        .getOrElse(Set.empty[RuleId])
+        .orElseSucceed(Set.empty[RuleId])
+        .runNow
     }
     val (includingGroup, excludingGroup) = {
       ZIO
