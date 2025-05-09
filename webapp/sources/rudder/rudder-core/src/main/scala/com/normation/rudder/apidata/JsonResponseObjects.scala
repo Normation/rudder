@@ -94,7 +94,6 @@ import org.joda.time.DateTime
 import zio.*
 import zio.Tag as _
 import zio.json.*
-import zio.json.DeriveJsonEncoder
 import zio.json.internal.Write
 import zio.syntax.*
 

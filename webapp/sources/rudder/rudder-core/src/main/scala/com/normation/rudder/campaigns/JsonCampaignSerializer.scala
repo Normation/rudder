@@ -38,8 +38,6 @@
 package com.normation.rudder.campaigns
 
 import com.normation.errors.*
-import com.normation.errors.Inconsistency
-import com.normation.errors.IOResult
 import com.normation.utils.DateFormaterService
 import org.joda.time.DateTime
 import zio.ZIO

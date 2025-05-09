@@ -72,13 +72,11 @@ import com.normation.rudder.git.GitPath
 import com.normation.rudder.reports.*
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.marshalling.*
-import com.normation.rudder.services.marshalling.TestFileFormat
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.Control.traverse
 import com.typesafe.config.ConfigValue
 import net.liftweb.common.*
 import net.liftweb.common.Box.*
-import net.liftweb.util.Helpers.tryo
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat

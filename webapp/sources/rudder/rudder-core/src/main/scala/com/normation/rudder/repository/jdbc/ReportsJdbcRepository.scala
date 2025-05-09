@@ -44,7 +44,6 @@ import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie.*
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
-import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.repository.ReportsRepository

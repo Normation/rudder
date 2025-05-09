@@ -40,8 +40,6 @@ package com.normation.rudder.ncf
 import better.files.File
 import cats.implicits.*
 import com.normation.errors.*
-import com.normation.errors.IOResult
-import com.normation.errors.RudderError
 import com.normation.rudder.domain.logger.RuddercLogger
 import com.normation.rudder.hooks.Cmd
 import com.normation.rudder.hooks.CmdResult

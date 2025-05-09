@@ -40,7 +40,6 @@ package com.normation.rudder.inventory
 import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
-import com.normation.inventory.domain.Inventory
 import com.normation.inventory.services.provisioning.*
 import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment

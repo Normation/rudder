@@ -38,10 +38,8 @@
 package com.normation.inventory.ldap.core
 
 import com.normation.errors.*
-import com.normation.errors.RudderError
 import com.normation.inventory.domain.*
 import com.normation.inventory.domain.InetAddressUtils.*
-import com.normation.inventory.domain.NodeTimezone
 import com.normation.inventory.domain.VmType.*
 import com.normation.inventory.ldap.core.InventoryMappingResult.*
 import com.normation.inventory.ldap.core.InventoryMappingRudderError.*

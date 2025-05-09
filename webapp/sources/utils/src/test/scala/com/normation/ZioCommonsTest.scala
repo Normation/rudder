@@ -27,10 +27,7 @@ package com.normation
 import _root_.zio.*
 import _root_.zio.syntax.*
 import com.normation.errors.*
-import com.normation.errors.IOResult
-import com.normation.errors.RudderError
 import com.normation.zio.*
-import com.normation.zio.ZioRuntime
 import net.liftweb.common.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.*

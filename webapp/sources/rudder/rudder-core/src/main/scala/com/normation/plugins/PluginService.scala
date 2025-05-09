@@ -37,8 +37,6 @@
 package com.normation.plugins
 
 import com.normation.errors.*
-import com.normation.plugins.*
-import com.normation.plugins.PluginInstallStatus
 import zio.*
 
 /**

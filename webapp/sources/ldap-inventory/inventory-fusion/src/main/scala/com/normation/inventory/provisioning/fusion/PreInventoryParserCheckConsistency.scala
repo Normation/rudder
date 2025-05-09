@@ -39,7 +39,6 @@ package com.normation.inventory.provisioning
 package fusion
 
 import com.normation.errors.*
-import com.normation.errors.RudderError
 import com.normation.inventory.domain.InventoryError
 import com.normation.inventory.services.provisioning.*
 import com.normation.utils.NodeIdRegex

@@ -46,7 +46,6 @@ import doobie.Meta
 import doobie.Read
 import doobie.Write
 import doobie.implicits.*
-import doobie.implicits.toSqlInterpolator
 import doobie.postgres.implicits.pgEnumString
 import doobie.util.invariant.InvalidEnum
 import zio.Ref
