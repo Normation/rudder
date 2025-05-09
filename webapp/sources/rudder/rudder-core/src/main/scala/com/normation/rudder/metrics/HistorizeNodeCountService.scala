@@ -217,7 +217,7 @@ class WriteNodeCSV(
 ) extends WriteLogService {
 
   val csvFormat: CSVFormat =
-    CSVFormat.DEFAULT.builder().setDelimiter(csvSeparator).setQuoteMode(QuoteMode.ALL).setRecordSeparator("").build()
+    CSVFormat.DEFAULT.builder().setDelimiter(csvSeparator).setQuoteMode(QuoteMode.ALL).setRecordSeparator("").get()
 
   /**
    * We want to write to file node-YYYY-MM with local
