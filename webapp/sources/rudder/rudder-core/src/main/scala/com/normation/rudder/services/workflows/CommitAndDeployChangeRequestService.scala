@@ -213,7 +213,7 @@ class CommitAndDeployChangeRequestServiceImpl(
       def getCurrentValue(rule:  Rule) = roRuleRepository.get(rule.id).toBox
       def compareMethod(initial: Rule, current: Rule) = CheckDivergenceForMerge.compareRules(initial, current)
       def xmlSerialize(rule:     Rule): Box[Node] = Full(xmlSerializer.rule.serialise(rule))
-      def xmlUnserialize(xml:    Node) = xmlUnserializer.rule.unserialise(xml)
+      def xmlUnserialize(xml:    Node) = xmlUnserializer.rule.unserialise(xml).toBox
     }
 
     // For now we only check the Directive, not the SectionSpec and the TechniqueName.
@@ -257,7 +257,7 @@ class CommitAndDeployChangeRequestServiceImpl(
       def compareMethod(initial: GlobalParameter, current: GlobalParameter) =
         CheckDivergenceForMerge.compareGlobalParameter(initial, current)
       def xmlSerialize(param: GlobalParameter): Box[Node] = Full(xmlSerializer.globalParam.serialise(param))
-      def xmlUnserialize(xml: Node) = xmlUnserializer.globalParam.unserialise(xml)
+      def xmlUnserialize(xml: Node) = xmlUnserializer.globalParam.unserialise(xml).toBox
     }
 
     /*
