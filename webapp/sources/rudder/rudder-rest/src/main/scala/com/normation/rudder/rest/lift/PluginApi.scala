@@ -45,7 +45,6 @@ import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.PluginApi as API
-import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RudderJsonRequest.ReqToJson
 import com.normation.rudder.rest.data.JsonPluginsDetails
 import com.normation.rudder.rest.implicits.*
@@ -57,7 +56,6 @@ import zio.json.JsonDecoder
 import zio.json.JsonEncoder
 
 class PluginApi(
-    restExtractorService:  RestExtractorService,
     pluginSettingsService: PluginSettingsService,
     getPluginDetails:      IOResult[JsonPluginsDetails]
 ) extends LiftApiModuleProvider[API] {
@@ -83,9 +81,8 @@ class PluginApi(
   implicit val decoder: JsonDecoder[PluginSettings] = DeriveJsonDecoder.gen[PluginSettings]
 
   object GetPluginSettings extends LiftApiModule0 {
-    val schema: API.GetPluginsSettings.type = API.GetPluginsSettings
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.GetPluginsSettings.type = API.GetPluginsSettings
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                = {
       (for {
         conf <- pluginSettingsService.readPluginSettings()
       } yield {
@@ -96,9 +93,8 @@ class PluginApi(
   }
 
   object UpdatePluginSettings extends LiftApiModule0 {
-    val schema: API.UpdatePluginsSettings.type = API.UpdatePluginsSettings
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.UpdatePluginsSettings.type = API.UpdatePluginsSettings
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                   = {
       import com.normation.errors.*
       ({
         for {

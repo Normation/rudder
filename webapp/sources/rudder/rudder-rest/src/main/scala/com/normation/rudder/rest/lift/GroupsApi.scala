@@ -44,7 +44,6 @@ import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.RenderInheritedProperties
-import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AsyncDeploymentActor
@@ -390,8 +389,7 @@ class GroupApiService14(
     asyncDeploymentAgent: AsyncDeploymentActor,
     workflowLevelService: WorkflowLevelService,
     queryParser:          CmdbQueryParser,
-    queryProcessor:       QueryProcessor,
-    restDataSerializer:   RestDataSerializer
+    queryProcessor:       QueryProcessor
 ) {
 
   private def createChangeRequest(

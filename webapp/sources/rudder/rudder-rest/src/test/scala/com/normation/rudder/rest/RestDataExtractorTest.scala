@@ -49,8 +49,6 @@ import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.*
-import com.normation.utils.StringUuidGeneratorImpl
-import net.liftweb.json.JValue
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
@@ -63,18 +61,6 @@ class RestDataExtractorTest extends Specification {
   val mockTechniques: MockTechniques = MockTechniques(mockGitRepo)
   val mockDirectives = new MockDirectives(mockTechniques)
   val mockRules      = new MockRules()
-  val extract        = new RestExtractorService(
-    mockRules.ruleRepo,
-    mockDirectives.directiveRepo,
-    null,
-    mockTechniques.techniqueRepo,
-    null,
-    null,
-    null,
-    new StringUuidGeneratorImpl(),
-    null
-  )
-  val jparse: String => JValue = net.liftweb.json.parse _
 
   "extract RuleTarget" >> {
     val tests = List(

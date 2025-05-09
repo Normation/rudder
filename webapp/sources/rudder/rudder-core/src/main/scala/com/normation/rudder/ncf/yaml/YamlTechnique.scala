@@ -305,5 +305,4 @@ class YamlTechniqueSerializer(resourceFileService: ResourceFileService) {
       resources <- resourceFileService.getResources(t)
     } yield t.copy(resources = resources)
   }
-
 }
