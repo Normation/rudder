@@ -45,6 +45,11 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
+import com.normation.errors.BoxToEither
+import com.normation.errors.Inconsistency
+import com.normation.errors.OptionToPureResult
+import com.normation.errors.PureResult
+import com.normation.errors.Unexpected
 import com.normation.eventlog.EventActor
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api.*
@@ -84,9 +89,11 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.Control.traverse
-import net.liftweb.common.*
+import net.liftweb.common.Box
 import net.liftweb.common.Box.*
 import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
 import net.liftweb.util.Helpers.tryo
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.format.ISODateTimeFormat
@@ -110,14 +117,14 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
 
   override def parseSectionVal(xml: NodeSeq): Box[SectionVal] = {
     def recValParseSection(elt: XNode): Box[(String, SectionVal)] = {
-      if (elt.label != "section") Failure("Bad XML, awaiting a <section> and get: " + elt)
+      if (elt.label != "section") Failure(s"Bad XML, expected a <section> but got: ${elt}")
       else {
         for {
-          name     <- (elt \ "@name").headOption ?~! ("Missing required attribute 'name' for <section>: " + elt)
+          name     <- (elt \ "@name").headOption ?~! s"Missing required attribute 'name' for <section>: ${elt}"
           // Seq( (var name , var value ) )
           vars     <- traverse(elt \ "var") { xmlVar =>
                         for {
-                          n <- (xmlVar \ "@name").headOption ?~! ("Missing required attribute 'name' for <var>: " + xmlVar)
+                          n <- (xmlVar \ "@name").headOption ?~! s"Missing required attribute 'name' for <var>: ${xmlVar}"
                         } yield {
                           (n.text, xmlVar.text)
                         }
@@ -133,9 +140,9 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
 
     for {
       root            <- (xml \ "section").toList match {
-                           case Nil         => Failure("Missing required tag <section> in: " + xml)
+                           case Nil         => Failure(s"Missing required tag <section> in: ${xml}")
                            case node :: Nil => Full(node)
-                           case x           => Failure("Found several <section> tag in XML, but only one root section is allowed: " + xml)
+                           case x           => Failure(s"Found several <section> tag in XML, but only one root section is allowed: ${xml}")
                          }
       (_, sectionVal) <- recValParseSection(root)
     } yield {
@@ -143,41 +150,39 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
     }
   }
 
-  override def unserialise(xml: XNode): Box[(TechniqueName, Directive, SectionVal)] = {
+  override def unserialise(xml: XNode): PureResult[(TechniqueName, Directive, SectionVal)] = {
+
+    import XmlUtils.*
+    implicit val entryType: XmlEntryType = XmlEntryType(XML_TAG_DIRECTIVE)
+
     for {
       directive        <- {
-        if (xml.label == XML_TAG_DIRECTIVE) Full(xml)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_DIRECTIVE, xml))
+        if (xml.label == XML_TAG_DIRECTIVE) Right(xml)
+        else Left(Unexpected(s"Entry type is not a ${XML_TAG_DIRECTIVE}: ${xml}"))
       }
-      fileFormatOk     <- TestFileFormat(directive)
-      sid              <- (directive \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type directive : " + xml)
-      id               <- DirectiveId.parse(sid).toBox
-      ptName           <- (directive \ "techniqueName").headOption.map(
-                            _.text
-                          ) ?~! ("Missing attribute 'techniqueName' in entry type directive : " + xml)
-      name             <- (directive \ "displayName").headOption.map(
-                            _.text.trim
-                          ) ?~! ("Missing attribute 'displayName' in entry type directive : " + xml)
-      techniqueVersion <- (directive \ "techniqueVersion").headOption.flatMap(x =>
-                            TechniqueVersion.parse(x.text).toBox
-                          ) ?~! ("Missing attribute 'techniqueVersion' in entry type directive : " + xml)
-      sectionVal       <- parseSectionVal(directive)
-      shortDescription <- (directive \ "shortDescription").headOption.map(
-                            _.text
-                          ) ?~! ("Missing attribute 'shortDescription' in entry type directive : " + xml)
-      longDescription  <- (directive \ "longDescription").headOption.map(
-                            _.text
-                          ) ?~! ("Missing attribute 'longDescription' in entry type directive : " + xml)
-      isEnabled        <- (directive \ "isEnabled").headOption.flatMap(s =>
-                            tryo(s.text.toBoolean)
-                          ) ?~! ("Missing attribute 'isEnabled' in entry type directive : " + xml)
-      priority         <- (directive \ "priority").headOption.flatMap(s =>
-                            tryo(s.text.toInt)
-                          ) ?~! ("Missing or bad attribute 'priority' in entry type directive : " + xml)
-      isSystem         <- (directive \ "isSystem").headOption.flatMap(s =>
-                            tryo(s.text.toBoolean)
-                          ) ?~! ("Missing attribute 'isSystem' in entry type directive : " + xml)
-      policyMode        = (directive \ "policyMode").headOption.flatMap(s => PolicyMode.parse(s.text).toBox)
+      _                <- TestFileFormat.check(directive)
+      sid              <- mapAttributePure(directive, "id", _.text)
+      id               <- DirectiveId.parse(sid) match {
+                            case Left(err)  => Left(Unexpected(err))
+                            case Right(res) => Right(res)
+                          }
+      ptName           <- mapAttributePure(directive, "techniqueName", _.text)
+      name             <- mapAttributePure(directive, "displayName", _.text.trim)
+      techniqueVersion <- idAttributePure(directive, "techniqueVersion").flatMap(x => {
+                            TechniqueVersion.parse(x.text) match {
+                              case Right(res) => Right(res)
+                              case Left(err)  => Left(Unexpected(err))
+                            }
+                          })
+      sectionVal       <- parseSectionVal(directive).toPureResult
+      shortDescription <- mapAttributePure(directive, "shortDescription", _.text)
+      longDescription  <- mapAttributePure(directive, "longDescription", _.text)
+      isEnabled        <- flatMapAttributePure(directive, "isEnabled", s => s.text.toBooleanOption)
+      priority         <- (directive \ "priority").headOption
+                            .flatMap(s => s.text.toIntOption)
+                            .notOptionalPure(s"Missing or bad attribute 'priority' in entry type directive : ${xml}")
+      isSystem         <- flatMapAttributePure(directive, "isSystem", s => s.text.toBooleanOption)
+      policyMode        = (directive \ "policyMode").headOption.flatMap(s => PolicyMode.parse(s.text).toOption)
       tags              = TagsXml.getTags(directive \ "tags")
     } yield {
       (
@@ -203,23 +208,21 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
 
 class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisation {
 
-  def unserialise(entry: XNode): Box[NodeGroupCategory] = {
+  import XmlUtils.*
+  implicit val entryType: XmlEntryType = XmlEntryType("groupLibraryCategory")
+
+  def unserialise(entry: XNode): PureResult[NodeGroupCategory] = {
+
     for {
-      category     <- {
-        if (entry.label == XML_TAG_NODE_GROUP_CATEGORY) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_NODE_GROUP_CATEGORY, entry))
+      category    <- {
+        if (entry.label == XML_TAG_NODE_GROUP_CATEGORY) Right(entry)
+        else Left(Unexpected(s"Entry type is not a ${XML_TAG_NODE_GROUP_CATEGORY}: ${entry}"))
       }
-      fileFormatOk <- TestFileFormat(category)
-      id           <- (category \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type groupLibraryCategory : " + entry)
-      name         <- (category \ "displayName").headOption.map(
-                        _.text.trim
-                      ) ?~! ("Missing attribute 'displayName' in entry type groupLibraryCategory : " + entry)
-      description  <- (category \ "description").headOption.map(
-                        _.text
-                      ) ?~! ("Missing attribute 'description' in entry type groupLibraryCategory : " + entry)
-      isSystem     <- (category \ "isSystem").headOption.flatMap(s =>
-                        tryo(s.text.toBoolean)
-                      ) ?~! ("Missing attribute 'isSystem' in entry type groupLibraryCategory : " + entry)
+      _           <- TestFileFormat.check(category)
+      id          <- mapAttributePure(category, "id", _.text)
+      name        <- mapAttributePure(category, "dispayName", _.text.trim)
+      description <- mapAttributePure(category, "description", _.text)
+      isSystem    <- flatMapAttributePure(category, "isSystem", _.text.toBooleanOption)
     } yield {
       NodeGroupCategory(
         id = NodeGroupCategoryId(id),
@@ -236,60 +239,58 @@ class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisat
 class NodeGroupUnserialisationImpl(
     cmdbQueryParser: CmdbQueryParser
 ) extends NodeGroupUnserialisation {
-  def unserialise(entry: XNode): Box[NodeGroup] = {
+
+  import XmlUtils.*
+  implicit val entryType: XmlEntryType = XmlEntryType(XML_TAG_NODE_GROUP)
+
+  def unserialise(entry: XNode): PureResult[NodeGroup] = {
     for {
-      group        <- {
-        if (entry.label == XML_TAG_NODE_GROUP) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_NODE_GROUP, entry))
+      group       <- {
+        if (entry.label == XML_TAG_NODE_GROUP) Right(entry)
+        else Left(Unexpected(s"Entry type is not a ${XML_TAG_NODE_GROUP}: ${entry}"))
       }
-      fileFormatOk <- TestFileFormat(group)
-      sid          <- (group \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type nodeGroup : " + entry)
-      id           <- NodeGroupId.parse(sid).toBox
-      name         <- (group \ "displayName").headOption.map(
-                        _.text.trim
-                      ) ?~! ("Missing attribute 'displayName' in entry type nodeGroup : " + entry)
-      description  <-
-        (group \ "description").headOption.map(_.text) ?~! ("Missing attribute 'description' in entry type nodeGroup : " + entry)
-      query        <- (group \ "query").headOption match {
-                        case None    => Full(None)
-                        case Some(s) =>
-                          if (s.text.isEmpty) Full(None)
-                          else cmdbQueryParser(s.text).map(Some(_))
-                      }
-      isDynamic    <- (group \ "isDynamic").headOption.flatMap(s =>
-                        tryo(s.text.toBoolean)
-                      ) ?~! ("Missing attribute 'isDynamic' in entry type nodeGroup : " + entry)
-      serverList    = if (isDynamic) {
-                        Set[NodeId]()
-                      } else {
-                        (group \ "nodeIds" \ "id").map(n => NodeId(n.text)).toSet
-                      }
-      isEnabled    <- (group \ "isEnabled").headOption.flatMap(s =>
-                        tryo(s.text.toBoolean)
-                      ) ?~! ("Missing attribute 'isEnabled' in entry type nodeGroup : " + entry)
-      isSystem     <- (group \ "isSystem").headOption.flatMap(s =>
-                        tryo(s.text.toBoolean)
-                      ) ?~! ("Missing attribute 'isSystem' in entry type nodeGroup : " + entry)
-      properties   <- traverse((group \ "properties" \ "property").toList) {
+      _           <- TestFileFormat.check(group)
+      sid         <- mapAttributePure(group, "id", _.text)
+      id          <- NodeGroupId.parse(sid) match {
+                       case Right(res) => Right(res)
+                       case Left(err)  => Left(Inconsistency(err))
+                     }
+      name        <- mapAttributePure(group, "displayName", _.text.trim)
+      description <- mapAttributePure(group, "description", _.text)
+      query       <- (group \ "query").headOption match {
+                       case None    => Right(None)
+                       case Some(s) =>
+                         if (s.text.isEmpty) Right(None)
+                         else cmdbQueryParser(s.text).map(Some(_)).toPureResult
+                     }
+      isDynamic   <- flatMapAttributePure(group, "isDynamic", s => s.text.toBooleanOption)
+      serverList   = if (isDynamic) {
+                       Set[NodeId]()
+                     } else {
+                       (group \ "nodeIds" \ "id").map(n => NodeId(n.text)).toSet
+                     }
+      isEnabled   <- flatMapAttributePure(group, "isEnabled", s => s.text.toBooleanOption)
+      isSystem    <- flatMapAttributePure(group, "isSystem", s => s.text.toBooleanOption)
+      properties  <- traverse((group \ "properties" \ "property").toList) {
                         // format: off
                         case <property>{p @ _*}</property> =>
                         // format: on
-                          val name = (p \\ "name").text.trim
-                          if (name.trim.isEmpty) {
-                            Failure(s"Found unexpected xml under <properties> tag (name is blank): ${p}")
-                          } else {
-                            GroupProperty
-                              .parse(
-                                (p \\ "name").text.trim,
-                                ParseRev((p \\ "revision").text.trim),
-                                StringEscapeUtils.unescapeXml((p \\ "value").text.trim),
-                                (p \\ "inheritMode").headOption.flatMap(p => InheritMode.parseString(p.text.trim).toOption),
-                                (p \\ "provider").headOption.map(p => PropertyProvider(p.text.trim))
-                              )
-                              .toBox
-                          }
-                        case xml                           => Failure(s"Found unexpected xml under <properties> tag: ${xml}")
-                      }
+                         val name = (p \\ "name").text.trim
+                         if (name.trim.isEmpty) {
+                           Failure(s"Found unexpected xml under <properties> tag (name is blank): ${p}")
+                         } else {
+                           GroupProperty
+                             .parse(
+                               (p \\ "name").text.trim,
+                               ParseRev((p \\ "revision").text.trim),
+                               StringEscapeUtils.unescapeXml((p \\ "value").text.trim),
+                               (p \\ "inheritMode").headOption.flatMap(p => InheritMode.parseString(p.text.trim).toOption),
+                               (p \\ "provider").headOption.map(p => PropertyProvider(p.text.trim))
+                             )
+                             .toBox
+                         }
+                       case xml                           => Failure(s"Found unexpected xml under <properties> tag: ${xml}")
+                     }.toPureResult
     } yield {
       NodeGroup(
         id = id,
@@ -307,33 +308,33 @@ class NodeGroupUnserialisationImpl(
 }
 
 class RuleUnserialisationImpl extends RuleUnserialisation {
-  def unserialise(entry: XNode): Box[Rule] = {
+
+  import XmlUtils.*
+  implicit val entryType: XmlEntryType = XmlEntryType(XML_TAG_RULE)
+
+  def unserialise(entry: XNode): PureResult[Rule] = {
     for {
       rule             <- {
-        if (entry.label == XML_TAG_RULE) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_RULE, entry))
+        if (entry.label == XML_TAG_RULE) Right(entry)
+        else Left(Unexpected(s"Entry type is not a ${XML_TAG_RULE}: ${entry}"))
       }
-      fileFormatOk     <- TestFileFormat(rule)
-      sid              <- (rule \ "id").headOption.map(_.text) ?~!
-                          ("Missing attribute 'id' in entry type rule: " + entry)
-      id               <- RuleId.parse(sid).toBox
-      category         <- (rule \ "category").headOption.map(n => RuleCategoryId(n.text)) ?~!
-                          ("Missing attribute 'category' in entry type rule: " + entry)
-      name             <- (rule \ "displayName").headOption.map(_.text.trim) ?~!
-                          ("Missing attribute 'displayName' in entry type rule: " + entry)
+      _                <- TestFileFormat.check(rule)
+      sid              <- mapAttributePure(rule, "id", _.text)
+      id               <- RuleId.parse(sid) match {
+                            case Right(res) => Right(res)
+                            case Left(err)  => Left(Inconsistency(err))
+                          }
+      category         <- mapAttributePure(rule, "category", n => RuleCategoryId(n.text))
+      name             <- mapAttributePure(rule, "displayName", _.text.trim)
       revision          = ParseRev((rule \ "revision").headOption.map(_.text.trim))
-      shortDescription <- (rule \ "shortDescription").headOption.map(_.text) ?~!
-                          ("Missing attribute 'shortDescription' in entry type rule: " + entry)
-      longDescription  <- (rule \ "longDescription").headOption.map(_.text) ?~!
-                          ("Missing attribute 'longDescription' in entry type rule: " + entry)
-      isEnabled        <- (rule \ "isEnabled").headOption.flatMap(s => tryo(s.text.toBoolean)) ?~!
-                          ("Missing attribute 'isEnabled' in entry type rule: " + entry)
-      isSystem         <- (rule \ "isSystem").headOption.flatMap(s => tryo(s.text.toBoolean)) ?~!
-                          ("Missing attribute 'isSystem' in entry type rule: " + entry)
-      targets          <- traverse((rule \ "targets" \ "target")) { t =>
+      shortDescription <- mapAttributePure(rule, "shortDescription", _.text)
+      longDescription  <- mapAttributePure(rule, "longDescription", _.text)
+      isEnabled        <- flatMapAttributePure(rule, "isEnabled", s => s.text.toBooleanOption)
+      isSystem         <- flatMapAttributePure(rule, "isSystem", s => s.text.toBooleanOption)
+      targets          <- (traverse((rule \ "targets" \ "target")) { t =>
                             RuleTarget.unser(t.text)
                           } ?~!
-                          ("Invalid attribute in 'target' entry: " + entry)
+                          (s"Invalid attribute in 'target' entry: ${entry}")).toPureResult
       directiveIds      = (rule \ "directiveIds" \ "id").map { n =>
                             DirectiveId(DirectiveUid(n.text), ParseRev((n \ "@revision").text))
                           }.toSet
@@ -360,21 +361,21 @@ class RuleCategoryUnserialisationImpl extends RuleCategoryUnserialisation {
 
   def unserialise(entry: XNode): Box[RuleCategory] = {
     for {
-      category     <- {
+      category    <- {
         if (entry.label == XML_TAG_RULE_CATEGORY) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_RULE_CATEGORY, entry))
+        else Failure(s"Entry type is not a ${XML_TAG_RULE_CATEGORY}: ${entry}")
       }
-      fileFormatOk <- TestFileFormat(category)
-      id           <- (category \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type groupLibraryCategory : " + entry)
-      name         <- (category \ "displayName").headOption.map(
-                        _.text.trim
-                      ) ?~! ("Missing attribute 'displayName' in entry type groupLibraryCategory : " + entry)
-      description  <- (category \ "description").headOption.map(
-                        _.text
-                      ) ?~! ("Missing attribute 'description' in entry type groupLibraryCategory : " + entry)
-      isSystem     <- (category \ "isSystem").headOption.flatMap(s =>
-                        tryo(s.text.toBoolean)
-                      ) ?~! ("Missing attribute 'isSystem' in entry type groupLibraryCategory : " + entry)
+      _           <- TestFileFormat(category)
+      id          <- (category \ "id").headOption.map(_.text) ?~! s"Missing attribute 'id' in entry type groupLibraryCategory : ${entry}"
+      name        <- (category \ "displayName").headOption.map(
+                       _.text.trim
+                     ) ?~! s"Missing attribute 'displayName' in entry type groupLibraryCategory : ${entry}"
+      description <- (category \ "description").headOption.map(
+                       _.text
+                     ) ?~! s"Missing attribute 'description' in entry type groupLibraryCategory : ${entry}"
+      isSystem    <- (category \ "isSystem").headOption.flatMap(s =>
+                       tryo(s.text.toBoolean)
+                     ) ?~! s"Missing attribute 'isSystem' in entry type groupLibraryCategory : ${entry}"
     } yield {
       RuleCategory(
         id = RuleCategoryId(id),
@@ -391,21 +392,21 @@ class ActiveTechniqueCategoryUnserialisationImpl extends ActiveTechniqueCategory
 
   def unserialise(entry: XNode): Box[ActiveTechniqueCategory] = {
     for {
-      uptc         <- {
+      uptc        <- {
         if (entry.label == XML_TAG_ACTIVE_TECHNIQUE_CATEGORY) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_ACTIVE_TECHNIQUE_CATEGORY, entry))
+        else Failure(s"Entry type is not a ${XML_TAG_ACTIVE_TECHNIQUE_CATEGORY}: ${entry}")
       }
-      fileFormatOk <- TestFileFormat(uptc)
-      id           <- (uptc \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type policyLibraryCategory : " + entry)
-      name         <- (uptc \ "displayName").headOption.map(
-                        _.text
-                      ) ?~! ("Missing attribute 'displayName' in entry type policyLibraryCategory : " + entry)
-      description  <- (uptc \ "description").headOption.map(
-                        _.text
-                      ) ?~! ("Missing attribute 'description' in entry type policyLibraryCategory : " + entry)
-      isSystem     <- (uptc \ "isSystem").headOption.flatMap(s =>
-                        tryo(s.text.toBoolean)
-                      ) ?~! ("Missing attribute 'isSystem' in entry type policyLibraryCategory : " + entry)
+      _           <- TestFileFormat(uptc)
+      id          <- (uptc \ "id").headOption.map(_.text) ?~! s"Missing attribute 'id' in entry type policyLibraryCategory : ${entry}"
+      name        <- (uptc \ "displayName").headOption.map(
+                       _.text
+                     ) ?~! s"Missing attribute 'displayName' in entry type policyLibraryCategory : ${entry}"
+      description <- (uptc \ "description").headOption.map(
+                       _.text
+                     ) ?~! s"Missing attribute 'description' in entry type policyLibraryCategory : ${entry}"
+      isSystem    <- (uptc \ "isSystem").headOption.flatMap(s =>
+                       tryo(s.text.toBoolean)
+                     ) ?~! s"Missing attribute 'isSystem' in entry type policyLibraryCategory : ${entry}"
     } yield {
       ActiveTechniqueCategory(
         id = ActiveTechniqueCategoryId(id),
@@ -428,15 +429,15 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
     for {
       activeTechnique  <- {
         if (entry.label == XML_TAG_ACTIVE_TECHNIQUE) Full(entry)
-        else Failure("Entry type is not a <%s>: ".format(XML_TAG_ACTIVE_TECHNIQUE, entry))
+        else Failure(s"Entry type is not a ${XML_TAG_ACTIVE_TECHNIQUE}: ${entry}")
       }
-      fileFormatOk     <- TestFileFormat(activeTechnique)
+      _                <- TestFileFormat(activeTechnique)
       id               <- (activeTechnique \ "id").headOption.map(
                             _.text
-                          ) ?~! ("Missing attribute 'id' in entry type policyLibraryTemplate : " + entry)
+                          ) ?~! (s"Missing attribute 'id' in entry type policyLibraryTemplate : ${entry}")
       ptName           <- (activeTechnique \ "techniqueName").headOption.map(
                             _.text
-                          ) ?~! ("Missing attribute 'displayName' in entry type policyLibraryTemplate : " + entry)
+                          ) ?~! (s"Missing attribute 'displayName' in entry type policyLibraryTemplate : ${entry}")
       policyTypes       = (activeTechnique \ "policyTypes").headOption
                             .flatMap(s => s.text.fromJson[PolicyTypes].toBox)
                             .getOrElse(
@@ -445,17 +446,15 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
                             )
       isEnabled        <- (activeTechnique \ "isEnabled").headOption.flatMap(s =>
                             tryo(s.text.toBoolean)
-                          ) ?~! ("Missing attribute 'isEnabled' in entry type policyLibraryTemplate : " + entry)
+                          ) ?~! (s"Missing attribute 'isEnabled' in entry type policyLibraryTemplate : ${entry}")
       acceptationDates <- traverse(activeTechnique \ "versions" \ "version") { version =>
                             for {
                               ptVersionName   <-
                                 version
                                   .attribute("name")
-                                  .map(_.text) ?~! "Missing attribute 'name' for acceptation date in PT '%s' (%s): '%s'".format(
-                                  ptName,
-                                  id,
-                                  version
-                                )
+                                  .map(
+                                    _.text
+                                  ) ?~! s"Missing attribute 'name' for acceptation date in PT '${ptName}' (${id}): '${version}'"
                               ptVersion       <- TechniqueVersion
                                                    .parse(ptVersionName)
                                                    .toBox ?~! s"Error when trying to parse '${ptVersionName}' as a technique version."
@@ -468,7 +467,7 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
         val map = acceptationDates.toMap
         if (map.size != acceptationDates.size) {
           Failure(
-            "There exists a duplicate polity template version in the acceptation date map: " + acceptationDates.mkString("; ")
+            s"There exists a duplicate polity template version in the acceptation date map: ${acceptationDates.mkString("; ")}"
           )
         } else Full(map)
       }
@@ -488,23 +487,25 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
 class DeploymentStatusUnserialisationImpl extends DeploymentStatusUnserialisation {
   def unserialise(entry: XNode): Box[CurrentDeploymentStatus] = {
     for {
-      depStatus    <- {
+      depStatus <- {
         if (entry.label == XML_TAG_DEPLOYMENT_STATUS) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_DEPLOYMENT_STATUS, entry))
+        else Failure(s"Entry type is not a ${XML_TAG_DEPLOYMENT_STATUS}: ${entry}")
       }
-      fileFormatOk <- TestFileFormat(depStatus)
-      id           <- (depStatus \ "id").headOption.flatMap(s =>
-                        tryo(s.text.toLong)
-                      ) ?~! ("Missing attribute 'id' in entry type deploymentStatus : " + entry)
-      status       <-
-        (depStatus \ "status").headOption.map(_.text) ?~! ("Missing attribute 'status' in entry type deploymentStatus : " + entry)
+      _         <- TestFileFormat(depStatus)
+      id        <- (depStatus \ "id").headOption.flatMap(s =>
+                     tryo(s.text.toLong)
+                   ) ?~! (s"Missing attribute 'id' in entry type deploymentStatus : ${entry}")
+      status    <-
+        (depStatus \ "status").headOption.map(
+          _.text
+        ) ?~! (s"Missing attribute 'status' in entry type deploymentStatus : ${entry}")
 
       started      <- (depStatus \ "started").headOption.flatMap(s =>
                         tryo(ISODateTimeFormat.dateTimeParser.parseDateTime(s.text))
-                      ) ?~! ("Missing or bad attribute 'started' in entry type deploymentStatus : " + entry)
+                      ) ?~! (s"Missing or bad attribute 'started' in entry type deploymentStatus : ${entry}")
       ended        <- (depStatus \ "ended").headOption.flatMap(s =>
                         tryo(ISODateTimeFormat.dateTimeParser.parseDateTime(s.text))
-                      ) ?~! ("Missing or bad attribute 'ended' in entry type deploymentStatus : " + entry)
+                      ) ?~! (s"Missing or bad attribute 'ended' in entry type deploymentStatus : ${entry}")
       errorMessage <- (depStatus \ "errorMessage").headOption match {
                         case None    => Full(None)
                         case Some(s) =>
@@ -522,7 +523,7 @@ class DeploymentStatusUnserialisationImpl extends DeploymentStatusUnserialisatio
 }
 
 /**
- * That trait allow to unserialise change request changes from an XML file.
+ * That trait allows to unserialise change request changes from an XML file.
  *
  */
 class ChangeRequestChangesUnserialisationImpl(
@@ -533,86 +534,130 @@ class ChangeRequestChangesUnserialisationImpl(
     techRepo:                TechniqueRepository,
     sectionSpecUnserialiser: SectionSpecParser
 ) extends ChangeRequestChangesUnserialisation with Loggable {
-  def unserialise(xml: XNode): Box[
+
+  def unserialise(xml: XNode): PureResult[
     (
-        Box[Map[DirectiveId, DirectiveChanges]],
+        Map[DirectiveId, DirectiveChanges],
         Map[NodeGroupId, NodeGroupChanges],
         Map[RuleId, RuleChanges],
         Map[String, GlobalParameterChanges]
     )
   ] = {
-    def unserialiseNodeGroupChange(changeRequest: XNode): Box[Map[NodeGroupId, NodeGroupChanges]] = {
-      (for {
-        groupsNode <- (changeRequest \ "groups").headOption ?~! s"Missing child 'groups' in entry type changeRequest : ${xml}"
+
+    def unserialiseNodeGroupChange(changeRequest: XNode): PureResult[Map[NodeGroupId, NodeGroupChanges]] = {
+
+      import XmlUtils.*
+      implicit val entryType: XmlEntryType = XmlEntryType("changeRequest group changes")
+
+      for {
+        groupsNode <-
+          (changeRequest \ "groups").headOption.notOptionalPure(s"Missing child 'groups' in entry type changeRequest : ${xml}")
+
       } yield {
         (groupsNode \ "group").iterator.flatMap { group =>
-          for {
-            sid          <- group.attribute("id").map(id => id.text) ?~!
-                            s"Missing attribute 'id' in entry type changeRequest group changes  : ${group}"
-            nodeGroupId  <- NodeGroupId.parse(sid).toBox
-            initialNode  <- (group \ "initialState").headOption
+          val res = (for {
+
+            sid          <- getPureAttribute(group.attribute("id").map(id => id.text), "id", group)
+            nodeGroupId  <- NodeGroupId.parse(sid) match {
+                              case Right(res) => Right(res)
+                              case Left(_)    =>
+                                Left(Inconsistency(missingErrMsg("id", entryType, group)))
+                            }
+            initialNode  <- idAttributePure(group, "initialState")
             initialState <- (initialNode \ "nodeGroup").headOption match {
                               case Some(initialState) =>
                                 nodeGroupUnserialiser.unserialise(initialState) match {
-                                  case Full(group) => Full(Some(group))
-                                  case eb: EmptyBox => eb ?~! "could not unserialize group"
+                                  case Right(group) => Right(Some(group))
+                                  case Left(_)      => Left(Inconsistency("could not unserialize group"))
                                 }
-                              case None               => Full(None)
+                              case None               => Left(Inconsistency("TODO"))
+                            }
+            changeNode   <- getPureAttributeTwo(group, "firstChange", "change")
+            actor        <- mapAttributePureRec(changeNode, "actor", group, actor => EventActor(actor.text))
+            date         <- mapAttributePureRec(
+                              changeNode,
+                              "date",
+                              group,
+                              date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text)
+                            )
+            reason        = (changeNode \\ "reason").headOption.map(_.text)
+            diff         <- flatMapAttributePureRec(changeNode, "diff", group, _.attribute("action").headOption.map(_.text))
+            diffGroup    <- idAttributePureRec(changeNode, "nodeGroup", group)
+            changeGroup  <- nodeGroupUnserialiser.unserialise(diffGroup)
+            change       <- diff match {
+                              case "add"      => Right(AddNodeGroupDiff(changeGroup))
+                              case "delete"   => Right(DeleteNodeGroupDiff(changeGroup))
+                              case "modifyTo" => Right(ModifyToNodeGroupDiff(changeGroup))
+                              case _          => Left(Unexpected("should not happen"))
                             }
 
-            changeNode  <- (group \ "firstChange" \ "change").headOption
-            actor       <- (changeNode \\ "actor").headOption.map(actor => EventActor(actor.text))
-            date        <- (changeNode \\ "date").headOption.map(date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text))
-            reason       = (changeNode \\ "reason").headOption.map(_.text)
-            diff        <- (changeNode \\ "diff").headOption.flatMap(_.attribute("action").headOption.map(_.text))
-            diffGroup   <- (changeNode \\ "nodeGroup").headOption
-            changeGroup <- nodeGroupUnserialiser.unserialise(diffGroup)
-            change      <- diff match {
-                             case "add"      => Full(AddNodeGroupDiff(changeGroup))
-                             case "delete"   => Full(DeleteNodeGroupDiff(changeGroup))
-                             case "modifyTo" => Full(ModifyToNodeGroupDiff(changeGroup))
-                             case _          => Failure("should not happen")
-                           }
           } yield {
             val groupChange = NodeGroupChange(initialState, NodeGroupChangeItem(actor, date, reason, change), Seq())
 
             (nodeGroupId -> NodeGroupChanges(groupChange, Seq()))
+          })
+
+          // Compatibility : the errors are not included in the final result and will only be logged
+          res match {
+            case Left(err)  =>
+              logger.error(err.fullMsg)
+              None
+            case Right(res) => Some(res)
           }
+
         }.toMap
-      })
+      }
     }
 
-    def unserialiseDirectiveChange(changeRequest: XNode): Box[Map[DirectiveId, DirectiveChanges]] = {
+    def unserialiseDirectiveChange(changeRequest: XNode): PureResult[Map[DirectiveId, DirectiveChanges]] = {
+
+      import XmlUtils.*
+      implicit val entryType: XmlEntryType = XmlEntryType("changeRequest directive changes")
+
       (for {
-        directivesNode <-
-          (changeRequest \ "directives").headOption ?~! s"Missing child 'directives' in entry type changeRequest : ${xml}"
+        directivesNode <- (changeRequest \ "directives").headOption.notOptionalPure(
+                            s"Missing child 'directives' in entry type changeRequest : ${xml}"
+                          )
       } yield {
         (directivesNode \ "directive").iterator.flatMap { directive =>
-          for {
-            directiveId  <- directive.attribute("id").flatMap(id => DirectiveId.parse(id.text).toBox) ?~!
-                            s"Missing attribute 'id' in entry type changeRequest directive changes  : ${directive}"
-            initialNode  <- (directive \ "initialState").headOption
-            initialState <- (initialNode \\ "directive").headOption match {
-                              case Some(initialState) =>
-                                directiveUnserialiser.unserialise(initialState) match {
-                                  case Full((techName, directive, _)) => Full(Some((techName, directive)))
-                                  case eb: EmptyBox => eb ?~! "could not unserialize directive"
-                                }
-                              case None               => Full(None)
-                            }
+          val res = (for {
 
-            changeNode    <- (directive \ "firstChange" \ "change").headOption
-            actor         <- (changeNode \\ "actor").headOption.map(actor => EventActor(actor.text))
-            date          <- (changeNode \\ "date").headOption.map(date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text))
-            reason         = (changeNode \\ "reason").headOption.map(_.text)
-            diff          <- (changeNode \\ "diff").headOption.flatMap(_.attribute("action").headOption.map(_.text))
-            diffDirective <- (changeNode \\ "directive").headOption
-
-            (techniqueName, changeDirective, _) <- directiveUnserialiser.unserialise(diffDirective)
-            change                              <- {
+            directiveId    <-
+              getPureAttribute(directive.attribute("id"), "id", directive).flatMap { id =>
+                DirectiveId.parse(id.text) match {
+                  case Right(res) => Right(res)
+                  case Left(_)    =>
+                    Left(Inconsistency(missingErrMsg("id", entryType, directive)))
+                }
+              }
+            initialNode    <- idAttributePure(directive, "initialState")
+            initialState   <- (initialNode \\ "directive").headOption match {
+                                case Some(initialState) =>
+                                  directiveUnserialiser.unserialise(initialState) match {
+                                    case Right((techniqueName, directive, _)) => Right(Some((techniqueName, directive)))
+                                    case Left(_)                              => Left(Inconsistency("could not unserialize directive"))
+                                  }
+                                case None               => Left(Inconsistency("TODO"))
+                              }
+            changeNode     <- getPureAttributeTwo(directive, "firstChange", "change")
+            actor          <- mapAttributePureRec(changeNode, "actor", directive, actor => EventActor(actor.text))
+            date           <- mapAttributePureRec(
+                                changeNode,
+                                "date",
+                                directive,
+                                date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text)
+                              )
+            reason          = (changeNode \\ "reason").headOption.map(_.text)
+            diff           <-
+              flatMapAttributePureRec(changeNode, "diff", directive, _.attribute("action").headOption.map(_.text))
+            diffDirective  <- idAttributePureRec(changeNode, "directive", directive)
+            directive      <- directiveUnserialiser.unserialise(diffDirective)
+            techniqueName   = directive._1
+            changeDirective = directive._2
+            change         <- {
               diff match {
-                case "add"      => Full(AddDirectiveDiff(techniqueName, changeDirective))
-                case "delete"   => Full(DeleteDirectiveDiff(techniqueName, changeDirective))
+                case "add"      => Right(AddDirectiveDiff(techniqueName, changeDirective))
+                case "delete"   => Right(DeleteDirectiveDiff(techniqueName, changeDirective))
                 case "modifyTo" =>
                   (changeNode \\ "rootSection").headOption match {
                     case Some(rsXml) =>
@@ -620,12 +665,11 @@ class ChangeRequestChangesUnserialisationImpl(
                       sectionSpecUnserialiser
                         .parseSectionsInPolicy(rsXml, techId, techniqueName.value)
                         .map(rootSection => ModifyToDirectiveDiff(techniqueName, changeDirective, Some(rootSection)))
-                        .toBox
-                    case None        => Failure(s"Could not find rootSection node in ${changeNode}")
+                    case None        => Left(Unexpected(s"Could not find rootSection node in ${changeNode}"))
 
                   }
 
-                case _ => Failure("should not happen")
+                case _ => Left(Inconsistency("should not happen"))
               }
 
             }
@@ -641,107 +685,161 @@ class ChangeRequestChangesUnserialisationImpl(
             )
 
             (directiveId -> DirectiveChanges(directiveChange, Seq()))
+          }): PureResult[(DirectiveId, DirectiveChanges)]
+
+          // Compatibility : the errors are not included in the final result and will only be logged
+          res match {
+            case Left(err)  =>
+              logger.error(err.fullMsg)
+              None
+            case Right(res) => Some(res)
           }
+
         }.toMap
       })
     }
 
-    def unserialiseRuleChange(changeRequest: XNode): Box[Map[RuleId, RuleChanges]] = {
+    def unserialiseRuleChange(changeRequest: XNode): PureResult[Map[RuleId, RuleChanges]] = {
+
+      import XmlUtils.*
+      implicit val entryType: XmlEntryType = XmlEntryType("changeRequest rule changes")
+
       (for {
-        rulesNode <- (changeRequest \ "rules").headOption ?~! s"Missing child 'rules' in entry type changeRequest : ${xml}"
+        rulesNode <-
+          (changeRequest \ "rules").headOption.notOptionalPure(s"Missing child 'rules' in entry type changeRequest : ${xml}")
+
       } yield {
 
         (rulesNode \ "rule").iterator.flatMap { rule =>
-          for {
-            ruleId       <- rule.attribute("id").flatMap(id => RuleId.parse(id.text).toBox) ?~!
-                            s"Missing attribute 'id' in entry type changeRequest rule changes  : ${rule}"
-            initialRule  <- (rule \ "initialState").headOption
+          val res = (for {
+            ruleId       <- getPureAttribute(rule.attribute("id"), "id", rule)
+                              .flatMap(id => {
+                                RuleId.parse(id.text) match {
+                                  case Right(res) => Right(res)
+                                  case Left(_)    =>
+                                    Left(Inconsistency(missingErrMsg("id", entryType, rule)))
+                                }
+                              })
+            initialRule  <- idAttributePure(rule, "initialState")
             initialState <- (initialRule \ "rule").headOption match {
                               case Some(initialState) =>
                                 ruleUnserialiser.unserialise(initialState) match {
-                                  case Full(rule) => Full(Some(rule))
-                                  case eb: EmptyBox => eb ?~! "could not unserialize rule"
+                                  case Right(rule) => Right(Some(rule))
+                                  case Left(_)     => Left(Inconsistency("could not unserialize rule"))
                                 }
-                              case None               => Full(None)
+                              case None               => Left(Inconsistency("TODO"))
                             }
-
-            changeRule <- (rule \ "firstChange" \ "change").headOption
-            actor      <- (changeRule \\ "actor").headOption.map(actor => EventActor(actor.text))
-            date       <- (changeRule \\ "date").headOption.map(date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text))
-            reason      = (changeRule \\ "reason").headOption.map(_.text)
-            diff       <- (changeRule \\ "diff").headOption.flatMap(_.attribute("action").headOption.map(_.text))
-            diffRule   <- (changeRule \\ "rule").headOption
-            changeRule <- ruleUnserialiser.unserialise(diffRule)
-            change     <- diff match {
-                            case "add"      => Full(AddRuleDiff(changeRule))
-                            case "delete"   => Full(DeleteRuleDiff(changeRule))
-                            case "modifyTo" => Full(ModifyToRuleDiff(changeRule))
-                            case _          => Failure("should not happen")
-                          }
+            changeRule   <- getPureAttributeTwo(rule, "firstChange", "change")
+            actor        <- mapAttributePureRec(changeRule, "actor", rule, actor => EventActor(actor.text))
+            date         <- mapAttributePureRec(
+                              changeRule,
+                              "date",
+                              rule,
+                              date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text)
+                            )
+            reason        = (changeRule \\ "reason").headOption.map(_.text)
+            diff         <- flatMapAttributePureRec(changeRule, "diff", rule, _.attribute("action").headOption.map(_.text))
+            diffRule     <- idAttributePureRec(changeRule, "directive", rule)
+            changeRule   <- ruleUnserialiser.unserialise(diffRule)
+            change       <- diff match {
+                              case "add"      => Right(AddRuleDiff(changeRule))
+                              case "delete"   => Right(DeleteRuleDiff(changeRule))
+                              case "modifyTo" => Right(ModifyToRuleDiff(changeRule))
+                              case _          => Left(Inconsistency("should not happen"))
+                            }
           } yield {
             val ruleChange = RuleChange(initialState, RuleChangeItem(actor, date, reason, change), Seq())
 
             (ruleId -> RuleChanges(ruleChange, Seq()))
+          })
+
+          // Compatibility : the errors are not included in the final result and will only be logged
+          res match {
+            case Left(err)  =>
+              logger.error(err.fullMsg)
+              None
+            case Right(res) => Some(res)
           }
+
         }.toMap
       })
     }
 
-    def unserialiseGlobalParameterChange(changeRequest: XNode): Box[Map[String, GlobalParameterChanges]] = {
+    def unserialiseGlobalParameterChange(changeRequest: XNode): PureResult[Map[String, GlobalParameterChanges]] = {
+
+      import XmlUtils.*
+      implicit val entryType: XmlEntryType = XmlEntryType("globalParameters Global Parameter changes")
+
       (for {
         paramsNode <-
-          (changeRequest \ "globalParameters").headOption ?~! s"Missing child 'globalParameters' in entry type changeRequest : ${xml}"
+          (changeRequest \ "globalParameters").headOption.notOptionalPure(
+            s"Missing child 'globalParameters' in entry type changeRequest : ${xml}"
+          )
       } yield {
         (paramsNode \ "globalParameter").iterator.flatMap { param =>
-          for {
-            paramName    <- param.attribute("name").map(_.text) ?~!
-                            s"Missing attribute 'name' in entry type globalParameters Global Parameter changes  : ${param}"
-            initialParam <- (param \ "initialState").headOption
+          val res = (for {
+            paramName    <-
+              getPureAttribute(param.attribute("name").map(_.text), "name", param)
+            initialParam <- idAttributePure(param, "initialState")
             initialState <- (initialParam \ "globalParameter").headOption match {
                               case Some(initialState) =>
                                 globalParamUnserialiser.unserialise(initialState) match {
-                                  case Full(rule) => Full(Some(rule))
-                                  case eb: EmptyBox => eb ?~! "could not unserialize global parameter"
+                                  case Right(param) => Right(Some(param))
+                                  case Left(_)      => Left(Inconsistency("could not unserialize global parameter"))
                                 }
-                              case None               => Full(None)
+                              case None               => Left(Inconsistency("TODO"))
+                            }
+            changeParam  <- getPureAttributeTwo(param, "firstChange", "change")
+            actor        <- mapAttributePureRec(changeParam, "actor", param, actor => EventActor(actor.text))
+            date         <- mapAttributePureRec(
+                              changeParam,
+                              "date",
+                              param,
+                              date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text)
+                            )
+            reason        = (changeParam \\ "reason").headOption.map(_.text)
+            diff         <- flatMapAttributePureRec(changeParam, "diff", param, _.attribute("action").headOption.map(_.text))
+            diffParam    <- idAttributePureRec(changeParam, "globalParameter", param)
+            changeParam  <- globalParamUnserialiser.unserialise(diffParam)
+            change       <- diff match {
+                              case "add"      => Right(AddGlobalParameterDiff(changeParam))
+                              case "delete"   => Right(DeleteGlobalParameterDiff(changeParam))
+                              case "modifyTo" => Right(ModifyToGlobalParameterDiff(changeParam))
+                              case _          => Left(Inconsistency("should not happen"))
                             }
 
-            changeParam <- (param \ "firstChange" \ "change").headOption
-            actor       <- (changeParam \\ "actor").headOption.map(actor => EventActor(actor.text))
-            date        <- (changeParam \\ "date").headOption.map(date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text))
-            reason       = (changeParam \\ "reason").headOption.map(_.text)
-            diff        <- (changeParam \\ "diff").headOption.flatMap(_.attribute("action").headOption.map(_.text))
-            diffParam   <- (changeParam \\ "globalParameter").headOption
-            changeParam <- globalParamUnserialiser.unserialise(diffParam)
-            change      <- diff match {
-                             case "add"      => Full(AddGlobalParameterDiff(changeParam))
-                             case "delete"   => Full(DeleteGlobalParameterDiff(changeParam))
-                             case "modifyTo" => Full(ModifyToGlobalParameterDiff(changeParam))
-                             case _          => Failure("should not happen")
-                           }
           } yield {
             val paramChange = GlobalParameterChange(initialState, GlobalParameterChangeItem(actor, date, reason, change), Seq())
 
             (paramName -> GlobalParameterChanges(paramChange, Seq()))
+          })
+
+          // Compatibility : the errors are not included in the final result and will only be logged
+          res match {
+            case Left(err)  =>
+              logger.error(err.fullMsg)
+              None
+            case Right(res) => Some(res)
           }
+
         }.toMap
       })
     }
 
     for {
       changeRequest <- {
-        if (xml.label == XML_TAG_CHANGE_REQUEST) Full(xml)
-        else Failure("Entry type is not a <%s>: ".format(XML_TAG_CHANGE_REQUEST, xml))
+        if (xml.label == XML_TAG_CHANGE_REQUEST) Right(xml)
+        else Left(Unexpected(s"Entry type is not a ${XML_TAG_CHANGE_REQUEST}: ${xml}"))
       }
-      fileFormatOk  <- TestFileFormat(changeRequest)
+      _             <- TestFileFormat.check(changeRequest)
       groups        <- unserialiseNodeGroupChange(changeRequest)
-      directives     = {
+      directives    <- {
         Try {
           unserialiseDirectiveChange(changeRequest)
         } match {
           case Success(change) => change
           case Catch(e)        =>
-            Failure(s"Could not deserialize directives changes cause ${e.getMessage()}")
+            Left(Unexpected(s"Could not deserialize directives changes cause ${e.getMessage()}"))
         }
       }
       rules         <- unserialiseRuleChange(changeRequest)
@@ -754,21 +852,21 @@ class ChangeRequestChangesUnserialisationImpl(
 }
 
 class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation {
-  def unserialise(entry: XNode): Box[GlobalParameter] = {
-    for {
-      globalParam  <- {
+  def unserialise(entry: XNode): PureResult[GlobalParameter] = {
+    (for {
+      globalParam <- {
         if (entry.label == XML_TAG_GLOBAL_PARAMETER) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_GLOBAL_PARAMETER, entry))
+        else Failure(s"Entry type is not a ${XML_TAG_GLOBAL_PARAMETER}: ${entry}")
       }
-      fileFormatOk <- TestFileFormat(globalParam)
+      _           <- TestFileFormat(globalParam)
 
       name        <-
-        (globalParam \ "name").headOption.map(_.text) ?~! ("Missing attribute 'name' in entry type globalParameter : " + entry)
+        (globalParam \ "name").headOption.map(_.text) ?~! s"Missing attribute 'name' in entry type globalParameter : ${entry}"
       value       <-
-        (globalParam \ "value").headOption.map(_.text) ?~! ("Missing attribute 'value' in entry type globalParameter : " + entry)
+        (globalParam \ "value").headOption.map(_.text) ?~! s"Missing attribute 'value' in entry type globalParameter : ${entry}"
       description <- (globalParam \ "description").headOption.map(
                        _.text
-                     ) ?~! ("Missing attribute 'description' in entry type globalParameter : " + entry)
+                     ) ?~! s"Missing attribute 'description' in entry type globalParameter : ${entry}"
       provider     = (globalParam \ "provider").headOption.map(x => PropertyProvider(x.text))
       mode         = (globalParam \ "inheritMode").headOption.flatMap(x => InheritMode.parseString(x.text).toOption)
       visibility   = (globalParam \ "visibility").headOption
@@ -779,7 +877,7 @@ class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation 
     } yield {
       g // TODO: no version in param for now
 
-    }
+    }).toPureResult
   }
 }
 
@@ -792,7 +890,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
   //   <authz path="/foo/wiz/$waz", actions="get, post, patch"/>
   // </acl>
   private def unserAcl(entry: XNode): Box[ApiAuthorization.ACL] = {
-    // at that point, any error is an grave error: we don't want to
+    // at that point, any error is a grave error: we don't want to
     // mess up with authz
     import cats.implicits.*
 
@@ -823,31 +921,31 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
     for {
       apiAccount     <- {
         if (entry.label == XML_TAG_API_ACCOUNT) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_API_ACCOUNT, entry))
+        else Failure(s"Entry type is not a ${XML_TAG_API_ACCOUNT}: ${entry}")
       }
-      fileFormatOk   <- TestFileFormat(apiAccount)
-      id             <- (apiAccount \ "id").headOption.map(_.text) ?~! ("Missing attribute 'id' in entry type API Account : " + entry)
-      name           <- (apiAccount \ "name").headOption.map(_.text) ?~! ("Missing attribute 'name' in entry type API Account : " + entry)
+      _              <- TestFileFormat(apiAccount)
+      id             <- (apiAccount \ "id").headOption.map(_.text) ?~! (s"Missing attribute 'id' in entry type API Account : ${entry}")
+      name           <- (apiAccount \ "name").headOption.map(_.text) ?~! (s"Missing attribute 'name' in entry type API Account : ${entry}")
       token          <-
-        (apiAccount \ "token").headOption.map(_.text) ?~! ("Missing attribute 'token' in entry type API Account : " + entry)
+        (apiAccount \ "token").headOption.map(_.text) ?~! (s"Missing attribute 'token' in entry type API Account : ${entry}")
       description    <- (apiAccount \ "description").headOption.map(
                           _.text
-                        ) ?~! ("Missing attribute 'description' in entry type API Account : " + entry)
+                        ) ?~! (s"Missing attribute 'description' in entry type API Account : ${entry}")
       isEnabled      <- (apiAccount \ "isEnabled").headOption.flatMap(s =>
                           tryo(s.text.toBoolean)
-                        ) ?~! ("Missing attribute 'isEnabled' in entry type API Account : " + entry)
+                        ) ?~! (s"Missing attribute 'isEnabled' in entry type API Account : ${entry}")
       creationDate   <- (apiAccount \ "creationDate").headOption.flatMap(s =>
                           tryo(dateFormatter.parseDateTime(s.text))
-                        ) ?~! ("Missing attribute 'creationDate' in entry type API Account : " + entry)
+                        ) ?~! (s"Missing attribute 'creationDate' in entry type API Account : ${entry}")
       tokenGenDate   <- (apiAccount \ "tokenGenerationDate").headOption.flatMap(s =>
                           tryo(dateFormatter.parseDateTime(s.text))
-                        ) ?~! ("Missing attribute 'tokenGenerationDate' in entry type API Account : " + entry)
+                        ) ?~! (s"Missing attribute 'tokenGenerationDate' in entry type API Account : ${entry}")
       expirationDate <- (apiAccount \ "expirationDate").headOption match {
                           case None    => Full(None)
                           case Some(s) =>
                             tryo {
                               Some(dateFormatter.parseDateTime(s.text))
-                            } ?~! ("Bad date format for field 'expirationDate' in entry type API Account : " + entry)
+                            } ?~! (s"Bad date format for field 'expirationDate' in entry type API Account : ${entry}")
                         }
       authz          <- (apiAccount \ "authorization").headOption match {
                           case None =>
@@ -896,16 +994,102 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
 class SecretUnserialisationImpl extends SecretUnserialisation {
   def unserialise(entry: XNode): Box[Secret] = {
     for {
-      secret       <- {
+      secret      <- {
         if (entry.label == XML_TAG_SECRET) Full(entry)
-        else Failure("Entry type is not a <%s>: %s".format(XML_TAG_SECRET, entry))
+        else Failure(s"Entry type is not a ${XML_TAG_SECRET}: ${entry}")
       }
-      fileFormatOk <- TestFileFormat(secret)
-      name         <- (secret \ "name").headOption.map(_.text) ?~! ("Missing attribute 'name' in entry type secret : " + entry)
-      description  <-
-        (secret \ "description").headOption.map(_.text) ?~! ("Missing attribute 'description' in entry type secret : " + entry)
+      _           <- TestFileFormat(secret)
+      name        <- (secret \ "name").headOption.map(_.text) ?~! s"Missing attribute 'name' in entry type secret : ${entry}"
+      description <-
+        (secret \ "description").headOption.map(_.text) ?~! s"Missing attribute 'description' in entry type secret : ${entry}"
     } yield {
       Secret(name, "", description)
     }
   }
+}
+
+object XmlUtils {
+
+  case class XmlEntryType(value: String) extends AnyVal
+
+  def missingErrMsg(attributeName: String, entryType: XmlEntryType, entry: XNode): String = {
+    s"Missing attribute '${attributeName}' in entry type ${entryType} : ${entry}"
+  }
+
+  def missingErrMsgRec(attributeName: String, entryType: XmlEntryType, entry: XNode): String = {
+    s"Missing attribute '${attributeName}' in sequence and sub-sequences of entry type ${entryType} : ${entry}"
+  }
+
+  def getPureAttribute[A](attributeOpt: Option[A], attributeName: String, entry: XNode)(implicit
+      entryType: XmlEntryType
+  ): PureResult[A] = {
+    attributeOpt.notOptionalPure(s"Missing attribute '${attributeName}' in entry type ${entryType} : ${entry}")
+  }
+
+  def getPureAttributeTwo(entry: XNode, attribute1: String, attribute2: String)(implicit
+      entryType: XmlEntryType
+  ): PureResult[XNode] = {
+    (entry \ attribute1 \ attribute2).headOption
+      .notOptionalPure(
+        s"Missing children that have attribute '${attribute2}' in children with attribute" +
+        s"'${attribute1}' in entry type ${entryType} : ${entry}"
+      )
+  }
+
+  def idAttributePure(entry: XNode, attributeName: String)(implicit entryType: XmlEntryType): PureResult[XNode] = {
+    (entry \ attributeName).headOption
+      .notOptionalPure(missingErrMsg(attributeName, entryType, entry))
+  }
+
+  def mapAttributePure[A](
+      entry:         XNode,
+      attributeName: String,
+      f:             XNode => A
+  )(implicit entryType: XmlEntryType): PureResult[A] = {
+    (entry \ attributeName).headOption
+      .map(f)
+      .notOptionalPure(missingErrMsg(attributeName, entryType, entry))
+  }
+
+  def flatMapAttributePure[A](
+      entry:         XNode,
+      attributeName: String,
+      f:             XNode => Option[A]
+  )(implicit entryType: XmlEntryType): PureResult[A] = {
+    (entry \ attributeName).headOption
+      .flatMap(f)
+      .notOptionalPure(missingErrMsg(attributeName, entryType, entry))
+  }
+
+  def idAttributePureRec(
+      node:          XNode,
+      attributeName: String,
+      entry:         XNode
+  )(implicit entryType: XmlEntryType): PureResult[XNode] = {
+    (node \\ attributeName).headOption
+      .notOptionalPure(missingErrMsgRec(attributeName, entryType, entry))
+  }
+
+  def mapAttributePureRec[A](
+      node:          XNode,
+      attributeName: String,
+      entry:         XNode,
+      f:             XNode => A
+  )(implicit entryType: XmlEntryType): PureResult[A] = {
+    (node \\ attributeName).headOption
+      .map(f)
+      .notOptionalPure(missingErrMsgRec(attributeName, entryType, entry))
+  }
+
+  def flatMapAttributePureRec[A](
+      node:          XNode,
+      attributeName: String,
+      entry:         XNode,
+      f:             XNode => Option[A]
+  )(implicit entryType: XmlEntryType): PureResult[A] = {
+    (node \\ attributeName).headOption
+      .flatMap(f)
+      .notOptionalPure(missingErrMsgRec(attributeName, entryType, entry))
+  }
+
 }

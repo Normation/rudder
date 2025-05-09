@@ -365,7 +365,7 @@ class EventLogDetailsServiceImpl(
         if (crXml.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
         else Failure("Rule attribute does not have changeType=%s: ".format(changeType) + entry)
       }
-      rule            <- crUnserialiser.unserialise(crXml)
+      rule            <- crUnserialiser.unserialise(crXml).toBox
     } yield {
       rule
     }
@@ -384,7 +384,7 @@ class EventLogDetailsServiceImpl(
         if (directiveXml.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
         else Failure("Directive attribute does not have changeType=%s: ".format(changeType) + entry)
       }
-      unserialised    <- piUnserialiser.unserialise(directiveXml)
+      unserialised    <- piUnserialiser.unserialise(directiveXml).toBox
     } yield {
       unserialised
     }
@@ -522,7 +522,7 @@ class EventLogDetailsServiceImpl(
         if (groupXml.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
         else Failure("nodeGroup attribute does not have changeType=%s: ".format(changeType) + entry)
       }
-      group           <- groupUnserialiser.unserialise(groupXml)
+      group           <- groupUnserialiser.unserialise(groupXml).toBox
     } yield {
       group
     }
@@ -824,7 +824,7 @@ class EventLogDetailsServiceImpl(
         if (globalParam.attribute("changeType").map(_.text) == Some(changeType)) Full("OK")
         else Failure(s"Global Parameter attribute does not have changeType=${changeType} in ${entry}")
       }
-      globalParameter <- globalParameterUnserialisation.unserialise(globalParam)
+      globalParameter <- globalParameterUnserialisation.unserialise(globalParam).toBox
     } yield {
       globalParameter
     }

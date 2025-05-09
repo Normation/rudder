@@ -19,8 +19,6 @@ import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.ResultTransformation.*
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.queries.CmdbQueryParser
-import net.liftweb.common.Empty
-import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
@@ -95,7 +93,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
 
       val expected = (TechniqueName(techniqueName), directive, SectionVal(Map(), Map()))
 
-      unserialized mustFullEq (expected)
+      unserialized must beRight(expected)
     }
 
     "be able to correctly unserialize a change request" in {
@@ -123,12 +121,10 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
       </changeRequest>
 
       changeRequestChangesUnserialisation.unserialise(change) match {
-        case f: Failure =>
-          val msg = s"I wasn't expecting the failure: ${f.messageChain}"
-          f.rootExceptionCause.foreach(ex => ex.printStackTrace())
+        case Left(err) =>
+          val msg = s"I wasn't expecting the failure: ${err.fullMsg}"
           ko(msg)
-        case Empty => ko(s"Unexpected Empty!")
-        case Full(_) => ok("unserialization was a success")
+        case Right(_)  => ok("unserialization was a success")
       }
     }
   }
