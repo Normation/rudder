@@ -70,7 +70,7 @@ import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.policies.write.PolicyWriterServiceImpl.filepaths
 import com.normation.templates.FillTemplatesService
 import com.normation.zio.*
-import com.softwaremill.quicklens.ModifyPimp
+import com.softwaremill.quicklens.*
 import java.io.File
 import java.nio.charset.StandardCharsets
 import java.util.regex.Pattern

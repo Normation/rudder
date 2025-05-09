@@ -94,7 +94,6 @@ import org.joda.time.DateTime
 import zio.*
 import zio.Tag as _
 import zio.json.*
-import zio.json.DeriveJsonEncoder
 import zio.json.internal.Write
 import zio.syntax.*
 
@@ -1502,10 +1501,10 @@ object JsonResponseObjects {
    */
   sealed trait GlobalPropertyStatus extends PropertyStatus
   object GlobalPropertyStatus {
-    final case object GlobalPropertyOkStatus extends GlobalPropertyStatus {
+    case object GlobalPropertyOkStatus extends GlobalPropertyStatus {
       override def errorMessage: Option[String] = None
     }
-    final case class GlobalPropertyErrorStatus private[GlobalPropertyStatus] (override val errorMessage: Some[String])
+    case class GlobalPropertyErrorStatus private[GlobalPropertyStatus] (override val errorMessage: Some[String])
         extends GlobalPropertyStatus
 
     def fromResolvedNodeProperty(hierarchy: ResolvedNodePropertyHierarchy): GlobalPropertyStatus = hierarchy match {

@@ -70,7 +70,6 @@ import com.normation.rudder.domain.RudderLDAPConstants.OC_RUDDER_NODE_GROUP
 import com.normation.rudder.domain.RudderLDAPConstants.OC_SPECIAL_TARGET
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext

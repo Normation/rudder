@@ -4571,7 +4571,7 @@ class ExecutionBatchTest extends Specification {
       nodeStatus.reports(tag1).directives("policy2").compliance === ComplianceLevel(success = 2)
     }
     "have detailed rule report for policy1 of 100% for policy2 on tag2 and policy is not on that tag" in {
-      nodeStatus.reports(tag2).directives.get("policy1") must beEmpty and
+      nodeStatus.reports(tag2).directives.get("policy1") must beNone and
       nodeStatus.reports(tag2).directives("policy2").compliance === ComplianceLevel(success = 2)
     }
 
@@ -4730,7 +4730,7 @@ class ExecutionBatchTest extends Specification {
     "have rule report for policy1 empty and overridden" in {
       val policy1 = nodeStatus.reports(PolicyTypeName.rudderBase).directives.get("policy1")
 
-      policy1 must not(beEmpty)
+      policy1 must beSome
       policy1.get.compliance === ComplianceLevel() // it's overridden
       policy1.get.overridden === Some(overridingPolicyId.ruleId)
     }

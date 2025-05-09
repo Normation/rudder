@@ -55,17 +55,6 @@ import com.normation.rudder.batch.SuccessStatus
 import com.normation.rudder.domain.Constants.*
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.domain.policies.ActiveTechnique
-import com.normation.rudder.domain.policies.ActiveTechniqueCategory
-import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
-import com.normation.rudder.domain.policies.ActiveTechniqueId
-import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.DirectiveUid
-import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.domain.policies.SectionVal
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
 import com.normation.rudder.domain.properties.DeleteGlobalParameterDiff
 import com.normation.rudder.domain.properties.GlobalParameter
@@ -76,9 +65,6 @@ import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.*
-import com.normation.rudder.domain.workflows.DirectiveChangeItem
-import com.normation.rudder.domain.workflows.DirectiveChanges
-import com.normation.rudder.domain.workflows.NodeGroupChanges
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
@@ -86,8 +72,6 @@ import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.Control.traverse
 import net.liftweb.common.*
 import net.liftweb.common.Box.*
-import net.liftweb.common.Failure
-import net.liftweb.util.Helpers.tryo
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.format.ISODateTimeFormat
 import scala.util.Failure as Catch

@@ -63,9 +63,7 @@ import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.nodes.*
-import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.GroupProperty

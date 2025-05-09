@@ -375,8 +375,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
      * in class TestNodeConfiguration
      */
 
-    val commonTechnique:                                                      Technique                        = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("common"), TV("1.0")))
-    def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]): Map[ComponentId, VariableSpec#V] = {
+    val commonTechnique:                                                      Technique                  = techniqueRepos.unsafeGet(TechniqueId(TechniqueName("common"), TV("1.0")))
+    def commonVariables(nodeId: NodeId, allNodeInfos: Map[NodeId, NodeInfo]): Map[ComponentId, Variable] = {
       commonTechnique.getAllVariableSpecs.collect {
         case (c @ ComponentId("OWNER", _, _), s)              => (c, s.toVariable(Seq(allNodeInfos(nodeId).localAdministratorAccountName)))
         case (c @ ComponentId("UUID", _, _), s)               => (c, s.toVariable(Seq(nodeId.value)))
@@ -386,7 +386,7 @@ class MockDirectives(mockTechniques: MockTechniques) {
         case (c @ ComponentId("ALLOWEDNETWORK", _, _), s)     => (c, s.toVariable(Seq("")))
       }
     }
-    val commonDirective:                                                      Directive                        = Directive(
+    val commonDirective:                                                      Directive                  = Directive(
       DirectiveId(DirectiveUid("common-root"), GitVersion.DEFAULT_REV),
       TV("1.0"),
       Map(

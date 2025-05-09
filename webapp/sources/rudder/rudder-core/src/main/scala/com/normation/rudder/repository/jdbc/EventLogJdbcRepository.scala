@@ -38,7 +38,6 @@
 package com.normation.rudder.repository.jdbc
 
 import cats.implicits.*
-import cats.syntax.list.catsSyntaxList
 import com.normation.NamedZioLogger
 import com.normation.errors.*
 import com.normation.eventlog.*
@@ -130,7 +129,7 @@ class EventLogJdbcRepository(
     val limit       = optLimit.map(l => " limit " + l).getOrElse("")
     val eventFilter = eventTypeFilter match {
       case Nil => ""
-      case seq => " and eventType in (" + seq.map(x => "?").mkString(",") + ")"
+      case seq => " and eventType in (" + seq.map(_ => "?").mkString(",") + ")"
     }
 
     val q = s"""

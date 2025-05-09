@@ -43,7 +43,6 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
-import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure

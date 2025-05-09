@@ -62,7 +62,6 @@ import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.xml.*
-import scala.xml.Text
 import zio.json.*
 
 trait EventLogFactory {

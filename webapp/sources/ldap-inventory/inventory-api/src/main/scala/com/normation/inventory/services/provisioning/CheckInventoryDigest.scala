@@ -37,7 +37,6 @@
 package com.normation.inventory.services.provisioning
 
 import com.normation.errors.*
-import com.normation.errors.IOResult
 import com.normation.inventory.domain.*
 import java.io.InputStream
 import java.security.PublicKey

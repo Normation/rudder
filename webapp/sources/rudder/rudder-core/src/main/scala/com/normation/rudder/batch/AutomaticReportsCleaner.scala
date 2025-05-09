@@ -380,32 +380,32 @@ class AutomaticReportsCleaning(
   }
 
   (for {
-    ttl   <- deleteLogttl
-    dur    = ttl.toLong.minutes
-    batch <- if (ttl < 1) {
-               ScheduledJobLoggerPure.info(
+    ttl <- deleteLogttl
+    dur  = ttl.toLong.minutes
+    _   <- if (ttl < 1) {
+             ScheduledJobLoggerPure
+               .info(
                  s"Disable automatic database deletion of log reports sinces property '${deleteLogReportPropertyName}' is 0 or negative"
-               ) *>
-               ZIO.unit
-             } else {
-               ScheduledJobLoggerPure.debug(
-                 s"***** starting Automatic 'Delete Log Reports'; delete log older than ${ttl} minutes (with same batch period) *****"
-               ) *>
-               IOResult
-                 .attempt(dbManager.deleteLogReports(dur.asScala) match {
-                   case Full(n) => logger.debug(s"Deleted ${n} log reports from report table.")
-                   case eb: EmptyBox =>
-                     val msg = (eb ?~! s"Error when trying to clean log reports from report table.").messageChain
-                     logger.warn(msg)
-                 })
-                 .catchAll(error =>
-                   ReportLoggerPure.error(s"Error when trying to clean log reports from report table: ${error.fullMsg}")
-                 )
-                 .delay(dur)
-                 .repeat(Schedule.spaced(dur).forever)
-                 .forkDaemon
+               )
+           } else {
+             ScheduledJobLoggerPure.debug(
+               s"***** starting Automatic 'Delete Log Reports'; delete log older than ${ttl} minutes (with same batch period) *****"
+             ) *>
+             IOResult
+               .attempt(dbManager.deleteLogReports(dur.asScala) match {
+                 case Full(n) => logger.debug(s"Deleted ${n} log reports from report table.")
+                 case eb: EmptyBox =>
+                   val msg = (eb ?~! s"Error when trying to clean log reports from report table.").messageChain
+                   logger.warn(msg)
+               })
+               .catchAll(error =>
+                 ReportLoggerPure.error(s"Error when trying to clean log reports from report table: ${error.fullMsg}")
+               )
+               .delay(dur)
+               .repeat(Schedule.spaced(dur).forever)
+               .forkDaemon
 
-             }
+           }
   } yield ()).runNow
 
   ////////////////////////////////////////////////////////////////
