@@ -129,7 +129,7 @@ class EventLogJdbcRepository(
     val limit       = optLimit.map(l => " limit " + l).getOrElse("")
     val eventFilter = eventTypeFilter match {
       case Nil => ""
-      case seq => " and eventType in (" + seq.map(x => "?").mkString(",") + ")"
+      case seq => " and eventType in (" + seq.map(_ => "?").mkString(",") + ")"
     }
 
     val q = s"""
