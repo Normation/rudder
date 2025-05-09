@@ -445,7 +445,7 @@ final case class ByNodeDirectiveCompliance(
 object CsvCompliance {
 
   // use "," , quote everything with ", line separator is \n
-  val csvFormat: CSVFormat = CSVFormat.DEFAULT.builder().setQuoteMode(QuoteMode.ALL).setRecordSeparator("\n").build()
+  val csvFormat: CSVFormat = CSVFormat.DEFAULT.builder().setQuoteMode(QuoteMode.ALL).setRecordSeparator("\n").get()
 
   def recurseComponent(
       component: ByRuleComponentCompliance,

@@ -62,8 +62,8 @@ import scala.annotation.nowarn
 @RunWith(classOf[JUnitRunner])
 class SystemApiTest extends Specification with AfterAll with Loggable {
 
-  val restTestSetUp = RestTestSetUp.newEnv
-  val restTest      = new RestTest(restTestSetUp.liftRules)
+  private val restTestSetUp = RestTestSetUp.newEnv
+  private val restTest      = new RestTest(restTestSetUp.liftRules)
 
   "testing status REST API" should {
     "be correct" in {
@@ -160,9 +160,9 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   // To test with multiple archives, declare more archive in restTestSetup
   // and add their Json representation to the archives list below.
 
-  val dateTimeId = "1970-01-01_01-00-00.042"
+  private val dateTimeId = "1970-01-01_01-00-00.042"
 
-  val archive1: JObject = JObject(
+  private val archive1: JObject = JObject(
     List(
       JField("id", "path"),
       JField("date", "1970-01-01T010000"),
@@ -171,7 +171,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
     )
   )
 
-  val archives: List[JObject] = List(archive1)
+  private val archives: List[JObject] = List(archive1)
 
   "Testing archive groups listing of System Api" should {
     "match the response defined below" in {
@@ -341,7 +341,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
     }
   }
 
-  val archive2: JObject = JObject(
+  private val archive2: JObject = JObject(
     List(
       JField("committer", "test-user"),
       JField("gitCommit", "6d6b2ceb46adeecd845ad0c0812fee07e2727104"),
@@ -469,22 +469,20 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
    *  3. Unzip the archive
    *  4. Compare the appropriate data
    */
-  val commit = restTestSetUp.mockGitRepo.gitRepo.db.resolve("master")
-  val commitId: String = commit.getName
+  private val commit = restTestSetUp.mockGitRepo.gitRepo.db.resolve("master")
+  private val commitId: String = commit.getName
 
-  val commitDate: DateTime = new DateTime(
-    restTestSetUp.mockGitRepo.gitRepo.db.parseCommit(commit.toObjectId()).getCommitterIdent().getWhen()
+  private val commitDate: DateTime = new DateTime(
+    restTestSetUp.mockGitRepo.gitRepo.db.parseCommit(commit.toObjectId()).getCommitterIdent().getWhenAsInstant.toEpochMilli
   )
 
   // Init directory needed to temporary store archive data that zip API returns.
   // It will be cleared at the end of the test in "afterAll"
 
-  val testDir = new File("/tmp/response-content")
+  private val testDir = new File("/tmp/response-content")
   if (!testDir.exists()) {
     Files.createDirectory(testDir.toPath)
   }
-
-  val testRootPath = restTestSetUp.mockGitRepo.abstractRoot.pathAsString
 
   override def afterAll(): Unit = {
     if (System.getProperty("tests.clean.tmp") != "false") {
@@ -535,7 +533,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
     }
   }
 
-  val configRootPath = restTestSetUp.mockGitRepo.configurationRepositoryRoot.pathAsString
+  private val configRootPath = restTestSetUp.mockGitRepo.configurationRepositoryRoot.pathAsString
 
   "Getting directives zip archive from System Api" should {
     "satisfy the matcher defined below" in {

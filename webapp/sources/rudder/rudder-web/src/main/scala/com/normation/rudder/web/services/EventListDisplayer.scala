@@ -42,7 +42,6 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.web.snippet.WithNonce
 import doobie.*
 import doobie.implicits.*
-import doobie.implicits.javasql.*
 import net.liftweb.common.*
 import net.liftweb.http.S
 import net.liftweb.http.SHtml

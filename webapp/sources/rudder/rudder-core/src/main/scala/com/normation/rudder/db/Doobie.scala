@@ -51,7 +51,6 @@ import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.JNodeStatusReport
 import com.normation.zio.*
 import doobie.*
-import doobie.implicits.javasql.*
 import doobie.postgres.implicits.*
 import doobie.util.log.ExecFailure
 import doobie.util.log.LogEvent
@@ -120,7 +119,7 @@ object Doobie {
             val msg   = {
               s"""Successful Statement Execution [${total} ms total (${e1.toMillis} ms exec + ${e2.toMillis} ms processing)]
                  |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
-                 | arguments = [${a.mkString(", ")}]
+                 | arguments = [${a.allParams.flatten.mkString(", ")}]
         """.stripMargin
             }
             if (total > 100) { // more than that => debug level, not trace
@@ -133,7 +132,7 @@ object Doobie {
             DoobieLogger.debug(
               s"""Failed Resultset Processing [${(e1 + e2).toMillis} ms total (${e1.toMillis} ms exec + ${e2.toMillis} ms processing)]
                  |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
-                 | arguments = [${a.mkString(", ")}]
+                 | arguments = [${a.allParams.flatten.mkString(", ")}]
                  |   failure = ${t.getMessage}
         """.stripMargin
             )
@@ -141,7 +140,7 @@ object Doobie {
           case ExecFailure(s, a, l, e1, t) =>
             DoobieLogger.debug(s"""Failed Statement Execution [${e1.toMillis} ms exec (failed)]
                                   |  ${s.linesIterator.dropWhile(_.trim.isEmpty).mkString("\n  ")}
-                                  | arguments = [${a.mkString(", ")}]
+                                  | arguments = [${a.allParams.flatten.mkString(", ")}]
                                   |   failure = ${t.getMessage}
         """.stripMargin)
         }

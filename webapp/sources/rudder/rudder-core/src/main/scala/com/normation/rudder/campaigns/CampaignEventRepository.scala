@@ -44,7 +44,6 @@ import doobie.Meta
 import doobie.Read
 import doobie.Write
 import doobie.implicits.*
-import doobie.implicits.javasql.*
 import org.joda.time.DateTime
 import zio.interop.catz.*
 
@@ -81,8 +80,8 @@ trait CampaignEventRepository {
 
 class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSerializer) extends CampaignEventRepository {
 
-  import CampaignSerializer.*
-  import Doobie.DateTimeMeta
+  import com.normation.rudder.campaigns.CampaignSerializer.*
+  import com.normation.rudder.db.Doobie.DateTimeMeta
   import com.normation.rudder.db.json.implicits.*
   import doobie.*
 

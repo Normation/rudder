@@ -104,6 +104,11 @@ object DB {
   }
 
   def insertUncomputedAgentRun(runs: List[UncomputedAgentRun]): ConnectionIO[Int] = {
+    implicit val ReportWrite: Write[DB.UncomputedAgentRun] = {
+      type R = (String, DateTime, Option[String], Long, DateTime)
+      Write[R].contramap((r: DB.UncomputedAgentRun) => (r.nodeId, r.date, r.nodeConfigId, r.insertionId, r.insertionDate))
+    }
+
     Update[DB.UncomputedAgentRun]("""
       insert into reportsexecution
         (nodeid, date, nodeconfigid, insertionid, insertiondate)

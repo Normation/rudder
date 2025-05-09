@@ -48,9 +48,13 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.eventlog.EventLogFactory
 import doobie.*
+import doobie.free.connection
+import doobie.free.preparedstatement
 import doobie.implicits.*
 import doobie.postgres.implicits.*
 import doobie.util.fragments
+import doobie.util.log.LoggingInfo
+import doobie.util.log.Parameters.NonBatch
 import scala.xml.*
 import zio.interop.catz.*
 
@@ -150,7 +154,18 @@ class EventLogJdbcRepository(
 
     transactIOResult(s"Error when retrieving event logs for change request '${changeRequest.value}'")(xa => {
       (for {
-        entries <- HC.stream[(String, EventLogDetails)](q, param, 512).compile.toVector
+
+        // def stream[A: Read](sql: String, prep: PreparedStatementIO[Unit], chunkSize: Int): Stream[ConnectionIO, A] =
+        // liftStream(chunkSize, IFC.prepareStatement(sql), prep, IFPS.executeQuery)
+        // IFC.prepareStatement(sql), prep, IFPS.executeQuery
+        entries <- HC.stream[(String, EventLogDetails)](
+                     connection.prepareStatement(q),
+                     param,
+                     preparedstatement.executeQuery,
+                     512,
+                     LoggingInfo(q, NonBatch(Nil), "get events")
+                   ).compile
+                     .toVector
       } yield {
         entries.map(toEventLog)
       }).transact(xa)
