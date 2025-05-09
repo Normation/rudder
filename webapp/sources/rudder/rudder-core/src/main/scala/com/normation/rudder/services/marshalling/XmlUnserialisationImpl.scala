@@ -45,6 +45,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.xmlparsers.SectionSpecParser
+import com.normation.errors.AccumulateErrors
 import com.normation.errors.BoxToEither
 import com.normation.errors.Inconsistency
 import com.normation.errors.OptionToPureResult
@@ -161,27 +162,25 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
         else Left(Unexpected(s"Entry type is not a ${XML_TAG_DIRECTIVE}: ${xml}"))
       }
       _                <- TestFileFormat.check(directive)
-      sid              <- mapAttributePure(directive, "id", _.text)
+      sid              <- mapChildPure(directive, "id", _.text)
       id               <- DirectiveId.parse(sid) match {
-                            case Left(err)  => Left(Unexpected(err))
                             case Right(res) => Right(res)
+                            case Left(err)  => Left(Inconsistency(err))
                           }
-      ptName           <- mapAttributePure(directive, "techniqueName", _.text)
-      name             <- mapAttributePure(directive, "displayName", _.text.trim)
-      techniqueVersion <- idAttributePure(directive, "techniqueVersion").flatMap(x => {
+      ptName           <- mapChildPure(directive, "techniqueName", _.text)
+      name             <- mapChildPure(directive, "displayName", _.text.trim)
+      techniqueVersion <- getChildPure(directive, "techniqueVersion").flatMap(x => {
                             TechniqueVersion.parse(x.text) match {
                               case Right(res) => Right(res)
-                              case Left(err)  => Left(Unexpected(err))
+                              case Left(err)  => Left(Inconsistency(err))
                             }
                           })
       sectionVal       <- parseSectionVal(directive).toPureResult
-      shortDescription <- mapAttributePure(directive, "shortDescription", _.text)
-      longDescription  <- mapAttributePure(directive, "longDescription", _.text)
-      isEnabled        <- flatMapAttributePure(directive, "isEnabled", s => s.text.toBooleanOption)
-      priority         <- (directive \ "priority").headOption
-                            .flatMap(s => s.text.toIntOption)
-                            .notOptionalPure(s"Missing or bad attribute 'priority' in entry type directive : ${xml}")
-      isSystem         <- flatMapAttributePure(directive, "isSystem", s => s.text.toBooleanOption)
+      shortDescription <- mapChildPure(directive, "shortDescription", _.text)
+      longDescription  <- mapChildPure(directive, "longDescription", _.text)
+      isEnabled        <- flatMapChildPure(directive, "isEnabled", s => s.text.toBooleanOption)
+      priority         <- flatMapChildPure(directive, "priority", s => s.text.toIntOption)
+      isSystem         <- flatMapChildPure(directive, "isSystem", s => s.text.toBooleanOption)
       policyMode        = (directive \ "policyMode").headOption.flatMap(s => PolicyMode.parse(s.text).toOption)
       tags              = TagsXml.getTags(directive \ "tags")
     } yield {
@@ -219,10 +218,10 @@ class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisat
         else Left(Unexpected(s"Entry type is not a ${XML_TAG_NODE_GROUP_CATEGORY}: ${entry}"))
       }
       _           <- TestFileFormat.check(category)
-      id          <- mapAttributePure(category, "id", _.text)
-      name        <- mapAttributePure(category, "dispayName", _.text.trim)
-      description <- mapAttributePure(category, "description", _.text)
-      isSystem    <- flatMapAttributePure(category, "isSystem", _.text.toBooleanOption)
+      id          <- mapChildPure(category, "id", _.text)
+      name        <- mapChildPure(category, "dispayName", _.text.trim)
+      description <- mapChildPure(category, "description", _.text)
+      isSystem    <- flatMapChildPure(category, "isSystem", _.text.toBooleanOption)
     } yield {
       NodeGroupCategory(
         id = NodeGroupCategoryId(id),
@@ -250,30 +249,30 @@ class NodeGroupUnserialisationImpl(
         else Left(Unexpected(s"Entry type is not a ${XML_TAG_NODE_GROUP}: ${entry}"))
       }
       _           <- TestFileFormat.check(group)
-      sid         <- mapAttributePure(group, "id", _.text)
+      sid         <- mapChildPure(group, "id", _.text)
       id          <- NodeGroupId.parse(sid) match {
                        case Right(res) => Right(res)
                        case Left(err)  => Left(Inconsistency(err))
                      }
-      name        <- mapAttributePure(group, "displayName", _.text.trim)
-      description <- mapAttributePure(group, "description", _.text)
+      name        <- mapChildPure(group, "displayName", _.text.trim)
+      description <- mapChildPure(group, "description", _.text)
       query       <- (group \ "query").headOption match {
                        case None    => Right(None)
                        case Some(s) =>
                          if (s.text.isEmpty) Right(None)
                          else cmdbQueryParser(s.text).map(Some(_)).toPureResult
                      }
-      isDynamic   <- flatMapAttributePure(group, "isDynamic", s => s.text.toBooleanOption)
+      isDynamic   <- flatMapChildPure(group, "isDynamic", s => s.text.toBooleanOption)
       serverList   = if (isDynamic) {
                        Set[NodeId]()
                      } else {
                        (group \ "nodeIds" \ "id").map(n => NodeId(n.text)).toSet
                      }
-      isEnabled   <- flatMapAttributePure(group, "isEnabled", s => s.text.toBooleanOption)
-      isSystem    <- flatMapAttributePure(group, "isSystem", s => s.text.toBooleanOption)
-      properties  <- traverse((group \ "properties" \ "property").toList) {
-                        // format: off
-                        case <property>{p @ _*}</property> =>
+      isEnabled   <- flatMapChildPure(group, "isEnabled", s => s.text.toBooleanOption)
+      isSystem    <- flatMapChildPure(group, "isSystem", s => s.text.toBooleanOption)
+      properties  <- (group \ "properties" \ "property").toList.accumulatePure({
+                      // format: off
+                      case <property>{p @ _*}</property> =>
                         // format: on
                          val name = (p \\ "name").text.trim
                          if (name.trim.isEmpty) {
@@ -290,7 +289,7 @@ class NodeGroupUnserialisationImpl(
                              .toBox
                          }
                        case xml                           => Failure(s"Found unexpected xml under <properties> tag: ${xml}")
-                     }.toPureResult
+                     }.toPureResult)
     } yield {
       NodeGroup(
         id = id,
@@ -319,22 +318,21 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
         else Left(Unexpected(s"Entry type is not a ${XML_TAG_RULE}: ${entry}"))
       }
       _                <- TestFileFormat.check(rule)
-      sid              <- mapAttributePure(rule, "id", _.text)
+      sid              <- mapChildPure(rule, "id", _.text)
       id               <- RuleId.parse(sid) match {
                             case Right(res) => Right(res)
                             case Left(err)  => Left(Inconsistency(err))
                           }
-      category         <- mapAttributePure(rule, "category", n => RuleCategoryId(n.text))
-      name             <- mapAttributePure(rule, "displayName", _.text.trim)
+      category         <- mapChildPure(rule, "category", n => RuleCategoryId(n.text))
+      name             <- mapChildPure(rule, "displayName", _.text.trim)
       revision          = ParseRev((rule \ "revision").headOption.map(_.text.trim))
-      shortDescription <- mapAttributePure(rule, "shortDescription", _.text)
-      longDescription  <- mapAttributePure(rule, "longDescription", _.text)
-      isEnabled        <- flatMapAttributePure(rule, "isEnabled", s => s.text.toBooleanOption)
-      isSystem         <- flatMapAttributePure(rule, "isSystem", s => s.text.toBooleanOption)
-      targets          <- (traverse((rule \ "targets" \ "target")) { t =>
-                            RuleTarget.unser(t.text)
-                          } ?~!
-                          (s"Invalid attribute in 'target' entry: ${entry}")).toPureResult
+      shortDescription <- mapChildPure(rule, "shortDescription", _.text)
+      longDescription  <- mapChildPure(rule, "longDescription", _.text)
+      isEnabled        <- flatMapChildPure(rule, "isEnabled", s => s.text.toBooleanOption)
+      isSystem         <- flatMapChildPure(rule, "isSystem", s => s.text.toBooleanOption)
+      targets          <- (rule \ "targets" \ "target").accumulatePure { t =>
+                            RuleTarget.unser(t.text).notOptionalPure(s"Invalid attribute in 'target' entry: ${entry}")
+                          }
       directiveIds      = (rule \ "directiveIds" \ "id").map { n =>
                             DirectiveId(DirectiveUid(n.text), ParseRev((n \ "@revision").text))
                           }.toSet
@@ -544,45 +542,42 @@ class ChangeRequestChangesUnserialisationImpl(
     )
   ] = {
 
+    import XmlUtils.*
+    val changeRequestEntryType = XmlEntryType(XML_TAG_CHANGE_REQUEST)
+
     def unserialiseNodeGroupChange(changeRequest: XNode): PureResult[Map[NodeGroupId, NodeGroupChanges]] = {
 
-      import XmlUtils.*
-      implicit val entryType: XmlEntryType = XmlEntryType("changeRequest group changes")
-
       for {
-        groupsNode <-
-          (changeRequest \ "groups").headOption.notOptionalPure(s"Missing child 'groups' in entry type changeRequest : ${xml}")
-
+        groupsNode <- getChildPure(changeRequest, "groups")(changeRequestEntryType)
       } yield {
-        (groupsNode \ "group").iterator.flatMap { group =>
-          val res = (for {
 
-            sid          <- getPureAttribute(group.attribute("id").map(id => id.text), "id", group)
+        implicit val entryType: XmlEntryType = XmlEntryType("changeRequest group changes")
+
+        ((groupsNode \ "group").accumulatePure { group =>
+          for {
+
+            sid          <- getAttributePure(group, "id")
             nodeGroupId  <- NodeGroupId.parse(sid) match {
                               case Right(res) => Right(res)
-                              case Left(_)    =>
-                                Left(Inconsistency(missingErrMsg("id", entryType, group)))
+                              case Left(err)  => Left(Inconsistency(err))
                             }
-            initialNode  <- idAttributePure(group, "initialState")
-            initialState <- (initialNode \ "nodeGroup").headOption match {
-                              case Some(initialState) =>
-                                nodeGroupUnserialiser.unserialise(initialState) match {
-                                  case Right(group) => Right(Some(group))
-                                  case Left(_)      => Left(Inconsistency("could not unserialize group"))
-                                }
-                              case None               => Left(Inconsistency("TODO"))
+            initialNode  <- getChildPure(group, "initialState")
+            initialState <- getChildPure(initialNode, "nodeGroup").flatMap { initialState =>
+                              nodeGroupUnserialiser.unserialise(initialState) match {
+                                case Right(group) => Right(Some(group))
+                                case Left(_)      => Left(Inconsistency("could not unserialize group"))
+                              }
                             }
-            changeNode   <- getPureAttributeTwo(group, "firstChange", "change")
-            actor        <- mapAttributePureRec(changeNode, "actor", group, actor => EventActor(actor.text))
-            date         <- mapAttributePureRec(
+            changeNode   <- getChildPureTwo(group, "firstChange", "change")
+            actor        <- mapChildPureRec(changeNode, "actor", actor => EventActor(actor.text))
+            date         <- mapChildPureRec(
                               changeNode,
                               "date",
-                              group,
                               date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text)
                             )
             reason        = (changeNode \\ "reason").headOption.map(_.text)
-            diff         <- flatMapAttributePureRec(changeNode, "diff", group, _.attribute("action").headOption.map(_.text))
-            diffGroup    <- idAttributePureRec(changeNode, "nodeGroup", group)
+            diff         <- flatMapChildPureRec(changeNode, "diff", _.attribute("action").headOption.map(_.text))
+            diffGroup    <- getChildPureRec(changeNode, "nodeGroup")
             changeGroup  <- nodeGroupUnserialiser.unserialise(diffGroup)
             change       <- diff match {
                               case "add"      => Right(AddNodeGroupDiff(changeGroup))
@@ -595,62 +590,52 @@ class ChangeRequestChangesUnserialisationImpl(
             val groupChange = NodeGroupChange(initialState, NodeGroupChangeItem(actor, date, reason, change), Seq())
 
             (nodeGroupId -> NodeGroupChanges(groupChange, Seq()))
-          })
-
-          // Compatibility : the errors are not included in the final result and will only be logged
-          res match {
-            case Left(err)  =>
-              logger.error(err.fullMsg)
-              None
-            case Right(res) => Some(res)
           }
 
-        }.toMap
+        }) match {
+          case Left(err)  =>
+            logger.error(err.fullMsg)
+            Map.empty
+          case Right(res) => res.toMap
+        }
       }
     }
 
     def unserialiseDirectiveChange(changeRequest: XNode): PureResult[Map[DirectiveId, DirectiveChanges]] = {
 
-      import XmlUtils.*
-      implicit val entryType: XmlEntryType = XmlEntryType("changeRequest directive changes")
-
       (for {
-        directivesNode <- (changeRequest \ "directives").headOption.notOptionalPure(
-                            s"Missing child 'directives' in entry type changeRequest : ${xml}"
-                          )
+        directivesNode <- getChildPure(changeRequest, "directives")(changeRequestEntryType)
       } yield {
+
+        implicit val entryType: XmlEntryType = XmlEntryType("changeRequest directive changes")
+
         (directivesNode \ "directive").iterator.flatMap { directive =>
           val res = (for {
 
-            directiveId    <-
-              getPureAttribute(directive.attribute("id"), "id", directive).flatMap { id =>
-                DirectiveId.parse(id.text) match {
-                  case Right(res) => Right(res)
-                  case Left(_)    =>
-                    Left(Inconsistency(missingErrMsg("id", entryType, directive)))
-                }
-              }
-            initialNode    <- idAttributePure(directive, "initialState")
-            initialState   <- (initialNode \\ "directive").headOption match {
-                                case Some(initialState) =>
-                                  directiveUnserialiser.unserialise(initialState) match {
-                                    case Right((techniqueName, directive, _)) => Right(Some((techniqueName, directive)))
-                                    case Left(_)                              => Left(Inconsistency("could not unserialize directive"))
-                                  }
-                                case None               => Left(Inconsistency("TODO"))
+            directiveId    <- getAttributePure(directive, "id").flatMap { id =>
+                                DirectiveId.parse(id) match {
+                                  case Right(res) => Right(res)
+                                  case Left(err)  => Left(Inconsistency(err))
+                                }
                               }
-            changeNode     <- getPureAttributeTwo(directive, "firstChange", "change")
-            actor          <- mapAttributePureRec(changeNode, "actor", directive, actor => EventActor(actor.text))
-            date           <- mapAttributePureRec(
+            initialNode    <- getChildPure(directive, "initialState")
+            initialState   <- getChildPureRec(initialNode, "directive").flatMap { initialState =>
+                                directiveUnserialiser.unserialise(initialState) match {
+                                  case Right((techniqueName, directive, _)) => Right(Some((techniqueName, directive)))
+                                  case Left(_)                              => Left(Inconsistency("could not unserialize directive"))
+                                }
+                              }
+            changeNode     <- getChildPureTwo(directive, "firstChange", "change")
+            actor          <- mapChildPureRec(changeNode, "actor", actor => EventActor(actor.text))
+            date           <- mapChildPureRec(
                                 changeNode,
                                 "date",
-                                directive,
                                 date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text)
                               )
             reason          = (changeNode \\ "reason").headOption.map(_.text)
             diff           <-
-              flatMapAttributePureRec(changeNode, "diff", directive, _.attribute("action").headOption.map(_.text))
-            diffDirective  <- idAttributePureRec(changeNode, "directive", directive)
+              flatMapChildPureRec(changeNode, "diff", _.attribute("action").headOption.map(_.text))
+            diffDirective  <- getChildPureRec(changeNode, "directive")
             directive      <- directiveUnserialiser.unserialise(diffDirective)
             techniqueName   = directive._1
             changeDirective = directive._2
@@ -701,45 +686,37 @@ class ChangeRequestChangesUnserialisationImpl(
 
     def unserialiseRuleChange(changeRequest: XNode): PureResult[Map[RuleId, RuleChanges]] = {
 
-      import XmlUtils.*
-      implicit val entryType: XmlEntryType = XmlEntryType("changeRequest rule changes")
-
       (for {
-        rulesNode <-
-          (changeRequest \ "rules").headOption.notOptionalPure(s"Missing child 'rules' in entry type changeRequest : ${xml}")
-
+        rulesNode <- getChildPure(changeRequest, "rules")(changeRequestEntryType)
       } yield {
+
+        implicit val entryType: XmlEntryType = XmlEntryType("changeRequest rule changes")
 
         (rulesNode \ "rule").iterator.flatMap { rule =>
           val res = (for {
-            ruleId       <- getPureAttribute(rule.attribute("id"), "id", rule)
-                              .flatMap(id => {
-                                RuleId.parse(id.text) match {
-                                  case Right(res) => Right(res)
-                                  case Left(_)    =>
-                                    Left(Inconsistency(missingErrMsg("id", entryType, rule)))
-                                }
-                              })
-            initialRule  <- idAttributePure(rule, "initialState")
-            initialState <- (initialRule \ "rule").headOption match {
-                              case Some(initialState) =>
-                                ruleUnserialiser.unserialise(initialState) match {
-                                  case Right(rule) => Right(Some(rule))
-                                  case Left(_)     => Left(Inconsistency("could not unserialize rule"))
-                                }
-                              case None               => Left(Inconsistency("TODO"))
+            ruleId       <- getAttributePure(rule, "id").flatMap(id => {
+                              RuleId.parse(id) match {
+                                case Right(res) => Right(res)
+                                case Left(err)  => Left(Inconsistency(err))
+                              }
+                            })
+            initialRule  <- getChildPure(rule, "initialState")
+            initialState <- getChildPure(initialRule, "rule").flatMap { initialState =>
+                              ruleUnserialiser.unserialise(initialState) match {
+                                case Right(rule) => Right(Some(rule))
+                                case Left(_)     => Left(Inconsistency("could not unserialize rule"))
+                              }
                             }
-            changeRule   <- getPureAttributeTwo(rule, "firstChange", "change")
-            actor        <- mapAttributePureRec(changeRule, "actor", rule, actor => EventActor(actor.text))
-            date         <- mapAttributePureRec(
+            changeRule   <- getChildPureTwo(rule, "firstChange", "change")
+            actor        <- mapChildPureRec(changeRule, "actor", actor => EventActor(actor.text))
+            date         <- mapChildPureRec(
                               changeRule,
                               "date",
-                              rule,
                               date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text)
                             )
             reason        = (changeRule \\ "reason").headOption.map(_.text)
-            diff         <- flatMapAttributePureRec(changeRule, "diff", rule, _.attribute("action").headOption.map(_.text))
-            diffRule     <- idAttributePureRec(changeRule, "directive", rule)
+            diff         <- flatMapChildPureRec(changeRule, "diff", _.attribute("action").headOption.map(_.text))
+            diffRule     <- getChildPureRec(changeRule, "directive")
             changeRule   <- ruleUnserialiser.unserialise(diffRule)
             change       <- diff match {
                               case "add"      => Right(AddRuleDiff(changeRule))
@@ -767,39 +744,32 @@ class ChangeRequestChangesUnserialisationImpl(
 
     def unserialiseGlobalParameterChange(changeRequest: XNode): PureResult[Map[String, GlobalParameterChanges]] = {
 
-      import XmlUtils.*
-      implicit val entryType: XmlEntryType = XmlEntryType("globalParameters Global Parameter changes")
-
       (for {
-        paramsNode <-
-          (changeRequest \ "globalParameters").headOption.notOptionalPure(
-            s"Missing child 'globalParameters' in entry type changeRequest : ${xml}"
-          )
+        paramsNode <- getChildPure(changeRequest, "globalParameters")(changeRequestEntryType)
       } yield {
+
+        implicit val entryType: XmlEntryType = XmlEntryType("globalParameters Global Parameter changes")
+
         (paramsNode \ "globalParameter").iterator.flatMap { param =>
           val res = (for {
-            paramName    <-
-              getPureAttribute(param.attribute("name").map(_.text), "name", param)
-            initialParam <- idAttributePure(param, "initialState")
-            initialState <- (initialParam \ "globalParameter").headOption match {
-                              case Some(initialState) =>
-                                globalParamUnserialiser.unserialise(initialState) match {
-                                  case Right(param) => Right(Some(param))
-                                  case Left(_)      => Left(Inconsistency("could not unserialize global parameter"))
-                                }
-                              case None               => Left(Inconsistency("TODO"))
+            paramName    <- getAttributePure(param, "name")
+            initialParam <- getChildPure(param, "initialState")
+            initialState <- getChildPure(initialParam, "globalParameter").flatMap { initialState =>
+                              globalParamUnserialiser.unserialise(initialState) match {
+                                case Right(param) => Right(Some(param))
+                                case Left(_)      => Left(Inconsistency("could not unserialize global parameter"))
+                              }
                             }
-            changeParam  <- getPureAttributeTwo(param, "firstChange", "change")
-            actor        <- mapAttributePureRec(changeParam, "actor", param, actor => EventActor(actor.text))
-            date         <- mapAttributePureRec(
+            changeParam  <- getChildPureTwo(param, "firstChange", "change")
+            actor        <- mapChildPureRec(changeParam, "actor", actor => EventActor(actor.text))
+            date         <- mapChildPureRec(
                               changeParam,
                               "date",
-                              param,
                               date => ISODateTimeFormat.dateTimeParser.parseDateTime(date.text)
                             )
             reason        = (changeParam \\ "reason").headOption.map(_.text)
-            diff         <- flatMapAttributePureRec(changeParam, "diff", param, _.attribute("action").headOption.map(_.text))
-            diffParam    <- idAttributePureRec(changeParam, "globalParameter", param)
+            diff         <- flatMapChildPureRec(changeParam, "diff", _.attribute("action").headOption.map(_.text))
+            diffParam    <- getChildPureRec(changeParam, "globalParameter")
             changeParam  <- globalParamUnserialiser.unserialise(diffParam)
             change       <- diff match {
                               case "add"      => Right(AddGlobalParameterDiff(changeParam))
@@ -1012,84 +982,98 @@ object XmlUtils {
 
   case class XmlEntryType(value: String) extends AnyVal
 
-  def missingErrMsg(attributeName: String, entryType: XmlEntryType, entry: XNode): String = {
+  def missingChildErrMsg(label: String, entryType: XmlEntryType, entry: XNode): String = {
+    s"Missing child '${label}' in entry type ${entryType} : ${entry}"
+  }
+
+  def missingChildErrMsgRec(label: String, entryType: XmlEntryType, entry: XNode): String = {
+    s"Missing child '${label}' in sequence and sub-sequences of entry type ${entryType} : ${entry}"
+  }
+
+  def missingOrBadChildErrMsg(label: String, entryType: XmlEntryType, entry: XNode): String = {
+    s"Missing or bad child '${label}' in entry type ${entryType} : ${entry}"
+  }
+
+  def missingOrBadChildErrMsgRec(label: String, entryType: XmlEntryType, entry: XNode): String = {
+    s"Missing or bad child '${label}' in sequence and sub-sequences of entry type ${entryType} : ${entry}"
+  }
+
+  def missingAttributeErrMsg(attributeName: String, entryType: XmlEntryType, entry: XNode): String = {
     s"Missing attribute '${attributeName}' in entry type ${entryType} : ${entry}"
   }
 
-  def missingErrMsgRec(attributeName: String, entryType: XmlEntryType, entry: XNode): String = {
-    s"Missing attribute '${attributeName}' in sequence and sub-sequences of entry type ${entryType} : ${entry}"
+  def getAttributePure(entry: XNode, attributeName: String)(implicit entryType: XmlEntryType): PureResult[String] = {
+    entry.attribute(attributeName).map(id => id.text).notOptionalPure(missingAttributeErrMsg(attributeName, entryType, entry))
   }
 
-  def getPureAttribute[A](attributeOpt: Option[A], attributeName: String, entry: XNode)(implicit
-      entryType: XmlEntryType
-  ): PureResult[A] = {
-    attributeOpt.notOptionalPure(s"Missing attribute '${attributeName}' in entry type ${entryType} : ${entry}")
-  }
-
-  def getPureAttributeTwo(entry: XNode, attribute1: String, attribute2: String)(implicit
+  def getChildPureTwo(entry: XNode, label1: String, label2: String)(implicit
       entryType: XmlEntryType
   ): PureResult[XNode] = {
-    (entry \ attribute1 \ attribute2).headOption
+    (entry \ label1 \ label2).headOption
       .notOptionalPure(
-        s"Missing children that have attribute '${attribute2}' in children with attribute" +
-        s"'${attribute1}' in entry type ${entryType} : ${entry}"
+        s"Missing child '${label2}' in child '${label1}' in entry type ${entryType} : ${entry}"
       )
   }
 
-  def idAttributePure(entry: XNode, attributeName: String)(implicit entryType: XmlEntryType): PureResult[XNode] = {
-    (entry \ attributeName).headOption
-      .notOptionalPure(missingErrMsg(attributeName, entryType, entry))
+  def getChildPure(entry: XNode, label: String)(implicit entryType: XmlEntryType): PureResult[XNode] = {
+    (entry \ label).headOption
+      .notOptionalPure(missingChildErrMsg(label, entryType, entry))
   }
 
-  def mapAttributePure[A](
-      entry:         XNode,
-      attributeName: String,
-      f:             XNode => A
+  def mapChildPure[A](
+      entry: XNode,
+      label: String,
+      f:     XNode => A
   )(implicit entryType: XmlEntryType): PureResult[A] = {
-    (entry \ attributeName).headOption
+    (entry \ label).headOption
       .map(f)
-      .notOptionalPure(missingErrMsg(attributeName, entryType, entry))
+      .notOptionalPure(missingChildErrMsg(label, entryType, entry))
   }
 
-  def flatMapAttributePure[A](
-      entry:         XNode,
-      attributeName: String,
-      f:             XNode => Option[A]
+  def flatMapChildPure[A](
+      entry: XNode,
+      label: String,
+      f:     XNode => Option[A]
   )(implicit entryType: XmlEntryType): PureResult[A] = {
-    (entry \ attributeName).headOption
+
+    // .flatMap(f) may return None, hence why the child may be missing or bad,
+    // whereas a 'map' will always succeed if the element is present.
+
+    (entry \ label).headOption
       .flatMap(f)
-      .notOptionalPure(missingErrMsg(attributeName, entryType, entry))
+      .notOptionalPure(missingOrBadChildErrMsg(label, entryType, entry))
   }
 
-  def idAttributePureRec(
-      node:          XNode,
-      attributeName: String,
-      entry:         XNode
+  def getChildPureRec(
+      entry: XNode,
+      label: String
   )(implicit entryType: XmlEntryType): PureResult[XNode] = {
-    (node \\ attributeName).headOption
-      .notOptionalPure(missingErrMsgRec(attributeName, entryType, entry))
+    (entry \\ label).headOption
+      .notOptionalPure(missingChildErrMsgRec(label, entryType, entry))
   }
 
-  def mapAttributePureRec[A](
-      node:          XNode,
-      attributeName: String,
-      entry:         XNode,
-      f:             XNode => A
+  def mapChildPureRec[A](
+      entry: XNode,
+      label: String,
+      f:     XNode => A
   )(implicit entryType: XmlEntryType): PureResult[A] = {
-    (node \\ attributeName).headOption
+    (entry \\ label).headOption
       .map(f)
-      .notOptionalPure(missingErrMsgRec(attributeName, entryType, entry))
+      .notOptionalPure(missingChildErrMsgRec(label, entryType, entry))
   }
 
-  def flatMapAttributePureRec[A](
-      node:          XNode,
-      attributeName: String,
-      entry:         XNode,
-      f:             XNode => Option[A]
+  def flatMapChildPureRec[A](
+      entry: XNode,
+      label: String,
+      f:     XNode => Option[A]
   )(implicit entryType: XmlEntryType): PureResult[A] = {
-    (node \\ attributeName).headOption
+
+    // .flatMap(f) may return None, hence why the child may be missing or bad,
+    // whereas a 'map' will always succeed if the element is present.
+
+    (entry \\ label).headOption
       .flatMap(f)
-      .notOptionalPure(missingErrMsgRec(attributeName, entryType, entry))
+      .notOptionalPure(missingOrBadChildErrMsgRec(label, entryType, entry))
   }
 
 }
