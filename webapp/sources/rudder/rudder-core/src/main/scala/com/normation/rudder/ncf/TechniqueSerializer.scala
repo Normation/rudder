@@ -71,6 +71,10 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
   implicit val encoderTechniqueParameter:     JsonEncoder[TechniqueParameter]          = DeriveJsonEncoder.gen
   implicit val encoderResourceFileState:      JsonEncoder[ResourceFileState]           = JsonEncoder[String].contramap(_.value)
   implicit val encoderResourceFile:           JsonEncoder[ResourceFile]                = DeriveJsonEncoder.gen
+  implicit val codecEditorTechniqueStatus:    JsonCodec[EditorTechniqueStatus]         = new JsonCodec[EditorTechniqueStatus](
+    JsonEncoder.string.contramap(_.value),
+    JsonDecoder.string.mapOrFail(s => EditorTechniqueStatus.parse(s).left.map(_.fullMsg))
+  )
   implicit val encoderTechnique:              JsonEncoder[EditorTechnique]             = DeriveJsonEncoder.gen
 
   implicit val decoderBundleName:         JsonDecoder[BundleName]                  = JsonDecoder[String].map(BundleName.apply)
