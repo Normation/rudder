@@ -108,6 +108,11 @@ limitations under the License.
     </extensions>
     <plugins>
       <plugin>
+        <groupId>io.github.evis</groupId>
+        <artifactId>scalafix-maven-plugin_2.13</artifactId>
+        <version>0.1.10_0.14.2</version>
+      </plugin>
+      <plugin>
         <!-- Specify maven resources plugin version because to avoid this bug from plugin 3.2+ https://issues.apache.org/jira/browse/MRESOURCES-269
 	especially with maven 3.9 that uses version 3.3.0 of this plugin by default, see https://issues.rudder.io/issues/22403
 	-->
@@ -168,6 +173,7 @@ limitations under the License.
             <arg>-Wunused:locals</arg>          <!-- Warn if a local definition is unused. -->
             <arg>-Wunused:implicits</arg>       <!-- Warn if an implicit parameter is unused. -->
             <arg>-Wunused:privates</arg>        <!-- Warn if a private member is unused. -->
+            <arg>-Ysemanticdb</arg>
           </args>
           <jvmArgs>
             <jvmArg>-Xmx${jvmArg-Xmx}</jvmArg>
