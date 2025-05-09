@@ -254,25 +254,22 @@ class NodeGroupUnserialisationImpl(
       isSystem     <- (group \ "isSystem").headOption.flatMap(s =>
                         tryo(s.text.toBoolean)
                       ) ?~! ("Missing attribute 'isSystem' in entry type nodeGroup : " + entry)
-      properties   <- traverse((group \ "properties" \ "property").toList) {
-                        // format: off
-                        case <property>{p @ _*}</property> =>
-                        // format: on
-                          val name = (p \\ "name").text.trim
-                          if (name.trim.isEmpty) {
-                            Failure(s"Found unexpected xml under <properties> tag (name is blank): ${p}")
-                          } else {
-                            GroupProperty
-                              .parse(
-                                (p \\ "name").text.trim,
-                                ParseRev((p \\ "revision").text.trim),
-                                StringEscapeUtils.unescapeXml((p \\ "value").text.trim),
-                                (p \\ "inheritMode").headOption.flatMap(p => InheritMode.parseString(p.text.trim).toOption),
-                                (p \\ "provider").headOption.map(p => PropertyProvider(p.text.trim))
-                              )
-                              .toBox
-                          }
-                        case xml                           => Failure(s"Found unexpected xml under <properties> tag: ${xml}")
+      properties   <- traverse(group \ "properties" \ "property") { property =>
+                        val name = (property \\ "name").text.trim
+                        if (name.trim.isEmpty) {
+                          Failure(s"Found unexpected xml under <properties> tag (name is blank): $property")
+                        } else {
+                          GroupProperty
+                            .parse(
+                              name = (property \\ "name").text.trim,
+                              rev = ParseRev((property \\ "revision").text.trim),
+                              value = StringEscapeUtils.unescapeXml((property \\ "value").text.trim),
+                              mode =
+                                (property \\ "inheritMode").headOption.flatMap(p => InheritMode.parseString(p.text.trim).toOption),
+                              provider = (property \\ "provider").headOption.map(p => PropertyProvider(p.text.trim))
+                            )
+                            .toBox
+                        }
                       }
     } yield {
       NodeGroup(
@@ -790,7 +787,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
         actions <- e \@ "actions" match {
                      case "" => Failure("Missing required attribute 'actions' for element 'authz'")
                      case s  =>
-                       (s.split(",").map(_.trim).toList.filter(_.isEmpty).traverse(HttpAction.parse _)) match {
+                       (s.split(",").map(_.trim).toList.filter(_.nonEmpty).traverse(HttpAction.parse)) match {
                          case Left(s)  => Failure(s)
                          case Right(x) => Full(x)
                        }
@@ -843,11 +840,8 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                             Full(ApiAuthorization.RO)
                           case Some(Text(text)) if text == ApiAuthorizationKind.RW.name =>
                             Full(ApiAuthorization.RW)
-                          // format: off
-                          case Some(<acl>{xml @ _*}</acl>) if (xml.nonEmpty) =>
-                          // format: on
-                            unserAcl(xml.head)
-                          // all other case: serialization pb => None
+                          case Some(node) if (node \ "acl").nonEmpty                    =>
+                            unserAcl((node \ "acl").head)
                           case _                                                        => Full(ApiAuthorization.None)
                         }
       accountType     = (apiAccount \ "kind").headOption.map(_.text) match {
