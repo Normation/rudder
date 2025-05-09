@@ -57,11 +57,7 @@ import zio.interop.catz.*
  */
 trait DBCommon extends Specification with Loggable with BeforeAfterAll {
 
-  val now = DateTime.now
-
-  logger.info(
-    """Set JAVA property 'test.postgres' to false to ignore that test, for example from maven with: mvn -DargLine="-Dtest.postgres=false" test"""
-  )
+  lazy val now = DateTime.now
 
   lazy val doDatabaseConnection: Boolean = java.lang.System.getProperty("test.postgres", "").toLowerCase match {
     case "true" | "1" => true
@@ -107,7 +103,12 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
    */
   def sqlClean: String = ""
 
-  override def beforeAll(): Unit = initDb()
+  override def beforeAll(): Unit = {
+    logger.info(
+      """Set JAVA property 'test.postgres' to false to ignore that test, for example from maven with: mvn -DargLine="-Dtest.postgres=false" test"""
+    )
+    initDb()
+  }
   override def afterAll():  Unit = cleanDb()
 
   def initDb(): Unit = {
