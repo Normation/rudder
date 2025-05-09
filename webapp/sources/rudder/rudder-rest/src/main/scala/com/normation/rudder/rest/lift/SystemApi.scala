@@ -679,7 +679,7 @@ class SystemApiService11(
   // They are helper functions called by the public method (implemented lower) to avoid code repetition.
 
   private def reloadTechniquesWrapper(req: Req): Either[String, JField] = {
-    ApiLogger.info(s"Trigger dynamic group reload")
+    ApiLogger.info(s"Trigger technique reload")
     updatePTLibService.update(
       ModificationId(uuidGen.newUuid),
       getActor(req),
