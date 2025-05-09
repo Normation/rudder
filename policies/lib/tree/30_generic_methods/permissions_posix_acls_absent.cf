@@ -149,7 +149,7 @@ bundle agent permissions_posix_acls_absent(path, recursive)
   methods:
     acls_binary_present::
       # Nothing to do
-      "${report_data.method_id}" usebundle => _classes_success("${inner_class_prefix[${indices}]}");
+      "${report_data.method_id}" usebundle => _classes_success("${inner_class_prefix[${indices}]}"),
                                         if => "!acls_found_${indices}.path_exists_${indices}";
 
       # Executed setfacl -b

@@ -122,6 +122,16 @@ bundle agent file_from_template_type(source_template, path, template_type)
       "is_mustache"     expression => strcmp("${template_type}", "mustache");
       "is_cfengine"     expression => strcmp("${template_type}", "cfengine");
 
+  files:
+    pass3::
+      "${path}"
+        create          => "true",
+        edit_template   => "${source_template}",
+        template_method => "${template_type}",
+        edit_defaults   => ncf_empty_select("true"),
+        ifvarclass      => "!is_jinja2.template_exists",
+        classes         => classes_generic_two("${report_data.method_id}", "${class_prefix}");
+
   methods:
     pass3.!template_exists::
       "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
@@ -140,20 +150,13 @@ bundle agent file_from_template_type(source_template, path, template_type)
       "${report_data.method_id}" usebundle => call_method_classes_caller;
       "${report_data.method_id}" usebundle => call_method_end("file_from_template_jinja2");
       "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Build file ${path} from Jinja2 template ${source_template}", "");
+    pass3.!is_jinja2.template_exists::
+      "${report_data.method_id}" usebundle => _classes_sanitize("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_sanitize("${class_prefix}");
 
     pass3.is_mustache.template_exists::
-      "${report_data.method_id}" usebundle => call_method("file_from_template_mustache");
-      "${report_data.method_id}" usebundle => file_from_template_mustache("${source_template}", "${path}");
-      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
-      "${report_data.method_id}" usebundle => call_method_classes_caller;
-      "${report_data.method_id}" usebundle => call_method_end("file_from_template_mustache");
       "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Build file ${path} from Mustache template ${source_template}", "");
 
     pass3.is_cfengine.template_exists::
-      "${report_data.method_id}" usebundle => call_method("file_from_template");
-      "${report_data.method_id}" usebundle => file_from_template_mustache("${source_template}", "${path}");
-      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
-      "${report_data.method_id}" usebundle => call_method_classes_caller;
-      "${report_data.method_id}" usebundle => call_method_end("file_from_template");
       "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Build file ${path} from CFEngine template ${source_template}", "");
 }

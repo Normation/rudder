@@ -175,10 +175,10 @@ bundle agent sysctl_value(key, value, filename, option) {
       "${report_data.method_id}" usebundle => call_method_end("variable_string_from_command");
 
    pass3.correct_value::
-      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}"),
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
    pass3.correct_value_post_modif::
-      "${report_data.method_id}" usebundle => _classes_repaired("${report_data.method_id}"),
-   pass3.!correct_value.!correct_value_post_modif::
+      "${report_data.method_id}" usebundle => _classes_repaired("${report_data.method_id}");
+   pass3.!correct_value::
       "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}"),
                                         if => or( "!correct_value_post_modif",
                                                   "${inner_class_prefix_variable_get}_error",

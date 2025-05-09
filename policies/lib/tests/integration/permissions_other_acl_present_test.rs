@@ -1,9 +1,9 @@
-use posix_acl::PosixACL;
-use users::{get_current_uid, get_user_by_uid};
 use crate::integration::{end_test, get_lib_path, init_test};
 use crate::testlib::given::Given;
 use crate::testlib::method_test_suite::MethodTestSuite;
-use crate::testlib::method_to_test::{method, MethodStatus};
+use crate::testlib::method_to_test::{MethodStatus, method};
+use posix_acl::{PosixACL, Qualifier};
+use crate::testlib::given::posix_acl_present::Perms;
 
 #[test]
 fn it_should_add_other_acl_entry_to_file() {
@@ -13,12 +13,9 @@ fn it_should_add_other_acl_entry_to_file() {
 
     let tested_method = &method(
         "permissions_other_acl_present",
-        &[
-            file_path_str,
-            "false",
-            "=rx"
-        ],
-    ).enforce();
+        &[file_path_str, "false", "=rx"],
+    )
+    .enforce();
 
     let r = MethodTestSuite::new()
         .given(Given::file_present(file_path_str, "Dummy content\n"))
@@ -45,12 +42,9 @@ fn it_not_add_other_acl_entry_to_file_in_audit() {
 
     let tested_method = &method(
         "permissions_other_acl_present",
-        &[
-            file_path_str,
-            "false",
-            "=rx"
-        ],
-    ).audit();
+        &[file_path_str, "false", "=rx"],
+    )
+    .audit();
 
     let r = MethodTestSuite::new()
         .given(Given::file_present(file_path_str, "Dummy content\n"))
@@ -76,15 +70,17 @@ fn it_success_in_audit_if_correct() {
 
     let tested_method = &method(
         "permissions_other_acl_present",
-        &[
-            file_path_str,
-            "false",
-            "=r"
-        ],
-    ).audit();
+        &[file_path_str, "false", "=r"],
+    )
+    .audit();
 
     let r = MethodTestSuite::new()
         .given(Given::file_present(file_path_str, "Dummy content\n"))
+        .given(Given::posix_acl_present(
+            file_path_str,
+            Qualifier::Other,
+            Perms::READ,
+        ))
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
 
@@ -93,7 +89,7 @@ fn it_success_in_audit_if_correct() {
 
     assert_eq!(
         PosixACL::read_acl(file_path_str).unwrap().as_text(),
-        "user::rw-\ngroup::r--\nother::r--\n",
+        "user::rw-\ngroup::r--\nmask::r--\nother::r--\n",
         "Other ACL entry was not added as expected"
     );
 
