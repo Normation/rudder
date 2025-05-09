@@ -141,7 +141,7 @@ bundle agent file_from_template_type(source_template, path, template_type)
     pass3.!is_jinja2.!is_mustache.!is_cfengine::
       "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
       "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
-      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Unknown template type ${tempalte_type}", "");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Unknown template type ${template_type}", "");
 
     pass3.is_jinja2.template_exists::
       "${report_data.method_id}" usebundle => call_method("file_from_template_jinja2");
