@@ -3488,6 +3488,7 @@ object RudderConfigInit {
         woDirectiveRepository,
         stringUuidGenerator
       ),
+      new RemoveDefaultRootDescription(nodeFactRepository),
       new CreateSystemToken(
         systemTokenSecret,
         root / "var" / "rudder" / "run",
