@@ -65,15 +65,18 @@ import zio.json.*
 object JsonSerializers {
   val softwareUpdateDateTimeFormat: DateTimeFormatter = ISODateTimeFormat.dateTimeNoMillis().withZoneUTC()
 
-  trait SoftwareUpdateJsonCodec extends SoftwareUpdateJsonEncoders with SoftwareUpdateJsonDecoders
-
-  trait InventoryCommonJsonCodec extends InventoryCommonJsonEncoders with InventoryCommonJsonDecoders
-  trait InventoryJsonCodec
-      extends SoftwareUpdateJsonCodec with InventoryCommonJsonCodec with InventoryJsonEncoders with InventoryJsonDecoders
-
   // We need another JSON data tree for older versions where some JSON are serialized in humanized form
-  object implicits       extends InventoryJsonCodec
-  object older_implicits extends InventoryJsonCodec with InventoryJsonEncodersHumanized
+  object implicits       {
+    export InventoryJsonDecoders.*
+    export InventoryJsonEncoders.*
+    export SoftwareUpdateJsonDecoders.*
+    export SoftwareUpdateJsonEncoders.*
+  }
+  object older_implicits {
+    export InventoryJsonEncodersHumanized.*
+    export SoftwareUpdateJsonDecoders.*
+    export SoftwareUpdateJsonEncoders.*
+  }
 
   // the update date is normalized in RFC3339, UTC, no millis
   def parseSoftwareUpdateDateTime(d: String): Either[String, DateTime] = {
@@ -87,7 +90,7 @@ object JsonSerializers {
 
 }
 
-trait SoftwareUpdateJsonEncoders {
+private object SoftwareUpdateJsonEncoders {
   private object PrivateEncoders {
     implicit val encoderDateTime: JsonEncoder[DateTime] =
       JsonEncoder[String].contramap[DateTime](d => d.toString(JsonSerializers.softwareUpdateDateTimeFormat))
@@ -110,7 +113,7 @@ trait SoftwareUpdateJsonEncoders {
   implicit val encoderSoftwareUpdate: JsonEncoder[SoftwareUpdate] = DeriveJsonEncoder.gen
 }
 
-trait SoftwareUpdateJsonDecoders {
+private object SoftwareUpdateJsonDecoders {
   // This is a trick to avoid the warning of unused encoder and avoid exposing encoders that should be in private scope
   private object PrivateDecoders {
     implicit val decoderDateTime: JsonDecoder[DateTime] =
@@ -127,17 +130,23 @@ trait SoftwareUpdateJsonDecoders {
 
 }
 
-trait InventoryCommonJsonEncoders {
+private object InventoryCommonJsonEncoders {
   implicit val encoderManufacturer:   JsonEncoder[Manufacturer]   = JsonEncoder[String].contramap(_.name)
-  implicit val encoderMemorySize:     JsonEncoder[MemorySize]     = JsonEncoder[Long].contramap(_.size)
   implicit val encoderMachineUuid:    JsonEncoder[MachineUuid]    = JsonEncoder[String].contramap(_.value)
   implicit val encoderVersion:        JsonEncoder[Version]        = JsonEncoder[String].contramap(_.value)
   implicit val encoderSoftwareEditor: JsonEncoder[SoftwareEditor] = JsonEncoder[String].contramap(_.name)
   implicit val encoderInetAddress:    JsonEncoder[InetAddress]    =
     JsonEncoder[String].contramap(com.comcast.ip4s.IpAddress.fromInetAddress(_).toString)
+  implicit val encoderController:     JsonEncoder[Controller]     = DeriveJsonEncoder.gen
+  implicit val encoderNetwork:        JsonEncoder[Network]        = DeriveJsonEncoder.gen
+  implicit val encoderProcessor:      JsonEncoder[Processor]      = DeriveJsonEncoder.gen
+  implicit val encoderSlot:           JsonEncoder[Slot]           = DeriveJsonEncoder.gen
+  implicit val encoderSound:          JsonEncoder[Sound]          = DeriveJsonEncoder.gen
+  implicit val encoderPort:           JsonEncoder[Port]           = DeriveJsonEncoder.gen
+  implicit val encoderVirtualMachine: JsonEncoder[VirtualMachine] = DeriveJsonEncoder.gen
 }
 
-trait InventoryCommonJsonDecoders {
+private object InventoryCommonJsonDecoders {
   implicit val decoderManufacturer:   JsonDecoder[Manufacturer]   = JsonDecoder[String].map(Manufacturer(_))
   implicit val decoderMemorySize:     JsonDecoder[MemorySize]     = JsonDecoder[Long].map(MemorySize(_))
   implicit val decoderMachineUuid:    JsonDecoder[MachineUuid]    = JsonDecoder[String].map(MachineUuid(_))
@@ -154,44 +163,41 @@ trait InventoryCommonJsonDecoders {
 }
 
 // The previous JSON schema had humanized version of MemorySize and Bios#releaseDate
-trait InventoryJsonEncodersHumanized { self: InventoryCommonJsonEncoders with InventoryJsonEncoders =>
+private object InventoryJsonEncodersHumanized {
   private object PrivateHumanizedEncoders {
     implicit val datetimeEncoder: JsonEncoder[DateTime] = JsonEncoder[String].contramap(DateFormaterService.getDisplayDate)
   }
+  export InventoryCommonJsonEncoders.*
   import PrivateHumanizedEncoders.*
 
   // Bios needs to be overridden with the humanized Datetime encoder
-  implicit override val encoderBios: JsonEncoder[Bios] = DeriveJsonEncoder.gen[Bios]
+  implicit val encoderBios: JsonEncoder[Bios] = DeriveJsonEncoder.gen[Bios]
 
   // any datastructure depending on an encoder of MemorySize will need to be overridden
-  implicit override val encoderMemorySize: JsonEncoder[MemorySize] = JsonEncoder[Long].contramap(MemorySize.sizeMb)
+  implicit val encoderMemorySize: JsonEncoder[MemorySize] = JsonEncoder[Long].contramap(MemorySize.sizeMb)
 
-  implicit override val encoderFileSystem: JsonEncoder[FileSystem] = DeriveJsonEncoder.gen[FileSystem]
-  implicit override val encoderMemorySlot: JsonEncoder[MemorySlot] = DeriveJsonEncoder.gen[MemorySlot]
-  implicit override val encoderStorage:    JsonEncoder[Storage]    = DeriveJsonEncoder.gen[Storage]
-  implicit override val encoderVideo:      JsonEncoder[Video]      = DeriveJsonEncoder.gen[Video]
+  implicit val encoderFileSystem: JsonEncoder[FileSystem] = DeriveJsonEncoder.gen[FileSystem]
+  implicit val encoderMemorySlot: JsonEncoder[MemorySlot] = DeriveJsonEncoder.gen[MemorySlot]
+  implicit val encoderStorage:    JsonEncoder[Storage]    = DeriveJsonEncoder.gen[Storage]
+  implicit val encoderVideo:      JsonEncoder[Video]      = DeriveJsonEncoder.gen[Video]
 }
 
 // encoder from object to json string
-trait InventoryJsonEncoders { self: InventoryCommonJsonEncoders =>
+private object InventoryJsonEncoders {
+  export InventoryCommonJsonEncoders.*
   import com.normation.utils.DateFormaterService.json.*
-  implicit val encoderController:     JsonEncoder[Controller]     = DeriveJsonEncoder.gen
-  implicit val encoderFileSystem:     JsonEncoder[FileSystem]     = DeriveJsonEncoder.gen
-  implicit val encoderMemorySlot:     JsonEncoder[MemorySlot]     = DeriveJsonEncoder.gen
-  implicit val encoderProcess:        JsonEncoder[Process]        = DeriveJsonEncoder.gen
-  implicit val encoderPort:           JsonEncoder[Port]           = DeriveJsonEncoder.gen
-  implicit val encoderVirtualMachine: JsonEncoder[VirtualMachine] = DeriveJsonEncoder.gen
-  implicit val encoderStorage:        JsonEncoder[Storage]        = DeriveJsonEncoder.gen
-  implicit val encoderBios:           JsonEncoder[Bios]           = DeriveJsonEncoder.gen
-  implicit val encoderNetwork:        JsonEncoder[Network]        = DeriveJsonEncoder.gen
-  implicit val encoderVideo:          JsonEncoder[Video]          = DeriveJsonEncoder.gen
-  implicit val encoderProcessor:      JsonEncoder[Processor]      = DeriveJsonEncoder.gen
-  implicit val encoderSlot:           JsonEncoder[Slot]           = DeriveJsonEncoder.gen
-  implicit val encoderSound:          JsonEncoder[Sound]          = DeriveJsonEncoder.gen
 
+  implicit val encoderMemorySize: JsonEncoder[MemorySize] = JsonEncoder[Long].contramap(_.size)
+  implicit val encoderFileSystem: JsonEncoder[FileSystem] = DeriveJsonEncoder.gen
+  implicit val encoderMemorySlot: JsonEncoder[MemorySlot] = DeriveJsonEncoder.gen
+  implicit val encoderProcess:    JsonEncoder[Process]    = DeriveJsonEncoder.gen
+  implicit val encoderStorage:    JsonEncoder[Storage]    = DeriveJsonEncoder.gen
+  implicit val encoderBios:       JsonEncoder[Bios]       = DeriveJsonEncoder.gen
+  implicit val encoderVideo:      JsonEncoder[Video]      = DeriveJsonEncoder.gen
 }
 
-trait InventoryJsonDecoders { self: InventoryCommonJsonDecoders =>
+private object InventoryJsonDecoders {
+  export InventoryCommonJsonDecoders.*
   import com.normation.utils.DateFormaterService.json.*
   implicit val decoderController:     JsonDecoder[Controller]     = DeriveJsonDecoder.gen
   implicit val decoderFileSystem:     JsonDecoder[FileSystem]     = DeriveJsonDecoder.gen
