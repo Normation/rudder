@@ -39,6 +39,10 @@ package com.normation.rudder.services.queries
 
 import cats.implicits.*
 import com.normation.box.*
+import com.normation.errors.AccumulateErrors
+import com.normation.errors.Inconsistency
+import com.normation.errors.PureResult
+import com.normation.rudder.apidata.implicits.queryDecoder
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.queries.QueryReturnType.*
 import com.normation.rudder.services.queries.CmdbQueryParser.*
@@ -46,6 +50,7 @@ import com.normation.utils.Control.traverse
 import net.liftweb.common.*
 import net.liftweb.json.*
 import net.liftweb.json.JsonParser.ParseException
+import zio.json.*
 
 /**
  * This trait is the general interface that
@@ -104,13 +109,19 @@ trait QueryLexer {
 }
 
 trait StringQueryParser {
-  def parse(query: StringQuery): Box[Query]
+  def parse(query:     StringQuery): Box[Query]
+  def parsePure(query: StringQuery): PureResult[Query]
 }
 
 sealed trait CmdbQueryParser extends StringQueryParser with QueryLexer {
   def apply(query: String): Box[Query] = for {
     sq <- lex(query)
     q  <- parse(sq)
+  } yield q
+
+  def applyPure(query: String): PureResult[Query] = for {
+    sq <- query.fromJson[StringQuery].leftMap(errMsg => Inconsistency(errMsg))
+    q  <- parsePure(sq)
   } yield q
 }
 
@@ -136,20 +147,39 @@ trait DefaultStringQueryParser extends StringQueryParser {
                  case Some(s) =>
                    CriterionComposition.parse(s) match {
                      case Some(x) => Full(x)
-                     case None    => Failure(s"The requested composition '${query.composition}' is not know")
+                     case None    => Failure(s"The requested composition '${query.composition}' is unknown")
                    }
                }
       trans <- query.transform match {
                  case None    => Full(defaultTransformation)
                  case Some(x) => ResultTransformation.parse(x).toBox
                }
-      lines <- traverse(query.criteria)(parseLine)
+      lines <- traverse(query.criteria)(parseLine andThen (_.toBox))
     } yield {
       Query(query.returnType, comp, trans, lines.toList)
     }
   }
 
-  def parseLine(line: StringCriterionLine): Box[CriterionLine] = {
+  override def parsePure(query: StringQuery): PureResult[Query] = {
+    for {
+      comp  <- query.composition match {
+                 case None    => Right(defaultComposition)
+                 case Some(s) =>
+                   CriterionComposition
+                     .parse(s)
+                     .toRight(Inconsistency(s"The requested composition '${query.composition}' is unknown"))
+               }
+      trans <- query.transform match {
+                 case None    => Right(defaultTransformation)
+                 case Some(x) => ResultTransformation.parse(x)
+               }
+      lines <- query.criteria.accumulatePure(parseLine andThen (_.leftMap(errMsg => Inconsistency(errMsg))))
+    } yield {
+      Query(query.returnType, comp, trans, lines)
+    }
+  }
+
+  def parseLine(line: StringCriterionLine): Either[String, CriterionLine] = {
 
     (for {
       objectType <-
@@ -179,7 +209,7 @@ trait DefaultStringQueryParser extends StringQueryParser {
                           Left("Missing required value for comparator '%s' in line '%s'".format(line.comparator, line))
                         else Right("")
                     }
-    } yield CriterionLine(objectType, criterion, comparator, value)).toBox
+    } yield CriterionLine(objectType, criterion, comparator, value))
 
   }
 
