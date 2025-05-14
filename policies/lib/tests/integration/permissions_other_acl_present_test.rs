@@ -1,9 +1,9 @@
 use crate::integration::{end_test, get_lib_path, init_test};
 use crate::testlib::given::Given;
+use crate::testlib::given::posix_acl_present::Perms;
 use crate::testlib::method_test_suite::MethodTestSuite;
 use crate::testlib::method_to_test::{MethodStatus, method};
 use posix_acl::{PosixACL, Qualifier};
-use crate::testlib::given::posix_acl_present::Perms;
 
 #[test]
 fn it_should_add_other_acl_entry_to_file() {
