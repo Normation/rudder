@@ -130,12 +130,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
         <globalParameters/>
       </changeRequest>
 
-      changeRequestChangesUnserialisation.unserialise(change) match {
-        case Left(err) =>
-          val msg = s"I wasn't expecting the failure: ${err.fullMsg}"
-          ko(msg)
-        case Right(_)  => ok("unserialization was a success")
-      }
+      changeRequestChangesUnserialisation.unserialise(change) must beRight
     }
   }
 
