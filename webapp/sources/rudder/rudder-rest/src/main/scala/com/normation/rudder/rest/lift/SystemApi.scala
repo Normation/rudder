@@ -89,6 +89,7 @@ import net.liftweb.json.JsonDSL.*
 import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.revwalk.RevWalk
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatterBuilder
 import zio.*
@@ -888,7 +889,7 @@ class SystemApiService11(
           200
         )
       case Left(error)                                   =>
-        val fail = Chained("Error has occured while getting debug script result", error)
+        val fail = Chained("Error has occurred while getting debug script result", error)
         toJsonError(None, "debug script" -> s"An Error occurred: ${fail.fullMsg}")
     }
   }
@@ -1419,10 +1420,10 @@ private[rest] object SystemApi {
   val archiveDateFormat = new DateTimeFormatterBuilder()
     .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
     .appendLiteral('T')
-    .append(DateTimeFormat.forPattern("hhmmss"))
+    .append(DateTimeFormat.forPattern("HHmmss'Z'")) // we want only utc here to avoid getting + or other strange char in URI
     .toFormatter
 
   def getArchiveName(archiveType: ArchiveType, date: DateTime): String =
-    s"rudder-conf-${archiveType.entryName}-${archiveDateFormat.print(date)}.zip"
+    s"rudder-conf-${archiveType.entryName}-${archiveDateFormat.print(date.toDateTime(DateTimeZone.UTC))}.zip"
 
 }
