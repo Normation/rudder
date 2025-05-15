@@ -186,7 +186,7 @@ class NodeGroupForm(
 
     (nodeGroup match {
       case Left(target)                     =>
-        showFormTarget(target)(html) ++ showRelatedRulesTree(target) ++ showGroupCompliance(target.target)
+        showFormTarget(target, allowCloning = false)(html) ++ showRelatedRulesTree(target) ++ showGroupCompliance(target.target)
       case Right(group) if (group.isSystem) =>
         showFormTarget(GroupTarget(group.id), Some(group))(html) ++ showRelatedRulesTree(
           GroupTarget(group.id)
@@ -370,7 +370,7 @@ class NodeGroupForm(
     )
   }
 
-  private def showFormTarget(target: SimpleTarget, group: Option[NodeGroup] = None): CssSel = {
+  private def showFormTarget(target: SimpleTarget, group: Option[NodeGroup] = None, allowCloning: Boolean = true): CssSel = {
     ("group-pendingchangerequest" #> NodeSeq.Empty
     & "#group-name" #> <span>{groupNameString}<span class="group-system"></span></span>
     & "group-name" #> groupName.readOnlyValue
@@ -406,7 +406,7 @@ class NodeGroupForm(
     & "group-container" #> groupContainer.readOnlyValue
     & "group-static" #> NodeSeq.Empty
     & "group-showgroup" #> NodeSeq.Empty
-    & "group-clone" #> systemGroupCloneButton()
+    & "group-clone" #> (if (allowCloning) systemGroupCloneButton() else NodeSeq.Empty)
     & "group-close" #>
     <button class="btn btn-default" onclick={
       s"""$$('#${htmlIdCategory}').trigger("group-close-detail")"""
