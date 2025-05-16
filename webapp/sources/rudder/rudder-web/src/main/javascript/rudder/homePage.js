@@ -309,13 +309,8 @@ function doughnutChart (id,data,colors,hoverColors) {
 
             case 'nodeAgents':
               jsonHashSearch.query.where = [
-                { objectType: "software"
-                , attribute : "cn"
-                , comparator: "regex"
-                , value     : "rudder-agent|Rudder [aA]gent \\(DSC\\)"
-                },
-                { objectType: "software"
-                , attribute : "softwareVersion"
+                { objectType: "node"
+                , attribute : "agentVersion"
                 , comparator: "regex"
                 , value     : "(\\d+:)?" + data.replace(/\./g, "(\.|~)") + ".*"
                 }

@@ -130,7 +130,7 @@ class WoLDAPNodeRepository(
 
       (agents.toList, status)
     }
-    import com.normation.inventory.ldap.core.LDAPConstants.{A_KEY_STATUS, A_AGENTS_NAME}
+    import com.normation.inventory.ldap.core.LDAPConstants.{A_KEY_STATUS, A_AGENT_NAME}
     if (agentKey.isEmpty && agentKeyStatus.isEmpty) ZIO.unit
     else {
       nodeLibMutex.writeLock(for {
@@ -141,7 +141,7 @@ class WoLDAPNodeRepository(
                          }
         con           <- ldap
         existingEntry <- con
-                           .get(acceptedDit.NODES.NODE.dn(nodeId.value), A_KEY_STATUS :: A_AGENTS_NAME :: Nil: _*)
+                           .get(acceptedDit.NODES.NODE.dn(nodeId.value), A_KEY_STATUS :: A_AGENT_NAME :: Nil: _*)
                            .notOptional(
                              s"Cannot update node with id ${nodeId.value}: there is no node with that id"
                            )
@@ -156,7 +156,7 @@ class WoLDAPNodeRepository(
         result        <- if (agentsInfo == newInfo) LDIFNoopChangeRecord(dn).succeed
                          else {
                            val e = LDAPEntry(dn)
-                           e.addValues(A_AGENTS_NAME, newInfo._1.map(_.toJson)*)
+                           e.addValues(A_AGENT_NAME, newInfo._1.map(_.toJson)*)
                            e.addValues(A_KEY_STATUS, newInfo._2.value)
 
                            con.save(e).chainError(s"Error when saving node entry in repository: ${e}")
