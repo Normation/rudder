@@ -46,7 +46,6 @@ import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.InventoryApi as API
 import com.normation.rudder.rest.RestError
-import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils.effectiveResponse
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
@@ -59,7 +58,6 @@ import zio.*
 import zio.syntax.*
 
 class InventoryApi(
-    restExtractorService: RestExtractorService,
     inventoryFileWatcher: InventoryFileWatcher,
     incomingInventoryDir: File
 ) extends LiftApiModuleProvider[API] {
@@ -81,8 +79,7 @@ class InventoryApi(
       override def code: Int = 429 // too many requests
     }
     val schema:              API.QueueInformation.type = API.QueueInformation
-    val restExtractor = restExtractorService
-    val actionName    = "queueInformation"
+    val actionName = "queueInformation"
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val json = (
         ("queueMaxSize"       -> Int.MaxValue)
@@ -151,10 +148,9 @@ class InventoryApi(
   }
 
   object FileWatcherStart extends LiftApiModule0 {
-    val schema: API.FileWatcherStart.type = API.FileWatcherStart
-    val restExtractor = restExtractorService
-    implicit val actionName:                                                                                   String       = "fileWatcherStart"
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.FileWatcherStart.type = API.FileWatcherStart
+    implicit val actionName:                                                                                   String                    = "fileWatcherStart"
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse              = {
       implicit val pretty = params.prettify
       inventoryFileWatcher.startWatcher() match {
         case Right(()) =>
@@ -169,10 +165,9 @@ class InventoryApi(
   }
 
   object FileWatcherStop extends LiftApiModule0 {
-    val schema: API.FileWatcherStop.type = API.FileWatcherStop
-    val restExtractor = restExtractorService
-    implicit val actionName:                                                                                   String       = "fileWatcherStop"
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.FileWatcherStop.type = API.FileWatcherStop
+    implicit val actionName:                                                                                   String                   = "fileWatcherStop"
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse             = {
       implicit val pretty = params.prettify
       inventoryFileWatcher.stopWatcher() match {
         case Right(()) =>
@@ -187,10 +182,9 @@ class InventoryApi(
   }
 
   object FileWatcherRestart extends LiftApiModule0 {
-    val schema: API.FileWatcherRestart.type = API.FileWatcherRestart
-    val restExtractor = restExtractorService
-    implicit val actionName:                                                                                   String       = "frileWatcherRestart"
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.FileWatcherRestart.type = API.FileWatcherRestart
+    implicit val actionName:                                                                                   String                      = "frileWatcherRestart"
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                = {
       implicit val pretty = params.prettify
       (for {
         _ <- inventoryFileWatcher.stopWatcher()

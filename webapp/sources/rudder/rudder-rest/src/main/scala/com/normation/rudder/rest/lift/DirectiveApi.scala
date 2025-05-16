@@ -50,7 +50,6 @@ import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.JRDirective
-import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AsyncDeploymentActor
@@ -272,7 +271,6 @@ class DirectiveApiService14(
     asyncDeploymentAgent: AsyncDeploymentActor,
     workflowLevelService: WorkflowLevelService,
     editorService:        DirectiveEditorService,
-    restDataSerializer:   RestDataSerializer,
     techniqueRepository:  TechniqueRepository
 ) {
 

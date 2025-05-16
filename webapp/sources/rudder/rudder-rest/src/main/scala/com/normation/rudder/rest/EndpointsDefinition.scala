@@ -810,7 +810,7 @@ object PluginInternalApi       extends Enum[PluginInternalApi] with ApiModulePro
 }
 
 sealed trait TechniqueApi     extends EnumEntry with EndpointSchema with SortIndex {
-  override def dataContainer: Some[String] = Some("techniques")
+  override def dataContainer: Option[String] = Some("techniques")
 }
 sealed trait TechniqueApiPub  extends TechniqueApi with GeneralApi
 sealed trait TechniqueApiPriv extends TechniqueApi with InternalApi
@@ -834,6 +834,9 @@ object TechniqueApi extends Enum[TechniqueApi] with ApiModuleProvider[TechniqueA
     val description    = "Get all technique categories"
     val (action, path) = GET / "techniques" / "categories"
     val authz: List[AuthorizationType] = AuthorizationType.Technique.Read :: Nil
+
+    override def name:          String         = "techniqueCategories"
+    override def dataContainer: Option[String] = None
   }
   case object ListTechniques            extends TechniqueApiPub with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
@@ -885,12 +888,17 @@ object TechniqueApi extends Enum[TechniqueApi] with ApiModuleProvider[TechniqueA
     val description    = "Get currently deployed resources of a technique"
     val (action, path) = GET / "techniques" / "{techniqueId}" / "{techniqueVersion}" / "resources"
     val authz: List[AuthorizationType] = AuthorizationType.Technique.Read :: Nil
+
+    override def name:          String         = "techniqueResources"
+    override def dataContainer: Option[String] = Some("resources")
   }
   case object GetNewResources          extends TechniqueApiPub with TwoParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get resources of a technique draft"
     val (action, path) = GET / "drafts" / "{techniqueId}" / "{techniqueVersion}" / "resources"
     val authz: List[AuthorizationType] = AuthorizationType.Technique.Read :: Nil
+
+    override def dataContainer: Option[String] = Some("resources")
   }
   case object CopyResourcesWhenCloning extends TechniqueApiPriv with TwoParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
@@ -918,6 +926,9 @@ object TechniqueApi extends Enum[TechniqueApi] with ApiModuleProvider[TechniqueA
     val description    = "Get all methods metadata"
     val (action, path) = GET / "methods"
     val authz: List[AuthorizationType] = AuthorizationType.Technique.Read :: Nil
+
+    override def dataContainer: Option[String] = None
+    override def name:          String         = "methods"
   }
   case object UpdateMethods            extends TechniqueApiPub with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
