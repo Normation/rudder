@@ -720,10 +720,10 @@ displayRights user roles =
                     ]
 
     in
-    if List.isEmpty userRoles then
+    if List.isEmpty userRoles && List.isEmpty tooltipAuths then
         span [ class "empty" ] [ text "No rights found" ]
     else
-        span [ class "list-auths" ] (List.append userRoles tooltipAuths)
+        span [ class "list-auths" ] (userRoles ++ tooltipAuths)
 
 displayProviders : Model -> User -> Html Msg
 displayProviders model user =
