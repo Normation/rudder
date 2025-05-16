@@ -28,8 +28,6 @@ import com.normation.rudder.domain.queries.ResultTransformation.*
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.services.policies.TestNodeConfiguration
 import com.normation.rudder.services.queries.CmdbQueryParser
-import net.liftweb.common.Empty
-import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
@@ -105,7 +103,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
 
       val expected = (TechniqueName(techniqueName), directive, SectionVal(Map(), Map()))
 
-      unserialized mustFullEq (expected)
+      unserialized must beRight(expected)
     }
 
     "be able to correctly unserialize a change request" in {
@@ -132,14 +130,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
         <globalParameters/>
       </changeRequest>
 
-      changeRequestChangesUnserialisation.unserialise(change) match {
-        case f: Failure =>
-          val msg = s"I wasn't expecting the failure: ${f.messageChain}"
-          f.rootExceptionCause.foreach(ex => ex.printStackTrace())
-          ko(msg)
-        case Empty => ko(s"Unexpected Empty!")
-        case Full(_) => ok("unserialization was a success")
-      }
+      changeRequestChangesUnserialisation.unserialise(change) must beRight
     }
   }
 
@@ -229,7 +220,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
     val xml    = nodeGroupSerialisation.serialise(group)
     val group2 = nodeGroupUnserialisation.unserialise(xml)
 
-    group2 must beEqualTo(Full(group))
+    group2 must beRight(group)
   }
 
 }
