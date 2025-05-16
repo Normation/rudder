@@ -90,7 +90,7 @@ object NodeInfoService {
       A_WIN_COMPANY,
       A_WIN_KEY,
       A_WIN_ID,
-      A_AGENTS_NAME,
+      A_AGENT_NAME,
       A_POLICY_SERVER_UUID,
       A_ROOT_USER,
       A_ARCH,

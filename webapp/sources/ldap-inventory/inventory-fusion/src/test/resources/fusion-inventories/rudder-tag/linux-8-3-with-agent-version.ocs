@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- standard agent tag as of rudder 8.3 -->
+<REQUEST>
+  <CONTENT>
+    <OPERATINGSYSTEM>
+      <ARCH>x86_64</ARCH>
+      <BOOT_TIME>2025-05-16 02:24:17</BOOT_TIME>
+      <DNS_DOMAIN>normation.com</DNS_DOMAIN>
+      <FQDN>rudder.normation.com</FQDN>
+      <FULL_NAME>Ubuntu 22.04.5 LTS</FULL_NAME>
+      <HOSTID>007f0102</HOSTID>
+      <KERNEL_NAME>linux</KERNEL_NAME>
+      <KERNEL_VERSION>5.15.0-126-generic</KERNEL_VERSION>
+      <NAME>Ubuntu</NAME>
+      <SSH_KEY>ssh-ed25519 xxxxx</SSH_KEY>
+      <TIMEZONE>
+        <NAME>UTC</NAME>
+        <OFFSET>+0000</OFFSET>
+      </TIMEZONE>
+      <VERSION>22.04</VERSION>
+    </OPERATINGSYSTEM>
+    <SOFTWARES>
+      <NAME>rudder-agent</NAME>
+      <VERSION>8.3.1-ubuntu22.04</VERSION>
+    </SOFTWARES>
+    <RUDDER>
+      <AGENT>
+        <AGENT_CERT>>-----BEGIN CERTIFICATE-----
+some_certificate_context
+-----END CERTIFICATE-----
+        </AGENT_CERT>
+        <AGENT_NAME>cfengine-community</AGENT_NAME>
+        <CFENGINE_KEY>-----BEGIN RSA PUBLIC KEY-----
+some_key_content
+-----END RSA PUBLIC KEY-----
+        </CFENGINE_KEY>
+        <OWNER>root</OWNER>
+        <POLICY_SERVER_HOSTNAME>127.0.0.1</POLICY_SERVER_HOSTNAME>
+        <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
+      </AGENT>
+      <AGENT_CAPABILITIES></AGENT_CAPABILITIES>
+      <AGENT_VERSION>8.3.1</AGENT_VERSION>
+      <CUSTOM_PROPERTIES></CUSTOM_PROPERTIES>
+      <HOSTNAME>rudder</HOSTNAME>
+      <SERVER_ROLES></SERVER_ROLES>
+      <UUID>root</UUID>
+    </RUDDER>
+  </CONTENT>
+  <QUERY>INVENTORY</QUERY>
+  <DEVICEID>foo</DEVICEID>
+</REQUEST>
