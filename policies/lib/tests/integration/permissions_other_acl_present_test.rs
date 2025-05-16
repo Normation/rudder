@@ -4,39 +4,21 @@ use crate::testlib::given::posix_acl_present::Perms;
 use crate::testlib::method_test_suite::MethodTestSuite;
 use crate::testlib::method_to_test::{MethodStatus, method};
 use posix_acl::{PosixACL, Qualifier};
-use users::{get_current_uid, get_user_by_uid};
 
-#[ignore]
 #[test]
-fn it_should_remove_group_acl_entry_from_file() {
+fn it_should_add_other_acl_entry_to_file() {
     let workdir = init_test();
     let file_path = workdir.path().join("testfile.txt");
     let file_path_str = file_path.to_str().unwrap();
 
-    let current_gid = get_user_by_uid(get_current_uid())
-        .unwrap()
-        .primary_group_id();
     let tested_method = &method(
-        "permissions_group_acl_absent",
-        &[
-            file_path_str,
-            "false",
-            users::get_current_groupname().unwrap().to_str().unwrap(),
-        ],
+        "permissions_other_acl_present",
+        &[file_path_str, "false", "=rx"],
     )
     .enforce();
 
     let r = MethodTestSuite::new()
         .given(Given::file_present(file_path_str, "Dummy content\n"))
-        .given(Given::posix_acl_present(
-            file_path_str,
-            Qualifier::Group(
-                get_user_by_uid(get_current_uid())
-                    .unwrap()
-                    .primary_group_id(),
-            ),
-            Perms::READ,
-        ))
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
 
@@ -45,44 +27,27 @@ fn it_should_remove_group_acl_entry_from_file() {
 
     assert_eq!(
         PosixACL::read_acl(file_path_str).unwrap().as_text(),
-        "user::rw-\ngroup::r--\nmask::r--\nother::r--\n",
-        "Group ACL entry for GID {} was not removed as expected",
-        current_gid
+        "user::rw-\ngroup::r--\nmask::r--\nother::r-x\n",
+        "Other ACL entry was not added as expected"
     );
 
     end_test(workdir);
 }
-#[ignore]
+
 #[test]
-fn it_should_not_remove_group_acl_entry_from_file_in_audit() {
+fn it_not_add_other_acl_entry_to_file_in_audit() {
     let workdir = init_test();
     let file_path = workdir.path().join("testfile.txt");
     let file_path_str = file_path.to_str().unwrap();
 
-    let current_gid = get_user_by_uid(get_current_uid())
-        .unwrap()
-        .primary_group_id();
-    let current_group_name = users::get_current_groupname()
-        .unwrap()
-        .into_string()
-        .unwrap();
     let tested_method = &method(
-        "permissions_group_acl_absent",
-        &[file_path_str, "false", &current_group_name],
+        "permissions_other_acl_present",
+        &[file_path_str, "false", "=rx"],
     )
     .audit();
 
     let r = MethodTestSuite::new()
         .given(Given::file_present(file_path_str, "Dummy content\n"))
-        .given(Given::posix_acl_present(
-            file_path_str,
-            Qualifier::Group(
-                get_user_by_uid(get_current_uid())
-                    .unwrap()
-                    .primary_group_id(),
-            ),
-            Perms::READ,
-        ))
         .when(tested_method)
         .execute(get_lib_path(), workdir.path().to_path_buf());
 
@@ -91,34 +56,21 @@ fn it_should_not_remove_group_acl_entry_from_file_in_audit() {
 
     assert_eq!(
         PosixACL::read_acl(file_path_str).unwrap().as_text(),
-        format!(
-            "user::rw-\ngroup::r--\ngroup:{}:r--\nmask::r--\nother::r--\n",
-            current_group_name
-        ),
-        "Group ACL entry for GID {} was not removed as expected",
-        current_gid
+        "user::rw-\ngroup::r--\nother::r--\n",
+        "Other ACL entry was not added as expected"
     );
 
     end_test(workdir);
 }
-#[ignore]
 #[test]
-fn it_should_success_in_audit_if_the_acl_is_absent() {
+fn it_success_in_audit_if_correct() {
     let workdir = init_test();
     let file_path = workdir.path().join("testfile.txt");
     let file_path_str = file_path.to_str().unwrap();
 
-    let current_group_name = users::get_current_groupname()
-        .unwrap()
-        .into_string()
-        .unwrap();
-    let current_user_name = users::get_current_username()
-        .unwrap()
-        .into_string()
-        .unwrap();
     let tested_method = &method(
-        "permissions_group_acl_absent",
-        &[file_path_str, "false", &current_group_name],
+        "permissions_other_acl_present",
+        &[file_path_str, "false", "=r"],
     )
     .audit();
 
@@ -126,7 +78,7 @@ fn it_should_success_in_audit_if_the_acl_is_absent() {
         .given(Given::file_present(file_path_str, "Dummy content\n"))
         .given(Given::posix_acl_present(
             file_path_str,
-            Qualifier::User(get_current_uid()),
+            Qualifier::Other,
             Perms::READ,
         ))
         .when(tested_method)
@@ -137,12 +89,8 @@ fn it_should_success_in_audit_if_the_acl_is_absent() {
 
     assert_eq!(
         PosixACL::read_acl(file_path_str).unwrap().as_text(),
-        format!(
-            "user::rw-\nuser:{}:r--\ngroup::r--\nmask::r--\nother::r--\n",
-            current_user_name
-        ),
-        "Group ACL entry for GID {} was somehow present",
-        current_group_name
+        "user::rw-\ngroup::r--\nmask::r--\nother::r--\n",
+        "Other ACL entry was not added as expected"
     );
 
     end_test(workdir);

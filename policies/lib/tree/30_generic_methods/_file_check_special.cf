@@ -35,35 +35,27 @@
 bundle agent file_check_special(path, file_type)
 {
   vars:
-      "file_has_type"       string => filestat("${path}", "type");
-
-      "old_class_prefix"    string => canonify("file_check_${file_type}_${path}");
-
-      "args"                 slist => { "${path}", "${file_type}" };
-      "report_param"        string => join("_", args);
-      "full_class_prefix"   string => canonify("file_check_${report_param}");
-      "class_prefix"        string => string_head("${full_class_prefix}", "1000");
+      "file_has_type" string => filestat("${path}", "type");
+      "class_prefix"  string => canonify("file_check_${file_type}_${path}");
 
   classes:
+      "pass3"           expression => "pass2";
+      "pass2"           expression => "pass1";
+      "pass1"           expression => "any";
       "file_exists"     expression => fileexists("${path}");
       "file_is_special" expression => strcmp("${file_has_type}", "${file_type}");
       "exists_special"  expression => "file_exists.file_is_special";
 
 
   methods:
-    exists_special::
-      "file_exists_and_is_special"
-        usebundle => _classes_success("${old_class_prefix}");
-      "file_exists_and_is_special"
-        usebundle => _classes_success("${class_prefix}");
+    pass3.exists_special::
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
 
-    !exists_special::
-      "file_doesnt_exists_or_is_not_special"
-        usebundle => _classes_failure("${old_class_prefix}");
-      "file_doesnt_exists_or_is_not_special"
-        usebundle => _classes_failure("${class_prefix}");
+    pass3.!exists_special::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
 
-    any::
-      "report"
-        usebundle => _log_v3("Check if ${path} exists and is a ${file_type}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Check if ${path} exists and is a ${file_type}", "");
 }

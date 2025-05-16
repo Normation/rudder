@@ -104,12 +104,7 @@
 bundle agent sharedfile_to_node(remote_node, file_id, file_path, ttl)
 {
   vars:
-      "old_class_prefix"  string => canonify("sharedfile_to_node_${file_id}");
-      "args"              slist  => { "${remote_node}", "${file_id}", "${file_path}", "${ttl}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("sharedfile_to_node_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
+      "class_prefix"  string => canonify("sharedfile_to_node_${file_id}");
       "canonified_path"   string => canonify("${file_path}");
       "endpoint"          string => "/rudder/relay-api/shared-files/${remote_node}/${g.uuid}/${file_id}";
       "url"               string => "https://${server_info.policy_server}${endpoint}";
@@ -131,39 +126,38 @@ bundle agent sharedfile_to_node(remote_node, file_id, file_path, ttl)
       "${canonified_path}_signed" and => { fileexists("${file_path}.sign"), isnewerthan("${file_path}.sign","${file_path}") };
 
       # classes for _classes_combine_ifthenelse
-      "${old_class_prefix}_exist_true"  expression => "${old_class_prefix}_exist_kept",
-                                             scope => "namespace";
-      "${old_class_prefix}_exist_false" expression => "${old_class_prefix}_exist_repaired",
-                                             scope => "namespace";
-      "${class_prefix}_exist_true"      expression => "${class_prefix}_exist_kept",
-                                             scope => "namespace";
-      "${class_prefix}_exist_false"     expression => "${class_prefix}_exist_repaired",
-                                             scope => "namespace";
+      "${report_data.method_id}_exist_true"  expression => "${report_data.method_id}_exist_kept",
+                                                  scope => "namespace";
+      "${report_data.method_id}_exist_false" expression => "${report_data.method_id}_exist_repaired",
+                                                  scope => "namespace";
+      "${class_prefix}_exist_true"           expression => "${class_prefix}_exist_kept",
+                                                  scope => "namespace";
+      "${class_prefix}_exist_false"          expression => "${class_prefix}_exist_repaired",
+                                                  scope => "namespace";
 
       "file_exists"  expression => fileexists("${file_path}");
-      "check_failed" expression => "${old_class_prefix}_exist_error|${class_prefix}_exist_error";
+      "check_failed" expression => "${report_data.method_id}_exist_error|${class_prefix}_exist_error";
 
   methods:
-    !_ncf_path_exists_curl|check_failed|!file_exists::
-      "force_failure_class old"   usebundle => _classes_failure("${old_class_prefix}");
-      "force_failure_class"       usebundle => _classes_failure("${class_prefix}");
-    !_ncf_path_exists_curl::
-      "report"                    usebundle => _log_v3("Unable to perform a HTTP queries on ${url}: curl is not installed", "${file_id}", "${old_class_prefix}", "${class_prefix}", @{args});
-    check_failed::
-      "report"                    usebundle => _log_v3("Unable to contact HTTP server on ${url} from sharedfile_to_node", "${file_id}", "${old_class_prefix}", "${class_prefix}", @{args});
-    !file_exists::
-      "report"                    usebundle => _log_v3("File ${file_path} does not exist", "${file_id}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.!_ncf_path_exists_curl|check_failed|!file_exists::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+    pass3.!_ncf_path_exists_curl::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${file_id}", "Unable to perform a HTTP queries on ${url}: curl is not installed", "");
+    pass3.check_failed::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${file_id}", "Unable to contact HTTP server on ${url} from sharedfile_to_node", "");
+    pass3.!file_exists::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${file_id}", "File ${file_path} does not exist", "");
 
     pass1.!pass2::
-      "${report_data.method_id}_${command}" usebundle  => push_dry_run_mode("false");
+      "${report_data.method_id}" usebundle  => push_dry_run_mode("false");
     pass3::
-      "${report_data.method_id}_${command}" usebundle  => pop_dry_run_mode();
+      "${report_data.method_id}" usebundle  => pop_dry_run_mode();
 
-    _ncf_path_exists_curl.file_exists.!check_failed.pass3::
-      "result"                    usebundle => _classes_combine_ifthenelse("${old_class_prefix}_exist", "success", "${old_class_prefix}_uploaded", "${old_class_prefix}");
-      "result"                    usebundle => _classes_combine_ifthenelse("${class_prefix}_exist", "success", "${class_prefix}_uploaded", "${class_prefix}");
-
-      "report"                    usebundle => _log_v3("Sharing ${file_path} with ${remote_node} under the name ${file_id} for ${ttl}", "${file_id}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3._ncf_path_exists_curl.file_exists.!check_failed.pass3::
+      "${report_data.method_id}" usebundle => _classes_combine_ifthenelse("${report_data.method_id}_exist", "success", "${report_data.method_id}_uploaded", "${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_combine_ifthenelse("${class_prefix}_exist", "success", "${class_prefix}_uploaded", "${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${file_id}", "Sharing ${file_path} with ${remote_node} under the name ${file_id} for ${ttl}", "");
 
   commands:
     _ncf_path_exists_curl::
@@ -175,15 +169,15 @@ bundle agent sharedfile_to_node(remote_node, file_id, file_path, ttl)
     pass2::
       "code=`/opt/rudder/bin/rudder-client -e ${endpoint}?hash=${hash} -r -- --head` || if [ $code -eq 404 ]; then exit 22; elif [ $code -eq 200 ]; then exit 0; else exit 254; fi"
         contain => in_shell,
-        classes => classes_generic_return_single_code_two("${old_class_prefix}_exist", "${class_prefix}_exist", "0", "22", "254"), # 254 = http 400 or above, 22 = http 404
+        classes => classes_generic_return_single_code_two("${report_data.method_id}_exist", "${class_prefix}_exist", "0", "22", "254"), # 254 = http 400 or above, 22 = http 404
              if => "${canonified_path}_signed";
 
       "echo | cat ${file_path}.sign - ${file_path} | /opt/rudder/bin/rudder-client"
            args => "-e ${endpoint}?ttl=${url_ttl} -- --request PUT --output /dev/null --header 'Content-Type: application/octet-stream' --data-binary @-",
         contain => in_shell,
-        classes => classes_generic_return_single_code_two("${old_class_prefix}_uploaded", "${class_prefix}_uploaded", "0", "999", "22"), # 22 = http 400 or above
+        classes => classes_generic_return_single_code_two("${report_data.method_id}_uploaded", "${class_prefix}_uploaded", "0", "999", "22"), # 22 = http 400 or above
              if => and( "${canonified_path}_signed",
-                        or( "${old_class_prefix}_exist_repaired",
+                        or( "${report_data.method_id}_exist_repaired",
                             "${class_prefix}_exist_repaired"
                           )
                       );
