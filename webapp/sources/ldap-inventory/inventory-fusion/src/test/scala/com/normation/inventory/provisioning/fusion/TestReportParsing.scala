@@ -358,6 +358,19 @@ class TestInventoryParsing extends Specification with Loggable {
       )
     }
 
+    "Correctly parse the version from AGENT_VERSION when available" in {
+      val inventory = parseRun("fusion-inventories/rudder-tag/linux-8-3-with-agent-version.ocs")
+
+      inventory.node.agents.head.version === Some(AgentVersion("8.3.1"))
+
+    }
+    "Correctly revert to agent package version if AGENT_VERSION is missing" in {
+      val inventory = parseRun("fusion-inventories/rudder-tag/linux-8-3-without-agent-version.ocs")
+
+      inventory.node.agents.head.version === Some(AgentVersion("8.3.1-ubuntu22.04"))
+
+    }
+
   }
 
   "Parsing Processors" should {

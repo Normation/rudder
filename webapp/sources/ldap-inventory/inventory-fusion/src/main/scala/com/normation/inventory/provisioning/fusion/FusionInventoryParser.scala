@@ -360,6 +360,7 @@ class FusionInventoryParser(
    *     <POLICY_SERVER_HOSTNAME>127.0.0.1</POLICY_SERVER_HOSTNAME>
    *     <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
    *   </AGENT>
+   *   <AGENT_VERSION>xxx</AGENT_VERSION> <!-- added in 8.3.1 -->
    *   <AGENT_CAPABILITIES>
    *     <AGENT_CAPABILITY>cfengine</AGENT_CAPABILITY>
    *     ...
@@ -384,7 +385,7 @@ class FusionInventoryParser(
 
     // as a temporary solution, we are getting information from packages
 
-    def findAgentVersion(software: Seq[Software], agentType: AgentType): Option[AgentVersion] = {
+    def findAgentVersionFromPackages(software: Seq[Software], agentType: AgentType): Option[AgentVersion] = {
       val agentSoftName = agentType.inventorySoftwareName.toLowerCase()
 
       software.filter(_.name.exists(_.toLowerCase().contains(agentSoftName))).toList.flatMap(_.version) match {
@@ -434,10 +435,13 @@ class FusionInventoryParser(
               case Some(cert) => Right(Certificate(cert))
               case None       => Left(Inconsistency("could not parse agent security token (tag AGENT_CERT), which is mandatory"))
             }
-          version        <-
-            findAgentVersion(inventory.applications, agentType).notOptionalPure(
-              s"Agent is not present in software list and so we can't get its version. This is not supported anymore."
-            )
+          version        <- optText(rudderXml \ "AGENT_VERSION") match {
+                              case Some(version) => Right(AgentVersion(version))
+                              case None          =>
+                                findAgentVersionFromPackages(inventory.applications, agentType).notOptionalPure(
+                                  s"Agent is not present in software list and so we can't get its version. This is not supported anymore."
+                                )
+                            }
         } yield {
           (AgentInfo(agentType, Some(version), securityToken, Set()), rootUser, policyServerId)
         }
