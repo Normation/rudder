@@ -165,7 +165,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   private val archive1: JObject = JObject(
     List(
       JField("id", "path"),
-      JField("date", "1970-01-01T010000"),
+      JField("date", "1970-01-01T010000Z"),
       JField("committer", "test-user"),
       JField("gitCommit", "6d6b2ceb46adeecd845ad0c0812fee07e2727104")
     )
