@@ -1,5 +1,5 @@
 use posix_acl::PosixACL;
-use users::{get_current_uid, get_user_by_uid};
+use uzers::{get_current_uid, get_user_by_uid};
 use crate::integration::{end_test, get_lib_path, init_test};
 use crate::testlib::given::Given;
 use crate::testlib::method_test_suite::MethodTestSuite;
