@@ -10,7 +10,6 @@ use rudder_module_type::ProtocolResult;
 use similar::TextDiff;
 use std::collections::HashMap;
 use std::io::Write;
-use std::os::unix::fs::PermissionsExt;
 use std::process::{Command, Stdio};
 use tempfile::{NamedTempFile, TempPath};
 
@@ -107,8 +106,18 @@ impl Engine {
 
         if !fs::exists(templating_script_path)? {
             fs::write(templating_script_path, templating_script_content)?;
-            let perms = fs::Permissions::from_mode(0o755);
-            fs::set_permissions(templating_script_path, perms)?;
+            #[cfg(target_family = "unix")]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let perms = fs::Permissions::from_mode(0o755);
+                fs::set_permissions(templating_script_path, perms)?;
+            }
+            #[cfg(target_family = "windows")]
+            {
+                let mut perms = fs::metadata(templating_script_path)?.permissions();
+                perms.set_readonly(false);
+                fs::set_permissions(templating_script_path, perms)?;
+            }
         }
 
         let output = if cfg!(target_os = "linux") {
