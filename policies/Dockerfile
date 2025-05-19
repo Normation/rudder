@@ -24,3 +24,8 @@ apt-get update && apt-get install -y rsync msitools libapt-pkg-dev libaugeas-dev
 curl https://repository.rudder.io/tools/rudder-setup | sed 's/rudder agent \(.*\)/rudder agent \1 \| true/g' | bash -s setup-agent $RUDDER_VER
 pwsh -Command Install-Module -Name PSScriptAnalyzer -RequiredVersion $PSANALYZER_VERSION -Scope AllUsers -Confirm:\$false -Force
 EOF
+
+
+RUN mv /usr/bin/rsync /usr/bin/rsync.real
+COPY ci/wrap_rsync.sh /usr/local/bin/rsync 
+RUN chmod +x /usr/local/bin/rsync 
