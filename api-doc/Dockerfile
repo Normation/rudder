@@ -4,6 +4,6 @@ ENV NODE_ENV=production
 
 RUN apt-get update && apt-get install -y rsync python3-yaml curl && rm -rf /var/lib/apt/lists/*
 RUN
-RUN mv /usr/local/bin/rsync /usr/local/bin/rsync.real
-COPY ci/wrap_rsync.sh /usr/local/bin/rsync
-RUN chmod +x /usr/local/bin/rsync 
+RUN mv /usr/bin/rsync /usr/bin/rsync.real
+COPY ci/wrap_rsync.sh /usr/bin/rsync
+RUN chmod +x /usr/bin/rsync 
