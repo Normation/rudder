@@ -440,7 +440,8 @@ pipeline {
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('policies/module-types/template') {
-                                powershell script: "(Invoke-WebRequest -Uri https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-init.exe -OutFile rustup-init.exe) -and (Start-Process -FilePath .\rustup-init.exe -ArgumentList '-vy' -Wait)", label: 'Rust installation'
+                                powershell script: "Invoke-WebRequest -Uri https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-init.exe -OutFile rustup-init.exe", label: 'Rust download'
+                                powershell script: "Start-Process -FilePath .\rustup-init.exe -ArgumentList '-vy' -Wait", label: 'Rust installation'
                                 powershell script: 'cargo test', label: 'rudder-module-template tests'
                             }
                         }
