@@ -440,7 +440,7 @@ pipeline {
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('policies/module-types/template') {
-                                pwsh script: 'cargo test', label: 'rudder-module-template tests'
+                                powershell script: 'cargo test', label: 'rudder-module-template tests'
                             }
                         }
                     }
