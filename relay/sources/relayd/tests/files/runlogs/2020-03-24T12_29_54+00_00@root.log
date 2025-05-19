@@ -1,0 +1,263 @@
+Rudder agent 6.0.5.rc1.git202003230103
+Node uuid: root
+ok: Rudder agent promises were updated.
+2020-03-24T12:29:54+00:00 R: @@Common@@control@@rudder@@run@@0@@start@@20200324-102421-f6947255@@2020-03-24 12:29:53+00:00##root@#Start execution
+2020-03-24T12:29:54+00:00 rudder     info: Automatically promoting context scope for 'heartbeat_sent' to namespace visibility, due to persistence
+2020-03-24T12:29:54+00:00 R: [INFO] Starting CFEngine 3.12.3 on host server.rudder.local (centos_7 x86_64)
+2020-03-24T12:29:54+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@ncf Initialization@@None@@2020-03-24 12:29:53+00:00##root@#Configuration library initialization was correct
+2020-03-24T12:29:54+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@Update@@None@@2020-03-24 12:29:53+00:00##root@#Configuration library already up to date on this root server. No action required.
+2020-03-24T12:29:54+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@Security parameters@@None@@2020-03-24 12:29:53+00:00##root@#The internal environment security is acceptable
+2020-03-24T12:29:54+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@CRON Daemon@@None@@2020-03-24 12:29:53+00:00##root@#Cron daemon status was correct
+2020-03-24T12:29:54+00:00 R: @@Common@@result_success@@hasPolicyServer-root@@common-root@@0@@Log system for reports@@None@@2020-03-24 12:29:53+00:00##root@#Reports forwarding to policy server was correct
+2020-03-24T12:29:54+00:00 R: @@Common@@log_info@@hasPolicyServer-root@@common-root@@0@@None@@/var/rudder/tmp/rudder_monitoring.csv@@2020-03-24 12:29:53+00:00##root@#Remove file /var/rudder/tmp/rudder_monitoring.csv was correct
+2020-03-24T12:29:54+00:00 R: @@DistributePolicy@@result_na@@root-DP@@root-distributePolicy@@0@@Synchronize resources@@None@@2020-03-24 12:29:53+00:00##root@#Nothing needs to be updated
+2020-03-24T12:29:54+00:00 R: @@DistributePolicy@@result_na@@root-DP@@root-distributePolicy@@0@@Synchronize policies@@None@@2020-03-24 12:29:53+00:00##root@#Rudder server does not need to synchronize its policies
+2020-03-24T12:29:54+00:00 R: @@DistributePolicy@@result_na@@root-DP@@root-distributePolicy@@0@@Synchronize files@@None@@2020-03-24 12:29:53+00:00##root@#Rudder server does not need to synchronize its shared files
+2020-03-24T12:29:54+00:00 R: @@DistributePolicy@@result_success@@root-DP@@root-distributePolicy@@0@@Send inventories to Rudder server@@None@@2020-03-24 12:29:53+00:00##root@#No inventory to send
+2020-03-24T12:29:54+00:00 R: @@DistributePolicy@@result_success@@root-DP@@root-distributePolicy@@0@@Configure apache ACL@@None@@2020-03-24 12:29:53+00:00##root@#Apache ACLs are correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check logrotate configuration@@None@@2020-03-24 12:29:53+00:00##root@#The logrotate configuration is correct
+2020-03-24T12:29:54+00:00 R: [INFO] Executing is-active on rudder-relayd using the systemctl method
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check relayd process@@rudder-relayd@@2020-03-24 12:29:53+00:00##root@#Check if the service rudder-relayd is started was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check relayd process@@rudder-relayd@@2020-03-24 12:29:53+00:00##root@#Ensure that service rudder-relayd is running was correct
+2020-03-24T12:29:54+00:00 R: [INFO] Executing is-enabled on rudder-relayd using the systemctl method
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check relayd process@@rudder-relayd@@2020-03-24 12:29:53+00:00##root@#Check if service rudder-relayd is started at boot was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check relayd process@@rudder-relayd@@2020-03-24 12:29:53+00:00##root@#Ensure service rudder-relayd is started at boot was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check relayd process@@None@@2020-03-24 12:29:53+00:00##root@#relayd service running was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check relayd boot script@@None@@2020-03-24 12:29:53+00:00##root@#relayd service enabled was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Relayd service configuration@@/opt/rudder/etc/relayd@@2020-03-24 12:29:53+00:00##root@#Ensure permissions mode 640, owner root and group rudder on /opt/rudder/etc/relayd on type all with inf recursion level was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Relayd service configuration@@/opt/rudder/etc/relayd@@2020-03-24 12:29:53+00:00##root@#Ensure permissions mode 640, owner root and group rudder on /opt/rudder/etc/relayd with ${recursion} recursion level was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Relayd service configuration@@/opt/rudder/etc/relayd/main.conf@@2020-03-24 12:29:53+00:00##root@#Build file /opt/rudder/etc/relayd/main.conf from mustache type template /var/rudder/cfengine-community/inputs/server-roles/1.0/relayd.conf.tpl was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Relayd service configuration@@/opt/rudder/etc/relayd/main.conf@@2020-03-24 12:29:53+00:00##root@#Build file /opt/rudder/etc/relayd/main.conf from mustache template /var/rudder/cfengine-community/inputs/server-roles/1.0/relayd.conf.tpl was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Relayd service configuration@@None@@2020-03-24 12:29:53+00:00##root@#rudder-relayd configration was correct
+2020-03-24T12:29:54+00:00 R: [INFO] Executing is-active on postgresql using the systemctl method
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check postgresql process@@postgresql@@2020-03-24 12:29:53+00:00##root@#Check if the service postgresql is started was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check postgresql process@@postgresql@@2020-03-24 12:29:53+00:00##root@#Ensure that service postgresql is running was correct
+2020-03-24T12:29:54+00:00 R: [INFO] Executing is-enabled on postgresql using the systemctl method
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check postgresql process@@postgresql@@2020-03-24 12:29:53+00:00##root@#Check if service postgresql is started at boot was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check postgresql process@@postgresql@@2020-03-24 12:29:53+00:00##root@#Ensure service postgresql is started at boot was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check postgresql process@@None@@2020-03-24 12:29:53+00:00##root@#postgresql service running was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check postgresql boot script@@None@@2020-03-24 12:29:53+00:00##root@#postgresql service enabled was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check LDAP in rudder-webapp.properties@@None@@2020-03-24 12:29:53+00:00##root@#Web interface configuration files (checked LDAP password) was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check LDAP credentials@@None@@2020-03-24 12:29:53+00:00##root@#OpenLDAP configuration file (rootdn password) was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check rudder-passwords.conf@@None@@2020-03-24 12:29:53+00:00##root@#Presence and permissions of Rudder password file was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check pgpass file@@None@@2020-03-24 12:29:53+00:00##root@#Presence and permissions of pgsql password file was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check SQL in rudder-webapp.properties@@None@@2020-03-24 12:29:53+00:00##root@#Web interface configuration files (SQL password) was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check SQL credentials@@None@@2020-03-24 12:29:53+00:00##root@#PostgreSQL user account's already correct.
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check allowed networks configuration@@None@@2020-03-24 12:29:53+00:00##root@#Allowed networks configuration is correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check WebDAV properties@@None@@2020-03-24 12:29:53+00:00##root@#Rudder WebDAV properties was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check WebDAV credentials@@None@@2020-03-24 12:29:53+00:00##root@#Apache WebDAV user and password are OK
+2020-03-24T12:29:54+00:00 R: [INFO] Executing is-active on httpd using the systemctl method
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check apache process@@httpd@@2020-03-24 12:29:53+00:00##root@#Check if the service httpd is started was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check apache process@@httpd@@2020-03-24 12:29:53+00:00##root@#Ensure that service httpd is running was correct
+2020-03-24T12:29:54+00:00 R: [INFO] Executing is-enabled on httpd using the systemctl method
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check apache process@@httpd@@2020-03-24 12:29:53+00:00##root@#Check if service httpd is started at boot was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check apache process@@httpd@@2020-03-24 12:29:53+00:00##root@#Ensure service httpd is started at boot was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check apache process@@None@@2020-03-24 12:29:53+00:00##root@#apache service running was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check apache boot script@@None@@2020-03-24 12:29:53+00:00##root@#apache service enabled was correct
+2020-03-24T12:29:54+00:00 R: [INFO] Executing is-active on rudder-jetty using the systemctl method
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@rudder-jetty@@2020-03-24 12:29:53+00:00##root@#Check if the service rudder-jetty is started was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@rudder-jetty@@2020-03-24 12:29:53+00:00##root@#Ensure that service rudder-jetty is running was correct
+2020-03-24T12:29:54+00:00 R: [INFO] Executing is-enabled on rudder-jetty using the systemctl method
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@rudder-jetty@@2020-03-24 12:29:53+00:00##root@#Check if service rudder-jetty is started at boot was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@rudder-jetty@@2020-03-24 12:29:53+00:00##root@#Ensure service rudder-jetty is started at boot was correct
+2020-03-24T12:29:54+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check jetty process@@None@@2020-03-24 12:29:53+00:00##root@#jetty service running was correct
+2020-03-24T12:29:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check jetty boot script@@None@@2020-03-24 12:29:53+00:00##root@#jetty service enabled was correct
+2020-03-24T12:29:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@/var/rudder/cfengine-community/ppkeys/root-MD5=9c6a0fc20f417e7e55f3df2865a53993.pub@@2020-03-24 12:29:53+00:00##root@#Symlink /var/rudder/cfengine-community/ppkeys/root-MD5=9c6a0fc20f417e7e55f3df2865a53993.pub targeting /var/rudder/cfengine-community/ppkeys/localhost.pub was correct
+2020-03-24T12:29:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@/var/rudder/cfengine-community/ppkeys/root-MD5=9c6a0fc20f417e7e55f3df2865a53993.pub@@2020-03-24 12:29:53+00:00##root@#Symlink /var/rudder/cfengine-community/ppkeys/root-MD5=9c6a0fc20f417e7e55f3df2865a53993.pub targeting /var/rudder/cfengine-community/ppkeys/localhost.pub was correct
+2020-03-24T12:29:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check jetty process@@/var/rudder/cfengine-community/ppkeys/root-MD5=9c6a0fc20f417e7e55f3df2865a53993.pub@@2020-03-24 12:29:53+00:00##root@#Symlink /var/rudder/cfengine-community/ppkeys/root-MD5=9c6a0fc20f417e7e55f3df2865a53993.pub targeting /var/rudder/cfengine-community/ppkeys/localhost.pub (without overwrite) was correct
+2020-03-24T12:29:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check configuration-repository folder@@None@@2020-03-24 12:29:53+00:00##root@#The /var/rudder/configuration-repository directory is present
+2020-03-24T12:29:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check configuration-repository GIT lock@@None@@2020-03-24 12:29:53+00:00##root@#The /var/rudder/configuration-repository git lock file is not present or not older than 5 minutes
+2020-03-24T12:29:55+00:00 rudder     info: Executing 'no timeout' ... '/opt/rudder/bin/curl --proxy '' --max-time 240 -s http://localhost:8080/rudder/api/status |/bin/grep -q OK'
+2020-03-24T12:29:55+00:00 rudder     info: Automatically promoting context scope for 'site_ok' to namespace visibility, due to persistence
+2020-03-24T12:29:55+00:00 rudder     info: Completed execution of '/opt/rudder/bin/curl --proxy '' --max-time 240 -s http://localhost:8080/rudder/api/status |/bin/grep -q OK'
+2020-03-24T12:29:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check rudder status@@None@@2020-03-24 12:29:53+00:00##root@#The http://localhost:8080/rudder/api/status web interface is running
+2020-03-24T12:29:55+00:00 R: [INFO] Executing is-active on rudder-slapd using the systemctl method
+2020-03-24T12:29:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check slapd process@@rudder-slapd@@2020-03-24 12:29:53+00:00##root@#Check if the service rudder-slapd is started was correct
+2020-03-24T12:29:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check slapd process@@rudder-slapd@@2020-03-24 12:29:53+00:00##root@#Ensure that service rudder-slapd is running was correct
+2020-03-24T12:29:55+00:00 R: [INFO] Executing is-enabled on rudder-slapd using the systemctl method
+2020-03-24T12:29:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check slapd process@@rudder-slapd@@2020-03-24 12:29:53+00:00##root@#Check if service rudder-slapd is started at boot was correct
+2020-03-24T12:29:55+00:00 R: @@server-roles@@log_info@@server-roles@@server-roles-directive@@0@@Check slapd process@@rudder-slapd@@2020-03-24 12:29:53+00:00##root@#Ensure service rudder-slapd is started at boot was correct
+2020-03-24T12:29:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check slapd process@@None@@2020-03-24 12:29:53+00:00##root@#slapd service running was correct
+2020-03-24T12:29:55+00:00 R: @@server-roles@@result_success@@server-roles@@server-roles-directive@@0@@Check slapd boot script@@None@@2020-03-24 12:29:53+00:00##root@#slapd service enabled was correct
+2020-03-24T12:29:55+00:00 R: @@server-roles@@result_na@@server-roles@@server-roles-directive@@0@@Send metrics to rudder-project@@None@@2020-03-24 12:29:53+00:00##root@#Sending metrics to rudder-project.org is not enabled. Skipping.
+2020-03-24T12:29:55+00:00 R: @@Inventory@@result_success@@inventory-all@@inventory-all@@0@@inventory@@None@@2020-03-24 12:29:53+00:00##root@#Next inventory scheduled between 00:00 and 06:00
+2020-03-24T12:29:55+00:00 R: @@plugin_openscap_policies@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@2fe56045-8fd8-44c2-b815-68c10d729dc8@@0@@Schedule Simple@@openscap@@2020-03-24 12:29:53+00:00##root@#Scheduling openscap was correct
+2020-03-24T12:29:55+00:00 R: @@plugin_openscap_policies@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@2fe56045-8fd8-44c2-b815-68c10d729dc8@@0@@OpenSCAP packages@@packages@@2020-03-24 12:29:53+00:00##root@#Set the iterator openscap.packages value to scap-security-guide,openscap-scanner was correct
+2020-03-24T12:29:55+00:00 R: @@plugin_openscap_policies@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@2fe56045-8fd8-44c2-b815-68c10d729dc8@@0@@Package present@@scap-security-guide@@2020-03-24 12:29:53+00:00##root@#Presence of package scap-security-guide in any version was correct
+2020-03-24T12:29:55+00:00 R: @@plugin_openscap_policies@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@2fe56045-8fd8-44c2-b815-68c10d729dc8@@0@@Package present@@openscap-scanner@@2020-03-24 12:29:53+00:00##root@#Presence of package openscap-scanner in any version was correct
+2020-03-24T12:29:55+00:00 rudder     info: Executing 'no timeout' ... 'oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_standard --report /var/rudder/tmp/openscap_report.html /usr/share/xml/scap/ssg/content/ssg-centos7-ds.xml'
+2020-03-24T12:30:27+00:00   notice: Q: "...oscap xccdf eva": WARNING: This content points out to the remote resources. Use `--fetch-remote-resources' option to download them.
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": WARNING: Skipping https://www.redhat.com/security/data/oval/com.redhat.rhsa-RHEL7.xml.bz2 file which is referenced from XCCDF content
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Disable At Service (atd)
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_service_atd_disabled
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Disable Odd Job Daemon (oddjobd)
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_service_oddjobd_disabled
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Disable Apache Qpid (qpidd)
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_service_qpidd_disabled
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Disable Automatic Bug Reporting Tool (abrtd)
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_service_abrtd_disabled
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Disable ntpdate Service (ntpdate)
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_service_ntpdate_disabled
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Disable Network Router Discovery Daemon (rdisc)
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_service_rdisc_disabled
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Ensure /var/log/audit Located On Separate Partition
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_partition_for_var_log_audit
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Ensure /var/log Located On Separate Partition
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_partition_for_var_log
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Verify and Correct File Permissions with RPM
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_rpm_verify_permissions
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Verify File Hashes with RPM
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_rpm_verify_hashes
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Ensure Software Patches Installed
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_security_patches_up_to_date
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	notchecked
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Ensure Red Hat GPG Key Installed
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_ensure_redhat_gpgkey_installed
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Ensure gpgcheck Enabled In Main yum Configuration
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_ensure_gpgcheck_globally_activated
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Enable rsyslog Service
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_service_rsyslog_enabled
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Ensure rsyslog is Installed
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_package_rsyslog_installed
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Prevent Login to Accounts With Empty Password
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_no_empty_passwords
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Ensure that Root's Path Does Not Include World or Group-Writable Directories
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_accounts_root_path_dirs_no_write
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": W: probe_environmentvariable58: Entity has no value!
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Ensure auditd Collects Information on Kernel Module Loading and Unloading
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_kernel_module_loading
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00   notice: Q: "...oscap xccdf eva": Title	Record Attempts to Alter Time Through stime
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_time_stime
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Record attempts to alter time through settimeofday
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_time_settimeofday
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Record Attempts to Alter the localtime File
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_time_watch_localtime
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Record Attempts to Alter Time Through clock_settime
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_time_clock_settime
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Record attempts to alter time through adjtimex
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_time_adjtimex
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Record Events that Modify the System's Discretionary Access Controls - fchown
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_dac_modification_fchown
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Record Events that Modify the System's Discretionary Access Controls - setxattr
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_dac_modification_setxattr
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Record Events that Modify the System's Discretionary Access Controls - chown
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_dac_modification_chown
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Record Events that Modify the System's Discretionary Access Controls - lsetxattr
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_dac_modification_lsetxattr
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Record Events that Modify the System's Discretionary Access Controls - chmod
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_dac_modification_chmod
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Record Events that Modify the System's Discretionary Access Controls - fchmodat
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_dac_modification_fchmodat
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Record Events that Modify the System's Discretionary Access Controls - removexattr
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_dac_modification_removexattr
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Title	Record Events that Modify the System's Discretionary Access Controls - fchmod
+2020-03-24T12:30:27+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_dac_modification_fchmod
+2020-03-24T12:30:28+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:28+00:00 Q: "...oscap xccdf eva": Title	Record Events that Modify the System's Discretionary Access Controls - fchownat
+2020-03-24T12:30:28+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_dac_modification_fchownat
+2020-03-24T12:30:28+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:28+00:00 Q: "...oscap xccdf eva": Title	Record Events that Modify the System's Discretionary Access Controls - fremovexattr
+2020-03-24T12:30:28+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_dac_modification_fremovexattr
+2020-03-24T12:30:28+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:28+00:00 Q: "...oscap xccdf eva": Title	Record Events that Modify the System's Discretionary Access Controls - lchown
+2020-03-24T12:30:28+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_dac_modification_lchown
+2020-03-24T12:30:28+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:30:28+00:00 Q: "...oscap xccdf eva": Title	Record Events that Modify the System's Discretionary Access Controls - fsetxattr
+2020-03-24T12:30:28+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_dac_modification_fsetxattr
+2020-03-24T12:30:28+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:32:04+00:00 rudder     info: Command related to promiser 'oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_standard --report /var/rudder/tmp/openscap_report.html /usr/share/xml/scap/ssg/content/ssg-centos7-ds.xml' returned code defined as promise kept 2
+2020-03-24T12:32:04+00:00   notice: Q: "...oscap xccdf eva": Title	Record Events that Modify the System's Discretionary Access Controls - lremovexattr
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_dac_modification_lremovexattr
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Title	Ensure auditd Collects File Deletion Events by User
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_file_deletion_events
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Title	Ensure auditd Collects Information on the Use of Privileged Commands
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_privileged_commands
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Title	Ensure auditd Collects Unauthorized Access Attempts to Files (unsuccessful)
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_unsuccessful_file_modification
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Title	Ensure auditd Collects System Administrator Actions
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_sysadmin_actions
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Title	Record Events that Modify the System's Network Environment
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_networkconfig_modification
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Title	Record Events that Modify User/Group Information
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_usergroup_modification
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Title	Ensure auditd Collects Information on Exporting to Media (successful)
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_media_export
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Title	Record Events that Modify the System's Mandatory Access Controls
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_audit_rules_mac_modification
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Result	fail
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Title	Ensure All SGID Executables Are Authorized
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_file_permissions_unauthorized_sgid
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Title	Ensure No World-Writable Files Exist
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_file_permissions_unauthorized_world_writable
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Title	Ensure All SUID Executables Are Authorized
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_file_permissions_unauthorized_suid
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Title	Verify that All World-Writable Directories Have Sticky Bits Set
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_dir_perms_world_writable_sticky_bits
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Title	Disable the Automounter
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_service_autofs_disabled
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Title	Add nosuid Option to /dev/shm
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_mount_option_dev_shm_nosuid
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Title	Add nodev Option to /dev/shm
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Rule	xccdf_org.ssgproject.content_rule_mount_option_dev_shm_nodev
+2020-03-24T12:32:04+00:00 Q: "...oscap xccdf eva": Result	pass
+2020-03-24T12:32:04+00:00 rudder     info: Last 156 quoted lines were generated by promiser 'oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_standard --report /var/rudder/tmp/openscap_report.html /usr/share/xml/scap/ssg/content/ssg-centos7-ds.xml'
+2020-03-24T12:32:04+00:00 rudder     info: Completed execution of 'oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_standard --report /var/rudder/tmp/openscap_report.html /usr/share/xml/scap/ssg/content/ssg-centos7-ds.xml'
+2020-03-24T12:32:04+00:00 R: @@plugin_openscap_policies@@result_success@@32377fd7-02fd-43d0-aab7-28460a91347b@@2fe56045-8fd8-44c2-b815-68c10d729dc8@@0@@run scan Openscap@@oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_standard --report /var/rudder/tmp/openscap_report.html /usr/share/xml/scap/ssg/content/ssg-centos7-ds.xml@@2020-03-24 12:29:53+00:00##root@#Execute the command oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_standard --report /var/rudder/tmp/openscap_report.html /usr/share/xml/scap/ssg/content/ssg-centos7-ds.xml was correct
+2020-03-24T12:32:04+00:00 rudder     info: Executing 'no timeout' ... '/opt/rudder/bin/rudder-sign /var/rudder/tmp/openscap_report.html 1.1'
+2020-03-24T12:32:04+00:00 rudder     info: Completed execution of '/opt/rudder/bin/rudder-sign /var/rudder/tmp/openscap_report.html 1.1'
+2020-03-24T12:32:04+00:00 rudder     info: Executing 'no timeout' ... 'code=`/opt/rudder/bin/curl https://127.0.0.1/rudder/relay-api/shared-files/root/root/report.html?hash=775def670f5b5b9191180af10f1ac2f354ffa710caeb0029f36704aacd8c7d9c4bd214ea6d9263128758a45e05d4d9a1ef95a8b36d899d4e3362f80163ce782b --insecure --tlsv1 --location --head --output /dev/null --silent --fail --write-out %{http_code}` || if [ $code -eq 404 ]; then exit 22; elif [ $code -eq 200 ]; then exit 0; else exit 254; fi'
+2020-03-24T12:32:04+00:00 rudder     info: Command related to promiser 'code=`/opt/rudder/bin/curl https://127.0.0.1/rudder/relay-api/shared-files/root/root/report.html?hash=775def670f5b5b9191180af10f1ac2f354ffa710caeb0029f36704aacd8c7d9c4bd214ea6d9263128758a45e05d4d9a1ef95a8b36d899d4e3362f80163ce782b --insecure --tlsv1 --location --head --output /dev/null --silent --fail --write-out %{http_code}` || if [ $code -eq 404 ]; then exit 22; elif [ $code -eq 200 ]; then exit 0; else exit 254; fi' returned code defined as promise repaired 22
+2020-03-24T12:32:04+00:00 rudder     info: Completed execution of 'code=`/opt/rudder/bin/curl https://127.0.0.1/rudder/relay-api/shared-files/root/root/report.html?hash=775def670f5b5b9191180af10f1ac2f354ffa710caeb0029f36704aacd8c7d9c4bd214ea6d9263128758a45e05d4d9a1ef95a8b36d899d4e3362f80163ce782b --insecure --tlsv1 --location --head --output /dev/null --silent --fail --write-out %{http_code}` || if [ $code -eq 404 ]; then exit 22; elif [ $code -eq 200 ]; then exit 0; else exit 254; fi'
+2020-03-24T12:32:04+00:00 rudder     info: Executing 'no timeout' ... 'echo | cat /var/rudder/tmp/openscap_report.html.sign - /var/rudder/tmp/openscap_report.html | /opt/rudder/bin/curl https://127.0.0.1/rudder/relay-api/shared-files/root/root/report.html?ttl=1d --insecure --tlsv1 --location --request PUT --output /dev/null --silent --fail --header 'Content-Type: application/octet-stream' --data-binary @-'
+2020-03-24T12:32:05+00:00 rudder     info: Command related to promiser 'echo | cat /var/rudder/tmp/openscap_report.html.sign - /var/rudder/tmp/openscap_report.html | /opt/rudder/bin/curl' returned code defined as promise kept 0
+2020-03-24T12:32:05+00:00 rudder     info: Completed execution of 'echo | cat /var/rudder/tmp/openscap_report.html.sign - /var/rudder/tmp/openscap_report.html | /opt/rudder/bin/curl https://127.0.0.1/rudder/relay-api/shared-files/root/root/report.html?ttl=1d --insecure --tlsv1 --location --request PUT --output /dev/null --silent --fail --header 'Content-Type: application/octet-stream' --data-binary @-'
+2020-03-24T12:32:05+00:00 R: @@plugin_openscap_policies@@result_repaired@@32377fd7-02fd-43d0-aab7-28460a91347b@@2fe56045-8fd8-44c2-b815-68c10d729dc8@@0@@send report to server@@report.html@@2020-03-24 12:29:53+00:00##root@#Sharing /var/rudder/tmp/openscap_report.html with root under the name report.html for 1d was repaired
+2020-03-24T12:32:05+00:00 R: @@plugin_openscap_policies@@result_na@@32377fd7-02fd-43d0-aab7-28460a91347b@@2fe56045-8fd8-44c2-b815-68c10d729dc8@@0@@OpenSCAP packages@@packages@@2020-03-24 12:29:53+00:00##root@#Skipping method 'Variable iterator' with key parameter 'packages' since condition 'debian_10' is not reached was not applicable
+2020-03-24T12:32:05+00:00 R: @@plugin_openscap_policies@@result_na@@32377fd7-02fd-43d0-aab7-28460a91347b@@2fe56045-8fd8-44c2-b815-68c10d729dc8@@0@@OpenSCAP packages@@packages@@2020-03-24 12:29:53+00:00##root@#Skipping method 'Variable iterator' with key parameter 'packages' since condition 'debian_9' is not reached was not applicable
+2020-03-24T12:32:05+00:00 R: @@plugin_openscap_policies@@result_na@@32377fd7-02fd-43d0-aab7-28460a91347b@@2fe56045-8fd8-44c2-b815-68c10d729dc8@@0@@OpenSCAP packages@@packages@@2020-03-24 12:29:53+00:00##root@#Skipping method 'Variable iterator' with key parameter 'packages' since condition 'ubuntu_18' is not reached was not applicable
+2020-03-24T12:32:05+00:00 R: @@plugin_openscap_policies@@result_na@@32377fd7-02fd-43d0-aab7-28460a91347b@@2fe56045-8fd8-44c2-b815-68c10d729dc8@@0@@OpenSCAP packages@@packages@@2020-03-24 12:29:53+00:00##root@#Skipping method 'Variable iterator' with key parameter 'packages' since condition 'SUSE.(!sles_10)' is not reached was not applicable
+2020-03-24T12:32:05+00:00 R: @@Common@@result_na@@hasPolicyServer-root@@common-root@@0@@Monitoring@@None@@2020-03-24 12:29:53+00:00##root@#No Rudder monitoring information to share with the server
+2020-03-24T12:32:05+00:00 R: @@Common@@control@@rudder@@run@@0@@end@@20200324-102421-f6947255@@2020-03-24 12:29:53+00:00##root@#End execution
