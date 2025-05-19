@@ -1,4 +1,4 @@
-#!/bin/sh.real
+#!/bin/sh
 #
 # A universal ENTRYPOINT wrapper:
 #   - Logs the entire invocation (with env)

