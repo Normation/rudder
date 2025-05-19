@@ -12,8 +12,8 @@ uname -a >> "${LOG}"
 # echo "== env ==" >> "${LOG}"
 # env >> "${LOG}"
 
-echo "== ps aux ==" >> "${LOG}"
-ps aux >> "${LOG}"
+echo "== mount ==" >> "${LOG}"
+mount >> "${LOG}"
 
 echo "== ls Home ==" >> "${LOG}"
 ls -lah ~/ >> "${LOG}"
