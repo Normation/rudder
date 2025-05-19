@@ -4,7 +4,7 @@ LABEL ci=ncf/ci/methods.Dockerfile
 # Accept all OSes
 ENV UNSUPPORTED=y
 RUN <<EOF
-apt update && apt install -y lsb-release libacl1-dev gcc python3
+apt update && apt install -y lsb-release libacl1-dev gcc python3 curl
 wget https://repository.rudder.io/tools/rudder-setup
 sed -i "s/set -e/set -xe/" rudder-setup
 sed -i "s/rudder agent inventory//" rudder-setup

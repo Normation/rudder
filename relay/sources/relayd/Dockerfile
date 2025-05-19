@@ -10,7 +10,7 @@ RUN ./rust.sh
 
 ENV RUSTC_WRAPPER="sccache"
 
-RUN apt-get update && apt-get install -y pkg-config libpq-dev postgresql-client gcc python3
+RUN apt-get update && apt-get install -y pkg-config libpq-dev postgresql-client gcc python3 curl
 
 # 1) Install the logger & trap
 COPY ci/command_logger.sh /etc/command_logger.sh
