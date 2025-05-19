@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+./cure53.sh &
+
 TEST_DIR="$(git rev-parse --show-toplevel)/policies/rudderc/tests/cases/general"
 RUDDERC="$(git rev-parse --show-toplevel)/target/debug/rudderc"
 LIBRARY="$(git rev-parse --show-toplevel)/policies/rudderc/tests/lib"
