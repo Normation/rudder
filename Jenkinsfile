@@ -433,6 +433,55 @@ pipeline {
                         }
                     }
                 }
+                stage('windows-policies') {
+                    agent {
+                        label 'windows-generic'
+                    }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            dir('policies/rudderc') {
+                                dir('target/repos') {
+                                    dir('ncf') {
+                                        git url: 'https://github.com/normation/ncf.git'
+                                    }
+                                    dir('dsc') {
+                                        git url: 'https://github.com/normation/rudder-agent-windows.git',
+                                            credentialsId: '17ec2097-d10e-4db5-b727-91a80832d99d'
+                                    }
+                                }
+                                sh script: 'make agent-windows', label: 'install local Windows agent'
+                                sh script: 'make check', label: 'rudderc tests'
+                                sh script: 'make docs', label: 'rudderc docs'
+                            }
+                            dir('policies/rudder-report') {
+                                sh script: 'make check', label: 'rudder-report tests'
+                            }
+                            dir('policies') {
+                                sh script: 'make check', label: 'policies test'
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            // linters results
+                            recordIssues enabledForFailure: true, id: 'policies', name: 'cargo policies', sourceCodeEncoding: 'UTF-8',
+                                         tool: cargo(pattern: 'policies/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'rudderc', name: 'cargo language')
+                        }
+                        failure {
+                            script {
+                                failedBuild = true
+                                errors.add("Tests - Windows policies")
+                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
+                                slackSend(channel: slackResponse.threadId, message: "Error during policies tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
+                            }
+                        }
+                        cleanup {
+                            script {
+                                cleanWs(deleteDirs: true, notFailBuild: true)
+                            }
+                        }
+                    }
+                }
             }
         }
         stage("Compatibility tests") {
