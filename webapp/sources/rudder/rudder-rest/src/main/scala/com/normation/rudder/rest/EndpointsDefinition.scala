@@ -1544,7 +1544,7 @@ object UserApi       extends Enum[UserApi] with ApiModuleProvider[UserApi]      
     val z: Int = implicitly[Line].value
     val description    = "Update user personal UserApi token"
     val (action, path) = POST / "user" / "api" / "token"
-    val authz: List[AuthorizationType] = AuthorizationType.UserAccount.Write :: Nil
+    val authz: List[AuthorizationType] = List(AuthorizationType.UserAccount.Edit, AuthorizationType.UserAccount.Write)
   }
 
   def endpoints: List[UserApi] = values.toList.sortBy(_.z)

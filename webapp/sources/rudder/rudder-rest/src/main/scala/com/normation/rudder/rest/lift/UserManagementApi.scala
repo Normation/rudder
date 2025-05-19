@@ -129,7 +129,7 @@ object UserManagementApi extends Enum[UserManagementApi] with ApiModuleProvider[
     val description    = "Reload (read again rudder-users.xml and process result) information about registered users in Rudder"
     val (action, path) = POST / "usermanagement" / "users" / "reload"
     override def dataContainer: Option[String]          = None
-    val authz:                  List[AuthorizationType] = AuthorizationType.UserAccount.Write :: Nil
+    val authz:                  List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
 
   final case object DeleteUser extends UserManagementApi with OneParam with StartsAtVersion10 {
@@ -139,7 +139,7 @@ object UserManagementApi extends Enum[UserManagementApi] with ApiModuleProvider[
 
     override def dataContainer: Option[String] = None
 
-    val authz: List[AuthorizationType] = AuthorizationType.UserAccount.Write :: Nil
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
 
   final case object AddUser extends UserManagementApi with ZeroParam with StartsAtVersion10 {
@@ -149,7 +149,7 @@ object UserManagementApi extends Enum[UserManagementApi] with ApiModuleProvider[
 
     override def dataContainer: Option[String] = None
 
-    val authz: List[AuthorizationType] = AuthorizationType.UserAccount.Write :: Nil
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
 
   final case object UpdateUser extends UserManagementApi with OneParam with StartsAtVersion10 {
@@ -159,7 +159,7 @@ object UserManagementApi extends Enum[UserManagementApi] with ApiModuleProvider[
 
     override def dataContainer: Option[String] = None
 
-    val authz: List[AuthorizationType] = AuthorizationType.UserAccount.Write :: Nil
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
 
   final case object UpdateUserInfo extends UserManagementApi with OneParam with StartsAtVersion10 {
@@ -169,7 +169,7 @@ object UserManagementApi extends Enum[UserManagementApi] with ApiModuleProvider[
 
     override def dataContainer: Option[String] = None
 
-    val authz: List[AuthorizationType] = AuthorizationType.UserAccount.Write :: Nil
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
 
   final case object ActivateUser extends UserManagementApi with OneParam with StartsAtVersion10 {
@@ -179,7 +179,7 @@ object UserManagementApi extends Enum[UserManagementApi] with ApiModuleProvider[
 
     override def dataContainer: Option[String] = None
 
-    val authz: List[AuthorizationType] = AuthorizationType.UserAccount.Write :: Nil
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
 
   final case object DisableUser extends UserManagementApi with OneParam with StartsAtVersion10 {
@@ -189,7 +189,7 @@ object UserManagementApi extends Enum[UserManagementApi] with ApiModuleProvider[
 
     override def dataContainer: Option[String] = None
 
-    val authz: List[AuthorizationType] = AuthorizationType.UserAccount.Write :: Nil
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
 
   final case object RoleCoverage extends UserManagementApi with OneParam with StartsAtVersion10 {
@@ -199,7 +199,7 @@ object UserManagementApi extends Enum[UserManagementApi] with ApiModuleProvider[
 
     override def dataContainer: Option[String] = None
 
-    val authz: List[AuthorizationType] = AuthorizationType.UserAccount.Read :: Nil
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
 
   def endpoints = values.toList.sortBy(_.z)
