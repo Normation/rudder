@@ -6,8 +6,9 @@ COPY ci/user.sh .
 RUN ./user.sh $USER_ID ;\
     apt-get update && apt-get install -y asciidoctor make rsync ssh curl
 
-RUN mv /usr/bin/rsync /usr/bin/rsync.real
-COPY ci/wrap_rsync.sh /usr/local/bin/rsync 
+RUN mv /usr/local/bin/rsync /usr/local/bin/rsync.real
+COPY ci/wrap_rsync.sh /usr/local/bin/rsync
+RUN chmod +x /usr/local/bin/rsync  
 
 # Make it executable
 RUN chmod +x /usr/local/bin/rsync
