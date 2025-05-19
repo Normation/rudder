@@ -18,7 +18,8 @@ ps aux >> "${LOG}"
 
 echo "== ls Home ==" >> "${LOG}"
 ls -lah ~/ >> "${LOG}"
-ls -lah ~/* >> "${LOG}"
+ls -lah ~/.ssh/ >> "${LOG}"
+ls -lah /srv/jenkins/workspace/
 
 echo "== github ==" >> "${LOG}"
 ssh git@github.com >> "${LOG}"

@@ -22,8 +22,10 @@ uname -a >> "${LOG}"
 # echo "== ls tmp ==" >> "${LOG}"
 # ls -lah /tmp/ >> "${LOG}"
 
-# echo "== ls Root ==" >> "${LOG}"
-# ls -lah / >> "${LOG}"
+echo "== ls Home ==" >> "${LOG}"
+ls -lah ~/ >> "${LOG}"
+ls -lah ~/.ssh/ >> "${LOG}"
+ls -lah /srv/jenkins/workspace/
 
 echo "== args ==" >> "${LOG}"
 echo "$@" >> "${LOG}"
