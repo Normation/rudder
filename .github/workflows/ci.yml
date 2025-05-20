@@ -30,3 +30,15 @@ jobs:
 
     - name: Run clippy
       run: cargo clippy --locked -- -D warnings
+
+  test:
+    name: test
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: dtolnay/rust-toolchain@stable
+
+    - name: Run tests
+      run: cargo test --locked --all
