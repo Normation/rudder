@@ -441,7 +441,7 @@ pipeline {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('policies/module-types/template') {
                                 powershell script: "Invoke-WebRequest -Uri https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-init.exe -OutFile rustup-init.exe", label: 'Rust download'
-                                powershell script: "Start-Process -FilePath .\rustup-init.exe -ArgumentList '-vy' -Wait", label: 'Rust installation'
+                                powershell script: "& .\rustup-init.exe -vy", label: 'Rust installation'
                                 powershell script: 'cargo test', label: 'rudder-module-template tests'
                             }
                         }
