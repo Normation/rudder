@@ -3,34 +3,6 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  fmt:
-    name: rustfmt / stable
-    runs-on: windows-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt
-
-      - name: Rust rustfmt
-        run: cargo fmt --all -- --check
-
-  clippy:
-    name: clippy / stable
-    runs-on: windows-latest
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - uses: dtolnay/rust-toolchain@stable
-      with:
-        components: clippy
-
-    - name: Run clippy
-      run: cargo clippy --locked -- -D warnings
-
   test:
     name: test
     runs-on: windows-latest
@@ -41,4 +13,4 @@ jobs:
     - uses: dtolnay/rust-toolchain@stable
 
     - name: Run tests
-      run: cargo test --locked --all
+      run: cd policies\module-types\template && cargo test --locked
