@@ -15,6 +15,7 @@ use tempfile::tempdir;
 const BIN: &str = concat!("../../../target/debug/", env!("CARGO_PKG_NAME"));
 
 #[test]
+#[cfg(target_family = "unix")]
 fn it_renders_minijinja_inlined() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
@@ -34,6 +35,7 @@ fn it_renders_minijinja_inlined() {
 }
 
 #[test]
+#[cfg(target_family = "unix")]
 fn it_fails_on_undefined_values() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
@@ -52,6 +54,7 @@ fn it_fails_on_undefined_values() {
 }
 
 #[test]
+#[cfg(target_family = "unix")]
 fn it_renders_minijinja_from_file() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
@@ -71,6 +74,7 @@ fn it_renders_minijinja_from_file() {
 }
 
 #[test]
+#[cfg(target_family = "unix")]
 fn it_checks_minijinja() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
@@ -89,6 +93,7 @@ fn it_checks_minijinja() {
 }
 
 #[test]
+#[cfg(target_family = "unix")]
 fn it_checks_correct_minijinja() {
     let root_dir = tempdir().unwrap();
     let test_path = root_dir.path().join("output");
