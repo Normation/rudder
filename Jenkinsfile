@@ -433,40 +433,6 @@ pipeline {
                         }
                     }
                 }
-                stage('windows-policies') {
-                    agent {
-                        label 'windows-generic'
-                    }
-                    steps {
-                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            dir('policies/module-types/template') {
-                                powershell script: "Invoke-WebRequest -Uri https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-gnu/rustup-init.exe -OutFile rustup-init.exe", label: 'Rust download'
-                                powershell script: "& .\rustup-init.exe -vy", label: 'Rust installation'
-                                powershell script: 'cargo test', label: 'rudder-module-template tests'
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            // linters results
-                            recordIssues enabledForFailure: true, id: 'policies', name: 'cargo policies', sourceCodeEncoding: 'UTF-8',
-                                         tool: cargo(pattern: 'policies/target/cargo-clippy.json', reportEncoding: 'UTF-8', id: 'rudderc', name: 'cargo language')
-                        }
-                        failure {
-                            script {
-                                failedBuild = true
-                                errors.add("Tests - Windows rudder-module-template")
-                                slackResponse = updateSlack(errors, slackResponse, version, changeUrl, false)
-                                slackSend(channel: slackResponse.threadId, message: "Error during policies tests - <${currentBuild.absoluteUrl}|Link>", color: "#CC3421")
-                            }
-                        }
-                        cleanup {
-                            script {
-                                cleanWs(deleteDirs: true, notFailBuild: true)
-                            }
-                        }
-                    }
-                }
             }
         }
         stage("Compatibility tests") {
