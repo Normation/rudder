@@ -2,6 +2,7 @@ package bootstrap.liftweb.checks.migration
 
 import bootstrap.liftweb.checks.earlyconfig.db.CheckUsersFile
 import com.normation.rudder.MockUserManagement
+import com.normation.utils.XmlSafe
 import com.normation.zio.UnsafeRun
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
@@ -67,7 +68,7 @@ class TestCheckUsersFile extends Specification {
     val migration                                      = mockUserManagement.userService
     val checkUsersFile                                 = new CheckUsersFile(migration)
 
-    val elem = () => scala.xml.XML.load(migration.file.inputStream())
+    val elem = () => XmlSafe.load(migration.file.inputStream())
     val res  = block(elem, checkUsersFile)
 
     mockUserManagementTmpDir.delete()
