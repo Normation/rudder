@@ -281,7 +281,6 @@ showTechnique model technique origin ui editInfo =
              |> addClass "no-methods drop-zone"
              |> addStyle ("text-align", "center")
              |> addClassConditional "drop-target" (DragDrop.isCurrentDropTarget model.dnd StartList)
-             |> appendChild ( element "div" )
              |> DragDrop.makeDroppable model.dnd StartList dragDropMessages
            ) ( case DragDrop.currentlyDraggedObject model.dnd of
                  Nothing -> False
@@ -301,7 +300,6 @@ showTechnique model technique origin ui editInfo =
                                    |> addStyle ("text-align", "center")
                                    |> addClassConditional "drop-target" (DragDrop.isCurrentDropTarget model.dnd dropElem)
                                    |> DragDrop.makeDroppable model.dnd dropElem dragDropMessages
-                                   |> appendChild ( element "div" )
 
                   base = if currentDrag then [] else [dropTarget]
                   elem =

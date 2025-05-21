@@ -385,17 +385,6 @@ ul.tabs-list > li > .badge.empty{
   opacity: .6;
 }
 
-/*
-.drop-zone > div {
-  position: absolute;
-  width: 100%;
-  height: 10px;
-  background-color: #D6DEEF;
-  top: -15px;
-  opacity: .4;
-  border-radius: 20px;
-}
-*/
 $drop-zone-height: 20px;
 $drop-zone-marker-height : 6px;
 .drop-target:not(.no-methods),
@@ -407,20 +396,8 @@ $drop-zone-marker-height : 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  /*
-  & > div{
-      position: absolute;
-      height: 2px;
-      top: 0;
-      left: 0;
-      border-top: 20px solid #1295C3 !important;
-      opacity: 1 !important;
-      box-shadow: 0 0px 12px rgba(18, 149, 194, 0.2117647059);
-      opacity:1 !important;
-      box-shadow: 0 0px 12px #1295c236;
-  }
-  */
-  & > div {
+  &:before {
+    content: "";
     position: absolute;
     width: 100%;
     height: $drop-zone-marker-height;
@@ -428,7 +405,7 @@ $drop-zone-marker-height : 6px;
     opacity: .4;
     border-radius: 10px;
   }
-  &.drop-target > div{
+  &.drop-target:before{
     opacity:1 !important;
     background-color: #1295C3;
     box-shadow: 0 0px 12px #1295c236;
@@ -444,7 +421,6 @@ $drop-zone-marker-height : 6px;
   display: block !important;
   opacity: .4;
   filter: brightness(95%);
-
 
   & > .method[hidden]{
     display: flex !important;
