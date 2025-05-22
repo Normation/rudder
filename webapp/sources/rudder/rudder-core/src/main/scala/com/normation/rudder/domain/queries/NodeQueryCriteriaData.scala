@@ -248,7 +248,9 @@ class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository, insta
         Criterion(A_STATE, NodeStateComparator, NodeCriterionMatcherString(_.rudderSettings.state.name.wrap)),
         Criterion(A_OS_RAM, MemoryComparator, NodeCriterionMatcherMemory(_.ram.toChunk)),
         Criterion(A_OS_SWAP, MemoryComparator, UnsupportedByNodeMinimalApi),
-        Criterion(A_AGENTS_NAME, AgentComparator, AgentMatcher),
+        Criterion(A_AGENT_NAME, AgentComparator, AgentMatcher),
+        // agentVersion does not exist at LDAP level, it only works with the NodeFact matcher
+        Criterion(A_AGENT_VERSION, StringComparator, NodeCriterionMatcherString(_.rudderAgent.version.value.wrap)),
         Criterion(A_ACCOUNT, StringComparator, UnsupportedByNodeMinimalApi),
         Criterion(A_LIST_OF_IP, NodeIpListComparator, NodeCriterionMatcherIpaddress),
         Criterion(A_ROOT_USER, StringComparator, NodeCriterionMatcherString(_.rudderAgent.user.wrap)),
