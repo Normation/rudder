@@ -2371,7 +2371,7 @@ class MockNodes() {
             case A_STATE              => Right((n: NodeFact) => List(n.rudderSettings.state.name))
             case A_OS_RAM             => Right((n: NodeFact) => n.ram.map(_.size.toString).toList)
             case A_OS_SWAP            => Right((n: NodeFact) => n.swap.map(_.size.toString).toList)
-            case A_AGENTS_NAME        => Right((n: NodeFact) => List(n.rudderAgent.agentType.id))
+            case A_AGENT_NAME         => Right((n: NodeFact) => List(n.rudderAgent.agentType.id))
             case A_ACCOUNT            => Right((n: NodeFact) => n.accounts.toList)
             case A_LIST_OF_IP         => Right((n: NodeFact) => n.ipAddresses.map(_.inet).toList)
             case A_ROOT_USER          => Right((n: NodeFact) => List(n.rudderAgent.user))

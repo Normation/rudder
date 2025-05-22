@@ -934,6 +934,10 @@ object DisplayNode extends Loggable {
           ("Total swap space (Swap)", StringEscapeUtils.escapeHtml4(sm.node.swap.map(_.toStringMo).getOrElse("-"))),
           ("System serial number", StringEscapeUtils.escapeHtml4(sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-"))),
           ("Agent type", StringEscapeUtils.escapeHtml4(sm.node.agents.headOption.map(_.agentType.displayName).getOrElse("-"))),
+          (
+            "Agent version",
+            StringEscapeUtils.escapeHtml4(sm.node.agents.headOption.flatMap(_.version.map(_.value)).getOrElse("-"))
+          ),
           ("Node state", StringEscapeUtils.escapeHtml4(getNodeState(node.rudderSettings.state))),
           ("Account(s)", displayAccounts(sm.node)),
           ("Administrator account", StringEscapeUtils.escapeHtml4(sm.node.main.rootUser)),
