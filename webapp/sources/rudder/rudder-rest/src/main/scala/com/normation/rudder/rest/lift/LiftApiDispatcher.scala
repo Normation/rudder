@@ -278,7 +278,7 @@ class LiftHandler(
 
 /*
  * some type machinery to be able to have an implementation for old RuleApi up to V13
- * and an other for API with zio_json in V14 (and choose processing based on that)
+ * and another for API with zio_json in V14 (and choose processing based on that)
  */
 final case class ChooseApi0[A <: LiftApiModule0](old: A, current: A) extends LiftApiModule0 {
   override val schema = current.schema

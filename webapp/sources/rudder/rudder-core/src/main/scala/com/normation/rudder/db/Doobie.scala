@@ -49,6 +49,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.JNodeStatusReport
+import com.normation.utils.XmlSafe
 import com.normation.zio.*
 import doobie.*
 import doobie.implicits.javasql.*
@@ -307,7 +308,7 @@ object Doobie {
     Meta.Advanced.many[Elem](
       NonEmptyList.of(SqlXml),
       NonEmptyList.of("xml"),
-      (rs, n) => XML.load(rs.getObject(n).asInstanceOf[SQLXML].getBinaryStream),
+      (rs, n) => XmlSafe.load(rs.getObject(n).asInstanceOf[SQLXML].getBinaryStream),
       (ps, n, e) => {
         val sqlXml = ps.getConnection.createSQLXML
         val osw    = new java.io.OutputStreamWriter(sqlXml.setBinaryStream())
