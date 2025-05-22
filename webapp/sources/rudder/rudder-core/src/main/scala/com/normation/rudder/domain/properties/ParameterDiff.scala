@@ -62,7 +62,8 @@ final case class ModifyGlobalParameterDiff(
     modValue:       Option[SimpleDiff[ConfigValue]] = None,
     modDescription: Option[SimpleDiff[String]] = None,
     modProvider:    Option[SimpleDiff[Option[PropertyProvider]]] = None,
-    modInheritMode: Option[SimpleDiff[Option[InheritMode]]] = None
+    modInheritMode: Option[SimpleDiff[Option[InheritMode]]] = None,
+    modVisibility:  Option[SimpleDiff[Option[Visibility]]] = None
 ) extends ParameterDiff {
   def needDeployment: Boolean = {
     modValue.isDefined

@@ -58,6 +58,7 @@ import com.normation.rudder.domain.properties.GroupProperty
 import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.*
 import com.unboundid.ldap.sdk.DN
@@ -527,6 +528,12 @@ class LDAPDiffMapper(
                   case A_INHERIT_MODE      =>
                     nonNull(diff, mod.getAttribute().getValue) { (d, value) =>
                       d.copy(modInheritMode = Some(SimpleDiff(oldParam.inheritMode, InheritMode.parseString(value).toOption)))
+                    }
+                  case A_VISIBILITY        =>
+                    nonNull(diff, mod.getAttribute().getValue) { (d, value) =>
+                      d.copy(modVisibility =
+                        Some(SimpleDiff(Some(oldParam.visibility), Visibility.withNameInsensitiveEither(value).toOption))
+                      )
                     }
                   case "overridable"       => diff // ignore, it's for cleaning
                   case x                   => Left(Err.UnexpectedObject("Unknown diff attribute: " + x))
