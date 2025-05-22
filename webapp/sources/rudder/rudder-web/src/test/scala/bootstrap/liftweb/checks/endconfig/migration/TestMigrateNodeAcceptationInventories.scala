@@ -268,7 +268,7 @@ trait TestMigrateNodeAcceptationInventories extends Specification with AfterAll 
   def migratedAndCanRead(id: String, date: String): MatchResult[Either[RudderError, Option[FactLog]]] = {
     val d      = dateFormat.parseDateTime(date)
     val nodeId = NodeId(id)
-    (testFactLog.get(nodeId, d).either.runNow must beRight[Option[FactLog]](beSome))
+    (testFactLog.get(nodeId, d).either.runNow must beRight(beSome[FactLog]))
   }
 
   "A full migration" should {
