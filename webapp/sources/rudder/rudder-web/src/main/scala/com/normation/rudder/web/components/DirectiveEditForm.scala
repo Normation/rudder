@@ -306,8 +306,7 @@ class DirectiveEditForm(
             </a>
         } else {
           <a href={
-            "/secure/administration/techniqueLibraryManagement/" +
-            technique.id.name.value
+            "/secure/administration/maintenance#techniqueTree"
           }>
               {technique.name}
               version
