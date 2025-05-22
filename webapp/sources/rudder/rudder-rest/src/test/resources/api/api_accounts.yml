@@ -94,7 +94,7 @@ response:
       "action":"getAccount",
       "id" : "user+1",
       "result" : "error",
-      "errorDetails" : "Inconsistency: 'user+1' is not a valid API account ID, only [a-zA-Z0-9_-]+ is allowed"
+      "errorDetails" : "'user+1' is not a valid API account ID, only [a-zA-Z0-9_-]+ is allowed"
     }
 ---
 description: Create a new API account (no ID provided, token generated, default exp) and check merge of ACLs
@@ -233,7 +233,7 @@ response:
     {
       "action":"createAccount",
       "result" : "error",
-      "errorDetails" : "Inconsistency: Error: an account with id e16114be-94ee-497f-8d17-7b258c8e5624 already exists"
+      "errorDetails" : "Error: an account with id e16114be-94ee-497f-8d17-7b258c8e5624 already exists"
     }
 ---
 description: Regenerate a token for a given api account

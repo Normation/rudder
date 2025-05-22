@@ -61,6 +61,7 @@ import com.normation.rudder.services.policies.DependencyAndDeletionService
 import com.normation.rudder.services.queries.DynGroupUpdaterService
 import com.normation.utils.Control.*
 import com.normation.utils.StringUuidGenerator
+import com.normation.utils.XmlSafe
 import com.normation.zio.UnsafeRun
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
@@ -179,7 +180,7 @@ class CommitAndDeployChangeRequestServiceImpl(
           for {
             entry <- xmlSerialize(elem)
             is     = new ByteArrayInputStream(entry.toString.getBytes(StandardCharsets.UTF_8))
-            xml    = XML.load(is)
+            xml    = XmlSafe.load(is)
             elem  <- xmlUnserialize(xml)
           } yield {
             elem

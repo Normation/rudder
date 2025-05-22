@@ -39,6 +39,7 @@ package com.normation.cfclerk.domain
 
 import com.normation.cfclerk.xmlparsers.*
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.*
+import com.normation.utils.XmlSafe
 import java.io.FileNotFoundException
 import org.junit.runner.*
 import org.specs2.mutable.*
@@ -189,7 +190,7 @@ class SectionTest extends Specification {
   private def readFile(fileName: String): Elem = {
     val doc = {
       try {
-        XML.load(ClassLoader.getSystemResourceAsStream(fileName))
+        XmlSafe.load(ClassLoader.getSystemResourceAsStream(fileName))
       } catch {
         case e: SAXParseException              => throw new Exception("Unexpected issue (unvalid xml?) with " + fileName)
         case e: java.net.MalformedURLException => throw new FileNotFoundException("%s file not found".format(fileName))

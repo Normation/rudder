@@ -125,11 +125,16 @@ pub fn regex_replace(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(target_family = "unix")]
     use rudder_commons_test::module_type::unix;
+    #[cfg(target_family = "unix")]
     use rudder_module_type::{Outcome, PolicyMode};
+    #[cfg(target_family = "unix")]
     use std::fs::{self, read_to_string};
+    #[cfg(target_family = "unix")]
     use tempfile::tempdir;
 
+    #[cfg(target_family = "unix")]
     const BIN: &str = concat!("../../../target/debug/", env!("CARGO_PKG_NAME"));
 
     #[test]
@@ -149,6 +154,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_basename_filter() {
         let root_dir = tempdir().unwrap();
         let test_path = root_dir.path().join("output");
@@ -181,6 +187,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_dirname_filter() {
         let root_dir = tempdir().unwrap();
         let test_path = root_dir.path().join("output");
@@ -209,6 +216,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_b64decode_filter() {
         let root_dir = tempdir().unwrap();
         let test_path = root_dir.path().join("output");
@@ -237,6 +245,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_b64encode_filter() {
         let root_dir = tempdir().unwrap();
         let test_path = root_dir.path().join("output");
@@ -265,6 +274,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_urldecode_filter() {
         let root_dir = tempdir().unwrap();
         let test_path = root_dir.path().join("output");
@@ -309,6 +319,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_hash_filter_with_default() {
         let root_dir = tempdir().unwrap();
         let test_path = root_dir.path().join("output");
@@ -330,6 +341,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_hash_filter_with_sha1() {
         let root_dir = tempdir().unwrap();
         let test_path = root_dir.path().join("output");
@@ -351,6 +363,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_hash_filter_with_sha256() {
         let root_dir = tempdir().unwrap();
         let test_path = root_dir.path().join("output");
@@ -372,6 +385,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_hash_filter_with_sha512() {
         let root_dir = tempdir().unwrap();
         let test_path = root_dir.path().join("output");
@@ -402,6 +416,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_quote_filter() {
         let root_dir = tempdir().unwrap();
         let test_path = root_dir.path().join("output");
@@ -431,6 +446,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_regex_escape_filter() {
         let root_dir = tempdir().unwrap();
         let test_path = root_dir.path().join("output");
@@ -477,6 +493,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_regex_replace_filter() {
         let root_dir = tempdir().unwrap();
         let test_path = root_dir.path().join("output");
@@ -500,6 +517,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_family = "unix")]
     fn test_regex_replace_filter_with_n() {
         let root_dir = tempdir().unwrap();
         let test_path = root_dir.path().join("output");

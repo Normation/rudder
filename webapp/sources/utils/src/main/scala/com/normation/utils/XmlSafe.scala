@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2011 Normation SAS
+ * Copyright 2025 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,38 +35,46 @@
  *************************************************************************************
  */
 
-package com.normation.rudder.repository.xml
+package com.normation.utils
 
-import com.normation.errors.*
-import com.normation.utils.XmlSafe
-import java.io.InputStream
-import org.xml.sax.SAXParseException
+import com.normation.NamedZioLogger
+import javax.xml.XMLConstants
+import javax.xml.parsers.SAXParser
+import javax.xml.parsers.SAXParserFactory
 import scala.xml.Elem
-import zio.*
-import zio.syntax.*
+import scala.xml.factory.XMLLoader
 
-object ParseXml {
+object XmlSafe extends XMLLoader[Elem] {
+  private object ApplicationLogger extends NamedZioLogger {
+    parent =>
+    def loggerName = "application"
+  }
 
-  /**
-   * Parse the file denoted by input stream (filePath is only
-   * for explicit error messages)
+  /*
+   * Create a safe sax parser using https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html#jaxp-documentbuilderfactory-saxparserfactory-and-dom4j
+   * guiding lines.
    */
-  def apply(is: InputStream, filePath: Option[String] = None): IOResult[Elem] = {
-    val name = filePath.getOrElse("[unknown]")
-    for {
-      doc <- ZIO.attempt(XmlSafe.load(is)).catchAll {
-               case e: SAXParseException              =>
-                 SystemError(s"Unexpected issue with the XML file ${name}: ${e.getMessage}", e).fail
-               case e: java.net.MalformedURLException =>
-                 SystemError("XML file not found: " + name, e).fail
-               case e =>
-                 SystemError(s"Error during parsing of XML file '${name}'", e).fail
-             }
-      _   <- ZIO.when(doc.isEmpty) {
-               Unexpected(s"Error when parsing XML file: '${name}': the parsed document is empty").fail
-             }
-    } yield {
-      doc
+  private val saxParserFactory: SAXParserFactory = {
+    try {
+      val f = SAXParserFactory.newInstance()
+      f.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true)
+      f.setXIncludeAware(false)
+      f.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true)
+      // this one is from Scala XML implementation of new SAX parser, so keeping it to avoid surprises
+      f.setNamespaceAware(false)
+      f
+    } catch {
+      case ex: Throwable =>
+        ApplicationLogger.logEffect.error(
+          s"Can't create a safe XML parser. Your JVM environment may not be supported. " +
+          s"Please contact application developers. Error is: ${ex.getMessage}"
+        )
+        // stop Rudder
+        throw new RuntimeException(ex)
     }
   }
+
+  // def because we must have a fresh instance of parser each time
+  override def parser: SAXParser = saxParserFactory.newSAXParser()
+
 }

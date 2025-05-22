@@ -151,6 +151,7 @@ import net.liftweb.http.S
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
+import org.joda.time.format.ISODateTimeFormat
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration
 import scala.concurrent.duration.FiniteDuration
@@ -2689,7 +2690,8 @@ object RudderConfigInit {
 
       new InventoryHistoryLogRepository(
         HISTORY_INVENTORIES_ROOTDIR,
-        new FullInventoryFileParser(fullInventoryFromLdapEntries, inventoryMapper)
+        new FullInventoryFileParser(fullInventoryFromLdapEntries, inventoryMapper),
+        new JodaDateTimeConverter(ISODateTimeFormat.dateTime())
       )
     }
 

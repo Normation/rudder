@@ -46,6 +46,8 @@ import com.unboundid.ldap.sdk.Entry
 import com.unboundid.ldif.*
 import java.io.File
 import java.io.FileNotFoundException
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormatter
 import zio.*
 
 /**
@@ -99,12 +101,24 @@ object NodeIdConverter extends IdToFilenameConverter[NodeId] {
   override def filenameToId(name: String): NodeId = NodeId(name)
 }
 
+class JodaDateTimeConverter(formatter: DateTimeFormatter) extends VersionToFilenameConverter[DateTime] {
+  override def versionToFilename(version: DateTime): String = formatter.print(version)
+  override def filenameToVersion(filename: String): Option[DateTime] = {
+    try {
+      Some(formatter.parseDateTime(filename))
+    } catch {
+      case e: IllegalArgumentException => None
+    }
+  }
+}
+
 /**
  * History of inventories (server and machine inventory,
  * not software inventory)
- * They are saved on filesystem in their LDIFRecord representation
+ * They are saved on filesystem in their LDIFRecord representation.
  */
 class InventoryHistoryLogRepository(
     override val rootDir: String,
-    override val parser:  FullInventoryFileParser
-) extends FileHistoryLogRepository[NodeId, FullInventory](rootDir, parser, NodeIdConverter)
+    override val parser:  FullInventoryFileParser,
+    versionConverter:     VersionToFilenameConverter[DateTime]
+) extends FileHistoryLogRepository[NodeId, FullInventory](rootDir, parser, NodeIdConverter, versionConverter)

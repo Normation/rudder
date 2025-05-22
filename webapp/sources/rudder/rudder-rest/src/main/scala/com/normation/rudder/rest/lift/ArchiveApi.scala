@@ -106,6 +106,7 @@ import com.normation.rudder.rest.lift.ImportAnswer.*
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.StringUuidGenerator
+import com.normation.utils.XmlSafe
 import com.normation.zio.*
 import enumeratum.*
 import io.scalaland.chimney.syntax.*
@@ -122,7 +123,6 @@ import net.liftweb.http.OutputStreamResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
 import scala.util.matching.Regex
-import scala.xml.XML
 import zio.*
 import zio.json.*
 import zio.syntax.*
@@ -1067,7 +1067,7 @@ class ZipArchiveReaderImpl(
 
         case TechniqueType.Metadata.name =>
           for {
-            xml  <- IOResult.attempt(XML.load(new ByteArrayInputStream(content)))
+            xml  <- IOResult.attempt(XmlSafe.load(new ByteArrayInputStream(content)))
             tech <- techniqueParser.parseXml(xml, id).toIO
             _    <- optTech.update {
                       case None    => Some(TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata))
