@@ -4,7 +4,7 @@ use crate::testlib::given::posix_acl_present::Perms;
 use crate::testlib::method_test_suite::MethodTestSuite;
 use crate::testlib::method_to_test::{MethodStatus, method};
 use posix_acl::{PosixACL, Qualifier};
-use users::{get_current_uid, get_user_by_uid};
+use uzers::{get_current_uid, get_user_by_uid};
 
 #[test]
 fn it_should_apply_mixed_acl_modifications() {

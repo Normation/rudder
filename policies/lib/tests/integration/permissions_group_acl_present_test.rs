@@ -3,7 +3,7 @@ use crate::testlib::given::Given;
 use crate::testlib::method_test_suite::MethodTestSuite;
 use crate::testlib::method_to_test::{MethodStatus, method};
 use posix_acl::PosixACL;
-use users::{get_current_uid, get_user_by_uid};
+use uzers::{get_current_uid, get_user_by_uid};
 
 #[test]
 fn it_should_add_group_acl_entry_to_file() {
@@ -11,7 +11,7 @@ fn it_should_add_group_acl_entry_to_file() {
     let file_path = workdir.path().join("testfile.txt");
     let file_path_str = file_path.to_str().unwrap();
 
-    let group_name = users::get_current_groupname().unwrap();
+    let group_name = uzers::get_current_groupname().unwrap();
     let current_gid = get_user_by_uid(get_current_uid())
         .unwrap()
         .primary_group_id();

@@ -24,7 +24,7 @@ env_logger = "0.11.6"
 regex = "1.11.1"
 tiny_http = "0.12.0"
 posix-acl = "1.2.0"
-users = "0.11.0"
+uzers = "0.12.1"
 
 [dev-dependencies]
 test-log = "*"
