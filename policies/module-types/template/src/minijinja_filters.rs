@@ -127,10 +127,14 @@ mod tests {
     use super::*;
     #[cfg(target_family = "unix")]
     use rudder_commons_test::module_type::unix;
+    #[cfg(target_family = "unix")]
     use rudder_module_type::{Outcome, PolicyMode};
+    #[cfg(target_family = "unix")]
     use std::fs::{self, read_to_string};
+    #[cfg(target_family = "unix")]
     use tempfile::tempdir;
 
+    #[cfg(target_family = "unix")]
     const BIN: &str = concat!("../../../target/debug/", env!("CARGO_PKG_NAME"));
 
     #[test]
