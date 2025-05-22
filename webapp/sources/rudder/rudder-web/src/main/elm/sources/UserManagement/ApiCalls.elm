@@ -6,9 +6,9 @@ module UserManagement.ApiCalls exposing (..)
 -- API call to get the category tree
 
 import UserManagement.DataTypes exposing (AddUserForm, Model, Msg(..), UserAuth, UserInfoForm, Username)
-import Http exposing (emptyBody, expectJson, jsonBody, request, header)
+import Http exposing (emptyBody, expectJson, expectWhatever, jsonBody, request, header)
 import Json.Decode as Decode
-import UserManagement.JsonDecoder exposing (decodeApiAddUserResult, decodeApiCurrentUsersConf, decodeApiDeleteUserResult, decodeApiReloadResult, decodeApiStatusResult, decodeApiUpdateUserInfoResult, decodeApiUpdateUserResult, decodeGetRoleApiResult)
+import UserManagement.JsonDecoder exposing (decodeApiUpdateUserResult, decodeApiAddUserResult, decodeApiCurrentUsersConf, decodeApiDeleteUserResult, decodeApiReloadResult, decodeApiStatusResult, decodeGetRoleApiResult)
 import UserManagement.JsonEncoder exposing (encodeAddUser, encodeUserAuth, encodeUserInfo)
 
 
@@ -111,7 +111,7 @@ updateUserInfo model toUpdate userForm =
                 , headers = [header "X-Requested-With" "XMLHttpRequest"]
                 , url = getUrl model ("/usermanagement/update/info/" ++ toUpdate)
                 , body = jsonBody (encodeUserInfo userForm)
-                , expect = expectJson UpdateUserInfo decodeApiUpdateUserInfoResult
+                , expect = expectWhatever UpdateUserInfo
                 , timeout = Nothing
                 , tracker = Nothing
                 }
