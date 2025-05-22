@@ -669,7 +669,7 @@ trait BuildHandler[REQ, RESP, T, P] {
               Some(() => {
                 // here we are allowed to do time-consuming side effects
                 // we do handle that request ! Now for actual handling;
-                // in all case an response, even if an error (so Some(() => Full(...)))
+                // in all case a response, even if an error (so Some(() => Full(...)))
                 logger.debug(s"Processing request: ${logReq(req)}")
                 logger.debug(logBody(req))
                 logger.debug(
@@ -690,7 +690,7 @@ trait BuildHandler[REQ, RESP, T, P] {
                                          .toUpperCase()} ${info.path.value}': ${error.msg}")
                                      error
                                    }
-                  // extract modul parameters from request
+                  // extract module parameters from request
                   params        <- api.getParam(req).leftMap { error =>
                                      logger.error(s"Error when extracting request parameters from '${info.action.name
                                          .toUpperCase()} ${info.path.value}': ${error.msg}")

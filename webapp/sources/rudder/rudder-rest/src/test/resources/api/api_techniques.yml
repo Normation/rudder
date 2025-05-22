@@ -577,7 +577,7 @@ response:
     {
       "action":"listTechniqueDirectives",
       "result":"error",
-      "errorDetails":"Inconsistency: Version '3.0' of Technique 'genericVariableDefinition' does not exist"
+      "errorDetails":"Version '3.0' of Technique 'genericVariableDefinition' does not exist"
     }
 ---
 description: Try to get directive for a technique/bad version
@@ -589,5 +589,5 @@ response:
     {
       "action":"listTechniqueDirectives",
       "result":"error",
-      "errorDetails":"Inconsistency: Could not find list of directives based on 'packageManagement' technique, because we could not parse 'X.Y' as a valid technique version"
+      "errorDetails":"Could not find list of directives based on 'packageManagement' technique, because we could not parse 'X.Y' as a valid technique version"
     }
