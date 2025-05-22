@@ -49,6 +49,7 @@ import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.users.*
+import com.normation.utils.XmlSafe
 import com.normation.zio.*
 import enumeratum.*
 import java.io.InputStream
@@ -528,7 +529,7 @@ object UserFileProcessing {
 
   def readUserFile(resource: UserFile): IOResult[Elem] = {
     IOResult.attempt {
-      scala.xml.XML.load(resource.inputStream())
+      XmlSafe.load(resource.inputStream())
     }.mapError {
       // map a SAXParseException to a technical butmore user-friendly but error message
       case s @ SystemError(_, e: SAXParseException) =>

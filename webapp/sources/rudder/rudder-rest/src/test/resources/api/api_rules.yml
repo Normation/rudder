@@ -38,7 +38,7 @@ response:
     {
       "action":"ruleDetails",
       "result":"error",
-      "errorDetails":"Inconsistency: Rule with id 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa' was not found"
+      "errorDetails":"Rule with id 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa' was not found"
     }
 ---
 description: List rules

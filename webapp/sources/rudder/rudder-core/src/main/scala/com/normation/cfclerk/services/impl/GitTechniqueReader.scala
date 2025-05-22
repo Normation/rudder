@@ -49,6 +49,7 @@ import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.repository.xml.TechniqueFiles
+import com.normation.utils.XmlSafe
 import com.normation.zio.*
 import java.io.File
 import java.io.FileNotFoundException
@@ -980,7 +981,7 @@ class GitTechniqueReader(
     ZIO.scoped(
       managedStream.flatMap(is => {
         ZIO.attempt {
-          XML.load(is)
+          XmlSafe.load(is)
         }.foldZIO(
           err =>
             err match {
