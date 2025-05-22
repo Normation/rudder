@@ -275,7 +275,7 @@ class LDAPEntityMapper(
   def parseAgentInfo(nodeId: NodeId, inventoryEntry: LDAPEntry): IOResult[(List[AgentInfo], KeyStatus)] = {
     for {
       agentsName <- {
-        val agents = inventoryEntry.valuesFor(A_AGENTS_NAME).toList
+        val agents = inventoryEntry.valuesFor(A_AGENT_NAME).toList
         ZIO.foreach(agents) { case agent => agent.fromJson[AgentInfo].toIO }
       }
       keyStatus  <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Right(UndefinedKey)).toIO

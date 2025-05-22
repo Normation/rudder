@@ -698,9 +698,9 @@ case object AgentComparator extends LDAPCriterionType {
    * <4.1: AGENTS_NAME only contains the name of the agent (but a value that is different form the id, oldShortName)
    */
   private def filterAgent(agent: AgentType) = {
-    SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.id}""""), null) ::           // 4.2+
-    SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.oldShortName}""""), null) :: // 4.1
-    EQ(A_AGENTS_NAME, agent.oldShortName) ::                                             // 3.1 ( < 4.1 in fact)
+    SUB(A_AGENT_NAME, null, Array(s""""agentType":"${agent.id}""""), null) ::           // 4.2+
+    SUB(A_AGENT_NAME, null, Array(s""""agentType":"${agent.oldShortName}""""), null) :: // 4.1
+    EQ(A_AGENT_NAME, agent.oldShortName) ::                                             // 3.1 ( < 4.1 in fact)
     Nil
   }
 
