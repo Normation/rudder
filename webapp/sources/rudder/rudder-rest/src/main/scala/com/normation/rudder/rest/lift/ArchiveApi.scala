@@ -306,27 +306,27 @@ class ArchiveApi(
         }
       }
 
-      def parseArchive(archive: FileParamHolder): IOResult[PolicyArchive] = {
-        val originalFilename = archive.fileName
-
+      def parseArchive(archive: FileParamHolder, name: String): IOResult[PolicyArchive] = {
         ZIO
           .acquireReleaseWith(IOResult.attempt(archive.fileStream))(is => effectUioUnit(is.close())) { is =>
-            ZipUtils.getZipEntries(originalFilename, is)
+            ZipUtils.getZipEntries(name, is)
           }
-          .flatMap(entries => zipArchiveReader.readPolicyItems(originalFilename, entries))
+          .flatMap(entries => zipArchiveReader.readPolicyItems(name, entries))
       }
 
       val prog = (req.uploadedFiles.find(_.name == FILE) match {
         case None      =>
           Unexpected(s"Missing uploaded file with parameter name '${FILE}'").fail
         case Some(zip) =>
+          val originalFilename = File(zip.fileName).name
+
           for {
-            _       <- ApplicationLoggerPure.Archive.info(s"Received a new policy archive '${zip.fileName}', processing")
+            _       <- ApplicationLoggerPure.Archive.info(s"Received a new policy archive '${originalFilename}', processing")
             merge   <- parseMergePolicy(req)
-            archive <- parseArchive(zip)
+            archive <- parseArchive(zip, originalFilename)
             _       <- checkArchiveService.check(archive)
             _       <- saveArchiveService.save(archive, merge)(authzToken.qc)
-            _       <- ApplicationLoggerPure.Archive.info(s"Uploaded archive '${zip.fileName}' processed successfully")
+            _       <- ApplicationLoggerPure.Archive.info(s"Uploaded archive '${originalFilename}' processed successfully")
           } yield JRArchiveImported(success = true)
       }).tapError(err => ApplicationLoggerPure.Archive.error(s"Error when processing uploaded archive: ${err.fullMsg}"))
 

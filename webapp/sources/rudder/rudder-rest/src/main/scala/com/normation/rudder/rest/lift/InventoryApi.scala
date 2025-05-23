@@ -112,14 +112,17 @@ class InventoryApi(
       }
       def parseInventory(pretty: Boolean, inventoryFile: FileParamHolder, signatureFile: FileParamHolder): IOResult[String] = {
         // here, we are at the end of our world. Evaluate ZIO and see what happen.
-        val originalFilename  = inventoryFile.fileName
+        // do not take the whole path as it can lead to path traversal, just the filename
+        val originalFilename = File(inventoryFile.fileName).name
+        val sigFilename      = File(signatureFile.fileName).name
+
         // for the signature, we want:
         // - to assume the signature is for the given inventory, so make the name matches
         // - still keep the extension so that we do what is needed for compressed file. No extension == assume non compressed
         val signatureFilename = {
           // remove gz extension for sig name comparison
           val simpleOrig =
-            if (originalFilename.endsWith(".gz")) originalFilename.substring(0, originalFilename.size - 3) else originalFilename
+            if (sigFilename.endsWith(".gz")) sigFilename.substring(0, sigFilename.size - 3) else sigFilename
           if (signatureFile.fileName.startsWith(simpleOrig)) { // assume extension is ok
             signatureFile.fileName
           } else {
