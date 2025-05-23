@@ -47,6 +47,7 @@ import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.popup.CreateOrUpdateGlobalParameterPopup
+import com.normation.rudder.web.snippet.WithNonce
 import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
 import net.liftweb.http.*
@@ -125,7 +126,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
                                    ("class", "btn btn-success new-icon space-bottom space-top")
                                  )
                                } else NodeSeq.Empty)
-    ).apply(dataTableXml(gridName)) ++ Script(initJs())
+    ).apply(dataTableXml(gridName)) ++ WithNonce.scriptWithNonce(Script(initJs()))
   }
 
   private def dataTableXml(gridName: String) = {

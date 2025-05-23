@@ -66,6 +66,7 @@ import com.normation.rudder.web.components.DisplayColumn
 import com.normation.rudder.web.components.RuleGrid
 import com.normation.rudder.web.services.AgentCompat
 import com.normation.rudder.web.services.DisplayDirectiveTree
+import com.normation.rudder.web.snippet.WithNonce
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import enumeratum.Enum
@@ -152,7 +153,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     implicit val qc: QueryContext = CurrentUser.queryContext
     (
       <head>
-        {Script(OnLoad(parseJsArg()))}
+        {WithNonce.scriptWithNonce(Script(OnLoad(parseJsArg())))}
       </head>
     )
   }
@@ -245,7 +246,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             <span class="error">An error occured when trying to get information from the database. Please contact your administrator or retry latter.</span>
         }
       }</div>: NodeSeq
-    ) ++ Script(OnLoad(buildJsTree()))
+    ) ++ WithNonce.scriptWithNonce(Script(OnLoad(buildJsTree())))
   }
 
   private def buildJsTree(): JsCmd = {
