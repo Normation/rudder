@@ -13,6 +13,7 @@ import Maybe.Extra exposing (isJust)
 import Set
 import String exposing (isEmpty)
 import NaturalOrdering as N
+import Json.Encode exposing (encode)
 
 view : Model -> Html Msg
 view model =
@@ -347,12 +348,23 @@ displayUserInfo userForm allowSaveInfo =
                     div [ class "user-info-row user-info-other" ]
                         [ label [ for k ] [ text k ]
                         , div [ class "user-info-row-edit" ]
+                            [ input [ id k, class "form-control user-info-value", value (encode 0 v), disabled True ] []
+                            , button [ class "btn btn-default", onClick (RemoveUserOtherInfoField k) ] [ i [ class "fa fa-trash" ] [] ]
+                            ]
+                        ]
+                )
+                (Dict.toList userForm.userInfoForm.otherInfo)
+            ++ List.map
+                (\( k, v ) ->
+                    div [ class "user-info-row user-info-other" ]
+                        [ label [ for k ] [ text k ]
+                        , div [ class "user-info-row-edit" ]
                             [ input [ id k, class "form-control user-info-value", placeholder ("Enter value for field '" ++ k ++ "'"), onInput (ModifyUserInfoField k), value v ] []
                             , button [ class "btn btn-default", onClick (RemoveUserInfoField k) ] [ i [ class "fa fa-trash" ] [] ]
                             ]
                         ]
                 )
-                (Dict.toList userForm.userInfoForm.otherInfo)
+                (Dict.toList userForm.userInfoForm.info)
             ++ List.indexedMap
                 (\idx ( k, v ) ->
                     div [ class "user-info-row user-info-other" ]
