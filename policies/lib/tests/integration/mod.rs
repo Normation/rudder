@@ -50,6 +50,8 @@ mod file_lines_absent_test;
 mod file_replace_lines_test;
 mod permissions_group_acl_absent_test;
 #[cfg(test)]
+mod user_absent_test;
+#[cfg(test)]
 mod variable_string_default_test;
 
 use log::debug;
