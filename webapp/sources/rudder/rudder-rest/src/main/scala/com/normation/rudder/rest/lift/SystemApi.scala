@@ -186,14 +186,11 @@ class SystemApi(
   }
 
   object DebugInfo extends LiftApiModule0 {
-
     val schema: API.DebugInfo.type = API.DebugInfo
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-
       apiv11service.debugInfo(params)
     }
-
   }
 
   // Reload [techniques / dynamics groups] endpoint implementation

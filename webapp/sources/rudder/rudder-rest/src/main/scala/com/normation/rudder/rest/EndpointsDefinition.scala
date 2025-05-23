@@ -1128,9 +1128,8 @@ object SystemApi       extends Enum[SystemApi] with ApiModuleProvider[SystemApi]
   case object DebugInfo extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Launch the support info script and get the result"
-    val (action, path) = GET / "system" / "debug" / "info"
-    val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
-
+    val (action, path) = POST / "system" / "debug" / "info"
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
 
   // For now, the techniques reload endpoint is implemented in the System API
