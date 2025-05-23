@@ -168,6 +168,7 @@ checkConstraintOnParameter call constraint =
     checks = [ checkEmpty, checkWhiteSpace, checkMax, checkMin, checkRegex, notRegexCheck, checkSelect ] |> List.concat
   in
     if List.isEmpty checks then ValidState else InvalidState checks
+
 {-
   DISPLAY ONE METHOD EXTENDED
 -}
