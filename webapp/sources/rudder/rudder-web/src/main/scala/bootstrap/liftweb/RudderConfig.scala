@@ -543,6 +543,30 @@ object RudderParsedProperties {
     }
   }
 
+  val RUDDER_SERVER_CERTIFICATE_CONFIG: PolicyServerCertificateConfig = PolicyServerCertificateConfig(
+    try {
+      config
+        .getString("rudder.server.certificate.additionalKeyHash")
+        .split(";")
+        .collect { case s if (s.strip().nonEmpty) => s.strip() }
+        .toList
+    } catch {
+      case ex: ConfigException =>
+        println(ex.getMessage)
+        Nil
+    },
+    try {
+      config.getString("rudder.server.certificate.ca.path")
+    } catch {
+      case _:  ConfigException => ""
+    },
+    try {
+      config.getBoolean("rudder.server.certificate.nameValidation")
+    } catch {
+      case _:  ConfigException => false
+    }
+  )
+
   val POSTGRESQL_IS_LOCAL: Boolean = {
     try {
       config.getBoolean("rudder.postgresql.local")
@@ -3015,6 +3039,7 @@ object RudderConfigInit {
       RUDDER_JDBC_PASSWORD,
       RUDDER_GIT_ROOT_CONFIG_REPO,
       rudderFullVersion,
+      RUDDER_SERVER_CERTIFICATE_CONFIG,
       () => configService.cfengine_server_denybadclocks().toBox,
       () => configService.relay_server_sync_method().toBox,
       () => configService.relay_server_syncpromises().toBox,

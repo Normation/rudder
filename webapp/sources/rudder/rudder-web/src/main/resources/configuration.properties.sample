@@ -1,5 +1,5 @@
 #####################################################################################
-# Copyright 2011 Normation SAS
+# Copyright 2025 Normation SAS
 #####################################################################################
 #
 # This file is part of Rudder.
@@ -580,6 +580,41 @@ rudder.batch.reports.logInterval=1
 
 rudder.batch.storeAgentRunTimes.updateInterval=5
 
+##########################
+# Root server certificate ###########################################################
+##########################
+
+#
+# These parameters help configure what certificates are used for the root server.
+# They only set system properties that can be then used for the management, but
+# these parameters don't do anything more.
+#
+
+
+# Value for additional sever key hash
+# Will be used to trust more than one server certificate, typically for migration.
+# Await a semicolumn separated string array, on one line or with `\` at end of line because we are
+# in a properties file:
+#   rudder.server.certificate.additionalKeyHash=sha256//Pxjkq/Qlp02j8Q3ti3M1khEaUTL7Dxcz8sLOfGcg5rQ=;...
+#
+# The given values will be appended to POLICY_SERVER_KEY_HASH variable in the curl compatible syntax.
+# Default empty list.
+rudder.server.certificate.additionalKeyHash=
+
+#
+# Value for POLICY_SERVER_CERT_CA, ie the path to the file with the CA cert that should be used
+# for server certificate validation (the validation is handled by the node).
+# Let empty to use system CA list.
+# Default: empty.
+#
+rudder.server.certificate.ca.path=
+
+#
+# Value for POLICY_SERVER_SECURE_VALIDATION, ie should the server certificate
+# be checked. Default false or empty (ie `--insecure` passed to curl)
+#
+rudder.server.certificate.nameValidation=false
+
 ###################################
 # Rudder Users and Authentication  ###############################################################
 ###################################
@@ -709,9 +744,9 @@ rudder.hooks.ignore-suffixes= .swp, ~, .bak, \
  .ucf-old , .ucf-dist , .ucf-new ,\
  .rpmnew  , .rpmsave  , .rpmorig
 
-########################
+##################
 # Rudder commands ########################################################
-########################
+##################
 
 # Rudder package specific command to manage plugins using system shell commands
 #
