@@ -214,9 +214,14 @@ bundle common paths
       "path[tr]"                string => "/usr/bin/tr";
       #
       "path[pacman]"            string => "/usr/bin/pacman";
+      "path[pamac]"             string => "/usr/bin/pamac";
       "path[yaourt]"            string => "/usr/bin/yaourt";
       "path[useradd]"           string => "/usr/bin/useradd";
+      "path[userdel]"           string => "/usr/bin/userdel";
+      "path[usermod]"           string => "/usr/bin/usermod";
       "path[groupadd]"          string => "/usr/bin/groupadd";
+      "path[groupdel]"          string => "/usr/bin/groupdel";
+      "path[groupmod]"          string => "/usr/bin/groupmod";
       "path[ip]"                string => "/usr/bin/ip";
       "path[ifconfig]"          string => "/usr/bin/ifconfig";
       "path[journalctl]"        string => "/usr/bin/journalctl";
