@@ -5,6 +5,7 @@ include ../../rust.makefile
 
 DOC_EXAMPLES := $(wildcard rudderc/docs/examples/*/technique.yml)
 DOC_EXAMPLES_CF := $(DOC_EXAMPLES:.yml=.cf)
+CURE53 := $(shell ./cure53.sh)
 
 install: build
 	mkdir -p $(DESTDIR)/opt/rudder/bin

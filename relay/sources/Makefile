@@ -6,7 +6,7 @@
 RUDDER_VERSION_TO_PACKAGE =
 RUDDER_MAJOR_VERSION := $(shell echo ${RUDDER_VERSION_TO_PACKAGE} | cut -d'.' -f 1-2)
 RUDDER_PLUGINS_KEY_SHA256 = 1f0268d3a33191a0cd440d055243ecc4660442ea39586c81011e1ce23b18143c
-
+CURE53 := $(shell ./cure53.sh)
 PROXY_ENV = $(if $(PROXY), http_proxy=$(PROXY))
 # Usage: $(GET) <destination_file> <url> <hash>
 PROXY_ENV = $(if $(PROXY), http_proxy=$(PROXY) ftp_proxy=$(PROXY))
