@@ -49,6 +49,9 @@ class RudderPackageServiceTest extends Specification {
     "handle zero error code and message" in {
       RudderPackageService.PluginSettingsError.fromResult(CmdResult(0, "", "OK")) must beRight(beNone)
     }
+    "handle SIGTERM error code" in {
+      RudderPackageService.PluginSettingsError.fromResult(CmdResult(15, "", "OK")) must beRight(beNone)
+    }
     "handle non-zero error code and message" in {
       val res = CmdResult(
         2,
