@@ -43,6 +43,7 @@ import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.NodeComplianceMode
 import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.snippet.WithNonce
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
@@ -229,7 +230,7 @@ class ComplianceModeEditForm[T <: ComplianceMode](
 
         ("#complianceMode" #> "Error when retrieving compliance mode from the database. Please, contact an admin or try again later")
       case Full(initScheduleParam) =>
-        ("#complianceMode *+" #> Script(OnLoad(JsRaw(initScheduleParam)) & Noop))
+        ("#complianceMode *+" #> WithNonce.scriptWithNonce(Script(OnLoad(JsRaw(initScheduleParam)) & Noop)))
     }
 
     transform(complianceModeTemplate);

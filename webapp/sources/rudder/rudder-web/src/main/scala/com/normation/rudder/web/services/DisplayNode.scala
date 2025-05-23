@@ -61,6 +61,7 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.snippet.RegisterToasts
 import com.normation.rudder.web.snippet.ToastNotification
+import com.normation.rudder.web.snippet.WithNonce
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
@@ -375,8 +376,10 @@ object DisplayNode extends Loggable {
     <div id={tabId} class="sInventory d-flex">
       <ul class="list-tabs-inventory nav flex-column pe-3" aria-orientation="vertical">{mainTabDeclaration}</ul>
       <div class="tab-content">{tabContent.flatten}</div>
-    </div> ++ Script(
-      OnLoad(JsRaw(s"$$('.sInventory .tab-content > .tab-pane:first-child').addClass('active');"))
+    </div> ++ WithNonce.scriptWithNonce(
+      Script(
+        OnLoad(JsRaw(s"$$('.sInventory .tab-content > .tab-pane:first-child').addClass('active');"))
+      )
     ) // JsRaw OK, const
 
   }
@@ -546,73 +549,83 @@ object DisplayNode extends Loggable {
     }
     val globalScoreApp     = {
       <div id="global-score-app"></div> ++
-      Script(OnLoad(JsRaw(s"""
-                             |var main = document.getElementById("global-score-app")
-                             |var initValues = {
-                             |  id : "${nodeFact.id.value}",
-                             |  contextPath : contextPath,
-                             |};
-                             |var globalScoreApp = Elm.Score.init({node: main, flags: initValues});
-                             |globalScoreApp.ports.errorNotification.subscribe(function(str) {
-                             |  createErrorNotification(str)
-                             |});
-                             |""".stripMargin)))
+      WithNonce.scriptWithNonce {
+        Script(OnLoad(JsRaw(s"""
+                               |var main = document.getElementById("global-score-app")
+                               |var initValues = {
+                               |  id : "${nodeFact.id.value}",
+                               |  contextPath : contextPath,
+                               |};
+                               |var globalScoreApp = Elm.Score.init({node: main, flags: initValues});
+                               |globalScoreApp.ports.errorNotification.subscribe(function(str) {
+                               |  createErrorNotification(str)
+                               |});
+                               |""".stripMargin)))
+      }
     }
     val complianceScoreApp = {
       <div id="compliance-app"></div> ++
-      Script(
-        OnLoad(JsRaw("""var complianceScoreMain = document.getElementById("compliance-app");
-                       |var complianceAppScore = Elm.ComplianceScore.init({node: complianceScoreMain, flags : {}});
-                       |scoreDetailsDispatcher["compliance"] = function(value){ complianceAppScore.ports.getValue.send(value) };
-                       |complianceAppScore.ports.sendHtml.subscribe(function(html) {
-                       |  scoreDetailsApp.ports.receiveDetails.send({name : "compliance",html : html});
-                       |});
-                       |complianceAppScore.ports.errorNotification.subscribe(function(str) {
-                       |  createErrorNotification(str)
-                       |});""".stripMargin))
-      )
+      WithNonce.scriptWithNonce {
+        Script(
+          OnLoad(JsRaw("""var complianceScoreMain = document.getElementById("compliance-app");
+                         |var complianceAppScore = Elm.ComplianceScore.init({node: complianceScoreMain, flags : {}});
+                         |scoreDetailsDispatcher["compliance"] = function(value){ complianceAppScore.ports.getValue.send(value) };
+                         |complianceAppScore.ports.sendHtml.subscribe(function(html) {
+                         |  scoreDetailsApp.ports.receiveDetails.send({name : "compliance",html : html});
+                         |});
+                         |complianceAppScore.ports.errorNotification.subscribe(function(str) {
+                         |  createErrorNotification(str)
+                         |});""".stripMargin))
+        )
+      }
     }
     val systemUpdateApp    = {
       <div id="system-updates-app"></div> ++
-      Script(
-        OnLoad(
-          JsRaw("""var systemUpdatesMain = document.getElementById("system-updates-app");
-                  |var systemUpdatesAppScore = Elm.SystemUpdateScore.init({node: systemUpdatesMain, flags : {}});
-                  |scoreDetailsDispatcher["system-updates"] = function(value){ systemUpdatesAppScore.ports.getValue.send(value) };
-                  |systemUpdatesAppScore.ports.sendHtml.subscribe(function(html) {
-                  |  scoreDetailsApp.ports.receiveDetails.send({name : "system-updates",html : html});
-                  |});
-                  |systemUpdatesAppScore.ports.errorNotification.subscribe(function(str) {
-                  |  createErrorNotification(str)
-                  |});""".stripMargin)
+      WithNonce.scriptWithNonce {
+        Script(
+          OnLoad(
+            JsRaw(
+              """var systemUpdatesMain = document.getElementById("system-updates-app");
+                |var systemUpdatesAppScore = Elm.SystemUpdateScore.init({node: systemUpdatesMain, flags : {}});
+                |scoreDetailsDispatcher["system-updates"] = function(value){ systemUpdatesAppScore.ports.getValue.send(value) };
+                |systemUpdatesAppScore.ports.sendHtml.subscribe(function(html) {
+                |  scoreDetailsApp.ports.receiveDetails.send({name : "system-updates",html : html});
+                |});
+                |systemUpdatesAppScore.ports.errorNotification.subscribe(function(str) {
+                |  createErrorNotification(str)
+                |});""".stripMargin
+            )
+          )
         )
-      )
+      }
     }
     val nodeApp            = {
       <div id="system-updates-app"></div> ++
       <div id="node-app"></div> ++
-      Script(
-        OnLoad(
-          JsRaw(s"""
-                   |var main = document.getElementById("node-app")
-                   |var initValues = {
-                   |  id : "${nodeFact.id.value}",
-                   |  contextPath : contextPath,
-                   |};
-                   |scoreDetailsApp = Elm.Node.init({node: main, flags: initValues});
-                   |scoreDetailsApp.ports.errorNotification.subscribe(function(str) {
-                   |  createErrorNotification(str)
-                   |});
-                   |scoreDetailsApp.ports.getDetails.subscribe(function(data) {
-                   |  var name = data.name
-                   |  var value = data.details
-                   |  var detailsHandler = scoreDetailsDispatcher[name];
-                   |  if (detailsHandler !== undefined) {
-                   |    detailsHandler(value)
-                   |  }
-                   |});""".stripMargin)
+      WithNonce.scriptWithNonce {
+        Script(
+          OnLoad(
+            JsRaw(s"""
+                     |var main = document.getElementById("node-app")
+                     |var initValues = {
+                     |  id : "${nodeFact.id.value}",
+                     |  contextPath : contextPath,
+                     |};
+                     |scoreDetailsApp = Elm.Node.init({node: main, flags: initValues});
+                     |scoreDetailsApp.ports.errorNotification.subscribe(function(str) {
+                     |  createErrorNotification(str)
+                     |});
+                     |scoreDetailsApp.ports.getDetails.subscribe(function(data) {
+                     |  var name = data.name
+                     |  var value = data.details
+                     |  var detailsHandler = scoreDetailsDispatcher[name];
+                     |  if (detailsHandler !== undefined) {
+                     |    detailsHandler(value)
+                     |  }
+                     |});""".stripMargin)
+          )
         )
-      )
+      }
     }
     <div id="nodeDetails">
       {globalScoreApp ++ complianceScoreApp ++ systemUpdateApp}
@@ -638,7 +651,11 @@ object DisplayNode extends Loggable {
           <h3>Documentation</h3>
           <div class="markdown" id="nodeDocumentation">
           </div>
-          {Script(OnLoad(JsRaw(s"generateMarkdown(${Str(nodeFact.documentation.getOrElse("")).toJsCmd}, '#nodeDocumentation')")))}
+          {
+      WithNonce.scriptWithNonce(
+        Script(OnLoad(JsRaw(s"generateMarkdown(${Str(nodeFact.documentation.getOrElse("")).toJsCmd}, '#nodeDocumentation')")))
+      )
+    }
         </div>
       </div>
       <div class="rudder-info">
@@ -648,12 +665,12 @@ object DisplayNode extends Loggable {
       nodePolicyMode match {
         case (mode, explanation) =>
           <label>Policy mode:</label><span id="badge-apm"></span> ++
-          Script(OnLoad(JsRaw(s"""
+          WithNonce.scriptWithNonce(Script(OnLoad(JsRaw(s"""
                 $$('#badge-apm').append(createBadgeAgentPolicyMode('node',"${mode}","${StringEscapeUtils.escapeEcmaScript(
               explanation
             )}"));
                 //initBsTooltips(getNodeInfo);
-              """))) // JsRaw OK, escaped
+              """)))) // JsRaw OK, escaped
       }
     }
         </div>
@@ -750,7 +767,7 @@ object DisplayNode extends Loggable {
       } else NodeSeq.Empty
     }
         <pre id={publicKeyId} class="display-keys" style="display:none;"><div>{agent.securityToken.key}</div></pre>{
-      Script(OnLoad(JsRaw(s"""initBsTooltips();"""))) // JsRaw ok, const
+      WithNonce.scriptWithNonce(Script(OnLoad(JsRaw(s"""initBsTooltips();""")))) // JsRaw ok, const
     }
       </div>
     </div>
@@ -1040,43 +1057,45 @@ object DisplayNode extends Loggable {
     val css: CssSel = "#tabPropsId [id]" #> tabId &
       "#inventoryVariables *" #> DisplayNode.displayTabInventoryVariable(jsId, node.toCore, sm)
 
-    css(tabProperties) ++ Script(
-      OnLoad(
-        JsRaw(
-          s"""
-             |
+    css(tabProperties) ++ WithNonce.scriptWithNonce(
+      Script(
+        OnLoad(
+          JsRaw(
+            s"""
+               |
       var main = document.getElementById("nodeproperties-app")
-             |var initValues = {
-             |    contextPath    : "${S.contextPath}"
-             |  , hasNodeWrite   : CanWriteNode
-             |  , hasNodeRead    : CanReadNode
-             |  , nodeId         : "${nodeId}"
-             |  , objectType     : 'node'
-             |};
-             |var app = Elm.Nodeproperties.init({node: main, flags: initValues});
-             |app.ports.successNotification.subscribe(function(str) {
-             |  createSuccessNotification(str)
-             |});
-             |app.ports.errorNotification.subscribe(function(str) {
-             |  createErrorNotification(str)
-             |});
-             |// Initialize tooltips
-             |app.ports.initTooltips.subscribe(function(msg) {
-             |  setTimeout(function(){
-             |    initBsTooltips();
-             |  }, 400);
-             |});
-             |app.ports.copy.subscribe(function(str) {
-             |  copy(str);
-             |});
-             |app.ports.initInputs.subscribe(function(str) {
-             |  setTimeout(function(){
-             |    $$(".auto-resize").on("input", autoResize).each(function(){
-             |      autoResize(this);
-             |    });
-             |  }, 10);
-             |});
-             |""".stripMargin
+               |var initValues = {
+               |    contextPath    : "${S.contextPath}"
+               |  , hasNodeWrite   : CanWriteNode
+               |  , hasNodeRead    : CanReadNode
+               |  , nodeId         : "${nodeId}"
+               |  , objectType     : 'node'
+               |};
+               |var app = Elm.Nodeproperties.init({node: main, flags: initValues});
+               |app.ports.successNotification.subscribe(function(str) {
+               |  createSuccessNotification(str)
+               |});
+               |app.ports.errorNotification.subscribe(function(str) {
+               |  createErrorNotification(str)
+               |});
+               |// Initialize tooltips
+               |app.ports.initTooltips.subscribe(function(msg) {
+               |  setTimeout(function(){
+               |    initBsTooltips();
+               |  }, 400);
+               |});
+               |app.ports.copy.subscribe(function(str) {
+               |  copy(str);
+               |});
+               |app.ports.initInputs.subscribe(function(str) {
+               |  setTimeout(function(){
+               |    $$(".auto-resize").on("input", autoResize).each(function(){
+               |      autoResize(this);
+               |    });
+               |  }, 10);
+               |});
+               |""".stripMargin
+          )
         )
       )
     )

@@ -43,6 +43,7 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.score.ScoreService
+import com.normation.rudder.web.snippet.WithNonce
 import com.normation.zio.*
 import net.liftweb.common.*
 import net.liftweb.http.*
@@ -89,7 +90,7 @@ class SrvGrid(
   ): NodeSeq = {
     val script = {
       configService.rudder_global_policy_mode().toBox match {
-        case Full(globalPolicyMode) => Script(OnLoad(initJs(tableId, nodes, additionalJs)))
+        case Full(globalPolicyMode) => WithNonce.scriptWithNonce(Script(OnLoad(initJs(tableId, nodes, additionalJs))))
         case eb: EmptyBox =>
           val fail = eb ?~! "Could not find global policy Mode"
           logger.error(fail.messageChain)

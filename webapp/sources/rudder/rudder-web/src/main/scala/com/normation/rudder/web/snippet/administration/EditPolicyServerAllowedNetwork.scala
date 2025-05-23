@@ -50,6 +50,7 @@ import com.normation.rudder.domain.eventlog.UpdatePolicyServer
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.users.CurrentUser
+import com.normation.rudder.web.snippet.WithNonce
 import com.normation.zio.*
 import net.liftweb.*
 import net.liftweb.common.*
@@ -257,14 +258,16 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
             process _,
             ("id", s"submitAllowedNetwork${policyServerId.value}"),
             ("class", "btn btn-success")
-          ): NodeSeq) ++ Script(
-            OnLoad(
-              JsRaw(s"""
+          ): NodeSeq) ++ WithNonce.scriptWithNonce(
+            Script(
+              OnLoad(
+                JsRaw(s"""
                 initInputAddress("${policyServerId.value}")
                 $$(".networkField").keydown( function(event) {
                   processKey(event , 'submitAllowedNetwork${policyServerId.value}')
                 });
               """) // JsRaw ok, no user inputs
+              )
             )
           )
         }

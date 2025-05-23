@@ -176,9 +176,9 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   override def render: RenderOut = {
-    // we need both the script each time we render the page, and also when the status content is available
-    partialUpdate(updateDeploymentStart & scriptStatusLayout)
-    new RenderOut(layout, scriptStatusLayout)
+    // we need to update the deployment time each time we render the page, and also when the status content is available
+    partialUpdate(updateDeploymentStart)
+    new RenderOut(layout)
   }
 
   val deployementErrorMessage: Regex = """(.*)!errormessage!(.*)""".r
@@ -556,7 +556,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         showGeneration(hasLastBottomBorder = compilation.isEmpty && nodes.isEmpty && groups.isEmpty)
 
       (<li class={"nav-item dropdown notifications-menu " ++ statusBackground}>
-        <a href="#" class="dropdown-toggle status-dropdown" id="statusDropdownLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <a href="#" class="dropdown-toggle status-dropdown" id="statusDropdownLink" onclick="event.preventDefault();event.stopPropagation();" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           Status
           <i class="fa fa-heartbeat"></i>
           <span id="generation-status" class="label"><span></span></span>
@@ -624,25 +624,6 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         </div>
       </div>
     </div>
-  }
-
-  private def scriptStatusLayout = {
-    OnLoad(
-      JsRaw(
-        s"""
-          initBsTooltips();
-          var statusDropdown = $$('.dropdown-menu[aria-labelledby="statusDropdownLink"]');
-          statusDropdown.on('click', function (e) {
-            e.stopPropagation(); // prevent closing the dropdown since it has collapsable content
-          });
-
-          $$('.status-dropdown').on('click', function (e) {
-            e.preventDefault();
-            $$(this).dropdown('toggle');
-          });
-          """
-      )
-    )
   }
 
   private def scriptLinkButton(btnId: String, link: String) = {

@@ -46,7 +46,7 @@ class Login extends DispatchSnippet with DefaultExtendableSnippet[Login] {
                   <i class="far fa-clipboard"></i>
                 </button>
               </div>
-              <script type="text/javascript">
+              <script type="text/javascript" data-lift="with-nonce">
                 // <![CDATA[
                 {script}
                 // ]]>
