@@ -1,4 +1,5 @@
 {
+  "ADDITIONAL_POLICY_SERVER_KEY_HASH":[],
   "AGENT_RUN_INTERVAL":"5",
   "AGENT_RUN_SCHEDULE":"\"Min01\", \"Min06\", \"Min11\", \"Min16\", \"Min21\", \"Min26\", \"Min31\", \"Min36\", \"Min41\", \"Min46\", \"Min51\", \"Min56\"",
   "AGENT_RUN_SPLAYTIME":"4",
@@ -14,6 +15,8 @@
   "HTTPS_POLICY_DISTRIBUTION_PORT":"443",
   "INSTANCE_ID":"test-instance-id",
   "MODIFIED_FILES_TTL":"30",
+  "POLICY_SERVER_CERT_CA":"",
+  "POLICY_SERVER_CERT_NAME_VALIDATION":"false",
   "POLICY_SERVER_KEY":"MD5=eec3a3c2cf41b2736b7a0a9dece02142",
   "POLICY_SERVER_KEY_HASH":"sha256//QdgYBhJETcbCgKyRibjJVZQCm6mgaXzXKxrziLS5SEQ=",
   "RELAY_SYNC_METHOD":"classic",
