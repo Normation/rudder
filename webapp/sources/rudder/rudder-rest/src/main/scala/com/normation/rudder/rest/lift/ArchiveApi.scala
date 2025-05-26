@@ -1217,7 +1217,6 @@ class ZipArchiveReaderImpl(
   }
 
   def readPolicyItems(archiveName: String, zipEntries: Seq[(ZipEntry, Option[Array[Byte]])]): IOResult[PolicyArchive] = {
-
     // sort files in rules, directives, groups, techniques
     val sortedEntries = zipEntries.foldLeft(SortedEntries.empty) {
       case (arch, (e, optContent)) =>
@@ -1262,7 +1261,7 @@ class ZipArchiveReaderImpl(
     }
 
     // then, group by base path (cats/id/version) for technique ; then for each group, find from base path category
-    // if its a json or yml technique
+    // if it's a json or yml technique
     val techniqueUnzips = sortedEntries.techniques.groupBy {
       case (filename, _) =>
         techniques.find(base => filename.startsWith(base))
@@ -1284,6 +1283,8 @@ class ZipArchiveReaderImpl(
       _                 <- ApplicationLoggerPure.Archive.debug(
                              s"Processing archive '${archiveName}': techniques: '${techniqueUnzips.keys.mkString("', '")}'"
                            )
+      // check for ZipSlip path traversal
+      _                 <- ZIO.foreach(zipEntries) { case (e, _) => ZipUtils.checkForZipSlip(e) }
       withTechniques    <- parseTechniques(archiveName, PolicyArchiveUnzip.empty, techniqueUnzips)
       _                 <-
         ApplicationLoggerPure.Archive.debug(
