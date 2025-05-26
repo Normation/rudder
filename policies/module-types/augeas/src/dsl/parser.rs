@@ -246,6 +246,10 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
             let sub: &str = inner_rules.next().unwrap().as_str();
             Expr::ClearMultiple(path.into(), sub)
         }
+        Rule::other_command => {
+            let command = pair.as_str();
+            Expr::GenericAugeas(command)
+        }
         _ => unreachable!("Unexpected rule: {:?}", pair.as_rule()),
     })
 }
