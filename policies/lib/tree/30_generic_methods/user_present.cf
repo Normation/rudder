@@ -32,45 +32,35 @@
 bundle agent user_present(login)
 {
   vars:
-    "old_class_prefix"  string => canonify("user_present_${login}");
-    "args"               slist => { "${login}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("user_present_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+    "class_prefix"  string => canonify("user_present_${login}");
 
   classes:
     any::
-      "pass3" expression => "pass3";
+      "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
-
-    "user_does_not_exist"         not => userexists("${login}");
-    "group_does_not_exist"        not => groupexists("${login}");
-    "args_defined"         expression => "group_does_not_exist.user_does_not_exist";
-
+      
+      "user_exists"  expression => userexists("${login}");
+      "group_exists" expression => groupexists("${login}");
 
   users:
-    args_defined::
-      "${login}"  policy     => "present",
-                  classes    => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+      "${login}"
+         policy => "present",
+        classes => classes_generic_two("${report_data.method_id}", "${class_prefix}"),
+             if => "!user_exists.!group_exists";
 
   methods:
-    user_does_not_exist.!group_does_not_exist::
-      "error" usebundle => _classes_failure("${old_class_prefix}");
-      "error" usebundle => _classes_failure("${class_prefix}");
+    pass3.!user_exists.group_exists::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "Can't create user ${login} as group ${login} already exists", "");
 
-      "report_failure"
-        usebundle => _log_v3("Default group ${login} already exists. User ${login} present", "${login}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.user_exists::
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "Presence of user ${login}", "");
 
-    !user_does_not_exist::
-      "success" usebundle => _classes_success("${old_class_prefix}");
-      "success" usebundle => _classes_success("${class_prefix}");
-      "report_success"
-        usebundle => _log_v3("User ${login} present", "${login}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.!group_exists::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "Presence of user ${login}", "");
 
-    args_defined::
-      "report_success"
-        usebundle => _log_v3("User ${login} present", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
-          ifvarclass => "${old_class_prefix}_reached|${class_prefix}_reached";
 }
-

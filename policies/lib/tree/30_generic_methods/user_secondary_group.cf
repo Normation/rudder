@@ -58,22 +58,12 @@
 
 bundle agent user_secondary_groups(login, groups, force) {
   vars:
-      "old_class_prefix"              string => canonify("user_secondary_groups_${login}");
-      "group_list"                     slist => string_split("${groups}", ",", "999999");
-      "subcall_prefix[${group_list}]" string => canonify("user_group_${login}_${group_list}");
+      "class_prefix"  string => canonify("user_secondary_groups_${login}");
+      "group_list"     slist => string_split("${groups}", ",", "999999");
 
-      "args"                           slist => { "${login}", "${groups}", "${force}" };
-      "report_param"                  string => join("_", args);
-      "full_class_prefix"             string => canonify("user_secondary_groups_${report_param}");
-      "class_prefix"                  string => string_head("${full_class_prefix}", "1000");
+      "result_classes_prefix" slist => {"${class_prefix}", "${report_data.method_id}"};
 
-      "c_id"                          string => canonify("${report_data.method_id}");
-
-      "prefixes"                       slist => {
-                                                  "${old_class_prefix}",
-                                                  "${class_prefix}",
-                                                  "${c_id}"
-                                                };
+      "inner_result" string => "inner_${report_data.method_id}";
 
   defaults:
       "force" string => "false", if_match_regex => "";
@@ -82,87 +72,62 @@ bundle agent user_secondary_groups(login, groups, force) {
       "user_exists"         expression => userexists("${login}");
       "group_not_found"            not => groupexists("${group_list}");
       "purge_other_groups"  expression => strcmp("${force}", "true");
+      
+      "user_and_groups_exist" expression => "user_exists.!group_not_found";
 
-      "should_report"       expression => "${report_data.should_report}";
+      "fallback_user_group" expression => "!purge_other_groups.user_and_groups_exist";
 
     any::
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
-
-    pass3::
-      "error_subcall"    expression => "${subcall_prefix[${group_list}]}_error";
-      "repaired_subcall" expression => "${subcall_prefix[${group_list}]}_repaired";
-      "success_subcall"  expression => and( "${subcall_prefix[${group_list}]}_kept",
-                                            not("error_subcall|repaired_subcall")
-                                          );
-
-      # ${c_id}_{error|repaired|success} are already defined if in enforce
-      # There are redefined here for clarity
-      "${c_id}_error"    expression => or( "!user_exists",
-                                           "group_not_found",
-                                           "error_subcall",
-                                           "${c_id}_error"
-                                         );
-
-      "${c_id}_repaired" expression => and( "user_exists",
-                                            "!group_not_found",
-                                            or( "repaired_subcall",
-                                                "${c_id}_repaired"
-                                              )
-                                          );
-
-      "${c_id}_success"  expression => and( "user_exists",
-                                            "!group_not_found",
-                                            or( "success_subcall",
-                                                "${c_id}_success"
-                                              )
-                                          );
-
   users:
     pass2::
       "${login}"
-        policy => "present",
+                  policy => "present",
         groups_secondary => { @{group_list} },
-        classes => classes_generic_two("${class_prefix}", "${c_id}"),
-        if => and( "user_exists",
-                   "!group_not_found",
-                   "purge_other_groups"
-                 );
+                 classes => classes_generic_two("${class_prefix}", "${report_data.method_id}"),
+                      if => "purge_other_groups.user_and_groups_exist";
 
   methods:
-    # Without enforce, fallback to user_group
-    pass2.!pass3.!purge_other_groups.user_exists.!group_not_found::
-     "${report_data.method_id}"   usebundle => disable_reporting;
-     "${report_data.method_id}"   usebundle => user_group(
-                                                 "${login}",
-                                                 "${group_list}"
-                                               );
-     "${report_data.method_id}"   usebundle => enable_reporting,
-                                         if => "should_report";
+    # Without enforce, fallback to user_group, we need to use another bundle since we are using an iterator (group_list) here
+    pass2.fallback_user_group::
+      "${report_data.method_id}" usebundle => run_user_group("${login}","${group_list}", "${inner_result}");
 
     # Result class definition
-    pass3::
-      "${report_data.method_id}" usebundle => _classes_failure("${prefixes}"),
-                                        if => "${c_id}_error";
-      "${report_data.method_id}" usebundle => _classes_repaired("${prefixes}"),
-                                        if => "${c_id}_repaired";
-      "${report_data.method_id}" usebundle => _classes_success("${prefixes}"),
-                                        if => "${c_id}_success";
+    pass3.fallback_user_group::
+      "${report_data.method_id}" usebundle => _classes_copy("${inner_result}","${result_classes_prefix}");
+
+    pass3.!user_and_groups_exist::
+      "${report_data.method_id}" usebundle => _classes_failure("${result_classes_prefix}");
+
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "User ${login} does not exist. Can't set up secondary groups", ""),
+                                        if => "!user_exists.!group_not_found";
+
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "Some groups do not exist. Can't set up secondary groups", ""),
+                                        if => "user_exists.group_not_found";
+
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "Some groups do not exist and user ${login} does not exist. Can't set up secondary groups", ""),
+                                        if => "!user_exists.group_not_found";
+
     # Reporting
+    pass3.user_and_groups_exist::
+     "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "Setting secondary groups for user ${login}", "");
+
+}
+
+bundle agent run_user_group(login, group, inner_result) {
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
     pass3::
-     "${report_data.method_id}"
-        usebundle => log_rudder_v4("${login}", "User ${login} was already in the secondary groups '${groups}'. Configuration for user", "${login}"),
-               if => and( "user_exists",
-                          "!group_not_found"
-                        );
+      "${report_data.method_id}" usebundle => call_method("user_group_${group}");
+      "${report_data.method_id}" usebundle => user_group("${login}","${group}");
+      "${report_data.method_id}" usebundle => call_method_classes("${inner_result}");
+      "${report_data.method_id}" usebundle => call_method_end("user_group_${group}");
 
-     "${report_data.method_id}"
-        usebundle => log_rudder_v4("${login}", "User ${login} does not exist. Setting up secondary groups", "${login}"),
-               if => "!user_exists";
-
-     "${report_data.method_id}"
-        usebundle => log_rudder_v4("${login}", "One or more groups where not found. Setting up secondary groups", "${login}"),
-               if => "user_exists.group_not_found";
 }
