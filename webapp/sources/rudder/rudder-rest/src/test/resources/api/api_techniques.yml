@@ -142,6 +142,31 @@ response:
       }
     }
 ---
+description: Get an error in attemp of path traversal
+method: PUT
+url: /api/latest/techniques
+body: >-
+  { "id": "",
+    "version":"1.0",
+    "name": "PoC",
+    "category":"../../../../../../../../tmp/traversal_poc_dir",
+    "calls":[],
+    "description":"Path Traversal PoC",
+    "documentation": "PoC details",
+    "parameters":[],        
+    "resources":[],
+    "tags":{},
+    "internalId":"c0cd1803-2264-4989-9915-8b24fd02fad4"
+  }
+response:
+  code: 500
+  content: >-
+    {
+      "action" : "createTechnique",
+      "result" : "error",
+      "errorDetails" : "Unauthorized access to file resources (real path: /tmp/traversal_poc_dir/1.0/resources)"
+    }
+---
 description: Get directives for one technique
 method: GET
 url: /api/latest/techniques/packageManagement/directives
