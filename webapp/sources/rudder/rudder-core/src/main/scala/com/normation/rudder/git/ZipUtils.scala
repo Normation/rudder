@@ -37,24 +37,18 @@
 package com.normation.rudder.git
 
 import com.normation.box.IOManaged
-import com.normation.errors.Inconsistency
-import com.normation.errors.IOResult
-import com.normation.errors.effectUioUnit
+import com.normation.errors.*
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
 import java.io.OutputStream
-import java.util.zip.ZipEntry
-import java.util.zip.ZipFile
-import java.util.zip.ZipInputStream
-import java.util.zip.ZipOutputStream
+import java.util.zip.*
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import scala.collection.Seq
 import scala.jdk.CollectionConverters.*
-import zio.Chunk
-import zio.ZIO
+import zio.*
 import zio.syntax.*
 
 object ZipUtils {
@@ -239,5 +233,16 @@ object ZipUtils {
       }
     }
     recZippable(file, Seq())
+  }
+
+  /*
+   * Check that a ZipEntry does not contain "../" and so is a risk for ZipSlip path traversal
+   * attack. Most of the time, you really just don't want to have "../" anywhere in a Zip archive.
+   */
+  def checkForZipSlip(entry: ZipEntry): IOResult[Unit] = {
+    if (entry.getName.contains("../")) Inconsistency(s"Zip entry '${entry.getName}' contains '../' which is forbidden").fail
+    else if (entry.getName.startsWith("/"))
+      Inconsistency(s"Zip entry '${entry.getName}' has an absolute path, only relative path are accepted").fail
+    else ZIO.unit
   }
 }
