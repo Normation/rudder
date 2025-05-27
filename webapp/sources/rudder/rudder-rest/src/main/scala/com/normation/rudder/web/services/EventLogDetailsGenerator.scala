@@ -1342,7 +1342,7 @@ class EventLogDetailsGenerator(
 
     ("#id" #> apiAccount.id.value &
     "#name" #> apiAccount.name.value &
-      "#token" #> apiAccount.token.flatMap(_.exposeHash()).getOrElse("") &
+    "#token" #> apiAccount.token.flatMap(_.exposeHash()).getOrElse("") &
     "#description" #> apiAccount.description &
     "#isEnabled" #> apiAccount.isEnabled &
     "#creationDate" #> DateFormaterService.getDisplayDate(apiAccount.creationDate) &
