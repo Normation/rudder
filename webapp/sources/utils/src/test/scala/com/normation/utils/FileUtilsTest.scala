@@ -65,43 +65,43 @@ class FileUtilsTest extends Specification {
 
   "sanitize valid path" >> {
     val tail = "/file2"
-    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail))
+    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail).either)
     res.map(_.pathAsString) must beRight(beEqualTo(tmp.toString() + "/file2"))
   }
 
   "sanitize valid path with .." >> {
     val tail = "/dir/../file2"
-    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail))
+    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail).either)
     res.map(_.pathAsString) must beRight(beEqualTo(tmp.toString() + "/file2"))
   }
 
   "sanitize a split path" >> {
     val tail = "/dir" :: ".." :: "file2" :: Nil
-    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail))
+    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail).either)
     res.map(_.pathAsString) must beRight(beEqualTo(tmp.toString() + "/file2"))
   }
 
   "sanitize non-existing valid path" >> {
     val tail = "/file42"
-    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail))
+    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail).either)
     res.map(_.pathAsString) must beRight(beEqualTo(tmp.toString() + "/file42"))
   }
 
   "sanitize does prevent for traversal" >> {
     val tail = "/../../.."
-    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail))
+    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail).either)
     (res must beLeft(beAnInstanceOf[SecurityError])) and (res must beLeft(OutsideBaseDir(None, root)))
   }
 
   "sanitize also prevents a split path" >> {
     val tail = ".." :: ".." :: ".." :: Nil
-    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail))
+    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail).either)
     (res must beLeft(beAnInstanceOf[SecurityError])) and (res must beLeft(OutsideBaseDir(None, root)))
   }
 
   "sanitize does not follow symlinks" >> {
     val tail = "/symlink1"
-    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail))
+    val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail).either)
     (res must beLeft(beAnInstanceOf[SecurityError])) and (res must beLeft(OutsideBaseDir(Some("symlink1"), root / "etc")))
   }
 

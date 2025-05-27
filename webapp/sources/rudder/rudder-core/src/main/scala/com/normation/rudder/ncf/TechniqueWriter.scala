@@ -48,9 +48,9 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.TechniqueWriterLoggerPure
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.repository.xml.TechniqueFiles
+import com.normation.utils.FileUtils
 import com.normation.zio.currentTimeMillis
 import java.nio.charset.StandardCharsets
 import zio.*
@@ -124,7 +124,7 @@ class TechniqueWriterImpl(
       updated              <-
         compileArchiveTechnique(technique, modId, committer, syncStatus = false) // sync is already done in library update
       (updatedTechnique, _) = updated
-      libUpdate            <-
+      _                    <-
         techLibUpdate
           .update(modId, committer, Some(s"Update Technique library after creating files for ncf Technique ${technique.name}"))
           .toIO
@@ -213,15 +213,16 @@ object TechniqueWriterImpl {
     * Returns the relative path to the technique YAML file from the baseConfigRepo
     */
   private[ncf] def writeYaml(technique: EditorTechnique)(basePath: String): IOResult[String] = {
-    import YamlTechniqueSerializer.*
+    import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer.*
 
     val metadataPath = s"${technique.path}/${TechniqueFiles.yaml}"
-    val path         = s"${basePath}/${metadataPath}"
+
     for {
+      path    <- FileUtils.sanitizePath(File(basePath), metadataPath)
       content <- technique.toYaml().toIO
       _       <- IOResult.attempt(s"An error occurred while creating yaml file for Technique '${technique.name}'") {
                    implicit val charSet = StandardCharsets.UTF_8
-                   val file             = File(path).createFileIfNotExists(true)
+                   val file             = path.createFileIfNotExists(createParents = true)
                    file.write(content)
                  }
     } yield {
