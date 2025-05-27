@@ -60,6 +60,7 @@ import com.normation.rudder.rest.{TechniqueApi as API, *}
 import com.normation.rudder.rest.RestUtils.response
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rest.lift.TechniqueApi.QueryFormat
+import com.normation.utils.FileUtils
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Version
@@ -392,24 +393,30 @@ class TechniqueApi(
 
     import techniqueSerializer.*
 
-    def moveRessources(technique: EditorTechnique, internalId: String): IO[SystemError, String] = {
-      val workspacePath = s"workspace/${internalId}/${technique.version.value}/resources"
-      val finalPath     = s"techniques/${technique.category}/${technique.id.value}/${technique.version.value}/resources"
+    private def moveRessources(technique: EditorTechnique, internalId: String): IOResult[Unit] = {
 
-      val workspaceDir = File(s"${configRepoPath}/${workspacePath}")
-      val finalDir     = File(s"${configRepoPath}/${finalPath}")
+      val base = File(configRepoPath)
 
-      IOResult.attempt("Error when moving resource file from workspace to final destination")(if (workspaceDir.exists) {
-        finalDir.createDirectoryIfNotExists(true)
-        workspaceDir.moveTo(finalDir)(File.CopyOptions.apply(true))
-        workspaceDir.parent.parent.delete()
-        "ok"
-      } else {
-        "ok"
-      })
+      for {
+        workspaceDir <-
+          FileUtils.checkSanitizedIsIn(base, base / "workspace" / internalId / technique.version.value / "resources")
+        finalDir     <- FileUtils.checkSanitizedIsIn(
+                          base,
+                          base / "techniques" / technique.category / technique.id.value / technique.version.value / "resources"
+                        )
+        _            <- ZIO
+                          .whenZIO(IOResult.attempt(workspaceDir.exists)) {
+                            IOResult.attempt("Error when moving resource file from workspace to final destination") {
+                              finalDir.createDirectoryIfNotExists(true)
+                              workspaceDir.moveTo(finalDir)(File.CopyOptions.apply(true))
+                              workspaceDir.parent.parent.delete()
+                            }
+                          }
+                          .notOptional(s"Error: the workspace directory for techniques '${workspaceDir}' is missing")
+      } yield ()
     }
 
-    // Comparison on technique name and ID are not case sensitive
+    // Comparison on technique name and ID are not case-sensitive
     private def isTechniqueNameExist(techniqueName: String) = {
       val techniques = techniqueRepository.getAll()
       techniques.values.map(_.name.toLowerCase).toList.contains(techniqueName.toLowerCase)
