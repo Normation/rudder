@@ -353,6 +353,21 @@ impl<'a> Interpreter<'a> {
                             )
                         })?)
                     }
+                    CheckExpr::ValuesIn(expected_values) => {
+                        let is_ok = values_str.iter().all(|v| expected_values.contains(v));
+                        Some(InterpreterOut::from_out(if is_ok {
+                            format!(
+                                "values '{}' is a subset of the allowed values",
+                                values_str.join(", ")
+                            )
+                        } else {
+                            bail!(
+                                "values '{}' is not a subset of the allowed values '{}'",
+                                values_str.join(", "),
+                                expected_values.join(", ")
+                            )
+                        })?)
+                    }
                     CheckExpr::ValuesLen(comparator, size) => {
                         let len = values.len();
                         Some(InterpreterOut::from_out(

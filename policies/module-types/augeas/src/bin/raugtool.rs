@@ -200,6 +200,10 @@ impl Cli {
 
         // FIXME read from stdin
 
+        if let Some(t) = opts.transform {
+            todo!()
+        }
+
         if let Some(f) = opts.file {
             let script = fs::read_to_string(f)?;
             // FIXME handle echo

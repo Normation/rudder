@@ -43,6 +43,7 @@ pub enum CheckExpr<'a> {
     ValuesNotInclude(&'a str),
     ValuesEqual(Vec<&'a str>),
     ValuesEqualOrdered(Vec<&'a str>),
+    ValuesIn(Vec<&'a str>),
 }
 
 /// A command of the extended Augeas language used in Rudder.
@@ -114,6 +115,7 @@ fn parse_check_command(pair: Pair<Rule>) -> Result<CheckExpr> {
         }
         Rule::values_equal => CheckExpr::ValuesEqual(parse_array(pair.into_inner())),
         Rule::values_equal_ordered => CheckExpr::ValuesEqualOrdered(parse_array(pair.into_inner())),
+        Rule::values_in => CheckExpr::ValuesIn(parse_array(pair.into_inner())),
         Rule::len => {
             let mut inner_rules = pair.into_inner();
             let comparator: NumComparator = inner_rules.next().unwrap().as_str().parse()?;
