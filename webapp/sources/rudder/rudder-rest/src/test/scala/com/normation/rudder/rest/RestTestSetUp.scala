@@ -40,10 +40,10 @@ package com.normation.rudder.rest
 import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.VariableSpec
-import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
+import com.normation.errors
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
@@ -86,8 +86,13 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
+import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.ncf.BundleName
+import com.normation.rudder.ncf.EditorTechnique
 import com.normation.rudder.ncf.EditorTechniqueReader
+import com.normation.rudder.ncf.GenericMethod
+import com.normation.rudder.ncf.ParameterType.BasicParameterTypeService
 import com.normation.rudder.ncf.ResourceFileService
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
@@ -881,9 +886,15 @@ class RestTestSetUp {
   )
   val groupApiInheritedProperties = new GroupApiInheritedProperties(mockNodes.propRepo)
   val ncfTechniqueWriter:  TechniqueWriter       = null
-  val ncfTechniqueReader:  EditorTechniqueReader = null
-  val techniqueRepository: TechniqueRepository   = null
-  val techniqueSerializer: TechniqueSerializer   = null
+  val ncfTechniqueReader:  EditorTechniqueReader = new EditorTechniqueReader {
+    def readTechniquesMetadataFile: IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[errors.RudderError])] =
+      (Nil, Map[BundleName, GenericMethod](), Nil).succeed
+
+    def getMethodsMetadata: IOResult[Map[BundleName, GenericMethod]] = Map[BundleName, GenericMethod]().succeed
+
+    def updateMethodsMetadataFile: IOResult[CmdResult] = CmdResult(0, "", "").succeed
+  }
+  val techniqueSerializer: TechniqueSerializer   = new TechniqueSerializer(new BasicParameterTypeService())
   val resourceFileService: ResourceFileService   = null
   val settingsService = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())
 
@@ -938,7 +949,7 @@ class RestTestSetUp {
       techniqueAPIService14,
       ncfTechniqueWriter,
       ncfTechniqueReader,
-      techniqueRepository,
+      mockTechniques.techniqueRepo,
       techniqueSerializer,
       uuidGen,
       resourceFileService,
