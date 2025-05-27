@@ -166,11 +166,67 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
           kind = ApiAccountKind.PublicApi(
             authorizations = ApiAuthorization.ACL(
               List(
-                ApiAclElement(actions = Set(HttpAction.GET), path = AclPath.parse("archives/export").toOption.get),
-                ApiAclElement(actions = Set(HttpAction.POST), path = AclPath.parse("archives/import").toOption.get),
                 ApiAclElement(
                   actions = Set(HttpAction.GET, HttpAction.DELETE, HttpAction.POST),
                   path = AclPath.parse("apiaccounts/*").toOption.get
+                ),
+                ApiAclElement(actions = Set(HttpAction.GET), path = AclPath.parse("archives/export").toOption.get),
+                ApiAclElement(actions = Set(HttpAction.POST), path = AclPath.parse("archives/import").toOption.get)
+              )
+            ),
+            expirationDate = Some(ISODateTimeFormat.dateTime.parseDateTime("2025-06-06T15:59:35.297+02:00"))
+          ),
+          name = ApiAccountName("Test account with some acl scala 3"),
+          token = ApiToken(""),
+          description = "",
+          isEnabled = true,
+          creationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
+          tokenGenerationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
+          tenants = NodeSecurityContext.All
+        )
+      )
+    )
+  }
+
+  "be able to correctly unserialize a pre-Rudder-8.3 ApiAccount " in {
+    val serialized = <apiAccount fileFormat="6" changeType="add">
+      <id>c331c718-db0e-429e-b800-20b055ca6a67</id>
+      <name>Test account with some acl scala 3</name>
+      <token>
+        v2:449967a9c3a1cf25b6333fa531626e1a9375accf889dea3063b8707debde9f033535082a31de85c34c71d8be9b228f38e6cde467d6f3ba423d99437899bfb1d6
+      </token>
+      <description/>
+      <isEnabled>true</isEnabled>
+      <creationDate>2025-05-06T13:59:59.613+02:00</creationDate>
+      <tokenGenerationDate>2025-05-06T13:59:59.613+02:00</tokenGenerationDate>
+      <tenants>*</tenants>
+      <kind>public</kind>
+      <authorization>
+        <acl>
+          <authz action="get" path="archives/export"/>
+          <authz action="post" path="archives/export"/>
+          <authz action="delete" path="apiaccounts/*"/>
+        </acl>
+      </authorization>
+      <expirationDate>2025-06-06T15:59:35.297+02:00</expirationDate>
+    </apiAccount>
+
+    val actual = new ApiAccountUnserialisationImpl().unserialise(serialized)
+
+    actual.map(_.copy(token = ApiToken(""))) must beEqualTo(
+      Full(
+        ApiAccount(
+          id = ApiAccountId("c331c718-db0e-429e-b800-20b055ca6a67"),
+          kind = ApiAccountKind.PublicApi(
+            authorizations = ApiAuthorization.ACL(
+              List(
+                ApiAclElement(
+                  actions = Set(HttpAction.DELETE),
+                  path = AclPath.parse("apiaccounts/*").toOption.get
+                ),
+                ApiAclElement(
+                  actions = Set(HttpAction.GET, HttpAction.POST),
+                  path = AclPath.parse("archives/export").toOption.get
                 )
               )
             ),
