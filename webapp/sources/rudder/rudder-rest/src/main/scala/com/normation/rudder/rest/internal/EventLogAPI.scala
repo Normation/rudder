@@ -290,8 +290,8 @@ object EventLogService {
   /**
    * Syntax to avoid exposing database query errors in the API response,
    * since we don't want to let the user know about SQL error.
-   * 
-   * There is no strong guarantee that this catches all system errors, 
+   *
+   * There is no strong guarantee that this catches all system errors,
    * especially since errors can be chained !
    */
   implicit private class IOResultSystemError[A](io: IOResult[A]) {
