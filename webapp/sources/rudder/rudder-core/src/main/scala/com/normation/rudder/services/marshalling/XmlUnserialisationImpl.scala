@@ -793,6 +793,13 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
     // mess up with authz
     import cats.implicits.*
 
+    def parse(s: String): Box[List[HttpAction]] = {
+      (s.split(",").map(_.trim).toList.filter(_.nonEmpty).traverse(HttpAction.parse)) match {
+        case Left(e)  => Failure(e)
+        case Right(x) => Full(x)
+      }
+    }
+
     val authzs = traverse(entry \\ "authz") { e =>
       for {
         pathStr <- e \@ "path" match {
@@ -801,19 +808,28 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                    }
         path    <- AclPath.parse(pathStr).fold(Failure(_), Full(_))
         actions <- e \@ "actions" match {
-                     case "" => Failure("Missing required attribute 'actions' for element 'authz'")
-                     case s  =>
-                       (s.split(",").map(_.trim).toList.filter(_.nonEmpty).traverse(HttpAction.parse)) match {
-                         case Left(s)  => Failure(s)
-                         case Right(x) => Full(x)
+                     case "" => // check for old "action" attribute
+                       e \@ "action" match {
+                         case "" =>
+                           Failure("Missing required attribute 'actions' for element 'authz'")
+                         case s  => parse(s)
                        }
+                     case s  => parse(s)
                    }
       } yield {
         ApiAclElement(path, actions.toSet)
       }
     }
 
-    authzs.map(acl => ApiAuthorization.ACL(acl.toList))
+    authzs.map(acl => {
+      ApiAuthorization.ACL(
+        acl
+          .groupMapReduce(_.path)(identity) { case (acl1, acl2) => ApiAclElement(acl1.path, acl1.actions.union(acl2.actions)) }
+          .values
+          .toList
+          .sortBy(_.path.value)
+      )
+    })
   }
 
   def unserialise(entry: XNode): Box[ApiAccount] = {
