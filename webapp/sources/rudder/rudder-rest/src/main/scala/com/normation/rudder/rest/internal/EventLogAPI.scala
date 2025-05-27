@@ -259,7 +259,7 @@ class EventLogAPI(
         restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
       implicit val action:   String  = "eventRollback"
 
-      OldInternalApiAuthz.withReadAdmin((for {
+      OldInternalApiAuthz.withWriteAdmin((for {
         reqParam     <- req.params.get("action") match {
                           case Some(actions) if (actions.size == 1) => Full(actions.head)
                           case Some(actions)                        =>
