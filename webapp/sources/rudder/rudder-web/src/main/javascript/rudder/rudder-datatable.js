@@ -2029,7 +2029,7 @@ function confirmRollback(id) {
   var radios = $('.radio-btn');
   var action = getRadioChecked(radios);
   $.ajax({
-    type: "GET",
+    type: "POST",
     url: contextPath + '/secure/api/eventlog/' + id + "/details/rollback?action=" + action ,
     contentType: "application/json; charset=utf-8",
     beforeSend: function() {
