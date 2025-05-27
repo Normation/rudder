@@ -418,7 +418,8 @@ class TechniqueApi(
       val base = File(configRepoPath)
 
       for {
-        workspaceDir <- FileUtils.checkSanitizedIsIn(base, base / "workspace" / internalId / technique.version.value / "resources")
+        workspaceDir <-
+          FileUtils.checkSanitizedIsIn(base, base / "workspace" / internalId / technique.version.value / "resources")
         finalDir     <- FileUtils.checkSanitizedIsIn(
                           base,
                           base / "techniques" / technique.category / technique.id.value / technique.version.value / "resources"
