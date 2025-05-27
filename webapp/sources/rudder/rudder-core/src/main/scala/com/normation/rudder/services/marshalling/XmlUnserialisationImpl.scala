@@ -95,7 +95,6 @@ import scala.util.Success
 import scala.util.Try
 import scala.xml.Node as XNode
 import scala.xml.NodeSeq
-import scala.xml.Text
 import zio.json.*
 
 final case class XmlUnserializerImpl(
@@ -794,10 +793,7 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
     import cats.implicits.*
 
     def parse(s: String): Box[List[HttpAction]] = {
-      (s.split(",").map(_.trim).toList.filter(_.nonEmpty).traverse(HttpAction.parse)) match {
-        case Left(e)  => Failure(e)
-        case Right(x) => Full(x)
-      }
+      (s.split(",").map(_.trim).toList.filter(_.nonEmpty).traverse(HttpAction.parse)).toBox
     }
 
     val authzs = traverse(entry \\ "authz") { e =>
@@ -864,17 +860,18 @@ class ApiAccountUnserialisationImpl extends ApiAccountUnserialisation {
                         }
       authz          <- (apiAccount \ "authorization").headOption match {
                           case None =>
-                            // we are most likelly in a case where API ACL weren't implemented,
+                            // we are most likely in a case where API ACL weren't implemented,
                             // because the event was saved < Rudder 4.3. Use a "nil" ACL
                             Full(ApiAuthorization.None)
 
-                          case Some(Text(text)) if text == ApiAuthorizationKind.RO.name =>
+                          case Some(x) if x.text == ApiAuthorizationKind.RO.name =>
                             Full(ApiAuthorization.RO)
-                          case Some(Text(text)) if text == ApiAuthorizationKind.RW.name =>
+                          case Some(x) if x.text == ApiAuthorizationKind.RW.name =>
                             Full(ApiAuthorization.RW)
-                          case Some(node) if (node \ "acl").nonEmpty                    =>
+                          case Some(node) if (node \ "acl").nonEmpty             =>
                             unserAcl((node \ "acl").head)
-                          case _                                                        => Full(ApiAuthorization.None)
+                          case _                                                 =>
+                            Full(ApiAuthorization.None)
                         }
       accountType     = (apiAccount \ "kind").headOption.map(_.text) match {
                           case None    => ApiAccountType.PublicApi
