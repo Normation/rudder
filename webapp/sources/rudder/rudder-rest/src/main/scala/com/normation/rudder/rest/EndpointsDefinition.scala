@@ -259,7 +259,7 @@ object EventLogApi extends Enum[EventLogApi] with ApiModuleProvider[EventLogApi]
     val z: Int = implicitly[Line].value
     val description    = "Rollback a specific event log"
     val (action, path) = POST / "eventlog" / "{id}" / "details" / "rollback"
-    val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
 
   def endpoints: List[EventLogApi] = values.toList.sortBy(_.z)
