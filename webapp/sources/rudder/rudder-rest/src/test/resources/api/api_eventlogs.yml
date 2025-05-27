@@ -246,8 +246,12 @@ response:
     }
 ---
 description: Rollback a specific event log after
-method: GET
-url: /secure/api/eventlog/1/details/rollback?action=after
+method: POST
+url: /secure/api/eventlog/1/details/rollback
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+params:
+  action: after
 response:
   code: 200
   content: >-
@@ -261,8 +265,14 @@ response:
     }
 ---
 description: Rollback a specific event log with multiple action
-method: GET
-url: /secure/api/eventlog/1/details/rollback?action=some&action=other
+method: POST
+url: /secure/api/eventlog/1/details/rollback
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+params:
+  action:
+    - some
+    - other
 response:
   code: 500
   content: >-
@@ -275,8 +285,12 @@ response:
 
 ---
 description: Rollback a specific event log with invalid action
-method: GET
-url: /secure/api/eventlog/1/details/rollback?action=unknown
+method: POST
+url: /secure/api/eventlog/1/details/rollback
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+params:
+  action: unknown
 response:
   code: 500
   content: >-
