@@ -258,7 +258,7 @@ object EventLogApi extends Enum[EventLogApi] with ApiModuleProvider[EventLogApi]
   case object RollbackEventLog extends EventLogApi with InternalApi with OneParam with StartsAtVersion2 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Rollback a specific event log"
-    val (action, path) = GET / "eventlog" / "{id}" / "details" / "rollback"
+    val (action, path) = POST / "eventlog" / "{id}" / "details" / "rollback"
     val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
   }
 
