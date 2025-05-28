@@ -87,6 +87,7 @@ object PasswordEncoderType extends Enum[PasswordEncoderType] {
   case object SHA256 extends PasswordEncoderType("SHA-256")
   case object SHA512 extends PasswordEncoderType("SHA-512")
   case object BCRYPT extends PasswordEncoderType("BCRYPT")
+  case object ARGON2ID extends PasswordEncoderType("ARGON2ID")
 
   // Default value, same as in RudderPasswordEncoder
   val DEFAULT: PasswordEncoderType = BCRYPT
@@ -102,14 +103,15 @@ object PasswordEncoderType extends Enum[PasswordEncoderType] {
 
 }
 
-class PasswordEncoderDispatcher(bcryptCost: Int) {
+class PasswordEncoderDispatcher(bcryptCost: Int, argon2Memory: Int, argon2Parallelism: Int, argon2Iterations: Int) {
   def dispatch(encoderType: PasswordEncoderType): PasswordEncoder = {
     encoderType match {
-      case PasswordEncoderType.MD5    => RudderPasswordEncoder.MD5
-      case PasswordEncoderType.SHA1   => RudderPasswordEncoder.SHA1
-      case PasswordEncoderType.SHA256 => RudderPasswordEncoder.SHA256
-      case PasswordEncoderType.SHA512 => RudderPasswordEncoder.SHA512
-      case PasswordEncoderType.BCRYPT => RudderPasswordEncoder.BCRYPT(bcryptCost)
+      case PasswordEncoderType.MD5      => RudderPasswordEncoder.MD5
+      case PasswordEncoderType.SHA1     => RudderPasswordEncoder.SHA1
+      case PasswordEncoderType.SHA256   => RudderPasswordEncoder.SHA256
+      case PasswordEncoderType.SHA512   => RudderPasswordEncoder.SHA512
+      case PasswordEncoderType.BCRYPT   => RudderPasswordEncoder.BCRYPT(bcryptCost)
+      case PasswordEncoderType.ARGON2ID => RudderPasswordEncoder.ARGON2ID(argon2Memory, argon2Parallelism, argon2Iterations)
     }
   }
 
@@ -124,9 +126,12 @@ class PasswordEncoderDispatcher(bcryptCost: Int) {
 
 object RudderPasswordEncoder {
 
+  import org.apache.commons.codec.binary.Base64
+  import org.bouncycastle.crypto.generators.Argon2BytesGenerator
   import org.bouncycastle.crypto.generators.OpenBSDBCrypt
+  import org.bouncycastle.crypto.params.Argon2Parameters
 
-  val random = new SecureRandom()
+  private val random = new SecureRandom()
 
   // see https://stackoverflow.com/a/44227131
   // produce a random hexa string of 32 chars
@@ -154,7 +159,7 @@ object RudderPasswordEncoder {
 
     def fromPasswordEncoderType(encoderType: PasswordEncoderType): SecurityLevel = {
       encoderType match {
-        case PasswordEncoderType.BCRYPT                                                                                   => Modern
+        case PasswordEncoderType.BCRYPT | PasswordEncoderType.ARGON2ID                                                    => Modern
         case PasswordEncoderType.MD5 | PasswordEncoderType.SHA1 | PasswordEncoderType.SHA256 | PasswordEncoderType.SHA512 =>
           Legacy
       }
@@ -176,12 +181,12 @@ object RudderPasswordEncoder {
   }
 
   // One pass, non-salted hashes. Unsuitable for password storage.
-  val MD5               = new DigestEncoder("MD5")
-  val SHA1              = new DigestEncoder("SHA-1")
-  val SHA256            = new DigestEncoder("SHA-256")
-  val SHA512            = new DigestEncoder("SHA-512")
+  val MD5                                                      = new DigestEncoder("MD5")
+  val SHA1                                                     = new DigestEncoder("SHA-1")
+  val SHA256                                                   = new DigestEncoder("SHA-256")
+  val SHA512                                                   = new DigestEncoder("SHA-512")
   // Proper password hash functions
-  def BCRYPT(cost: Int) = new PasswordEncoder() {
+  def BCRYPT(cost: Int)                                        = new PasswordEncoder() {
     override def encode(rawPassword: CharSequence):                           String  = {
       val salt: Array[Byte] = new Array(16)
       random.nextBytes(salt)
@@ -200,20 +205,69 @@ object RudderPasswordEncoder {
       }
     }
   }
+  def ARGON2ID(memory: Int, parallelism: Int, iterations: Int) = new PasswordEncoder() {
+    override def encode(rawPassword: CharSequence):                           String  = {
+      /// 32 bytes
+      val hashSize = 32
+      /// 16 bytes = 128 bits, the recommended value ("sufficient for all applications")
+      val saltSize = 16
+
+      val argon2Version = Argon2Parameters.ARGON2_VERSION_13
+
+      val salt: Array[Byte] = new Array(saltSize)
+      random.nextBytes(salt)
+
+      val params = new Argon2Parameters.Builder(Argon2Parameters.ARGON2_id)
+        .withVersion(argon2Version)
+        .withIterations(iterations)
+        .withMemoryAsKB(memory)
+        .withParallelism(parallelism)
+        .withSalt(salt)
+        .build()
+
+      // Compute the hash
+      val generate = new Argon2BytesGenerator
+      generate.init(params)
+      val hash: Array[Byte] = new Array(hashSize)
+      generate.generateBytes(rawPassword.toString.toCharArray, hash)
+
+      val base64Salt = Base64.encodeBase64URLSafe(salt)
+      val base64Hash = Base64.encodeBase64URLSafe(hash)
+
+      // We store hashes with a shadow-like format
+      val shadowHash =
+        s"$$argon2id$$v=$argon2Version$$m=$memory,t=$iterations,p=$parallelism$$$base64Salt$$$base64Hash"
+
+      shadowHash
+    }
+    override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {
+      try {
+
+        OpenBSDBCrypt.checkPassword(encodedPassword, rawPassword.toString.toCharArray)
+      } catch {
+        case e: Exception =>
+          ApplicationLoggerPure.Auth.debug(s"Invalid password format: ${e.getMessage}")
+          false
+      }
+    }
+  }
   // Default algorithm to use for hashing passwords
-  val DEFAULT           = BCRYPT
+  val DEFAULT                                                  = ARGON2ID
 
   def getFromEncoded(encodedPassword: String, securityLevel: SecurityLevel): Either[String, PasswordEncoderType] = {
     // Two cases: modern = /etc/shadow-like or legacy = plain hashes
 
     // https://github.com/bcgit/bc-java/blob/5b1360854d85fd27b75720015be68f9e172db013/core/src/main/java/org/bouncycastle/crypto/generators/OpenBSDBCrypt.java#L41C1-L48C1
     // Allow types: 2, 2x, 2y, 2a, 2b
-    val bcryptRegex = "^\\$2[abxy]?\\$.+".r
+    val bcryptRegex    = "^\\$2[abxy]?\\$.+".r
+    val argon2idPrefix = "$argon2id$"
 
     val hexaRegex = "^[a-fA-F0-9]+$"
 
     if (encodedPassword.matches(bcryptRegex.regex)) {
       Right(PasswordEncoderType.BCRYPT)
+    } else if (encodedPassword.startsWith(argon2idPrefix)) {
+      Right(PasswordEncoderType.ARGON2ID)
     } else if (securityLevel == SecurityLevel.Legacy && encodedPassword.matches(hexaRegex)) {
       // Guess based on hexadecimal string length
       encodedPassword.length match {

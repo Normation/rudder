@@ -742,6 +742,42 @@ object RudderParsedProperties {
     }
   }
 
+  val RUDDER_ARGON2_PARALLELISM: Int = {
+    try {
+      config.getInt("rudder.argon2.parallelism")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.debug(
+          "Property 'rudder.argon2.parallelism' is absent or empty in rudder.configFile. Default parallelism to 1."
+        )
+        1
+    }
+  }
+
+  val RUDDER_ARGON2_ITERATIONS: Int = {
+    try {
+      config.getInt("rudder.argon2.iterations")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.debug(
+          "Property 'rudder.argon2.iterations' is absent or empty in rudder.configFile. Default iterations to 2."
+        )
+        2
+    }
+  }
+
+  val RUDDER_ARGON2_MEMORY: Int = {
+    try {
+      config.getInt("rudder.argon2.memory")
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.debug(
+          "Property 'rudder.argon2.memory' is absent or empty in rudder.configFile. Default parallelism to 64MB."
+        )
+        65536
+    }
+  }
+
   val RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL: Int = {
     try {
       config.getInt("rudder.batch.purge.inventories.delete.interval")
@@ -1196,6 +1232,9 @@ object RudderConfig extends Loggable {
   def RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL         = RudderParsedProperties.RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL
   def RUDDER_GIT_ROOT_CONFIG_REPO                  = RudderParsedProperties.RUDDER_GIT_ROOT_CONFIG_REPO
   def RUDDER_BCRYPT_COST                           = RudderParsedProperties.RUDDER_BCRYPT_COST
+  def RUDDER_ARGON2_MEMORY                         = RudderParsedProperties.RUDDER_ARGON2_MEMORY
+  def RUDDER_ARGON2_PARALLELISM                    = RudderParsedProperties.RUDDER_ARGON2_PARALLELISM
+  def RUDDER_ARGON2_ITERATIONS                     = RudderParsedProperties.RUDDER_ARGON2_ITERATIONS
   def RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL = RudderParsedProperties.RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL
 
   //
@@ -1601,7 +1640,8 @@ object RudderConfigInit {
 
     lazy val roleApiMapping = new RoleApiMapping(authorizationApiMapping)
 
-    lazy val passwordEncoderDispatcher = new PasswordEncoderDispatcher(RUDDER_BCRYPT_COST)
+    lazy val passwordEncoderDispatcher =
+      new PasswordEncoderDispatcher(RUDDER_BCRYPT_COST, RUDDER_ARGON2_MEMORY, RUDDER_ARGON2_PARALLELISM, RUDDER_ARGON2_ITERATIONS)
 
     // rudder user list
     lazy val rudderUserListProvider: FileUserDetailListProvider = {

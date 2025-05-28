@@ -87,7 +87,7 @@ class RudderUserDetailsTest extends ZIOSpecDefault {
 
   // org.slf4j.LoggerFactory.getLogger("application.authorization").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
 
-  val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0)
+  val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0, 0, 0, 0)
 
   def getUserDetailList(xml: Elem, debugName: String): ValidatedUserList =
     UserFileProcessing.parseXml(roleApiMapping, passwordEncoderDispatcher, xml, debugName, reload = false).force
