@@ -55,4 +55,3 @@ The `password score` directive is used to check the strength of a password based
 It uses the [zxcvbn](https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/wheeler)
 algorithm
 to compute the score, and outputs a value between 0 and 4.
-

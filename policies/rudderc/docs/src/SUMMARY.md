@@ -17,6 +17,12 @@
 
 - [augeas](./modules/augeas.md)
 - [system-updates](./modules/system-updates.md)
-- [template](./modules/template.md)
 
 ---
+
+# Methods
+
+- [system-updates](./modules/system-updates.md)
+    - [system-updates](./modules/system-updates.md)
+
+
