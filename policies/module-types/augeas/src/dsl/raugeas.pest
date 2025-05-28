@@ -38,6 +38,7 @@ values_include = { "values" ~ "include" ~ string }
 values_not_include = { "values" ~ "not_include" ~ string }
 values_equal = { "values" ~ "==" ~ array }
 values_equal_ordered = { "values" ~ "===" ~ array }
+values_in = { "values" ~ "in" ~ array }
 values_len = { "values" ~ "len" ~ numeric_comparator ~ integer }
 has_type = { "is" ~ string }
 compare_num = { numeric_comparator ~ string }
@@ -52,6 +53,7 @@ check_commands = _{
     values_equal_ordered |
     values_equal |
     values_len |
+    values_in |
     has_type |
     compare_num |
     compare_string
