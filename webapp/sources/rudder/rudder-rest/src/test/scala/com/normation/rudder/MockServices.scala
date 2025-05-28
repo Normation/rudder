@@ -96,6 +96,10 @@ import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.tenants.TenantId
 import com.normation.rudder.tenants.TenantService
+import com.normation.rudder.users.Argon2EncoderParams
+import com.normation.rudder.users.Argon2Iterations
+import com.normation.rudder.users.Argon2Memory
+import com.normation.rudder.users.Argon2Parallelism
 import com.normation.rudder.users.EventTrace
 import com.normation.rudder.users.FileUserDetailListProvider
 import com.normation.rudder.users.PasswordEncoderDispatcher
@@ -868,7 +872,8 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
 
   val usersInputStream: () => InputStream = () => IOUtils.toInputStream(usersConfigFile.contentAsString, StandardCharsets.UTF_8)
 
-  val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0)
+  val argon2Params              = Argon2EncoderParams(Argon2Memory(0), Argon2Iterations(0), Argon2Parallelism(0))
+  val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0, argon2Params)
 
   val userService: FileUserDetailListProvider = {
     val usersFile = UserFile(usersConfigFile.pathAsString, usersInputStream)

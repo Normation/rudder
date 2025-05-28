@@ -65,33 +65,33 @@ class TestCheckUsersFile extends Specification {
         initialFile() must (haveHash("sha-1") and haveUnsafeHashes(None))
     }
 
-    "migrate legacy hash to bcrypt and enable unsafe-hashes" in withMigrationCtx(shaLegacyFile) {
+    "migrate legacy hash to argon2id and enable unsafe-hashes" in withMigrationCtx(shaLegacyFile) {
       case (getFile, checkUsersFile) =>
         checkUsersFile.prog.runNow
 
-        getFile() must (haveHash("bcrypt") and haveUnsafeHashes(Some("true")))
+        getFile() must (haveHash("argon2id") and haveUnsafeHashes(Some("true")))
     }
 
     "keep hash unchanged" in withMigrationCtx(shaLegacyFile) {
       case (getFile, checkUsersFile) =>
         checkUsersFile.prog.runNow
-        getFile() must (haveHash("bcrypt") and haveUnsafeHashes(Some("true")))
+        getFile() must (haveHash("argon2id") and haveUnsafeHashes(Some("true")))
 
         // idempotent check
         checkUsersFile.prog.runNow
-        getFile() must (haveHash("bcrypt") and haveUnsafeHashes(Some("true")))
+        getFile() must (haveHash("argon2id") and haveUnsafeHashes(Some("true")))
     }
 
-    "migrate unknown hash to bcrypt with unsafe-hashes set to false" in withMigrationCtx(unknownHashFile) {
+    "migrate unknown hash to argon2id with unsafe-hashes set to false" in withMigrationCtx(unknownHashFile) {
       case (getFile, checkUsersFile) =>
         checkUsersFile.prog.runNow
-        getFile() must (haveHash("bcrypt") and haveUnsafeHashes(Some("false")))
+        getFile() must (haveHash("argon2id") and haveUnsafeHashes(Some("false")))
     }
 
     "migrate non-boolean unsafe-hashes to false" in withMigrationCtx(unknownUnsafeHashesFile) {
       case (getFile, checkUsersFile) =>
         checkUsersFile.prog.runNow
-        getFile() must (haveHash("bcrypt") and haveUnsafeHashes(Some("false")))
+        getFile() must (haveHash("argon2id") and haveUnsafeHashes(Some("false")))
     }
   }
 

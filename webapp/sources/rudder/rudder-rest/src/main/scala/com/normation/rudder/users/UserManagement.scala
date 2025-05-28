@@ -51,22 +51,7 @@ import scala.xml.Node
 import zio.json.*
 import zio.json.ast.Json
 
-case class UserFileInfo(userOrigin: List[UserOrigin], digest: String)
-case class UserOrigin(user: User, hashValidHash: Boolean)
-object UserOrigin {
-  def verifyHash(hashType: String, hash: String) = {
-    // $2[aby]$[cost]$[22 character salt][31 character hash]
-    val bcryptReg = "^\\$2[aby]?\\$[\\d]+\\$[./A-Za-z0-9]{53}$".r
-    hashType.toLowerCase match {
-      case "sha" | "sha1"       => hash.matches("^[a-fA-F0-9]{40}$")
-      case "sha256" | "sha-256" => hash.matches("^[a-fA-F0-9]{64}$")
-      case "sha512" | "sha-512" => hash.matches("^[a-fA-F0-9]{128}$")
-      case "md5"                => hash.matches("^[a-fA-F0-9]{32}$")
-      case "bcrypt"             => hash.matches(bcryptReg.regex)
-      case _                    => false
-    }
-  }
-}
+case class UserFileInfo(userOrigin: List[User], digest: String)
 
 case class User(username: String, password: String, permissions: Set[String], tenants: Option[String]) {
   def toNode: Node = <user name={username} password={password} permissions={permissions.mkString(",")} tenants={tenants.orNull}/>

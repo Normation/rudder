@@ -377,14 +377,11 @@ class UserManagementService(
                         val digest = (userXML \\ "authentication" \ "@hash").text.toUpperCase
                         val users  = e
                           .map(u => {
-                            val name         = (u \ "@name").text
-                            val password     = (u \ "@password").text
-                            val permissions  = ((u \ "@role") ++ (u \ "@permissions")).map(_.text).toSet
-                            val tenants      = (u \ "@tenants").text
-                            val user         =
-                              User.make(name, password, permissions, tenants)
-                            val hasValidHash = UserOrigin.verifyHash(digest, password)
-                            UserOrigin(user, hasValidHash)
+                            val name        = (u \ "@name").text
+                            val password    = (u \ "@password").text
+                            val permissions = ((u \ "@role") ++ (u \ "@permissions")).map(_.text).toSet
+                            val tenants     = (u \ "@tenants").text
+                            User.make(name, password, permissions, tenants)
                           })
                           .toList
                         UserFileInfo(users, digest).succeed

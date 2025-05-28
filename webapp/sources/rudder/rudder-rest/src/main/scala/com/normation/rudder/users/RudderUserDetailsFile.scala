@@ -49,6 +49,7 @@ import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.users.*
+import com.normation.rudder.users.RudderPasswordEncoder.SecurityLevel
 import com.normation.utils.XmlSafe
 import com.normation.zio.*
 import enumeratum.*
@@ -82,14 +83,28 @@ sealed abstract class PasswordEncoderType(override val entryName: String) extend
 }
 
 object PasswordEncoderType extends Enum[PasswordEncoderType] {
-  case object MD5    extends PasswordEncoderType("MD5")
-  case object SHA1   extends PasswordEncoderType("SHA-1")
-  case object SHA256 extends PasswordEncoderType("SHA-256")
-  case object SHA512 extends PasswordEncoderType("SHA-512")
-  case object BCRYPT extends PasswordEncoderType("BCRYPT")
+  case object MD5      extends PasswordEncoderType("MD5")
+  case object SHA1     extends PasswordEncoderType("SHA-1")
+  case object SHA256   extends PasswordEncoderType("SHA-256")
+  case object SHA512   extends PasswordEncoderType("SHA-512")
+  case object BCRYPT   extends PasswordEncoderType("BCRYPT")   {
+    val defaultCost = 12
+
+    // 16 bytes = 128 bits
+    val saltSize = 16
+  }
+  case object ARGON2ID extends PasswordEncoderType("ARGON2ID") {
+    // Defaults for user-controlled settings
+    // 19 MiB, from OWASP recommendations
+    val minimumMemory      = Argon2Memory(19 * 1024)
+    // 128 MiB
+    val defaultMemory      = Argon2Memory(128 * 1024)
+    val defaultIterations  = Argon2Iterations(3)
+    val defaultParallelism = Argon2Parallelism(1)
+  }
 
   // Default value, same as in RudderPasswordEncoder
-  val DEFAULT: PasswordEncoderType = BCRYPT
+  val DEFAULT: PasswordEncoderType = ARGON2ID
 
   override def values: IndexedSeq[PasswordEncoderType] = findValues
 
@@ -99,21 +114,23 @@ object PasswordEncoderType extends Enum[PasswordEncoderType] {
     "sha256" -> SHA256,
     "sha512" -> SHA512
   )
-
 }
 
-class PasswordEncoderDispatcher(bcryptCost: Int) {
+class PasswordEncoderDispatcher(bcryptCost: Int, argon2Params: Argon2EncoderParams) {
   def dispatch(encoderType: PasswordEncoderType): PasswordEncoder = {
     encoderType match {
-      case PasswordEncoderType.MD5    => RudderPasswordEncoder.MD5
-      case PasswordEncoderType.SHA1   => RudderPasswordEncoder.SHA1
-      case PasswordEncoderType.SHA256 => RudderPasswordEncoder.SHA256
-      case PasswordEncoderType.SHA512 => RudderPasswordEncoder.SHA512
-      case PasswordEncoderType.BCRYPT => RudderPasswordEncoder.BCRYPT(bcryptCost)
+      case PasswordEncoderType.MD5      => RudderPasswordEncoder.MD5
+      case PasswordEncoderType.SHA1     => RudderPasswordEncoder.SHA1
+      case PasswordEncoderType.SHA256   => RudderPasswordEncoder.SHA256
+      case PasswordEncoderType.SHA512   => RudderPasswordEncoder.SHA512
+      case PasswordEncoderType.BCRYPT   => RudderPasswordEncoder.bcryptEncoder(bcryptCost)
+      case PasswordEncoderType.ARGON2ID =>
+        RudderPasswordEncoder.argon2Encoder(argon2Params)
     }
   }
 
 }
+
 /////////////////////////////////////////
 // The PasswordEncoder is inspired by the modern Spring Security way, using DelegatingPasswordEncoder.
 // The RudderPasswordEncoder is basically a DelegatingPasswordEncoder but using our password storage formats
@@ -126,7 +143,7 @@ object RudderPasswordEncoder {
 
   import org.bouncycastle.crypto.generators.OpenBSDBCrypt
 
-  val random = new SecureRandom()
+  private val secureRandom = new SecureRandom()
 
   // see https://stackoverflow.com/a/44227131
   // produce a random hexa string of 32 chars
@@ -135,7 +152,7 @@ object RudderPasswordEncoder {
     // In that case, just complete the string
     def randInternal: String = {
       val token = new Array[Byte](16)
-      random.nextBytes(token)
+      secureRandom.nextBytes(token)
       new java.math.BigInteger(1, token).toString(16)
     }
     var s = randInternal
@@ -154,7 +171,7 @@ object RudderPasswordEncoder {
 
     def fromPasswordEncoderType(encoderType: PasswordEncoderType): SecurityLevel = {
       encoderType match {
-        case PasswordEncoderType.BCRYPT                                                                                   => Modern
+        case PasswordEncoderType.BCRYPT | PasswordEncoderType.ARGON2ID                                                    => Modern
         case PasswordEncoderType.MD5 | PasswordEncoderType.SHA1 | PasswordEncoderType.SHA256 | PasswordEncoderType.SHA512 =>
           Legacy
       }
@@ -176,15 +193,16 @@ object RudderPasswordEncoder {
   }
 
   // One pass, non-salted hashes. Unsuitable for password storage.
-  val MD5               = new DigestEncoder("MD5")
-  val SHA1              = new DigestEncoder("SHA-1")
-  val SHA256            = new DigestEncoder("SHA-256")
-  val SHA512            = new DigestEncoder("SHA-512")
+  val MD5    = new DigestEncoder("MD5")
+  val SHA1   = new DigestEncoder("SHA-1")
+  val SHA256 = new DigestEncoder("SHA-256")
+  val SHA512 = new DigestEncoder("SHA-512")
+
   // Proper password hash functions
-  def BCRYPT(cost: Int) = new PasswordEncoder() {
+  class bcryptEncoder(cost: Int)                          extends PasswordEncoder {
     override def encode(rawPassword: CharSequence):                           String  = {
       val salt: Array[Byte] = new Array(16)
-      random.nextBytes(salt)
+      secureRandom.nextBytes(salt)
 
       // The version of bcrypt used is "2b". See https://en.wikipedia.org/wiki/Bcrypt#Versioning_history
       // It prevents the length (unsigned char) of a long password to overflow and wrap at 256. (Cf https://marc.info/?l=openbsd-misc&m=139320023202696)
@@ -200,20 +218,41 @@ object RudderPasswordEncoder {
       }
     }
   }
-  // Default algorithm to use for hashing passwords
-  val DEFAULT           = BCRYPT
+  class argon2Encoder(encoderParams: Argon2EncoderParams) extends PasswordEncoder {
+    override def encode(rawPassword: CharSequence):                           String  = {
+      val salt: Array[Byte] = new Array(encoderParams.saltSize.toInt)
+      secureRandom.nextBytes(salt)
+
+      val hashParams = Argon2HashParams(
+        encoderParams,
+        salt = Chunk.fromArray(salt)
+      )
+      Argon2Hash.generate(hashParams, rawPassword.toString.getBytes)
+    }
+    override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {
+      Argon2Hash.checkPassword(rawPassword.toString.getBytes, encodedPassword) match {
+        case Left(e)                  =>
+          ApplicationLoggerPure.Auth.logEffect.warn(s"Error while checking Argon2 hash: $e")
+          false
+        case Right(isPasswordCorrect) => isPasswordCorrect
+      }
+    }
+  }
 
   def getFromEncoded(encodedPassword: String, securityLevel: SecurityLevel): Either[String, PasswordEncoderType] = {
     // Two cases: modern = /etc/shadow-like or legacy = plain hashes
 
     // https://github.com/bcgit/bc-java/blob/5b1360854d85fd27b75720015be68f9e172db013/core/src/main/java/org/bouncycastle/crypto/generators/OpenBSDBCrypt.java#L41C1-L48C1
     // Allow types: 2, 2x, 2y, 2a, 2b
-    val bcryptRegex = "^\\$2[abxy]?\\$.+".r
+    val bcryptRegex    = "^\\$2[abxy]?\\$.+".r
+    val argon2idPrefix = "$argon2id"
 
     val hexaRegex = "^[a-fA-F0-9]+$"
 
     if (encodedPassword.matches(bcryptRegex.regex)) {
       Right(PasswordEncoderType.BCRYPT)
+    } else if (encodedPassword.startsWith(argon2idPrefix)) {
+      Right(PasswordEncoderType.ARGON2ID)
     } else if (securityLevel == SecurityLevel.Legacy && encodedPassword.matches(hexaRegex)) {
       // Guess based on hexadecimal string length
       encodedPassword.length match {
@@ -448,8 +487,8 @@ final class FileUserDetailListProvider(
 
   override def authConfig: ValidatedUserList = cache.get.runNow
 
-  override def allowLegacy(file:   File): IOResult[Unit] = migrateAuthentication(file, "bcrypt", unsafeHashes = true)
-  override def enforceModern(file: File): IOResult[Unit] = migrateAuthentication(file, "bcrypt", unsafeHashes = false)
+  override def allowLegacy(file:   File): IOResult[Unit] = migrateAuthentication(file, "argon2id", unsafeHashes = true)
+  override def enforceModern(file: File): IOResult[Unit] = migrateAuthentication(file, "argon2id", unsafeHashes = false)
 
   // directly changes the file content !!
   private def migrateAuthentication(sourceTargetFile: File, hash: String, unsafeHashes: Boolean): IOResult[Unit] = {
@@ -589,7 +628,7 @@ object UserFileProcessing {
       // The rationale here is that if configured hash is bcrypt, it means before 8.2 non-bcrypt hash did not work
       // so no need for legacy support.
       // When unsafe-hashes is enabled we will still be using legacy, but RudderPasswordEncoder should still support modern.
-      val encoder = if (parsed.encoder == PasswordEncoderType.BCRYPT && !parsed.unsafeHashes) {
+      val encoder = if (SecurityLevel.fromPasswordEncoderType(parsed.encoder) == SecurityLevel.Modern && !parsed.unsafeHashes) {
         RudderPasswordEncoder(Modern, passwordEncoderDispatcher)
       } else { RudderPasswordEncoder(Legacy, passwordEncoderDispatcher) }
 

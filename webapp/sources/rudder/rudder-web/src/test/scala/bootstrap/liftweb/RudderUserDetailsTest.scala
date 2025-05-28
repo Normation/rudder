@@ -54,6 +54,10 @@ import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.AuthorizationApiMapping
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.tenants.TenantId
+import com.normation.rudder.users.Argon2EncoderParams
+import com.normation.rudder.users.Argon2Iterations
+import com.normation.rudder.users.Argon2Memory
+import com.normation.rudder.users.Argon2Parallelism
 import com.normation.rudder.users.PasswordEncoderDispatcher
 import com.normation.rudder.users.UserDetailListProvider
 import com.normation.rudder.users.UserFileProcessing
@@ -87,7 +91,8 @@ class RudderUserDetailsTest extends ZIOSpecDefault {
 
   // org.slf4j.LoggerFactory.getLogger("application.authorization").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
 
-  val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0)
+  val argon2Params              = Argon2EncoderParams(Argon2Memory(0), Argon2Iterations(0), Argon2Parallelism(0))
+  val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0, argon2Params)
 
   def getUserDetailList(xml: Elem, debugName: String): ValidatedUserList =
     UserFileProcessing.parseXml(roleApiMapping, passwordEncoderDispatcher, xml, debugName, reload = false).force
