@@ -3,7 +3,7 @@
 
 use crate::{Engine, get_python_version};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::Parser;
 use serde_json::Value;
 use std::fs;
@@ -40,6 +40,10 @@ pub struct Cli {
     /// Output file
     #[arg(short, long)]
     out: PathBuf,
+
+    /// Audit mode
+    #[arg(short, long)]
+    audit: bool,
 }
 
 impl Cli {
@@ -66,8 +70,21 @@ impl Cli {
             }
         };
 
-        fs::write(&cli.out, output)
-            .with_context(|| format!("Failed to write file {}", cli.out.display()))?;
+        if cli.audit {
+            let audited_content = fs::read_to_string(&cli.out).with_context(|| {
+                format!("Failed to read audited template {}", cli.out.display())
+            })?;
+
+            if output != audited_content {
+                bail!(
+                    "The content in the audited template file ({}) does not match with the rendered template.",
+                    cli.out.display()
+                )
+            }
+        } else {
+            fs::write(&cli.out, output)
+                .with_context(|| format!("Failed to write file {}", cli.out.display()))?;
+        }
 
         Ok(())
     }
