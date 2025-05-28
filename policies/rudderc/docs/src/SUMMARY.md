@@ -21,8 +21,3 @@
 ---
 
 # Methods
-
-- [system-updates](./modules/system-updates.md)
-    - [system-updates](./modules/system-updates.md)
-
-
