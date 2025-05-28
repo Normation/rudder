@@ -200,6 +200,12 @@ impl Cli {
 
         // FIXME read from stdin
 
+        // Apply transforms
+        if let Some(t) = opts.transform {
+            aug.srun("transform ".to_owned() + t.as_str())?;
+            aug.load()?;
+        }
+
         if let Some(f) = opts.file {
             let script = fs::read_to_string(f)?;
             // FIXME handle echo
