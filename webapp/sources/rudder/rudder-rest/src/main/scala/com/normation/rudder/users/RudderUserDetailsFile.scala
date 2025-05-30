@@ -231,8 +231,8 @@ object RudderPasswordEncoder {
       val hash: Array[Byte] = new Array(hashSize)
       generate.generateBytes(rawPassword.toString.toCharArray, hash)
 
-      val base64Salt = Base64.encodeBase64URLSafe(salt)
-      val base64Hash = Base64.encodeBase64URLSafe(hash)
+      val base64Salt = Base64.encodeBase64(salt)
+      val base64Hash = Base64.encodeBase64(hash)
 
       // We store hashes with a shadow-like format
       val shadowHash =
@@ -242,6 +242,21 @@ object RudderPasswordEncoder {
     }
     override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {
       try {
+
+        val pattern = """\$(argon2id)\$v=(\d+)\$m=(\d+),t=(\d+),p=(\d+)\$([^$]+)\$([^$]+)""".r
+
+        encodedPassword match {
+          case pattern(algorithm, version, memory, iterations, parallelism, salt, hash) =>
+            println(s"Algorithm: $algorithm")
+            println(s"Version: $version")
+            println(s"Memory: $memory")
+            println(s"Iterations: $iterations")
+            println(s"Parallelism: $parallelism")
+            println(s"Salt: $salt")
+            println(s"Hash: $hash")
+          case _                                                                        =>
+            println("Input did not match expected pattern.")
+        }
 
         OpenBSDBCrypt.checkPassword(encodedPassword, rawPassword.toString.toCharArray)
       } catch {
