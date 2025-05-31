@@ -88,15 +88,15 @@
     </div>
   </div>
 </div>
-<script>
+<script data-lift="with-nonce">
   var hasWriteRights = false;
 </script>
 <lift:authz role="directive_write">
-  <script>
+  <script data-lift="with-nonce">
     var hasWriteRights = true;
   </script>
 </lift:authz>
-<script>
+<script data-lift="with-nonce">
   var baseUrl = contextPath ? contextPath : "/rudder";
   var apiPath = baseUrl + '/secure/api/sharedfile';
 

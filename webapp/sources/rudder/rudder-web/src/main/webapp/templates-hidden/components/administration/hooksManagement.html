@@ -9,15 +9,15 @@
 
         <div id="setup-content"></div>
     </div>
-    <script>
+    <script data-lift="with-nonce">
         var hasWriteRights = false;
     </script>
     <lift:authz role="administration_write">
-        <script>
+        <script data-lift="with-nonce">
           hasWriteRights = true;
         </script>
     </lift:authz>
-    <script>
+    <script data-lift="with-nonce">
       var main = document.getElementById("setup-content")
       var initValues = {
         contextPath    : contextPath

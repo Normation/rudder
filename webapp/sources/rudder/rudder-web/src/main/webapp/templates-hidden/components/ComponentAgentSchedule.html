@@ -3,11 +3,11 @@
     <h3 id="agentSchedule" class="page-title">Agent run schedule</h3>
     <div id="agentschedule-app" class="portlet-content"></div>
     <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-agentschedule.js"></script>
-    <script>
+    <script data-lift="with-nonce">
       var hasWriteRights = false;
     </script>
     <lift:authz role="administration_write">
-      <script>
+      <script data-lift="with-nonce">
         hasWriteRights = true;
       </script>
       <div id="scheduleMessage" class="pull-left">
