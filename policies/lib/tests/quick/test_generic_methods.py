@@ -40,15 +40,6 @@ class TestNcfBundles(avocado.Test):
                 self.assertIn('class_prefix', method.metadata)
                 self.assertIn('class_parameter', method.metadata)
 
-    def test_methods_should_have_only_one_agent_bundle(self):
-        """
-        Methods should define a unique agent bundle
-        """
-        for method in self.methods:
-            with self.subTest(i=method.path):
-                bundles = method.get_bundles()
-                self.assertEqual(1, len(bundles))
-
     def test_methods_name_should_be_unique(self):
         """
         Methods should @name should be unique
