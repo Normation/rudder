@@ -574,10 +574,6 @@ limitations under the License.
             <artifactId>log4j</artifactId>
             <groupId>log4j</groupId>
           </exclusion>
-          <exclusion>
-            <groupId>org.scala-lang.modules</groupId>
-            <artifactId>scala-parser-combinators_2.13</artifactId>
-          </exclusion>
         </exclusions>
       </dependency>
       <dependency>
@@ -594,10 +590,6 @@ limitations under the License.
             <artifactId>mail</artifactId>
             <groupId>javax.mail</groupId>
           </exclusion>
-          <exclusion>
-            <groupId>org.scala-lang.modules</groupId>
-            <artifactId>scala-parser-combinators_2.13</artifactId>
-          </exclusion>
         </exclusions>
       </dependency>
       <dependency>
@@ -608,8 +600,8 @@ limitations under the License.
           <exclusion>
             <groupId>commons-fileupload</groupId>
             <artifactId>commons-fileupload</artifactId>
-	  </exclusion>
-	  <exclusion>
+          </exclusion>
+          <exclusion>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
           </exclusion>
