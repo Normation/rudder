@@ -1389,7 +1389,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
   var allColumnsKeys =  Object.keys(allColumns)
 
   var isResizing = false,
-    hasHandle = $(tableWrapper + ' #drag').length > 0,
+    hasHandle = $('#drag').length > 0,
     offsetBottom = 250;
 
   $(function () {
