@@ -45,6 +45,7 @@ $success    : $rudder-success;
 $warning    : $rudder-warning;
 $danger     : $rudder-danger;
 $info       : $rudder-info;
+$dark       : $rudder-darkgray;
 
 $body-color : $rudder-txt-primary;
 $link-color : $rudder-txt-link;
@@ -114,6 +115,9 @@ $modal-md: 600px;
   }
   &.active {
     box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+  }
+  &.btn-outline-dark {
+    --bs-btn-active-color: #fff;
   }
 }
 
