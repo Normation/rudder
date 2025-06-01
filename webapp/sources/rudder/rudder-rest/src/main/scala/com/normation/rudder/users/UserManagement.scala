@@ -41,8 +41,6 @@ import com.normation.rudder.Rights
 import com.normation.rudder.Role
 import com.normation.rudder.Role.Custom
 import com.normation.rudder.rest.ProviderRoleExtension
-import com.normation.rudder.users.RudderUserDetail
-import com.normation.rudder.users.UserStatus
 import com.normation.utils.DateFormaterService
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.dsl.*

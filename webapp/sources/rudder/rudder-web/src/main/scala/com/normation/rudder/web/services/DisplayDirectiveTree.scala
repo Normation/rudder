@@ -51,7 +51,6 @@ import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common.Loggable
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE.*
-import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers
@@ -386,7 +385,7 @@ object DisplayDirectiveTree extends Loggable {
           NodeSeq.Empty
         }
 
-        val (isDeprecated, deprecationInfo, deprecatedIcon) = {
+        val (_, deprecationInfo, deprecatedIcon) = {
           if (activeTechnique.techniques.values.forall(t => t.deprecrationInfo.isDefined)) {
             val message = <p><b>↳ Deprecated: </b>{
               technique.flatMap(_.deprecrationInfo).map(_.message).getOrElse("this technique is deprecated.")

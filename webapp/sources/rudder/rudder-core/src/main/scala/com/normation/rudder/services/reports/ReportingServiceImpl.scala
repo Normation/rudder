@@ -43,7 +43,6 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.PolicyTypeName
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
-import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.reports.NodeStatusReport.*
 import com.normation.rudder.facts.nodes.QueryContext
 import zio.{System as _, *}

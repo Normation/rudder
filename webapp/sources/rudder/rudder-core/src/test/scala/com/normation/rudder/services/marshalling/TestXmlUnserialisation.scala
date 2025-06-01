@@ -13,7 +13,6 @@ import com.normation.rudder.api.ApiAccountKind
 import com.normation.rudder.api.ApiAccountName
 import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.api.ApiAuthorization
-import com.normation.rudder.api.ApiTokenHash
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId

@@ -45,7 +45,6 @@ import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
 import scala.collection.immutable
 import zio.json.*
-import zio.json.DeriveJsonEncoder
 
 /*
  * This class deals with everything serialisation related for API.

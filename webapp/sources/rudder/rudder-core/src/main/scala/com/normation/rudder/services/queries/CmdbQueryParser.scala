@@ -292,7 +292,7 @@ trait JsonQueryLexer extends QueryLexer {
   def parseCriterion(json: Any): Box[StringCriterionLine] = {
 
     json match {
-      case l: Map[?, ?] =>
+      case l: Map[String, String] =>
         l.head match {
           case (_: String, _: String) =>
             val line = l.asInstanceOf[Map[String, String]] // is map always homogenous ?

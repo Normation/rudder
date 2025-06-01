@@ -46,7 +46,6 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.http.*
-import net.liftweb.http.Req
 import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.*
 import net.liftweb.json.JsonAST.RenderSettings

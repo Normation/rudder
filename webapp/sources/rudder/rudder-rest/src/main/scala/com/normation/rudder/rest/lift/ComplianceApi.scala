@@ -74,11 +74,11 @@ import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.rest.*
-import com.normation.rudder.rest.ComplianceApi as API
-import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.{ComplianceApi as API, *}
 import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.rest.data.*
+import com.normation.rudder.rest.data.CsvCompliance.*
+import com.normation.rudder.rest.data.JsonCompliance.*
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
@@ -100,9 +100,6 @@ class ComplianceApi(
     complianceService:    ComplianceAPIService,
     readDirective:        RoDirectiveRepository
 ) extends LiftApiModuleProvider[API] {
-
-  import CsvCompliance.*
-  import JsonCompliance.*
 
   def schemas: ApiModuleProvider[API] = API
 

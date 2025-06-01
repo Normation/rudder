@@ -75,8 +75,6 @@ import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.hooks.CmdResult
-import com.normation.rudder.ncf.ParameterType.PlugableParameterTypeService
-import com.normation.rudder.ncf.TechniqueWriterImpl
 import com.normation.rudder.repository.CategoryWithActiveTechniques
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -360,9 +358,8 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
 
   val propertyEngineService = new PropertyEngineServiceImpl(List.empty)
   val valueCompiler         = new InterpolatedValueCompilerImpl(propertyEngineService)
-  val parameterTypeService: PlugableParameterTypeService = new PlugableParameterTypeService
 
-  import ParameterType.*
+  import com.normation.rudder.ncf.ParameterType.*
   val defaultConstraint: List[Constraint.Constraint]    =
     Constraint.AllowEmpty(allow = false) :: Constraint.AllowWhiteSpace(allow = false) :: Constraint.MaxLength(16384) :: Nil
   val methods:           Map[BundleName, GenericMethod] = (GenericMethod(

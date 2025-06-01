@@ -52,17 +52,11 @@ import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.configuration.ConfigurationRepository
 import com.normation.rudder.domain.logger.ConfigurationLoggerPure
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.domain.policies.ApplicationStatus
-import com.normation.rudder.domain.policies.ChangeRequestRuleDiff
 import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.repository.*
-import com.normation.rudder.rest.*
-import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.RuleApi as API
+import com.normation.rudder.rest.{RuleApi as API, *}
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rule.category.*
-import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.policies.RuleApplicationStatusService
 import com.normation.rudder.services.workflows.*
 import com.normation.rudder.web.services.ComputePolicyMode
@@ -726,7 +720,7 @@ class RuleApiService14(
       actor:     EventActor
   ): IOResult[JRCategoriesRootEntrySimple] = {
     for {
-      name     <- restData.name.checkMandatory(_.size > 3, v => "'displayName' is mandatory and must be at least 3 char long")
+      name     <- restData.name.checkMandatory(_.size > 3, _ => "'displayName' is mandatory and must be at least 3 char long")
       update    = RuleCategory(RuleCategoryId(restData.id.getOrElse(defaultId())), name, restData.description.getOrElse(""), Nil)
       parent    = restData.parent.getOrElse("rootRuleCategory")
       modId     = ModificationId(uuidGen.newUuid)

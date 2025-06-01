@@ -40,8 +40,6 @@ package com.normation.rudder.rest
 import better.files.*
 import com.normation.box.IOManaged
 import com.normation.errors.*
-import com.normation.errors.IOResult
-import com.normation.errors.effectUioUnit
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.api.ApiVersion

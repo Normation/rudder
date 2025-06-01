@@ -54,6 +54,7 @@ import com.normation.plugins.RudderPluginLicenseStatus
 import com.normation.plugins.RudderPluginModule
 import com.normation.plugins.RudderPluginVersion
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.AuthorizationType as Authz
 import com.normation.rudder.domain.eventlog.ApplicationStarted
 import com.normation.rudder.domain.eventlog.LogoutEventLog
 import com.normation.rudder.domain.logger.ApplicationLogger
@@ -84,11 +85,10 @@ import java.util.Locale
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.provider.HTTPRequest
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.sitemap.*
 import net.liftweb.sitemap.Loc.*
-import net.liftweb.sitemap.Loc.TestAccess
-import net.liftweb.sitemap.Menu
 import net.liftweb.util.TimeHelpers.*
 import net.liftweb.util.Vendor
 import org.apache.commons.text.StringEscapeUtils
@@ -271,7 +271,6 @@ object PluginsInfo {
             case Some(x) =>
               x.schemas match {
                 case p: ApiModuleProvider[?] => recApi(p.endpoints ::: apis, tail)
-                case _ => recApi(apis, tail)
               }
           }
       }
@@ -747,9 +746,6 @@ class Boot extends Loggable {
      * to allow explicit locale switch with just the addition
      * of &locale=en at the end of urls
      */
-    import net.liftweb.http.provider.HTTPRequest
-    import java.util.Locale
-    import com.normation.rudder.AuthorizationType as Authz
     val DefaultLocale = new Locale("")
     LiftRules.localeCalculator = { (request: Box[HTTPRequest]) =>
       {
