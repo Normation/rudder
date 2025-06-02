@@ -449,8 +449,8 @@ object JsonResponseObjects {
       implicit val transformer: Transformer[Option[domain.MachineType], MachineType] = {
         Transformer
           .define[Option[domain.MachineType], MachineType]
-          .withCoproductInstance[None.type] { case None => NoMachine }
-          .withCoproductInstance[Some[domain.MachineType]] {
+          .withEnumCaseHandled[None.type] { case None => NoMachine }
+          .withEnumCaseHandled[Some[domain.MachineType]] {
             case Some(domain.UnknownMachineType)    => UnknownMachineType
             case Some(domain.PhysicalMachineType)   => PhysicalMachineType
             case Some(_: domain.VirtualMachineType) => VirtualMachineType
