@@ -175,12 +175,6 @@ class PrepareTemplateVariablesImpl(
             n.nodeInfo.rudderAgent.securityToken match {
               case cert: Certificate =>
                 cert.key.succeed
-              case _ =>
-                "".succeed.tap { _ =>
-                  PolicyGenerationLoggerPure.error(
-                    s"Policy server '${nodeId.value}' does not have a stored certificate: can not use it in policy generation"
-                  )
-                }
             }
         }
       }

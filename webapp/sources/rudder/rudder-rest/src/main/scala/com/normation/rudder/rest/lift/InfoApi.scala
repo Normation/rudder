@@ -39,8 +39,7 @@ package com.normation.rudder.rest.lift
 
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
-import com.normation.rudder.rest.*
-import com.normation.rudder.rest.InfoApi as API
+import com.normation.rudder.rest.{InfoApi as API, *}
 import com.normation.rudder.rest.implicits.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req

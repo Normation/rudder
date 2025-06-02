@@ -42,6 +42,7 @@ import cats.data.*
 import com.normation.NamedZioLogger
 import com.normation.box.*
 import com.normation.errors.*
+import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.json.implicits.*
@@ -318,6 +319,10 @@ object Doobie {
       (_, _, _) => sys.error("update not supported, sorry")
     )
   }
+
+  implicit val eventActorCompositeRead:  Read[EventActor]  = Read[String].map(s => EventActor(s))
+  implicit val eventActorCompositeWrite: Write[EventActor] = Write[String].contramap(_.name)
+
 }
 
 // Same as doobie-circe , but for zio-json, did not find someone who already have done it, should be in a dependency

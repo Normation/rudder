@@ -82,11 +82,11 @@ sealed abstract class PasswordEncoderType(override val entryName: String) extend
 }
 
 object PasswordEncoderType extends Enum[PasswordEncoderType] {
-  final case object MD5    extends PasswordEncoderType("MD5")
-  final case object SHA1   extends PasswordEncoderType("SHA-1")
-  final case object SHA256 extends PasswordEncoderType("SHA-256")
-  final case object SHA512 extends PasswordEncoderType("SHA-512")
-  final case object BCRYPT extends PasswordEncoderType("BCRYPT")
+  case object MD5    extends PasswordEncoderType("MD5")
+  case object SHA1   extends PasswordEncoderType("SHA-1")
+  case object SHA256 extends PasswordEncoderType("SHA-256")
+  case object SHA512 extends PasswordEncoderType("SHA-512")
+  case object BCRYPT extends PasswordEncoderType("BCRYPT")
 
   // Default value, same as in RudderPasswordEncoder
   val DEFAULT: PasswordEncoderType = BCRYPT

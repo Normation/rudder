@@ -21,7 +21,6 @@
 package com.normation.rudder.services.nodes.history.impl
 
 import com.normation.errors.*
-import com.normation.errors.RudderError
 import com.normation.zio.ZioRuntime
 import java.io.File
 import org.apache.commons.io.FileUtils

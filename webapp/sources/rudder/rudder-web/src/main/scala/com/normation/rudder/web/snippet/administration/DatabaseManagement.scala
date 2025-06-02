@@ -43,7 +43,6 @@ import com.normation.rudder.domain.reports.*
 import com.normation.utils.DateFormaterService
 import net.liftweb.common.*
 import net.liftweb.http.*
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmds.*

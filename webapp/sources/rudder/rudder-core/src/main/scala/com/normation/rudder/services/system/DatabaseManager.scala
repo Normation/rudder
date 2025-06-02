@@ -41,7 +41,6 @@ import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.utils.Control
 import net.liftweb.common.*
-import net.liftweb.common.Loggable
 import org.joda.time.DateTime
 import scala.concurrent.duration.Duration
 

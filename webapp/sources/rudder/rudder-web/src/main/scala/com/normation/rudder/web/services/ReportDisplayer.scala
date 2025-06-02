@@ -45,8 +45,7 @@ import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyTypeName
-import com.normation.rudder.domain.reports.*
-import com.normation.rudder.domain.reports.RunAnalysisKind as R
+import com.normation.rudder.domain.reports.{RunAnalysisKind as R, *}
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
 import com.normation.rudder.facts.nodes.QueryContext

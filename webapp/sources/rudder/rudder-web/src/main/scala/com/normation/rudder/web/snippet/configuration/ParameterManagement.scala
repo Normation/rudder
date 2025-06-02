@@ -50,7 +50,6 @@ import com.normation.rudder.web.components.popup.CreateOrUpdateGlobalParameterPo
 import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
 import net.liftweb.http.*
-import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.SHtml.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.JsRaw

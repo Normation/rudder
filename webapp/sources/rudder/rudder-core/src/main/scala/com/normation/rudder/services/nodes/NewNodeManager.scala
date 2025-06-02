@@ -379,24 +379,24 @@ class RefuseGroups(
   override def refuseOne(cnf: CoreNodeFact)(implicit cc: ChangeContext): IOResult[Unit] = {
     // remove server id in all groups
     for {
-      groupIds       <- roGroupRepo.findGroupWithAnyMember(Seq(cnf.id))
-      modifiedGroups <- ZIO.foreach(groupIds) { groupId =>
-                          for {
-                            groupPair <- roGroupRepo.getNodeGroup(groupId)(cc.toQuery)
-                            modGroup   = groupPair._1.copy(serverList = groupPair._1.serverList - cnf.id)
-                            msg        = Some("Automatic update of groups due to refusal of node " + cnf.id.value)
-                            saved     <- {
-                              val res = if (modGroup.isSystem) {
-                                woGroupRepo.updateSystemGroup(modGroup, cc.modId, cc.actor, cc.message)
-                              } else {
-                                woGroupRepo.update(modGroup, cc.modId, cc.actor, cc.message)
-                              }
-                              res
-                            }
-                          } yield {
-                            saved
-                          }
+      groupIds <- roGroupRepo.findGroupWithAnyMember(Seq(cnf.id))
+      _        <- ZIO.foreach(groupIds) { groupId =>
+                    for {
+                      groupPair <- roGroupRepo.getNodeGroup(groupId)(cc.toQuery)
+                      modGroup   = groupPair._1.copy(serverList = groupPair._1.serverList - cnf.id)
+                      msg        = Some("Automatic update of groups due to refusal of node " + cnf.id.value)
+                      saved     <- {
+                        val res = if (modGroup.isSystem) {
+                          woGroupRepo.updateSystemGroup(modGroup, cc.modId, cc.actor, cc.message)
+                        } else {
+                          woGroupRepo.update(modGroup, cc.modId, cc.actor, cc.message)
                         }
+                        res
+                      }
+                    } yield {
+                      saved
+                    }
+                  }
     } yield ()
   }
 }

@@ -43,7 +43,6 @@ import bootstrap.liftweb.BootstrapLogger
 import com.normation.NamedZioLogger
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
 import com.normation.errors.*
-import com.normation.errors.IOResult
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.ncf.*

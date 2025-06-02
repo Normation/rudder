@@ -122,7 +122,6 @@ class RuleModificationValidationPopup(
       case (false, Enable)  => ("Enable", "btn-primary")
       case (false, Disable) => ("Disable", "btn-primary")
       case (false, Create)  => ("Create", "btn-success")
-      case (false, _)       => ("Save", "btn-success")
       case (true, _)        => ("Open request", "wideButton btn-primary")
     }
 
@@ -247,7 +246,6 @@ class RuleModificationValidationPopup(
         changeRequest.action match {
           case Delete                             => DeleteRuleDiff(changeRequest.newRule).succeed
           case Update | Disable | Enable | Create => ModifyToRuleDiff(changeRequest.newRule).succeed
-          case _                                  => Inconsistency(s"Action ${changeRequest.action.name} is not possible on a existing Rule").fail
         }
     }
   }

@@ -44,7 +44,6 @@ import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.rudder.domain.policies.*
-import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.repository.*
 import net.liftweb.common.*
 

@@ -41,8 +41,7 @@ import better.files.*
 import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.*
-import com.normation.inventory.domain.Version as SVersion
+import com.normation.inventory.domain.{Version as SVersion, *}
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.LDAPConstants
 import com.normation.inventory.ldap.core.ReadOnlySoftwareDAOImpl
@@ -56,7 +55,6 @@ import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.rudder.tenants.TenantId
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
-import com.normation.zio.ZioRuntime
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.SearchScope
 import java.security.Security
@@ -333,7 +331,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         node.bios.head === Bios(
           "bios1",
           None,
-          Some(new Version("6.00")),
+          Some(new SVersion("6.00")),
           Some(SoftwareEditor("Phoenix Technologies LTD"))
         )
       ) and
@@ -351,7 +349,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       ) and
       (node.software.size === 2) and
       (node.software must containTheSameElementsAs(
-        List(SoftwareFact("Software 0", Some(new Version("1.0.0"))), SoftwareFact("Software 4", None))
+        List(SoftwareFact("Software 0", Some(new SVersion("1.0.0"))), SoftwareFact("Software 4", None))
       )) and
       (node7UndefinedElements(node) must contain((x: Chunk[?]) => x must beEmpty).foreach)
 
@@ -379,7 +377,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       (node.fileSystems.size === 0) and
       (node.software.size === 2) and
       (node.software must containTheSameElementsAs(
-        List(SoftwareFact("Software 0", Some(new Version("1.0.0"))), SoftwareFact("Software 4", None))
+        List(SoftwareFact("Software 0", Some(new SVersion("1.0.0"))), SoftwareFact("Software 4", None))
       )) and
       (node7UndefinedElements(node) must contain((x: Chunk[?]) => x must beEmpty).foreach)
     }
@@ -397,7 +395,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         node.bios.head === Bios(
           "bios1",
           None,
-          Some(new Version("6.00")),
+          Some(new SVersion("6.00")),
           Some(SoftwareEditor("Phoenix Technologies LTD"))
         )
       ) and
@@ -569,7 +567,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
       val updated = node
         .modify(_.software)
-        .using(_.appended(SoftwareFact("s2", Some(new Version("1.2")))))
+        .using(_.appended(SoftwareFact("s2", Some(new SVersion("1.2")))))
         .modify(_.environmentVariables)
         .using(_.appended(("envVAR", "envVALUE")))
         .modify(_.networks)
@@ -612,7 +610,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
       val updated = node
         .modify(_.software)
-        .using(_.appended(SoftwareFact("s3", Some(new Version("1.3")))))
+        .using(_.appended(SoftwareFact("s3", Some(new SVersion("1.3")))))
         .modify(_.environmentVariables)
         .using(_.appended(("bad", "bad")))
         .modify(_.networks)
