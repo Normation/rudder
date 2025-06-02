@@ -6,6 +6,8 @@ The module supports the following template engines:
 * MiniJinja which is a subset of Jinja2
 * Jinja2 (available only on Linux)
 
+Minijinja is the default and preferred engine, Jinja2 and Mustache are provided for backward compatibility.
+
 ## CLI
 
 The module provides a CLI to help debug the rendering of templates.
