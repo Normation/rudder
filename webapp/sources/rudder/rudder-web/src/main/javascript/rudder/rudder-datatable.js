@@ -95,7 +95,7 @@ $.fn.dataTable.ext.search.push(
     function(settings, data, dataIndex ) {
         // param needs to be JSON only so we remove the hash tag # at index 0
 
-        var param = decodeURIComponent(window.location.hash.substring(1));
+        var param = filterXSS(decodeURIComponent(window.location.hash.substring(1)));
         if (param !== "" && window.location.pathname === contextPath + "/secure/nodeManager/nodes") {
             var obj = JSON.parse(param);
             var score = obj.score
@@ -1461,7 +1461,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
   var colTitle = columns.map(function(c) { return c.title})
   dynColumns = allColumnsKeys.filter(function(c) { return !(colTitle.includes(c))})
 
-  var param = decodeURIComponent(window.location.hash.substring(1));
+  var param = filterXSS(decodeURIComponent(window.location.hash.substring(1)));
   if (param !== "") {
     try {
       var obj = JSON.parse(param);
