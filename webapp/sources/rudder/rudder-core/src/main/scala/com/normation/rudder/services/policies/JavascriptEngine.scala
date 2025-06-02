@@ -48,10 +48,6 @@ import com.normation.rudder.services.policies.JsEngine.*
 import enumeratum.*
 import java.security.NoSuchAlgorithmException
 import java.util.concurrent.*
-import java.util.concurrent.Callable
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeoutException
-import java.util.concurrent.TimeUnit
 import javax.script.Bindings
 import javax.script.ScriptException
 import org.apache.commons.codec.digest.Md5Crypt

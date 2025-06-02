@@ -46,7 +46,6 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.web.components.RuleGrid.*
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE.*
-import net.liftweb.http.js.JE.AnonFunc
 import net.liftweb.http.js.JsCmds.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.*

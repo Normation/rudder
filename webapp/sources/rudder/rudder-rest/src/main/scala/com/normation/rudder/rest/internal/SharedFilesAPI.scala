@@ -41,7 +41,6 @@ import better.files.*
 import cats.syntax.apply.*
 import com.normation.box.*
 import com.normation.errors.*
-import com.normation.errors.IOResult
 import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.users.UserService
 import com.normation.utils.FileUtils.*

@@ -39,7 +39,6 @@ package com.normation.rudder.rest.lift
 
 import com.normation.GitVersion
 import com.normation.errors.*
-import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
@@ -48,8 +47,6 @@ import com.normation.rudder.apidata.JsonResponseObjects.JRGlobalParameter
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.domain.properties.*
-import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
-import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoParameterRepository

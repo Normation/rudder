@@ -116,14 +116,12 @@ object QuickSearchService {
   implicit class QSBackendImpl(b: QSBackend)(implicit
       directiveRepo:   RoDirectiveRepository,
       ldap:            LDAPConnectionProvider[RoLDAPConnection],
-      inventoryDit:    InventoryDit,
-      nodeDit:         NodeDit,
       rudderDit:       RudderDit,
       nodeFactRepo:    NodeFactRepository,
       techniqueReader: EditorTechniqueReader
   ) {
 
-    import QSBackend.*
+    import com.normation.rudder.services.quicksearch.QSBackend.*
 
     def search(query: Query)(implicit qc: QueryContext): IOResult[Seq[QuickSearchResult]] = b match {
       case LdapBackend      => QSLdapBackend.search(query)

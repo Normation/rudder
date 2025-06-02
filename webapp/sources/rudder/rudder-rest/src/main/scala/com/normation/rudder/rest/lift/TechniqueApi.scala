@@ -38,7 +38,7 @@
 package com.normation.rudder.rest.lift
 
 import better.files.File
-import com.normation.cfclerk.domain.*
+import com.normation.cfclerk.domain.{BundleName as _, *}
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.*
 import com.normation.eventlog.ModificationId
@@ -50,7 +50,6 @@ import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.ncf.*
-import com.normation.rudder.ncf.BundleName
 import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository

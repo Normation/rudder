@@ -62,8 +62,7 @@ import com.normation.rudder.properties.PropertiesRepository
 import com.normation.rudder.repository.CategoryAndNodeGroup
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
-import com.normation.rudder.rest.*
-import com.normation.rudder.rest.GroupApi as API
+import com.normation.rudder.rest.{GroupApi as API, *}
 import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.services.queries.CmdbQueryParser
@@ -510,7 +509,7 @@ class GroupApiService14(
     }
 
     (for {
-      name    <- restGroup.displayName.checkMandatory(_.size > 3, v => "'displayName' is mandatory and must be at least 3 char long")
+      name    <- restGroup.displayName.checkMandatory(_.size > 3, _ => "'displayName' is mandatory and must be at least 3 char long")
       change  <- createOrClone(restGroup, nodeGroupId, name, clone, params, actor)
       created <- actualGroupCreation(change, nodeGroupId)
     } yield {

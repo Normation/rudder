@@ -38,7 +38,6 @@
 package com.normation.rudder.rest.data
 
 import com.normation.errors.*
-import com.normation.errors.IOResult
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.api.ApiAccountKind

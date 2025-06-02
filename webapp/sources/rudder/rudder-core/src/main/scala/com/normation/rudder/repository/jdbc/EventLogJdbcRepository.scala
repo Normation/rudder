@@ -153,6 +153,7 @@ class EventLogJdbcRepository(
     }
 
     transactIOResult(s"Error when retrieving event logs for change request '${changeRequest.value}'")(xa => {
+      import com.normation.rudder.db.Doobie.*
       (for {
 
         // def stream[A: Read](sql: String, prep: PreparedStatementIO[Unit], chunkSize: Int): Stream[ConnectionIO, A] =

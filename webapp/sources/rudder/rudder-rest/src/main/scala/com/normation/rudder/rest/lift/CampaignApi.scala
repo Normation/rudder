@@ -4,16 +4,7 @@ import com.normation.errors.Unexpected
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.campaigns.*
-import com.normation.rudder.campaigns.CampaignEventId
-import com.normation.rudder.campaigns.CampaignEventRepository
-import com.normation.rudder.campaigns.CampaignId
-import com.normation.rudder.campaigns.CampaignLogger
-import com.normation.rudder.campaigns.CampaignRepository
-import com.normation.rudder.campaigns.CampaignSerializer
 import com.normation.rudder.campaigns.CampaignSerializer.*
-import com.normation.rudder.campaigns.CampaignStatusValue
-import com.normation.rudder.campaigns.MainCampaignService
-import com.normation.rudder.campaigns.ScheduleTimeZone
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken

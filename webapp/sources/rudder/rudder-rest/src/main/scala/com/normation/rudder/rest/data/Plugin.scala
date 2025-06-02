@@ -150,8 +150,7 @@ final case class JsonPluginsLicense(
 )
 object JsonPluginsLicense {
 
-  import DateFormaterService.JodaTimeToJava
-  import GlobalPluginsLicense.*
+  import com.normation.plugins.GlobalPluginsLicense.*
 
   implicit val dateFieldEncoder: JsonFieldEncoder[ZonedDateTime] =
     JsonFieldEncoder[String].contramap(DateFormaterService.serializeZDT)

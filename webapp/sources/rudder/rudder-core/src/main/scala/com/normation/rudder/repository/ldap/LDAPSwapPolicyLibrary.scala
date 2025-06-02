@@ -111,30 +111,30 @@ class ImportTechniqueLibraryImpl(
           }
 
           for {
-            category      <-
+            _ <-
               con.save(categoryEntry).chainError("Error when persisting category with DN '%s' in LDAP".format(categoryEntry.dn))
-            techniques    <- ZIO.foreach(content.templates) {
-                               case ActiveTechniqueContent(activeTechnique, directives) =>
-                                 val uptEntry = mapper.activeTechnique2Entry(activeTechnique, categoryEntry.dn)
-                                 for {
-                                   uptSaved <- con
-                                                 .save(uptEntry)
-                                                 .chainError(
-                                                   "Error when persisting User Policy entry with DN '%s' in LDAP".format(uptEntry.dn)
-                                                 )
-                                   pisSaved <- ZIO.foreach(directives) { directive =>
-                                                 val piEntry = mapper.userDirective2Entry(directive, uptEntry.dn)
-                                                 con
-                                                   .save(piEntry, removeMissingAttributes = true)
-                                                   .chainError(
-                                                     "Error when persisting directive entry with DN '%s' in LDAP".format(piEntry.dn)
-                                                   )
-                                               }
-                                 } yield {
-                                   "OK"
-                                 }
-                             }
-            subCategories <- ZIO.foreach(content.categories)(cat => recSaveUserLib(categoryEntry.dn, cat, isRoot = false))
+            _ <- ZIO.foreach(content.templates) {
+                   case ActiveTechniqueContent(activeTechnique, directives) =>
+                     val uptEntry = mapper.activeTechnique2Entry(activeTechnique, categoryEntry.dn)
+                     for {
+                       _ <- con
+                              .save(uptEntry)
+                              .chainError(
+                                "Error when persisting User Policy entry with DN '%s' in LDAP".format(uptEntry.dn)
+                              )
+                       _ <- ZIO.foreach(directives) { directive =>
+                              val piEntry = mapper.userDirective2Entry(directive, uptEntry.dn)
+                              con
+                                .save(piEntry, removeMissingAttributes = true)
+                                .chainError(
+                                  "Error when persisting directive entry with DN '%s' in LDAP".format(piEntry.dn)
+                                )
+                            }
+                     } yield {
+                       "OK"
+                     }
+                 }
+            _ <- ZIO.foreach(content.categories)(cat => recSaveUserLib(categoryEntry.dn, cat, isRoot = false))
           } yield {
             () // unit is expected
           }
