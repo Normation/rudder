@@ -26,7 +26,142 @@ Options:
   -V, --version              Print version
 ```
 
-### Minijinja Filters
+## Minijinja 
+
+MiniJinja is a subset of the Jinja2 templating language, implemented in pure Rust.
+For a reference on MiniJinja syntax, see the [Jinja2 documentation](http://jinja.pocoo.org/docs/dev/templates/)
+and the [MiniJinja compatibility](https://github.com/mitsuhiko/minijinja/blob/main/COMPATIBILITY.md).
+
+This section presents some simple cases that cover what can be done with MiniJinja templating.
+
+Note: You can add comments in the template, that will not be rendered in the output file with {# ... #}.
+
+### Conditions
+
+To display content based on conditions definition:
+
+```
+{% if classes.my_condition is defined  %}
+   display this if defined
+{% endif %}
+{% if not classes.my_condition is defined %}
+   display this if not defined
+{% endif %}
+```
+
+Note: You cannot use condition expressions here.
+
+You can also use other tests, for example other built-in ones:
+
+```
+{% if vars.variable_prefix.my_number is odd  %}
+   display if my_number is odd
+{% endif %}
+```
+
+### Scalar variables
+
+Here is how to display a scalar variable value (integer, string, ...), if you have defined variable_string("variable_prefix", "my_variable", "my_value"):
+
+```
+{{ vars.variable_prefix.my_variable }}
+```
+
+You can also modify what is displayed by using filters.
+
+```
+{{ vars.variable_prefix.my_variable | uppercase }}
+```
+
+Will display the variable in uppercase.
+
+### Iteration
+
+To iterate over a list, for example defined with:
+
+```
+variable_iterator("variable_prefix", "iterator_name", "a,b,c", ",")
+```
+
+Use the following file:
+
+```
+{% for item in vars.variable_prefix.iterator_name %}
+{{ item }} is the current iterator_name value
+{% endfor %}
+```
+
+Which will be expanded as:
+
+```
+a is the current iterator_name value
+b is the current iterator_name value
+c is the current iterator_name value
+```
+
+To iterate over a container defined by the following json file, loaded with `variable_dict_from_file("variable_prefix", "dict_name", "path")`:
+
+```
+{
+   "hosts": [
+       "host1",
+       "host2"
+   ],
+   "files": [
+       {"name": "file1", "path": "/path1", "users": [ "user1", "user11" ] },
+       {"name": "file2", "path": "/path2", "users": [ "user2" ] }
+   ],
+   "properties": {
+       "prop1": "value1",
+       "prop2": "value2"
+   }
+}
+```
+
+Use the following template:
+
+```
+{% for item in vars.variable_prefix.dict_name.hosts %}
+{{ item }} is the current hosts value
+{% endfor %}
+
+# will display the name and path of the current file
+{% for file in vars.variable_prefix.dict_name.files %}
+{{ file.name }}: {{ file.path }}
+{% endfor %}
+
+# will display the users list of each file
+{% for file in vars.variable_prefix.dict_name.files %}
+{{ file.name }}: {{ file.users|join(' ') }}
+{% endfor %}
+
+
+# will display the current properties key/value pair
+{% for key, value in vars.variable_prefix.dict_name.properties.items() %}
+{{ key }} -> {{ value }}
+{% endfor %}
+```
+
+Which will be expanded as:
+
+```
+host1 is the current hosts value
+host2 is the current hosts value
+
+# will display the name and path of the current file
+file1: /path1
+file2: /path2
+
+# will display the users list of each file
+file1: user1 user11
+file2: user2
+
+# will display the current properties key/value pair
+prop1 -> value1
+prop2 -> value2
+```
+
+### Filters
 
 | Name | Description | Required Args | Optional Args | Example |
 | ---- | ----------- | ------------- | ------------- | ------- |
