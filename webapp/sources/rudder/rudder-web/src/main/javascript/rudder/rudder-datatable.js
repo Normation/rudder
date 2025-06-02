@@ -1993,15 +1993,17 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                     table.row(row).child($(rollback).append(html)).show();
                     $('#showParameters' + id).off('click').on('click', function() { showParameters(event, id) });
                     $("#restoreBtn" + id).click(function(event){
-                      var rollback ='#rollback'+id
+                      const rollback = "#rollback" + id
                       $(rollback).hide();
-                      var confirm = "#confirm" + id.toString();
-                      var radios = $('.radio-btn');
-                      var action = getRadioChecked(radios);
-                      var confirmHtml = "<div class='d-flex text-start align-items-center'><i class='fa fa-exclamation-triangle fs-2 me-3' aria-hidden='true'></i>Are you sure you want to restore configuration policy " + action + " this</div><span><button class='btn btn-default rollback-action'>Cancel</button></span>&nbsp;&nbsp;<button class='btn btn-danger rollback-action'>Confirm</button></span>";
-                      $(confirm).append(confirmHtml).addClass("alert alert-warning d-flex align-items-center");
-                      $('#confirm' + id + ' .rollback-action.btn-danger').off('click').on('click', '', function() { confirmRollback(id) });
-                      $('#confirm' + id + ' .rollback-action.btn-default').off('click').on('click', '', function() { cancelRollback(id) });
+                      const confirm = "#confirm" + id.toString();
+                      const radios = $(".radio-btn");
+                      const action = getRadioChecked(radios, value => (value != "before" || value != "after") ? null : value);
+                      if (action !== null) {
+                        const confirmHtml = "<div class='d-flex text-start align-items-center'><i class='fa fa-exclamation-triangle fs-2 me-3' aria-hidden='true'></i>Are you sure you want to restore configuration policy " + action + " this</div><span><button class='btn btn-default rollback-action'>Cancel</button></span>&nbsp;&nbsp;<button class='btn btn-danger rollback-action'>Confirm</button></span>";
+                        $(confirm).append(confirmHtml).addClass("alert alert-warning d-flex align-items-center");
+                        $('#confirm' + id + ' .rollback-action.btn-danger').off('click').on('click', '', function() { confirmRollback(id, action) });
+                        $('#confirm' + id + ' .rollback-action.btn-default').off('click').on('click', '', function() { cancelRollback(id) });
+                      }
                     });
                   } else {
                     table.row(row).child(html).show();
@@ -2038,20 +2040,19 @@ function setupRollbackBlock(id) {
   return returnedHTML
 }
 
-function getRadioChecked(radios) {
+function getRadioChecked(radios, validate = s => s) {
  for (var i = 0, length = radios.length; i < length; i++) {
    if (radios[i].checked) {
-     return radios[i].value;
+     return validate(radios[i].value);
    }
  }
+ return null;
 }
 
-function confirmRollback(id) {
-  var radios = $('.radio-btn');
-  var action = getRadioChecked(radios);
+function confirmRollback(id, action) {
   $.ajax({
     type: "POST",
-    url: contextPath + '/secure/api/eventlog/' + id + "/details/rollback?action=" + action ,
+    url: contextPath + '/secure/api/eventlog/' + id + "/details/rollback?action=" + action,
     contentType: "application/json; charset=utf-8",
     beforeSend: function() {
       $('.rollback-action').prop("disabled", true)
