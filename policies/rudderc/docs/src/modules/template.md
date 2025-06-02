@@ -34,7 +34,7 @@ and the [MiniJinja compatibility](https://github.com/mitsuhiko/minijinja/blob/ma
 
 This section presents some simple cases that cover what can be done with MiniJinja templating.
 
-Note: You can add comments in the template, that will not be rendered in the output file with
+Note: You can add comments in the template, that will not be rendered in the output file with:
 
 ```
 {# ... #}.
