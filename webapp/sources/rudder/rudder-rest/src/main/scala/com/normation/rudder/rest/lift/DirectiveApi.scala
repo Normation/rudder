@@ -68,10 +68,7 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
-import com.normation.rudder.rest.*
-import com.normation.rudder.rest.ApiPath
-import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.DirectiveApi as API
+import com.normation.rudder.rest.{DirectiveApi as API, *}
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.services.workflows.ChangeRequestService
@@ -373,9 +370,9 @@ class DirectiveApiService14(
     source match {
       case Some(cloneId) =>
         for {
-          name          <- restDirective.displayName.checkMandatory(
+          _             <- restDirective.displayName.checkMandatory(
                              _.size > 3,
-                             v => "'displayName' is mandatory and must be at least 3 char long"
+                             _ => "'displayName' is mandatory and must be at least 3 char long"
                            )
           ad            <- configRepository.getDirective(cloneId).notOptional(s"Can not find directive to clone: ${cloneId.debugString}")
           // technique version: by default, directive one. It techniqueVersion is given, use that. If techniqueRevision is specified, use it.
@@ -393,7 +390,7 @@ class DirectiveApiService14(
         for {
           name            <- restDirective.displayName.checkMandatory(
                                _.size > 3,
-                               v => "'displayName' is mandatory and must be at least 3 char long"
+                               _ => "'displayName' is mandatory and must be at least 3 char long"
                              )
           technique       <- getTechniqueWithVersion(restDirective.techniqueName, restDirective.techniqueVersion).chainError(
                                s"Technique is not correctly defined in request data."

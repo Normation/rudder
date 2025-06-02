@@ -62,7 +62,6 @@ import com.normation.rudder.web.model.*
 import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
 import net.liftweb.http.*
-import net.liftweb.http.LocalSnippet
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*

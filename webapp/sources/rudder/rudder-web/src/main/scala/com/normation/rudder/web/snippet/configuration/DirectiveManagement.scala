@@ -75,10 +75,8 @@ import net.liftweb.common.Box.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
-import net.liftweb.http.js.JE.JsArray
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
-import net.liftweb.util.Helpers.TimeSpan
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
 import scala.xml.*
@@ -950,11 +948,11 @@ sealed trait NextStatus extends EnumEntry        {
   def booleanValue: Boolean
 }
 object NextStatus       extends Enum[NextStatus] {
-  final case object Enabled  extends NextStatus {
+  case object Enabled  extends NextStatus {
     val action       = "Enable"
     val booleanValue = true
   }
-  final case object Disabled extends NextStatus {
+  case object Disabled extends NextStatus {
     val action       = "Disable"
     val booleanValue = false
   }

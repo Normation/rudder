@@ -473,10 +473,10 @@ class TechniqueArchiverImpl(
       tech      <- techniqueParser.parseXml(metadata, techniqueId).toIO
       files      = getFilesToCommit(tech, techniqueGitPath, fileStates)
       ident     <- personIdentservice.getPersonIdentOrDefault(committer.name)
-      added     <- ZIO.foreach(files.add)(f => IOResult.attempt(gitRepo.git.add.addFilepattern(f).call()))
-      removed   <- ZIO.foreach(files.delete)(f => IOResult.attempt(gitRepo.git.rm.addFilepattern(f).call()))
-      staged    <- ZIO.foreach(files.stage)(f => IOResult.attempt(gitRepo.git.add.setUpdate(true).addFilepattern(f).call()))
-      commit    <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+      _         <- ZIO.foreach(files.add)(f => IOResult.attempt(gitRepo.git.add.addFilepattern(f).call()))
+      _         <- ZIO.foreach(files.delete)(f => IOResult.attempt(gitRepo.git.rm.addFilepattern(f).call()))
+      _         <- ZIO.foreach(files.stage)(f => IOResult.attempt(gitRepo.git.add.setUpdate(true).addFilepattern(f).call()))
+      _         <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
     } yield ()).chainError(s"error when committing Technique '${techniqueId.serialize}'").unit
   }
 
@@ -767,19 +767,19 @@ class UpdatePiOnActiveTechniqueEvent(
                                      None.succeed
                                    } else {
                                      for {
-                                       technique  <-
+                                       technique <-
                                          techniqeRepository
                                            .get(TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion))
                                            .notOptional(
                                              s"Can not find Technique '${activeTechnique.techniqueName.value}:${directive.techniqueVersion.debugString}'"
                                            )
-                                       archivedPi <- gitDirectiveArchiver.archiveDirective(
-                                                       directive,
-                                                       technique.id.name,
-                                                       parents,
-                                                       technique.rootSection,
-                                                       gitCommit
-                                                     )
+                                       _         <- gitDirectiveArchiver.archiveDirective(
+                                                      directive,
+                                                      technique.id.name,
+                                                      parents,
+                                                      technique.rootSection,
+                                                      gitCommit
+                                                    )
                                      } yield {
                                        None
                                      }

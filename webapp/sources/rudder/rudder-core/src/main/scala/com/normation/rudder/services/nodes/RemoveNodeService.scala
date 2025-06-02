@@ -549,7 +549,7 @@ class ResetKeyStatus(ldap: LDAPConnectionProvider[RwLDAPConnection], deletedDit:
       NodeLoggerPure.Delete.debug(s"  - reset node key certification status for '${nodeId.value}'") *>
       (for {
         con <- ldap
-        res <- con.modify(
+        _   <- con.modify(
                  deletedDit.NODES.NODE.dn(nodeId.value),
                  new Modification(ModificationType.REPLACE, A_KEY_STATUS, UndefinedKey.value)
                )

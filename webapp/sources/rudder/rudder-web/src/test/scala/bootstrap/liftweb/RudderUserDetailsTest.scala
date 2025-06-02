@@ -184,9 +184,9 @@ class RudderUserDetailsTest extends Specification {
 
     sealed trait PluginAuth extends AuthorizationType { def authzKind = "pluginAuth" }
     object PluginAuth {
-      final case object Read  extends PluginAuth with ActionType.Read with AuthorizationType
-      final case object Edit  extends PluginAuth with ActionType.Edit with AuthorizationType
-      final case object Write extends PluginAuth with ActionType.Write with AuthorizationType
+      case object Read  extends PluginAuth with ActionType.Read with AuthorizationType
+      case object Edit  extends PluginAuth with ActionType.Edit with AuthorizationType
+      case object Write extends PluginAuth with ActionType.Write with AuthorizationType
       def values: Set[AuthorizationType] = Set(Read, Edit, Write)
     }
     val pluginRole = Builtin(BuiltinName.PluginRoleName("plugin"), Rights(PluginAuth.values))

@@ -173,9 +173,6 @@ class ComplianceModeEditForm[T <: ComplianceMode](
             startNewPolicyGeneration()
             JsRaw("""createSuccessNotification("Compliance mode saved")""")
         }
-      // necessary to avoid the non-exhaustive warning due to "type pattern T is unchecked since eliminated by erasure" pb above
-      case x =>
-        JsRaw(s"""createErrorNotification("Compliance mode is not of the awaited type (dev error): please report that error")""")
     }
   }
 

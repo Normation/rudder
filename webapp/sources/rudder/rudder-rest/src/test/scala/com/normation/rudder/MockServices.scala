@@ -52,7 +52,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.Software
 import com.normation.rudder.api.*
 import com.normation.rudder.api.ApiAccountKind.PublicApi
-import com.normation.rudder.api.HttpAction
 import com.normation.rudder.batch.AsyncWorkflowInfo
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.appconfig.RudderWebProperty
@@ -66,7 +65,6 @@ import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.NodeStatusReport.*
-import com.normation.rudder.domain.reports.ValueStatusReport
 import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.FullCompliance
@@ -122,7 +120,6 @@ import scala.collection.immutable.SortedMap
 import zio.*
 import zio.System as _
 import zio.Tag as _
-import zio.ZIO
 import zio.json.ast.Json
 import zio.syntax.*
 

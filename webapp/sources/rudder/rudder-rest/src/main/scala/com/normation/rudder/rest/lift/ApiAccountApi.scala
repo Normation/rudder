@@ -42,8 +42,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.*
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.domain.logger.ApiLoggerPure
-import com.normation.rudder.rest.*
-import com.normation.rudder.rest.ApiAccounts as API
+import com.normation.rudder.rest.{ApiAccounts as API, *}
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.users.UserService

@@ -51,8 +51,6 @@ import com.normation.rudder.domain.policies.PolicyTypes
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.reports.*
-import com.normation.rudder.domain.reports.BlockExpectedReport
-import com.normation.rudder.domain.reports.DirectiveExpectedReports
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode

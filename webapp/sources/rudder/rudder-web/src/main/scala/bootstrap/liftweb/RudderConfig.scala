@@ -100,13 +100,11 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.repository.jdbc.*
 import com.normation.rudder.repository.ldap.*
 import com.normation.rudder.repository.xml.*
-import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.rest.*
 import com.normation.rudder.rest.data.ApiAccountMapping
 import com.normation.rudder.rest.internal.*
 import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rule.category.*
-import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.score.*
 import com.normation.rudder.services.*
 import com.normation.rudder.services.eventlog.*
@@ -2920,7 +2918,6 @@ object RudderConfigInit {
       roLDAPParameterRepository,
       woLDAPParameterRepository,
       gitConfigRepo,
-      gitRevisionProviderImpl,
       gitRuleArchiver,
       gitRuleCategoryArchiver,
       gitActiveTechniqueCategoryArchiver,

@@ -46,8 +46,6 @@ import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.zio.*
 import net.liftweb.common.*
-import net.liftweb.common.Box
-import net.liftweb.common.Loggable
 import net.liftweb.http.js
 import net.liftweb.http.js.JE.*
 import org.joda.time.DateTime

@@ -43,7 +43,6 @@ import bootstrap.liftweb.FileSystemResource
 import bootstrap.liftweb.RudderProperties
 import com.normation.errors.IOResult
 import com.normation.plugins.*
-import com.normation.plugins.PluginService
 import com.normation.plugins.cli.RudderPackagePlugin
 import com.normation.plugins.cli.RudderPackagePlugin.LicenseInfo.*
 import com.normation.plugins.cli.RudderPackageService
