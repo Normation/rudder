@@ -442,7 +442,7 @@ limitations under the License.
     <commons-codec-version>1.17.0</commons-codec-version> <!-- can't update to 1.17.1 because of md5 requiring a non-empty salt prefix -->
     <commons-fileupload>2.0.0-M2</commons-fileupload>
     <commons-csv-version>1.11.0</commons-csv-version>
-    <jgit-version>6.10.0.202406032230-r</jgit-version>
+    <jgit-version>6.10.1.202505221210-r</jgit-version>
     <spring-version>6.1.18</spring-version>
     <spring-security-version>6.3.8</spring-security-version>
     <cglib-version>3.3.0</cglib-version>
