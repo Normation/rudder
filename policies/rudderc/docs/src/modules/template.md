@@ -1,4 +1,4 @@
-# Template
+# Template module
 
 The module supports the following template engines:
 
