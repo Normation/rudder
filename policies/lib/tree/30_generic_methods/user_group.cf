@@ -50,86 +50,78 @@
 
 bundle agent user_group(login, group_name) {
   vars:
-      "old_class_prefix"      string => canonify("user_group_${login}");
+      "class_prefix" string => canonify("user_group_${login}");
 
-      "args"                   slist => { "${login}", "${group_name}" };
-      "report_param"          string => join("_", args);
-      "full_class_prefix"     string => canonify("user_group_${report_param}");
-      "class_prefix"          string => string_head("${full_class_prefix}", "1000");
+      "inner_result" string => "inner_${report_data.method_id}";
 
-      "add_user_to_group_cmd"   string => "${paths.usermod} -a -G ${group_name} ${login}";
-      "full_inner_class_prefix" string => canonify("command_execution_${add_user_to_group_cmd}");
-      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+      "add_user_to_group_cmd" string => "${paths.usermod} -a -G ${group_name} ${login}";
 
 
     user_exists.group_exists::
-      "groups_test"           string => execresult("${ncf_paths.path[id]} -Gn ${login} # with ${group_name}", "useshell");
-      "current_groups"         slist => string_split("${groups_test}", " ", "999999");
+      "groups_test"    string => execresult("${ncf_paths.path[id]} -Gn ${login} # with ${group_name}", "useshell");
+      "current_groups"  slist => string_split("${groups_test}", " ", "999999");
 
     # if we needed to change the group, check groups afterwards
     pass2.!within_group::
       "groups_test_post_change"   string => execresult("${ncf_paths.path[id]} -Gn ${login} #post change with ${group_name}", "useshell"),
-                                      if => "${inner_class_prefix}_reached";
+                                      if => "${inner_result}_reached";
       "current_groups_post_change" slist => string_split("${groups_test_post_change}", " ", "999999"),
-                                      if => "${inner_class_prefix}_reached";
+                                      if => "${inner_result}_reached";
       
   classes:
       "user_exists"   expression => userexists("${login}");
       "group_exists"  expression => groupexists("${group_name}");
 
-      "should_report"     expression => "${report_data.should_report}";
+      "user_and_group_exist" expression => "user_exists.group_exists";
 
     pass1.!pass2::
       # check if the required group is in the current groups
-      "within_group"  expression => strcmp("${current_groups}", "${group_name}");
-  
-  
+      "within_group" expression => strcmp("${current_groups}", "${group_name}");
+
+      "run_add_user_to_group_cmd" expression => "!within_group.user_exists.group_exists";
+      
     pass2::
       # group corrected?
       "group_corrected" expression => strcmp("${current_groups_post_change}", "${group_name}"),
-                                if => "${inner_class_prefix}_reached";
+                                if => "${inner_result}_reached";
+
     any::
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
   methods:
-    pass2.!within_group.user_exists.group_exists::
-     "disable_reporting_${full_class_prefix}"
-                usebundle => disable_reporting;
+    pass2.run_add_user_to_group_cmd::
+      "${report_data.method_id}" usebundle => call_method("command_execution");
+      "${report_data.method_id}" usebundle => command_execution("${add_user_to_group_cmd}");
+      "${report_data.method_id}" usebundle => call_method_classes("${inner_result}");
+      "${report_data.method_id}" usebundle => call_method_end("command_execution");
 
-      "adduser" usebundle => command_execution("${add_user_to_group_cmd}");
-      "reenable_reporting_${full_class_prefix}"
-                usebundle => enable_reporting,
-                       if => "should_report";
 
+    pass3.run_add_user_to_group_cmd::
+      # error if inner_result_error or not group_corrected
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}"),
+                                        if =>  "${inner_result}_error|!group_corrected";
+                                                   
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}"),
+                                        if =>  "${inner_result}_error|!group_corrected";
+
+      # repaired if group_corrected
+      "${report_data.method_id}" usebundle => _classes_repaired("${report_data.method_id}"),
+                                        if => "!${inner_result}_error.group_corrected";
+      "${report_data.method_id}" usebundle => _classes_repaired("${class_prefix}"),
+                                        if => "!${inner_result}_error.group_corrected";
 
     pass3.within_group::
-      "success" usebundle => _classes_success("${old_class_prefix}");
-      "success" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+
+    pass3.!user_and_group_exist::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "User ${login} or group ${group_name} don't exist", "");
 
 
-    pass3.(!user_exists|!group_exists)::
-      "error" usebundle => _classes_failure("${old_class_prefix}");
-      "error" usebundle => _classes_failure("${class_prefix}");
-
-      "report_failure"
-        usebundle => _log_v3("User ${login} or group ${group_name} don't exist,", "${login}", "${old_class_prefix}", "${class_prefix}", @{args});
-
-      
-    pass3.user_exists.group_exists.!within_group::
-      # error if inner_class_prefix_error or not group_corrected
-      "error" usebundle => _classes_failure("${old_class_prefix}"),
-                     if => "${inner_class_prefix}_error|!group_corrected";
-      "error" usebundle => _classes_failure("${class_prefix}"),
-                     if => "${inner_class_prefix}_error|!group_corrected";
-      
-      # repaired if group_corrected
-      "repaired" usebundle => _classes_repaired("${old_class_prefix}"),
-                     if => "!${inner_class_prefix}_error.group_corrected";
-      "repaired" usebundle => _classes_repaired("${class_prefix}"),
-                     if => "!${inner_class_prefix}_error.group_corrected";
-    pass3.user_exists.group_exists::
-      "report"
-        usebundle => _log_v3("Secondary group ${group_name} for user ${login}", "${login}", "${old_class_prefix}", "${class_prefix}", @{args});
+    pass3.user_and_group_exist::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "Secondary group ${group_name} for user ${login}", "");
 }
