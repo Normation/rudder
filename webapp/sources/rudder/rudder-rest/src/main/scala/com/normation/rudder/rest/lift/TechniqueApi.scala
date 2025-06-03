@@ -407,12 +407,11 @@ class TechniqueApi(
         _            <- ZIO
                           .whenZIO(IOResult.attempt(workspaceDir.exists)) {
                             IOResult.attempt("Error when moving resource file from workspace to final destination") {
-                              finalDir.createDirectoryIfNotExists(true)
+                              finalDir.createDirectoryIfNotExists(createParents = true)
                               workspaceDir.moveTo(finalDir)(File.CopyOptions.apply(true))
                               workspaceDir.parent.parent.delete()
                             }
                           }
-                          .notOptional(s"Error: the workspace directory for techniques '${workspaceDir}' is missing")
       } yield ()
     }
 
