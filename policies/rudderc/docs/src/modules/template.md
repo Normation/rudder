@@ -8,6 +8,17 @@ The module supports the following template engines:
 
 Minijinja is the default and preferred engine, Jinja2 and Mustache are provided for backward compatibility.
 
+The module takes the following arguments:
+
+| Name | Description | Possible values |
+| ---- | ----------- | --------------- |
+| path | Output file path | A path on the filesystem |
+| template_path | Source template path | A path on the filesystem that points to a template to be rendered |
+| template_src | Inlined source template | A template in the form of a string (for example: `{{%-top-}}`) |
+| engine | Template engine | mustache, minijinja, jinja2 (default: minijinja) |
+| data | JSON data used for templating | A valid JSON |
+| show_content | Controls output of diffs in the report | true/false (default: true) |
+
 ## CLI
 
 The module provides a CLI to help debug the rendering and audit of templates.
@@ -418,7 +429,7 @@ prop1 -> value1
 prop2 -> value2
 ```
 
-Note: You can use {{#-top-}} ... {{/-top-}} to iterate over the top level container.
+Note: You can use `{{#-top-}} ... {{/-top-}}` to iterate over the top level container.
 
 ### System variables
 
@@ -442,4 +453,24 @@ To access these value, use the following syntax in your mustache templates:
 
 ```
 {{{vars.sys.ipv4[eth0]}}}
+```
+
+### Datastate
+
+The datastate (current state of the rudder agent) can be iterated over: 
+
+```
+{{#-top-}} ... {{/-top-}}
+```
+
+It can also be rendered as a compact JSON representation
+
+```
+{{$-top-}}
+```
+
+Or rendered as a multi-line JSON representation
+
+```
+{{%-top-}}
 ```
