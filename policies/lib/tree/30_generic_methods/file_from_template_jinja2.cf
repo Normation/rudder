@@ -40,7 +40,7 @@
 # which will likely be useful, as Jinja2 is very rich and allows a lot more
 # that what is explained here.
 #
-# This section presents some simple cases that cover what can be done with mustache templating,
+# This section presents some simple cases that cover what can be done with Jinja2 templating,
 # and the way the agent data is provided to the templating engine.
 #
 # The main specificity of jinja2 templating is the use of two root containers:
