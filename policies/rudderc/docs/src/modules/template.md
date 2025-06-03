@@ -2,15 +2,15 @@
 
 The module supports the following template engines:
 
+* MiniJinja (which is a subset of Jinja2)
 * Mustache
-* MiniJinja which is a subset of Jinja2
 * Jinja2 (available only on Linux)
 
 Minijinja is the default and preferred engine, Jinja2 and Mustache are provided for backward compatibility.
 
 ## CLI
 
-The module provides a CLI to help debug the rendering of templates.
+The module provides a CLI to help debug the rendering and audit of templates.
 
 ```shell
 $ /opt/rudder/bin/rudder-module-template --help
@@ -29,8 +29,10 @@ Options:
 ## Minijinja 
 
 MiniJinja is a subset of the Jinja2 templating language, implemented in pure Rust.
-For a reference on MiniJinja syntax, see the [Jinja2 documentation](http://jinja.pocoo.org/docs/dev/templates/)
+For a complete reference on MiniJinja syntax, see the [Jinja2 documentation](http://jinja.pocoo.org/docs/dev/templates/)
 and the [MiniJinja compatibility](https://github.com/mitsuhiko/minijinja/blob/main/COMPATIBILITY.md).
+
+### Syntax
 
 This section presents some simple cases that cover what can be done with MiniJinja templating.
 
@@ -40,7 +42,7 @@ Note: You can add comments in the template, that will not be rendered in the out
 {# ... #}.
 ```
 
-### Conditions
+#### Conditions
 
 To display content based on conditions definition:
 
@@ -63,7 +65,7 @@ You can also use other tests, for example other built-in ones:
 {% endif %}
 ```
 
-### Scalar variables
+#### Scalar variables
 
 Here is how to display a scalar variable value (integer, string, ...), if you have defined variable_string("variable_prefix", "my_variable", "my_value"):
 
@@ -79,7 +81,7 @@ You can also modify what is displayed by using filters.
 
 Will display the variable in uppercase.
 
-### Iteration
+#### Iteration
 
 To iterate over a list, for example defined with:
 
@@ -165,7 +167,7 @@ prop1 -> value1
 prop2 -> value2
 ```
 
-### Filters
+#### Filters
 
 | Name | Description | Required Args | Optional Args | Example |
 | ---- | ----------- | ------------- | ------------- | ------- |
@@ -259,5 +261,185 @@ The following methods on basic types are provided:
 - str.splitlines
 - str.startswith
 - str.strip
-- str.title
+- str.titleNote: You can use {{#-top-}} ... {{/-top-}} to iterate over the top level container.
+System variables
+
+Some sys dict variables (like sys.ipv4) are also accessible as string, for example:
+
+    ${sys.ipv4} gives 54.32.12.4
+    $[sys.ipv4[ethO]} gives 54.32.12.4
+    $[sys.ipv4[eth1]} gives 10.45.3.2
+
+These variables are not accessible as dict in the templating data, but are represented as string:
+
+    ipv4 is a string variable in the sys dict with value 54.32.12.4
+    ipv4[ethO] is a string variable in the sys dict with value 54.32.12.4
+    ipv4 is not accessible as a dict in the template
+
+To access these value, use the following syntax in your mustache templates:
+
+{{{vars.sys.ipv4[eth0]}}}
 - str.upper
+
+## Jinja2 
+
+The Jinja2 engine is provided for backward compatibility and is only available on Linux systems.
+
+Jinja2 behaves for the most part the same way as MiniJinja. For a complete
+reference of features, see the official [Jinja2 documentation](http://jinja.pocoo.org/docs/dev/templates/).
+
+## Mustache
+
+Mustache is a logic-less templating language.
+For a complete reference of features, see the official [mustache specification](https://mustache.github.io/mustache.5.html).
+
+### Syntax
+
+This section presents some simple cases that cover what can be done with Mustache templating.
+
+The main specificity compared to standard mustache syntax of prefixes in all expanded values:
+
+- classes to access conditions
+- vars to access all variables
+
+#### Classes
+
+Here is how to display content depending on conditions definition:
+
+```
+{{#classes.my_condition}}
+   content when my_condition is defined
+{{/classes.my_condition}}
+
+{{^classes.my_condition}}
+   content when my_condition is *not* defined
+{{/classes.my_condition}}
+```
+
+Note: You cannot use condition expressions here.
+
+### Scalar variable
+
+Here is how to display a scalar variable value (integer, string, ...), if you have defined variable_string("variable_prefix", "my_variable", "my_value"):
+
+```
+{{{vars.variable_prefix.my_variable}}}
+```
+
+We use the triple {{{ }}} to avoid escaping html entities.
+
+Use `{{#vars.container}}` content `{{/vars.container}}` to iterate
+Use `{{{.}}}` for the current element value in iteration
+Use `{{{key}}}` for the key value in current element
+Use `{{{@}}}` for the current element key in iteration
+
+To iterate over a list, for example defined with:
+
+```
+variable_iterator("variable_prefix", "iterator_name", "a,b,c", ",")
+```
+
+Use the following file:
+
+```
+{{#vars.variable_prefix.iterator_name}}
+{{{.}}} is the current iterator_name value
+{{/vars.variable_prefix.iterator_name}}
+```
+
+Which will be expanded as:
+
+```
+a is the current iterator_name value
+b is the current iterator_name value
+c is the current iterator_name value
+```
+
+To iterate over a container defined by the following json file, loaded with `variable_dict_from_file("variable_prefix", "dict_name", "path")`:
+
+```
+{
+   "hosts": [
+       "host1",
+       "host2"
+   ],
+   "files": [
+       {"name": "file1", "path": "/path1", "users": [ "user1", "user11" ] },
+       {"name": "file2", "path": "/path2", "users": [ "user2" ] }
+   ],
+   "properties": {
+       "prop1": "value1",
+       "prop2": "value2"
+   }
+}
+```
+
+Use the following template:
+
+```
+{{#vars.variable_prefix.dict_name.hosts}}
+{{{.}}} is the current hosts value
+{{/vars.variable_prefix.dict_name.hosts}}
+
+# will display the name and path of the current file
+{{#vars.variable_prefix.dict_name.files}}
+{{{name}}}: {{{path}}}
+{{/vars.variable_prefix.dict_name.files}}
+# Lines below will only be properly rendered in unix Nodes
+# will display the users list of each file
+{{#vars.variable_prefix.dict_name.files}}
+{{{name}}}:{{#users}} {{{.}}}{{/users}}
+{{/vars.variable_prefix.dict_name.files}}
+
+
+# will display the current properties key/value pair
+{{#vars.variable_prefix.dict_name.properties}}
+{{{@}}} -> {{{.}}}
+{{/vars.variable_prefix.dict_name.properties}}
+```
+
+Which will be expanded as:
+
+```
+host1 is the current hosts value
+host2 is the current hosts value
+
+# will display the name and path of the current file
+file1: /path1
+file2: /path2
+
+# Lines below will only be properly rendered in unix Nodes
+# will display the users list of each file
+file1: user1 user11
+file2: user2
+
+# will display the current properties key/value pair
+prop1 -> value1
+prop2 -> value2
+```
+
+Note: You can use {{#-top-}} ... {{/-top-}} to iterate over the top level container.
+
+### System variables
+
+Some sys dict variables (like sys.ipv4) are also accessible as string, for example:
+
+```
+${sys.ipv4} gives 54.32.12.4
+$[sys.ipv4[ethO]} gives 54.32.12.4
+$[sys.ipv4[eth1]} gives 10.45.3.2
+```
+
+These variables are not accessible as dict in the templating data, but are represented as string:
+
+```
+ipv4 is a string variable in the sys dict with value 54.32.12.4
+ipv4[ethO] is a string variable in the sys dict with value 54.32.12.4
+ipv4 is not accessible as a dict in the template
+```
+
+To access these value, use the following syntax in your mustache templates:
+
+```
+{{{vars.sys.ipv4[eth0]}}}
+```
