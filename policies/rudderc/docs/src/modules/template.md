@@ -456,6 +456,8 @@ To access these value, use the following syntax in your mustache templates:
 {{{vars.sys.ipv4[eth0]}}}
 ```
 
+### Top level container
+
 The top level container can be iterated over: 
 
 ```
