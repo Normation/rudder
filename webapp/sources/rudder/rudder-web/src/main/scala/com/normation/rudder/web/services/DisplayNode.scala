@@ -145,7 +145,8 @@ object DisplayNode extends Loggable {
                     },
             "bAutoWidth": false,
             "aoColumns": [ {"sWidth": "200px"},{"sWidth": "150px"},{"sWidth": "350px"}],
-            "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>',
+            "sDom": '<"dataTables_wrapper_top d-flex" f <"d-flex ms-auto my-auto" B>>rt<"dataTables_wrapper_bottom"lip>',
+            "buttons" : [ csvButtonConfig("node_${nodeId}_software", "btn-sm") ],
             "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
             "pageLength": 25
         });
@@ -204,7 +205,8 @@ object DisplayNode extends Loggable {
                 "bPaginate": true,
                 "bAutoWidth": false,
                 "bInfo":true,
-                "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>',
+                "sDom": '<"dataTables_wrapper_top d-flex" f <"d-flex ms-auto my-auto" B>>rt<"dataTables_wrapper_bottom"lip>',
+                "buttons" : [ csvButtonConfig("node_${nodeId.value}_${i}", "btn-sm") ],
                 "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
                 "pageLength": 25
               });
@@ -238,7 +240,8 @@ object DisplayNode extends Loggable {
                     },
                 "bAutoWidth": false,
                 "bInfo":true,
-                "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>',
+                "sDom": '<"dataTables_wrapper_top d-flex" f <"d-flex ms-auto my-auto" B>>rt<"dataTables_wrapper_bottom"lip>',
+                "buttons" : [ csvButtonConfig("node_${nodeId.value}_${id}", "btn-sm") ],
                 "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
                 "pageLength": 25
               });

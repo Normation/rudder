@@ -57,9 +57,9 @@ const equalsCheck = (a, b) =>
     a.every((v, i) => v === b[i]);
 
 // Shared config for DataTables Button CSV
-const csvButtonConfig = (filename) => ({
+const csvButtonConfig = (filename, additionalCls) => ({
   extend: 'csv',
-  className: 'btn btn-primary btn-export',
+  className: 'btn btn-primary btn-export ' + (additionalCls ?? ''),
   filename: filename,
   text: 'Export',
   exportOptions: {
