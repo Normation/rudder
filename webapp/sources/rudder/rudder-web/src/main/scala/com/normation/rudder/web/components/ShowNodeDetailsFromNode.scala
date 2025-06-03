@@ -62,6 +62,7 @@ import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.rudder.web.services.DisplayNode.showDeleteButton
 import com.normation.rudder.web.services.DisplayNodeGroupTree
+import com.normation.rudder.web.snippet.WithNonce
 import com.softwaremill.quicklens.*
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
@@ -229,15 +230,17 @@ class ShowNodeDetailsFromNode(
             val globalScore = scoreService.getGlobalScore(nodeId).toBox.getOrElse(GlobalScore(NoScore, "", Nil))
             configService.rudder_global_policy_mode().toBox match {
               case Full(globalMode) =>
-                bindNode(nf, withinPopup, globalMode, globalScore) ++ Script(
-                  DisplayNode.jsInit(node.id, "") &
-                  JsRaw(s"""
+                bindNode(nf, withinPopup, globalMode, globalScore) ++ WithNonce.scriptWithNonce(
+                  Script(
+                    DisplayNode.jsInit(node.id, "") &
+                    JsRaw(s"""
                     var nodeTabs = $$("#${detailsId} .main-navbar > .nav > li ");
                     var activeTabBtn = nodeTabs.get(${tab}).querySelector("button");
                     activeTabBtn.classList.add('active');
                     var activeTab = document.querySelector("#"+activeTabBtn.getAttribute("aria-controls")).classList.add('active', 'show')
                     """) & // JsRaw ok, escaped
-                  buildJsTree(groupTreeId)
+                    buildJsTree(groupTreeId)
+                  )
                 )
               case e: EmptyBox =>
                 val msg = e ?~! s"Could not get global policy mode when getting node '${node.id.value}' details"
@@ -302,7 +305,7 @@ class ShowNodeDetailsFromNode(
       onlySystem = true
     ) &
     "#nodeProperties *" #> DisplayNode.displayTabProperties(id, nodeFact, sm) &
-    "#logsDetails *" #> Script(OnLoad(logDisplayer.asyncDisplay(node.id, None, "logsGrid"))) &
+    "#logsDetails *" #> WithNonce.scriptWithNonce(Script(OnLoad(logDisplayer.asyncDisplay(node.id, None, "logsGrid")))) &
     "#node_parameters -*" #> (if (node.id == Constants.ROOT_POLICY_SERVER_ID) NodeSeq.Empty
                               else nodeStateEditForm(node).nodeStateConfiguration) &
     "#node_parameters -*" #> agentPolicyModeEditForm.cfagentPolicyModeConfiguration(Some(node.id)) &

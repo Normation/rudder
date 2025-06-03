@@ -7,17 +7,17 @@
   <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-grouprelatedrules.js"></script>
   <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-groups.js"></script>
   <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-nodeproperties.js"></script>
-  <script>
+  <script data-lift="with-nonce">
     var CanWriteNode = false;
     var CanReadNode  = false;
   </script>
   <lift:authz role="node_write">
-    <script>
+    <script data-lift="with-nonce">
       CanWriteNode = true;
     </script>
   </lift:authz>
   <lift:authz role="node_read">
-    <script>
+    <script data-lift="with-nonce">
       CanReadNode = true;
     </script>
   </lift:authz>
@@ -38,13 +38,13 @@
 
 <div data-lift="node.Groups.groupHierarchy"></div>
 
-<script>
+<script data-lift="with-nonce">
   var groupCloseEvent = new Event("group-close-detail");
   var hasGroupToDisplay = false;
   var hasWriteRights = false;
 </script>
 <lift:authz role="rule_write">
-  <script>
+  <script data-lift="with-nonce">
     hasWriteRights = true;
   </script>
 </lift:authz>

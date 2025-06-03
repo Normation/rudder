@@ -4,6 +4,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.snippet.WithNonce
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js.JE.*
@@ -55,6 +56,6 @@ class AgentPolicyModeEditForm extends DispatchSnippet with Loggable {
          |});
          |""".stripMargin
     }
-    agentPolicyModeTemplate ++ Script(OnLoad(JsRaw(js)))
+    agentPolicyModeTemplate ++ WithNonce.scriptWithNonce(Script(OnLoad(JsRaw(js))))
   }
 }

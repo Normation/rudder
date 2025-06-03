@@ -55,6 +55,7 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.snippet.WithNonce
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import net.liftweb.common.*
@@ -102,7 +103,7 @@ class ReportDisplayer(
     val callback = {
       SHtml.ajaxInvoke(() => SetHtml(containerId, displayReports(node, getReports, tabId, tableId, containerId, onlySystem, i)))
     }
-    Script(OnLoad(JsRaw(s"""
+    WithNonce.scriptWithNonce(Script(OnLoad(JsRaw(s"""
       const triggerEl = document.querySelector("[aria-controls='${tabId}']");
       if(triggerEl.classList.contains('active')){
         ${callback.toJsCmd}
@@ -117,7 +118,7 @@ class ReportDisplayer(
           }
         })
       );
-    """))) // JsRaw ok, escaped
+    """)))) // JsRaw ok, escaped
   }
 
   def getRunDate(r: RunAnalysis): Option[DateTime] = {

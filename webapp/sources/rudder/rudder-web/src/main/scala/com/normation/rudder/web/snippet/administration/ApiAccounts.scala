@@ -39,6 +39,7 @@ package com.normation.rudder.web.snippet.administration
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.plugins.DefaultExtendableSnippet
+import com.normation.rudder.web.snippet.WithNonce
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmds.Script
@@ -53,8 +54,10 @@ class ApiAccounts extends DispatchSnippet with DefaultExtendableSnippet[ApiAccou
   )
 
   def render(xml: NodeSeq): NodeSeq = <head>{
-    Script(JsRaw(s"""const aclPluginEnabled = ${RudderConfig.apiAuthorizationLevelService.aclEnabled};
-                    |const tenantsPluginEnabled = ${RudderConfig.tenantService.tenantsEnabled};""".stripMargin))
+    WithNonce.scriptWithNonce(
+      Script(JsRaw(s"""const aclPluginEnabled = ${RudderConfig.apiAuthorizationLevelService.aclEnabled};
+                      |const tenantsPluginEnabled = ${RudderConfig.tenantService.tenantsEnabled};""".stripMargin))
+    )
   }</head> // JsRaw ok, const
 
 }

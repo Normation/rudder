@@ -74,7 +74,7 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.web.snippet.CustomPageJs
 import com.normation.rudder.web.snippet.WithCachedResource
-import com.normation.rudder.web.snippet.WithEnabledCSP
+import com.normation.rudder.web.snippet.WithDisabledCSP
 import com.normation.rudder.web.snippet.WithNonce
 import com.normation.zio.*
 import io.scalaland.chimney.syntax.*
@@ -128,10 +128,12 @@ object Boot {
     private val cspHeaderNames = List("Content-Security-Policy", "X-Content-Security-Policy")
 
     /**
-      * Returns all headers depending on page url, using current request nonce and add all other initial CSP directives
+      * Returns default headers with all other initial CSP directive, using current request nonce unless CSP are disabled
       */
     private def addCspHeaders(allHeaders: List[(String, String)]): List[(String, String)] = {
-      if (WithEnabledCSP.isEnabled) {
+      if (WithDisabledCSP.isDisabled) {
+        allHeaders // no headers to override
+      } else {
         val nonce = WithNonce.getCurrentNonce
 
         val cspHeader     = compileCSPHeader(
@@ -153,8 +155,6 @@ object Boot {
             case (header, _) if cspHeaderNames.contains(header) => header -> cspHeader
           }
         newCspHeaders ++ allHeaders.filterNot(h => cspHeaderNames.contains(h._1))
-      } else {
-        allHeaders // no headers to override
       }
     }
 
@@ -594,7 +594,7 @@ class Boot extends Loggable {
         ContentSourceRestriction.Self :: ContentSourceRestriction.UnsafeInline :: ContentSourceRestriction.UnsafeEval :: Nil
     )
 
-    LiftRules.snippetDispatch.append(Map("with-nonce" -> WithNonce, "with-enabled-csp" -> WithEnabledCSP))
+    LiftRules.snippetDispatch.append(Map("with-nonce" -> WithNonce, "with-disabled-csp" -> WithDisabledCSP))
     LiftRules.securityRules = () => {
       SecurityRules(
         https = hsts,
