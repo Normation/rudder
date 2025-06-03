@@ -272,25 +272,7 @@ The following methods on basic types are provided:
 - str.splitlines
 - str.startswith
 - str.strip
-- str.titleNote: You can use {{#-top-}} ... {{/-top-}} to iterate over the top level container.
-System variables
-
-Some sys dict variables (like sys.ipv4) are also accessible as string, for example:
-
-    ${sys.ipv4} gives 54.32.12.4
-    $[sys.ipv4[ethO]} gives 54.32.12.4
-    $[sys.ipv4[eth1]} gives 10.45.3.2
-
-These variables are not accessible as dict in the templating data, but are represented as string:
-
-    ipv4 is a string variable in the sys dict with value 54.32.12.4
-    ipv4[ethO] is a string variable in the sys dict with value 54.32.12.4
-    ipv4 is not accessible as a dict in the template
-
-To access these value, use the following syntax in your mustache templates:
-
-{{{vars.sys.ipv4[eth0]}}}
-- str.upper
+- str.title
 
 ## Jinja2 
 
