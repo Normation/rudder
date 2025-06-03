@@ -54,6 +54,8 @@ mod permissions_group_acl_present_test;
 #[cfg(test)]
 mod permissions_other_acl_present_test;
 #[cfg(test)]
+mod user_methods_test;
+#[cfg(test)]
 mod variable_string_default_test;
 #[cfg(test)]
 mod variable_string_from_command_test;
