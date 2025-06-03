@@ -455,9 +455,7 @@ To access these value, use the following syntax in your mustache templates:
 {{{vars.sys.ipv4[eth0]}}}
 ```
 
-### Datastate
-
-The datastate (current state of the rudder agent) can be iterated over: 
+The top level container can be iterated over: 
 
 ```
 {{#-top-}} ... {{/-top-}}
