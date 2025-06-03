@@ -741,6 +741,16 @@ function changeTimezone(date, ianatz) {
   return new Date(date.getTime() - diff);
 }
 
+/**
+ * Get the date as a string in "yyyy-mm-dd" format, taking timezone into account
+ * see https://stackoverflow.com/a/29774197
+ */
+function getDateString(date = new Date()) {
+  const offset = date.getTimezoneOffset()
+  return new Date(date.getTime() - (offset*60*1000)).toISOString().split('T')[0]
+}
+
+
 function updateNodeIdAndReload(nodeId) {
   try {
     var json = JSON.parse(location.hash);
