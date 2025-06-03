@@ -247,6 +247,13 @@ object RudderPasswordEncoder {
 
         encodedPassword match {
           case pattern(algorithm, version, memory, iterations, parallelism, salt, hash) =>
+            try {
+              val version = version.toInt
+              println(s"Parsed number: $number")
+            } catch {
+              case e: NumberFormatException => println("Invalid integer string")
+            }
+
             println(s"Algorithm: $algorithm")
             println(s"Version: $version")
             println(s"Memory: $memory")
@@ -254,6 +261,13 @@ object RudderPasswordEncoder {
             println(s"Parallelism: $parallelism")
             println(s"Salt: $salt")
             println(s"Hash: $hash")
+            val params = new Argon2Parameters.Builder(Argon2Parameters.ARGON2_id)
+              .withVersion(version)
+              .withIterations(iterations)
+              .withMemoryAsKB(memory)
+              .withParallelism(parallelism)
+              .withSalt(salt)
+              .build()
           case _                                                                        =>
             println("Input did not match expected pattern.")
         }
