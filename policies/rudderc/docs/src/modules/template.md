@@ -299,6 +299,25 @@ The Jinja2 engine is provided for backward compatibility and is only available o
 Jinja2 behaves for the most part the same way as MiniJinja. For a complete
 reference of features, see the official [Jinja2 documentation](http://jinja.pocoo.org/docs/dev/templates/).
 
+You can extend the Jinja2 templating engine by adding custom FILTERS and TESTS in the script `/var/rudder/configuration-repository/ncf/10_ncf_internals/modules/extensions/jinja2_custom.py`
+
+For instance, to add a filter to uppercase a string and a test if a number is odd,
+you can create the file `/var/rudder/configuration-repository/ncf/10_ncf_internals/modules/extensions/jinja2_custom.py`
+on your Rudder server with the following content:
+
+```python
+def uppercase(input):
+    return input.upper()
+
+def odd(value):
+    return True if (value % 2) else False
+
+FILTERS = {'uppercase': uppercase}
+TESTS = {'odd': odd}
+```
+
+These filters and tests will be usable in your jinja2 templates automatically.
+
 ## Mustache
 
 Mustache is a logic-less templating language.
