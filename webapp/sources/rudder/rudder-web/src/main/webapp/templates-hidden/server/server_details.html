@@ -67,17 +67,17 @@
   <div class="main-header">
     <head_merge>
       <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-nodeproperties.js"></script>
-      <script>
+      <script data-lift="with-nonce">
         var CanWriteNode = false;
         var CanReadNode  = false;
       </script>
       <lift:authz role="node_write">
-        <script>
+        <script data-lift="with-nonce">
           CanWriteNode = true;
         </script>
       </lift:authz>
       <lift:authz role="node_read">
-        <script>
+        <script data-lift="with-nonce">
           CanReadNode = true;
         </script>
       </lift:authz>

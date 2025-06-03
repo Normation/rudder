@@ -48,6 +48,7 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides.*
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.web.model.JsTreeNode
+import com.normation.rudder.web.snippet.WithNonce
 import net.liftweb.common.Loggable
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE.*
@@ -496,11 +497,13 @@ object DisplayDirectiveTree extends Loggable {
           }
           </span> ++ { directiveTagsTooltip } ++
           <div class="treeActions-container"> {actionBtns} {editButton} </div> ++
-          Script(
-            JsRaw(
-              s"""$$('#badge-apm-${tooltipId}').replaceWith(createBadgeAgentPolicyMode('directive',"${policyMode}", "${explanation
-                  .toString()}"));"""
-            ) // JsRaw ok, const
+          WithNonce.scriptWithNonce(
+            Script(
+              JsRaw(
+                s"""$$('#badge-apm-${tooltipId}').replaceWith(createBadgeAgentPolicyMode('directive',"${policyMode}", "${explanation
+                    .toString()}"));"""
+              ) // JsRaw ok, const
+            )
           )
         }
 
