@@ -7,14 +7,15 @@ The module supports the following template engines:
 * Jinja2 (available only on Linux)
 
 Minijinja is the default and preferred engine, Jinja2 and Mustache are provided for backward compatibility.
+The Minijinja and Mustache engines are native and fast, Jinja2 is very slow, requires a Python interpreter, but allows dynamic extensions.
 
 The module takes the following arguments:
 
 | Name | Description | Possible values |
 | ---- | ----------- | --------------- |
 | path | Output file path | A path on the filesystem |
-| template_path | Source template path | A path on the filesystem that points to a template to be rendered |
-| template_src | Inlined source template | A template in the form of a string (for example: `{{%-top-}}`) |
+| template_path | Source template path (mutually exclusive with template_src) | A path on the filesystem that points to a template to be rendered |
+| template_src | Inlined source template (mutually exclusive with template_path) | A template in the form of a string (for example: `{{%-top-}}`) |
 | engine | Template engine | mustache, minijinja, jinja2 (default: minijinja) |
 | data | JSON data used for templating | A valid JSON |
 | show_content | Controls output of diffs in the report | true/false (default: true) |
