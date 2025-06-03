@@ -50,7 +50,6 @@ import com.normation.rudder.rest.lift.LiftApiProcessingLogger
 import com.normation.rudder.rest.lift.LiftHandler
 import com.normation.rudder.users.*
 import com.normation.zio.*
-
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
@@ -68,14 +67,12 @@ import net.liftweb.http.StreamingResponse
 import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.util.Helpers.tryo
 import org.yaml.snakeyaml.Yaml
-
 import scala.jdk.CollectionConverters.*
+import scala.reflect.Selectable
 import scala.util.control.NonFatal
 import zio.*
 import zio.syntax.*
 import zio.test.*
-
-import scala.reflect.Selectable
 
 /*
  * Utility data structures
@@ -292,7 +289,8 @@ object TraitTestApiFromYamlFiles {
         import scala.language.reflectiveCalls
 
         // this is a workaround for a scala compiler bug, see https://github.com/scala/scala3/issues/11043
-        def read(array: Array[Byte]): Int = Selectable.reflectiveSelectable(streaming.data).applyDynamic("read", classOf[Array[Byte]])(array).asInstanceOf[Int]
+        def read(array: Array[Byte]): Int =
+          Selectable.reflectiveSelectable(streaming.data).applyDynamic("read", classOf[Array[Byte]])(array).asInstanceOf[Int]
 
         val os = new ByteArrayOutputStream()
         try {
@@ -313,7 +311,7 @@ object TraitTestApiFromYamlFiles {
         outputStream.out(os)
         os.flush()
         (outputStream.code, os.toString(StandardCharsets.UTF_8))
-      case _                                        => (500, "Unknown response in test framework")
+      case _ => (500, "Unknown response in test framework")
     }
 
     (responseCode, responseContent)

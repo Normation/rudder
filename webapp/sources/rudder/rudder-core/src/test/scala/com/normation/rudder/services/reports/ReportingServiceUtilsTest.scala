@@ -126,8 +126,8 @@ class ReportingServiceUtilsTest extends Specification {
 
   // for aggregated status reports, we just compare directive list
   implicit class AggregatedReportMatcher(report1: AggregatedStatusReport) {
-    //Not sure it's a actual functor as the size of the Set can change after calling map, however, for this equality it
-    //doesn't matter to have a function as long as .each is happy
+    // Not sure it's a actual functor as the size of the Set can change after calling map, however, for this equality it
+    // doesn't matter to have a function as long as .each is happy
     implicit val setFunctor: QuicklensFunctor[Set] = new QuicklensFunctor[Set] {
       def map[A](fa: Set[A], f: A => A): Set[A] = fa.map(f)
     }
@@ -135,7 +135,7 @@ class ReportingServiceUtilsTest extends Specification {
     def isSameReportAs(report2: AggregatedStatusReport): MatchResult[Set[RuleNodeStatusReport]] = {
       report1.reports === report2.reports
       report1.reports.modify(_.each.expirationDate).setTo(new DateTime(0)) ===
-        report2.reports.modify(_.each.expirationDate).setTo(new DateTime(0))
+      report2.reports.modify(_.each.expirationDate).setTo(new DateTime(0))
     }
   }
 

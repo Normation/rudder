@@ -2172,6 +2172,9 @@ object DirectiveEncoder {
 }
 
 trait RudderJsonEncoders {
+  export CategoryEncoder.*
+  export DirectiveEncoder.*
+  export JRRuleEncoder.*
   import JsonResponseObjects.*
   import JsonResponseObjects.JRNodeDetailLevel.*
   import com.normation.inventory.domain.JsonSerializers.implicits.*
@@ -2180,10 +2183,6 @@ trait RudderJsonEncoders {
   import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
   import com.normation.rudder.score.ScoreSerializer.*
   import com.normation.utils.DateFormaterService.json.*
-
-  export JRRuleEncoder.*
-  export CategoryEncoder.*
-  export DirectiveEncoder.*
 
   implicit lazy val ruleIdEncoder:          JsonEncoder[RuleId]              = JsonEncoder[String].contramap(_.serialize)
   implicit lazy val groupIdEncoder:         JsonEncoder[NodeGroupId]         = JsonEncoder[String].contramap(_.serialize)
