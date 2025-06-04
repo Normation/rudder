@@ -909,7 +909,25 @@ object JsonPostgresqlSerialization {
   import zio.json.*
 
   implicit lazy val codecNodeConfigId:      JsonCodec[NodeConfigId]      = JsonCodec.string.transform(NodeConfigId.apply, _.value)
-  implicit lazy val codecReportType:        JsonCodec[ReportType]        = DeriveJsonCodec.gen
+  // for compat with Scala 3 and just sane encoding, we want to serialize that based on entry name, see: https://issues.rudder.io/issues/27035
+  implicit lazy val codecReportType:        JsonCodec[ReportType]        = {
+    def parse(s: String) = ReportType.withNameInsensitiveEither(s).left.map(_.getMessage())
+    new JsonCodec[ReportType](
+      JsonEncoder.string.contramap(_.entryName),
+      JsonDecoder.string
+        .mapOrFail(parse)
+        .orElse(
+          JsonDecoder
+            .map[String, Map[String, String]]
+            .mapOrFail(m => {
+              m.headOption match {
+                case Some((k, _)) => parse(k)
+                case _            => Left(s"Error: can not parse report type even with compat semantic")
+              }
+            })
+        )
+    )
+  }
   implicit lazy val encoderReportingLogic:  JsonEncoder[ReportingLogic]  = JsonEncoder.string.contramap(_.value)
   implicit lazy val decoderReportingLogic:  JsonDecoder[ReportingLogic]  =
     JsonDecoder.string.mapOrFail(s => ReportingLogic.parse(s).left.map(_.fullMsg))
