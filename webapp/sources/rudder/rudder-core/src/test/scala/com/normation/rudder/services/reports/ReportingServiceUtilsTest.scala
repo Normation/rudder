@@ -133,7 +133,6 @@ class ReportingServiceUtilsTest extends Specification {
     }
 
     def isSameReportAs(report2: AggregatedStatusReport): MatchResult[Set[RuleNodeStatusReport]] = {
-      report1.reports === report2.reports
       report1.reports.modify(_.each.expirationDate).setTo(new DateTime(0)) ===
       report2.reports.modify(_.each.expirationDate).setTo(new DateTime(0))
     }
