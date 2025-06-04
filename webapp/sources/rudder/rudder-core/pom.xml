@@ -204,6 +204,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${doobie-version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.typelevel</groupId>
+      <artifactId>cats-effect-std_${scala-binary-version}</artifactId>
+      <version>${cats-effect-version}</version>
+      <scope>test</scope>
+    </dependency>
 
     <!-- cache used in compliance logger -->
     <dependency>
