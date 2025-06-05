@@ -20,7 +20,7 @@ vars:
     "DS" string => "/";
 
   any::
-  "cmds" slist => { "date", "diff", "echo", "egrep", "false", "grep", "gzip", "hexdump",
+  "cmds" slist => { "date", "diff", "echo", "false", "grep", "gzip", "hexdump",
                     "ln", "mkdir", "od", "perl", "printf", "pwd", "rm", "sort", "touch",
                     "true", "wc" };
 
