@@ -38,10 +38,11 @@
 package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
-import com.normation.box.*
+import com.normation.box._
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.plugins.DefaultExtendableSnippet
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeState
@@ -62,16 +63,17 @@ import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.rudder.web.services.DisplayNode.showDeleteButton
 import com.normation.rudder.web.services.DisplayNodeGroupTree
-import com.softwaremill.quicklens.*
-import net.liftweb.common.*
+import com.softwaremill.quicklens._
+import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
 import net.liftweb.http.js.JE.JsRaw
-import net.liftweb.http.js.JsCmds.*
+import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JsExp
-import net.liftweb.util.Helpers.*
+import net.liftweb.util.Helpers._
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
+
 import scala.xml.NodeSeq
 
 object ShowNodeDetailsFromNode {
@@ -198,6 +200,7 @@ class ShowNodeDetailsFromNode(
   private def privateDisplay(withinPopup: Boolean, displayDetailsMode: DisplayDetailsMode)(implicit
       qr: QueryContext
   ): NodeSeq = {
+    val hasNodeReadRights = CurrentUser.checkRights(AuthorizationType.Node.Read)
     nodeFactRepo.get(nodeId).toBox match {
       case Full(None) =>
         (<ul id="NodeDetailsTabMenu" class="nav nav-underline"></ul>
@@ -229,7 +232,7 @@ class ShowNodeDetailsFromNode(
             val globalScore = scoreService.getGlobalScore(nodeId).toBox.getOrElse(GlobalScore(NoScore, "", Nil))
             configService.rudder_global_policy_mode().toBox match {
               case Full(globalMode) =>
-                bindNode(nf, withinPopup, globalMode, globalScore) ++ Script(
+                bindNode(nf, withinPopup, globalMode, globalScore, hasNodeReadRights) ++ Script(
                   DisplayNode.jsInit(node.id, "") &
                   JsRaw(s"""
                     var nodeTabs = $$("#${detailsId} .main-navbar > .nav > li ");
@@ -265,7 +268,8 @@ class ShowNodeDetailsFromNode(
       nodeFact:    NodeFact,
       withinPopup: Boolean,
       globalMode:  GlobalPolicyMode,
-      globalScore: GlobalScore
+      globalScore: GlobalScore,
+      hasNodeReadRights: Boolean
   )(implicit qc: QueryContext): NodeSeq = {
     val id   = JsNodeId(nodeFact.id)
     val sm   = nodeFact.toFullInventory
@@ -285,22 +289,22 @@ class ShowNodeDetailsFromNode(
       isDisplayingInPopup = withinPopup
     ) &
     "#nodeInventory *" #> DisplayNode.showInventoryVerticalMenu(sm, node) &
-    "#reportsDetails *" #> reportDisplayer.asyncDisplay(
+    "#reportsDetails *" #>(if (hasNodeReadRights) reportDisplayer.asyncDisplay(
       node,
       "node_reports",
       "reportsDetails",
       "reportsGrid",
       RudderConfig.reportingService.findUserNodeStatusReport(_).toBox,
       onlySystem = false
-    ) &
-    "#systemStatus *" #> reportDisplayer.asyncDisplay(
+    ) else NodeSeq.Empty) &
+    "#systemStatus *" #> (if (hasNodeReadRights) reportDisplayer.asyncDisplay(
       node,
       "system_status",
       "systemStatus",
       "systemStatusGrid",
       RudderConfig.reportingService.findSystemNodeStatusReport(_).toBox,
       onlySystem = true
-    ) &
+    ) else NodeSeq.Empty) &
     "#nodeProperties *" #> DisplayNode.displayTabProperties(id, nodeFact, sm) &
     "#logsDetails *" #> Script(OnLoad(logDisplayer.asyncDisplay(node.id, None, "logsGrid"))) &
     "#node_parameters -*" #> (if (node.id == Constants.ROOT_POLICY_SERVER_ID) NodeSeq.Empty
