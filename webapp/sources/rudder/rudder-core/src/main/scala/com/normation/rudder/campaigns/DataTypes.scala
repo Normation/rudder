@@ -264,6 +264,27 @@ case class CampaignEvent(
 )
 case class CampaignEventId(value: String)
 
+
+sealed abstract class CampaignSortDirection(override val entryName: String) extends EnumEntry
+
+object CampaignSortDirection extends Enum[CampaignSortDirection] {
+  case object Asc  extends CampaignSortDirection("asc")
+  case object Desc extends CampaignSortDirection("desc")
+
+  override def values: IndexedSeq[CampaignSortDirection] = findValues
+}
+
+sealed abstract class CampaignSortOrder(override val entryName: String) extends EnumEntry
+object CampaignSortOrder extends Enum[CampaignSortOrder] {
+  case object StartDate  extends CampaignSortOrder("startDate") {
+    
+  }
+  case object EndDate extends CampaignSortOrder("endDate")
+
+  override def values: IndexedSeq[CampaignSortDirection] = findValues
+}
+
+
 // can't be an enumeration because skipped is a class, the msg should be out of it
 @jsonDiscriminator("value")
 sealed trait CampaignEventState {
