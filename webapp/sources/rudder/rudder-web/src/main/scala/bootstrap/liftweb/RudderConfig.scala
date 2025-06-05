@@ -2277,7 +2277,7 @@ object RudderConfigInit {
             )
           ),
           new InventoryApi(restExtractorService, inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
-          new PluginApi(restExtractorService, pluginSettingsService, PluginsInfo.pluginJsonInfos.succeed),
+          new PluginApi(pluginSettingsService, pluginSystemService, PluginsInfo.pluginJsonInfos.succeed),
           new PluginInternalApi(pluginSystemService),
           new RecentChangesAPI(recentChangesService, restExtractorService),
           new RulesInternalApi(ruleInternalApiService, ruleApiService13),
