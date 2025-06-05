@@ -696,11 +696,19 @@ class GitTechniqueReader(
         case Nil       => root
         case h :: tail =>
           h match {
-            case sId @ SubTechniqueCategoryId(_, RootTechniqueCategoryId)     => // update root
+            case sId @ SubTechniqueCategoryId(_, RootTechniqueCategoryId)                                                   =>
+              // update root
               recBuildRoot(root.copy(subCategoryIds = root.subCategoryIds + sId), techniqueInfos, tail)
-            case sId @ SubTechniqueCategoryId(_, pId: SubTechniqueCategoryId) =>
+            case sId @ SubTechniqueCategoryId(_, pId: SubTechniqueCategoryId) if techniqueInfos.subCategories.contains(pId) =>
               val cat = techniqueInfos.subCategories(pId)
               techniqueInfos.subCategories(pId) = cat.copy(subCategoryIds = cat.subCategoryIds + sId)
+              recBuildRoot(root, techniqueInfos, tail)
+            case _                                                                                                          =>
+              // unknown sub-technique category, may happen in case we end up in a corrupted technique library, just skip it
+              // see https://issues.rudder.io/issues/26912
+              logger.warn(
+                s"Can not find the subcategory ${h} back in the parsed technique information, the technique library may have inconsistencies"
+              )
               recBuildRoot(root, techniqueInfos, tail)
           }
       }
