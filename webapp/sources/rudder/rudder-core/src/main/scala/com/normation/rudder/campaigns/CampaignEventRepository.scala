@@ -74,7 +74,7 @@ trait CampaignEventRepository {
       afterDate:    Option[DateTime] = None,
       beforeDate:   Option[DateTime] = None,
       order:        Option[String] = None,
-      asc:          Option[String] = None
+      asc:          Option[CampaignSortDirection] = None
   ): IOResult[List[CampaignEvent]]
 }
 
@@ -124,7 +124,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       afterDate:    Option[DateTime] = None,
       beforeDate:   Option[DateTime] = None,
       order:        Option[String],
-      asc:          Option[String]
+      asc:          Option[CampaignSortDirection]
   ): IOResult[List[CampaignEvent]] = {
 
     import cats.syntax.list.*
