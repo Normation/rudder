@@ -12,7 +12,7 @@ ALL_SHELL_TESTS=`find "${GIT_ROOT}/policies/lib/tests/quick" -name "*.sh"`
 ERRORS=0
 for file in ${ALL_SHELL_TESTS}
 do
-  if ! egrep "^[ 	]*set[ 	]+-e" ${file} > /dev/null; then
+  if ! grep -E "^[ 	]*set[ 	]+-e" ${file} > /dev/null; then
     ERRORS=`expr ${ERRORS} + 1`
     echo "Test ${file} is missing the \"set -e\" declaration"
   fi
