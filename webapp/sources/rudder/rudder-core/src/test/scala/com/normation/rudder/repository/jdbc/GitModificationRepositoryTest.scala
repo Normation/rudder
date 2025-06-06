@@ -37,7 +37,6 @@
 
 package com.normation.rudder.repository.jdbc
 
-import cats.implicits.*
 import com.normation.BoxSpecMatcher
 import com.normation.errors.*
 import com.normation.eventlog.ModificationId

@@ -62,7 +62,6 @@ import com.normation.zio.*
 import org.junit.runner.RunWith
 import scala.xml.Elem
 import zio.*
-import zio.Chunk
 import zio.test.*
 import zio.test.Assertion.*
 import zio.test.junit.ZTestJUnitRunner

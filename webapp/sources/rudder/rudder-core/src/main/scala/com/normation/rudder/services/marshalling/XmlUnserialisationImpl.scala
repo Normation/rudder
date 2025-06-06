@@ -77,7 +77,6 @@ import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.Control.traverse
 import net.liftweb.common.*
 import net.liftweb.common.Box.*
-import net.liftweb.util.Helpers.tryo
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.format.ISODateTimeFormat
 import scala.util.Failure as Catch

@@ -45,13 +45,7 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.errors.*
 import com.normation.inventory.domain
 import com.normation.inventory.domain.*
-import com.normation.rudder.apidata.JsonResponseObjects.JRCategoriesRootEntryFull
-import com.normation.rudder.apidata.JsonResponseObjects.JRCategoriesRootEntryInfo
-import com.normation.rudder.apidata.JsonResponseObjects.JRCategoriesRootEntrySimple
-import com.normation.rudder.apidata.JsonResponseObjects.JRFullRuleCategory
 import com.normation.rudder.apidata.JsonResponseObjects.JRPropertyHierarchy.*
-import com.normation.rudder.apidata.JsonResponseObjects.JRRuleCategoryInfo
-import com.normation.rudder.apidata.JsonResponseObjects.JRSimpleRuleCategory
 import com.normation.rudder.domain.nodes
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId

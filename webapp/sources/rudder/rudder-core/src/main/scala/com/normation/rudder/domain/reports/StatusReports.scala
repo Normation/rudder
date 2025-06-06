@@ -102,7 +102,7 @@ trait BlockCompliance[Sub] extends ComponentCompliance {
   }
 
   def compliance: ComplianceLevel = {
-    import ReportingLogic.*
+    import com.normation.cfclerk.domain.ReportingLogic.*
     reportingLogic match {
       // simple weighted compliance, as usual
       case WeightedReport => ComplianceLevel.sum(subs.map(_.compliance))
@@ -150,7 +150,7 @@ trait BlockComplianceByNode[Sub] extends ComponentComplianceByNode with BlockCom
   }
 
   override def compliance: ComplianceLevel = {
-    import ReportingLogic.*
+    import com.normation.cfclerk.domain.ReportingLogic.*
     reportingLogic match {
       // simple weighted compliance, as usual
       case WeightedReport => super.compliance
@@ -193,7 +193,7 @@ final class RuleStatusReport private (
     val forRule: RuleId,
     val report:  AggregatedStatusReport
 ) extends StatusReport {
-  lazy val compliance = report.compliance
+  lazy val compliance: ComplianceLevel = report.compliance
   lazy val byNodes: Map[NodeId, AggregatedStatusReport] =
     report.reports.groupBy(_.nodeId).view.mapValues(AggregatedStatusReport(_)).toMap
 }

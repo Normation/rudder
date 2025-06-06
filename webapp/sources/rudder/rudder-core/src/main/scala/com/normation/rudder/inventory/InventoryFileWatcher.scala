@@ -536,8 +536,8 @@ class ProcessFile(
     prioIncomingDirPath: String
 ) extends HandleIncomingInventoryFile {
 
-  val prioIncomingDir: File   = File(prioIncomingDirPath)
-  val sign:            String = if (InventoryProcessingUtils.signExtension.charAt(0) == '.') {
+  private val prioIncomingDir: File   = File(prioIncomingDirPath)
+  val sign:                    String = if (InventoryProcessingUtils.signExtension.charAt(0) == '.') {
     InventoryProcessingUtils.signExtension
   } else {
     "." + InventoryProcessingUtils.signExtension
@@ -558,7 +558,7 @@ class ProcessFile(
    */
 
   // time after the last mod event after which we consider that a file is written
-  val fileWrittenThreshold: Duration = Duration(500, TimeUnit.MILLISECONDS)
+  private val fileWrittenThreshold: Duration = Duration(500, TimeUnit.MILLISECONDS)
 
   /*
    * This is the map of be processed file based on received events.
@@ -566,7 +566,7 @@ class ProcessFile(
    * The task is configured to be processed after some delay.
    * We only modify that map as a result of a dequeue event.
    */
-  val toBeProcessed: Ref.Synchronized[Map[File, Fiber[RudderError, Unit]]] =
+  private val toBeProcessed: Ref.Synchronized[Map[File, Fiber[RudderError, Unit]]] =
     ZioRuntime.unsafeRun(zio.Ref.Synchronized.make(Map.empty[File, Fiber[RudderError, Unit]]))
 
   /*
@@ -576,9 +576,9 @@ class ProcessFile(
    * (resetting the task). Once the task is started, we want to free space in the map, and so enqueue
    * a "file written" event.
    */
-  val watchEventQueue: Queue[WatchEvent] = ZioRuntime.unsafeRun(Queue.bounded[WatchEvent](16384))
+  private val watchEventQueue: Queue[WatchEvent] = ZioRuntime.unsafeRun(Queue.bounded[WatchEvent](16384))
 
-  def processMessage(): UIO[Unit] = {
+  private def processMessage(): UIO[Unit] = {
     watchEventQueue.take.flatMap {
       case WatchEvent.End(file) => // simple case: remove file from map
         toBeProcessed.update(s => (s - file)).unit
