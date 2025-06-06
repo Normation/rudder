@@ -38,9 +38,11 @@
 package com.normation.rudder.rest.lift
 
 import better.files.File
+
 import com.normation.box.*
 import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.TechniqueRepository
+
 import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
@@ -64,11 +66,16 @@ import com.normation.utils.FileUtils
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Version
+
+import enumeratum.Enum
+import enumeratum.EnumEntry
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.json.JsonAST.*
+
 import scala.collection.SortedMap
+
 import zio.*
 import zio.json.ast.Json
 import zio.json.ast.Json.Str
@@ -888,7 +895,35 @@ class TechniqueAPIService14(
     techniqueRevisions.getTechniqueRevision(name, version).map(_.map(JRRevisionInfo.fromRevisionInfo))
   }
 
-  def getTechniqueJson(editorTechnique: EditorTechnique): IOResult[Json] = {
+
+/*
+ * An enumeration of the case for a technique visible in the editor.
+ * Technique from the editor are all the technique in git HEAD with a yml file.
+ * They can also be in the directive lib (ie, "activated").
+ * Once in the lib, they can be "disabled" or "enabled".
+ *
+ * This should not be here but in a data representation for "FrontendEditorTechnique",
+ * with all the aggregated data needed for editor technique UI, which should not
+ * be a JSON datastructures. But can only be done in a minor switch.
+ *
+ */
+sealed trait EditorTechniqueStatus extends EnumEntry {
+  def value: String = entryName.toLowerCase
+}
+
+object EditorTechniqueStatus extends Enum[EditorTechniqueStatus] {
+
+  case object NotActivated extends EditorTechniqueStatus
+  case object Disabled     extends EditorTechniqueStatus
+  case object Enabled      extends EditorTechniqueStatus
+
+  override def values: IndexedSeq[EditorTechniqueStatus] = findValues
+
+  def parse(s: String): PureResult[EditorTechniqueStatus] =
+    EditorTechniqueStatus.withNameInsensitiveEither(s).left.map(err => Inconsistency(err.getMessage()))
+}
+
+  def getTechniqueJson(editorTechnique: EditorTechnique, status: EditorTechniqueStatus): IOResult[Json] = {
     import techniqueSerializer.*
     import zio.json.*
     import TechniqueCompilationIO.codecTechniqueCompilationOutput
@@ -980,3 +1015,4 @@ class TechniqueAPIService14(
   }
 
 }
+
