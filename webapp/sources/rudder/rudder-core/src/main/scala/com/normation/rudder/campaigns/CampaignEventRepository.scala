@@ -53,7 +53,7 @@ trait CampaignEventRepository {
   def numberOfEventsByCampaign(campaignId: CampaignId):      IOResult[Int]
   def deleteEvent(
       id:           Option[CampaignEventId] = None,
-      states:       List[String] = Nil,
+      states:       List[CampaignEventState] = Nil,
       campaignType: Option[CampaignType] = None,
       campaignId:   Option[CampaignId] = None,
       afterDate:    Option[DateTime] = None,
@@ -66,7 +66,7 @@ trait CampaignEventRepository {
    * - if a value is provided, then it is use to filter things accordingly
    */
   def getWithCriteria(
-      states:       List[String] = Nil,
+      states:       List[CampaignEventState] = Nil,
       campaignType: List[CampaignType] = Nil,
       campaignId:   Option[CampaignId] = None,
       limit:        Option[Int] = None,
@@ -74,7 +74,7 @@ trait CampaignEventRepository {
       afterDate:    Option[DateTime] = None,
       beforeDate:   Option[DateTime] = None,
       order:        Option[String] = None,
-      asc:          Option[String] = None
+      asc:          Option[CampaignSortDirection] = None
   ): IOResult[List[CampaignEvent]]
 }
 
@@ -116,7 +116,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
   }
 
   def getWithCriteria(
-      states:       List[String] = Nil,
+      states:       List[CampaignEventState] = Nil,
       campaignType: List[CampaignType] = Nil,
       campaignId:   Option[CampaignId] = None,
       limit:        Option[Int] = None,
@@ -124,13 +124,13 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       afterDate:    Option[DateTime] = None,
       beforeDate:   Option[DateTime] = None,
       order:        Option[String],
-      asc:          Option[String]
+      asc:          Option[CampaignSortDirection]
   ): IOResult[List[CampaignEvent]] = {
 
     import cats.syntax.list.*
     val campaignIdQuery   = campaignId.map(c => fr"campaignId = ${c.value}")
     val campaignTypeQuery = campaignType.toNel.map(c => Fragments.in(fr"campaignType", c))
-    val stateQuery        = states.toNel.map(s => Fragments.in(fr"state->>'value'", s))
+    val stateQuery        = states.toNel.map(s => Fragments.in(fr"state->>'value'", s.map(_.value)))
     val afterQuery        = afterDate.map(d => fr"endDate >= ${new java.sql.Timestamp(d.getMillis)}")
     val beforeQuery       = beforeDate.map(d => fr"startDate <= ${new java.sql.Timestamp(d.getMillis)}")
     val where             = Fragments.whereAndOpt(campaignIdQuery, campaignTypeQuery, stateQuery, afterQuery, beforeQuery)
@@ -171,7 +171,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
 
   def deleteEvent(
       id:           Option[CampaignEventId] = None,
-      states:       List[String] = Nil,
+      states:       List[CampaignEventState] = Nil,
       campaignType: Option[CampaignType] = None,
       campaignId:   Option[CampaignId] = None,
       afterDate:    Option[DateTime] = None,
@@ -182,7 +182,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     val eventIdQuery      = id.map(c => fr"eventId = ${c.value}")
     val campaignIdQuery   = campaignId.map(c => fr"campaignId = ${c.value}")
     val campaignTypeQuery = campaignType.map(c => fr"campaignType = ${c.value}")
-    val stateQuery        = states.toNel.map(s => Fragments.in(fr"state->>'value'", s))
+    val stateQuery        = states.toNel.map(s => Fragments.in(fr"state->>'value'", s.map(_.value)))
     val afterQuery        = afterDate.map(d => fr"endDate >= ${new java.sql.Timestamp(d.getMillis)}")
     val beforeQuery       = beforeDate.map(d => fr"startDate <= ${new java.sql.Timestamp(d.getMillis)}")
     val where             = Fragments.whereAndOpt(eventIdQuery, campaignIdQuery, campaignTypeQuery, stateQuery, afterQuery, beforeQuery)
