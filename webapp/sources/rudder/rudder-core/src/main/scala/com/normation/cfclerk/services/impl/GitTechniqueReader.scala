@@ -788,7 +788,7 @@ class GitTechniqueReader(
     }
   }
 
-  private val dummyTechnique = Technique(
+  private lazy val dummyTechnique = Technique(
     TechniqueId(
       TechniqueName("dummy"),
       TechniqueVersion.parse("1.0").getOrElse(throw new RuntimeException("Version of dummy technique is not parsable"))
