@@ -38,7 +38,6 @@
 package com.normation.rudder.rest
 
 import better.files.*
-import better.files.File
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion

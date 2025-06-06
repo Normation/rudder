@@ -50,19 +50,18 @@ import sourcecode.Line
  * in Rudder base.
  *
  * Any module wanting to contribute an API
- * More preciselly, it defines the data format of
+ * More precisely, it defines the data format of
  * an endpoint descriptor, an endpoint descriptor container,
- * and prefil all the known endpoints into the corner.
+ * and pre-fill all the known endpoints into the corner.
  *
- * It also defined interpretor for endpoint descriptor toward
+ * It also defined interpreter for endpoint descriptor toward
  * Lift RestAPI objects.
  *
  */
 
 // we need a marker trait to get endpoint in a sorted way. Bad, but nothing better
-// safe rewriting sealerate
 trait SortIndex {
-  protected[rest] def z: Int
+  def z: Int
 }
 
 sealed trait CampaignApi extends EnumEntry with EndpointSchema with GeneralApi with SortIndex
