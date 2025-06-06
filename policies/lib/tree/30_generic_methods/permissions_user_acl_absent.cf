@@ -102,37 +102,26 @@
 bundle agent permissions_user_acl_absent(path, recursive, user)
 {
   vars:
-      "old_class_prefix"                        string => canonify("permissions_user_acl_absent_${path}");
-      "args"                                    slist  => { "${path}", "${recursive}", "${user}" }; 
-      "report_param"                            string => join("_", args);
-      "full_class_prefix"                       string => canonify("permissions_user_acl_absent_${report_param}");
-      "class_prefix"                            string => string_head("${full_class_prefix}", "1000");
+      "class_prefix"                        string => canonify("permissions_user_acl_absent_${path}");
+      "user_trimmed"                        string => regex_replace("${user}", " ", "", "g");
+      "user_ace"                            string => regex_replace("user:${user}", " ", "", "g");
 
-      "user_trimmed"                            string => regex_replace("${user}", " ", "", "g");
-      "user_ace"                                string => regex_replace("user:${user}", " ", "", "g");
-
-      "file_list"                               slist  => findfiles("${path}");
-      "file_list_length"                        int    => length("file_list");
-      "max_range"                               string => execresult("/usr/bin/expr ${file_list_length} - 1", "useshell");
-      #"max_range"                               string => eval("${file_list_length} - 1", "math", "infix");
-
+      "file_list"                           slist  => findfiles("${path}");
+      "file_list_length"                    int    => length("file_list");
+      "max_range"                           string => execresult("/usr/bin/expr ${file_list_length} - 1", "useshell");
     pass1.!max_range_is_null::
-      "indices"                                 slist  => expandrange("[0-${max_range}]", 1);
+      "indices"                             slist  => expandrange("[0-${max_range}]", 1);
     pass1.max_range_is_null::
-      "indices"                                 slist  => { "0" };
+      "indices"                             slist  => { "0" };
     pass1::
-      "file[${indices}]"                        string => nth("file_list", "${indices}");
-      "canonified_file[${indices}]"             string => canonify("${file[${indices}]}");
-
+      "file[${indices}]"                    string => nth("file_list", "${indices}");
     pass2::
-      "repaired[${indices}]"                    string => "repaired: ${file[${indices}]}",
-        ifvarclass => "inner_class_${indices}_repaired";
-
-      "error[${indices}]"                       string => "error: ${file[${indices}]}",
-        ifvarclass => "inner_class_${indices}_error";
-
-      "success[${indices}]"                     string => "success: ${file[${indices}]}",
-        ifvarclass => "inner_class_${indices}_kept";
+      "repaired[${indices}]"                string => "repaired: ${file[${indices}]}",
+                                                if => "inner_class_${indices}_repaired";
+      "error[${indices}]"                   string => "error: ${file[${indices}]}",
+                                                if => "inner_class_${indices}_error";
+      "success[${indices}]"                 string => "success: ${file[${indices}]}",
+                                                if => "inner_class_${indices}_kept";
 
       "repaired_list"                           slist  => getvalues("repaired");
       "error_list"                              slist  => getvalues("error");
@@ -140,7 +129,7 @@ bundle agent permissions_user_acl_absent(path, recursive, user)
 
       "report_list"                             slist  => { "@{error_list}", "@{repaired_list}", "@{success_list}" };
       "report_string"                           string => join("$(const.endl)", report_list),
-        policy => "ifdefined";
+                                                policy => "ifdefined";
 
 
   defaults:
@@ -148,47 +137,43 @@ bundle agent permissions_user_acl_absent(path, recursive, user)
 
   classes:
     any::
-      "pass3" expression => "pass2";
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
-
-      "getfacl_present" expression => isexecutable("${paths.getfacl}");
-      "setfacl_present" expression => isexecutable("${paths.setfacl}");
-      "acls_binary_present" expression => "getfacl_present.setfacl_present";
-
-      "max_range_is_null" expression => strcmp("${max_range}", "0");
-
-      "is_recursive"                expression => strcmp("true", "${recursive}");
-
-      "files_found"                 expression => isgreaterthan("${file_list_length}", "0");
-      "path_exists_${canonified_file[${indices}]}"    expression => fileexists("${file_list}");
+      "pass3"                  expression => "pass2";
+      "pass2"                  expression => "pass1";
+      "pass1"                  expression => "any";
+      "getfacl_present"        expression => isexecutable("${paths.getfacl}");
+      "setfacl_present"        expression => isexecutable("${paths.setfacl}");
+      "acls_binary_present"    expression => "getfacl_present.setfacl_present";
+      "max_range_is_null"      expression => strcmp("${max_range}", "0");
+      "is_recursive"           expression => strcmp("true", "${recursive}");
+      "files_found"            expression => isgreaterthan("${file_list_length}", "0");
+      "path_exists_${indices}" expression => fileexists("${file[${indices}]}");
 
     pass2.acls_binary_present.files_found.is_recursive::
       # Do not forget the ":"
-      "need_change_${canonified_file[${indices}]}" expression => returnszero("${paths.getfacl} -Rc ${file[${indices}]} 2>/dev/null | ${paths.grep} -q \"${user_ace}:\" #Initial Check", "useshell"),
-        ifvarclass => "path_exists_${canonified_file[${indices}]}";
+      "need_change_${indices}" expression => returnszero("${paths.getfacl} -Rc ${file[${indices}]} 2>/dev/null | ${paths.grep} -q \"${user_ace}:\" #Initial Check", "useshell"),
+                                       if => "path_exists_${indices}";
     pass2.acls_binary_present.files_found.!is_recursive::
       # Do not forget the ":"
-      "need_change_${canonified_file[${indices}]}" expression => returnszero("${paths.getfacl} -c ${file[${indices}]} 2>/dev/null | ${paths.grep} -q \"${user_ace}:\" #Initial Check", "useshell"),
-        ifvarclass => "path_exists_${canonified_file[${indices}]}";
+      "need_change_${indices}" expression => returnszero("${paths.getfacl} -c ${file[${indices}]} 2>/dev/null | ${paths.grep} -q \"${user_ace}:\" #Initial Check", "useshell"),
+                                       if => "path_exists_${indices}";
 
     pass2.acls_binary_present.files_found.!(global_dry_run|dry_run).is_recursive::
-      "remove_acl_${canonified_file[${indices}]}"  expression => returnszero("${paths.setfacl} -Rx u:${user} ${file[${indices}]}", "useshell"),
-        ifvarclass => "path_exists_${canonified_file[${indices}]}.need_change_${canonified_file[${indices}]}";
+      "remove_acl_${indices}"  expression => returnszero("${paths.setfacl} -Rx u:${user} ${file[${indices}]}", "useshell"),
+                                       if => "path_exists_${indices}.need_change_${indices}";
 
-      "change_verified_${canonified_file[${indices}]}"    not => returnszero("${paths.getfacl} -Rc ${file[${indices}]} 2>/dev/null | ${paths.grep} -q \"${user_ace}:\" #Post repaired Check", "useshell"),
-        ifvarclass => "path_exists_${canonified_file[${indices}]}.need_change_${canonified_file[${indices}]}";
+      "change_verified_${indices}"    not => returnszero("${paths.getfacl} -Rc ${file[${indices}]} 2>/dev/null | ${paths.grep} -q \"${user_ace}:\" #Post repaired Check", "useshell"),
+                                       if => "path_exists_${indices}.need_change_${indices}";
 
     pass2.acls_binary_present.files_found.!(global_dry_run|dry_run).!is_recursive::
-      "remove_acl_${canonified_file[${indices}]}"  expression => returnszero("${paths.setfacl} -x u:${user} ${file[${indices}]}", "useshell"),
-        ifvarclass => "path_exists_${canonified_file[${indices}]}.need_change_${canonified_file[${indices}]}";
+      "remove_acl_${indices}"  expression => returnszero("${paths.setfacl} -x u:${user} ${file[${indices}]}", "useshell"),
+                                       if => "path_exists_${indices}.need_change_${indices}";
 
-      "change_verified_${canonified_file[${indices}]}"    not => returnszero("${paths.getfacl} -c ${file[${indices}]} 2>/dev/null | ${paths.grep} -q \"${user_ace}:\" #Post repaired Check", "useshell"),
-        ifvarclass => "path_exists_${canonified_file[${indices}]}.need_change_${canonified_file[${indices}]}";
+      "change_verified_${indices}"    not => returnszero("${paths.getfacl} -c ${file[${indices}]} 2>/dev/null | ${paths.grep} -q \"${user_ace}:\" #Post repaired Check", "useshell"),
+                                       if => "path_exists_${indices}.need_change_${indices}";
 
     pass2.acls_binary_present.files_found::
-      "inner_class_${indices}_kept"     expression => "!need_change_${canonified_file[${indices}]}";
-      "inner_class_${indices}_repaired" expression => "need_change_${canonified_file[${indices}]}.change_verified_${canonified_file[${indices}]}";
+      "inner_class_${indices}_kept"     expression => "!need_change_${indices}";
+      "inner_class_${indices}_repaired" expression => "need_change_${indices}.change_verified_${indices}";
       "inner_class_${indices}_error"    expression => "!inner_class_${indices}_kept.!inner_class_${indices}_repaired";
 
       "merging_failure"  expression => "inner_class_${indices}_error";
@@ -197,32 +182,33 @@ bundle agent permissions_user_acl_absent(path, recursive, user)
 
   methods:
     pass3.!acls_binary_present::
-      "no_binary_found" usebundle => _classes_failure("${class_prefix}");
-      "no_binary_found" usebundle => _classes_failure("${old_class_prefix}");
-      "report"          usebundle => _log_v3("No binaries for setfacl/getfacl could be found in ${paths.setfacl} nor ${paths.getfacl}, remove POSIX acl for user ${user}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "No binaries for setfacl/getfacl could be found in ${paths.setfacl} nor ${paths.getfacl}, remove POSIX acl for user ${user}", "");
 
     pass3.acls_binary_present.!files_found::
-      "No_file_found" usebundle =>  _classes_failure("${class_prefix}");
-      "No_file_found" usebundle =>  _classes_failure("${old_class_prefix}");
-      "report"        usebundle => _log_v3("No files could be found matching ${path}, remove POSIX acl for user ${user}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle =>  _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle =>  _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "No files could be found matching ${path}, remove POSIX acl for user ${user}", "");
 
     pass3.acls_binary_present.files_found::
-      "failure_${indices}"      usebundle => _classes_failure("inner_class_${indices}"),
-        ifvarclass => "!path_exists_${canonified_file[${indices}]}";
+      "${report_data.method_id}_${indices}" usebundle => _classes_failure("inner_class_${indices}"),
+                                                   if => "!path_exists_${indices}";
 
     pass3.acls_binary_present.files_found.merging_failure::
-      "error"    usebundle => _classes_failure("${old_class_prefix}");
-      "error"    usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+
     pass3.acls_binary_present.files_found.!merging_failure.merging_repaired::
-      "repaired" usebundle => _classes_repaired("${old_class_prefix}");
-      "repaired" usebundle => _classes_repaired("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_repaired("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_repaired("${report_data.method_id}");
     pass3.acls_binary_present.files_found.!merging_failure.!merging_repaired::
-      "success"  usebundle => _classes_success("${old_class_prefix}");
-      "success"  usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
 
     is_recursive.pass3.acls_binary_present.files_found::
-      "report" usebundle => _log_v3("${report_string} ${const.endl}Remove POSIX acl for user ${user} recursively on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "${report_string} ${const.endl}Remove POSIX acl for user ${user} recursively on ${path}", "");
 
     !is_recursive.pass3.acls_binary_present.files_found::
-      "report" usebundle => _log_v3("${report_string} ${const.endl}Remove POSIX acl for user ${user} on ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "${report_string} ${const.endl}Remove POSIX acl for user ${user} on ${path}", "");
 }
