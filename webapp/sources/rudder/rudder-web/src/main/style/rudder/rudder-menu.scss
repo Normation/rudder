@@ -954,7 +954,8 @@ header.main-header .logo-lg img{
   &:focus .rudder-badge,
   &:active .rudder-badge,
   &:visited .rudder-badge{
-    background-color:#fff;
+    background-color: #fff;
+    border-color: $rudder-border-color-default;
   }
 }
 
@@ -1009,7 +1010,7 @@ header.main-header .logo-lg img{
   border-color: #fff;
 }
 .notifications-menu a:hover .rudder-badge::before {
-  border-right-color: #fff;
+  border-right-color: $rudder-border-color-default;
 }
 .notifications-menu .rudder-badge::before {
   content: "";
