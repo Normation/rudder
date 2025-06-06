@@ -167,12 +167,16 @@ object ComplianceApi       extends Enum[ComplianceApi] with ApiModuleProvider[Co
     val authz:         List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
   }
 
+  /**
+   * this compliance is more about how rudder works on that node, it's not really "compliance"
+   * so, it can be accessed with node read rights
+   */
   case object GetNodeSystemCompliance extends ComplianceApi with InternalApi with OneParam with StartsAtVersion7 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get compliance information for the given node"
     val (action, path) = GET / "compliance" / "nodes" / "{id}" / "system"
     val dataContainer: Some[String]            = Some("nodes")
-    val authz:         List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+    val authz:         List[AuthorizationType] = AuthorizationType.Compliance.Read :: AuthorizationType.Node.Read :: Nil
   }
   case object GetNodeComplianceId     extends ComplianceApi with GeneralApi with OneParam with StartsAtVersion7 with SortIndex   {
     val z: Int = implicitly[Line].value
