@@ -11,7 +11,7 @@ import zio.test.suite
 import zio.test.test
 
 object EnumLaws {
-  import scala.language.reflectiveCalls
+  import scala.reflect.Selectable.reflectiveSelectable
 
   def laws[A <: { def parse(s: String): Either[String, Any]; def values: Iterable[Any] }](
       `enum`:     A,

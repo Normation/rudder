@@ -59,7 +59,7 @@ protected object JsonPluginFile {
 
 /**
   * The external json format of a plugin in the index file.
-  * 
+  *
   * Optional fields are there to obtain empty lists when mapping none
   */
 final protected case class JsonPluginRaw(
