@@ -55,7 +55,6 @@ import com.normation.zio.*
 import io.scalaland.chimney.dsl.*
 import java.util.concurrent.TimeUnit
 import org.springframework.core.io.ClassPathResource as CPResource
-import org.springframework.security.crypto.password.PasswordEncoder
 import scala.xml.Elem
 import scala.xml.Node
 import scala.xml.NodeSeq
@@ -246,7 +245,7 @@ class UserManagementService(
                             e.copy(child = {
                               e.child ++ newUser
                                 .copy(password = {
-                                  getHashEncoderOrDefault((userXML \\ "authentication" \ "@hash").text).encode(newUser.password)
+                                  getHashUserPasswordOrDefault((userXML \\ "authentication" \ "@hash").text, newUser.password)
                                 })
                                 .toNode
                             })
@@ -315,7 +314,8 @@ class UserManagementService(
 
                _ <- (userXML \\ "authentication").head match {
                       case e: Elem =>
-                        val newXml = e.copy(child = e.child ++ User.make(id, "", Set.empty, "").toNode)
+                        val newXml =
+                          e.copy(child = e.child ++ User.make(id, HashedUserPassword(""), Set.empty, "").toNode) // FIXME: empty?
                         UserManagementIO.replaceXml(userXML, newXml, file)
                       case _ =>
                         Unexpected(s"Wrong formatting : ${file.path}").fail
@@ -337,11 +337,12 @@ class UserManagementService(
                        else fileUser.permissions
                      }
                      val newUsername = if (fileUser.username.isEmpty) id else fileUser.username
-                     val newPassword = if (fileUser.password.isEmpty) {
-                       (user \ "@password").text
+                     val newPassword = if (fileUser.password.exposeHash().isEmpty) {
+                       HashedUserPassword((user \ "@password").text) // FIXME: do we allow empty hashes ?
                      } else {
                        if (isPreHashed) fileUser.password
-                       else getHashEncoderOrDefault((userXML \\ "authentication" \ "@hash").text).encode(fileUser.password)
+                       else getHashUserPasswordOrDefault((userXML \\ "authentication" \ "@hash").text, fileUser.password)
+
                      }
                      val tenants     = (user \ "@tenants").text
                      User.make(newUsername, newPassword, newRoles, tenants).toNode
@@ -378,7 +379,7 @@ class UserManagementService(
                         val users  = e
                           .map(u => {
                             val name         = (u \ "@name").text
-                            val password     = (u \ "@password").text
+                            val password     = HashedUserPassword((u \ "@password").text) // FIXME: empty ?
                             val permissions  = ((u \ "@role") ++ (u \ "@permissions")).map(_.text).toSet
                             val tenants      = (u \ "@tenants").text
                             val user         =
@@ -394,7 +395,10 @@ class UserManagementService(
     } yield res
   }
 
-  private def getHashEncoderOrDefault(hash: String): PasswordEncoder = {
-    encoderDispatcher.dispatch(PasswordEncoderType.withNameInsensitiveOption(hash).getOrElse(PasswordEncoderType.DEFAULT))
+  private def getHashUserPasswordOrDefault(rawHash: String, userPassword: HashedUserPassword): HashedUserPassword = {
+    val encoderType = PasswordEncoderType.withNameInsensitiveOption(rawHash).getOrElse(PasswordEncoderType.DEFAULT)
+    val encoder     = encoderDispatcher.dispatch(encoderType)
+    // FIXME: this seems to re-hash an already hashed password
+    HashedUserPassword(encoder.encode(userPassword.exposeHash()))
   }
 }
