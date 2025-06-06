@@ -167,7 +167,7 @@ class LogDisplayer(
       );
       """
       } else ""}
-    createTechnicalLogsTable("${tableId}",[], "${S.contextPath}",function() {${refresh.toJsCmd}}, ${runDate.isEmpty});
+    createTechnicalLogsTable("${tableId}", "${nodeId.value}", [], "${S.contextPath}",function() {${refresh.toJsCmd}}, ${runDate.isEmpty});
     ${refresh.toJsCmd}
     """) // JsRaw ok, escaped
   }

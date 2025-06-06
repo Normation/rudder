@@ -1736,7 +1736,7 @@ function handleNodesTableDisplayByGroupTab(show) {
  *   , "message" : Report message [String]
  *   }
  */
-function createTechnicalLogsTable(gridId, data, contextPath, refresh, regroup) {
+function createTechnicalLogsTable(gridId, nodeId, data, contextPath, refresh, regroup) {
   var columns = [ {
       "sWidth": "10%"
     , "mDataProp": "executionDate"
@@ -1822,7 +1822,9 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh, regroup) {
     }
     , "aaSorting": [[ 0, "desc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh"><"dataTables_pickdates"><"dataTables_pickend"><"dataTables_pickstart">'+
-      '>rt<"dataTables_wrapper_bottom"lip>'
+      '>Brt<"dataTables_wrapper_bottom"lip>'
+    , "buttons" : [ csvButtonConfig(`rudder_node_${nodeId}_technical_logs`, "btn-sm") ],
+
   };
 
   if (regroup) {
