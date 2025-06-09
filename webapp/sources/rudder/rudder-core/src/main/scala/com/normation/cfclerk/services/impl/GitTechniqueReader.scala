@@ -141,7 +141,7 @@ class GitTechniqueReader(
 
     val relativePathToGitRepos: Option[String],
     val directiveDefaultName:   String // full (with extension) name of the file containing default name for directive (default-directive-names.conf)
-) extends TechniqueReader with Loggable {
+) extends TechniqueReader {
 
   // semaphore to have consistent read
   val semaphore: Semaphore = Semaphore.make(1).runNow
@@ -399,21 +399,21 @@ class GitTechniqueReader(
                          }
                          ids match {
                            case Nil      =>
-                             logger.error(
+                             TechniqueReaderLoggerPure.logEffect.error(
                                s"Metadata file ${techniqueDescriptorName} was not found for technique with id ${techniqueId.debugString}."
                              )
                              Option.empty[ObjectStream]
                            case h :: Nil =>
                              Some(repo.db.open(h).openStream)
                            case _        =>
-                             logger.error(
+                             TechniqueReaderLoggerPure.logEffect.error(
                                s"There is more than one Technique with ID '${techniqueId.debugString}', what is forbidden. Please check if several categories have that Technique, and rename or delete the clones."
                              )
                              Option.empty[ObjectStream]
                          }
                        } catch {
                          case ex: FileNotFoundException =>
-                           logger.debug(() => "Template %s does not exist".format(path), ex)
+                           TechniqueReaderLoggerPure.logEffect.debug(s"Template '${path}' does not exist")
                            Option.empty[ObjectStream]
                        }
                      }
@@ -459,19 +459,23 @@ class GitTechniqueReader(
                          }
                          ids match {
                            case Nil      =>
-                             logger.error(s"Template with id ${techniqueResourceId.displayPath} was not found")
+                             TechniqueReaderLoggerPure.logEffect.error(
+                               s"Template with id ${techniqueResourceId.displayPath} was not found"
+                             )
                              Option.empty[ObjectStream]
                            case h :: Nil =>
                              Some(repo.db.open(h).openStream)
                            case _        =>
-                             logger.error(
+                             TechniqueReaderLoggerPure.logEffect.error(
                                s"There is more than one Technique with name '${techniqueResourceId.name}' which is forbidden. Please check if several categories have that Technique and rename or delete the clones"
                              )
                              Option.empty[ObjectStream]
                          }
                        } catch {
                          case ex: FileNotFoundException =>
-                           logger.debug(() => s"Technique Template ${techniqueResourceId.displayPath} does not exist", ex)
+                           TechniqueReaderLoggerPure.logEffect.debug(
+                             s"Technique Template ${techniqueResourceId.displayPath} does not exist"
+                           )
                            Option.empty[ObjectStream]
                        }
                      }
@@ -592,7 +596,7 @@ class GitTechniqueReader(
           prop.load(is)
         } catch {
           case ex: Exception =>
-            logger.error(
+            TechniqueReaderLoggerPure.logEffect.error(
               s"Error when trying to load directive default name from '${directiveDefaultName}' No specific default naming rules will be available. ",
               ex
             )
@@ -831,7 +835,7 @@ class GitTechniqueReader(
               info.subCategories(sid) = cat.copy(techniqueIds = cat.techniqueIds.union(Set(techniqueId)))
               true
             case None      =>
-              logger.error(
+              TechniqueReaderLoggerPure.logEffect.error(
                 s"Can not find the parent (root) category '${descriptorFile.getParent}' for technique '${techniqueId.debugString}'"
               )
               false
@@ -869,9 +873,8 @@ class GitTechniqueReader(
                                      info.techniquesCategory(techniqueId) = parentCategoryId
                                    }
                                  case Some(v) => // error, policy package version already exists
-                                   logger.error(
-                                     "Ignoring package for policy with ID %s and root directory %s because an other policy is already defined with that id and root path %s"
-                                       .format(TechniqueId, descriptorFile.getParent, info.techniquesCategory(techniqueId).toString)
+                                   TechniqueReaderLoggerPure.logEffect.error(
+                                     s"Ignoring package for policy with ID '${techniqueId.debugString}' and root directory '${descriptorFile.getParent}' because an other policy is already defined with that id and root path '${info.techniquesCategory(techniqueId).toString}'"
                                    )
                                }
                            }
