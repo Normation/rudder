@@ -193,8 +193,8 @@ final class RuleStatusReport private (
     val forRule: RuleId,
     val report:  AggregatedStatusReport
 ) extends StatusReport {
-  lazy val compliance: ComplianceLevel = report.compliance
-  lazy val byNodes: Map[NodeId, AggregatedStatusReport] =
+  lazy val compliance: ComplianceLevel                     = report.compliance
+  lazy val byNodes:    Map[NodeId, AggregatedStatusReport] =
     report.reports.groupBy(_.nodeId).view.mapValues(AggregatedStatusReport(_)).toMap
 }
 
