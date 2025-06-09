@@ -1997,7 +1997,7 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                       $(rollback).hide();
                       const confirm = "#confirm" + id.toString();
                       const radios = $(".radio-btn");
-                      const action = getRadioChecked(radios, value => (value != "before" || value != "after") ? null : value);
+                      const action = getRadioChecked(radios, value => (value === "before" || value === "after") ? value : null);
                       if (action !== null) {
                         const confirmHtml = "<div class='d-flex text-start align-items-center'><i class='fa fa-exclamation-triangle fs-2 me-3' aria-hidden='true'></i>Are you sure you want to restore configuration policy " + action + " this</div><span><button class='btn btn-default rollback-action'>Cancel</button></span>&nbsp;&nbsp;<button class='btn btn-danger rollback-action'>Confirm</button></span>";
                         $(confirm).append(confirmHtml).addClass("alert alert-warning d-flex align-items-center");
