@@ -236,8 +236,8 @@ bundle agent file_from_template_jinja2(source_template, path)
   vars:
       "class_prefix"  string => canonify("file_from_template_${path}");
 
-      "jinja2_script"     string => "${sys.workdir}/modules/templates/jinja2-templating.py";
-      "datastate_tpl"     string => "${sys.workdir}/modules/templates/datastate.json.tpl";
+      "jinja2_script"     string => "${configuration.modules_dir}/templates/jinja2-templating.py";
+      "datastate_tpl"     string => "${configuration.modules_dir}/modules/templates/datastate.json.tpl";
       "datastate_file"    string => "${source_template}.datastate.${this.promiser_pid}.json";
       "destination_canon" string => canonify("${path}");
       "destination_tmp"   string => "${source_template}.${this.promiser_pid}.new";
