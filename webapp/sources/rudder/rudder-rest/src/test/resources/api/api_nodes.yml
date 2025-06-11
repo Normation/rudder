@@ -1033,9 +1033,9 @@ response:
         "ipAddresses" : [
           "192.168.0.5"
         ],
-        "acceptanceDate" : "2021-01-30 01:20:00+0100",
+        "acceptanceDate" : "2021-01-30 00:20:00Z",
         "lastRun" : "Never",
-        "lastInventory" : "2021-01-30 01:20:00+0100",
+        "lastInventory" : "2021-01-30 00:20:00Z",
         "software" : {},
         "properties" : {},
         "inheritedProperties" : {},
@@ -1060,9 +1060,9 @@ response:
         "ipAddresses" : [
           "192.168.0.10"
         ],
-        "acceptanceDate" : "2021-01-30 01:20:00+0100",
+        "acceptanceDate" : "2021-01-30 00:20:00Z",
         "lastRun" : "Never",
-        "lastInventory" : "2021-01-30 01:20:00+0100",
+        "lastInventory" : "2021-01-30 00:20:00Z",
         "software" : {},
         "properties" : {},
         "inheritedProperties" : {},
@@ -1087,9 +1087,9 @@ response:
         "ipAddresses" : [
           "192.168.0.10"
         ],
-        "acceptanceDate" : "2021-01-30 01:20:00+0100",
+        "acceptanceDate" : "2021-01-30 00:20:00Z",
         "lastRun" : "Never",
-        "lastInventory" : "2021-01-30 01:20:00+0100",
+        "lastInventory" : "2021-01-30 00:20:00Z",
         "software" : {},
         "properties" : {},
         "inheritedProperties" : {},
@@ -1113,9 +1113,9 @@ response:
         "ipAddresses" : [
           "192.168.0.100"
         ],
-        "acceptanceDate" : "2021-01-30 01:20:00+0100",
+        "acceptanceDate" : "2021-01-30 00:20:00Z",
         "lastRun" : "Never",
-        "lastInventory" : "2021-01-30 01:20:00+0100",
+        "lastInventory" : "2021-01-30 00:20:00Z",
         "software" : {},
         "properties" : {},
         "inheritedProperties" : {},
@@ -1157,9 +1157,9 @@ response:
         "ipAddresses" : [
           "192.168.0.10"
         ],
-        "acceptanceDate" : "2021-01-30 01:20:00+0100",
+        "acceptanceDate" : "2021-01-30 00:20:00Z",
         "lastRun" : "Never",
-        "lastInventory" : "2021-01-30 01:20:00+0100",
+        "lastInventory" : "2021-01-30 00:20:00Z",
         "software" : {
           "s05" : "1.0"
         },
