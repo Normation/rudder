@@ -166,7 +166,7 @@ object NodeConfigurationHash {
       ("i"   -> JArray(
         List(
           hash.id.value,
-          hash.writtenDate.toString(ISODateTimeFormat.dateTime()),
+          hash.writtenDate.toString(ISODateTimeFormat.dateTime().withZoneUTC()),
           hash.nodeInfoHash,
           hash.parameterHash,
           hash.nodeContextHash
@@ -187,7 +187,7 @@ object NodeConfigurationHash {
 
   def extractNodeConfigCache(j: JValue): Either[(String, JValue), NodeConfigurationHash] = {
     def readDate(date: String): Either[(String, JValue), DateTime] = try {
-      Right(ISODateTimeFormat.dateTimeParser().parseDateTime(date))
+      Right(ISODateTimeFormat.dateTimeParser().withZoneUTC().parseDateTime(date))
     } catch {
       case NonFatal(ex) => Left((s"Error, written date can not be parsed as a date: ${date}", JString(date)))
     }
