@@ -14,7 +14,7 @@ use std::path::Path;
 
 /// The mode of the interpreter.
 ///
-/// Different from policy mode, which only affects the save operation.
+/// Different from the policy mode, which only affects the save operation.
 /// Here we limit what the script can do based on the mode to allow pure conditions.
 ///
 /// The unrestricted mode is only available in the REPL.
