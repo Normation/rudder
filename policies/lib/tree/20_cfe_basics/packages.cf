@@ -67,7 +67,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
       "version_description" string => "in any version";
     version_specified.!version_latest::
       "version_description" string => "in version ${version}";
-    
+
     # Log message
     pass3.!(!state_present.version_latest)::
       "message" string => "If you tried to install a virtual package, please use in place the concrete package you want to install.${const.endl}${state_description} of package ${name}${architecture_description}${version_description}",
@@ -128,7 +128,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
   packages:
 
     # Unfortunately, we have to duplicate the 4 cases for each supported package module
-    
+
     #### apt ####
 
     use_apt_provider.architecture_specified.version_specified::
@@ -368,7 +368,7 @@ bundle agent ncf_package(name, version, architecture, provider, state, options)
           classes        => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
     #### nimclient ####
- 
+
     use_nimclient_provider.architecture_specified.version_specified::
       "${name}"
           policy         => "${state}",
@@ -499,8 +499,8 @@ bundle common rudder_rpm_knowledge
 # This common bundle has useful information about platforms using RPM
 {
   vars:
-      "rpm_compare_equal" string => "${sys.workdir}/bin/rpmvercmp '${v1}' eq '${v2}'";
-      "rpm_compare_less"  string => "${sys.workdir}/bin/rpmvercmp '${v1}' lt '${v2}'";
+      "rpm_compare_equal" string => "${sys.bindir}/rpmvercmp '${v1}' eq '${v2}'";
+      "rpm_compare_less"  string => "${sys.bindir}/rpmvercmp '${v1}' lt '${v2}'";
 
 }
 
