@@ -44,6 +44,7 @@ import com.normation.utils.DateFormaterService
 import com.normation.zio.ZioRuntime
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -53,7 +54,7 @@ import zio.ZIO
 @RunWith(classOf[JUnitRunner])
 class ZipUtilsTest extends Specification with BeforeAfterAll {
 
-  val basePath: File = File(s"/tmp/test-rudder-zip/${DateFormaterService.gitTagFormat.print(DateTime.now())}")
+  val basePath: File = File(s"/tmp/test-rudder-zip/${DateFormaterService.gitTagFormat.print(DateTime.now(DateTimeZone.UTC))}")
 
   override def beforeAll(): Unit = {}
 

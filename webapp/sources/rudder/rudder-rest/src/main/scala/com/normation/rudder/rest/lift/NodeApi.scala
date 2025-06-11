@@ -130,6 +130,7 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.OutputStreamResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.collection.MapView
 import scalaj.http.Http
 import scalaj.http.HttpOptions
@@ -376,7 +377,7 @@ class NodeApi(
                       ChangeContext(
                         ModificationId(uuidGen.newUuid),
                         authzToken.qc.actor,
-                        new DateTime(),
+                        new DateTime(DateTimeZone.UTC),
                         _,
                         Some(req.remoteAddr),
                         authzToken.qc.nodePerms
@@ -386,7 +387,7 @@ class NodeApi(
                       ChangeContext(
                         ModificationId(uuidGen.newUuid),
                         authzToken.qc.actor,
-                        new DateTime(),
+                        new DateTime(DateTimeZone.UTC),
                         restNode.reason,
                         Some(req.remoteAddr),
                         authzToken.qc.nodePerms
@@ -838,7 +839,7 @@ class NodeApiService(
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       None,
       Some(actorIp),
       qc.nodePerms
@@ -948,7 +949,7 @@ class NodeApiService(
         NodeState.Enabled,
         isSystem = false,
         isPolicyServer = false,
-        creationDate = DateTime.now,
+        creationDate = DateTime.now(DateTimeZone.UTC),
         nodeReportingConfiguration = ReportingConfiguration(None, None, None),
         properties = Nil,
         policyMode = None,
@@ -1189,7 +1190,7 @@ class NodeApiService(
       _ <- NodeLogger.PendingNodePure.debug(s" Nodes to change Status : ${nodeIds.mkString("[ ", ", ", " ]")}")
 
       res <- modifyStatusFromAction(nodeIds, nodeStatusAction)(
-               ChangeContext(modId, qc.actor, DateTime.now(), None, actorIp, qc.nodePerms)
+               ChangeContext(modId, qc.actor, DateTime.now(DateTimeZone.UTC), None, actorIp, qc.nodePerms)
              )
     } yield {
       res
@@ -1499,8 +1500,9 @@ class NodeApiService(
     val modId = ModificationId(uuidGen.newUuid)
 
     for {
-      info <- removeNodeService
-                .removeNodePure(id, mode)(ChangeContext(modId, qc.actor, DateTime.now(), None, actorIp, qc.nodePerms))
+      info <-
+        removeNodeService
+          .removeNodePure(id, mode)(ChangeContext(modId, qc.actor, DateTime.now(DateTimeZone.UTC), None, actorIp, qc.nodePerms))
     } yield {
       Chunk.fromIterable(info.map(_.toNodeInfo.transformInto[JRNodeInfo]))
     }

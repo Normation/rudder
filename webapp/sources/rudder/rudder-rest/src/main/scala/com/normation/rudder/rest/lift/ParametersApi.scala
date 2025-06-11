@@ -63,6 +63,7 @@ import com.normation.utils.StringUuidGenerator
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.syntax.*
 
 class ParameterApi(
@@ -168,7 +169,7 @@ class ParameterApiService14(
       actor:     EventActor
   )(implicit qc: QueryContext): IOResult[JRGlobalParameter] = {
     implicit val cc: ChangeContext =
-      ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), params.reason, None, qc.nodePerms)
+      ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(DateTimeZone.UTC), params.reason, None, qc.nodePerms)
     for {
       workflow <- workflowLevelService.getForGlobalParam(actor, change)
       cr        = ChangeRequestService.createChangeRequestFromGlobalParameter(

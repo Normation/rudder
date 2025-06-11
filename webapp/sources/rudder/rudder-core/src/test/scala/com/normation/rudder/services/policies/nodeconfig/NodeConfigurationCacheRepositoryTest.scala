@@ -50,6 +50,7 @@ import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.*
 import org.specs2.mutable.*
@@ -75,7 +76,9 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
     }
   }
 
-  val root: File = File(s"/tmp/rudder-test-config-hashes/${new DateTime().toString(ISODateTimeFormat.dateTimeNoMillis())}")
+  val root: File = File(
+    s"/tmp/rudder-test-config-hashes/${new DateTime(DateTimeZone.UTC).toString(ISODateTimeFormat.dateTimeNoMillis())}"
+  )
 
   root.createDirectories()
 
@@ -89,8 +92,8 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
 
   val configHashesRepo = new FileBasedNodeConfigurationHashRepository((root / "node-config-hashes.json").pathAsString)
 
-  val d0 = new DateTime(100)
-  val d1 = new DateTime(500)
+  val d0 = new DateTime("1970-01-01T00:00:00.100Z", DateTimeZone.UTC)
+  val d1 = new DateTime("1970-01-01T00:00:00.500Z", DateTimeZone.UTC)
 
   val h0_0: NodeConfigurationHash = NodeConfigurationHash(NodeId("node0"), d0, 0, 0, 0, Set())
 
@@ -175,9 +178,9 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
     "be written sorted" in {
       val json = {
         """{"hashes": [
-          |  {"i":["node0","1970-01-01T01:00:00.100+01:00",0,0,0],"p":[]},
-          |  {"i":["node1","1970-01-01T01:00:00.100+01:00",0,0,0],"p":[["r0","d0","1.0",0],["r1","d1","1.0",0]]},
-          |  {"i":["node2","1970-01-01T01:00:00.100+01:00",0,0,0],"p":[["r0","d0","1.0",0]]}
+          |  {"i":["node0","1970-01-01T00:00:00.100Z",0,0,0],"p":[]},
+          |  {"i":["node1","1970-01-01T00:00:00.100Z",0,0,0],"p":[["r0","d0","1.0",0],["r1","d1","1.0",0]]},
+          |  {"i":["node2","1970-01-01T00:00:00.100Z",0,0,0],"p":[["r0","d0","1.0",0]]}
           |] }""".stripMargin
       }
 
@@ -197,10 +200,10 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
     "still be written sorted" in {
       val json = {
         """{"hashes": [
-          |  {"i":["node0","1970-01-01T01:00:00.100+01:00",0,0,0],"p":[]},
-          |  {"i":["node1","1970-01-01T01:00:00.500+01:00",0,0,0],"p":[["r0","d0","1.0",0],["r2","d2","1.0",0]]},
-          |  {"i":["node2","1970-01-01T01:00:00.100+01:00",0,0,0],"p":[["r0","d0","1.0",0]]},
-          |  {"i":["node3","1970-01-01T01:00:00.500+01:00",0,0,0],"p":[["r3","d3","1.0",0]]}
+          |  {"i":["node0","1970-01-01T00:00:00.100Z",0,0,0],"p":[]},
+          |  {"i":["node1","1970-01-01T00:00:00.500Z",0,0,0],"p":[["r0","d0","1.0",0],["r2","d2","1.0",0]]},
+          |  {"i":["node2","1970-01-01T00:00:00.100Z",0,0,0],"p":[["r0","d0","1.0",0]]},
+          |  {"i":["node3","1970-01-01T00:00:00.500Z",0,0,0],"p":[["r3","d3","1.0",0]]}
           |] }""".stripMargin
       }
 

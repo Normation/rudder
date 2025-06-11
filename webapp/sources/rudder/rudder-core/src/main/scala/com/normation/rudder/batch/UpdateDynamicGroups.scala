@@ -138,7 +138,7 @@ class UpdateDynamicGroups(
     updateManager =>
 
     private var updateId       = 0L
-    private var lastUpdateTime = new DateTime(0)
+    private var lastUpdateTime = new DateTime(0, DateTimeZone.UTC)
     private var avoidedUpdate  = 0L
     private var currentState: DynamicGroupUpdaterStates = IdleGroupUpdater
     private var onePending         = false
@@ -180,7 +180,7 @@ class UpdateDynamicGroups(
                 LAUpdateDyngroup ! StartDynamicUpdate(
                   updateId,
                   ModificationId(uuidGen.newUuid),
-                  DateTime.now,
+                  DateTime.now(DateTimeZone.UTC),
                   GroupsToUpdate(groupIds._1, groupIds._2)
                 )
               case e: EmptyBox =>
@@ -227,7 +227,7 @@ class UpdateDynamicGroups(
         processUpdate(true)
 
       case GroupUpdateMessage.ForceStartUpdate                                    =>
-        lastUpdateTime = new DateTime(0)
+        lastUpdateTime = new DateTime(0, DateTimeZone.UTC)
         processUpdate(true)
 
       // This case is launched when an update was pending, it only launch the process
@@ -322,7 +322,7 @@ class UpdateDynamicGroups(
                                                     ChangeContext(
                                                       modId,
                                                       RudderEventActor,
-                                                      new DateTime(),
+                                                      new DateTime(DateTimeZone.UTC),
                                                       Some("Update group due to batch update of dynamic groups"),
                                                       None,
                                                       QueryContext.systemQC.nodePerms
@@ -344,7 +344,7 @@ class UpdateDynamicGroups(
                                                     ChangeContext(
                                                       modId,
                                                       RudderEventActor,
-                                                      new DateTime(),
+                                                      new DateTime(DateTimeZone.UTC),
                                                       Some("Update group due to batch update of dynamic groups"),
                                                       None,
                                                       QueryContext.systemQC.nodePerms
@@ -374,14 +374,20 @@ class UpdateDynamicGroups(
                 )
             }).toBox
 
-            updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime, DateTime.now, result)
+            updateManager ! GroupUpdateMessage.DynamicUpdateResult(
+              processId,
+              modId,
+              startTime,
+              DateTime.now(DateTimeZone.UTC),
+              result
+            )
           } catch {
             case e: Exception =>
               updateManager ! GroupUpdateMessage.DynamicUpdateResult(
                 processId,
                 modId,
                 startTime,
-                DateTime.now,
+                DateTime.now(DateTimeZone.UTC),
                 Failure("Exception caught during update process.", Full(e), Empty)
               )
           }

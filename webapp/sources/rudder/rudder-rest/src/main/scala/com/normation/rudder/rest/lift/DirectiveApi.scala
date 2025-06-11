@@ -83,6 +83,7 @@ import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.*
 import zio.syntax.*
 
@@ -449,7 +450,7 @@ class DirectiveApiService14(
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
       actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       params.reason,
       None,
       qc.nodePerms
@@ -482,7 +483,7 @@ class DirectiveApiService14(
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
       actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       params.reason,
       None,
       qc.nodePerms

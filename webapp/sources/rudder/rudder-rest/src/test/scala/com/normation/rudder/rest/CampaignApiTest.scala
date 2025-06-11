@@ -70,7 +70,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
   ZioRuntime.unsafeRun(MainCampaignService.start(restTestSetUp.mockCampaign.mainCampaignService))
   val restTest      = new RestTest(restTestSetUp.liftRules)
 
-  val testDir: File = File(s"/tmp/test-rudder-campaign-${DateFormaterService.serialize(DateTime.now())}")
+  val testDir: File = File(s"/tmp/test-rudder-campaign-${DateFormaterService.serialize(DateTime.now(DateTimeZone.UTC))}")
   testDir.createDirectoryIfNotExists(true)
 
   override def afterAll(): Unit = {

@@ -41,6 +41,7 @@ import com.normation.utils.Utils.isEmpty
 import java.util.Locale
 import net.liftweb.common.*
 import org.apache.commons.io.FilenameUtils
+import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
 import scala.collection.mutable.Map as MutMap
@@ -188,7 +189,7 @@ class DateTimeTranslator(
         try {
           datetimeFormatter match {
             case Some(dtf) => Full(dtf.parseDateTime(x))
-            case None      => Full(new DateTime(x))
+            case None      => Full(new DateTime(x, DateTimeZone.UTC))
           }
         } catch {
           case e: IllegalArgumentException =>

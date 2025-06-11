@@ -63,6 +63,7 @@ import io.scalaland.chimney.partial.Result
 import io.scalaland.chimney.syntax.*
 import java.time.ZonedDateTime
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.json.*
 import zio.json.internal.Write
 import zio.syntax.*
@@ -414,7 +415,7 @@ class ApiAccountMapping(
                   case (None, None, None)                                        => None
                   case (_, Some(ApiAccountExpirationPolicy.Never), _)            => None
                   case (_, _, Some(d))                                           => Some(d.transformInto[DateTime])
-                  case (None, Some(ApiAccountExpirationPolicy.AtDateTime), None) => Some(DateTime.now())
+                  case (None, Some(ApiAccountExpirationPolicy.AtDateTime), None) => Some(DateTime.now(DateTimeZone.UTC))
                   case (Some(e), _, None)                                        => Some(e)
                 }
               }
@@ -485,7 +486,7 @@ object ApiAccountMapping extends DateTimeCodecs {
       uuidGen:        StringUuidGenerator,
       tokenGenerator: TokenGenerator
   ) = {
-    val getNow         = DateTime.now().succeed
+    val getNow         = DateTime.now(DateTimeZone.UTC).succeed
     val generateId     = ApiAccountId(uuidGen.newUuid).succeed
     val generateSecret = ApiTokenSecret.generate(tokenGenerator).transformInto[ClearTextSecret].succeed
     def generateToken(secret: ClearTextSecret): IOResult[ApiTokenHash] =

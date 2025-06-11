@@ -53,6 +53,7 @@ import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.reports.ReportingConfiguration
 import enumeratum.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 
 /**
  * The entry point for a REGISTERED node in Rudder.
@@ -83,7 +84,7 @@ case object Node {
       NodeState.Enabled,
       isSystem = false,
       isPolicyServer = false,
-      creationDate = inventory.node.inventoryDate.getOrElse(new DateTime(0)),
+      creationDate = inventory.node.inventoryDate.getOrElse(new DateTime(0, DateTimeZone.UTC)),
       nodeReportingConfiguration = ReportingConfiguration(None, None, None),
       properties = Nil,
       policyMode = None,

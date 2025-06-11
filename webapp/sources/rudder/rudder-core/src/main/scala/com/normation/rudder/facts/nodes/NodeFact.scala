@@ -80,6 +80,7 @@ import net.liftweb.common.Full
 import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.*
 import zio.json.*
 import zio.json.ast.Json
@@ -670,7 +671,7 @@ object NodeFact {
   }
 
   def newFromFullInventory(inventory: FullInventory, software: Option[Iterable[Software]]): NodeFact = {
-    val now  = DateTime.now()
+    val now  = DateTime.now(DateTimeZone.UTC)
     val fact = NodeFact(
       inventory.node.main.id,
       None,
@@ -1654,7 +1655,7 @@ object ChangeContext {
     ChangeContext(
       ModificationId(java.util.UUID.randomUUID.toString),
       eventlog.RudderEventActor,
-      DateTime.now(),
+      DateTime.now(DateTimeZone.UTC),
       msg,
       actorIp,
       NodeSecurityContext.All
