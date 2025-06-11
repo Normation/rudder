@@ -25,7 +25,7 @@
 # @parameter_constraint if_script "allow_empty_string" : true
 # @parameter            lens Lens to use (defaults to detecting the lens based on file path)
 # @parameter_constraint lens "allow_empty_string" : true
-# @parameter            show_content Show the file content in the report (defaults to true)
+# @parameter            show_content Allow reports to contain extracts of the file content (defaults to true)
 # @parameter_constraint show_content "allow_empty_string" : true
 # @parameter_constraint show_content "select" : [ "", "true", "false" ]
 #

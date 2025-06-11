@@ -100,6 +100,16 @@ impl Debug for Number {
     }
 }
 
+impl Display for Number {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Number::Int(n) => write!(f, "{n}"),
+            Number::Float(n) => write!(f, "{n}"),
+            Number::Bytes(n) => write!(f, "{n}"),
+        }
+    }
+}
+
 impl FromStr for Number {
     type Err = Error;
 
@@ -128,7 +138,7 @@ impl NumericComparison {
     /// Compare the given value with the stored one.
     ///
     /// Evaluates `value self.comparator self.value`.
-    fn matches(&self, value: Number) -> Result<bool> {
+    pub(crate) fn matches(&self, value: Number) -> Result<bool> {
         Ok(match (value, self.value) {
             (Number::Int(a), Number::Int(b)) => self.comparator.numeric_compare(&a, &b),
             (Number::Float(a), Number::Float(b)) => self.comparator.numeric_compare(&a, &b),
@@ -167,6 +177,17 @@ pub enum StrComparator {
     NotMatch,
 }
 
+impl Display for StrComparator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StrComparator::Equal => write!(f, "eq"),
+            StrComparator::NotEqual => write!(f, "neq"),
+            StrComparator::Match => write!(f, "~"),
+            StrComparator::NotMatch => write!(f, "!~"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct StrValidation {
     pub(crate) comparator: StrComparator,
@@ -178,8 +199,8 @@ impl FromStr for StrComparator {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "==" => Ok(StrComparator::Equal),
-            "!=" => Ok(StrComparator::NotEqual),
+            "eq" => Ok(StrComparator::Equal),
+            "neq" => Ok(StrComparator::NotEqual),
             "~" | "=~" => Ok(StrComparator::Match),
             "!~" => Ok(StrComparator::NotMatch),
             _ => bail!("Invalid string comparator '{s}'"),

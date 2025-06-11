@@ -48,6 +48,7 @@ impl Expr<'_> {
             | Expr::Move(..)
             | Expr::Copy(..)
             | Expr::Load
+            | Expr::LoadFile(..)
             | Expr::Rename(..) => ExprType::Write,
             Expr::Check(..) => ExprType::Read,
             Expr::Save | Expr::Quit => ExprType::Effect,

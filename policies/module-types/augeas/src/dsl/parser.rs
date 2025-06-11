@@ -91,6 +91,8 @@ pub enum Expr<'src> {
     Quit,
     /// (Re)load the tree.
     Load,
+    /// Load a file in the Augeas tree.
+    LoadFile(AugPath<'src>),
 }
 
 #[derive(Parser)]
@@ -218,6 +220,7 @@ fn parse_command(pair: Pair<Rule>) -> Result<Expr> {
             Expr::DefineNode(name, path.into(), value)
         }
         Rule::load => Expr::Load,
+        Rule::load_file => Expr::LoadFile(pair.into_inner().next().unwrap().as_str().into()),
         Rule::insert => {
             let mut inner_rules = pair.into_inner();
             let label: &str = inner_rules.next().unwrap().as_str();

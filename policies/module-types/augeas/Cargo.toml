@@ -22,7 +22,7 @@ serde_with = "3"
 similar = "2.6.0"
 regex = "1.11.1"
 rudder_module_type = { path = "../../rudder-module-type" }
-raugeas = "0.3.1"
+raugeas = "1.0.0"
 rustyline = "15"
 secrecy = "0.10"
 zxcvbn = "3"
