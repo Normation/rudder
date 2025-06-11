@@ -19,7 +19,7 @@ fn user_is_missing() {
         .execute(get_lib_path(), workdir.path().to_path_buf());
 
     r.assert_legacy_result_conditions(&tested_method.clone(), vec![MethodStatus::Success]);
-    r.assert_log_v4_result_conditions(&tested_method, MethodStatus::Success);
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Success);
 
     assert!(
         get_user_by_name(&user_name).is_none(),
@@ -42,7 +42,7 @@ fn add_user() {
         .execute(get_lib_path(), workdir.path().to_path_buf());
 
     r.assert_legacy_result_conditions(&tested_method.clone(), vec![MethodStatus::Repaired]);
-    r.assert_log_v4_result_conditions(&tested_method, MethodStatus::Repaired);
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Repaired);
 
     assert!(
         get_user_by_name(&user_name).is_some(),
@@ -68,7 +68,7 @@ fn remove_user() {
         .execute(get_lib_path(), workdir.path().to_path_buf());
 
     r.assert_legacy_result_conditions(&tested_method.clone(), vec![MethodStatus::Repaired]);
-    r.assert_log_v4_result_conditions(&tested_method, MethodStatus::Repaired);
+    r.assert_log_v4_result_conditions(tested_method, MethodStatus::Repaired);
 
     assert!(
         get_user_by_name(&user_name).is_none(),
