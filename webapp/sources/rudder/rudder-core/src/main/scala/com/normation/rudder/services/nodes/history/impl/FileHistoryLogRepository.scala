@@ -25,6 +25,7 @@ import com.normation.inventory.domain.InventoryError
 import com.normation.rudder.services.nodes.history.HistoryLogRepository
 import java.io.File
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.reflect.ClassTag
 import zio.*
 import zio.syntax.*
@@ -77,7 +78,7 @@ trait VersionToFilenameConverter[V] {
  *
  * Any datas type may be used, as long as they can be read/write from
  * files.
- * 
+ *
  * Version is DateTime but can be abstracted over, if DefaultHLog is abstracted.
  */
 class FileHistoryLogRepository[ID: ClassTag, T](
@@ -133,7 +134,7 @@ class FileHistoryLogRepository[ID: ClassTag, T](
    * Save an inventory and return the ID of the saved inventory, and
    * its version
    */
-  def save(id: ID, data: T, datetime: DateTime = DateTime.now): IOResult[HLog] = {
+  def save(id: ID, data: T, datetime: DateTime = DateTime.now(DateTimeZone.UTC)): IOResult[HLog] = {
     converter.idToFilename(id) match {
       case null | ""                                                         =>
         InventoryError.Inconsistency("History log name can not be null nor empty").fail

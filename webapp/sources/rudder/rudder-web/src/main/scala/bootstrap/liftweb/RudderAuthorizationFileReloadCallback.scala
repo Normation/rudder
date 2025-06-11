@@ -40,6 +40,7 @@ package bootstrap.liftweb
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.users.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 
 /*
  * A callback that is in charge of updating the list of UserInfo managed by the file authenticator.
@@ -53,7 +54,11 @@ object UserRepositoryUpdateOnFileReload {
           .setExistingUsers(
             DefaultAuthBackendProvider.FILE,
             userList.users.keys.toList,
-            EventTrace(RudderEventActor, DateTime.now(), "Updating users because `rudder-users.xml` was reloaded"),
+            EventTrace(
+              RudderEventActor,
+              DateTime.now(DateTimeZone.UTC),
+              "Updating users because `rudder-users.xml` was reloaded"
+            ),
             userList.isCaseSensitive
           )
           .unit

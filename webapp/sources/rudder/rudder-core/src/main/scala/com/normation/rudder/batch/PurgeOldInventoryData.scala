@@ -46,6 +46,7 @@ import com.normation.zio.*
 import cron4s.CronExpr
 import java.time.Instant
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.*
 
 /**
@@ -106,7 +107,7 @@ class PurgeOldInventoryData(
 
   // the part for inventory data in jdbc
   val cleanHistoricalInventories: ZIO[Any, Nothing, Unit] = {
-    val now            = DateTime.now()
+    val now            = DateTime.now(DateTimeZone.UTC)
     val deleteAccepted = (for {
       ids <- inventoryHistory.deleteFactCreatedBefore(now.minus(deleteLogAccepted.toMillis))
       _   <- InventoryProcessingLogger.info(

@@ -43,10 +43,12 @@ import com.normation.inventory.domain.*
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.inventory.domain.VmType.*
 import com.normation.inventory.services.provisioning.*
+import com.normation.utils.DateFormaterService
 import com.normation.utils.HostnameRegex
 import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*
 import java.net.InetAddress
+import java.time.Instant
 import java.util.Locale
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
@@ -769,7 +771,7 @@ class FusionInventoryParser(
             InventoryProcessingLogger.logEffect.warn(s"Error when parsing date for last user login. ${err}")
             None
           case Right(time) =>
-            Some(time)
+            Some(DateFormaterService.toInstant(time))
         }
       }
     )
@@ -1008,7 +1010,7 @@ class FusionInventoryParser(
       val idss = if (ids.isEmpty) None else Some(ids)
       // date should be normalized, but in case of error, report and set to None
       val dd   = date.flatMap(x => {
-        JsonSerializers.parseSoftwareUpdateDateTime(x) match {
+        JsonSerializers.parseSoftwareUpdateInstant(x) match {
           case Left(err)    =>
             InventoryProcessingLogger.info(s"Error when parsing date for software update ${n}: ${err}")
             None
@@ -1059,7 +1061,7 @@ class FusionInventoryParser(
         Some(
           Bios(
             name = model,
-            releaseDate = date,
+            releaseDate = date.map(DateFormaterService.toInstant),
             editor = optText(b \ "BMANUFACTURER").map(s => new SoftwareEditor(s)),
             version = optText(b \ "BVERSION").map(v => new Version(v)),
             manufacturer = systemManufacturer,
@@ -1361,13 +1363,13 @@ class FusionInventoryParser(
     }
   }
 
-  def processAccessLog(accessLog: NodeSeq): Option[DateTime] = {
+  def processAccessLog(accessLog: NodeSeq): Option[Instant] = {
     val fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
     optText(accessLog \ "LOGDATE") match {
       case None       => None;
       case Some(date) =>
         try {
-          Some(DateTime.parse(date, fmt))
+          Some(DateFormaterService.toInstant(DateTime.parse(date, fmt)))
         } catch {
           case e: IllegalArgumentException =>
             InventoryProcessingLogger.logEffect.warn("error when parsing ACCESSLOG, reason %s".format(e.getMessage()))

@@ -50,9 +50,11 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.repository.*
+import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 
 /**
  * That class add all the available reference template in
@@ -93,7 +95,7 @@ class CheckInitUserTemplateLibrary(
         root.getAsGTime(A_INIT_DATETIME) match {
           case Some(date) =>
             BootstrapLogger.logEffect.debug(
-              "The root user template library was initialized on %s".format(date.dateTime.toString("YYYY/MM/dd HH:mm"))
+              s"The root user template library was initialized on ${DateFormaterService.serializeInstant(date.instant)}"
             )
           case None       =>
             BootstrapLogger.logEffect.info(
@@ -112,7 +114,7 @@ class CheckInitUserTemplateLibrary(
                 asyncDeploymentAgent ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
             }
             root.addValues(A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
-            root.resetValuesTo(A_INIT_DATETIME, GeneralizedTime(DateTime.now()).toString)
+            root.resetValuesTo(A_INIT_DATETIME, GeneralizedTime(DateTime.now(DateTimeZone.UTC)).toString)
             ldap.flatMap(_.save(root)).toBox match {
               case eb: EmptyBox =>
                 val e = eb ?~! "Error when updating information about the LDAP root entry of technique library."

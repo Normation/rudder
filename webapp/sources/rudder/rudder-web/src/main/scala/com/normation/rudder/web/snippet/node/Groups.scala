@@ -54,6 +54,7 @@ import com.normation.rudder.web.components.NodeGroupForm
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
 import com.normation.rudder.web.services.DisplayNodeGroupTree
 import com.normation.rudder.web.snippet.WithNonce
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -63,6 +64,7 @@ import net.liftweb.json.*
 import net.liftweb.util.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.xml.*
 
 object Groups {
@@ -477,7 +479,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                   ChangeContext(
                     ModificationId(uuidGen.newUuid),
                     qc.actor,
-                    new DateTime(),
+                    Instant.now(),
                     Some("Group moved by user"),
                     None,
                     qc.nodePerms

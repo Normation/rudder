@@ -52,7 +52,7 @@ import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.reports.ReportingConfiguration
 import enumeratum.*
-import org.joda.time.DateTime
+import java.time.Instant
 
 /**
  * The entry point for a REGISTERED node in Rudder.
@@ -67,7 +67,7 @@ final case class Node(
     state:                      NodeState,
     isSystem:                   Boolean,
     isPolicyServer:             Boolean,
-    creationDate:               DateTime,
+    creationDate:               Instant,
     nodeReportingConfiguration: ReportingConfiguration,
     properties:                 List[NodeProperty],
     policyMode:                 Option[PolicyMode],
@@ -83,7 +83,7 @@ case object Node {
       NodeState.Enabled,
       isSystem = false,
       isPolicyServer = false,
-      creationDate = inventory.node.inventoryDate.getOrElse(new DateTime(0)),
+      creationDate = inventory.node.inventoryDate.getOrElse(Instant.ofEpochMilli(0)),
       nodeReportingConfiguration = ReportingConfiguration(None, None, None),
       properties = Nil,
       policyMode = None,

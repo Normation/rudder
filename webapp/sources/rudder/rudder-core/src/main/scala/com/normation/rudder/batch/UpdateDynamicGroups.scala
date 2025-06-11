@@ -50,9 +50,11 @@ import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.utils.ParseMaxParallelism
+import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.utils.Utils.DateToIsoString
 import com.normation.zio.*
+import java.time.Instant
 import net.liftweb.actor.*
 import net.liftweb.common.*
 import org.joda.time.*
@@ -68,8 +70,8 @@ object GroupUpdateMessage {
   final case class DynamicUpdateResult(
       id:      Long,
       modId:   ModificationId,
-      start:   DateTime,
-      end:     DateTime,
+      start:   Instant,
+      end:     Instant,
       results: Box[List[(NodeGroupId, Either[RudderError, DynGroupDiff])]]
   ) extends GroupUpdateMessage
 }
@@ -81,7 +83,7 @@ sealed trait DynamicGroupUpdaterStates //states into wich the updater process ca
 //the process is idle
 case object IdleGroupUpdater extends DynamicGroupUpdaterStates
 //an update is currently running for the given nodes
-final case class StartDynamicUpdate(id: Long, modId: ModificationId, started: DateTime, groupIds: GroupsToUpdate)
+final case class StartDynamicUpdate(id: Long, modId: ModificationId, started: Instant, groupIds: GroupsToUpdate)
     extends DynamicGroupUpdaterStates
 
 /**
@@ -138,7 +140,7 @@ class UpdateDynamicGroups(
     updateManager =>
 
     private var updateId       = 0L
-    private var lastUpdateTime = new DateTime(0)
+    private var lastUpdateTime = new DateTime(0, DateTimeZone.UTC)
     private var avoidedUpdate  = 0L
     private var currentState: DynamicGroupUpdaterStates = IdleGroupUpdater
     private var onePending         = false
@@ -180,7 +182,7 @@ class UpdateDynamicGroups(
                 LAUpdateDyngroup ! StartDynamicUpdate(
                   updateId,
                   ModificationId(uuidGen.newUuid),
-                  DateTime.now,
+                  Instant.now(),
                   GroupsToUpdate(groupIds._1, groupIds._2)
                 )
               case e: EmptyBox =>
@@ -227,7 +229,7 @@ class UpdateDynamicGroups(
         processUpdate(true)
 
       case GroupUpdateMessage.ForceStartUpdate                                    =>
-        lastUpdateTime = new DateTime(0)
+        lastUpdateTime = new DateTime(0, DateTimeZone.UTC)
         processUpdate(true)
 
       // This case is launched when an update was pending, it only launch the process
@@ -241,7 +243,7 @@ class UpdateDynamicGroups(
       //
       case GroupUpdateMessage.DynamicUpdateResult(id, modId, start, end, results) => // TODO: other log ?
         DynamicGroupLoggerPure.logEffect.trace(s"Get result for process: ${id}")
-        lastUpdateTime = start
+        lastUpdateTime = DateFormaterService.toDateTime(start)
         currentState = IdleGroupUpdater
 
         // If one update is pending, immediately start a new group update
@@ -257,7 +259,8 @@ class UpdateDynamicGroups(
 
         // log some information
         DynamicGroupLoggerPure.logEffect.debug(
-          s"Dynamic group update in ${new Duration(end.getMillis - start.getMillis).toPeriod().toString} (started at ${start.toIsoStringNoMillis}, ended at ${end.toIsoStringNoMillis})"
+          s"Dynamic group update in ${new Duration(end.toEpochMilli - start.toEpochMilli).toPeriod().toString} (started at ${DateFormaterService
+              .serializeInstant(start)}, ended at ${DateFormaterService.serializeInstant(end)})"
         )
 
         for {
@@ -322,7 +325,7 @@ class UpdateDynamicGroups(
                                                     ChangeContext(
                                                       modId,
                                                       RudderEventActor,
-                                                      new DateTime(),
+                                                      Instant.now(),
                                                       Some("Update group due to batch update of dynamic groups"),
                                                       None,
                                                       QueryContext.systemQC.nodePerms
@@ -344,7 +347,7 @@ class UpdateDynamicGroups(
                                                     ChangeContext(
                                                       modId,
                                                       RudderEventActor,
-                                                      new DateTime(),
+                                                      Instant.now(),
                                                       Some("Update group due to batch update of dynamic groups"),
                                                       None,
                                                       QueryContext.systemQC.nodePerms
@@ -374,14 +377,20 @@ class UpdateDynamicGroups(
                 )
             }).toBox
 
-            updateManager ! GroupUpdateMessage.DynamicUpdateResult(processId, modId, startTime, DateTime.now, result)
+            updateManager ! GroupUpdateMessage.DynamicUpdateResult(
+              processId,
+              modId,
+              startTime,
+              Instant.now(),
+              result
+            )
           } catch {
             case e: Exception =>
               updateManager ! GroupUpdateMessage.DynamicUpdateResult(
                 processId,
                 modId,
                 startTime,
-                DateTime.now,
+                Instant.now(),
                 Failure("Exception caught during update process.", Full(e), Empty)
               )
           }

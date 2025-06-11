@@ -54,6 +54,7 @@ import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.services.policies.PolicyId
 import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.*
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.*
@@ -75,7 +76,7 @@ class ReportingServiceUtilsTest extends Specification {
   val dir2:  DirectiveId = DirectiveId(DirectiveUid("dir2"))
   val dir3:  DirectiveId = DirectiveId(DirectiveUid("dir3"))
 
-  val expiration = new DateTime(0) // not used
+  val expiration = new DateTime(0, DateTimeZone.UTC) // not used
 
   val noOverrides = Nil
   def dirReport(id: DirectiveId): (DirectiveId, DirectiveStatusReport) =
@@ -133,8 +134,9 @@ class ReportingServiceUtilsTest extends Specification {
     }
 
     def isSameReportAs(report2: AggregatedStatusReport): MatchResult[Set[RuleNodeStatusReport]] = {
-      report1.reports.modify(_.each.expirationDate).setTo(new DateTime(0)) ===
-      report2.reports.modify(_.each.expirationDate).setTo(new DateTime(0))
+      report1.reports.modify(_.each.expirationDate).setTo(new DateTime(0, DateTimeZone.UTC)) === report2.reports
+        .modify(_.each.expirationDate)
+        .setTo(new DateTime(0, DateTimeZone.UTC))
     }
   }
 

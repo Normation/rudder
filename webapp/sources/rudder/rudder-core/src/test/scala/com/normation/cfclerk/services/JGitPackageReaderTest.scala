@@ -54,6 +54,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.eclipse.jgit.api.Git
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
@@ -383,7 +384,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
  */
 @RunWith(classOf[JUnitRunner])
 class JGitPackageReader_SameRootTest extends JGitPackageReaderSpec {
-  lazy val gitRoot = new File("/tmp/test-jgit-" + DateTime.now().toString())
+  lazy val gitRoot = new File("/tmp/test-jgit-" + DateTime.now(DateTimeZone.UTC).toString())
   lazy val ptLib   = gitRoot
   lazy val relativePathArg: Option[String] = None
   def postInitHook():       Unit           = {}
@@ -397,7 +398,7 @@ class JGitPackageReader_SameRootTest extends JGitPackageReaderSpec {
  */
 @RunWith(classOf[JUnitRunner])
 class JGitPackageReader_ChildRootTest extends JGitPackageReaderSpec {
-  lazy val gitRoot      = new File("/tmp/test-jgit-" + DateTime.now().toString())
+  lazy val gitRoot      = new File("/tmp/test-jgit-" + DateTime.now(DateTimeZone.UTC).toString())
   lazy val ptLibDirName = "techniques"
   lazy val ptLib        = new File(gitRoot, ptLibDirName)
   lazy val relativePathArg: Some[String] = Some("  /" + ptLibDirName + "/  ")

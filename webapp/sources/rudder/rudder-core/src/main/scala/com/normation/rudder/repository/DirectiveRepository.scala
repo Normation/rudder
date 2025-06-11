@@ -55,6 +55,7 @@ import com.softwaremill.quicklens.*
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.collection.SortedMap
 
 /**
@@ -124,7 +125,7 @@ final case class FullActiveTechnique(
     // must not change from generation to the next, so => Epoch.
     this.copy(
       techniques = techniques ++ here.map(t => (t.id.version, t)),
-      acceptationDatetimes = acceptationDatetimes ++ here.map(t => (t.id.version, new DateTime(0)))
+      acceptationDatetimes = acceptationDatetimes ++ here.map(t => (t.id.version, new DateTime(0, DateTimeZone.UTC)))
     )
   }
 
@@ -278,7 +279,7 @@ final case class FullActiveTechniqueCategory(
     if (this.id == categoryId) {
       // only keep technique with the good name
       val techs    = techniques.filter(_.id.name == techniqueName)
-      val now      = DateTime.now()
+      val now      = DateTime.now(DateTimeZone.UTC)
       val newTimes = techs.map(t => (t.id.version, now))
       val newTechs = techs.map(t => (t.id.version, t))
       val updated  = activeTechniques.find(_.id.value == techniqueName.value) match {

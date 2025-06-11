@@ -56,6 +56,7 @@ import com.normation.rudder.services.nodes.history.impl.InventoryHistoryLogRepos
 import com.normation.zio.*
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.*
 
 /*
@@ -96,7 +97,7 @@ class MigrateNodeAcceptationInventories(
       FactLogData(NodeFact.newFromFullInventory(data, None), migrationActor, data.node.main.status),
       date
     ) *> ZIO.when(deleted) {
-      jdbcLogRepository.saveDeleteEvent(id, DateTime.now(), migrationActor)
+      jdbcLogRepository.saveDeleteEvent(id, DateTime.now(DateTimeZone.UTC), migrationActor)
     }
   }
 
@@ -153,7 +154,7 @@ class MigrateNodeAcceptationInventories(
   override def checks(): Unit = {
     val prog = {
       for {
-        _ <- migrateAll(DateTime.now())
+        _ <- migrateAll(DateTime.now(DateTimeZone.UTC))
       } yield ()
     }
 

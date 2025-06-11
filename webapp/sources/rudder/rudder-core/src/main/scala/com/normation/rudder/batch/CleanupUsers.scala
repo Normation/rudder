@@ -46,6 +46,7 @@ import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import cron4s.CronExpr
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.*
 
 /**
@@ -85,7 +86,7 @@ class CleanupUsers(
    */
   val cleanup: UIO[Unit] = for {
     t0   <- currentTimeMillis
-    d     = new DateTime(t0)
+    d     = new DateTime(t0, DateTimeZone.UTC)
     trace = EventTrace(RudderEventActor, d, _)
     _    <-
       // disable current users known not to be admin

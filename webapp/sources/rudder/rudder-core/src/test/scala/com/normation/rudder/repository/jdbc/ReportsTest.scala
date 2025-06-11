@@ -54,6 +54,7 @@ import doobie.*
 import doobie.implicits.*
 import net.liftweb.common.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import zio.interop.catz.*
@@ -231,7 +232,7 @@ class ReportsTest extends DBCommon {
      * - test case where there is no StartRun/EndRun
      */
     "get reports" in {
-      val res      = repostsRepo.getReportsFromId(0, DateTime.now().plusDays(1)).open
+      val res      = repostsRepo.getReportsFromId(0, DateTime.now(DateTimeZone.UTC).plusDays(1)).open
       val expected = Seq(
         AgentRun(AgentRunId(NodeId("n0"), run1), None, 109),
         AgentRun(AgentRunId(NodeId("n1"), run1), Some(NodeConfigId("n1_run1")), 115),

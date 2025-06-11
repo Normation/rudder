@@ -57,6 +57,7 @@ import io.scalaland.chimney.*
 import io.scalaland.chimney.syntax.*
 import java.util.regex.PatternSyntaxException
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
 import zio.json.*
@@ -530,7 +531,7 @@ case object DateComparator extends LDAPCriterionType {
 
   private def parseDate(value: String): PureResult[DateTime] = {
     allFmts
-      .map(f => Either.catchOnly[Exception](f.parseDateTime(value)))
+      .map(f => Either.catchOnly[Exception](f.parseDateTime(value).withZone(DateTimeZone.UTC)))
       .reduceLeft(_ orElse _)
       .leftMap(error(value, _))
   }

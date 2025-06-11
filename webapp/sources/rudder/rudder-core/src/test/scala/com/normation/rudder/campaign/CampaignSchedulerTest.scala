@@ -50,7 +50,7 @@ import org.specs2.runner.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class CampaignSchedulerTest extends Specification {
 
-  val now:       DateTime     = DateTime.now().withZone(DateTimeZone.UTC)
+  val now:       DateTime     = DateTime.now(DateTimeZone.UTC)
   val defaultTz: DateTimeZone = DateTimeZone.getDefault()
 
   "A monthly campaign schedule set during december" should {

@@ -89,8 +89,8 @@ import enumeratum.Enum
 import enumeratum.EnumEntry
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.dsl.*
+import java.time.Instant
 import java.time.LocalTime
-import org.joda.time.DateTime
 import zio.*
 import zio.Tag as _
 import zio.json.*
@@ -250,9 +250,9 @@ object JsonResponseObjects {
       machine:                     Option[nodes.MachineInfo],
       ipAddresses:                 Option[Chunk[String]],
       description:                 Option[String],
-      acceptanceDate:              Option[DateTime],
-      lastInventoryDate:           Option[DateTime],
-      lastRunDate:                 Option[DateTime],
+      acceptanceDate:              Option[Instant],
+      lastInventoryDate:           Option[Instant],
+      lastRunDate:                 Option[Instant],
       policyServerId:              Option[NodeId],
       managementTechnology:        Option[Chunk[JRNodeDetailLevel.Management]],
       properties:                  Option[Chunk[JRProperty]],
@@ -309,7 +309,7 @@ object JsonResponseObjects {
         .withFieldComputed(_.lastInventoryDate, levelField("lastInventoryDate")(nodeInfo.inventoryDate))
         .withFieldComputed(
           _.lastRunDate,
-          levelField(_)("lastRunDate")(agentRun.map(_.agentRunId.date))
+          levelField(_)("lastRunDate")(agentRun.map(x => DateFormaterService.toInstant(x.agentRunId.date)))
         )
         .withFieldComputed(_.policyServerId, levelField("policyServerId")(nodeInfo.policyServerId))
         .withFieldComputed(

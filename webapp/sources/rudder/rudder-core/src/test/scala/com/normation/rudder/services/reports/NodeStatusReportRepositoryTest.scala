@@ -54,6 +54,7 @@ import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
@@ -67,7 +68,7 @@ import zio.*
 @RunWith(classOf[JUnitRunner])
 class NodeStatusReportRepositoryTest extends Specification {
 
-  val expiration: DateTime = DateTime.now()
+  val expiration: DateTime = DateTime.now(DateTimeZone.UTC)
   val beginDate:  DateTime = expiration.minusMinutes(10) // report generation time
   val expired:    DateTime = expiration.minusMinutes(5)
   val stillOk:    DateTime = expiration.plusMinutes(5)

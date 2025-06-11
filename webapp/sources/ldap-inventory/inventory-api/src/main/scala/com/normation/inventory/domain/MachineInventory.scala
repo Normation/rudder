@@ -38,7 +38,7 @@
 package com.normation.inventory.domain
 
 import enumeratum.*
-import org.joda.time.DateTime
+import java.time.Instant
 import zio.json.*
 
 sealed trait PhysicalElement {
@@ -51,7 +51,7 @@ final case class Bios(
     description:  Option[String] = None,
     version:      Option[Version] = None,
     editor:       Option[SoftwareEditor] = None,
-    releaseDate:  Option[DateTime] = None,
+    releaseDate:  Option[Instant] = None,
     manufacturer: Option[Manufacturer] = None,
     serialNumber: Option[String] = None,
     quantity:     Int = 1
@@ -197,8 +197,8 @@ final case class MachineInventory(
     machineType:        MachineType,
     name:               Option[String] = None,
     mbUuid:             Option[MotherBoardUuid] = None,
-    inventoryDate:      Option[DateTime] = None,
-    receiveDate:        Option[DateTime] = None,
+    inventoryDate:      Option[Instant] = None,
+    receiveDate:        Option[Instant] = None,
     manufacturer:       Option[Manufacturer] = None,
     systemSerialNumber: Option[String] = None,
     bios:               Seq[Bios] = Nil,
