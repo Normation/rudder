@@ -8,7 +8,7 @@ use crate::dsl::{
     script::{ExprType, Script},
 };
 use anyhow::{Result, bail};
-use raugeas::{Augeas, Span};
+use raugeas::Augeas;
 use rudder_module_type::{rudder_debug, rudder_trace};
 use std::path::Path;
 
@@ -270,10 +270,21 @@ impl<'a> Interpreter<'a> {
                 if matches.is_empty() {
                     bail!("No matches for path {}", path);
                 }
-                let values = matches
-                    .iter()
-                    .map(|m| (self.aug.get(m).unwrap().unwrap(), self.aug.span(m).unwrap()))
-                    .collect::<Vec<(String, Option<Span>)>>();
+
+                rudder_debug!("Found {} matches for path {}", matches.len(), path);
+
+                let mut values = vec![];
+                for v in matches {
+                    let get = self.aug.get(&v)?;
+                    let span = self.aug.span(&v)?;
+                    if let Some(value) = get {
+                        rudder_debug!("Value for match {}: {}", &value, value);
+                        values.push((value.clone(), span));
+                    } else {
+                        bail!("No value for match {}, try adding /*", v);
+                    }
+                }
+
                 let values_str = values
                     .iter()
                     .map(|(s, _)| s.as_ref())

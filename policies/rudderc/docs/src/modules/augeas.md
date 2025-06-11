@@ -14,17 +14,20 @@ The supported comparison types are:
 
 The known types are:
 
-* `ip`
-* `ipv4`
-* `ipv6`
-* `ip_range`
-* `iv4_range`
-* `ipv6_range`
-* `bytes`
-* `int`
-* `uint`
-* `float`
-* `bool`
+* `ip`: This is a general type that can be used for both IPv4 and IPv6 addresses.
+* `ipv4`: This type is specifically for IPv4 addresses.
+* `ipv6`: This type is specifically for IPv6 addresses.
+* `ip_range`: This type is for IP ranges, which can be either IPv4 or IPv6.
+* `iv4_range`: This type is specifically for IPv4 ranges.
+* `ipv6_range`: This type is specifically for IPv6 ranges.
+* `bytes`: This type is for size values, such as file sizes or memory sizes, and can be suffixed with `B`, `KB`, `MB`,
+  `GB`, `KiB`, `MiB`, `GiB`, etc.
+* `int`: This type is for integer values, which can be either positive or negative.
+* `uint`: This type is for unsigned integer values, which can only be positive.
+* `float`: This type is for floating-point numbers, which can be either positive or negative.
+* `bool`: This type is for boolean values, which can be either `true` or `false`.
+
+### List comparisons
 
 ### Password checks
 
