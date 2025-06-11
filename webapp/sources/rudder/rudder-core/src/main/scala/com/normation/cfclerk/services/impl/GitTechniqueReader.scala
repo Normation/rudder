@@ -56,7 +56,6 @@ import java.io.FileNotFoundException
 import java.io.InputStream
 import java.io.IOException
 import java.nio.charset.StandardCharsets
-import net.liftweb.common.*
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.errors.MissingObjectException
@@ -710,7 +709,7 @@ class GitTechniqueReader(
             case _                                                                                                          =>
               // unknown sub-technique category, may happen in case we end up in a corrupted technique library, just skip it
               // see https://issues.rudder.io/issues/26912
-              logger.warn(
+              TechniqueReaderLoggerPure.logEffect.warn(
                 s"Can not find the subcategory ${h} back in the parsed technique information, the technique library may have inconsistencies"
               )
               recBuildRoot(root, techniqueInfos, tail)
