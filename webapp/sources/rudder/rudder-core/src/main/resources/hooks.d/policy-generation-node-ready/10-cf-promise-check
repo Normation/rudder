@@ -16,7 +16,7 @@ if [ -z "${RUDDER_POLICIES_DIRECTORY_NEW}" ]; then
 else
   case "${RUDDER_AGENT_TYPE}" in
     "cfengine-community")
-      exec /var/rudder/cfengine-community/bin/cf-promises -f "${RUDDER_POLICIES_DIRECTORY_NEW}/promises.cf"
+      exec /opt/rudder/bin/cf-promises -f "${RUDDER_POLICIES_DIRECTORY_NEW}/promises.cf"
     ;;
 
     "dsc")
