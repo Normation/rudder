@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: CC-BY-SA-2.0
 # SPDX-FileCopyrightText: 2013-2020 Normation SAS
-get:
+post:
   summary: Reload users
   description: Reload the users from the file system, in the configuration file
   operationId: reloadUserConf
