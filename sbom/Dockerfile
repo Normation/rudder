@@ -1,4 +1,4 @@
-FROM rust:1.85.0-bookworm
+FROM rust:1.87.0-bookworm
 LABEL ci=rudder/policies/Dockerfile
 
 ARG USER_ID=1000

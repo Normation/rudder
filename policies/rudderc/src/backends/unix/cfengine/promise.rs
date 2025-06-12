@@ -70,8 +70,7 @@ impl PromiseType {
                 AttributeType::UseBundle,
             ],
         }
-        .iter()
-        .any(|a| attribute_type == *a)
+        .contains(&attribute_type)
     }
 }
 

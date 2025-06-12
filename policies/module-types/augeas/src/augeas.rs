@@ -367,7 +367,7 @@ mod tests {
     #[test]
     fn it_writes_file_from_commands_in_new_file() {
         let mut augeas = Augeas::new_module(None, vec![]).unwrap();
-        let d = tempdir().unwrap().into_path();
+        let d = tempdir().unwrap().keep();
         let f = d.join("test");
         let lens = "Simplelines";
 
@@ -386,13 +386,14 @@ mod tests {
         assert_eq!(r, Outcome::repaired("".to_string()));
         let content = read_to_string(&f).unwrap();
         assert_eq!(content.trim(), "hello world");
+        fs::remove_dir_all(d).unwrap();
     }
 
     #[ignore]
     #[test]
     fn it_writes_file_from_commands_in_existing_file() {
         let mut augeas = Augeas::new_module(None, vec![]).unwrap();
-        let d = tempdir().unwrap().into_path();
+        let d = tempdir().unwrap().keep();
         let f = d.join("test");
         let lens = "Simplelines";
 
@@ -413,12 +414,13 @@ mod tests {
         assert_eq!(r, Outcome::repaired("".to_string()));
         let content = read_to_string(&f).unwrap();
         assert_eq!(content.trim(), "world");
+        fs::remove_dir_all(d).unwrap();
     }
 
     #[test]
     fn it_stops_on_files_too_big() {
         let mut augeas = Augeas::new_module(None, vec![]).unwrap();
-        let d = tempdir().unwrap().into_path();
+        let d = tempdir().unwrap().keep();
         let f = d.join("test");
         let lens = "Simplelines";
 
@@ -439,5 +441,6 @@ mod tests {
             .unwrap();
         assert!(r.to_string().starts_with("File is too big to be loaded"));
         assert!(r.to_string().ends_with(" (5 B > 0 B)"));
+        fs::remove_dir_all(d).unwrap();
     }
 }
