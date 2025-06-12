@@ -52,7 +52,7 @@ import zio.interop.catz.*
 
 @RunWith(classOf[JUnitRunner])
 class TestMigrateTableReportsExecution extends DBCommon with IOChecker {
-  import CheckTableReportsExecutionTz.*
+  import bootstrap.liftweb.checks.earlyconfig.db.CheckTableReportsExecutionTz.*
 
   val testTable = "reportsexecutiontest"
 

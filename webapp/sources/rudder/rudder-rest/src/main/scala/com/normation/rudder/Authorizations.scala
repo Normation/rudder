@@ -308,7 +308,7 @@ case class Rights private (authorizationTypes: Set[AuthorizationType]) {
 
 object Rights {
 
-  val NoRights: Rights = Rights.forAuthzs(AuthorizationType.NoRights)
+  val NoRights: Rights = new Rights(Set(AuthorizationType.NoRights))
 
   val AnyRights: Rights = Rights.forAuthzs(AuthorizationType.AnyRights)
 

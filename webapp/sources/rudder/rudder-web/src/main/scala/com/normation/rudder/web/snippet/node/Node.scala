@@ -40,6 +40,7 @@ package com.normation.rudder.web.snippet.node
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.web.components.ShowNodeDetailsFromNode
 import net.liftweb.common.*
 import net.liftweb.http.S
@@ -48,7 +49,7 @@ import net.liftweb.http.StatefulSnippet
 /**
  * Snippet that handle the "node details" (/node/uuid) page.
  */
-class Node extends StatefulSnippet with Loggable {
+class Node extends StatefulSnippet {
 
   private val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
 
@@ -56,7 +57,7 @@ class Node extends StatefulSnippet with Loggable {
     case Full(x) => x
     case eb: EmptyBox =>
       val e = eb ?~! "Major error: can not get the node group library"
-      logger.error(e.messageChain)
+      ApplicationLogger.error(e.messageChain)
       throw new Exception(e.messageChain)
   }
 

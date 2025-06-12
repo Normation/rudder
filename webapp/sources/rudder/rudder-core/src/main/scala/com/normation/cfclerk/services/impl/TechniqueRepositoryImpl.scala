@@ -47,6 +47,7 @@ import com.normation.utils.Control
 import com.normation.utils.StringUuidGenerator
 import java.io.InputStream
 import net.liftweb.common.*
+import scala.annotation.nowarn
 import scala.collection.SortedSet
 import zio.syntax.*
 
@@ -68,6 +69,7 @@ class TechniqueRepositoryImpl(
    * - techniques: Map[TechniqueName, SortedMap[TechniqueVersion, Technique]]
    * - categories: SortedMap[TechniqueCategoryId, TechniqueCategory]
    */
+  @nowarn("msg=Access non-initialized variable techniqueInfosCache.*") // we check for null when used
   private var techniqueInfosCache: TechniquesInfo = {
     /*
      * readTechniques result is updated only on
