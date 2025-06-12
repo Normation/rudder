@@ -78,7 +78,7 @@ trait AuthenticatedUser {
 
   def account: Option[ApiAccount]
 
-  def checkRights(auth: AuthorizationType): Boolean
+  def checkRights: AuthorizationType => Boolean
 
   def getApiAuthz: ApiAuthorization
 

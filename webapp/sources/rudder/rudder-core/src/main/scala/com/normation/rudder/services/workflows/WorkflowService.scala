@@ -42,6 +42,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.eventlog.EventActor
+import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
@@ -226,15 +227,13 @@ trait WorkflowService {
   def stepsValue: List[WorkflowNodeId]
 
   def findNextSteps(
-      currentUserRights: Seq[String],
-      currentStep:       WorkflowNodeId,
-      isCreator:         Boolean
-  )(implicit qc: QueryContext): WorkflowAction
+      currentStep: WorkflowNodeId
+  )(implicit qc: QueryContext, checkRights: AuthorizationType => Boolean): WorkflowAction
 
   def findBackSteps(
-      currentUserRights: Seq[String],
-      currentStep:       WorkflowNodeId,
-      isCreator:         Boolean
+      currentStep: WorkflowNodeId
+  )(implicit
+      checkRights: AuthorizationType => Boolean
   ): Seq[(WorkflowNodeId, (ChangeRequestId, EventActor, Option[String]) => IOResult[WorkflowNodeId])]
 
   def findStep(changeRequestId: ChangeRequestId): IOResult[WorkflowNodeId]
@@ -247,8 +246,7 @@ trait WorkflowService {
    */
   def getAllChangeRequestsStep(): IOResult[Map[ChangeRequestId, WorkflowNodeId]]
 
-  def isEditable(currentUserRights: Seq[String], currentStep: WorkflowNodeId, isCreator: Boolean): Boolean
-  def isPending(currentStep:        WorkflowNodeId): Boolean
+  def isPending(currentStep: WorkflowNodeId): Boolean
 
   /*
    * A method that tells if the workflow requires an external validation.
@@ -282,15 +280,13 @@ class NoWorkflowServiceImpl(
   val name = "no-changes-validation-workflow"
 
   def findNextSteps(
-      currentUserRights: Seq[String],
-      currentStep:       WorkflowNodeId,
-      isCreator:         Boolean
-  )(implicit qc: QueryContext): WorkflowAction = NoWorkflowAction
+      currentStep: WorkflowNodeId
+  )(implicit qc: QueryContext, checkRights: AuthorizationType => Boolean): WorkflowAction = NoWorkflowAction
 
   def findBackSteps(
-      currentUserRights: Seq[String],
-      currentStep:       WorkflowNodeId,
-      isCreator:         Boolean
+      currentStep: WorkflowNodeId
+  )(implicit
+      checkRights: AuthorizationType => Boolean
   ): Seq[(WorkflowNodeId, (ChangeRequestId, EventActor, Option[String]) => IOResult[WorkflowNodeId])] = Seq()
 
   def findStep(changeRequestId: ChangeRequestId): IOResult[WorkflowNodeId] = Inconsistency("No state when no workflow").fail
@@ -310,8 +306,6 @@ class NoWorkflowServiceImpl(
       result.id
     }
   }
-
-  def isEditable(currentUserRights: Seq[String], currentStep: WorkflowNodeId, isCreator: Boolean): Boolean = false
 
   def isPending(currentStep: WorkflowNodeId): Boolean = false
 

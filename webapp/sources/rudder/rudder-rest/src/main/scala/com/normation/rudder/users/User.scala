@@ -176,10 +176,12 @@ object CurrentUser extends RequestVar[Option[RudderUserDetail]](None) with Authe
     case None    => NodeSecurityContext.None
   }
 
-  override def checkRights(auth: AuthorizationType): Boolean = {
+  // Eagerly evaluate the variable to obtain the current user, since there may be lifetime issue with the RequestVar
+  // see https://issues.rudder.io/issues/26605
+  override def checkRights: AuthorizationType => Boolean = {
     this.get match {
-      case Some(u) => u.checkRights(auth)
-      case None    => false
+      case Some(u) => u.checkRights
+      case None    => _ => false
     }
   }
 }
