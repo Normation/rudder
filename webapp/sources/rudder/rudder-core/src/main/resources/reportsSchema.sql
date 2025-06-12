@@ -438,7 +438,7 @@ Create table GlobalScore (
 , details jsonb  NOT NULL
 );
 
-Create table scoreDetails (
+Create table ScoreDetails (
   nodeId  text NOT NULL
 , scoreId text NOT NULL
 , score   score NOT NULL
