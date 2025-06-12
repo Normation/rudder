@@ -497,7 +497,7 @@ object PropertyParser {
   import fastparse.NoWhitespace.*
 
   def parse(value: String): PureResult[List[Token]] = {
-    (fastparse.parse(value, all(_)): @unchecked) match {
+    fastparse.parse(value, { case given P[_] => all}) match {
       case Parsed.Success(value, index)    => Right(value)
       case Parsed.Failure(label, i, extra) =>
         Left(

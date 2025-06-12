@@ -76,7 +76,7 @@ object QSRegexQueryParser {
     if (value.trim.isEmpty()) {
       Left(Unexpected("You can't search with an empty or whitespace only query"))
     } else {
-      (fastparse.parse(value, all(_)): @unchecked) match {
+      fastparse.parse(value, { case given P[_] => all}) match {
         case Parsed.Success(parsed, index)   => interprete(parsed)
         case Parsed.Failure(label, i, extra) =>
           Left(Unexpected(s"""Error when parsing query "${value}", error message is: ${label}"""))
