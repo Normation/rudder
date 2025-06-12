@@ -96,6 +96,7 @@ import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
@@ -109,7 +110,7 @@ import zio.syntax.*
 @RunWith(classOf[JUnitRunner])
 class TestEditorTechniqueWriter extends Specification with ContentMatchers with Loggable with BeforeAfterAll {
   sequential
-  lazy val basePath: String = "/tmp/test-technique-writer-" + DateTime.now.toString()
+  lazy val basePath: String = "/tmp/test-technique-writer-" + DateTime.now(DateTimeZone.UTC).toString()
 
   override def beforeAll(): Unit = {
     new JFile(basePath).mkdirs()

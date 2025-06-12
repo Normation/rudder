@@ -2689,7 +2689,7 @@ object RudderConfigInit {
       new InventoryHistoryLogRepository(
         HISTORY_INVENTORIES_ROOTDIR,
         new FullInventoryFileParser(fullInventoryFromLdapEntries, inventoryMapper),
-        new JodaDateTimeConverter(ISODateTimeFormat.dateTime())
+        new JodaDateTimeConverter(ISODateTimeFormat.dateTime().withZoneUTC())
       )
     }
 

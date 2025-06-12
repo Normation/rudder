@@ -55,6 +55,7 @@ import com.normation.rudder.domain.policies.*
 import com.normation.rudder.services.user.PersonIdentService
 import com.unboundid.ldif.LDIFChangeRecord
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import zio.*
 import zio.syntax.*
@@ -386,7 +387,7 @@ class WoLDAPRuleRepository(
 
     ///// actual code for swapRules /////
 
-    val id = RuleArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
+    val id = RuleArchiveId((DateTime.now(DateTimeZone.UTC)).toString(ISODateTimeFormat.dateTime))
     val ou = rudderDit.ARCHIVES.ruleModel(id)
     // filter systemCr if they are not included, so that merge does not have to deal with that.
 

@@ -53,6 +53,7 @@ import com.softwaremill.quicklens.*
 import doobie.*
 import doobie.implicits.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.{System as _, *}
 import zio.interop.catz.*
 
@@ -239,7 +240,7 @@ class JdbcNodeStatusReportStorage(doobie: Doobie, jdbcBatchSize: Int) extends No
   }
 
   override def save(reports: Iterable[(NodeId, NodeStatusReport)]): IOResult[Unit] = {
-    val t = DateTime.now()
+    val t = DateTime.now(DateTimeZone.UTC)
 
     def toRows(rs: Iterable[(NodeId, NodeStatusReport)]): Vector[(NodeId, DateTime, JNodeStatusReport)] = {
       rs.map { case (a, b) => (a, t, JNodeStatusReport.from(b)) }.toVector

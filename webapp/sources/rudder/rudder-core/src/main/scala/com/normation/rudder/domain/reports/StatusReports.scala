@@ -48,6 +48,7 @@ import io.scalaland.chimney.*
 import io.scalaland.chimney.syntax.*
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.collection.MapView
 import zio.*
 import zio.json.*
@@ -452,7 +453,7 @@ object RuleNodeStatusReport {
         val newDirectives = DirectiveStatusReport.merge(reports.toList.flatMap(_.directives.values))
 
         // the merge of two reports expire when the first one expire
-        val expire = new DateTime(reports.map(_.expirationDate.getMillis).min)
+        val expire = new DateTime(reports.map(_.expirationDate.getMillis).min, DateTimeZone.UTC)
         (id, RuleNodeStatusReport(id._1, id._2, id._3, id._4, id._5, newDirectives, expire))
     }
   }

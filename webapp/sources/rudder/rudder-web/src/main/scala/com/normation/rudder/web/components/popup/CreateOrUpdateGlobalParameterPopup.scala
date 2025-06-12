@@ -70,6 +70,7 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.xml.*
 import zio.syntax.*
 
@@ -171,7 +172,7 @@ class CreateOrUpdateGlobalParameterPopup(
                        ChangeContext(
                          ModificationId(uuidGen.newUuid),
                          qc.actor,
-                         new DateTime(),
+                         new DateTime(DateTimeZone.UTC),
                          paramReasons.map(_.get),
                          None,
                          qc.nodePerms

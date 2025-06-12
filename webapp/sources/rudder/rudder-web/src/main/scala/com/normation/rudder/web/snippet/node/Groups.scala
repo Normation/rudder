@@ -63,6 +63,7 @@ import net.liftweb.json.*
 import net.liftweb.util.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.xml.*
 
 object Groups {
@@ -477,7 +478,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                   ChangeContext(
                     ModificationId(uuidGen.newUuid),
                     qc.actor,
-                    new DateTime(),
+                    new DateTime(DateTimeZone.UTC),
                     Some("Group moved by user"),
                     None,
                     qc.nodePerms

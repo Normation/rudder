@@ -54,6 +54,7 @@ import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.policies.PolicyId
 import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
@@ -144,7 +145,7 @@ class PolicyAgregationTest extends Specification {
       ruleName = "rule name",
       directiveName = "directive name",
       technique.modify(_.rootSection.children).setTo(List(v.spec)),
-      acceptationDate = DateTime.now,
+      acceptationDate = DateTime.now(DateTimeZone.UTC),
       expandedVars = Map(ComponentId(v.spec.name, List("root"), None) -> v),
       originalVars = Map(ComponentId(v.spec.name, List("root"), None) -> v),
       trackerVariable,

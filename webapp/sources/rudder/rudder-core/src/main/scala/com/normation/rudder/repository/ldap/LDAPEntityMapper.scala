@@ -84,6 +84,7 @@ import io.scalaland.chimney.partial
 import io.scalaland.chimney.partial.syntax.*
 import io.scalaland.chimney.syntax.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.annotation.nowarn
 import zio.*
 import zio.json.*
@@ -257,7 +258,7 @@ class LDAPEntityMapper(
                     inventoryEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false),
                     isPolicyServer = false, // we don't know anymore if it was a policy server
 
-                    creationDate = new DateTime(0), // we don't know anymore the acceptation date
+                    creationDate = new DateTime(0, DateTimeZone.UTC), // we don't know anymore the acceptation date
 
                     ReportingConfiguration(None, None, None), // we don't know anymore agent run frequency
 
@@ -341,7 +342,7 @@ class LDAPEntityMapper(
       }
 
       // fetch the inventory datetime of the object
-      val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) map (_.dateTime) getOrElse (DateTime.now)
+      val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) map (_.dateTime) getOrElse (DateTime.now(DateTimeZone.UTC))
       NodeInfo(
         node.copy(properties = overrideProperties(node.id, node.properties, properties.toList.flatten)),
         inventoryEntry(A_HOSTNAME).getOrElse(""),

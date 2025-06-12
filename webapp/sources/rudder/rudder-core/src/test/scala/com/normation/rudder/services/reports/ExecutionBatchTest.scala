@@ -61,6 +61,7 @@ import com.normation.rudder.services.reports.ExecutionBatch.ComputeComplianceTim
 import com.normation.rudder.services.reports.ExecutionBatch.MergeInfo
 import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.*
 import org.specs2.mutable.*
@@ -87,7 +88,7 @@ class ExecutionBatchTest extends Specification {
 
   import ReportType.*
 
-  val executionTimestamp = new DateTime()
+  val executionTimestamp = new DateTime(DateTimeZone.UTC)
 
   val globalPolicyMode: GlobalPolicyMode = GlobalPolicyMode(PolicyMode.Enforce, PolicyModeOverrides.Always)
   val mode:             NodeModeConfig   = NodeModeConfig(
@@ -383,7 +384,7 @@ class ExecutionBatchTest extends Specification {
         )
       }
 
-      val res = ExecutionBatch.computeNodesRunInfo(runs, currentNodeConfigs, runInfo, DateTime.now())(nodeId)
+      val res = ExecutionBatch.computeNodesRunInfo(runs, currentNodeConfigs, runInfo, DateTime.now(DateTimeZone.UTC))(nodeId)
 
       // here, the end date depend on run time, so we need to check by case
       res match {
@@ -416,7 +417,7 @@ class ExecutionBatchTest extends Specification {
         )
       }
 
-      val res = ExecutionBatch.computeNodesRunInfo(runs, currentNodeConfigs, runInfo, DateTime.now())(nodeId)
+      val res = ExecutionBatch.computeNodesRunInfo(runs, currentNodeConfigs, runInfo, DateTime.now(DateTimeZone.UTC))(nodeId)
 
       res match {
         case NoReportInInterval(exp, t) => exp must beEqualTo(generatedExpectedReports)
@@ -1329,7 +1330,7 @@ class ExecutionBatchTest extends Specification {
       )
     }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
-    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now(DateTimeZone.UTC))
 
     val withGood = ExecutionBatch
       .getComplianceForRule(
@@ -1509,7 +1510,7 @@ class ExecutionBatchTest extends Specification {
       )
     }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
-    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now(DateTimeZone.UTC))
 
     val withLoop = ExecutionBatch
       .getComplianceForRule(
@@ -1655,7 +1656,7 @@ class ExecutionBatchTest extends Specification {
       )
     }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
-    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now(DateTimeZone.UTC))
 
     val withLoop = ExecutionBatch
       .getComplianceForRule(
@@ -1873,7 +1874,7 @@ class ExecutionBatchTest extends Specification {
       )
     }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
-    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now(DateTimeZone.UTC))
 
     val withGood = ExecutionBatch
       .getComplianceForRule(
@@ -2090,7 +2091,7 @@ class ExecutionBatchTest extends Specification {
       )
     }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
-    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now(DateTimeZone.UTC))
 
     val withGood = ExecutionBatch
       .getComplianceForRule(
@@ -2267,7 +2268,7 @@ class ExecutionBatchTest extends Specification {
       )
     }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
-    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now(DateTimeZone.UTC))
 
     val statusReports = ExecutionBatch
       .getComplianceForRule(
@@ -2429,7 +2430,7 @@ class ExecutionBatchTest extends Specification {
       )
     }
     val ruleExpectedReports      = RuleExpectedReports(RuleId("cr"), directiveExpectedReports :: Nil)
-    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+    val mergeInfo                = MergeInfo(NodeId("nodeId"), None, None, DateTime.now(DateTimeZone.UTC))
 
     val statusReports = ExecutionBatch
       .getComplianceForRule(
@@ -3056,7 +3057,7 @@ class ExecutionBatchTest extends Specification {
     )
 
     val ruleExpectedReports = RuleExpectedReports(RuleId("cr"), d1 :: d2 :: Nil)
-    val mergeInfo           = MergeInfo(NodeId("nodeId"), None, None, DateTime.now())
+    val mergeInfo           = MergeInfo(NodeId("nodeId"), None, None, DateTime.now(DateTimeZone.UTC))
 
     val result = ExecutionBatch.getComplianceForRule(
       mergeInfo,
@@ -3614,14 +3615,14 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -3664,14 +3665,14 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "two",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -3709,25 +3710,25 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -3764,14 +3765,14 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -3807,25 +3808,25 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "two",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -3872,80 +3873,80 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "one",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "two",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "two",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "two",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -3993,91 +3994,91 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "one",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "two",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "two",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "two",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "three",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -4143,69 +4144,69 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value2",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           "value3",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "two",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "two",
           "report_id12",
           "component",
           "value2",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy",
           "three",
           "report_id12",
           "component",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -4274,14 +4275,14 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          new DateTime(),
+          new DateTime(DateTimeZone.UTC),
           "rule",
           "policy",
           "one",
           "report_id12",
           "component",
           """some\"text""",
-          new DateTime(),
+          new DateTime(DateTimeZone.UTC),
           "message"
         )
       )
@@ -4322,14 +4323,14 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          new DateTime(),
+          new DateTime(DateTimeZone.UTC),
           "rule",
           "policy",
           "nodeId",
           "report_id12",
           "component",
           """/var/cfengine/inputs/\"test""",
-          new DateTime(),
+          new DateTime(DateTimeZone.UTC),
           "message"
         )
       )
@@ -4369,14 +4370,14 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultSuccessReport(
-          new DateTime(),
+          new DateTime(DateTimeZone.UTC),
           "rule",
           "policy",
           "nodeId",
           "report_id12",
           "component",
           """/var/cfengine/inputs/"test""",
-          new DateTime(),
+          new DateTime(DateTimeZone.UTC),
           "message"
         )
       )
@@ -4512,47 +4513,47 @@ class ExecutionBatchTest extends Specification {
       ),
       Seq[Reports](
         new ResultErrorReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy1",
           "one",
           "report_id12",
           "component1",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy1",
           "one",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "one",
           "report_id12",
           "component1",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "one",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )
@@ -4625,47 +4626,47 @@ class ExecutionBatchTest extends Specification {
       },
       Seq[Reports](
         new ResultErrorReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy1",
           "one",
           "report_id12",
           "component1",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy1",
           "one",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "one",
           "report_id12",
           "component1",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         ),
         new ResultSuccessReport(
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "rule",
           "policy2",
           "one",
           "report_id12",
           "component2",
           "value",
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           "message"
         )
       )

@@ -123,6 +123,7 @@ import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import scala.annotation.tailrec
 import scala.collection.immutable.SortedMap as ISortedMap
@@ -188,7 +189,7 @@ class MockGitConfigRepo(prefixTestResources: String = "", configRepoDirName: Str
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // set up root node configuration
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  val abstractRoot: File = File("/tmp/test-rudder-mock-config-repo-" + DateTime.now.toString())
+  val abstractRoot: File = File("/tmp/test-rudder-mock-config-repo-" + DateTime.now(DateTimeZone.UTC).toString())
   abstractRoot.createDirectories()
   if (System.getProperty("tests.clean.tmp") != "false") {
     java.lang.Runtime.getRuntime.addShutdownHook(new Thread(new Runnable {
@@ -1519,7 +1520,7 @@ class MockRules() {
         val systems         = rules.valuesIterator.filter(_.isSystem)
         val newRulesUpdated = newRules.filterNot(_.isSystem) ++ systems
         newRulesUpdated.map(r => (r.id, r)).toMap.succeed
-      }.map(_ => RuleArchiveId(s"swap at ${DateTime.now().toString(ISODateTimeFormat.dateTime())}"))
+      }.map(_ => RuleArchiveId(s"swap at ${DateTime.now(DateTimeZone.UTC).toString(ISODateTimeFormat.dateTime())}"))
     }
 
     override def deleteSavedRuleArchiveId(saveId: RuleArchiveId): IOResult[Unit] = ZIO.unit
@@ -2166,7 +2167,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
       state = NodeState.Enabled,
       isSystem = false,
       isPolicyServer = false,
-      creationDate = DateTime.now,
+      creationDate = DateTime.now(DateTimeZone.UTC),
       nodeReportingConfiguration = ReportingConfiguration(None, None, None),
       properties = Nil,
       policyMode = None,
@@ -2182,7 +2183,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
         None,
         Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
         Nil,
-        DateTime.now,
+        DateTime.now(DateTimeZone.UTC),
         UndefinedKey,
         Seq(AgentInfo(CfeCommunity, None, Certificate("node certificate"), Set())),
         NodeId("root"),
@@ -3224,8 +3225,17 @@ class MockCampaign() {
     ),
     DumbCampaignDetails("campaign #0")
   )
-  val e0: CampaignEvent =
-    CampaignEvent(CampaignEventId("e0"), c0.info.id, "campaign #0", Finished, new DateTime(0), new DateTime(1), DumbCampaignType)
+  val e0: CampaignEvent = {
+    CampaignEvent(
+      CampaignEventId("e0"),
+      c0.info.id,
+      "campaign #0",
+      Finished,
+      new DateTime(0, DateTimeZone.UTC),
+      new DateTime(1, DateTimeZone.UTC),
+      DumbCampaignType
+    )
+  }
 
   object repo extends CampaignRepository {
     val items: Ref[Map[CampaignId, DumbCampaignTrait]] = Ref.make(Map[CampaignId, DumbCampaignTrait]((c0.info.id -> c0))).runNow

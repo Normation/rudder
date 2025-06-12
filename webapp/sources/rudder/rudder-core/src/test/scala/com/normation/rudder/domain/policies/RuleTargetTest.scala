@@ -16,6 +16,7 @@ import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.repository.FullNodeGroupCategory
 import net.liftweb.common.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.*
@@ -38,7 +39,7 @@ class RuleTargetTest extends Specification with Loggable {
       NodeState.Enabled,
       isSystem = false,
       isPolicyServer = false,
-      creationDate = DateTime.now,
+      creationDate = DateTime.now(DateTimeZone.UTC),
       nodeReportingConfiguration = ReportingConfiguration(None, None, None),
       properties = List(),
       policyMode = None,
@@ -56,7 +57,7 @@ class RuleTargetTest extends Specification with Loggable {
         None,
         Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
         Nil,
-        DateTime.now,
+        DateTime.now(DateTimeZone.UTC),
         UndefinedKey,
         Seq(),
         NodeId("root"),

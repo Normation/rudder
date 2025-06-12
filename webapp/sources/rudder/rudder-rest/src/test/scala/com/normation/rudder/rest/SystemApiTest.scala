@@ -52,6 +52,7 @@ import net.liftweb.json.JsonAST.*
 import net.liftweb.json.JsonDSL.*
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -473,7 +474,8 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
   private val commitId: String = commit.getName
 
   private val commitDate: DateTime = new DateTime(
-    restTestSetUp.mockGitRepo.gitRepo.db.parseCommit(commit.toObjectId()).getCommitterIdent().getWhenAsInstant.toEpochMilli
+    restTestSetUp.mockGitRepo.gitRepo.db.parseCommit(commit.toObjectId()).getCommitterIdent().getWhenAsInstant.toEpochMilli,
+    DateTimeZone.UTC
   )
 
   // Init directory needed to temporary store archive data that zip API returns.

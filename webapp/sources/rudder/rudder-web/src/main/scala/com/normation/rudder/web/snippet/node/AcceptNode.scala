@@ -59,6 +59,7 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.xml.*
 import zio.json.*
 
@@ -130,7 +131,7 @@ class AcceptNode extends DispatchSnippet with Loggable {
         ChangeContext(
           modId,
           CurrentUser.actor,
-          DateTime.now(),
+          DateTime.now(DateTimeZone.UTC),
           None,
           S.request.map(_.remoteAddr).toOption,
           CurrentUser.nodePerms
@@ -172,7 +173,7 @@ class AcceptNode extends DispatchSnippet with Loggable {
           ChangeContext(
             modId,
             CurrentUser.actor,
-            DateTime.now(),
+            DateTime.now(DateTimeZone.UTC),
             None,
             S.request.map(_.remoteAddr).toOption,
             CurrentUser.nodePerms

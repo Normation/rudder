@@ -65,6 +65,7 @@ import com.normation.utils.StringUuidGenerator
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.collection.MapView
 import zio.*
 import zio.syntax.*
@@ -333,7 +334,14 @@ class RuleApiService14(
                       )
       id           <- workflow
                         .startWorkflow(cr)(
-                          ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), params.reason, None, qc.nodePerms)
+                          ChangeContext(
+                            ModificationId(uuidGen.newUuid),
+                            actor,
+                            new DateTime(DateTimeZone.UTC),
+                            params.reason,
+                            None,
+                            qc.nodePerms
+                          )
                         )
       directiveLib <- readDirectives.getFullDirectiveLibrary()
       groupLib     <- readGroup.getFullGroupLibrary()

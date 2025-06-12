@@ -99,6 +99,7 @@ import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatterBuilder
+import org.joda.time.format.ISODateTimeFormat.basicTimeNoMillis
 import zio.*
 
 class SystemApi(
@@ -816,7 +817,7 @@ class SystemApiService11(
                        }
           treeId    <- IOResult.attempt(revCommit.getTree.getId)
           bytes     <- GitFindUtils.getZip(repo.db, treeId, archiveType.directories)
-          date       = new DateTime(revCommit.getCommitTime.toLong * 1000)
+          date       = new DateTime(revCommit.getCommitTime.toLong * 1000, DateTimeZone.UTC)
         } yield {
           (bytes, date)
         }
@@ -907,7 +908,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       Some(s"Restore archive for date time ${dateTime} requested from REST API"),
       None,
       qc.nodePerms
@@ -931,7 +932,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       Some(s"Restore archive for date time ${dateTime} requested from REST API"),
       None,
       qc.nodePerms
@@ -955,7 +956,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       Some(s"Restore archive for date time ${dateTime} requested from REST API"),
       None,
       qc.nodePerms
@@ -973,7 +974,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       Some(s"Restore archive for date time ${dateTime} requested from REST API"),
       None,
       qc.nodePerms
@@ -997,7 +998,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       Some(s"Restore archive for date time ${dateTime} requested from REST API"),
       None,
       qc.nodePerms
@@ -1068,7 +1069,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       Some("Restore latest archive required from REST API"),
       None,
       qc.nodePerms
@@ -1091,7 +1092,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       Some("Restore latest archive required from REST API"),
       None,
       qc.nodePerms
@@ -1114,7 +1115,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       Some("Restore latest archive required from REST API"),
       None,
       qc.nodePerms
@@ -1132,7 +1133,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       Some("Restore latest archive required from REST API"),
       None,
       qc.nodePerms
@@ -1156,7 +1157,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       Some("Restore latest archive required from REST API"),
       None,
       qc.nodePerms
@@ -1175,7 +1176,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       Some("Restore archive from latest commit on HEAD required from REST API"),
       None,
       qc.nodePerms
@@ -1194,7 +1195,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       Some("Restore archive from latest commit on HEAD required from REST API"),
       None,
       qc.nodePerms
@@ -1213,7 +1214,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       Some("Restore latest archive required from REST API"),
       None,
       qc.nodePerms
@@ -1232,7 +1233,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       Some("Restore latest archive required from REST API"),
       None,
       qc.nodePerms
@@ -1250,7 +1251,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       Some("Restore latest archive required from REST API"),
       None,
       qc.nodePerms
@@ -1387,11 +1388,14 @@ private[rest] object SystemApi {
   /**
     * Public format to display archive tagged at date
     */
-  val archiveDateFormat = new DateTimeFormatterBuilder()
-    .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
-    .appendLiteral('T')
-    .append(DateTimeFormat.forPattern("HHmmss'Z'")) // we want only utc here to avoid getting + or other strange char in URI
-    .toFormatter
+  val archiveDateFormat = {
+    new DateTimeFormatterBuilder()
+      .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
+      .appendLiteral('T')
+      .append(basicTimeNoMillis())
+      .toFormatter
+      .withZoneUTC()
+  }
 
   def getArchiveName(archiveType: ArchiveType, date: DateTime): String =
     s"rudder-conf-${archiveType.entryName}-${archiveDateFormat.print(date.toDateTime(DateTimeZone.UTC))}.zip"
