@@ -156,6 +156,10 @@ pub mod filters {
     }
 
     pub fn canonify_condition<T: Display>(s: T, _: &dyn askama::Values) -> askama::Result<String> {
+        canonify_condition_stub(s)
+    }
+
+    pub fn canonify_condition_stub<T: Display>(s: T) -> askama::Result<String> {
         let s = s.to_string();
         if !s.contains("${") {
             Ok(format!("\"{s}\""))
@@ -191,9 +195,18 @@ pub mod filters {
             _ => format!("([Rudder.Condition]::Canonify({}))", e.fmt(Target::Windows)),
         }
     }
+
     pub fn parameter_fmt(
         p: &&(String, String, Escaping),
         _: &dyn askama::Values,
+        t_id: &&str,
+        t_params: &Vec<technique::Parameter>,
+    ) -> askama::Result<String> {
+        parameter_fmt_stub(p, t_id, t_params)
+    }
+
+    pub fn parameter_fmt_stub(
+        p: &&(String, String, Escaping),
         t_id: &&str,
         t_params: &Vec<technique::Parameter>,
     ) -> askama::Result<String> {
@@ -382,7 +395,9 @@ mod tests {
     use pretty_assertions::assert_eq;
     use rudder_commons::Escaping;
 
-    use crate::backends::windows::filters::{canonify_condition, canonify_expression};
+    use crate::backends::windows::filters::{
+        canonify_condition_stub, canonify_expression, parameter_fmt_stub,
+    };
 
     #[test]
     fn it_canonifies_expressions() {
@@ -411,19 +426,19 @@ vars.sys.arch
     fn it_canonifies_conditions() {
         let c = "debian";
         let r = "\"debian\"";
-        let res = canonify_condition(c).unwrap();
+        let res = canonify_condition_stub(c).unwrap();
         assert_eq!(res, r);
 
         let c = "debian|ubuntu";
         let r = "\"debian|ubuntu\"";
-        let res = canonify_condition(c).unwrap();
+        let res = canonify_condition_stub(c).unwrap();
         assert_eq!(res, r);
 
         let c = "${var}";
         let r = "([Rudder.Condition]::Canonify([Rudder.Datastate]::Render('{{{' + @'\n\
                 vars.var\n\
                 '@ + '}}}')))";
-        let res = canonify_condition(c).unwrap();
+        let res = canonify_condition_stub(c).unwrap();
         assert_eq!(res, r);
 
         let c = "${my_cond}.debian|${sys.${plouf}}";
@@ -436,12 +451,11 @@ vars.sys.
 '@ + [Rudder.Datastate]::Render('{{{' + @'
 vars.plouf
 '@ + '}}}') + '}}}'))))"#;
-        let res = canonify_condition(c).unwrap();
+        let res = canonify_condition_stub(c).unwrap();
         assert_eq!(res, r);
     }
 
     use crate::backends::windows::filters::camel_case;
-    use crate::backends::windows::filters::parameter_fmt;
     use crate::ir::technique;
     use crate::ir::value::Expression;
 
@@ -495,7 +509,7 @@ vars.plouf
             "@'
 a simple test
 '@",
-            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+            parameter_fmt_stub(&&m_param, &t_id, &t_params).unwrap()
         );
 
         // Basic case with a GenericVar
@@ -512,7 +526,7 @@ vars.plouf.plouf
 '@ + '}}}')) + @'
  test
 '@",
-            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+            parameter_fmt_stub(&&m_param, &t_id, &t_params).unwrap()
         );
 
         // Basic case with a call to a short param name
@@ -529,7 +543,7 @@ vars.technique_id.param1
 '@ + '}}}')) + @'
  test
 '@",
-            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+            parameter_fmt_stub(&&m_param, &t_id, &t_params).unwrap()
         );
 
         // Complex case with a Generic looking like a technique param
@@ -546,7 +560,7 @@ vars.plouf.param1
 '@ + '}}}')) + @'
  test
 '@",
-            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+            parameter_fmt_stub(&&m_param, &t_id, &t_params).unwrap()
         );
 
         // With a Generic var looking like a technique param
@@ -563,7 +577,7 @@ vars.param1or2
 '@ + '}}}')) + @'
  test
 '@",
-            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+            parameter_fmt_stub(&&m_param, &t_id, &t_params).unwrap()
         );
 
         // With a sys variable
@@ -580,7 +594,7 @@ vars.sys.host
 '@ + '}}}')) + @'
  test
 '@",
-            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+            parameter_fmt_stub(&&m_param, &t_id, &t_params).unwrap()
         );
 
         // With a const variable
@@ -597,7 +611,7 @@ vars.const.n
 '@ + '}}}')) + @'
  test
 '@",
-            parameter_fmt(&&m_param, &t_id, &t_params).unwrap()
+            parameter_fmt_stub(&&m_param, &t_id, &t_params).unwrap()
         );
     }
 }

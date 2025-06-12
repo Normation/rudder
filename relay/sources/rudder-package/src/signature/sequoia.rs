@@ -73,11 +73,13 @@ impl VerificationHelper for Helper<'_> {
         // > `VerificationHelper::check` will be called with a `MessageStructure` containing exactly
         // > one layer, a signature group.
 
-        if structure.len() != 1 {
+        let mut iter = structure.into_iter();
+        let s = iter.next().unwrap();
+        if iter.count() != 0 {
             bail!("Unexpected number of layers");
         }
 
-        match structure[0] {
+        match s {
             MessageLayer::Encryption { .. } => bail!("Unexpected encryption layer"),
             MessageLayer::Compression { .. } => bail!("Unexpected compression layer"),
             MessageLayer::SignatureGroup { ref results } => {
