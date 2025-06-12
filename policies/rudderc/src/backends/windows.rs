@@ -66,7 +66,7 @@ pub mod filters {
 
     use crate::ir::{technique, value::Expression};
 
-    fn uppercase_first_letter(s: &str) -> String {
+    pub fn uppercase_first_letter(s: &str) -> String {
         let mut c = s.chars();
         match c.next() {
             None => String::new(),
@@ -74,7 +74,10 @@ pub mod filters {
         }
     }
 
-    pub fn remove_trailing_slash<T: Display>(s: T) -> askama::Result<String> {
+    pub fn remove_trailing_slash<T: Display>(
+        s: T,
+        _: &dyn askama::Values,
+    ) -> askama::Result<String> {
         let s = s.to_string();
         Ok(s.strip_suffix('/').map(|s| s.to_string()).unwrap_or(s))
     }
@@ -82,6 +85,7 @@ pub mod filters {
     /// Format an expression to be evaluated by the agent
     pub fn value_fmt<T: Display>(
         s: T,
+        _: &dyn askama::Values,
         t_id: &&str,
         t_params: &Vec<technique::Parameter>,
     ) -> askama::Result<String> {
@@ -101,7 +105,7 @@ pub mod filters {
     }
 
     /// `my_method` -> `My-Method`
-    pub fn dsc_case<T: Display>(s: T) -> askama::Result<String> {
+    pub fn dsc_case<T: Display>(s: T, _: &dyn askama::Values) -> askama::Result<String> {
         Ok(s.to_string()
             .split('_')
             .map(uppercase_first_letter)
@@ -126,12 +130,13 @@ pub mod filters {
         Ok(s.to_string().replace('\"', "`\""))
     }
 
-    pub fn technique_name<T: Display>(s: T) -> askama::Result<String> {
+    pub fn technique_name<T: Display>(s: T, _: &dyn askama::Values) -> askama::Result<String> {
         Ok(super::Windows::technique_name(&s.to_string()))
     }
 
     pub fn canonify_condition_with_context<T: Display>(
         s: T,
+        _: &dyn askama::Values,
         t_id: &&str,
         t_params: &Vec<technique::Parameter>,
     ) -> askama::Result<String> {
@@ -150,7 +155,7 @@ pub mod filters {
         }
     }
 
-    pub fn canonify_condition<T: Display>(s: T) -> askama::Result<String> {
+    pub fn canonify_condition<T: Display>(s: T, _: &dyn askama::Values) -> askama::Result<String> {
         let s = s.to_string();
         if !s.contains("${") {
             Ok(format!("\"{s}\""))
@@ -188,6 +193,7 @@ pub mod filters {
     }
     pub fn parameter_fmt(
         p: &&(String, String, Escaping),
+        _: &dyn askama::Values,
         t_id: &&str,
         t_params: &Vec<technique::Parameter>,
     ) -> askama::Result<String> {
@@ -218,7 +224,10 @@ pub mod filters {
         })
     }
 
-    pub fn policy_mode_fmt(op: &Option<PolicyMode>) -> askama::Result<String> {
+    pub fn policy_mode_fmt(
+        op: &Option<PolicyMode>,
+        _: &dyn askama::Values,
+    ) -> askama::Result<String> {
         match op {
             None => Ok("$policyMode".to_string()),
             Some(p) => match p {
@@ -291,7 +300,7 @@ fn method_call(
             Some(condition.to_string())
         },
         args,
-        name: filters::dsc_case(&m.info.as_ref().unwrap().bundle_name).unwrap(),
+        name: Windows::technique_name(&m.info.as_ref().unwrap().bundle_name),
         is_supported,
         policy_mode_override: if let Some(x) = policy_mode_context {
             if m.policy_mode_override.is_none() {
@@ -311,7 +320,14 @@ impl Windows {
     }
 
     pub fn technique_name(s: &str) -> String {
-        format!("Technique-{}", filters::dsc_case(s).unwrap())
+        format!(
+            "Technique-{}",
+            s.to_string()
+                .split('_')
+                .map(filters::uppercase_first_letter)
+                .collect::<Vec<String>>()
+                .join("-")
+        )
     }
 
     fn technique(src: Technique, resources: &Path) -> Result<String> {
