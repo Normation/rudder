@@ -81,13 +81,14 @@ object DateFormaterService {
 
   object json extends DateTimeCodecs
 
-  val displayDateFormat: DateTimeFormatter =
+  val displayDateFormat: DateTimeFormatter = {
     new DateTimeFormatterBuilder()
       .append(ISODateTimeFormat.date())
       .appendLiteral(' ')
       .append(ISODateTimeFormat.timeNoMillis())
       .toFormatter
       .withZoneUTC()
+  }
 
   val rfcDateformat:           DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZZ")
   val rfcDateformatWithMillis: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ")

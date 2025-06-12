@@ -185,7 +185,6 @@ import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import doobie.*
-
 import java.nio.charset.StandardCharsets
 import java.time.ZonedDateTime
 import net.liftweb.common.Box
@@ -209,7 +208,8 @@ import org.apache.commons.httpclient.params.HttpMethodParams
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.output.ByteArrayOutputStream
 import org.eclipse.jgit.lib.PersonIdent
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.specs2.matcher.MatchResult
 import scala.collection.MapView
 import scala.concurrent.duration.Duration

@@ -49,7 +49,8 @@ import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.*
 import org.specs2.mutable.*
@@ -75,7 +76,9 @@ class NodeConfigurationCacheRepositoryTest extends Specification with AfterAll w
     }
   }
 
-  val root: File = File(s"/tmp/rudder-test-config-hashes/${new DateTime(DateTimeZone.UTC).toString(ISODateTimeFormat.dateTimeNoMillis())}")
+  val root: File = File(
+    s"/tmp/rudder-test-config-hashes/${new DateTime(DateTimeZone.UTC).toString(ISODateTimeFormat.dateTimeNoMillis())}"
+  )
 
   root.createDirectories()
 

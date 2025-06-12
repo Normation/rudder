@@ -1388,13 +1388,14 @@ private[rest] object SystemApi {
   /**
     * Public format to display archive tagged at date
     */
-  val archiveDateFormat =
+  val archiveDateFormat = {
     new DateTimeFormatterBuilder()
       .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
       .appendLiteral('T')
       .append(basicTimeNoMillis())
       .toFormatter
       .withZoneUTC()
+  }
 
   def getArchiveName(archiveType: ArchiveType, date: DateTime): String =
     s"rudder-conf-${archiveType.entryName}-${archiveDateFormat.print(date.toDateTime(DateTimeZone.UTC))}.zip"
