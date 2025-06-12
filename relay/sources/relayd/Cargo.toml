@@ -30,10 +30,10 @@ humantime = "2"
 hyper = { version = "0.14", default-features = false }
 inotify = "0.11"
 lazy_static = "1"
-nom = "7"
+nom = "8"
 openssl = "0.10"
 percent-encoding = "2.3"
-prometheus = { version = "0.13", default-features = false, features = ["process"] }
+prometheus = { version = "0.14", default-features = false, features = ["process"] }
 regex = "1"
 # Use openssl for TLS to be consistent
 reqwest = { version = "0.11.1", default-features = false, features = ["stream", "blocking", "native-tls"] }
@@ -52,10 +52,10 @@ tracing-subscriber = { version = "0.3", default-features = false, features = ["e
 walkdir = "2"
 warp = { version = "0.3", default-features = false }
 # Use rust implementation
-zip = { version = "2.1.3", default-features = false, features = ["deflate"] }
+zip = { version = "4.0.0", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
-criterion = "0.5"
+criterion = "0.6.0"
 filetime = "0.2"
 proptest = "1"
 tempfile = "3"
