@@ -53,6 +53,7 @@ import net.liftweb.actor.LAPinger
 import net.liftweb.actor.SpecializedLiftActor
 import net.liftweb.common.*
 import org.joda.time.*
+import scala.annotation.nowarn
 import zio.*
 import zio.syntax.*
 
@@ -156,7 +157,10 @@ object AutomaticReportsCleaning {
       nodes  <- ldap.searchOne(new DN("ou=Nodes,cn=rudder-configuration"), BuildFilter.HAS(runIntervalAttr), runIntervalAttr)
       ints   <- ZIO.foreach(nodes) { node =>                                   // don't fail on parsing error, just return 0
                   (try {
-                    parse(node(runIntervalAttr).getOrElse("{}")).extract[RunInterval].interval
+                    // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+                    parse(node(runIntervalAttr).getOrElse("{}")).extract[RunInterval].interval: @annotation.nowarn(
+                      "cat=deprecation"
+                    )
                   } catch {
                     case ex: Exception => 0
                   }).succeed
@@ -328,7 +332,8 @@ class AutomaticReportsCleaning(
     logger.trace("***** starting Automatic Delete Reports batch *****")
     new LADatabaseCleaner(DeleteAction(dbManager, this), deletettl, complianceLevelttl)
   }
-  deleter ! CheckLaunch
+
+  deleter ! CheckLaunch: @unchecked
 
   // cleaning log info is special, it's not a cron but an "every NN minutes"
   val deleteLogReportPropertyName = "rudder.batch.reportsCleaner.deleteLogReport.TTL"

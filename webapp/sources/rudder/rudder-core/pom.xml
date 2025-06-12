@@ -204,6 +204,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${doobie-version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.typelevel</groupId>
+      <artifactId>cats-effect-std_${scala-binary-version}</artifactId>
+      <version>${cats-effect-version}</version>
+      <scope>test</scope>
+    </dependency>
 
     <!-- cache used in compliance logger -->
     <dependency>
@@ -244,12 +250,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
     <dependency>
       <groupId>net.liftweb</groupId>
-      <artifactId>lift-webkit_${scala-binary-version}</artifactId>
+      <artifactId>lift-webkit_2.13</artifactId>
       <version>${lift-version}</version>
     </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
-      <artifactId>lift-json-ext_${scala-binary-version}</artifactId>
+      <artifactId>lift-json-ext_2.13</artifactId>
       <version>${lift-version}</version>
     </dependency>
 

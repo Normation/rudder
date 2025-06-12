@@ -84,10 +84,10 @@ class EventLogAPI(
     eventLogDetail:     EventLogDetailsGenerator,
     translateEventType: EventLogType => String
 ) extends LiftApiModuleProvider[EventLogApi] {
-  import EventLogService.*
+  import com.normation.rudder.rest.internal.EventLogService.*
 
-  implicit val translateEventLogType: EventLogType => String   = translateEventType
-  implicit val eventLogDetailsGen:    EventLogDetailsGenerator = eventLogDetail
+  implicit lazy val translateEventLogType: EventLogType => String   = translateEventType
+  implicit lazy val eventLogDetailsGen:    EventLogDetailsGenerator = eventLogDetail
 
   override def schemas: ApiModuleProvider[EventLogApi] = EventLogApi
 

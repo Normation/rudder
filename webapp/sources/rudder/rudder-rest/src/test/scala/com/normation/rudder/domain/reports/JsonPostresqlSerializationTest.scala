@@ -602,9 +602,7 @@ object ExpectedJson {
       |                                    "rtid" : "reportId-check3",
       |                                    "msrs" : [
       |                                      {
-      |                                        "rt" : {
-      |                                          "AuditCompliant" : {}
-      |                                        },
+      |                                        "rt" : "AuditCompliant",
       |                                        "m" : "check 3 is compliant"
       |                                      }
       |                                    ]
@@ -623,9 +621,7 @@ object ExpectedJson {
       |                                    "rtid" : "reportId-check2",
       |                                    "msrs" : [
       |                                      {
-      |                                        "rt" : {
-      |                                          "EnforceError" : {}
-      |                                        },
+      |                                        "rt" : "EnforceError",
       |                                        "m" : "check 2 failed"
       |                                      }
       |                                    ]
@@ -636,15 +632,11 @@ object ExpectedJson {
       |                                    "rtid" : "reportId-check1",
       |                                    "msrs" : [
       |                                      {
-      |                                        "rt" : {
-      |                                          "EnforceSuccess" : {}
-      |                                        },
+      |                                        "rt" : "EnforceSuccess",
       |                                        "m" : "check 1#1 is valid"
       |                                      },
       |                                      {
-      |                                        "rt" : {
-      |                                          "EnforceSuccess" : {}
-      |                                        },
+      |                                        "rt" : "EnforceSuccess",
       |                                        "m" : "check 1#2 is valid"
       |                                      }
       |                                    ]
@@ -682,9 +674,7 @@ object ExpectedJson {
       |                              "rtid" : "reportId-check6",
       |                              "msrs" : [
       |                                {
-      |                                  "rt" : {
-      |                                    "EnforceError" : {}
-      |                                  },
+      |                                  "rt" : "EnforceError",
       |                                  "m" : "check 6 is in error"
       |                                }
       |                              ]
@@ -695,9 +685,7 @@ object ExpectedJson {
       |                              "rtid" : "reportId-check5",
       |                              "msrs" : [
       |                                {
-      |                                  "rt" : {
-      |                                    "EnforceNotApplicable" : {}
-      |                                  },
+      |                                  "rt" : "EnforceNotApplicable",
       |                                  "m" : "check 5 is N/A"
       |                                }
       |                              ]
@@ -708,9 +696,7 @@ object ExpectedJson {
       |                              "rtid" : "reportId-check4",
       |                              "msrs" : [
       |                                {
-      |                                  "rt" : {
-      |                                    "EnforceRepaired" : {}
-      |                                  },
+      |                                  "rt" : "EnforceRepaired",
       |                                  "m" : "check 4 is repaired"
       |                                }
       |                              ]

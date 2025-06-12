@@ -94,7 +94,7 @@ class JsLibHash() extends ImplicitGetBytes {
 }
 
 @HostAccess.Export
-trait JsLibPassword extends ImplicitGetBytes {
+abstract class JsLibPassword extends ImplicitGetBytes {
 
   /// Standard Unix (crypt) specific
 
@@ -210,7 +210,7 @@ trait JsLibPassword extends ImplicitGetBytes {
  * - rudder.password.auto(algo, password [, salt])
  * - rudder.password.unix(algo, password [, salt])
  *
- *   where algo can be MD5, SHA-512, SHA-256 (case insensitive, with or without -)
+ *   where algo can be MD5, SHA-512, SHA-256 (case-insensitive, with or without -)
  *   * auto automatically choose the encryption based on the node type, currently only Unix
  *   * unix generated Unix crypt password compatible hashes (Linux, BSD, ...)
  */
@@ -247,10 +247,6 @@ final class JsRudderLibImpl(
       }
   }
 
-  // nashorn
-  def getHash()   = hash
-  def getPassword = password
-
   // with the Proxy interface, it will be accessed with rudder.password... or rudder.hash...
   val members: Map[String, ImplicitGetBytes] = Map(
     ("password", password),
@@ -261,6 +257,7 @@ final class JsRudderLibImpl(
     members.get(key).getOrElse(s"Requested access to unknown member '${key}' in JS proxy object")
   override def getMemberKeys:          AnyRef = members.keys.toArray
   override def hasMember(key: String): Boolean = members.isDefinedAt(key)
+  // do not allow modification of lib content at runtime
   override def putMember(key: String, value: Value): Unit = ()
 }
 
@@ -281,13 +278,12 @@ object JsRudderLibBinding {
   }
 
   /*
-   * Be carefull, as bindings are mutable, we can't have
+   * Be careful, as bindings are mutable, we can't have
    * a val for bindings, else the same context is shared...
    *
    * We have one for Crypt to specialize the
    * "auto" methods
    */
-
   object Crypt extends JsRudderLibBinding {
     val jsRudderLib = new JsRudderLibImpl(CryptHash)
     def bindings: Bindings = toBindings("rudder", jsRudderLib)
@@ -295,8 +291,7 @@ object JsRudderLibBinding {
 }
 
 /**
- * This class provides the nashorn (Java 8 & up)
- * java script engine.
+ * This class provides the graalvm (Java 12 & up) java script engine.
  *
  * It allows to eval parameters in directives which are starting
  * with $eval.
@@ -437,10 +432,10 @@ object JsEngine {
     java.lang.System.setProperty("polyglot.engine.WarnInterpreterOnly", "false")
 
     /*
-     * The value is purelly arbitrary. We expects that a normal use case ends in tens of ms.
+     * The value is purely arbitrary. We expects that a normal use case ends in tens of ms.
      * But we don't want the user to have a whole generation fails because it scripts took 2 seconds
-     * for reasons. As it is something rather exceptionnal, and which will ends the
-     * Policy Generation, the value can be rather hight.
+     * for reasons. As it is something rather exceptional, and which will ends the
+     * Policy Generation, the value can be rather high.
      *
      * Note: maybe make that a parameter so that we can put an even higher value here,
      * but only put 1s in tests so that they end quickly
