@@ -63,10 +63,10 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.utils.DateFormaterService
+import java.time.LocalDate
+import java.time.ZoneOffset
 import java.util.function.Predicate
 import java.util.regex.Pattern
-import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
 import scala.collection.SortedMap
 import scala.util.Try
 import zio.*
@@ -254,7 +254,13 @@ class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository, insta
         Criterion(A_ACCOUNT, StringComparator, UnsupportedByNodeMinimalApi),
         Criterion(A_LIST_OF_IP, NodeIpListComparator, NodeCriterionMatcherIpaddress),
         Criterion(A_ROOT_USER, StringComparator, NodeCriterionMatcherString(_.rudderAgent.user.wrap)),
-        Criterion(A_INVENTORY_DATE, DateComparator, NodeCriterionMatcherDate(_.lastInventoryDate.toChunk)),
+        Criterion(
+          A_INVENTORY_DATE,
+          DateComparator,
+          NodeCriterionMatcherDate(
+            _.lastInventoryDate.toChunk.map(dt => DateFormaterService.json.transformDateTime.transform(dt).toLocalDate)
+          )
+        ),
         Criterion(
           A_POLICY_SERVER_UUID,
           StringComparator,
@@ -664,18 +670,71 @@ final case class NodeCriterionMatcherMemory(extractor: CoreNodeFact => Chunk[Mem
   val order: Ordering[MemorySize] = Ordering.by(_.size)
 }
 
-final case class NodeCriterionMatcherDate(extractorNode: CoreNodeFact => Chunk[DateTime])
-    extends NodeCriterionOrderedValueMatcher[DateTime] {
-  val parseDate: String => Option[DateTime] = (s: String) =>
-    DateFormaterService.parseDateOnly(s).toOption.orElse(Try(DateTimeFormat.forPattern("dd/MM/YYYY").parseDateTime(s)).toOption)
+final case class NodeCriterionMatcherDate(extractorNode: CoreNodeFact => Chunk[LocalDate])
+    extends NodeCriterionOrderedValueMatcher[LocalDate] {
+  val parseDate: String => Option[LocalDate] = (s: String) => {
+    DateFormaterService
+      .parseDateOnlyZDT(s)
+      .toOption
+      .orElse(Try(LocalDate.parse(s, java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))).toOption)
+  }
 
   // we need to accept both ISO format and old dd/MM/YYYY format for compatibility
   // also, we discard the time, only keep date
 
-  override def extractor: CoreNodeFact => Chunk[DateTime] = (n: CoreNodeFact) => extractorNode(n).map(_.withTimeAtStartOfDay())
-  override def parseNum(value: String):   Option[DateTime] = parseDate(value).map(_.withTimeAtStartOfDay())
-  override def serialise(a:    DateTime): String           = DateFormaterService.serialize(a)
-  val order: Ordering[DateTime] = Ordering.by(_.getMillis)
+  override def extractor: CoreNodeFact => Chunk[LocalDate] = (n: CoreNodeFact) => extractorNode(n)
+  override def parseNum(value: String):    Option[LocalDate] = parseDate(value)
+  override def serialise(a:    LocalDate): String            = DateFormaterService.serializeInstant(a.atStartOfDay(ZoneOffset.UTC).toInstant)
+  val order: Ordering[LocalDate] = Ordering.by(_.toEpochDay)
+
+  override def matches(n: CoreNodeFact, comparator: CriterionComparator, value: String): IOResult[Boolean] = {
+    implicit val ser = serialise _
+
+    comparator match {
+      case Equals    =>
+        tryMatches(value, a => MatchHolder[LocalDate](DebugInfo(Equals.id, Some(value)), extractor(n), _.exists(_ == a)))
+      case NotEquals =>
+        tryMatches(value, a => MatchHolder[LocalDate](DebugInfo(NotEquals.id, Some(value)), extractor(n), _.forall(_ != a)))
+      case Regex     =>
+        for {
+          m <- MatcherUtils.getRegex(value)
+          r <- MatchHolder[LocalDate](
+                 DebugInfo(Regex.id, Some(value)),
+                 extractor(n),
+                 _.exists(s => m.test(serialise(s)))
+               ).matches
+        } yield r
+      case NotRegex  =>
+        for {
+          m <- MatcherUtils.getRegex(value)
+          r <- MatchHolder[LocalDate](
+                 DebugInfo(NotRegex.id, Some(value)),
+                 extractor(n),
+                 _.forall(s => !m.test(serialise(s)))
+               ).matches
+        } yield r
+      case Exists    =>
+        MatchHolder[LocalDate](DebugInfo(Exists.id, None), extractor(n), _.nonEmpty).matches
+      case NotExists =>
+        MatchHolder[LocalDate](DebugInfo(NotExists.id, None), extractor(n), _.isEmpty).matches
+      case Lesser    =>
+        tryMatches(value, a => MatchHolder[LocalDate](DebugInfo(Lesser.id, Some(value)), extractor(n), _.exists(order.lt(_, a))))
+      case LesserEq  =>
+        tryMatches(
+          value,
+          a => MatchHolder[LocalDate](DebugInfo(Lesser.id, Some(value)), extractor(n), _.exists(order.lteq(_, a)))
+        )
+      case Greater   =>
+        tryMatches(value, a => MatchHolder[LocalDate](DebugInfo(Lesser.id, Some(value)), extractor(n), _.exists(order.gt(_, a))))
+      case GreaterEq =>
+        tryMatches(
+          value,
+          a => MatchHolder[LocalDate](DebugInfo(Lesser.id, Some(value)), extractor(n), _.exists(order.gteq(_, a)))
+        )
+      case c         => MatchHolder[LocalDate](DebugInfo(s"unknown comparator: ${c}", Some(value)), Chunk(), _ => false).matches
+    }
+  }
+
 }
 
 /*

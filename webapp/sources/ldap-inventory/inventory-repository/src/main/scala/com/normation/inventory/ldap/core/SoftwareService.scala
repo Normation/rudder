@@ -7,6 +7,7 @@ import com.normation.inventory.services.core.WriteOnlySoftwareDAO
 import com.normation.utils.DateFormaterService
 import com.normation.zio.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.*
 import zio.syntax.*
 
@@ -60,7 +61,10 @@ class SoftwareServiceImpl(
                                     f <- IOResult.attempt {
                                            val dir = File("/var/rudder/tmp/purgeSoftware")
                                            dir.createDirectories()
-                                           File(dir, s"${DateFormaterService.serialize(DateTime.now())}-unreferenced-software-dns.txt")
+                                           File(
+                                             dir,
+                                             s"${DateFormaterService.serialize(DateTime.now(DateTimeZone.UTC))}-unreferenced-software-dns.txt"
+                                           )
                                          }
                                     _ <- IOResult.attempt {
                                            extraSoftware.foreach(x => (f << softwareDIT.SOFTWARE.SOFT.dn(x).toString))

@@ -60,6 +60,7 @@ import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNod
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.JUnitRunner
@@ -87,7 +88,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
   // (node, expired report, still ok report)
   def expected(id: String): NodeExpectedReports = NodeExpectedReports(NodeId(id), NodeConfigId(id), null, null, null, Nil, Nil)
 
-  val date0         = new DateTime(0)
+  val date0         = new DateTime(0, DateTimeZone.UTC)
   val dummyExpected = NodeExpectedReports(NodeId("dummy"), NodeConfigId("dummy"), date0, null, null, Nil, Nil)
 
   val nodes: List[((NodeId, CoreNodeFact), NodeStatusReport, NodeStatusReport)] = List(
@@ -231,7 +232,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     // now node was ask, it will return all nodes, even expired, see: https://issues.rudder.io/issues/16612
     val n2 = repo.getNodeStatusReports(finder.reports.keySet).runNow
     // check for outdated compliance
-    computer.outDatedCompliance(DateTime.now(), Set.empty).runNow
+    computer.outDatedCompliance(DateTime.now(DateTimeZone.UTC), Set.empty).runNow
 
     // let a chance for zio to exec again to find back expired
     Thread.sleep(1000)
@@ -303,7 +304,7 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     // now node was ask, it will return only non expired reports (ie only NoReport and such here)
     val n2 = repo.getNodeStatusReports(finder.reports.keySet).runNow
     // check for outdated compliance
-    computer.outDatedCompliance(DateTime.now(), Set.empty).runNow
+    computer.outDatedCompliance(DateTime.now(DateTimeZone.UTC), Set.empty).runNow
 
     // let a chance for zio to exec again to find back expired
     Thread.sleep(1000)

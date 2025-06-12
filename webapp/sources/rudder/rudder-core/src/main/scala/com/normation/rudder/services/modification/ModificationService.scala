@@ -47,6 +47,7 @@ import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.*
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 
 class ModificationService(
     eventLogRepository:        EventLogRepository,
@@ -86,7 +87,7 @@ class ModificationService(
                           ChangeContext(
                             ModificationId(uuidGen.newUuid),
                             eventLog.principal,
-                            new DateTime(),
+                            new DateTime(DateTimeZone.UTC),
                             None,
                             None,
                             QueryContext.systemQC.nodePerms
@@ -125,7 +126,7 @@ class ModificationService(
                           ChangeContext(
                             ModificationId(uuidGen.newUuid),
                             eventLog.principal,
-                            new DateTime(),
+                            new DateTime(DateTimeZone.UTC),
                             None,
                             None,
                             QueryContext.systemQC.nodePerms

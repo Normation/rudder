@@ -863,7 +863,7 @@ class RestTestSetUp {
       ChangeContext(
         ModificationId(uuidGen.newUuid),
         EventActor("test"),
-        DateTime.now(),
+        DateTime.now(DateTimeZone.UTC),
         None,
         None,
         QueryContext.testQC.nodePerms

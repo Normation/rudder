@@ -44,6 +44,7 @@ import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.zio.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
@@ -54,7 +55,9 @@ import org.specs2.specification.AfterAll
 class TestRemoveNodeService extends Specification with AfterAll {
 
   // let's say that's /var/rudder/share
-  val varRudderShare: File = File(s"/tmp/rudder-test-delete-node-${DateTime.now().toString(ISODateTimeFormat.dateTime())}")
+  val varRudderShare: File = File(
+    s"/tmp/rudder-test-delete-node-${DateTime.now(DateTimeZone.UTC).toString(ISODateTimeFormat.dateTime())}"
+  )
 
   // nodeXX appears at seleral places
 
@@ -94,8 +97,16 @@ class TestRemoveNodeService extends Specification with AfterAll {
   )
 
   val cleanUp = new CleanUpNodePolicyFiles(varRudderShare.pathAsString)
-  implicit val testChangeContext: ChangeContext =
-    ChangeContext(ModificationId("test-mod-id"), EventActor("test"), DateTime.now(), None, None, QueryContext.testQC.nodePerms)
+  implicit val testChangeContext: ChangeContext = {
+    ChangeContext(
+      ModificationId("test-mod-id"),
+      EventActor("test"),
+      DateTime.now(DateTimeZone.UTC),
+      None,
+      None,
+      QueryContext.testQC.nodePerms
+    )
+  }
 
   /*
    *

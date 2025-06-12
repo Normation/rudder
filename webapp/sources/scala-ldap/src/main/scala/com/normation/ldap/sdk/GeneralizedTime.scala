@@ -23,6 +23,7 @@ package com.normation.ldap.sdk
 import com.unboundid.util.StaticUtils
 import java.text.ParseException
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 
 /**
  * Wrapping class around DateTime that
@@ -50,7 +51,7 @@ object GeneralizedTime {
    */
   @throws(classOf[ParseException])
   def apply(s: String): GeneralizedTime = {
-    new GeneralizedTime(new DateTime(StaticUtils.decodeGeneralizedTime(s)))
+    new GeneralizedTime(new DateTime(StaticUtils.decodeGeneralizedTime(s), DateTimeZone.UTC))
   }
 
   /**

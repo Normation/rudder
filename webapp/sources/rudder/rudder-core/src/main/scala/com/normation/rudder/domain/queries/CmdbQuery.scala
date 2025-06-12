@@ -40,6 +40,7 @@ package com.normation.rudder.domain.queries
 import cats.data.NonEmptyList
 import cats.implicits.*
 import com.jayway.jsonpath.JsonPath
+
 import com.normation.errors.*
 import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.LDAPConstants.*
@@ -50,15 +51,19 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.servers.InstanceId
+
 import com.unboundid.ldap.sdk.*
 import enumeratum.Enum
 import enumeratum.EnumEntry
 import io.scalaland.chimney.*
 import io.scalaland.chimney.syntax.*
+
 import java.util.regex.PatternSyntaxException
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
+
 import zio.json.*
 
 sealed trait CriterionComparator {
@@ -530,7 +535,7 @@ case object DateComparator extends LDAPCriterionType {
 
   private def parseDate(value: String): PureResult[DateTime] = {
     allFmts
-      .map(f => Either.catchOnly[Exception](f.parseDateTime(value)))
+      .map(f => Either.catchOnly[Exception](f.parseDateTime(value).withZone(DateTimeZone.UTC)))
       .reduceLeft(_ orElse _)
       .leftMap(error(value, _))
   }

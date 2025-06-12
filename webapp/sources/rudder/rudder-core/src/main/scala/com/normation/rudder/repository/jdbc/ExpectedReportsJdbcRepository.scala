@@ -57,6 +57,7 @@ import doobie.implicits.*
 import net.liftweb.common.*
 import net.liftweb.json.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.{System as _, *}
 import zio.interop.catz.*
 import zio.syntax.*
@@ -533,7 +534,7 @@ final case class ReportAndNodeMapping(
     val cardinality:          Int,
     val componentsValues:     Seq[String],
     val unexpandedCptsValues: Seq[String],
-    val beginDate:            DateTime = DateTime.now(),
+    val beginDate:            DateTime = DateTime.now(DateTimeZone.UTC),
     val endDate:              Option[DateTime] = None,
     val nodeId:               NodeId,
     val nodeConfigVersions:   List[NodeConfigId]
@@ -549,7 +550,7 @@ final case class ReportMapping(
     val cardinality:          Int,
     val componentsValues:     Seq[String],
     val unexpandedCptsValues: Seq[String],
-    val beginDate:            DateTime = DateTime.now(),
+    val beginDate:            DateTime = DateTime.now(DateTimeZone.UTC),
     val endDate:              Option[DateTime] = None
 )
 

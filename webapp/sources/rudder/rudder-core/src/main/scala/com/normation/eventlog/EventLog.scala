@@ -24,6 +24,7 @@ import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.utils.StringUuidGeneratorImpl
 import io.scalaland.chimney.Transformer
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.xml.*
 
 final case class EventActor(name: String) extends AnyVal
@@ -97,7 +98,7 @@ final case class EventLogDetails(
     val id:             Option[Int] = None,
     val modificationId: Option[ModificationId],
     val principal:      EventActor,
-    val creationDate:   DateTime = DateTime.now(),
+    val creationDate:   DateTime = DateTime.now(DateTimeZone.UTC),
     val cause:          Option[Int] = None,
     val severity:       Int = 100,
     val reason:         Option[String],

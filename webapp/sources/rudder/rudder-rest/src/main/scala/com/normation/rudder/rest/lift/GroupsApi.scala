@@ -72,6 +72,7 @@ import com.normation.utils.StringUuidGenerator
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.Chunk
 import zio.ZIO
 import zio.syntax.*
@@ -368,7 +369,7 @@ class GroupsApi(
       val cc = ChangeContext(
         ModificationId(uuidGen.newUuid),
         authzToken.qc.actor,
-        new DateTime(),
+        new DateTime(DateTimeZone.UTC),
         reason,
         None,
         authzToken.qc.nodePerms
@@ -538,7 +539,7 @@ class GroupApiService14(
                 val reloadGroupDiff = ModifyToNodeGroupDiff(updatedGroup)
                 val change          = NodeGroupChangeRequest(DGModAction.Update, updatedGroup, Some(cat), Some(group))
                 implicit val cc: ChangeContext =
-                  ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), None, None, qc.nodePerms)
+                  ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(DateTimeZone.UTC), None, None, qc.nodePerms)
                 createChangeRequest(reloadGroupDiff, change, params, actor)
               }
               .chainError(s"Could not reload Group ${sid} details")
@@ -562,7 +563,7 @@ class GroupApiService14(
           val deleteGroupDiff = DeleteNodeGroupDiff(group)
           val change          = NodeGroupChangeRequest(DGModAction.Delete, group, Some(cat), Some(group))
           implicit val cc: ChangeContext =
-            ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), None, None, qc.nodePerms)
+            ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(DateTimeZone.UTC), None, None, qc.nodePerms)
           createChangeRequest(deleteGroupDiff, change, params, actor)
 
         case None =>
@@ -572,7 +573,7 @@ class GroupApiService14(
 
   def updateGroup(restGroup: JQGroup, params: DefaultParams, actor: EventActor)(implicit qc: QueryContext): IOResult[JRGroup] = {
     implicit val cc: ChangeContext =
-      ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), None, None, qc.nodePerms)
+      ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(DateTimeZone.UTC), None, None, qc.nodePerms)
     for {
       id      <- restGroup.id.notOptional(s"You must specify the ID of the group that you want to update")
       pair    <- readGroup.getNodeGroup(id)

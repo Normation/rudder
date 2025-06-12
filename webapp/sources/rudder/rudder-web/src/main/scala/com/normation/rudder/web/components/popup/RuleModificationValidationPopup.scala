@@ -59,6 +59,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.xml.*
 import zio.syntax.ToZio
 
@@ -272,7 +273,7 @@ class RuleModificationValidationPopup(
                       ChangeContext(
                         ModificationId(uuidGen.newUuid),
                         CurrentUser.actor,
-                        new DateTime(),
+                        new DateTime(DateTimeZone.UTC),
                         crReasons.map(_.get),
                         None,
                         CurrentUser.nodePerms

@@ -43,6 +43,7 @@ import java.io.FileInputStream
 import java.io.PrintStream
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.matcher.ContentMatchers
 import org.specs2.mutable.Specification
@@ -54,7 +55,7 @@ class TemplateCliTest extends Specification with ContentMatchers with AfterAll {
 
   sequential
 
-  val testDir = new File("/tmp/test-template-cli-" + DateTime.now.toString())
+  val testDir = new File("/tmp/test-template-cli-" + DateTime.now(DateTimeZone.UTC).toString())
 
   override def afterAll(): Unit = {
     if (System.getProperty("tests.clean.tmp") != "false") {

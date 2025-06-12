@@ -122,6 +122,7 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.OutputStreamResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.util.matching.Regex
 import zio.*
 import zio.json.*
@@ -1614,7 +1615,7 @@ class SaveArchiveServicebyRepo(
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
       qc.actor,
-      new DateTime(),
+      new DateTime(DateTimeZone.UTC),
       Some(s"Importing archive '${archive.metadata.filename}'"),
       None,
       qc.nodePerms
