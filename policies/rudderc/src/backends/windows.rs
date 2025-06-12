@@ -7,7 +7,6 @@ use std::path::Path;
 
 use anyhow::{Result, bail};
 use askama::Template;
-use filters::technique_name;
 use rudder_commons::{Escaping, PolicyMode, methods::method::Agent};
 
 use super::Backend;
@@ -334,7 +333,7 @@ impl Windows {
     }
 
     pub fn technique_name(s: &str) -> String {
-        format!("Technique-{}", technique_name_plain(s))
+        format!("Technique-{}", Self::technique_name_plain(s))
     }
 
     pub fn technique_name_plain(s: &str) -> String {
