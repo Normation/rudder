@@ -151,18 +151,18 @@ class RuleCategoryPopup(
   ///////////// fields for category settings ///////////////////
 
   private val categoryName = new WBTextField("Name", targetCategory.map(_.name).getOrElse("")) {
-    override def setFilter             = notNull _ :: trim _ :: Nil
+    override def setFilter             = notNull :: trim :: Nil
     override def subContainerClassName = "col-xl-9 col-md-12 col-sm-12"
     override def errorClassName        = "col-xl-12 errors-container"
     override def inputField            =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createRuleCategorySaveButton')") % ("tabindex" -> "2")
     override def validations =
-      valMinLen(1, "The name must not be empty.") _ :: Nil
+      valMinLen(1, "The name must not be empty.") :: Nil
   }
 
   private val categoryDescription = new WBTextAreaField("Description", targetCategory.map(_.description).getOrElse("")) {
     override def subContainerClassName = "col-xl-9 col-md-12 col-sm-12"
-    override def setFilter             = notNull _ :: trim _ :: Nil
+    override def setFilter             = notNull :: trim :: Nil
     override def inputField            = super.inputField % ("tabindex" -> "4")
     override def errorClassName        = "col-xl-12 errors-container"
     override def validations: List[String => List[FieldError]] = Nil
@@ -181,7 +181,7 @@ class RuleCategoryPopup(
       override def inputField            = super.inputField % ("tabindex" -> "3")
       override def className             = "col-xl-12 col-md-12 col-sm-12 form-select"
       override def validations           =
-        valMinLen(1, "Please select a category") _ :: Nil
+        valMinLen(1, "Please select a category") :: Nil
     }
   }
 

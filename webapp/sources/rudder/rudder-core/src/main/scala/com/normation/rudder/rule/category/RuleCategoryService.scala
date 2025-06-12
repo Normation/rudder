@@ -75,7 +75,7 @@ class RuleCategoryService {
 
   // Get the short fqdn from the id of a Rule category
   def shortFqdn(rootCategory: RuleCategory, id: RuleCategoryId): Box[String] = {
-    rootCategory.childPath(id).map(toShortFqdn _) match {
+    rootCategory.childPath(id).map(toShortFqdn) match {
       case Left(value)  => Failure(value)
       case Right(value) => Full(value)
     }

@@ -102,7 +102,6 @@ trait CampaignEventRepository {
 
 class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSerializer) extends CampaignEventRepository {
 
-  import com.normation.rudder.campaigns.CampaignSerializer.*
   import com.normation.rudder.db.Doobie.DateTimeMeta
   import doobie.*
 
@@ -184,8 +183,6 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
 
   private object CampaignEventInsert {
     implicit val transformCampaignEvent: Transformer[CampaignEvent, CampaignEventInsert] = {
-      import com.normation.rudder.campaigns.CampaignEventState.*
-
       Transformer
         .define[CampaignEvent, CampaignEventInsert]
         .withFieldComputed(_.state, _.state.value)
@@ -368,12 +365,12 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
   }
 
   private def internalDelete(
-      id:           Option[CampaignEventId] = None,
-      states:       List[CampaignEventStateType] = Nil,
-      campaignType: Option[CampaignType] = None,
-      campaignId:   Option[CampaignId] = None,
-      afterDate:    Option[DateTime] = None,
-      beforeDate:   Option[DateTime] = None
+      id:           Option[CampaignEventId],
+      states:       List[CampaignEventStateType],
+      campaignType: Option[CampaignType],
+      campaignId:   Option[CampaignId],
+      afterDate:    Option[DateTime],
+      beforeDate:   Option[DateTime]
   ): ConnectionIO[RuntimeFlags] = {
 
     import _root_.cats.syntax.list.*

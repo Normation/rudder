@@ -123,7 +123,7 @@ class NodeGroupForm(
   private val searchNodeComponent   = new LocalSnippet[SearchNodeComponent]
 
   private var query:   Option[Query]          = nodeGroup.toOption.flatMap(_.query)
-  private var srvList: Box[Seq[CoreNodeFact]] = getNodeList(nodeGroup)(CurrentUser.queryContext)
+  private var srvList: Box[Seq[CoreNodeFact]] = getNodeList(nodeGroup)(using CurrentUser.queryContext)
 
   private def setSearchNodeComponent: Unit = {
     searchNodeComponent.set(
@@ -242,7 +242,7 @@ class NodeGroupForm(
     )
   }
 
-  private[this] def showGroupCompliance(targetOrGroupIdStr: String): NodeSeq = {
+  private def showGroupCompliance(targetOrGroupIdStr: String): NodeSeq = {
     Script(
       OnLoad(
         JsRaw(s"""
@@ -368,7 +368,7 @@ class NodeGroupForm(
         if (CurrentUser.checkRights(AuthorizationType.Group.Edit)) {
           <span class="save-tooltip-container">
                       {
-            SHtml.ajaxOnSubmit(onSubmit _)(
+            SHtml.ajaxOnSubmit(onSubmit)(
               <button class="btn btn-success btn-icon ui-button ui-corner-all ui-widget" id={saveButtonId}>
                             <span>Save <i class="fa fa-download"></i></span>
                           </button>
@@ -545,13 +545,13 @@ class NodeGroupForm(
 
   private val groupName = {
     new WBTextField("Group name", groupNameString) {
-      override def setFilter             = notNull _ :: trim _ :: Nil
+      override def setFilter             = notNull :: trim :: Nil
       override def className             = "form-control"
       override def labelClassName        = ""
       override def subContainerClassName = ""
       override def inputField            = super.inputField % ("onkeydown" -> "return processKey(event , '%s')".format(saveButtonId))
       override def validations           =
-        valMinLen(1, "Name must not be empty") _ :: Nil
+        valMinLen(1, "Name must not be empty") :: Nil
     }
   }
 
@@ -561,7 +561,7 @@ class NodeGroupForm(
       _.description
     )
     new WBTextAreaField("Description", desc) {
-      override def setFilter             = notNull _ :: trim _ :: Nil
+      override def setFilter             = notNull :: trim :: Nil
       override def className             = "form-control"
       override def labelClassName        = ""
       override def subContainerClassName = ""
@@ -597,7 +597,7 @@ class NodeGroupForm(
         case _         => NodeSeq.Empty // guarding against NoMatchE
       }
     ) {
-      override def setFilter             = notNull _ :: trim _ :: Nil
+      override def setFilter             = notNull :: trim :: Nil
       override def className             = "switch"
       override def labelClassName        = ""
       override def subContainerClassName = ""

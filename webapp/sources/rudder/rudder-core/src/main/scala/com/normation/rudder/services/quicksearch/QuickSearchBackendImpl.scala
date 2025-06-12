@@ -336,7 +336,7 @@ object QSTechniqueBackend extends Loggable {
     private def toMatch(tech: EditorTechnique): Option[Set[(String, String)]] = {
       def getParam(methods: MethodElem): List[(String, List[String])] = {
         methods match {
-          case b: MethodBlock => b.calls.flatten(getParam)
+          case b: MethodBlock => b.calls.flatten(using getParam)
           case c: MethodCall  => List((c.method.value, c.parameters.values.toList))
         }
       }

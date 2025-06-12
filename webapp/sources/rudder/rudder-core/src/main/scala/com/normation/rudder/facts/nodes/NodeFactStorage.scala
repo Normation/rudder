@@ -203,7 +203,7 @@ object StorageChangeEventSave {
     }
 
     def updateWith(b: StorageChangeEventSave): StorageChangeEventSave = {
-      def update(nfa: NodeFact, nfb: NodeFact, attrs: SelectFacts) = SelectFacts.merge(nfa, Some(nfb))(attrs.invert)
+      def update(nfa: NodeFact, nfb: NodeFact, attrs: SelectFacts) = SelectFacts.merge(nfa, Some(nfb))(using attrs.invert)
 
       (e, b) match {
         case (Noop(id, ata), Noop(_, atb))                => Noop(id, ata.max(atb))
@@ -269,7 +269,7 @@ object StorageChangeEventDelete {
     }
 
     def updateWith(b: StorageChangeEventDelete): StorageChangeEventDelete = {
-      def update(nfa: NodeFact, nfb: NodeFact, attrs: SelectFacts) = SelectFacts.merge(nfa, Some(nfb))(attrs.invert)
+      def update(nfa: NodeFact, nfb: NodeFact, attrs: SelectFacts) = SelectFacts.merge(nfa, Some(nfb))(using attrs.invert)
 
       (e, b) match {
         case (Noop(_), x)                         => x
@@ -434,7 +434,7 @@ class GitNodeFactStorageImpl(
   // just masking
   private[nodes] def fileToNode(f: File)(implicit attrs: SelectFacts): IOResult[NodeFact] = {
     for {
-      c <- IOResult.attempt(s"Error reading file: ${f.pathAsString}")(f.contentAsString(StandardCharsets.UTF_8))
+      c <- IOResult.attempt(s"Error reading file: ${f.pathAsString}")(f.contentAsString(using StandardCharsets.UTF_8))
       j <- c.fromJson[NodeFact].toIO.chainError(s"Error when decoding ${f.pathAsString}")
     } yield {
       j.maskWith(attrs)
@@ -522,7 +522,7 @@ class GitNodeFactStorageImpl(
          commitRmFile(committer, toGitPath(file.toJava), s"Updating facts for node '${nodeId.value}': deleted")
        } else {
          IOResult.attempt(file.delete())
-       }).flatMap(_ => fileToNode(file)(attrs).map(Some(_)).catchAll(_ => None.succeed)).map {
+       }).flatMap(_ => fileToNode(file)(using attrs).map(Some(_)).catchAll(_ => None.succeed)).map {
         case Some(n) => StorageChangeEventDelete.Deleted(n, attrs)
         case None    => StorageChangeEventDelete.Noop(nodeId)
       }
@@ -551,7 +551,7 @@ class GitNodeFactStorageImpl(
       ZIO.ifZIO(IOResult.attempt(fromFile.exists))(
         // however toFile exists, move, because if present it may be because a deletion didn't work and
         // we need to overwrite
-        IOResult.attempt(fromFile.moveTo(toFile)(File.CopyOptions(overwrite = true))) *>
+        IOResult.attempt(fromFile.moveTo(toFile)(using File.CopyOptions(overwrite = true))) *>
         ZIO.when(actuallyCommit) {
           commitMvDirectory(
             committer,
@@ -559,7 +559,7 @@ class GitNodeFactStorageImpl(
             toGitPath(toFile.toJava),
             s"Updating facts for node '${nodeId.value}' to status: ${to.name}"
           )
-        } *> fileToNode(toFile)(SelectFacts.none).map(Some(_)).catchAll(_ => None.succeed).map {
+        } *> fileToNode(toFile)(using SelectFacts.none).map(Some(_)).catchAll(_ => None.succeed).map {
           case Some(n) => StorageChangeEventStatus.Done(n.id)
           case None    => StorageChangeEventStatus.Noop(nodeId)
         },
@@ -576,7 +576,7 @@ class GitNodeFactStorageImpl(
 
     toStatus match {
       case RemovedInventory =>
-        delete(nodeId)(SelectFacts.none).map {
+        delete(nodeId)(using SelectFacts.none).map {
           case StorageChangeEventDelete.Deleted(node, attrs) => StorageChangeEventStatus.Done(nodeId)
           case StorageChangeEventDelete.DeletedNoInfo(node)  => StorageChangeEventStatus.Done(nodeId)
           case StorageChangeEventDelete.Noop(nodeId)         => StorageChangeEventStatus.Noop(nodeId)
@@ -635,7 +635,7 @@ object LdapNodeFactStorage {
     selectFacts.software.mode == SelectMode.Retrieve
   }
 
-  def inventoryFacts(s: SelectFacts): List[SelectFactConfig[? <: Equals with IterableOnce[Serializable] with Serializable]] = {
+  def inventoryFacts(s: SelectFacts): List[SelectFactConfig[? <: Equals & IterableOnce[Serializable] & Serializable]] = {
     List(
       s.swap,
       s.accounts,
@@ -737,7 +737,7 @@ class LdapNodeFactStorage(
       // Note: the merge is only on attrs and not getAttrs to keep attribute on optOld that where not queried in nodeFact
       // in the merge.
       inv         = SelectFacts
-                      .merge(nodeFact, optOld)(attrs)
+                      .merge(nodeFact, optOld)(using attrs)
                       .toFullInventory
                       .modify(_.node.softwareIds)
                       .setToIfDefined(newSoftIds)

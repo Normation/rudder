@@ -418,7 +418,7 @@ class CachedNodeChangesServiceImpl(
       intervals <- IOResult.attempt(changeService.getCurrentValidIntervals(None))
       newChanges = changes.groupBy(_.ruleId).map {
                      case (id, ch) =>
-                       val c = intervals.map(interval => (interval, ch.filter(interval contains _.executionTimestamp).size))
+                       val c = intervals.map(interval => (interval, ch.filter(x => interval.contains(x.executionTimestamp)).size))
                        (id, c.toMap)
                    }
       time1     <- currentTimeMillis

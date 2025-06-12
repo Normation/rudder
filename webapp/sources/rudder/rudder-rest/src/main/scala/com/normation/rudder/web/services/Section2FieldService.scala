@@ -185,7 +185,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     val fieldKey = varSpec.name
     val field    = fieldFactory.forType(varSpec, fieldKey)
 
-    val varMappings = translators.get(field.manifest) match {
+    val varMappings = translators.get(using field.manifest) match {
       case None    => throw new IllegalArgumentException("No translator from type: " + field.manifest.toString)
       case Some(t) =>
         t.to.get("self") match {

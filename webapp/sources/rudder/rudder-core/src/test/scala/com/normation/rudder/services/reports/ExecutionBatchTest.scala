@@ -228,7 +228,7 @@ class ExecutionBatchTest extends Specification {
   }
 
   val getNodeStatusByRule: ((Map[NodeId, NodeExpectedReports], Seq[Reports])) => Map[NodeId, NodeStatusReport] =
-    (getNodeStatusReportsByRule _).tupled
+    (getNodeStatusReportsByRule).tupled
   val one:                 NodeId                                                                              = NodeId("one")
 
   sequential
@@ -3628,7 +3628,7 @@ class ExecutionBatchTest extends Specification {
       )
     )
 
-    val nodeStatus = (getNodeStatusReportsByRule _).tupled(param)
+    val nodeStatus = (getNodeStatusReportsByRule).tupled(param)
 
     "have one detailed reports when we create it with one report" in {
       nodeStatus(one).reports.size === 1
@@ -4460,19 +4460,19 @@ class ExecutionBatchTest extends Specification {
     val runData = nodeList.map(buildDataForMergeCompareByRule(_, 15, 12, 5))
 
     "init correctly" in {
-      val result = (ExecutionBatch.mergeCompareByRule _).tupled(initData)
+      val result = (ExecutionBatch.mergeCompareByRule).tupled(initData)
       result.size === nbRuleInit and
       result.toSeq.map(x => x.compliance).map(x => x.success).sum === 576
     }
 
     "run fast enough" in {
-      runData.map(x => (ExecutionBatch.mergeCompareByRule _).tupled(x))
+      runData.map(x => (ExecutionBatch.mergeCompareByRule).tupled(x))
 
       val t0 = System.currentTimeMillis
 
       for (i <- 1 to 10) {
         val t0_0 = System.currentTimeMillis
-        runData.map(x => (ExecutionBatch.mergeCompareByRule _).tupled(x))
+        runData.map(x => (ExecutionBatch.mergeCompareByRule).tupled(x))
         val t1_1 = System.currentTimeMillis
         logger.trace(s"${i}th call to mergeCompareByRule for ${nodeList.size} nodes took ${t1_1 - t0_0}ms")
       }

@@ -171,9 +171,9 @@ object TemplateCli {
       _         <- if (config.templates.nonEmpty) {
                      val filler = { // if we are writing to stdout, use a different filler and ignore outputExtension
                        if (config.outputToStdout) {
-                         fillToStdout(variables.toSeq, config.inputExtension, timer) _
+                         fillToStdout(variables.toSeq, config.inputExtension, timer)
                        } else {
-                         fill(variables.toSeq, config.outdir, config.inputExtension, config.outputExtension, timer) _
+                         fill(variables.toSeq, config.outdir, config.inputExtension, config.outputExtension, timer)
                        }
                      }
                      config.templates.accumulate(filler)

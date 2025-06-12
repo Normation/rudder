@@ -69,7 +69,7 @@ object CampaignRepositoryImpl {
       }
     } *>
     // init archiver
-    campaignArchiver.init(ChangeContext.newForRudder()) *>
+    campaignArchiver.init(using ChangeContext.newForRudder()) *>
     // return campaign repo
     new CampaignRepositoryImpl(path, campaignArchiver, campaignSerializer, hooksRepository).succeed
   }
@@ -140,7 +140,7 @@ class CampaignRepositoryImpl(
                  }
       content <- campaignSerializer.serialize(c)
       _       <- IOResult.attempt(file.write(content))
-      _       <- campaignArchiver.saveCampaign(c.info.id)(ChangeContext.newForRudder())
+      _       <- campaignArchiver.saveCampaign(c.info.id)(using ChangeContext.newForRudder())
     } yield {
       c
     }
@@ -152,7 +152,7 @@ class CampaignRepositoryImpl(
                             val file = path / (s"${id.value}.json")
                             file.delete()
                           }
-      _                <- campaignArchiver.deleteCampaign(id)(ChangeContext.newForRudder())
+      _                <- campaignArchiver.deleteCampaign(id)(using ChangeContext.newForRudder())
     } yield ()
   }
 

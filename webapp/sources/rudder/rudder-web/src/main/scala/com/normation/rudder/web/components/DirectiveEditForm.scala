@@ -139,7 +139,9 @@ class DirectiveEditForm(
       throw new RuntimeException("Error when retrieving the rule root category - it is most likelly a bug. Pleae report.")
     )
   val directiveApp = new DirectiveApplicationManagement(directive, rules, rootCategory)
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "showForm" => { _ => showForm()(CurrentUser.queryContext) } }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
+    case "showForm" => { _ => showForm()(using CurrentUser.queryContext) }
+  }
 
   def isNcfTechnique(id: TechniqueId): Boolean = {
     val test = for {
@@ -343,7 +345,7 @@ class DirectiveEditForm(
                           parameterEditor.toFormNodeSeq
                         }) &
       "#directiveRulesTab *" #> ruleDisplayer &
-      "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class" -> "btn btn-success") } &
+      "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave) % ("id" -> htmlId_save) % ("class" -> "btn btn-success") } &
       "#notifications" #> displayNotifications() &
       "#showTechnical *" #> <button type="button" class="btn btn-technical-details btn-default" onclick="$('#technicalDetails').toggle(400);$(this).toggleClass('opened');">Technical details</button> &
       "#isSingle *" #> showIsSingle() &
@@ -417,7 +419,7 @@ class DirectiveEditForm(
     showErrorNotifications()
   }
 
-  private[this] def showVariablesErrorNotifications(): JsCmd = {
+  private def showVariablesErrorNotifications(): JsCmd = {
     // only replace notification container to avoid resetting the tab state
     onFailureCallback() & Replace("notification", displayNotifications())
   }
@@ -476,13 +478,13 @@ class DirectiveEditForm(
   ///////////// fields for Directive settings ///////////////////
 
   private val directiveName = new WBTextField("Name", directive.name) {
-    override def setFilter             = notNull _ :: trim _ :: Nil
+    override def setFilter             = notNull :: trim :: Nil
     override def className             = "form-control"
     override def labelClassName        = "col-sm-12"
     override def subContainerClassName = "col-sm-12"
     override def errorClassName        = ""
     override def validations           =
-      valMinLen(1, "Name must not be empty") _ :: Nil
+      valMinLen(1, "Name must not be empty") :: Nil
   }
 
   private val directiveShortDescription = {
@@ -490,7 +492,7 @@ class DirectiveEditForm(
       override def className             = "form-control"
       override def labelClassName        = "col-sm-12"
       override def subContainerClassName = "col-sm-12"
-      override def setFilter             = notNull _ :: trim _ :: Nil
+      override def setFilter             = notNull :: trim :: Nil
       override val maxLen                = 255
       override def validations: List[String => List[FieldError]] = Nil
     }
@@ -498,7 +500,7 @@ class DirectiveEditForm(
 
   private val directiveLongDescription = {
     new WBTextAreaField("Description", directive.longDescription) {
-      override def setFilter             = notNull _ :: trim _ :: Nil
+      override def setFilter             = notNull :: trim :: Nil
       override def className             = "form-control"
       override def labelClassName        = ""
       override def subContainerClassName = ""
@@ -644,7 +646,7 @@ class DirectiveEditForm(
         case _         => NodeSeq.Empty
       }
     ) {
-      override def setFilter             = notNull _ :: trim _ :: Nil
+      override def setFilter             = notNull :: trim :: Nil
       override def className             = "checkbox-group policymode-group"
       override def labelClassName        = "d-none"
       override def subContainerClassName = "col-sm-12"

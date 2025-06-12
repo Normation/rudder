@@ -477,7 +477,7 @@ object RunHooks {
     val filename = hook.getAbsolutePath
     val lines    = {
       try {
-        new String(better.files.File(filename).chars(StandardCharsets.UTF_8).take(1000).toArray).split("\n").toList
+        new String(better.files.File(filename).chars(using StandardCharsets.UTF_8).take(1000).toArray).split("\n").toList
       } catch {
         case NonFatal(ex) => Nil // ignore.
       }

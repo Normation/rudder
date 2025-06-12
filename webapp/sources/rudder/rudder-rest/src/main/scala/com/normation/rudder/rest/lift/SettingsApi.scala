@@ -85,7 +85,7 @@ import zio.*
 import zio.syntax.*
 
 class SettingsApi(
-    val configService:                 ReadConfigService with UpdateConfigService,
+    val configService:                 ReadConfigService & UpdateConfigService,
     val asyncDeploymentAgent:          AsyncDeploymentActor,
     val uuidGen:                       StringUuidGenerator,
     val policyServerManagementService: PolicyServerManagementService,
@@ -165,7 +165,7 @@ class SettingsApi(
         JField(setting.key, result)
       }
       val data     = {
-        val networks = GetAllAllowedNetworks.getAllowedNetworks()(authzToken.qc).either.runNow match {
+        val networks = GetAllAllowedNetworks.getAllowedNetworks()(using authzToken.qc).either.runNow match {
           case Right(nets) =>
             nets
           case Left(err)   =>
@@ -176,7 +176,7 @@ class SettingsApi(
       }
 
       // sort settings alphanum
-      RestUtils.response("settings", None)(Full(data.sortBy(_.name)), req, s"Could not settings")(
+      RestUtils.response("settings", None)(Full(data.sortBy(_.name)), req, s"Could not settings")(using
         "getAllSettings",
         params.prettify
       )
@@ -195,7 +195,7 @@ class SettingsApi(
         JField(setting.key, value)
       }
       startNewPolicyGeneration(authzToken.qc.actor)
-      RestUtils.response("settings", None)(Full(data), req, s"Could not modfiy settings")(
+      RestUtils.response("settings", None)(Full(data), req, s"Could not modfiy settings")(using
         "modifySettings",
         params.prettify
       )
@@ -218,7 +218,7 @@ class SettingsApi(
       } yield {
         (key -> value)
       }
-      RestUtils.response("settings", Some(key))(data, req, s"Could not get parameter '${key}'")(
+      RestUtils.response("settings", Some(key))(data, req, s"Could not get parameter '${key}'")(using
         "getSetting",
         params.prettify
       )
@@ -241,7 +241,7 @@ class SettingsApi(
       } yield {
         (key -> value)
       }
-      RestUtils.response("settings", Some(key))(data, req, s"Could not modify parameter '${key}'")(
+      RestUtils.response("settings", Some(key))(data, req, s"Could not modify parameter '${key}'")(using
         "modifySetting",
         params.prettify
       )
@@ -340,7 +340,7 @@ class SettingsApi(
     val key                   = "global_policy_mode"
     val startPolicyGeneration = true
     def get: IOResult[PolicyMode]                                       = configService.rudder_policy_mode_name()
-    def set: (PolicyMode, EventActor, Option[String]) => IOResult[Unit] = configService.set_rudder_policy_mode_name _
+    def set: (PolicyMode, EventActor, Option[String]) => IOResult[Unit] = configService.set_rudder_policy_mode_name
     def toJson(value: PolicyMode): JValue = value.name
     def parseJson(json: JValue):   Box[PolicyMode] = {
       json match {
@@ -404,32 +404,32 @@ class SettingsApi(
     val key                   = "global_policy_mode_overridable"
     val startPolicyGeneration = true
     def get: IOResult[Boolean]                                       = configService.rudder_policy_overridable()
-    def set: (Boolean, EventActor, Option[String]) => IOResult[Unit] = configService.set_rudder_policy_overridable _
+    def set: (Boolean, EventActor, Option[String]) => IOResult[Unit] = configService.set_rudder_policy_overridable
   }
 
   case object RestRunFrequency                extends RestIntSetting                          {
     val key                   = "run_frequency"
     val startPolicyGeneration = true
     def get: IOResult[Int]                                       = configService.agent_run_interval()
-    def set: (Int, EventActor, Option[String]) => IOResult[Unit] = configService.set_agent_run_interval _
+    def set: (Int, EventActor, Option[String]) => IOResult[Unit] = configService.set_agent_run_interval
   }
   case object RestRunHour                     extends RestIntSetting                          {
     val key                   = "first_run_hour"
     val startPolicyGeneration = true
     def get: IOResult[Int]                                       = configService.agent_run_start_hour()
-    def set: (Int, EventActor, Option[String]) => IOResult[Unit] = configService.set_agent_run_start_hour _
+    def set: (Int, EventActor, Option[String]) => IOResult[Unit] = configService.set_agent_run_start_hour
   }
   case object RestRunMinute                   extends RestIntSetting                          {
     val key                   = "first_run_minute"
     val startPolicyGeneration = true
     def get: IOResult[Int]                                       = configService.agent_run_start_minute()
-    def set: (Int, EventActor, Option[String]) => IOResult[Unit] = configService.set_agent_run_start_minute _
+    def set: (Int, EventActor, Option[String]) => IOResult[Unit] = configService.set_agent_run_start_minute
   }
   case object RestSplayTime                   extends RestIntSetting                          {
     val key                   = "splay_time"
     val startPolicyGeneration = true
     def get: IOResult[Int]                                       = configService.agent_run_splaytime()
-    def set: (Int, EventActor, Option[String]) => IOResult[Unit] = configService.set_agent_run_splaytime _
+    def set: (Int, EventActor, Option[String]) => IOResult[Unit] = configService.set_agent_run_splaytime
   }
   case object RestModifiedFileTTL             extends RestIntSetting                          {
     val key                   = "modified_file_ttl"
@@ -473,7 +473,7 @@ class SettingsApi(
     val startPolicyGeneration = true
     val key                   = "heartbeat_frequency"
     def get: IOResult[Int]                                       = configService.rudder_compliance_heartbeatPeriod()
-    def set: (Int, EventActor, Option[String]) => IOResult[Unit] = configService.set_rudder_compliance_heartbeatPeriod _
+    def set: (Int, EventActor, Option[String]) => IOResult[Unit] = configService.set_rudder_compliance_heartbeatPeriod
   }
   case object RestChangeMessageEnabled        extends RestBooleanSetting                      {
     val startPolicyGeneration = false
@@ -626,7 +626,7 @@ class SettingsApi(
     }
     val key = "send_metrics"
     def get:                                IOResult[Option[SendMetrics]]                                       = configService.send_server_metrics()
-    def set:                                (Option[SendMetrics], EventActor, Option[String]) => IOResult[Unit] = configService.set_send_server_metrics _
+    def set:                                (Option[SendMetrics], EventActor, Option[String]) => IOResult[Unit] = configService.set_send_server_metrics
   }
 
   case object RestJSEngine extends RestSetting[FeatureSwitch] {
@@ -807,7 +807,7 @@ class SettingsApi(
     def getAllowedNetworks()(implicit qc: QueryContext): ZIO[Any, RudderError, JArray] = {
       for {
         servers         <- nodeFactRepo
-                             .getAll()(qc, SelectNodeStatus.Accepted)
+                             .getAll()(using qc, SelectNodeStatus.Accepted)
                              .map(_.collect { case (_, n) if (n.rudderSettings.kind != NodeKind.Node) => n.id }.toSeq)
         allowedNetworks <- policyServerManagementService.getAllAllowedNetworks()
       } yield {
@@ -829,7 +829,7 @@ class SettingsApi(
       implicit val action = "getAllAllowedNetworks"
       implicit val prettify: Boolean = params.prettify
       RestUtils.response(getRootNameForVersion(version), None)(
-        getAllowedNetworks()(authzToken.qc).toBox,
+        getAllowedNetworks()(using authzToken.qc).toBox,
         req,
         s"Could not get allowed networks"
       )
@@ -850,7 +850,7 @@ class SettingsApi(
       implicit val action = "getAllowedNetworks"
       implicit val prettify: Boolean = params.prettify
       val result = for {
-        nodeInfo <- nodeFactRepo.get(NodeId(id))(authzToken.qc)
+        nodeInfo <- nodeFactRepo.get(NodeId(id))(using authzToken.qc)
         isServer <- nodeInfo match {
                       case Some(info) if info.rudderSettings.isPolicyServer =>
                         ZIO.unit
@@ -904,7 +904,7 @@ class SettingsApi(
       val modificationId = new ModificationId(uuidGen.newUuid)
       val nodeId         = NodeId(id)
       val result         = for {
-        nodeInfo <- nodeFactRepo.get(nodeId)(authzToken.qc).toBox
+        nodeInfo <- nodeFactRepo.get(nodeId)(using authzToken.qc).toBox
         isServer <- nodeInfo match {
                       case Some(info) if info.rudderSettings.isPolicyServer =>
                         Full(())
@@ -990,7 +990,7 @@ class SettingsApi(
       implicit val formats = DefaultFormats
 
       val result = for {
-        nodeInfo <- nodeFactRepo.get(nodeId)(authzToken.qc).toBox
+        nodeInfo <- nodeFactRepo.get(nodeId)(using authzToken.qc).toBox
         isServer <- nodeInfo match {
                       case Some(info) if info.rudderSettings.isPolicyServer =>
                         Full(())

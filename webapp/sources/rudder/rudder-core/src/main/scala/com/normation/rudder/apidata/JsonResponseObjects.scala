@@ -1019,7 +1019,7 @@ object JsonResponseObjects {
       }
     }
 
-    implicit val transformer: Transformer[RuleTarget, JRRuleTarget] = apply _
+    implicit val transformer: Transformer[RuleTarget, JRRuleTarget] = apply
   }
 
   final case class JRRuleTargetInfo(
@@ -1821,7 +1821,7 @@ object JsonResponseObjects {
         .withFieldConst(_.category, catId.value)
         .withFieldComputed(_.query, _.query.map(JRQuery.fromQuery(_)))
         .withFieldComputed(_.nodeIds, _.serverList.toList.map(_.value).sorted)
-        .withFieldComputed(_.groupClass, x => List(x.id.serialize, x.name).map(RuleTarget.toCFEngineClassName _).sorted)
+        .withFieldComputed(_.groupClass, x => List(x.id.serialize, x.name).map(RuleTarget.toCFEngineClassName).sorted)
         .withFieldComputed(_.properties, _.properties.filter(_.visibility == Displayed).map(JRProperty.fromGroupProp(_)))
         .withFieldComputed(_.target, x => GroupTarget(x.id).target)
         .withFieldComputed(_.system, _.isSystem)

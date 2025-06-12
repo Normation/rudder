@@ -46,6 +46,7 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.core.AsExecution
+import scala.annotation.nowarn
 import zio.Ref
 import zio.syntax.*
 
@@ -102,6 +103,7 @@ class PluginSettingsServiceTest extends Specification {
     })
   }
 
+  @nowarn
   private def withPluginSettingsService[A: AsExecution](
       resourceName: String,
       read:         IOResult[Boolean],

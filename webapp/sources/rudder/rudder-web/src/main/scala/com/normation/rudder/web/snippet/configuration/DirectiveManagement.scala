@@ -184,7 +184,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
               var hashJsonObj = JSON.parse(hashJson);
               if ("directiveId" in hashJsonObj) {
                 // displayDetails needs stringified object
-                ${SHtml.ajaxCall(JsVar("hashJson"), displayDetails _)._2.toJsCmd};
+                ${SHtml.ajaxCall(JsVar("hashJson"), displayDetails)._2.toJsCmd};
               }
             } catch {}
           }
@@ -197,7 +197,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           directiveId = null;
         }
         if( directiveId != null && directiveId.length > 0) {
-          ${SHtml.ajaxCall(JsVar("directiveId"), displayDetails _)._2.toJsCmd};
+          ${SHtml.ajaxCall(JsVar("directiveId"), displayDetails)._2.toJsCmd};
         }
         removeBsTooltips();
     """) // JsRaw ok, escaped

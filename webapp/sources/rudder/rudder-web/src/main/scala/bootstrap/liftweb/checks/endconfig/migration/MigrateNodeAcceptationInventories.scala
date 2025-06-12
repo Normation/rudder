@@ -77,7 +77,7 @@ import zio.*
 class MigrateNodeAcceptationInventories(
     nodeFactRepo:      NodeFactRepository,
     fileLogRepository: InventoryHistoryLogRepository,
-    jdbcLogRepository: HistoryLogRepository[NodeId, DateTime, FactLogData, FactLog] with InventoryHistoryDelete,
+    jdbcLogRepository: HistoryLogRepository[NodeId, DateTime, FactLogData, FactLog] & InventoryHistoryDelete,
     MAX_KEEP_REFUSED:  Duration
 ) extends BootstrapChecks {
 
@@ -132,7 +132,7 @@ class MigrateNodeAcceptationInventories(
             case None    => ZIO.unit
             case Some(l) =>
               for {
-                opt <- nodeFactRepo.get(nodeId)(QueryContext.systemQC)
+                opt <- nodeFactRepo.get(nodeId)(using QueryContext.systemQC)
                 _   <- ZIO.when(opt.isDefined || l.datetime.plus(MAX_KEEP_REFUSED.toMillis).isAfter(now)) {
                          saveInDB(nodeId, l.datetime, l.data, !opt.isDefined)
                        }

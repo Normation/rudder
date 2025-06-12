@@ -15,7 +15,7 @@ class UserManagementServiceTest extends Specification {
       val allRoles = Role.allBuiltInRoles.values.toSet
       val parsed   = UserManagementService.parsePermissions(
         Set("node_write", "node_read", "read_only", "some_unknown_permission")
-      )(allRoles)
+      )(using allRoles)
 
       parsed must be equalTo (
         (

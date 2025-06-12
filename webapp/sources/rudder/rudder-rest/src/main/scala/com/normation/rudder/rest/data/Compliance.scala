@@ -184,7 +184,7 @@ final case class ByRuleBlockCompliance(
     reportingLogic: ReportingLogic,
     subComponents:  Seq[ByRuleComponentCompliance]
 ) extends ByRuleComponentCompliance with BlockComplianceByNode[ByRuleComponentCompliance] {
-  override def subs: List[ByRuleComponentCompliance with ComponentCompliance] = subComponents.toList
+  override def subs: List[ByRuleComponentCompliance & ComponentCompliance] = subComponents.toList
 
   override def componentName: String = name
 }
@@ -246,7 +246,7 @@ final case class ByRuleByNodeByDirectiveByBlockCompliance(
     reportingLogic: ReportingLogic,
     subComponents:  Seq[ByRuleByNodeByDirectiveByComponentCompliance]
 ) extends ByRuleByNodeByDirectiveByComponentCompliance with BlockCompliance[ByRuleByNodeByDirectiveByComponentCompliance] {
-  override def subs: List[ByRuleByNodeByDirectiveByComponentCompliance with ComponentCompliance] = subComponents.toList
+  override def subs: List[ByRuleByNodeByDirectiveByComponentCompliance & ComponentCompliance] = subComponents.toList
 
   override def componentName: String = name
 }

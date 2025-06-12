@@ -133,7 +133,8 @@ class FactRepositoryPostCommit[A](
   override def apply(inventory: Inventory, records: A): IOResult[A] = {
     (for {
       optInfo <- if (inventory.node.main.status == RemovedInventory) None.succeed
-                 else nodeFactRepository.getCompat(inventory.node.main.id, inventory.node.main.status)(QueryContext.systemQC)
+                 else
+                   nodeFactRepository.getCompat(inventory.node.main.id, inventory.node.main.status)(using QueryContext.systemQC)
       _       <- optInfo match {
                    case None =>
                      InventoryProcessingLogger.info(

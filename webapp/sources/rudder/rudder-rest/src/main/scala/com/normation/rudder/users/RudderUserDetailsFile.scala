@@ -291,7 +291,7 @@ object ValidatedUserList {
           .groupBy(_.path.parts.head)
           .flatMap {
             case (_, seq) =>
-              seq.sortBy(_.path)(AclPath.orderingaAclPath).sortBy(_.path.parts.head.value)
+              seq.sortBy(_.path)(using AclPath.orderingaAclPath).sortBy(_.path.parts.head.value)
           }
           .toList
         // init status to deleted, it will be set correctly latter on

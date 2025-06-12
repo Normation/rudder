@@ -178,7 +178,7 @@ object RudderJsonResponse {
       prettify: Boolean,
       encoder:  JsonEncoder[A]
   ): LiftJsonResponse[
-    ? <: JsonRudderApiResponse[? <: immutable.Iterable[Any] with PartialFunction[Int with String, Any] with Equals]
+    ? <: JsonRudderApiResponse[? <: immutable.Iterable[Any] & PartialFunction[Int & String, Any] & Equals]
   ] = {
     schema.dataContainer match {
       case None      =>
@@ -359,12 +359,12 @@ object RudderJsonResponse {
       def toLiftResponseOneEither[B: JsonEncoder](params: DefaultParams, schema: EndpointSchema, id: Option[String])(implicit
           ev: A <:< Either[ResponseError, B]
       ): LiftResponse = {
-        toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), ConstIdTrace(id))(JsonEncoder[B], ev)
+        toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), ConstIdTrace(id))(using JsonEncoder[B], ev)
       }
       def toLiftResponseOneEither[B: JsonEncoder](params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(implicit
           ev: A <:< Either[ResponseError, B]
       ): LiftResponse = {
-        toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), SuccessIdTrace(id))(JsonEncoder[B], ev)
+        toLiftResponseOneEither(params, ResponseSchema.fromSchema(schema), SuccessIdTrace(id))(using JsonEncoder[B], ev)
       }
 
       def toLiftResponseZeroEither(
@@ -391,12 +391,12 @@ object RudderJsonResponse {
       def toLiftResponseZeroEither(params: DefaultParams, schema: EndpointSchema, id: Option[String])(implicit
           ev: A <:< Either[ResponseError, Any]
       ): LiftResponse = {
-        toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), ConstIdTrace(id))(ev)
+        toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), ConstIdTrace(id))(using ev)
       }
       def toLiftResponseZeroEither(params: DefaultParams, schema: EndpointSchema, id: A => Option[String])(implicit
           ev: A <:< Either[ResponseError, Any]
       ): LiftResponse = {
-        toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), SuccessIdTrace(id))(ev)
+        toLiftResponseZeroEither(params, ResponseSchema.fromSchema(schema), SuccessIdTrace(id))(using ev)
       }
 
     }

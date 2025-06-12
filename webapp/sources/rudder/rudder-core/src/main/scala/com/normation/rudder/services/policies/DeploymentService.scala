@@ -933,10 +933,10 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   def getGlobalPolicyMode:          () => Box[GlobalPolicyMode]
 
   override def findDependantRules(): Box[Seq[Rule]]                     = roRuleRepo.getAll(true).toBox
-  override def getNodeFacts():       Box[MapView[NodeId, CoreNodeFact]] = nodeFactRepository.getAll()(QueryContext.systemQC).toBox
+  override def getNodeFacts():       Box[MapView[NodeId, CoreNodeFact]] = nodeFactRepository.getAll()(using QueryContext.systemQC).toBox
 
   override def getNodeProperties: IOResult[Map[NodeId, ResolvedNodePropertyHierarchy]] = {
-    propertiesRepository.getAllNodeProps()(QueryContext.systemQC)
+    propertiesRepository.getAllNodeProps()(using QueryContext.systemQC)
   }
 
   override def getDirectiveLibrary(ids: Set[DirectiveId]): Box[FullActiveTechniqueCategory] = {
@@ -2115,7 +2115,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
       _ <- IOResult.attempt(s"Can not move previous updated node IDs file to '${savedOld.pathAsString}'") {
              file.parent.createDirectoryIfNotExists(true)
              if (file.exists) {
-               file.moveTo(savedOld)(File.CopyOptions(overwrite = true))
+               file.moveTo(savedOld)(using File.CopyOptions(overwrite = true))
              }
            }
       _ <- IOResult.attempt(s"Can not write updated node IDs file '${file.pathAsString}'") {
@@ -2198,7 +2198,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
       _ <- IOResult.attempt(s"Can not move previous updated node IDs file to '${savedOld.pathAsString}'") {
              file.parent.createDirectoryIfNotExists(true)
              if (file.exists) {
-               file.moveTo(savedOld)(File.CopyOptions(overwrite = true))
+               file.moveTo(savedOld)(using File.CopyOptions(overwrite = true))
              }
            }
       _ <- IOResult.attempt(s"Can not write error message file '${file.pathAsString}'") {

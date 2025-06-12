@@ -266,7 +266,7 @@ object GlobalPluginsLicense {
     implicit val minZonedDateTime: Semigroup[ZonedDateTime] = Semigroup.instance((x, y) => if (x.isBefore(y)) x else y)
   }
 
-  def fromLicense[T: ToEndDate: Semigroup](info: PluginLicense): GlobalPluginsLicense[T] = {
+  def fromLicense[T: ToEndDate](info: PluginLicense): GlobalPluginsLicense[T] = {
     new GlobalPluginsLicense[T](
       Some(NonEmptyChunk(info.licensee.value)),
       Some(info.startDate),

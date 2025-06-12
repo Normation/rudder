@@ -149,7 +149,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
   }
 
   // init DB and repositories
-  lazy val dataSource: DataSource with Closeable = {
+  lazy val dataSource: DataSource & Closeable = {
     val config = new RudderDatasourceProvider(
       properties.getProperty("jdbc.driverClassName"),
       properties.getProperty("jdbc.url"),

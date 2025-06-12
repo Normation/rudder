@@ -376,7 +376,7 @@ class NodeApi(
                         authzToken.qc.nodePerms
                       )
                     )
-        result   <- nodeApiService.updateRestNode(NodeId(id), restNode)(
+        result   <- nodeApiService.updateRestNode(NodeId(id), restNode)(using
                       ChangeContext(
                         ModificationId(uuidGen.newUuid),
                         authzToken.qc.actor,
@@ -551,7 +551,7 @@ class NodeApi(
                        .extractIdsFromParams(req.params)
                        .map(_.getOrElse(Nil).map(NodeId(_)))
                        .toIO
-        nodes     <- nodeApiService.nodeFactRepository.getAll()(authzToken.qc, SelectNodeStatus.Any).chainError(errorMsg(ids))
+        nodes     <- nodeApiService.nodeFactRepository.getAll()(using authzToken.qc, SelectNodeStatus.Any).chainError(errorMsg(ids))
         nodeStatus = {
           Chunk
             .fromIterable(ids)
@@ -582,7 +582,7 @@ class NodeApi(
     ): LiftResponse = {
       import com.normation.rudder.score.ScoreSerializer.*
       (for {
-        score <- nodeApiService.getNodeGlobalScore(NodeId(id))(authzToken.qc)
+        score <- nodeApiService.getNodeGlobalScore(NodeId(id))(using authzToken.qc)
       } yield {
         score
       }).toLiftResponseOne(params, schema, _ => Some(id))
@@ -602,7 +602,7 @@ class NodeApi(
     ): LiftResponse = {
       import com.normation.rudder.score.ScoreSerializer.*
       import com.normation.rudder.rest.implicits.*
-      nodeApiService.getNodeDetailsScore(NodeId(id))(authzToken.qc).toLiftResponseOne(params, schema, _ => Some(id))
+      nodeApiService.getNodeDetailsScore(NodeId(id))(using authzToken.qc).toLiftResponseOne(params, schema, _ => Some(id))
     }
   }
 
@@ -622,7 +622,7 @@ class NodeApi(
       import com.normation.rudder.score.ScoreSerializer.*
       val (nodeId, scoreId) = id
       (for {
-        allDetails <- nodeApiService.getNodeDetailsScore(NodeId(nodeId))(authzToken.qc)
+        allDetails <- nodeApiService.getNodeDetailsScore(NodeId(nodeId))(using authzToken.qc)
       } yield {
         allDetails.filter(_.scoreId == scoreId)
       }).toLiftResponseOne(params, schema, _ => Some(nodeId))
@@ -1115,7 +1115,7 @@ class NodeApiService(
   def pendingNodeDetails(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Chunk[JRNodeInfo]] = {
     implicit val status: InventoryStatus = PendingInventory
     for {
-      pendingNodes <- nodeFactRepository.getAll()(qc, SelectNodeStatus.Pending)
+      pendingNodes <- nodeFactRepository.getAll()(using qc, SelectNodeStatus.Pending)
       nodeFact     <- pendingNodes.get(nodeId).notOptional(s"Could not find pending Node ${nodeId.value}")
     } yield {
       Chunk(nodeFact.toNodeInfo.transformInto[JRNodeInfo])
@@ -1130,7 +1130,7 @@ class NodeApiService(
       implicit val status: InventoryStatus = RemovedInventory
       for {
         nodeFact <- nodeFactRepository
-                      .get(id)(cc.toQuery)
+                      .get(id)(using cc.toQuery)
                       .notOptional(s"Can not removed the node with id '${id.value}' because it was not found")
         _        <- removeNodeService.removeNode(nodeFact.id)
       } yield {
@@ -1164,7 +1164,7 @@ class NodeApiService(
     for {
       _ <- NodeLogger.PendingNodePure.debug(s" Nodes to change Status : ${nodeIds.mkString("[ ", ", ", " ]")}")
 
-      res <- modifyStatusFromAction(nodeIds, nodeStatusAction)(
+      res <- modifyStatusFromAction(nodeIds, nodeStatusAction)(using
                ChangeContext(modId, qc.actor, Instant.now(), None, actorIp, qc.nodePerms)
              )
     } yield {
@@ -1422,13 +1422,13 @@ class NodeApiService(
       in  <- IOResult.attempt(new PipedInputStream(pipeSize))
       out <- IOResult.attempt(new PipedOutputStream(in))
       _   <- NodeLoggerPure.trace("remote-run: reading stream from remote API")
-      _   <- copy(out, readTimeout).forkDaemon              // read from HTTP request
-      res <- IOResult.attempt(copyStreamTo(pipeSize, in) _) // give the writer function waiting for out
+      _   <- copy(out, readTimeout).forkDaemon            // read from HTTP request
+      res <- IOResult.attempt(copyStreamTo(pipeSize, in)) // give the writer function waiting for out
       // don't close out here, it was closed inside `copy`
     } yield res).catchAll { err =>
       NodeLoggerPure.error(errorMessageWithHint(err.fullMsg)) *>
       IOResult.attempt(
-        copyStreamTo(pipeSize, new ByteArrayInputStream(errorMessageWithHint(err.msg).getBytes(StandardCharsets.UTF_8))) _
+        copyStreamTo(pipeSize, new ByteArrayInputStream(errorMessageWithHint(err.msg).getBytes(StandardCharsets.UTF_8)))
       )
     }.runNow
   }
@@ -1477,7 +1477,7 @@ class NodeApiService(
     for {
       info <-
         removeNodeService
-          .removeNodePure(id, mode)(ChangeContext(modId, qc.actor, Instant.now(), None, actorIp, qc.nodePerms))
+          .removeNodePure(id, mode)(using ChangeContext(modId, qc.actor, Instant.now(), None, actorIp, qc.nodePerms))
     } yield {
       Chunk.fromIterable(info.map(_.toNodeInfo.transformInto[JRNodeInfo]))
     }

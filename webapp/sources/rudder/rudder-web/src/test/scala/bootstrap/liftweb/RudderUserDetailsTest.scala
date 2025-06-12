@@ -157,7 +157,7 @@ class RudderUserDetailsTest extends ZIOSpecDefault {
 
   val pluginRole: Builtin = Builtin(BuiltinName.PluginRoleName("plugin"), Rights(PluginAuth.values))
 
-  override def spec: Spec[TestEnvironment with Scope, Any] = {
+  override def spec: Spec[TestEnvironment & Scope, Any] = {
 
     suiteAll("All REST tests defined in files") {
 

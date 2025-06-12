@@ -37,7 +37,6 @@
 
 package com.normation.rudder.domain.properties
 
-import cats.syntax.semigroup.*
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.errors.*

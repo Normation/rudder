@@ -353,7 +353,7 @@ class CommitAndDeployChangeRequestServiceImpl(
                       Failure("You should not be able to create a group with a change request")
                     case ModifyToNodeGroupDiff(n) =>
                       // we first need to refresh the node list if it's a dynamic group
-                      val group = if (n.isDynamic) updateDynamicGroups.computeDynGroup(n)(qc) else Full(n)
+                      val group = if (n.isDynamic) updateDynamicGroups.computeDynGroup(n)(using qc) else Full(n)
 
                       // If we could get a nodeList, then we apply the change, else we bubble up the error
                       group.flatMap { resultingGroup =>
@@ -495,7 +495,7 @@ class CommitAndDeployChangeRequestServiceImpl(
     }
 
     val params     = bestEffort(sortedParam)(param => doParamChange(param))
-    val groups     = bestEffort(sortedGroups)(nodeGroupChange => doNodeGroupChange(nodeGroupChange)(cc.toQuery))
+    val groups     = bestEffort(sortedGroups)(nodeGroupChange => doNodeGroupChange(nodeGroupChange)(using cc.toQuery))
     val directives = bestEffort(sortedDirectives)(directiveChange => doDirectiveChange(directiveChange))
     val rules      = bestEffort(sortedRules)(rule => doRuleChange(rule))
     // TODO: we will want to keep tracks of all the modification done, and in

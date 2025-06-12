@@ -669,7 +669,7 @@ object ZioJsonExtractor {
  * This last class provides utility methods to get JsonQuery objects from the request.
  * We want to get ride of RestExtractorService but for now, we keep it for the parameter parts.
  */
-class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
+class ZioJsonExtractor(queryParser: CmdbQueryParser & JsonQueryLexer) {
   import JsonQueryObjects.*
   import JsonResponseObjects.*
   import ZioJsonExtractor.parseJson

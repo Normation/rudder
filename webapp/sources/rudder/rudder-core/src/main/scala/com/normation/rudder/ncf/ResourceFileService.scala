@@ -117,7 +117,7 @@ class GitResourceFileService(gitReposProvider: GitRepositoryProvider) extends Re
                     }
     } yield {
 
-      val toResourceFixed = toResource(resourcesPath) _
+      val toResourceFixed = toResource(resourcesPath)
 
       // New files not added
       val added    = status.getUntracked.asScala.toList.flatMap(toResourceFixed(_, New))

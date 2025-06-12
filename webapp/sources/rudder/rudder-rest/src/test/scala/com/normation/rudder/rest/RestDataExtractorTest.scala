@@ -63,7 +63,7 @@ class RestDataExtractorTest extends ZIOSpecDefault {
   val mockDirectives = new MockDirectives(mockTechniques)
   val mockRules      = new MockRules()
 
-  override def spec: Spec[TestEnvironment with Scope, Any] = {
+  override def spec: Spec[TestEnvironment & Scope, Any] = {
     suite("All tests")(
       suite("extract RuleTarget")(
         List(

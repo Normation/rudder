@@ -564,7 +564,7 @@ class ComplianceApi(
     }
   }
 
-  private[this] def parseSimpleTargetOrNodeGroupId(str: String): PureResult[SimpleTarget] = {
+  private def parseSimpleTargetOrNodeGroupId(str: String): PureResult[SimpleTarget] = {
     // attempt to parse a "target" first because format is more specific
     RuleTarget.unserOne(str) match {
       case None        => NodeGroupId.parse(str).map(GroupTarget(_)).left.map(Inconsistency(_))
@@ -1682,7 +1682,7 @@ class ComplianceAPIService(
     this.reportingService.getGlobalUserCompliance()
   }
 
-  private[this] def targetServerList(target: NonGroupRuleTarget)(nodeSettings: Map[NodeId, RudderSettings]) = {
+  private def targetServerList(target: NonGroupRuleTarget)(nodeSettings: Map[NodeId, RudderSettings]) = {
 
     target match {
       case AllTarget                    => nodeSettings.keySet

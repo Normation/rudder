@@ -277,8 +277,8 @@ class VariableTest extends Specification {
     saveHaveValue()
 
     val constrainedVariable = variables(itemName)
-    saveHaveValue()(constrainedVariable)
-    beASelect(constrainedVariable)
+    saveHaveValue()(using constrainedVariable)
+    beASelect(using constrainedVariable)
   }
 
   "Variable with default" should {
@@ -294,7 +294,7 @@ class VariableTest extends Specification {
     beAnInput
     haveType("datetime")
 
-    haveValue(ISODateTimeFormat.dateTime.withZoneUTC().print(ISODateTimeFormat.dateTimeParser.parseDateTime(dateValue)))(
+    haveValue(ISODateTimeFormat.dateTime.withZoneUTC().print(ISODateTimeFormat.dateTimeParser.parseDateTime(dateValue)))(using
       dateVariable.copyWithSavedValue(dateValue).orThrow
     )
   }
@@ -581,7 +581,7 @@ class VariableTest extends Specification {
   }
 
   private def saveHaveValue(value: String = refValue)(implicit variable: Variable) = {
-    haveValue(value)(variable.copyWithSavedValue(value).orThrow)
+    haveValue(value)(using variable.copyWithSavedValue(value).orThrow)
   }
 
   private def haveNbValues(nbValues: Int)(implicit variable: Variable) = {

@@ -248,7 +248,7 @@ trait ListNewNode {
 
 class FactListNewNodes(backend: NodeFactRepository) extends ListNewNode {
   override def listNewNodes()(implicit qc: QueryContext): IOResult[Seq[CoreNodeFact]] = {
-    backend.getAll()(qc, SelectNodeStatus.Pending).map(_.values.toSeq)
+    backend.getAll()(using qc, SelectNodeStatus.Pending).map(_.values.toSeq)
   }
 }
 
@@ -305,7 +305,7 @@ class ComposedNewNodeManager[A](
     for {
       cnf <-
         nodeFactRepo
-          .get(id)(cc.toQuery, SelectNodeStatus.Pending)
+          .get(id)(using cc.toQuery, SelectNodeStatus.Pending)
           .notOptional(s"Node with id '${id.value}' was not found in pending nodes")
       _   <- refuseOne(cnf)
       _   <- nodeFactRepo.delete(id)
@@ -340,7 +340,7 @@ class ComposedNewNodeManager[A](
     for {
       // Get inventory og the node
       cnf         <- nodeFactRepo
-                       .get(id)(cc.toQuery, SelectNodeStatus.Pending)
+                       .get(id)(using cc.toQuery, SelectNodeStatus.Pending)
                        .notOptional(s"Missing inventory for node with ID: '${id.value}'")
       // Pre accept it
       preAccept   <- passPreAccept(cnf)
@@ -348,7 +348,7 @@ class ComposedNewNodeManager[A](
       _           <- nodeFactRepo.changeStatus(id, AcceptedInventory)
       // Update hooks for the node
       _           <- hooksRunner
-                       .afterNodeAcceptedAsync(id)(cc.toQuery)
+                       .afterNodeAcceptedAsync(id)(using cc.toQuery)
                        .catchAll(err => {
                          NodeLoggerPure.PendingNode.error(
                            s"Error when executing post-acceptation hooks for node '${cnf.fqdn}' " +
@@ -358,7 +358,7 @@ class ComposedNewNodeManager[A](
       // Retrieve the cnf again to make sure that the data is up to date
       // since pre acceptance logic can modify the node data (like the policy mode and state)
       upToDateCnf <- nodeFactRepo
-                       .get(id)(cc.toQuery, SelectNodeStatus.Accepted)
+                       .get(id)(using cc.toQuery, SelectNodeStatus.Accepted)
                        .notOptional(s"Missing inventory for node with ID: '${id.value}'")
     } yield upToDateCnf
   }
@@ -384,7 +384,7 @@ class RefuseGroups(
       groupIds <- roGroupRepo.findGroupWithAnyMember(Seq(cnf.id))
       _        <- ZIO.foreach(groupIds) { groupId =>
                     for {
-                      groupPair <- roGroupRepo.getNodeGroup(groupId)(cc.toQuery)
+                      groupPair <- roGroupRepo.getNodeGroup(groupId)(using cc.toQuery)
                       modGroup   = groupPair._1.copy(serverList = groupPair._1.serverList - cnf.id)
                       msg        = Some("Automatic update of groups due to refusal of node " + cnf.id.value)
                       saved     <- {
@@ -459,7 +459,7 @@ class AcceptHostnameAndIp(
       acceptDuplicated <- acceptDuplicateHostnames
       _                <- ZIO.when(!acceptDuplicated) {
                             for {
-                              _ <- queryForDuplicateHostname(List(cnf.fqdn))(cc.toQuery)
+                              _ <- queryForDuplicateHostname(List(cnf.fqdn))(using cc.toQuery)
                             } yield ()
                           }
     } yield ()

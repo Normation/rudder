@@ -12,9 +12,9 @@ import org.specs2.matcher.MustMatchers
 import org.specs2.matcher.StandardMatchResults
 import org.specs2.mutable.Specification
 
-trait JsonSpecMatcher { self: MustMatchers with Specification =>
+trait JsonSpecMatcher { self: MustMatchers & Specification =>
 
-  import JsonSpecMatcher.*
+  import com.normation.JsonSpecMatcher.*
 
   /**
       * Tests for a non-strict equality of json, by comparing the string.

@@ -185,7 +185,7 @@ final class NodeGrid(
                 var node = $$(this).attr("nodeid");
                 var ajaxParam = JSON.stringify({"jsid":jsid , "id":$$(this).attr("nodeid") , "status":$$(this).attr("nodeStatus")});
                 ${jsVarNameForId(tableId)}.fnOpen( this, fnFormatDetails(jsid), 'details' );
-                ${SHtml.ajaxCall(JsVar("ajaxParam"), details _)._2.toJsCmd}
+                ${SHtml.ajaxCall(JsVar("ajaxParam"), details)._2.toJsCmd}
               }
             }
           } );
@@ -230,7 +230,7 @@ final class NodeGrid(
       ".nodetr [nodestatus]" #> { server.status.name })(datatableXml)
     }
 
-    val lines: NodeSeq = servers.flatMap(serverLine _)
+    val lines: NodeSeq = servers.flatMap(serverLine)
 
     ("table [id]" #> tableId &
     "#header *+" #> headers &

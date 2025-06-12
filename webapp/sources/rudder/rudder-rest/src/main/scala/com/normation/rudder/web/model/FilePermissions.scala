@@ -89,6 +89,7 @@ package com.normation.rudder.web.model
 
 import Perm.*
 import com.normation.utils.Utils.isEmpty
+import scala.annotation.nowarn
 import scala.collection.BitSet
 
 trait Perm {
@@ -244,20 +245,18 @@ final case class PermSet(file: FilePerms, perms: (Perm => Unit, () => Perm)*) {
 }
 
 @unchecked // it should be checked
+@nowarn
 object PermSet {
-  val u:   FilePerms => PermSet = (file: FilePerms) => new PermSet(file, (file._u_= _, () => file._u))
-  val g:   FilePerms => PermSet = (file: FilePerms) => new PermSet(file, (file._g_= _, () => file._g))
-  val o:   FilePerms => PermSet = (file: FilePerms) => new PermSet(file, (file._o_= _, () => file._o))
-  val ug:  FilePerms => PermSet = (file: FilePerms) =>
-    new PermSet(file, (file._u_= _, () => file._u), (file._g_= _, () => file._g))
-  val uo:  FilePerms => PermSet = (file: FilePerms) =>
-    new PermSet(file, (file._u_= _, () => file._u), (file._o_= _, () => file._o))
-  val go:  FilePerms => PermSet = (file: FilePerms) =>
-    new PermSet(file, (file._g_= _, () => file._g), (file._o_= _, () => file._o))
+  val u:   FilePerms => PermSet = (file: FilePerms) => new PermSet(file, (file._u_=, () => file._u))
+  val g:   FilePerms => PermSet = (file: FilePerms) => new PermSet(file, (file._g_=, () => file._g))
+  val o:   FilePerms => PermSet = (file: FilePerms) => new PermSet(file, (file._o_=, () => file._o))
+  val ug:  FilePerms => PermSet = (file: FilePerms) => new PermSet(file, (file._u_=, () => file._u), (file._g_=, () => file._g))
+  val uo:  FilePerms => PermSet = (file: FilePerms) => new PermSet(file, (file._u_=, () => file._u), (file._o_=, () => file._o))
+  val go:  FilePerms => PermSet = (file: FilePerms) => new PermSet(file, (file._g_=, () => file._g), (file._o_=, () => file._o))
   val ugo: FilePerms => PermSet = (file: FilePerms) =>
-    new PermSet(file, (file._u_= _, () => file._u), (file._g_= _, () => file._g), (file._o_= _, () => file._o))
+    new PermSet(file, (file._u_=, () => file._u), (file._g_=, () => file._g), (file._o_=, () => file._o))
   val a:   FilePerms => PermSet = (file: FilePerms) =>
-    new PermSet(file, (file._u_= _, () => file._u), (file._g_= _, () => file._g), (file._o_= _, () => file._o))
+    new PermSet(file, (file._u_=, () => file._u), (file._g_=, () => file._g), (file._o_=, () => file._o))
 }
 
 @unchecked

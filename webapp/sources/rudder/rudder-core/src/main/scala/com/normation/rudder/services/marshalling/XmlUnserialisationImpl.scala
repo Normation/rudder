@@ -493,7 +493,7 @@ class ChangeRequestChangesUnserialisationImpl(
     def unserialiseNodeGroupChange(changeRequest: XNode): PureResult[Map[NodeGroupId, NodeGroupChanges]] = {
 
       for {
-        groupsNode <- getChild(changeRequest, "groups")(changeRequestEntryType)
+        groupsNode <- getChild(changeRequest, "groups")(using changeRequestEntryType)
       } yield {
 
         implicit val entryType: XmlEntryType = XmlEntryType("changeRequest group changes")
@@ -548,7 +548,7 @@ class ChangeRequestChangesUnserialisationImpl(
     def unserialiseDirectiveChange(changeRequest: XNode): PureResult[Map[DirectiveId, DirectiveChanges]] = {
 
       for {
-        directivesNode <- getChild(changeRequest, "directives")(changeRequestEntryType)
+        directivesNode <- getChild(changeRequest, "directives")(using changeRequestEntryType)
       } yield {
 
         implicit val entryType: XmlEntryType = XmlEntryType("changeRequest directive changes")
@@ -624,7 +624,7 @@ class ChangeRequestChangesUnserialisationImpl(
     def unserialiseRuleChange(changeRequest: XNode): PureResult[Map[RuleId, RuleChanges]] = {
 
       for {
-        rulesNode <- getChild(changeRequest, "rules")(changeRequestEntryType)
+        rulesNode <- getChild(changeRequest, "rules")(using changeRequestEntryType)
       } yield {
 
         implicit val entryType: XmlEntryType = XmlEntryType("changeRequest rule changes")
@@ -680,7 +680,7 @@ class ChangeRequestChangesUnserialisationImpl(
     def unserialiseGlobalParameterChange(changeRequest: XNode): PureResult[Map[String, GlobalParameterChanges]] = {
 
       for {
-        paramsNode <- getChild(changeRequest, "globalParameters")(changeRequestEntryType)
+        paramsNode <- getChild(changeRequest, "globalParameters")(using changeRequestEntryType)
       } yield {
 
         implicit val entryType: XmlEntryType = XmlEntryType("globalParameters Global Parameter changes")
@@ -734,7 +734,7 @@ class ChangeRequestChangesUnserialisationImpl(
     }
 
     (for {
-      changeRequest <- checkEntry(xml)(changeRequestEntryType)
+      changeRequest <- checkEntry(xml)(using changeRequestEntryType)
       _             <- TestFileFormat.check(changeRequest)
       groups        <- unserialiseNodeGroupChange(changeRequest)
       directives    <- {

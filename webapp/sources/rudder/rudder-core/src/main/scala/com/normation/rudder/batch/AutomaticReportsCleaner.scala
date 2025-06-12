@@ -53,7 +53,6 @@ import net.liftweb.actor.LAPinger
 import net.liftweb.actor.SpecializedLiftActor
 import net.liftweb.common.*
 import org.joda.time.*
-import scala.annotation.nowarn
 import zio.*
 import zio.syntax.*
 

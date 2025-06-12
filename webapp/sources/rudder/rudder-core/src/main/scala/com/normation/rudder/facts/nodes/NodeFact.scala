@@ -1385,7 +1385,7 @@ object SelectFacts {
   // given a core node fact, add attributes from an other fact based on what attrs says
   def mergeCore(cnf: CoreNodeFact, fact: NodeFact)(implicit attrs: SelectFacts): NodeFact = {
     // from a implementation point of view, it's the opposite of merge WRT SelectFacts
-    merge(NodeFact.fromMinimal(cnf), Some(fact))(attrs.invert)
+    merge(NodeFact.fromMinimal(cnf), Some(fact))(using attrs.invert)
   }
 
   // mask the given NodeFact to only expose attrs that are in "Retrieve"

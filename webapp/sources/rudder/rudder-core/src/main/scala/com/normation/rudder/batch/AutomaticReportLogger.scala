@@ -115,7 +115,7 @@ class AutomaticReportLogger(
             logger.warn("Automatic report logger has never run, logging latest 100 non compliant reports")
             val isSuccess = (for {
               hundredReports <- reportsRepository.getLastHundredErrorReports(reportsKind).toIO
-              nodes          <- nodeFactRepository.getAll()(QueryContext.systemQC)
+              nodes          <- nodeFactRepository.getAll()(using QueryContext.systemQC)
               rules          <- ruleRepository.getAll(true)
               directives     <- directiveRepository.getFullDirectiveLibrary()
             } yield {
@@ -229,7 +229,7 @@ class AutomaticReportLogger(
       val startAt = lastProcessedId + 1
       logger.debug(s"Writing non-compliant-report logs between ids ${startAt} and ${maxId} (both included)")
       (for {
-        nodes      <- nodeFactRepository.getAll()(QueryContext.systemQC)
+        nodes      <- nodeFactRepository.getAll()(using QueryContext.systemQC)
         rules      <- ruleRepository.getAll(true)
         directives <- directiveRepository.getFullDirectiveLibrary()
       } yield {

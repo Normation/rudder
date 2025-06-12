@@ -74,7 +74,6 @@ import com.normation.rudder.users.JsonUser
 import com.normation.rudder.users.JsonUserFormData
 import com.normation.rudder.users.Serialisation.*
 import com.normation.rudder.users.UpdateUserInfo
-import com.normation.rudder.users.User
 import com.normation.rudder.users.UserInfo
 import com.normation.rudder.users.UserManagementService
 import com.normation.rudder.users.UserRepository

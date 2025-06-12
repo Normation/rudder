@@ -398,7 +398,7 @@ object errors {
 
   object BoxUtil {
 
-    def fold[E <: RudderError, A, F[_]: cats.Monad](error: RudderError => F[A], success: A => F[A])(box: Box[A]): F[A] = {
+    def fold[A, F[_]](error: RudderError => F[A], success: A => F[A])(box: Box[A]): F[A] = {
       def toFail(f: Failure): RudderError = {
         (f.chain, f.exception) match {
           case (Full(parent), _) => Chained(f.msg, toFail(parent))
@@ -419,19 +419,17 @@ object errors {
   }
 
   implicit class BoxToEither[E <: RudderError, A](val res: Box[A]) extends AnyVal {
-    import cats.instances.either.*
-    def toPureResult: PureResult[A] = BoxUtil.fold[E, A, PureResult](
+    def toPureResult: PureResult[A] = BoxUtil.fold[A, PureResult](
       err => Left(err),
       suc => Right(suc)
     )(res)
   }
 
   implicit class BoxToIO[E <: RudderError, A](res: => Box[A]) {
-    import _root_.zio.interop.catz.*
     def toIO: IOResult[A] = IOResult
       .attempt(res)
       .flatMap(x => {
-        BoxUtil.fold[E, A, IOResult](
+        BoxUtil.fold[A, IOResult](
           err => err.fail,
           suc => suc.succeed
         )(x)
@@ -566,7 +564,7 @@ object box {
   /**
    * A utility alias type / methods to create ZIO `Managed[RudderError, A]`
    */
-  type IOManaged[A] = ZIO[Any with Scope, RudderError, A]
+  type IOManaged[A] = ZIO[Any & Scope, RudderError, A]
   object IOManaged {
     def make[A](acquire: => A)(release: A => Unit): IOManaged[A] =
       ZIO.acquireRelease(IOResult.attempt(acquire))(a => effectUioUnit(release(a)))

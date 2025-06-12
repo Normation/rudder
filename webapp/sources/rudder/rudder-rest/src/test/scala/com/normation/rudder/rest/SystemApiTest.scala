@@ -523,7 +523,7 @@ class SystemApiTest extends Specification with AfterAll with Loggable {
           beEqualTo(SystemApi.getArchiveName(archiveType, commitDate))
         )) and (testDir must org.specs2.matcher.ContentMatchers
           .haveSameFilesAs(restTestSetUp.mockGitRepo.configurationRepositoryRoot.toJava)
-          .withFilter(filterGeneratedFile _))
+          .withFilter(filterGeneratedFile))
       case Full(JsonResponsePrettify(json, _, _, code, _)) =>
         import net.liftweb.http.js.JsExp.*
         (code must beEqualTo(500)) and

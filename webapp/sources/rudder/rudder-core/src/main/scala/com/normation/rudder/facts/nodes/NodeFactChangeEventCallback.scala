@@ -161,7 +161,7 @@ class ScoreUpdateOnNodeFactChange(scoreServiceManager: ScoreServiceManager, scor
         scoreServiceManager.handleEvent(SystemUpdateScoreEvent(node.id, node.softwareUpdate.toList))
       case NodeFactChangeEvent.Updated(_, newNode, _) =>
         scoreServiceManager.handleEvent(SystemUpdateScoreEvent(newNode.id, newNode.softwareUpdate.toList))
-      case NodeFactChangeEvent.Deleted(node, _)       => scoreService.deleteNodeScore(node.id)(change.cc.toQuery)
+      case NodeFactChangeEvent.Deleted(node, _)       => scoreService.deleteNodeScore(node.id)(using change.cc.toQuery)
       case _                                          => ZIO.unit
     }
   }

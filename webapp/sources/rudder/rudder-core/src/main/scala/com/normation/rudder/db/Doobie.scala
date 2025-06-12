@@ -268,12 +268,10 @@ object Doobie {
    * It's Put/Get since it will be hold on a single column
    */
   implicit val jNodeStatusReportGet: Get[JNodeStatusReport] = {
-    import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.*
     Get.Advanced.other[PGobject](NonEmptyList.of("json")).temap[JNodeStatusReport](o => o.getValue.fromJson[JNodeStatusReport])
   }
 
   implicit val jNodeStatusReportPut: Put[JNodeStatusReport] = {
-    import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.*
     Put.Advanced.other[PGobject](NonEmptyList.of("json")).tcontramap[JNodeStatusReport] { j =>
       val o = new PGobject
       o.setType("json")

@@ -161,7 +161,7 @@ object TraitTestApiFromYamlFiles {
 
     // transform templates based on the map of transformation, or ident if not registered
     def transform(transformations: Map[String, String => String], name: String, s: String): String = {
-      transformations.getOrElse(name, identity[String] _)(s)
+      transformations.getOrElse(name, identity[String])(s)
     }
 
     // file are copier directly into destDir

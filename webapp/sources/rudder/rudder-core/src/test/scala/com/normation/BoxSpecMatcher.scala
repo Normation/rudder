@@ -47,6 +47,7 @@ import org.specs2.matcher.Matcher
 import org.specs2.matcher.MatchResult
 import org.specs2.matcher.NoShouldExpectations
 import org.specs2.mutable.Specification
+import scala.annotation.nowarn
 
 /**
  * Here we manage all the initialisation of services and database
@@ -84,11 +85,11 @@ trait BoxSpecMatcher extends Specification with Loggable with NoShouldExpectatio
       case Full(x) => f(x)
     }
 
-    def mustFullEq(res: T): MatchResult[Any] = matchRes((x: T) => x === res)
+    infix def mustFullEq(res: T): MatchResult[Any] = matchRes((x: T) => x === res)
 
-    def mustMatch(m: Matcher[T], name: String): MatchResult[Any] = matchRes((x: T) => (x aka name) must m)
+    infix def mustMatch(m: Matcher[T], name: String): MatchResult[Any] = matchRes((x: T) => (x aka name) must m)
 
-    def mustFull: MatchResult[Any] = matchRes((x: T) => ok(s"Got a ${x}"))
+    infix def mustFull: MatchResult[Any] = matchRes((x: T) => ok(s"Got a ${x}"))
 
   }
 
@@ -97,7 +98,8 @@ trait BoxSpecMatcher extends Specification with Loggable with NoShouldExpectatio
 import org.specs2.matcher.describe.Diffable
 
 trait BoxMatchers {
-  def beFull[T: Diffable]: BoxMatcher[T] = BoxMatcher()
+  @nowarn
+  infix def beFull[T: Diffable]: BoxMatcher[T] = BoxMatcher()
 }
 
 case class BoxMatcher[T]() extends Matcher[Box[T]] {

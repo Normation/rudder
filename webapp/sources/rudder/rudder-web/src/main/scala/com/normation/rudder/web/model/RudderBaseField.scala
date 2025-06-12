@@ -228,7 +228,7 @@ class WBTextField(override val name: String, override val defaultValue: String =
     extends RudderBaseField with StringValidators {
   type ValueType = String
 
-  def inputField: Elem = SHtml.text(value, set _)
+  def inputField: Elem = SHtml.text(value, set)
 
   protected def valueTypeToBoxString(in: ValueType):   Box[String] = Full(in)
   protected def boxStrToValType(in:      Box[String]): ValueType   = in openOr ("")
@@ -240,7 +240,7 @@ class WBTextAreaField(override val name: String, override val defaultValue: Stri
     extends RudderBaseField with StringValidators {
   type ValueType = String
 
-  def inputField: Elem = SHtml.textarea(value, set _)
+  def inputField: Elem = SHtml.textarea(value, set)
 
   protected def valueTypeToBoxString(in: ValueType):   Box[String] = Full(in)
   protected def boxStrToValType(in:      Box[String]): ValueType   = in openOr ("")
@@ -255,7 +255,7 @@ class WBCheckboxField(
 ) extends RudderBaseField {
   type ValueType = Boolean
 
-  def inputField: Elem = <span>{SHtml.checkbox(value, set _, (attrs: Seq[ElemAttr])*)}</span>
+  def inputField: Elem = <span>{SHtml.checkbox(value, set, (attrs: Seq[ElemAttr])*)}</span>
 }
 
 class WBSelectField(
@@ -274,7 +274,7 @@ class WBSelectField(
     }
   }
 
-  def inputField: Elem = SHtml.select(opts, defaultVal, set _, attrs*)
+  def inputField: Elem = SHtml.select(opts, defaultVal, set, attrs*)
 
   protected def valueTypeToBoxString(in: ValueType):   Box[String] = Full(in)
   protected def boxStrToValType(in:      Box[String]): ValueType   = in openOr ("")
@@ -297,7 +297,7 @@ class WBSelectObjField[T](
       Empty
   }
 
-  def inputField: Elem = SHtml.selectObj[T](opts, defaultVal, set _, attrs*)
+  def inputField: Elem = SHtml.selectObj[T](opts, defaultVal, set, attrs*)
 }
 
 class WBRadioField(
@@ -322,7 +322,7 @@ class WBRadioField(
     }
   }
 
-  def choiceHolder: ChoiceHolder[String] = SHtml.radio(opts, Full(value), set _, parameters*)
+  def choiceHolder: ChoiceHolder[String] = SHtml.radio(opts, Full(value), set, parameters*)
 
   def inputField: Elem = {
     <div>

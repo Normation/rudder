@@ -140,7 +140,7 @@ class CreateCategoryOrGroupPopup(
       & "item-cancel" #> (SHtml.ajaxButton("Cancel", () => closePopup()) % ("tabindex" -> "6")                   % ("class"    -> "btn btn-default"))
       & "item-save" #> (SHtml.ajaxSubmit(
         "Create",
-        onSubmit _
+        onSubmit
       )                                                                  % ("id"       -> "createCOGSaveButton") % ("tabindex" -> "5") % ("class" -> "btn btn-success"))
       andThen
       // Updating notification should be done at the end because it empties the form tracker
@@ -152,16 +152,16 @@ class CreateCategoryOrGroupPopup(
 
   ///////////// fields for category settings ///////////////////
   private val piName = new WBTextField("Name", "") {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createCOGSaveButton')") % ("tabindex" -> "2") % ("autofocus" -> "true")
     override def validations =
-      valMinLen(1, "Name must not be empty.") _ :: Nil
+      valMinLen(1, "Name must not be empty.") :: Nil
   }
 
   private val piDescription = new WBTextAreaField("Description", "") {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def inputField     = super.inputField % ("style" -> "height:5em") % ("tabindex" -> "4")
     override def errorClassName = "col-xl-12 errors-container"
     override def validations: List[String => List[FieldError]] = Nil
@@ -183,12 +183,12 @@ class CreateCategoryOrGroupPopup(
     },
     Some(5)
   ) {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def className      = "align-radio-generate-input"
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     = super.inputField % ("onkeydown" -> "return processKey(event , 'createCOGSaveButton')")
     override def validations    =
-      valMinLen(1, "Please choose a group type.") _ :: Nil
+      valMinLen(1, "Please choose a group type.") :: Nil
   }
 
   private val piItemType = {
@@ -204,12 +204,12 @@ class CreateCategoryOrGroupPopup(
       },
       Some(1)
     ) {
-      override def setFilter      = notNull _ :: trim _ :: Nil
+      override def setFilter      = notNull :: trim :: Nil
       override def className      = "align-radio-generate-input"
       override def errorClassName = "col-xl-12 errors-container"
       override def inputField     = super.inputField % ("onkeydown" -> "return processKey(event , 'createCOGSaveButton')")
       override def validations    =
-        valMinLen(1, "Please choose between group or category.") _ :: Nil
+        valMinLen(1, "Please choose between group or category.") :: Nil
     }
   }
 
@@ -223,7 +223,7 @@ class CreateCategoryOrGroupPopup(
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createCOGSaveButton')") % ("tabindex" -> "3")
     override def validations =
-      valMinLen(1, "Please select a category") _ :: Nil
+      valMinLen(1, "Please select a category") :: Nil
   }
 
   private val formTracker = new FormTracker(piName, piDescription, piContainer, piStatic)
@@ -323,13 +323,13 @@ class CreateCategoryOrGroupPopup(
 
   def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
-      override def setFilter  = notNull _ :: trim _ :: Nil
+      override def setFilter  = notNull :: trim :: Nil
       override def inputField = super.inputField %
         ("style" -> "height:5em;") % ("placeholder" -> { userPropertyService.reasonsFieldExplanation })
       override def errorClassName = "col-xl-12 errors-container"
       override def validations    = {
         if (mandatory) {
-          valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
+          valMinLen(5, "The reason must have at least 5 characters.") :: Nil
         } else {
           Nil
         }

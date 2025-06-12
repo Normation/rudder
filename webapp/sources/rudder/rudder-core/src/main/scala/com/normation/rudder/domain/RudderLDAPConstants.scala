@@ -292,7 +292,7 @@ object RudderLDAPConstants extends Loggable {
     }
 
     variables
-      .collect(toPartial(parsePolicyVariable _))
+      .collect(toPartial(parsePolicyVariable))
       .groupBy { case (x, i, y) => x }
       .map {
         case (k, seq) =>

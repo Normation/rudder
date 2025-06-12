@@ -172,7 +172,7 @@ class FactRemoveNodeBackend(backend: NodeFactRepository) extends RemoveNodeBacke
   override def findNodeStatuses(nodeId: NodeId): IOResult[Set[InventoryStatus]] = {
     // here, we need to return "RemovedInventory" in case of missing node, so CoreNodeFactRepo #getStatus
     // is not what we want;
-    backend.get(nodeId)(QueryContext.todoQC, SelectNodeStatus.Any).map {
+    backend.get(nodeId)(using QueryContext.todoQC, SelectNodeStatus.Any).map {
       case None    => Set(RemovedInventory)
       case Some(x) => Set(x.rudderSettings.status)
     }
@@ -227,14 +227,14 @@ class RemoveNodeServiceImpl(
           // always delete in order pending then accepted then deleted
           res1    <- if (status.contains(PendingInventory)) {
                        (for {
-                         i <- nodeFactRepo.get(nodeId)(QueryContext.systemQC, SelectNodeStatus.Pending)
+                         i <- nodeFactRepo.get(nodeId)(using QueryContext.systemQC, SelectNodeStatus.Pending)
                          r <- deletePendingNode(nodeId, mode)
                          _ <- info.set(i)
                        } yield r).catchAll(err => Error(err).succeed)
                      } else Success.succeed
           res2    <- if (status.contains(AcceptedInventory)) {
                        (for {
-                         i <- nodeFactRepo.get(nodeId)(QueryContext.systemQC, SelectNodeStatus.Accepted)
+                         i <- nodeFactRepo.get(nodeId)(using QueryContext.systemQC, SelectNodeStatus.Accepted)
                          r <- i match {
                                 case None    => Success.succeed // perhaps deleted or something
                                 case Some(x) => info.set(Some(x)) *> deleteAcceptedNode(x, mode)
@@ -319,7 +319,7 @@ class RemoveNodeServiceImpl(
           Map((node.id, node)).succeed
         } else {
           for {
-            opt    <- nodeFactRepo.get(node.rudderSettings.policyServerId)(QueryContext.systemQC)
+            opt    <- nodeFactRepo.get(node.rudderSettings.policyServerId)(using QueryContext.systemQC)
             parent <-
               opt.notOptional(
                 s"The policy server '${node.rudderSettings.policyServerId.value}' for node ${node.fqdn} ('${node.id.value}') was not found in Rudder"
