@@ -57,8 +57,14 @@ import com.normation.rudder.services.nodes.history.impl.TestFileHistoryLogReposi
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestFileHistoryLogRepository {
 
-  val repos =
-    new FileHistoryLogRepository(rootDir, StringMarshaller, StringId, new JodaDateTimeConverter(ISODateTimeFormat.dateTime().withZoneUTC()))
+  val repos = {
+    new FileHistoryLogRepository(
+      rootDir,
+      StringMarshaller,
+      StringId,
+      new JodaDateTimeConverter(ISODateTimeFormat.dateTime().withZoneUTC())
+    )
+  }
 
   implicit class RunThing[R, E, T](thing: ZIO[Any, E, T]) {
     def runNow: Either[E, T] = ZioRuntime.unsafeRun(thing.either)

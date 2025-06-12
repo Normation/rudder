@@ -40,7 +40,6 @@ package com.normation.plugins
 import better.files.*
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version
-
 import com.normation.zio.*
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime

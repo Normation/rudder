@@ -686,55 +686,6 @@ final case class NodeCriterionMatcherDate(extractorNode: CoreNodeFact => Chunk[L
   override def parseNum(value: String):    Option[LocalDate] = parseDate(value)
   override def serialise(a:    LocalDate): String            = DateFormaterService.serializeInstant(a.atStartOfDay(ZoneOffset.UTC).toInstant)
   val order: Ordering[LocalDate] = Ordering.by(_.toEpochDay)
-
-  override def matches(n: CoreNodeFact, comparator: CriterionComparator, value: String): IOResult[Boolean] = {
-    implicit val ser = serialise _
-
-    comparator match {
-      case Equals    =>
-        tryMatches(value, a => MatchHolder[LocalDate](DebugInfo(Equals.id, Some(value)), extractor(n), _.exists(_ == a)))
-      case NotEquals =>
-        tryMatches(value, a => MatchHolder[LocalDate](DebugInfo(NotEquals.id, Some(value)), extractor(n), _.forall(_ != a)))
-      case Regex     =>
-        for {
-          m <- MatcherUtils.getRegex(value)
-          r <- MatchHolder[LocalDate](
-                 DebugInfo(Regex.id, Some(value)),
-                 extractor(n),
-                 _.exists(s => m.test(serialise(s)))
-               ).matches
-        } yield r
-      case NotRegex  =>
-        for {
-          m <- MatcherUtils.getRegex(value)
-          r <- MatchHolder[LocalDate](
-                 DebugInfo(NotRegex.id, Some(value)),
-                 extractor(n),
-                 _.forall(s => !m.test(serialise(s)))
-               ).matches
-        } yield r
-      case Exists    =>
-        MatchHolder[LocalDate](DebugInfo(Exists.id, None), extractor(n), _.nonEmpty).matches
-      case NotExists =>
-        MatchHolder[LocalDate](DebugInfo(NotExists.id, None), extractor(n), _.isEmpty).matches
-      case Lesser    =>
-        tryMatches(value, a => MatchHolder[LocalDate](DebugInfo(Lesser.id, Some(value)), extractor(n), _.exists(order.lt(_, a))))
-      case LesserEq  =>
-        tryMatches(
-          value,
-          a => MatchHolder[LocalDate](DebugInfo(Lesser.id, Some(value)), extractor(n), _.exists(order.lteq(_, a)))
-        )
-      case Greater   =>
-        tryMatches(value, a => MatchHolder[LocalDate](DebugInfo(Lesser.id, Some(value)), extractor(n), _.exists(order.gt(_, a))))
-      case GreaterEq =>
-        tryMatches(
-          value,
-          a => MatchHolder[LocalDate](DebugInfo(Lesser.id, Some(value)), extractor(n), _.exists(order.gteq(_, a)))
-        )
-      case c         => MatchHolder[LocalDate](DebugInfo(s"unknown comparator: ${c}", Some(value)), Chunk(), _ => false).matches
-    }
-  }
-
 }
 
 /*

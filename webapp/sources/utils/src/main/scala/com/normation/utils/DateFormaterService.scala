@@ -40,8 +40,8 @@ package com.normation.utils
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
 import io.scalaland.chimney.*
-
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZonedDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
@@ -51,10 +51,7 @@ import org.joda.time.DateTimeZone
 import org.joda.time.Duration
 import org.joda.time.chrono.ISOChronology
 import org.joda.time.format.*
-
-import java.time.LocalDate
 import scala.util.control.NonFatal
-
 import zio.*
 import zio.json.*
 
@@ -86,9 +83,7 @@ object DateFormaterService {
       new DateTime(x.toInstant.toEpochMilli, DateTimeZone.UTC)
     }
 
-    implicit val transformDateTimeInstant: Transformer[DateTime, Instant] = { x =>
-      x.toJava.toInstant
-    }
+    implicit val transformDateTimeInstant: Transformer[DateTime, Instant] = { x => x.toJava.toInstant }
 
   }
 
