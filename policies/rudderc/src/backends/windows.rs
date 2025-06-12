@@ -335,8 +335,7 @@ impl Windows {
     pub fn technique_name(s: &str) -> String {
         format!(
             "Technique-{}",
-            s.to_string()
-                .split('_')
+            s.split('_')
                 .map(filters::uppercase_first_letter)
                 .collect::<Vec<String>>()
                 .join("-")
