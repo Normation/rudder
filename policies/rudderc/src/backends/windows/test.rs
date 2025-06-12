@@ -67,7 +67,7 @@ pub fn win_agent(
         .join(" ");
 
     let technique_test_directive = TechniqueTestDirectiveTemplate {
-        technique: &Windows::technique_name(&technique.id.to_string()),
+        technique: &Windows::technique_name_plain(&technique.id.to_string()),
         technique_name: &technique.name,
         policy_mode: &filters::camel_case(case.policy_mode.to_string())?,
         params: &params,

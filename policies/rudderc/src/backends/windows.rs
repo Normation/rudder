@@ -7,6 +7,7 @@ use std::path::Path;
 
 use anyhow::{Result, bail};
 use askama::Template;
+use filters::technique_name;
 use rudder_commons::{Escaping, PolicyMode, methods::method::Agent};
 
 use super::Backend;
@@ -313,7 +314,7 @@ fn method_call(
             Some(condition.to_string())
         },
         args,
-        name: Windows::technique_name(&m.info.as_ref().unwrap().bundle_name),
+        name: Windows::technique_name_plain(&m.info.as_ref().unwrap().bundle_name),
         is_supported,
         policy_mode_override: if let Some(x) = policy_mode_context {
             if m.policy_mode_override.is_none() {
@@ -333,13 +334,14 @@ impl Windows {
     }
 
     pub fn technique_name(s: &str) -> String {
-        format!(
-            "Technique-{}",
-            s.split('_')
-                .map(filters::uppercase_first_letter)
-                .collect::<Vec<String>>()
-                .join("-")
-        )
+        format!("Technique-{}", technique_name_plain(s))
+    }
+
+    pub fn technique_name_plain(s: &str) -> String {
+        s.split('_')
+            .map(filters::uppercase_first_letter)
+            .collect::<Vec<String>>()
+            .join("-")
     }
 
     fn technique(src: Technique, resources: &Path) -> Result<String> {
