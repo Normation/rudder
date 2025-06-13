@@ -53,11 +53,26 @@ import scala.xml.Node
 import zio.json.*
 import zio.json.ast.Json
 
+case class HashedUserPassword(private val value: String) extends AnyVal {
+  override def toString: String = "[REDACTED HashedUserPassword]"
+
+  def exposeHash(): String = value
+}
+object HashedUserPassword {
+  // only define the instance from String, other needing to expose the value should explicitly import the unsafe instance
+  implicit val transformer: Transformer[String, HashedUserPassword] = HashedUserPassword(_)
+
+  object UnsafeInstances {
+    implicit val hashToStringTransformer: Transformer[HashedUserPassword, String] = _.exposeHash()
+  }
+}
+
 case class UserFileInfo(userOrigin: List[UserOrigin], digest: String)
 case class UserOrigin(user: User, hashValidHash: Boolean)
 object UserOrigin {
-  def verifyHash(hashType: String, hash: String) = {
+  def verifyHash(hashType: String, hashed: HashedUserPassword) = {
     // $2[aby]$[cost]$[22 character salt][31 character hash]
+    val hash      = hashed.exposeHash()
     val bcryptReg = "^\\$2[aby]?\\$[\\d]+\\$[./A-Za-z0-9]{53}$".r
     hashType.toLowerCase match {
       case "sha" | "sha1"       => hash.matches("^[a-fA-F0-9]{40}$")
@@ -70,11 +85,13 @@ object UserOrigin {
   }
 }
 
-case class User(username: String, password: String, permissions: Set[String], tenants: Option[String]) {
-  def toNode: Node = <user name={username} password={password} permissions={permissions.mkString(",")} tenants={tenants.orNull}/>
+case class User(username: String, password: HashedUserPassword, permissions: Set[String], tenants: Option[String]) {
+  def toNode: Node = <user name={username} password={password.exposeHash()} permissions={permissions.mkString(",")} tenants={
+    tenants.orNull
+  }/>
 }
-object User                                                                                            {
-  def make(username: String, password: String, permissions: Set[String], tenants: String): User = {
+object User                                                                                                        {
+  def make(username: String, password: HashedUserPassword, permissions: Set[String], tenants: String): User = {
     User(username, password, permissions, if (tenants.isEmpty) None else Some(tenants))
   }
 }
@@ -194,10 +211,12 @@ final case class JsonProviderInfo(
 )
 
 object JsonProviderInfo {
-  def fromUser(u: RudderUserDetail, provider: String)(implicit allRoles: Set[Role]): JsonProviderInfo = {
+  def from(userRoles: Set[Role], authz: Rights, provider: String)(implicit
+      allRoles: Set[Role]
+  ): JsonProviderInfo = {
     val (_, customUserRights) = {
       UserManagementService
-        .computeRoleCoverage(allRoles, u.authz.authorizationTypes)
+        .computeRoleCoverage(allRoles, authz.authorizationTypes)
         .getOrElse(Set.empty)
         .partitionMap {
           case Custom(customRights) => Right(customRights.authorizationTypes)
@@ -206,14 +225,14 @@ object JsonProviderInfo {
     }
 
     // custom anonymous roles and permissions are already inside roleCoverage and customRights fields
-    val roles = u.roles.filter {
+    val roles = userRoles.filter {
       case _: Custom => false
       case _ => true
     }.map(_.name)
 
     JsonProviderInfo(
       provider,
-      u.authz.transformInto[JsonRights],
+      authz.transformInto[JsonRights],
       JsonRoles(roles),
       Rights(customUserRights.flatten).transformInto[JsonRights]
     )
@@ -407,6 +426,7 @@ final case class JsonInternalUserData(
 )
 
 object JsonInternalUserData {
+  import HashedUserPassword.UnsafeInstances.*
   implicit val transformer: Transformer[User, JsonInternalUserData] = Transformer.derive[User, JsonInternalUserData]
 }
 
