@@ -3224,8 +3224,17 @@ class MockCampaign() {
     ),
     DumbCampaignDetails("campaign #0")
   )
-  val e0: CampaignEvent =
-    CampaignEvent(CampaignEventId("e0"), c0.info.id, "campaign #0", Finished, new DateTime(0), new DateTime(1), DumbCampaignType)
+  val e0: CampaignEvent = {
+    CampaignEvent(
+      CampaignEventId("e0"),
+      c0.info.id,
+      "campaign #0",
+      CampaignEventState.Finished,
+      new DateTime(0),
+      new DateTime(1),
+      DumbCampaignType
+    )
+  }
 
   object repo extends CampaignRepository {
     val items: Ref[Map[CampaignId, DumbCampaignTrait]] = Ref.make(Map[CampaignId, DumbCampaignTrait]((c0.info.id -> c0))).runNow
@@ -3283,7 +3292,7 @@ class MockCampaign() {
     val items: Ref[Map[CampaignEventId, CampaignEvent]] = Ref.make(Map[CampaignEventId, CampaignEvent]((e0.id -> e0))).runNow
 
     def isActive(e: CampaignEvent): Boolean = {
-      e.state == Scheduled || e.state == Running
+      e.state == CampaignEventState.Scheduled || e.state == CampaignEventState.Running
     }
 
     def get(id: CampaignEventId):            IOResult[Option[CampaignEvent]] = {
@@ -3296,7 +3305,7 @@ class MockCampaign() {
     }
 
     def getWithCriteria(
-        states:       List[String],
+        states:       List[CampaignEventState],
         campaignType: List[CampaignType],
         campaignId:   Option[CampaignId],
         limit:        Option[Int],
@@ -3318,7 +3327,7 @@ class MockCampaign() {
       }
       val stateFiltered        = states match {
         case Nil => campaignTypeFiltered
-        case s   => campaignTypeFiltered.map(_.filter(ev => states.contains(s)))
+        case s   => campaignTypeFiltered.map(_.filter(ev => s.contains(ev.state)))
       }
 
       val afterDateFiltered  = afterDate match {
@@ -3366,7 +3375,7 @@ class MockCampaign() {
 
     def deleteEvent(
         id:           Option[CampaignEventId],
-        states:       List[String],
+        states:       List[CampaignEventState],
         campaignType: Option[CampaignType],
         campaignId:   Option[CampaignId],
         afterDate:    Option[DateTime],
@@ -3390,7 +3399,7 @@ class MockCampaign() {
 
       val stateFiltered: CampaignEvent => Boolean = states match {
         case Nil => campaignTypeFiltered
-        case s   => ev => campaignTypeFiltered(ev) && !states.contains(s)
+        case s   => ev => campaignTypeFiltered(ev) && !s.contains(ev.state)
       }
 
       val afterDateFiltered:  CampaignEvent => Boolean = afterDate match {
