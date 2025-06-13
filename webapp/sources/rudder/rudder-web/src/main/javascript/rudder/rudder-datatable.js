@@ -56,11 +56,16 @@ const equalsCheck = (a, b) =>
     a.length === b.length &&
     a.every((v, i) => v === b[i]);
 
+// Renaming table ids to specific CSV file name, also later enforce snake_case if necessary
+const csvRenameFilename = (filename) => (({
+  "serverGrid": "nodes_search_result"
+})[filename] ?? filename)
+
 // Shared config for DataTables Button CSV
-const csvButtonConfig = (filename) => ({
+const csvButtonConfig = (filename, additionalCls) => ({
   extend: 'csv',
-  className: 'btn btn-primary btn-export',
-  filename: filename,
+  className: 'btn btn-primary btn-export ' + (additionalCls ?? ''),
+  filename: 'rudder_' + csvRenameFilename(filename) + '_' + getDateString(),
   text: 'Export',
   exportOptions: {
     customizeData: function (data) {
