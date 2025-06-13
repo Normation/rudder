@@ -46,7 +46,7 @@ bundle agent call_unsupported_methods_82a3d8ca_bf7c_4b5d_a8e6_4423ecb5f532(c_nam
                                     if => "${method_call_condition}";
     "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_user_group_${c_key}")),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'User group' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "bob", canonify("${class_prefix}_user_group_${c_key}"), canonify("${class_prefix}_user_group_${c_key}"), @{args}),
+    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'User group' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("${class_prefix}_user_group_${c_key}"), canonify("${class_prefix}_user_group_${c_key}"), @{args}),
                                 unless => "${method_call_condition}";
 
 }
