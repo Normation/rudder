@@ -46,7 +46,7 @@ bundle agent call_technique_with_loops_with_main_branch_without_condition_845f73
                                     if => "${method_call_condition}";
     "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_file_from_shared_folder_${c_key}")),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "/home/bob/.vimrc", canonify("${class_prefix}_file_from_shared_folder_${c_key}"), canonify("${class_prefix}_file_from_shared_folder_${c_key}"), @{args}),
+    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("${class_prefix}_file_from_shared_folder_${c_key}"), canonify("${class_prefix}_file_from_shared_folder_${c_key}"), @{args}),
                                 unless => "${method_call_condition}";
 
 }
@@ -67,7 +67,7 @@ bundle agent call_technique_with_loops_with_main_branch_without_condition_845f73
                                     if => "${method_call_condition}";
     "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_file_from_shared_folder_${c_key}")),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "/home/bob/.bashrc", canonify("${class_prefix}_file_from_shared_folder_${c_key}"), canonify("${class_prefix}_file_from_shared_folder_${c_key}"), @{args}),
+    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("${class_prefix}_file_from_shared_folder_${c_key}"), canonify("${class_prefix}_file_from_shared_folder_${c_key}"), @{args}),
                                 unless => "${method_call_condition}";
 
 }
