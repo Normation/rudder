@@ -1224,6 +1224,7 @@ object RudderConfig extends Loggable {
   val automaticReportLogger:               AutomaticReportLogger                    = rci.automaticReportLogger
   val automaticReportsCleaning:            AutomaticReportsCleaning                 = rci.automaticReportsCleaning
   val campaignEventRepo:                   CampaignEventRepositoryImpl              = rci.campaignEventRepo
+  val campaignRepo:                        CampaignRepository                       = rci.campaignRepo
   val campaignSerializer:                  CampaignSerializer                       = rci.campaignSerializer
   val categoryHierarchyDisplayer:          CategoryHierarchyDisplayer               = rci.categoryHierarchyDisplayer
   val changeRequestChangesSerialisation:   ChangeRequestChangesSerialisation        = rci.changeRequestChangesSerialisation
@@ -1493,6 +1494,7 @@ case class RudderServiceApi(
     interpolationCompiler:               InterpolatedValueCompilerImpl,
     deploymentService:                   PromiseGeneration_Hooks,
     campaignEventRepo:                   CampaignEventRepositoryImpl,
+    campaignRepo:                        CampaignRepository,
     mainCampaignService:                 MainCampaignService,
     campaignSerializer:                  CampaignSerializer,
     jsonReportsAnalyzer:                 JSONReportsAnalyser,
@@ -3869,6 +3871,7 @@ object RudderConfigInit {
       interpolationCompiler,
       deploymentService,
       campaignEventRepo,
+      campaignRepo,
       mainCampaignService,
       campaignSerializer,
       jsonReportsAnalyzer,
