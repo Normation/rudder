@@ -8,7 +8,7 @@ use std::{
     str::FromStr,
 };
 
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use diesel::{self, prelude::*};
 use flate2::read::GzDecoder;
 use openssl::{stack::Stack, x509::X509};
@@ -21,6 +21,7 @@ use rudder_relayd::{
         *,
     },
 };
+use std::hint::black_box;
 
 fn bench_nodeslist(c: &mut Criterion) {
     c.bench_function("parse nodes list", move |b| {

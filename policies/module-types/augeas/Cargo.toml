@@ -11,7 +11,7 @@ license.workspace = true
 [dependencies]
 anyhow = "1"
 ariadne = "0.5"
-bytesize = { version = "1.3.0", features = ["serde"] }
+bytesize = { version = "2.0.1", features = ["serde"] }
 gumdrop = "0.8.1"
 ipnet = "2.0.0"
 iprange = { version = "0.6" }
@@ -23,7 +23,7 @@ similar = "2.6.0"
 regex = "1.11.1"
 rudder_module_type = { path = "../../rudder-module-type" }
 raugeas = "0.3.1"
-rustyline = "15"
+rustyline = "16"
 secrecy = "0.10"
 zxcvbn = "3"
 pest = "2.7.15"
