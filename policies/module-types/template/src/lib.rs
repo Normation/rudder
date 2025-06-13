@@ -50,19 +50,21 @@ impl Engine {
         template_src: Option<String>,
         data: Value,
     ) -> Result<String> {
-        let template = match (&template_path, template_src) {
-            (Some(p), _) => read_to_string(p)
-                .with_context(|| format!("Failed to read template {}", p.display()))?,
-            (_, Some(s)) => s,
+        let (template, template_name) = match (&template_path, template_src) {
+            (Some(p), _) => (
+                read_to_string(p)
+                    .with_context(|| format!("Failed to read template {}", p.display()))?,
+                p.file_name().unwrap().to_string_lossy().into_owned(),
+            ),
+            (_, Some(s)) => (s, "template".to_string()),
             _ => unreachable!(),
         };
-
         // We need to create the Environment even for one template
         let mut env = minijinja::Environment::new();
         // Fail on non-defined values, even in iteration
         env.set_undefined_behavior(UndefinedBehavior::Strict);
         minijinja_contrib::add_to_environment(&mut env);
-        env.add_template("rudder", &template)?;
+        env.add_template(&template_name, &template)?;
         env.add_filter("b64encode", minijinja_filters::b64encode);
         env.add_filter("b64decode", minijinja_filters::b64decode);
         env.add_filter("basename", minijinja_filters::basename);
@@ -72,7 +74,7 @@ impl Engine {
         env.add_filter("quote", minijinja_filters::quote);
         env.add_filter("regex_escape", minijinja_filters::regex_escape);
         env.add_filter("regex_replace", minijinja_filters::regex_replace);
-        let tmpl = env.get_template("rudder").unwrap();
+        let tmpl = env.get_template(&template_name).unwrap();
         Ok(tmpl.render(data)?)
     }
 

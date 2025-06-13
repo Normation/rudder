@@ -51,6 +51,9 @@ impl Cli {
         let cli = Cli::parse();
         let data = read_to_string(&cli.data)
             .with_context(|| format!("Failed to load data {}", cli.data.display()))?;
+        if data.is_empty() {
+            bail!("The data file '{}' is empty.", cli.data.display());
+        }
 
         let value: Value = serde_json::from_str(&data)?;
         let output = match cli.engine {
