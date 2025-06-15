@@ -753,12 +753,15 @@ bundle agent rudder_actual_file_augeas(path, script, if_script, lens, show_conte
   vars:
       "c_path"      string => canonify("${path}");
       "report_file" string => "/var/rudder/tmp/rudder-module-augeas-${c_path}.json";
+    pass2::
       "report"      string => readfile("${report_file}", "0"),
                         if => "has_report";
 
   classes:
+    pass2::
       "has_report"   expression => fileexists("${report_file}");
 
+    any::
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
@@ -766,8 +769,12 @@ bundle agent rudder_actual_file_augeas(path, script, if_script, lens, show_conte
   files:
     pass3::
       # Cleanup files
-      "/var/rudder/tmp/rudder-module-augeas-*"
+      "${report_file}"
         delete => tidy;
+
+  methods:
+    pass3.!has_report::
+      "error" usebundle => _classes_failure("${report_data.method_id}");
 
   augeas:
     pass2.!pass3::

@@ -25,7 +25,7 @@ integer = @{ ASCII_DIGIT+ }
 
 password_score_value = @{ "0" | "1" | "2" | "3" | "4" }
 numeric_comparator = @{ "==" | "!=" | "<=" | ">=" | "<" | ">" }
-regex_comparator = @{ "~" | "!~" | "==" | "!=" }
+regex_comparator = @{ "~" | "!~" | "eq" | "neq" }
 
 // Array syntax
 array = _{ "[" ~ (string ~ ("," ~ string)*)? ~ "]" }
