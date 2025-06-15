@@ -5,19 +5,27 @@
   <lastreportgrid-intro></lastreportgrid-intro>
 
 
-  <button id="AllLogButton" class="btn btn-primary">Show logs <i class="fa fa-table"></i></button>
+  <lift:authz role="node_read">
+    <lift:authz role="compliance_read">
+      <button id="AllLogButton" class="btn btn-primary">Show logs <i class="fa fa-table"></i></button>
+    </lift:authz>
+  </lift:authz>
 
   <lastreportgrid-grid></lastreportgrid-grid>
 
   <div class="clearfix"></div>
 
-  <div id="logRun"  class="space-top" style="display:none;">
-    <h3 class="page-title space-top">All logs for current run</h3>
-    <button id="AllLogHideButton" class="btn btn-primary">Hide logs</button>
-    <table id="complianceLogsGrid" cellspacing="0">
-    </table>
-  </div>
-  <lastreportgrid-missing></lastreportgrid-missing>
-  <lastreportgrid-unexpected></lastreportgrid-unexpected>
+  <lift:authz role="node_read">
+    <lift:authz role="compliance_read">
+      <div id="logRun"  class="space-top" style="display:none;">
+        <h3 class="page-title space-top">All logs for current run</h3>
+        <button id="AllLogHideButton" class="btn btn-primary">Hide logs</button>
+        <table id="complianceLogsGrid" cellspacing="0">
+        </table>
+      </div>
+      <lastreportgrid-missing></lastreportgrid-missing>
+      <lastreportgrid-unexpected></lastreportgrid-unexpected>
+    </lift:authz>
+  </lift:authz>
 
 </batches-list>
