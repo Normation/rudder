@@ -220,8 +220,8 @@ class CampaignApi(
     val schema: API.GetCampaignEvents.type = API.GetCampaignEvents
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val states       = req.params.get("state").getOrElse(Nil)
-      val campaignType = req.params.get("campaignType").getOrElse(Nil).map(campaignSerializer.campaignType)
+      val states       = req.params.getOrElse("state", Nil).flatMap(s => CampaignEventState.parse(s).toOption)
+      val campaignType = req.params.getOrElse("campaignType", Nil).map(campaignSerializer.campaignType)
       val campaignId   = req.params.get("campaignId").flatMap(_.headOption).map(i => CampaignId(i))
       val limit        = req.params.get("limit").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val offset       = req.params.get("offset").flatMap(_.headOption).flatMap(i => i.toIntOption)
@@ -262,8 +262,8 @@ class CampaignApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      val states       = req.params.get("state").getOrElse(Nil)
-      val campaignType = req.params.get("campaignType").getOrElse(Nil).map(campaignSerializer.campaignType)
+      val states       = req.params.getOrElse("state", Nil).flatMap(s => CampaignEventState.parse(s).toOption)
+      val campaignType = req.params.getOrElse("campaignType", Nil).map(campaignSerializer.campaignType)
       val limit        = req.params.get("limit").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val offset       = req.params.get("offset").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val beforeDate   = req.params.get("before").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
