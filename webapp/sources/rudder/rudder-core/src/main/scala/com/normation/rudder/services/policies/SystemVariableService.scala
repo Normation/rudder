@@ -118,6 +118,12 @@ object SystemVariableService {
   }
 }
 
+final case class PolicyServerCertificateConfig(
+    additionalKeyHash:  List[String],
+    certCA:             String,
+    certNameValidation: Boolean
+)
+
 class SystemVariableServiceImpl(
     systemVariableSpecService:     SystemVariableSpecService,
     policyServerManagementService: PolicyServerManagementService,
@@ -133,9 +139,9 @@ class SystemVariableServiceImpl(
     reportsDbUser:             String,
     reportsDbPassword:         String,
     configurationRepository:   String,
-    serverVersion:             String, // denybadclocks is runtime property
-
-    getDenyBadClocks: () => Box[Boolean], // relay synchronisation method
+    serverVersion:             String,             // denybadclocks is runtime property
+    policyServerCertificate:   PolicyServerCertificateConfig,
+    getDenyBadClocks:          () => Box[Boolean], // relay synchronisation method
 
     getSyncMethod:      () => Box[RelaySynchronizationMethod],
     getSyncPromises:    () => Box[Boolean],
@@ -658,7 +664,16 @@ class SystemVariableServiceImpl(
         varNodeGroupsClasses,
         varRudderInventoryVariables,
         varPolicyServerKeyHashCfengine,
-        varPolicyServerKeyHashB64Sha256
+        varPolicyServerKeyHashB64Sha256,
+        systemVariableSpecService
+          .get("ADDITIONAL_POLICY_SERVER_KEY_HASH")
+          .toVariable(policyServerCertificate.additionalKeyHash),
+        systemVariableSpecService
+          .get("POLICY_SERVER_CERT_CA")
+          .toVariable(Seq(policyServerCertificate.certCA)),
+        systemVariableSpecService
+          .get("POLICY_SERVER_CERT_NAME_VALIDATION")
+          .toVariable(Seq(policyServerCertificate.certNameValidation.toString))
       ) map (x => (x.spec.name, x))
     }
 
