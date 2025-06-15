@@ -398,6 +398,19 @@ class TestInventoryParsing extends Specification with Loggable {
     }
   }
 
+  "Parsing date" should {
+    "Be ok for logged user when format has only minutes" in {
+      FusionInventoryParser.parseLoggedUserDate("Thu Sep 22 12:27") must beRight
+    }
+    "Be ok for logged user when format has seconds" in {
+      FusionInventoryParser.parseLoggedUserDate("Wed Jun 11 08:12:05") must beRight
+    }
+
+    "Be ok for bios usual format" in {
+      FusionInventoryParser.parseBiosDate("05/17/25") must beRight
+    }
+  }
+
   "if we ignore processes, we don't get any" >> {
     val ignoringParser = new FusionInventoryParser(new StringUuidGeneratorImpl, ignoreProcesses = true)
     val processes      =
