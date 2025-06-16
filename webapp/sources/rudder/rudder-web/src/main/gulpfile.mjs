@@ -43,6 +43,7 @@ const paths = {
             'node_modules/*/js/*.min.js*',
             'node_modules/*/dist/**/*.min.js*',
             'node_modules/*/*.min.js*',
+            'node_modules/chart.js/dist/chart.umd.js',
             'node_modules/datatables.net-plugins/sorting/natural.js',
             'node_modules/showdown-xss-filter/showdown-xss-filter.js',
             'node_modules/jsondiffpatch/dist/jsondiffpatch.umd.slim.js',
