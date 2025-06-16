@@ -894,6 +894,12 @@ limitations under the License.
       <artifactId>cats-effect_${scala-binary-version}</artifactId>
       <version>${cats-effect-version}</version>
     </dependency>
+    <!-- this is needed for doobie/cats/zio compat in scala 3 -->
+    <dependency>
+      <groupId>org.typelevel</groupId>
+      <artifactId>cats-effect-std_${scala-binary-version}</artifactId>
+      <version>${cats-effect-version}</version>
+    </dependency>
     <!-- graph library for group properties -->
     <dependency>
       <groupId>org.jgrapht</groupId>
