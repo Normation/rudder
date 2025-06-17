@@ -70,6 +70,7 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.NodePropertyError
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.NodePropertySpecificError
+import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.Visibility.Displayed
 import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.queries.Query
@@ -777,7 +778,9 @@ class NodeApiInheritedProperties(
             f.error match {
               case propsErrors: NodePropertySpecificError =>
                 // these are individual errors by property that can be resolved and rendered individually
-                Chunk.from(propsErrors.propertiesErrors.values.map((ErrorInheritedPropertyStatus.from _).tupled))
+                Chunk.from(propsErrors.propertiesErrors.values.flatMap {
+                  case (_, v, p) => v.map(ErrorInheritedPropertyStatus.from(_, p))
+                })
               case _:           NodePropertyError         =>
                 // we don't know the errored props, it may be all of them and there may be a global status error
                 Chunk(GlobalPropertyStatus.fromResolvedNodeProperty(f))
@@ -989,7 +992,10 @@ class NodeApiService(
               err =>
                 (
                   fact.id,
-                  fact.properties.collect { case p if properties.contains(p.name) => NodePropertyHierarchy(p, Nil) }
+                  fact.properties.collect {
+                    case p if properties.contains(p.name) =>
+                      NodePropertyHierarchy(ParentProperty.Node(fact.fqdn, fact.id, p, None))
+                  }
                 ),
               optHierarchy => {
                 // here we can have the whole parent hierarchy like in node properties details with p.toApiJsonRenderParents but it needs

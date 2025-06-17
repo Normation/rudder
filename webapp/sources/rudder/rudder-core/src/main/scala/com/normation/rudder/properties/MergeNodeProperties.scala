@@ -42,30 +42,20 @@ import cats.data.Ior
 import cats.syntax.functor.*
 import cats.syntax.list.*
 import cats.syntax.traverse.*
-import com.normation.GitVersion
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.FullGroupTarget
-import com.normation.rudder.domain.properties.GenericProperty
-import com.normation.rudder.domain.properties.GlobalParameter
-import com.normation.rudder.domain.properties.GroupProperty
-import com.normation.rudder.domain.properties.InheritMode
-import com.normation.rudder.domain.properties.NodeProperty
-import com.normation.rudder.domain.properties.NodePropertyError
+import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.properties.NodePropertyError.*
-import com.normation.rudder.domain.properties.NodePropertyHierarchy
-import com.normation.rudder.domain.properties.ParentProperty
-import com.normation.rudder.domain.properties.PropertyProvider
-import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
+import com.normation.rudder.domain.properties.ParentProperty.NodeParentProperty
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.properties.GroupProp.*
-import com.softwaremill.quicklens.*
-import com.typesafe.config.ConfigParseOptions
 import com.typesafe.config.ConfigRenderOptions
+import com.typesafe.config.ConfigValueType
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.AsSubgraph
 import org.jgrapht.graph.DefaultDirectedGraph
@@ -127,15 +117,12 @@ object GroupProp {
   implicit class ToNodePropertyHierarchy(g: GroupProp) {
     def toNodePropHierarchy(implicit
         globalParameters: Map[String, GlobalParameter]
-    ): Map[String, (NodePropertyHierarchy, Option[InheritMode])] = {
+    ): Map[String, (NodeParentProperty[?], Option[InheritMode])] = {
       g.properties.map { p =>
         val globalInheritMode = globalParameters.get(p.name).flatMap(g => GenericProperty.getMode(g.config))
         (
           p.name,
-          NodePropertyHierarchy(
-            NodeProperty(p.config).withProvider(INHERITANCE_PROVIDER).withVisibility(p.visibility),
-            ParentProperty.Group(g.groupName, g.groupId, p.value) :: Nil
-          ) -> globalInheritMode
+          ParentProperty.Group(g.groupName, g.groupId, p, None) -> globalInheritMode
         )
       }.toMap
     }
@@ -196,8 +183,9 @@ object MergeNodeProperties {
         .fromIterable(
           mergeDefault(
             node.id.value,
+            node.fqdn,
             node.properties.map(p => (p.name, p)).toMap,
-            props.map(p => (p.prop.name, p)).toMap
+            props.map(p => (p.value.name, p)).toMap
           ).values
         )
         .sortBy(_.prop.name)
@@ -258,7 +246,21 @@ object MergeNodeProperties {
 
     // Group may resolve conflicting properties from parents, for some properties
     // so we need to mark those as resolved, with the most prioritized parent (see https://issues.rudder.io/issues/26325)
-    def checkMergeGroupParent(otherProps: Map[NodeGroupId, GroupProp]): Ior[NodePropertyError, List[NodePropertyHierarchy]] = {
+    def checkMergeGroupParent(otherProps: Map[NodeGroupId, GroupProp]): Ior[NodePropertyError, List[ParentProperty[?]]] = {
+
+      def findLastMatchingGroup(p: ParentProperty[?]): Option[ParentProperty.Group] = {
+        p match {
+          case n: ParentProperty.Node   => n.parentProperty.flatMap(findLastMatchingGroup)
+          case g: ParentProperty.Group  =>
+            g.parentProperty match {
+              case None                           => Some(g)
+              case Some(_: ParentProperty.Global) => Some(g)
+              case Some(parent)                   => findLastMatchingGroup(parent)
+            }
+          case _: ParentProperty.Global => None
+        }
+      }
+
       checkPropertyMerge(otherProps, globalParams) match {
         case Ior.Right(b) => Ior.Right(b)
         case withErr      =>
@@ -266,7 +268,7 @@ object MergeNodeProperties {
             case Some(err: NodePropertyError.PropertyInheritanceConflicts) =>
               // we need to remove resolved conflicting properties and transfer them to the success part
               val resolved  = err.conflicts.toList.flatMap {
-                case (nodeProp, parentProps: NonEmptyChunk[List[ParentProperty]]) =>
+                case (nodeProp, parentProps: NonEmptyChunk[ParentProperty[?]]) =>
                   for {
                     // reverse to get the parent which has the highest priority
                     firstParent     <- groupProp.parentGroups.reverse.headOption
@@ -278,9 +280,9 @@ object MergeNodeProperties {
                     // we probably want to have this natural subdivision, such that the Ordering[ParentProperty] will disappear, as it's explicitly : .node, .groups (already sorted), .global
                     parentHierarchy <- parentProps.collectFirst {
                                          case l
-                                             if l.reverse.collectFirst { case g: ParentProperty.Group => g }
+                                             if findLastMatchingGroup(l)
                                                .map(_.id)
-                                               .contains(parent.groupId) =>
+                                               .contains(parent.groupId.serialize) =>
                                            l
                                        }
                   } yield {
@@ -294,13 +296,11 @@ object MergeNodeProperties {
                   case err => err
                 },
                 _ ++ resolved.map {
-                  case (groupProp, hierarchy) =>
+                  case (_, hierarchy) =>
                     // we always have a `NodeProperty`, instead of a `GroupProperty`
                     // and the value is "inherited" from the parent
-                    NodePropertyHierarchy(
-                      NodeProperty(groupProp.config).withProvider(GroupProp.INHERITANCE_PROVIDER),
-                      hierarchy
-                    )
+                    hierarchy
+
                 }
               )
               // it may happen that conflicts are empty, in which case it can be simplified to Ior.Right
@@ -324,7 +324,12 @@ object MergeNodeProperties {
 
     } yield {
       val groupProps = group.nodeGroup.properties.map(g => (g.name, g)).toMap
-      mergeDefault(group.nodeGroup.id.serialize, groupProps, hierarchies.map(h => (h.prop.name, h)).toMap).values
+      mergeDefault(
+        group.nodeGroup.id.serialize,
+        group.nodeGroup.name,
+        groupProps,
+        hierarchies.map(h => (h.value.name, h)).toMap
+      ).values
     }
 
     ResolvedNodePropertyHierarchy.from(resolved)
@@ -338,27 +343,35 @@ object MergeNodeProperties {
    */
   def mergeDefault[A <: GenericProperty[A]](
       objectId:   String,
+      name:       String,
       properties: Map[String, A],
-      defaults:   Map[String, NodePropertyHierarchy]
+      defaults:   Map[String, ParentProperty[?]]
   ): Map[String, NodePropertyHierarchy] = {
     val fullyInherited = defaults.keySet -- properties.keySet
     val fromNodeOnly   = properties.keySet -- defaults.keySet
     val merged         = defaults.keySet.intersect(properties.keySet)
     val overrided      = merged.map { k =>
-      val p          = properties(k)
-      val d          = defaults(k)
-      val mergedProp =
-        NodeProperty(GenericProperty.mergeConfig(d.prop.config, p.config)(d.prop.inheritMode)).withProvider(OVERRIDE_PROVIDER)
-      val obj        = p match {
-        case x: NodeProperty    => ParentProperty.Node("this node", NodeId(objectId), p.value)
-        case x: GroupProperty   => ParentProperty.Group("this group", NodeGroupId(NodeGroupUid(objectId)), p.value)
-        case x: GlobalParameter => ParentProperty.Global(p.value)
+      val p   = properties(k)
+      val d   = defaults.get(k) match {
+        case Some(n: ParentProperty.Node)   => n.parentProperty
+        case None                           => None
+        case Some(g: NodeParentProperty[?]) => Some(g)
       }
-      (k, NodePropertyHierarchy(mergedProp, obj :: d.hierarchy))
+      val obj = p match {
+        case x: NodeProperty    => ParentProperty.Node(name, NodeId(objectId), x, d)
+        case x: GroupProperty   => ParentProperty.Group(name, NodeGroupId(NodeGroupUid(objectId)), x, d)
+        case x: GlobalParameter => ParentProperty.Global(x)
+      }
+      (k, NodePropertyHierarchy(obj))
     }.toMap
 
-    defaults.filter(kv => fullyInherited.contains(kv._1)) ++ overrided ++ properties.flatMap {
-      case (k, v) => if (fromNodeOnly.contains(k)) Some((k, NodePropertyHierarchy(NodeProperty(v.config), Nil))) else None
+    defaults.filter(kv => fullyInherited.contains(kv._1)).map {
+      case (k, v) => (k, NodePropertyHierarchy(v))
+    } ++ overrided ++ properties.flatMap {
+      case (k, v) =>
+        if (fromNodeOnly.contains(k))
+          Some((k, NodePropertyHierarchy(ParentProperty.Node("this node", NodeId(objectId), NodeProperty(v.config), None))))
+        else None
     }
   }
 
@@ -378,7 +391,7 @@ object MergeNodeProperties {
   def checkPropertyMerge(
       props:        Map[NodeGroupId, GroupProp],
       globalParams: Map[String, GlobalParameter]
-  ): Ior[NodePropertyError, List[NodePropertyHierarchy]] = {
+  ): Ior[NodePropertyError, List[NodeParentProperty[?]]] = {
     /*
      * General strategy:
      * - build all disjoint hierarchies of groups that contains that node
@@ -400,14 +413,14 @@ object MergeNodeProperties {
      * - if both overriding/overridden are array, then overriding values are appended to overridden array
      * - if both overriding/overridden are object, then each key is overridden recursively as explained,
      *   and new keys are added.
-     * See https://github.com/lift/lift/tree/master/framework/lift-base/lift-json/#merging--diffing
+     * See https://github.com/lift/lift/tree/master/framework/lift-oldProp/lift-json/#merging--diffing
      * for more information.
      * The most prioritary is the last in the list
      */
     def overrideValues(
-        overriding: List[Map[String, (NodePropertyHierarchy, Option[InheritMode])]]
-    ): Map[String, NodePropertyHierarchy] = {
-      overriding.foldLeft(Map[String, NodePropertyHierarchy]()) {
+        overriding: List[Map[String, (NodeParentProperty[?], Option[InheritMode])]]
+    ): Map[String, NodeParentProperty[?]] = {
+      overriding.foldLeft(Map[String, NodeParentProperty[?]]()) {
         case (old, newer) =>
           // for each newer value, we look if an older exists. If so, we keep the old value in the list of parents,
           // and merge its value for the next iteration.
@@ -417,9 +430,17 @@ object MergeNodeProperties {
                 case None          => // ok, no merge needed
                   (k, v)
                 case Some(oldProp) => // merge prop and add old to parents
-                  val config     = GenericProperty.mergeConfig(oldProp.prop.config, v.prop.config)(inheritMode)
-                  val mergedProp = v.modify(_.prop).using(_.fromConfig(config)).modify(_.hierarchy).using(_ ::: oldProp.hierarchy)
-                  (k, mergedProp)
+                  def recAppend(prop: NodeParentProperty[?]): NodeParentProperty[?] = {
+                    prop match {
+                      case _:     ParentProperty.Global => oldProp
+                      case group: ParentProperty.Group  =>
+                        group.parentProperty match {
+                          case None    => group.copy(parentProperty = Some(oldProp))
+                          case Some(g) => group.copy(parentProperty = Some(recAppend(g)))
+                        }
+                    }
+                  }
+                  (k, recAppend(v))
               }
           }
           old ++ merged
@@ -431,29 +452,29 @@ object MergeNodeProperties {
      * If it's the case, report error, else return all properties.
      */
     def mergeAll(
-        propByTrees: List[NodePropertyHierarchy]
-    ): Ior[NodePropertyError.PropertyInheritanceConflicts, List[NodePropertyHierarchy]] = {
+        propByTrees: List[NodeParentProperty[?]]
+    ): Ior[NodePropertyError.PropertyInheritanceConflicts, List[NodeParentProperty[?]]] = {
       // work on non empty chain for repeated append operations on the resulting hierarchy (due to cumulating both error and success)
-      val grouped = propByTrees.groupByNec(_.prop.name)
+      val grouped = propByTrees.groupByNec(_.value.name)
 
       val validatedProps = grouped.toList.map {
         case (k, c) =>
           val (h, more) = c.uncons
-          if (more.forall(_.prop == h.prop)) { // if it's exactly the same property everywhere, it's ok
+          if (more.forall(_.value == h.value)) { // if it's exactly the same property everywhere, it's ok
             Right(h)
           } else {
             Left(
               NodePropertyError.PropertyInheritanceConflicts
                 .one(
-                  h.prop,
-                  NonEmptyChunk(h.hierarchy) ++ Chunk.from(more.map(_.hierarchy).iterator)
+                  NodePropertyHierarchy(h).prop,
+                  NonEmptyChunk(h) ++ Chunk.from(more.iterator)
                 )
             )
           }
       }
 
       // This is guaranteed to be at least a Both, since we start with a right one and we just add potential errors
-      val initialValue = Ior.right[NodePropertyError.PropertyInheritanceConflicts, Chain[NodePropertyHierarchy]](Chain.empty)
+      val initialValue = Ior.right[NodePropertyError.PropertyInheritanceConflicts, Chain[NodeParentProperty[?]]](Chain.empty)
       // The right combinator that allows to use the semigroup structure of the error is the Ior data type
       validatedProps
         .foldLeft(initialValue) {
@@ -478,22 +499,11 @@ object MergeNodeProperties {
       merged    <- mergeAll(flatten)
       globals    = globalParams.toList.map {
                      case (n, v) =>
-                       // TODO: no version in param for now
-                       val config = GenericProperty.toConfig(
-                         n,
-                         GitVersion.DEFAULT_REV,
-                         v.value,
-                         v.inheritMode,
-                         Some(INHERITANCE_PROVIDER),
-                         None,
-                         Some(v.visibility),
-                         ConfigParseOptions.defaults().setOriginDescription(s"Global parameter '${n}'")
-                       )
-                       (n, NodePropertyHierarchy(NodeProperty(config), ParentProperty.Global(v.value) :: Nil) -> v.inheritMode)
+                       (n, ParentProperty.Global(v) -> v.inheritMode)
                    }
     } yield {
       // here, we add global parameters as a first default
-      val mergedProps = merged.map(p => (p.prop.name, p -> p.prop.inheritMode)).toMap
+      val mergedProps = merged.map(p => (p.value.name, p -> p.value.inheritMode)).toMap
       overrideValues(globals.toMap :: mergedProps :: Nil).values.toList
     }
   }
@@ -623,16 +633,34 @@ object MergeNodeProperties {
     * - nodes that override the property
     */
   def checkValueTypes(properties: List[NodePropertyHierarchy]): PureResult[Unit] = {
+    def message(parentProperty: ParentProperty[?]):                           List[String] = {
+      parentProperty match {
+        case g:    ParentProperty.Group  =>
+          s"Group '${g.name}' (${g.id}) with value '${g.value.value.render(ConfigRenderOptions.concise())}'" :: g.parentProperty.toList
+            .flatMap(message)
+        case n:    ParentProperty.Node   =>
+          s"Node '${n.name}' (${n.id}) with value '${n.value.value.render(ConfigRenderOptions.concise())}'" :: n.parentProperty.toList
+            .flatMap(message)
+        case glob: ParentProperty.Global =>
+          s"Global property with value '${glob.value.value.render(ConfigRenderOptions.concise())}'" :: Nil
+      }
+    }
+    def check(parentProperty: ParentProperty[?], valueType: ConfigValueType): Boolean      = {
+      parentProperty.value.value.valueType() == valueType &&
+      (parentProperty match {
+        case g:    ParentProperty.Group  =>
+          g.parentProperty.map(check(_, valueType)).getOrElse(true)
+        case n:    ParentProperty.Node   =>
+          n.parentProperty.map(check(_, valueType)).getOrElse(true)
+        case glob: ParentProperty.Global =>
+          true
+      })
+    }
     properties
       .traverse(v => {
         val valueType = v.prop.value.valueType
-        val overrides = v.hierarchy.collect {
-          case ParentProperty.Group(name, id, value) =>
-            s"Group '${name}' (${id.serialize}) with value '${value.render(ConfigRenderOptions.concise())}'"
-          case ParentProperty.Node(name, id, value)  =>
-            s"Node '${name}' (${id.value}) with value '${value.render(ConfigRenderOptions.concise())}'"
-        }
-        if (v.hierarchy.exists(_.value.valueType != valueType)) {
+        val overrides = message(v.hierarchy)
+        if (!check(v.hierarchy, valueType)) {
           Left(
             Inconsistency(
               s"Property '${v.prop.name}' has different types in the hierarchy. It's not allowed. " +
