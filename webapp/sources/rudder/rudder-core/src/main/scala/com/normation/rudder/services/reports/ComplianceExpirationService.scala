@@ -41,6 +41,7 @@ import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ComplianceLogger
 import com.normation.rudder.domain.logger.ComplianceLoggerPure
+import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.reports.NodeComplianceExpiration
 import com.normation.rudder.facts.nodes.QueryContext
@@ -110,7 +111,7 @@ object NodePropertyBasedComplianceExpirationService {
   // default name of the sub-key for compliance duration configuration value.
   val PROP_SUB_NAME = "compliance_expiration_policy"
 
-  def getPolicy(p: NodeProperty, propKey: String, propName: String, debugId: NodeId): NodeComplianceExpiration = {
+  def getPolicy(p: GenericProperty[?], propKey: String, propName: String, debugId: NodeId): NodeComplianceExpiration = {
     try {
       // direct access to implementation details is so-so, but alternative force to go
       // to json and is quite convoluted, and ConfigValue is horrible.
