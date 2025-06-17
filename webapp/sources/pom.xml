@@ -521,6 +521,12 @@ limitations under the License.
         <artifactId>doobie-core_${scala-binary-version}</artifactId>
         <version>${doobie-version}</version>
       </dependency>
+      <!-- this is needed for doobie/cats/zio compat in scala 3 -->
+      <dependency>
+        <groupId>org.typelevel</groupId>
+        <artifactId>cats-effect-std_${scala-binary-version}</artifactId>
+        <version>${cats-effect-version}</version>
+      </dependency>
       <dependency>
         <groupId>com.lihaoyi</groupId>
         <artifactId>sourcecode_${scala-binary-version}</artifactId>
@@ -894,12 +900,6 @@ limitations under the License.
       <artifactId>cats-effect_${scala-binary-version}</artifactId>
       <version>${cats-effect-version}</version>
     </dependency>
-    <!-- this is needed for doobie/cats/zio compat in scala 3 -->
-    <dependency>
-      <groupId>org.typelevel</groupId>
-      <artifactId>cats-effect-std_${scala-binary-version}</artifactId>
-      <version>${cats-effect-version}</version>
-    </dependency>
     <!-- graph library for group properties -->
     <dependency>
       <groupId>org.jgrapht</groupId>
@@ -937,8 +937,7 @@ limitations under the License.
       <artifactId>doobie-specs2_${scala-binary-version}</artifactId>
       <version>${doobie-version}</version>
       <scope>test</scope>
-    </dependency>
-    <!-- zio tests -->
+    </dependency>    <!-- zio tests -->
     <dependency>
       <groupId>dev.zio</groupId>
       <artifactId>zio-test_${scala-binary-version}</artifactId>

@@ -198,17 +198,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>doobie-postgres_${scala-binary-version}</artifactId>
       <version>${doobie-version}</version>
     </dependency>
-    <dependency>
-      <groupId>org.tpolecat</groupId>
-      <artifactId>doobie-specs2_${scala-binary-version}</artifactId>
-      <version>${doobie-version}</version>
-      <scope>test</scope>
-    </dependency>
+    <!-- this is needed for doobie/cats/zio compat in scala 3 -->
     <dependency>
       <groupId>org.typelevel</groupId>
       <artifactId>cats-effect-std_${scala-binary-version}</artifactId>
       <version>${cats-effect-version}</version>
-      <scope>test</scope>
     </dependency>
 
     <!-- cache used in compliance logger -->
