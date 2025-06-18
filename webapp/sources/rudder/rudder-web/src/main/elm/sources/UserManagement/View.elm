@@ -567,7 +567,7 @@ displayUsersConf model =
                 )
             else
                 ( text ""
-                , "Default authentication method is used"
+                , "Local password-based authentication is used"
                 )
 
         tableFilters = model.ui.tableFilters
