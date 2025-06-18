@@ -57,6 +57,7 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.Base64
+import org.bouncycastle.crypto.params.Argon2Parameters
 import org.bouncycastle.util.encoders.Hex
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.xml.sax.SAXParseException
@@ -87,8 +88,34 @@ object PasswordEncoderType extends Enum[PasswordEncoderType] {
   case object SHA1     extends PasswordEncoderType("SHA-1")
   case object SHA256   extends PasswordEncoderType("SHA-256")
   case object SHA512   extends PasswordEncoderType("SHA-512")
-  case object BCRYPT   extends PasswordEncoderType("BCRYPT")
-  case object ARGON2ID extends PasswordEncoderType("ARGON2ID")
+  case object BCRYPT   extends PasswordEncoderType("BCRYPT")   {
+    val defaultCost = 12
+  }
+  case object ARGON2ID extends PasswordEncoderType("ARGON2ID") {
+    // References
+    // * RFC9106: https://www.rfc-editor.org/rfc/rfc9106.html#name-parameter-choice
+    // * OWASP Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#argon2id
+    // * Argon2 1.3 specs: https://www.cryptolux.org/images/0/0d/Argon2.pdf
+
+    /// Argon2 hash type. Use "id", the recommended variant in most cases.
+    val hashType = Argon2Parameters.ARGON2_id
+
+    /// Latest version
+    val version = Argon2Parameters.ARGON2_VERSION_13
+
+    // Defaults for user-controlled settings
+    // 64MB
+    val defaultMemory      = 65536
+    val defaultIterations  = 3
+    val defaultParallelism = 1
+
+    // 32 bytes
+    val hashSize = 32
+
+    // 16 bytes = 128 bits
+    // The recommended value in the RFC, deemed "sufficient for all applications" in the specs.
+    val saltSize = 16
+  }
 
   // Default value, same as in RudderPasswordEncoder
   val DEFAULT: PasswordEncoderType = ARGON2ID
@@ -247,6 +274,8 @@ object RudderPasswordEncoder {
   val SHA512                                                   = new DigestEncoder("SHA-512")
   // Proper password hash functions
   def BCRYPT(cost: Int)                                        = new PasswordEncoder() {
+    val defaultCost = 12
+
     override def encode(rawPassword: CharSequence):                           String  = {
       val salt: Array[Byte] = new Array(16)
       secureRandom.nextBytes(salt)
@@ -266,28 +295,12 @@ object RudderPasswordEncoder {
     }
   }
   def ARGON2ID(memory: Int, parallelism: Int, iterations: Int) = new PasswordEncoder() {
-    // References
-    // * RFC9106: https://www.rfc-editor.org/rfc/rfc9106.html#name-parameter-choice
-    // * OWASP Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#argon2id
-    // * Argon2 1.3 specs: https://www.cryptolux.org/images/0/0d/Argon2.pdf
-
-    /// Argon2 hash type. Use "id", the recommended variant in most cases.
-    val argon2Type = Argon2Parameters.ARGON2_id
-
     override def encode(rawPassword: CharSequence):                           String  = {
-      /// Latest version
-      val argon2Version = Argon2Parameters.ARGON2_VERSION_13
-
-      /// 32 bytes
-      val hashSize = 32
-
-      /// 16 bytes = 128 bits, the recommended value in the RFC, deemed "sufficient for all applications" in the specs.
-      val saltSize = 16
-      val salt: Array[Byte] = new Array(saltSize)
+      val salt: Array[Byte] = new Array(PasswordEncoderType.ARGON2ID.saltSize)
       secureRandom.nextBytes(salt)
 
-      val params = new Argon2Parameters.Builder(argon2Type)
-        .withVersion(argon2Version)
+      val params = new Argon2Parameters.Builder(PasswordEncoderType.ARGON2ID.hashType)
+        .withVersion(PasswordEncoderType.ARGON2ID.version)
         .withIterations(iterations)
         .withMemoryAsKB(memory)
         .withParallelism(parallelism)
@@ -297,12 +310,12 @@ object RudderPasswordEncoder {
       // Compute the hash
       val generate = new Argon2BytesGenerator
       generate.init(params)
-      val hash: Array[Byte] = new Array(hashSize)
+      val hash: Array[Byte] = new Array(PasswordEncoderType.ARGON2ID.hashSize)
       generate.generateBytes(rawPassword.toString.toCharArray, hash)
 
       // We store hashes with a shadow-like format
       val hashString = Argon2IDHashString(
-        version = argon2Version,
+        version = PasswordEncoderType.ARGON2ID.version,
         memory = memory,
         iterations = iterations,
         parallelism = parallelism,
@@ -317,7 +330,7 @@ object RudderPasswordEncoder {
           stored        <- Argon2IDHashString.parseShadowString(encodedPassword)
           // Compute the hash
           presentedHash <- {
-            val storedParams = new Argon2Parameters.Builder(argon2Type)
+            val storedParams = new Argon2Parameters.Builder(PasswordEncoderType.ARGON2ID.hashType)
               .withVersion(stored.version)
               .withIterations(stored.iterations)
               .withMemoryAsKB(stored.memory)
@@ -347,8 +360,9 @@ object RudderPasswordEncoder {
       }
     }
   }
+
   // Default algorithm to use for hashing passwords
-  val DEFAULT                                                  = ARGON2ID
+  val DEFAULT = ARGON2ID
 
   def getFromEncoded(encodedPassword: String, securityLevel: SecurityLevel): Either[String, PasswordEncoderType] = {
     // Two cases: modern = /etc/shadow-like or legacy = plain hashes

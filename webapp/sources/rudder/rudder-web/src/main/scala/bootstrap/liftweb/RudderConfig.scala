@@ -731,50 +731,63 @@ object RudderParsedProperties {
   }
 
   val RUDDER_BCRYPT_COST: Int = {
+    val defaultValue = PasswordEncoderType.BCRYPT.defaultCost
     try {
       config.getInt("rudder.bcrypt.cost")
     } catch {
       case ex: ConfigException =>
         ApplicationLogger.debug(
-          "Property 'rudder.bcrypt.cost' is absent or empty in rudder.configFile. Default cost to 12."
+          s"Property 'rudder.bcrypt.cost' is absent or empty in rudder.configFile. Default cost to $defaultValue."
         )
-        12
+        defaultValue
     }
   }
 
   val RUDDER_ARGON2_PARALLELISM: Int = {
+    val defaultValue = PasswordEncoderType.ARGON2ID.defaultParallelism
     try {
       config.getInt("rudder.argon2.parallelism")
     } catch {
       case ex: ConfigException =>
         ApplicationLogger.debug(
-          "Property 'rudder.argon2.parallelism' is absent or empty in rudder.configFile. Default parallelism to 1."
+          s"Property 'rudder.argon2.parallelism' is absent or empty in rudder.configFile. Default parallelism to $defaultValue."
         )
-        1
+        defaultValue
     }
   }
 
   val RUDDER_ARGON2_ITERATIONS: Int = {
+    val defaultValue = PasswordEncoderType.ARGON2ID.defaultIterations
     try {
       config.getInt("rudder.argon2.iterations")
     } catch {
       case ex: ConfigException =>
         ApplicationLogger.debug(
-          "Property 'rudder.argon2.iterations' is absent or empty in rudder.configFile. Default iterations to 2."
+          "Property 'rudder.argon2.iterations' is absent or empty in rudder.configFile. Default iterations to $defaultValue."
         )
-        2
+        defaultValue
     }
   }
 
   val RUDDER_ARGON2_MEMORY: Int = {
+    val defaultValue = PasswordEncoderType.ARGON2ID.defaultMemory
     try {
-      config.getInt("rudder.argon2.memory")
+      val value = config.getInt("rudder.argon2.memory")
+      // There is a high likelihood of unit confusion.
+      if (value < defaultValue) {
+        ApplicationLogger.warn(
+          s"Property 'rudder.argon2.memory' has a value lower than $defaultValue bytes. This is likely a configuration mistake, using $defaultValue bytes instead"
+        )
+        defaultValue
+      } else {
+        value
+      }
     } catch {
       case ex: ConfigException =>
         ApplicationLogger.debug(
-          "Property 'rudder.argon2.memory' is absent or empty in rudder.configFile. Default parallelism to 64MB."
+          s"Property 'rudder.argon2.memory' is absent or empty in rudder.configFile. Default memory to $defaultValue bytes."
         )
-        65536
+        defaultValue
     }
   }
 
@@ -1640,8 +1653,14 @@ object RudderConfigInit {
 
     lazy val roleApiMapping = new RoleApiMapping(authorizationApiMapping)
 
-    lazy val passwordEncoderDispatcher =
-      new PasswordEncoderDispatcher(RUDDER_BCRYPT_COST, RUDDER_ARGON2_MEMORY, RUDDER_ARGON2_PARALLELISM, RUDDER_ARGON2_ITERATIONS)
+    lazy val passwordEncoderDispatcher = {
+      new PasswordEncoderDispatcher(
+        bcryptCost = RUDDER_BCRYPT_COST,
+        argon2Memory = RUDDER_ARGON2_MEMORY,
+        argon2Parallelism = RUDDER_ARGON2_PARALLELISM,
+        argon2Iterations = RUDDER_ARGON2_ITERATIONS
+      )
+    }
 
     // rudder user list
     lazy val rudderUserListProvider: FileUserDetailListProvider = {
