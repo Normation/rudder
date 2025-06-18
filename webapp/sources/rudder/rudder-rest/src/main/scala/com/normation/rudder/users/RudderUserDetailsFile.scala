@@ -56,6 +56,7 @@ import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.SecureRandom
+import java.util.Base64
 import org.bouncycastle.util.encoders.Hex
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.xml.sax.SAXParseException
@@ -82,15 +83,15 @@ sealed abstract class PasswordEncoderType(override val entryName: String) extend
 }
 
 object PasswordEncoderType extends Enum[PasswordEncoderType] {
-  case object MD5    extends PasswordEncoderType("MD5")
-  case object SHA1   extends PasswordEncoderType("SHA-1")
-  case object SHA256 extends PasswordEncoderType("SHA-256")
-  case object SHA512 extends PasswordEncoderType("SHA-512")
-  case object BCRYPT extends PasswordEncoderType("BCRYPT")
+  case object MD5      extends PasswordEncoderType("MD5")
+  case object SHA1     extends PasswordEncoderType("SHA-1")
+  case object SHA256   extends PasswordEncoderType("SHA-256")
+  case object SHA512   extends PasswordEncoderType("SHA-512")
+  case object BCRYPT   extends PasswordEncoderType("BCRYPT")
   case object ARGON2ID extends PasswordEncoderType("ARGON2ID")
 
   // Default value, same as in RudderPasswordEncoder
-  val DEFAULT: PasswordEncoderType = BCRYPT
+  val DEFAULT: PasswordEncoderType = ARGON2ID
 
   override def values: IndexedSeq[PasswordEncoderType] = findValues
 
@@ -116,6 +117,55 @@ class PasswordEncoderDispatcher(bcryptCost: Int, argon2Memory: Int, argon2Parall
   }
 
 }
+
+// Utility class for password hash storage with shadow-like format
+// There is no real standard, following https://argon2.online/
+case class Argon2IDHashString(
+    version:     Int,
+    memory:      Int,
+    iterations:  Int,
+    parallelism: Int,
+    salt:        String,
+    hash:        String
+) {
+  override def toString = {
+    val encoder     = Base64.getEncoder.withoutPadding
+    val encodedSalt = encoder.encodeToString(salt.getBytes)
+    val encodedHash = encoder.encodeToString(hash.getBytes)
+    s"$$argon2id$$v=$version$$m=$memory,t=$iterations,p=$parallelism$$$encodedSalt$$$encodedHash"
+  }
+}
+
+object Argon2IDHashString {
+  def parse(hashString: String): Either[String, Argon2IDHashString] = {
+    val pattern = """\$argon2id\$v=(\d+)\$m=(\d+),t=(\d+),p=(\d+)\$([^$]+)\$([^$]+)""".r
+    val decoder = Base64.getDecoder
+
+    hashString match {
+      case pattern(version, memory, iterations, parallelism, encodedSalt, encodedHash) =>
+        try {
+          val salt = new String(decoder.decode(encodedSalt.getBytes), StandardCharsets.UTF_8)
+          val hash = new String(decoder.decode(encodedHash.getBytes), StandardCharsets.UTF_8)
+          Right(
+            Argon2IDHashString(
+              version.toInt,
+              memory.toInt,
+              iterations.toInt,
+              parallelism.toInt,
+              salt,
+              hash
+            )
+          )
+        } catch {
+          case e: Exception =>
+            ApplicationLoggerPure.Auth.debug(s"Invalid password format: ${e.getMessage}")
+            Left("tt")
+        }
+      case _                                                                           => Left(s"Could not parse argon2id hash string: {encodedPassword}")
+    }
+  }
+}
+
 /////////////////////////////////////////
 // The PasswordEncoder is inspired by the modern Spring Security way, using DelegatingPasswordEncoder.
 // The RudderPasswordEncoder is basically a DelegatingPasswordEncoder but using our password storage formats
@@ -131,7 +181,7 @@ object RudderPasswordEncoder {
   import org.bouncycastle.crypto.generators.OpenBSDBCrypt
   import org.bouncycastle.crypto.params.Argon2Parameters
 
-  private val random = new SecureRandom()
+  private val secureRandom = new SecureRandom()
 
   // see https://stackoverflow.com/a/44227131
   // produce a random hexa string of 32 chars
@@ -140,7 +190,7 @@ object RudderPasswordEncoder {
     // In that case, just complete the string
     def randInternal: String = {
       val token = new Array[Byte](16)
-      random.nextBytes(token)
+      secureRandom.nextBytes(token)
       new java.math.BigInteger(1, token).toString(16)
     }
     var s = randInternal
@@ -189,7 +239,7 @@ object RudderPasswordEncoder {
   def BCRYPT(cost: Int)                                        = new PasswordEncoder() {
     override def encode(rawPassword: CharSequence):                           String  = {
       val salt: Array[Byte] = new Array(16)
-      random.nextBytes(salt)
+      secureRandom.nextBytes(salt)
 
       // The version of bcrypt used is "2b". See https://en.wikipedia.org/wiki/Bcrypt#Versioning_history
       // It prevents the length (unsigned char) of a long password to overflow and wrap at 256. (Cf https://marc.info/?l=openbsd-misc&m=139320023202696)
@@ -206,18 +256,27 @@ object RudderPasswordEncoder {
     }
   }
   def ARGON2ID(memory: Int, parallelism: Int, iterations: Int) = new PasswordEncoder() {
-    override def encode(rawPassword: CharSequence):                           String  = {
-      /// 32 bytes
-      val hashSize = 32
-      /// 16 bytes = 128 bits, the recommended value ("sufficient for all applications")
-      val saltSize = 16
+    // References
+    // * RFC9106: https://www.rfc-editor.org/rfc/rfc9106.html#name-parameter-choice
+    // * OWASP Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#argon2id
+    // * Argon2 1.3 specs: https://www.cryptolux.org/images/0/0d/Argon2.pdf
 
+    /// Argon2 hash type. Use "id", the recommended variant in most cases.
+    val argon2Type = Argon2Parameters.ARGON2_id
+
+    override def encode(rawPassword: CharSequence):                           String  = {
+      /// Latest version
       val argon2Version = Argon2Parameters.ARGON2_VERSION_13
 
-      val salt: Array[Byte] = new Array(saltSize)
-      random.nextBytes(salt)
+      /// 32 bytes
+      val hashSize = 32
 
-      val params = new Argon2Parameters.Builder(Argon2Parameters.ARGON2_id)
+      /// 16 bytes = 128 bits, the recommended value in the RFC, deemed "sufficient for all applications" in the specs.
+      val saltSize = 16
+      val salt: Array[Byte] = new Array(saltSize)
+      secureRandom.nextBytes(salt)
+
+      val params = new Argon2Parameters.Builder(argon2Type)
         .withVersion(argon2Version)
         .withIterations(iterations)
         .withMemoryAsKB(memory)
@@ -231,48 +290,34 @@ object RudderPasswordEncoder {
       val hash: Array[Byte] = new Array(hashSize)
       generate.generateBytes(rawPassword.toString.toCharArray, hash)
 
-      val base64Salt = Base64.encodeBase64(salt)
-      val base64Hash = Base64.encodeBase64(hash)
-
       // We store hashes with a shadow-like format
-      val shadowHash =
-        s"$$argon2id$$v=$argon2Version$$m=$memory,t=$iterations,p=$parallelism$$$base64Salt$$$base64Hash"
-
-      shadowHash
+      Argon2IDHashString(
+        version = version,
+        memory = memory,
+        iterations = iterations,
+        parallelism = parallelism,
+        salt = salt,
+        hash = hash
+      ).toString
     }
     override def matches(rawPassword: CharSequence, encodedPassword: String): Boolean = {
       try {
+        for {
+          stored        <- Argon2IDHashString.parse(encodedPassword)
+          storedParams  <- new Argon2Parameters.Builder(argon2Type)
+                             .withVersion(stored.version)
+                             .withIterations(stored.iterations)
+                             .withMemoryAsKB(stored.memory)
+                             .withParallelism(stored.parallelism)
+                             .withSalt(stored.salt)
+                             .build()
 
-        val pattern = """\$(argon2id)\$v=(\d+)\$m=(\d+),t=(\d+),p=(\d+)\$([^$]+)\$([^$]+)""".r
-
-        encodedPassword match {
-          case pattern(algorithm, version, memory, iterations, parallelism, salt, hash) =>
-            try {
-              val version = version.toInt
-              println(s"Parsed number: $number")
-            } catch {
-              case e: NumberFormatException => println("Invalid integer string")
-            }
-
-            println(s"Algorithm: $algorithm")
-            println(s"Version: $version")
-            println(s"Memory: $memory")
-            println(s"Iterations: $iterations")
-            println(s"Parallelism: $parallelism")
-            println(s"Salt: $salt")
-            println(s"Hash: $hash")
-            val params = new Argon2Parameters.Builder(Argon2Parameters.ARGON2_id)
-              .withVersion(version)
-              .withIterations(iterations)
-              .withMemoryAsKB(memory)
-              .withParallelism(parallelism)
-              .withSalt(salt)
-              .build()
-          case _                                                                        =>
-            println("Input did not match expected pattern.")
-        }
-
-        OpenBSDBCrypt.checkPassword(encodedPassword, rawPassword.toString.toCharArray)
+          // Compute the hash
+          generate      <- new Argon2BytesGenerator
+          _             <- generate.init(params)
+          presentedHash <- new Array(hashSize)
+          _             <- generate.generateBytes(rawPassword.toString.toCharArray, presentedHash)
+        } yield MessageDigest.isEqual(stored.hash, presentedHash).orElse(false)
       } catch {
         case e: Exception =>
           ApplicationLoggerPure.Auth.debug(s"Invalid password format: ${e.getMessage}")

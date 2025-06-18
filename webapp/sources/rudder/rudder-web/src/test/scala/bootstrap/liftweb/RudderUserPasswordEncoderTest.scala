@@ -37,6 +37,7 @@
 
 package bootstrap.liftweb
 
+import com.normation.rudder.users.Argon2IDHashString
 import com.normation.rudder.users.PasswordEncoderType
 import com.normation.rudder.users.RudderPasswordEncoder
 import org.junit.runner.RunWith
@@ -98,7 +99,6 @@ class RudderUserPasswordEncoderTest extends Specification {
     "be correctly decoded with bcrypt y" in {
       RudderPasswordEncoder.BCRYPT(12).matches(pass1, pass1_bcrypt_y) must beTrue
     }
-
     "be correctly encoded with argon2id" in {
       val encoder = RudderPasswordEncoder.ARGON2ID(19000, 1, 2)
       val hash    = encoder.encode(pass1)
@@ -107,7 +107,6 @@ class RudderUserPasswordEncoderTest extends Specification {
     "be correctly decoded with argon2id" in {
       RudderPasswordEncoder.ARGON2ID(19000, 1, 2).matches(pass1, pass1_argon2) must beTrue
     }
-
   }
 
   "';axG42!' password" should {
@@ -189,4 +188,32 @@ class RudderUserPasswordEncoderTest extends Specification {
     }
   }
 
+  "Argon2id hash string" should {
+    "be correctly written" in {
+      Argon2IDHashString(
+        version = 3,
+        memory = 64,
+        iterations = 1,
+        parallelism = 2,
+        salt = "azertyuiop",
+        hash = "bobmaurane"
+      ).toString must beEqualTo("$argon2id$v=3$m=64,t=1,p=2$YXplcnR5dWlvcA$Ym9ibWF1cmFuZQ")
+    }
+
+    "be correctly read" in {
+      val hash = Argon2IDHashString.parse("$argon2id$v=3$m=64,t=1,p=2$YXplcnR5dWlvcA$Ym9ibWF1cmFuZQ")
+      hash must beEqualTo(
+        Right(
+          Argon2IDHashString(
+            version = 3,
+            memory = 64,
+            iterations = 1,
+            parallelism = 2,
+            salt = "azertyuiop",
+            hash = "bobmaurane"
+          )
+        )
+      )
+    }
+  }
 }
