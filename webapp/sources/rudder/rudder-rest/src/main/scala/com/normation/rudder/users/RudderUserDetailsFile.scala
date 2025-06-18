@@ -598,8 +598,8 @@ final class FileUserDetailListProvider(
 
   override def authConfig: ValidatedUserList = cache.get.runNow
 
-  override def allowLegacy(file:   File): IOResult[Unit] = migrateAuthentication(file, "bcrypt", unsafeHashes = true)
-  override def enforceModern(file: File): IOResult[Unit] = migrateAuthentication(file, "bcrypt", unsafeHashes = false)
+  override def allowLegacy(file:   File): IOResult[Unit] = migrateAuthentication(file, "argon2id", unsafeHashes = true)
+  override def enforceModern(file: File): IOResult[Unit] = migrateAuthentication(file, "argon2id", unsafeHashes = false)
 
   // directly changes the file content !!
   private def migrateAuthentication(sourceTargetFile: File, hash: String, unsafeHashes: Boolean): IOResult[Unit] = {
