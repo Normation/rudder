@@ -379,7 +379,7 @@ mod tests {
     ) -> (CheckApplyResult, String) {
         let mut augeas = Augeas::new_module(None, vec![]).unwrap();
 
-        let d = tempdir().unwrap().into_path();
+        let d = tempdir().unwrap().keep();
         let f = d.join("report.log");
         let p = AugeasParameters {
             report_file: Some(f.clone()),
@@ -387,6 +387,7 @@ mod tests {
         };
 
         let res = augeas.handle_check_apply(p, policy_mode, backup_dir);
+        fs::remove_dir_all(d).unwrap();
 
         (res, read_to_string(f).unwrap())
     }
@@ -479,7 +480,7 @@ mod tests {
     #[test]
     fn it_compares_lists_of_values() {
         let mut augeas = Augeas::new_module(None, vec![]).unwrap();
-        let d = tempdir().unwrap().into_path();
+        let d = tempdir().unwrap().keep();
         let f = d.join("test");
         let lens = "Sshd";
 
@@ -500,12 +501,13 @@ mod tests {
             r,
             Outcome::Success(Some(format!("File {} already correct", f.display())))
         );
+        fs::remove_dir_all(d).unwrap();
     }
 
     #[test]
     fn it_compares_lists_of_incorrect_values() {
         let mut augeas = Augeas::new_module(None, vec![]).unwrap();
-        let d = tempdir().unwrap().into_path();
+        let d = tempdir().unwrap().keep();
         let f = d.join("test");
         let lens = "Sshd";
 
@@ -523,12 +525,13 @@ mod tests {
                 None,
             ).err().unwrap().to_string();
         assert_eq!(r, "Script failed".to_string());
+        fs::remove_dir_all(d).unwrap();
     }
 
     #[test]
     fn it_reports_parsing_errors() {
         let mut augeas = Augeas::new_module(None, vec![]).unwrap();
-        let d = tempdir().unwrap().into_path();
+        let d = tempdir().unwrap().keep();
         let f = d.join("test");
         let lens = "Sshd";
 
@@ -547,5 +550,6 @@ mod tests {
             )
             .err().unwrap();
         assert!(r.to_string().starts_with("Error: Load error: parse_failed"));
+        fs::remove_dir_all(d).unwrap();
     }
 }
