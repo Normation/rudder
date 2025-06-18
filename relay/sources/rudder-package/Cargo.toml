@@ -30,10 +30,10 @@ tar = "0.4.40"
 tempfile = "3.8.0"
 # Compile dev and release with trace logs enabled
 tracing = { version = "0.1", features = ["max_level_trace", "release_max_level_trace"] }
-which = "7"
+which = "8.0.0"
 flate2 = "1.0.28"
-cli-table = "0.4.7"
-sequoia-openpgp = { version = "1", optional = true }
+cli-table = "0.5.0"
+sequoia-openpgp = { version = "2.0.0", optional = true }
 spinners = "4.1.1"
 rudder_cli = { path = "../../../policies/rudder-cli" }
 itertools = "0.14"
@@ -43,7 +43,7 @@ clap = { version = "4.5.11", features = ["derive"] }
 clap_complete = "4.5.10"
 
 [dev-dependencies]
-rstest = "0.24.0"
+rstest = "0.25.0"
 assert-json-diff = "2.0.2"
 dir-diff = "0.3.2"
 pretty_assertions = "1.4.0"

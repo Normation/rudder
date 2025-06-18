@@ -14,7 +14,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_until},
     combinator::{eof, map_res, opt},
-    IResult,
+    IResult, Parser,
 };
 use serde::{Deserialize, Serialize};
 use tracing::debug;
@@ -43,11 +43,12 @@ fn parse_runinfo_v1(i: &str) -> IResult<&str, RunInfo> {
     let (i, timestamp) = map_res(take_until("@"), |d: &str| {
         // On Windows, filenames can't contain : so we replace them by underscores
         DateTime::parse_from_rfc3339(&d.replace('_', ":"))
-    })(i)?;
+    })
+    .parse(i)?;
     let (i, _) = tag("@")(i)?;
     let (i, node_id) = take_until(".")(i)?;
     let (i, _) = tag(".log")(i)?;
-    let (i, _) = opt(tag(".gz"))(i)?;
+    let (i, _) = opt(tag(".gz")).parse(i)?;
 
     if node_id.is_empty() {
         Err(nom::Err::Failure(nom::error::Error::new(
@@ -81,10 +82,11 @@ fn parse_runinfo_v2(i: &str) -> IResult<&str, RunInfo> {
     let (i, timestamp) = map_res(take_until("."), |d: &str| {
         // On Windows, filenames can't contain : so we replace them by underscores
         DateTime::parse_from_str(&d.replace('_', ":"), "%+")
-    })(i)?;
+    })
+    .parse(i)?;
     let (i, _) = tag(".log")(i)?;
-    let (i, _) = opt(tag(".gz"))(i)?;
-    let (i, _) = opt(tag(".zip"))(i)?;
+    let (i, _) = opt(tag(".gz")).parse(i)?;
+    let (i, _) = opt(tag(".zip")).parse(i)?;
     let (_, _) = eof(i)?;
 
     if node_id.is_empty() {
@@ -107,7 +109,7 @@ impl FromStr for RunInfo {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match alt((parse_runinfo_v1, parse_runinfo_v2))(s) {
+        match alt((parse_runinfo_v1, parse_runinfo_v2)).parse(s) {
             Ok(raw_runinfo) => {
                 debug!("Parsed run info {:#?}", raw_runinfo.1);
                 Ok(raw_runinfo.1)
