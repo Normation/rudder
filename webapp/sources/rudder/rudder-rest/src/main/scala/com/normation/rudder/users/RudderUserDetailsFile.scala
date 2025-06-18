@@ -110,6 +110,7 @@ object PasswordEncoderType extends Enum[PasswordEncoderType] {
     val defaultParallelism = 1
 
     // 32 bytes
+    // Used by most implementations.
     val hashSize = 32
 
     // 16 bytes = 128 bits
