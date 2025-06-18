@@ -82,16 +82,16 @@ class RudderUserPasswordEncoderTest extends Specification {
     val pass1_bcrypt_y = "$2y$10$QA4RucUAlhOofuPMAnonk.Mvnq4GPSHaq757Hwj7C/pLb9cmZBHdW"
     val pass1_argon2   = "$argon2id$v=19$m=19000,t=2,p=1$VU9VRmpORnlJZFlxZUFVYg$WyLWXe4yYQbFwUQbaGkBzw"
 
-    "be correctly decoded with md5" in {
+    "be correctly checked with md5" in {
       RudderPasswordEncoder.MD5.matches(pass1, pass1_md5) must beTrue
     }
-    "be correctly decoded with sha1" in {
+    "be correctly checked with sha1" in {
       RudderPasswordEncoder.SHA1.matches(pass1, pass1_sha1) must beTrue
     }
-    "be correctly decoded with sha256" in {
+    "be correctly checked with sha256" in {
       RudderPasswordEncoder.SHA256.matches(pass1, pass1_sha256) must beTrue
     }
-    "be correctly decoded with sha512" in {
+    "be correctly checked with sha512" in {
       RudderPasswordEncoder.SHA512.matches(pass1, pass1_sha512) must beTrue
     }
     "be correctly encoded with bcrypt" in {
