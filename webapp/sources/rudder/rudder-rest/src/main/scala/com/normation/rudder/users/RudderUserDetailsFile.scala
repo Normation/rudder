@@ -104,8 +104,8 @@ object PasswordEncoderType extends Enum[PasswordEncoderType] {
     val version = Argon2Parameters.ARGON2_VERSION_13
 
     // Defaults for user-controlled settings
-    // 64MB
-    val defaultMemory      = 65536
+    // 128 MB
+    val defaultMemory      = 134217728
     val defaultIterations  = 3
     val defaultParallelism = 1
 

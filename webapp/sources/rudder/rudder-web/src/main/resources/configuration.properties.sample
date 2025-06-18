@@ -673,6 +673,22 @@ rudder.auth.userRestToken=enabled
 #
 rudder.auth.idle-timeout=30 minutes
 
+#
+# Local password hash configuration
+#
+
+# Cost factor for the bcrypt hash algorithm.
+#rudder.bcrypt.cost=12
+
+# Parallelism parameter for the Argon2 algorithm
+rudder.argon2.parallelism=1
+
+# Iteration count for the Argon2 algorithm
+rudder.argon2.iterations=3
+
+# Memory parameter for the Argon2 algorithm, in bytes
+#rudder.argon2.memory=134217728
+
 ####################
 # Server side Hooks #############################################################
 ####################
