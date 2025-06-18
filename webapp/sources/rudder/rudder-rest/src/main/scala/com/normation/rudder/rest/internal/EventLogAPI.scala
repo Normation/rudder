@@ -145,6 +145,7 @@ class EventLogAPI(
         authzToken: AuthzToken
     ): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
+      implicit val contextPath: String = req.contextPath
       (
         for {
           evId    <- id.toLongOption.notOptional("event log ID is not a long integer : " + id)
@@ -255,7 +256,7 @@ class EventLogService(
     }).catchSystemErrors
   }
 
-  def getEventLogDetails(id: Long)(implicit qc: QueryContext): IOResult[RestEventLogDetails] = {
+  def getEventLogDetails(id: Long)(implicit qc: QueryContext, contextPath: String): IOResult[RestEventLogDetails] = {
 
     (for {
       event      <- repo.getEventLogById(id)

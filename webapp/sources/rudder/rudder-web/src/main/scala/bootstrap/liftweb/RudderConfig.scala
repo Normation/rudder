@@ -1286,6 +1286,7 @@ object RudderConfig extends Loggable {
   val propertiesService:                   NodePropertiesService                    = rci.propertiesService
   val purgeDeletedInventories:             PurgeDeletedInventories                  = rci.purgeDeletedInventories
   val purgeUnreferencedSoftwares:          PurgeUnreferencedSoftwares               = rci.purgeUnreferencedSoftwares
+  val staticResourceRewrite:               StaticResourceRewrite                    = rci.staticResourceRewrite
   val readOnlySoftwareDAO:                 ReadOnlySoftwareDAO                      = rci.readOnlySoftwareDAO
   val recentChangesService:                NodeChangesService                       = rci.recentChangesService
   val removeNodeService:                   RemoveNodeService                        = rci.removeNodeService
@@ -1446,6 +1447,7 @@ case class RudderServiceApi(
     sharedFileApi:                       SharedFilesAPI,
     eventLogApi:                         EventLogAPI,
     systemApiService:                    SystemApiService11,
+    staticResourceRewrite:               StaticResourceRewrite,
     stringUuidGenerator:                 StringUuidGenerator,
     inventoryWatcher:                    InventoryFileWatcher,
     configService:                       ReadConfigService with UpdateConfigService,
@@ -1670,6 +1672,8 @@ object RudderConfigInit {
     lazy val zioJsonExtractor = new ZioJsonExtractor(queryParser)
 
     lazy val tokenGenerator = new TokenGeneratorImpl(32)
+
+    lazy val staticResourceRewrite = new StaticResourceRewrite(rudderFullVersion)
 
     implicit lazy val userService = new UserService {
       def getCurrentUser: AuthenticatedUser = CurrentUser
@@ -2706,7 +2710,8 @@ object RudderConfigInit {
       roLDAPRuleCategoryRepository,
       modificationService,
       linkUtil,
-      diffDisplayer
+      diffDisplayer,
+      staticResourceRewrite
     )
 
     lazy val databaseManagerImpl = new DatabaseManagerImpl(reportsRepositoryImpl, updateExpectedRepo)
@@ -3797,6 +3802,7 @@ object RudderConfigInit {
       sharedFileApi,
       eventLogApi,
       systemApiService11,
+      staticResourceRewrite,
       stringUuidGenerator,
       inventoryWatcher,
       configService,

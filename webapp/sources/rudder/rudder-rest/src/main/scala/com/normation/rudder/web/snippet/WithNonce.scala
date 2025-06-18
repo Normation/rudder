@@ -3,6 +3,7 @@ package com.normation.rudder.web.snippet
 import net.liftweb.http.RequestVar
 import net.liftweb.http.StatefulSnippet
 import net.liftweb.util.Helpers
+
 import scala.xml.Elem
 import scala.xml.MetaData
 import scala.xml.Node
@@ -32,6 +33,19 @@ object WithNonce extends StatefulSnippet {
 
     base match {
       case e: Elem => e.copy(attributes = attributes)
+      case _ => base
+    }
+  }
+
+  def moduleWithNonce(base: Node, imports : String = ""): Node = {
+    base match {
+      case e: Elem =>
+        val child = scala.xml.Text(imports) ++ e.child
+        e.copy(attributes =
+            MetaData.update(base.attributes, base.scope, new UnprefixedAttribute("type", "module", Null))
+            , child = child
+            // TODO: create children for imports :  = e.child.text
+        )
       case _ => base
     }
   }
