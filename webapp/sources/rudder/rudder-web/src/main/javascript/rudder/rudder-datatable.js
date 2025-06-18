@@ -2029,8 +2029,9 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
           }
 
       }
-    , "dom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh"><"dataTables_pickdates"><"dataTables_pickend"><"dataTables_pickstart">'+
-      '>rt<"dataTables_wrapper_bottom"lip>'
+    , "sDom": '<"dataTables_wrapper_top newFilter d-flex"f<"d-flex ms-auto my-auto" B <"dataTables_refresh ms-2" r>>'+
+      '>t<"dataTables_wrapper_bottom"lip>'
+    , "buttons" : [ csvButtonConfig("change_logs") ],
   };
 
   createTable(gridId,data, columns, params, contextPath, refresh, "event_logs", false);
