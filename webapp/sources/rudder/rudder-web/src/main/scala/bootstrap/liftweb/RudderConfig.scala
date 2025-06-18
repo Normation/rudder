@@ -771,12 +771,13 @@ object RudderParsedProperties {
 
   val RUDDER_ARGON2_MEMORY: Int = {
     val defaultValue = PasswordEncoderType.ARGON2ID.defaultMemory
+    val minimumValue = PasswordEncoderType.ARGON2ID.minimumMemory
     try {
       val value = config.getInt("rudder.argon2.memory")
-      // There is a high likelihood of unit confusion.
-      if (value < defaultValue) {
+      // There is a high likelihood of units confusion.
+      if (value < minimumValue) {
         ApplicationLogger.warn(
-          s"Property 'rudder.argon2.memory' has a value lower than $defaultValue bytes. This is likely a configuration mistake, using $defaultValue bytes instead"
+          s"Property 'rudder.argon2.memory' has a value lower than $minimumValue bytes. This is likely a configuration mistake, using $defaultValue bytes instead"
         )
         defaultValue
       } else {

@@ -104,6 +104,8 @@ object PasswordEncoderType extends Enum[PasswordEncoderType] {
     val version = Argon2Parameters.ARGON2_VERSION_13
 
     // Defaults for user-controlled settings
+    // 19 MiB, from OWASP recommendations
+    val minimumMemory      = 19922944
     // 128 MB
     val defaultMemory      = 134217728
     val defaultIterations  = 3
