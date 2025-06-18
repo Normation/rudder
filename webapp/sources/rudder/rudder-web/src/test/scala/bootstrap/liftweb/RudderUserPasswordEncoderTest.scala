@@ -195,25 +195,31 @@ class RudderUserPasswordEncoderTest extends Specification {
         memory = 64,
         iterations = 1,
         parallelism = 2,
-        salt = "azertyuiop",
-        hash = "bobmaurane"
-      ).toString must beEqualTo("$argon2id$v=3$m=64,t=1,p=2$YXplcnR5dWlvcA$Ym9ibWF1cmFuZQ")
+        salt = "azertyuiop".getBytes,
+        hash = "bobmaurane".getBytes
+      ).toShadowString must beEqualTo("$argon2id$v=3$m=64,t=1,p=2$YXplcnR5dWlvcA$Ym9ibWF1cmFuZQ")
     }
 
     "be correctly read" in {
-      val hash = Argon2IDHashString.parse("$argon2id$v=3$m=64,t=1,p=2$YXplcnR5dWlvcA$Ym9ibWF1cmFuZQ")
-      hash must beEqualTo(
-        Right(
+      val hash = Argon2IDHashString.parseShadowString("$argon2id$v=3$m=64,t=1,p=2$YXplcnR5dWlvcA$Ym9ibWF1cmFuZQ")
+
+      hash must beRight(
+        beEqualTo(
           Argon2IDHashString(
             version = 3,
             memory = 64,
             iterations = 1,
             parallelism = 2,
-            salt = "azertyuiop",
-            hash = "bobmaurane"
+            salt = "azertyuiop".getBytes,
+            hash = "bobmaurane".getBytes
           )
         )
       )
+    }
+
+    "fail on invalid value" in {
+      val hash = Argon2IDHashString.parseShadowString("$argon2id$v=3$m=64,t=1,p=2$YXplcnR5dWlvcA")
+      hash must beLeft
     }
   }
 }
