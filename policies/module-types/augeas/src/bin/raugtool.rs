@@ -16,11 +16,6 @@ use rudder_module_augeas::{
 };
 use rudder_module_type::cfengine::log::{LevelFilter, set_max_level};
 use std::{env, fs, path::PathBuf};
-/*
-TODO: implement
- --timing               after executing each command, show how long it took
-Time: 565 ms after each command
-*/
 
 #[derive(Debug, Options)]
 pub struct Cli {
@@ -108,7 +103,8 @@ pub struct Cli {
     #[options(help = "save changes in files with extension '.augnew', leave original unchanged")]
     new: bool,
 
-    #[options(no_short, help = "load span positions for nodes related to a file")]
+    // Enable span as it is used for our error messages.
+    #[options(no_short, help = "always enabled, this option does nothing")]
     span: bool,
 
     /// Do not load any files into the tree on startup.
@@ -180,9 +176,7 @@ impl Cli {
         if opts.dont_load_tree {
             flags.insert(Flags::NO_LOAD);
         }
-        if opts.span {
-            flags.insert(Flags::ENABLE_SPAN);
-        }
+        flags.insert(Flags::ENABLE_SPAN);
         if opts.type_check_lenses {
             flags.insert(Flags::TYPE_CHECK);
         }
@@ -203,7 +197,6 @@ impl Cli {
         // Apply transforms
         if let Some(t) = opts.transform {
             aug.srun("transform ".to_owned() + t.as_str())?;
-            aug.load()?;
         }
 
         if let Some(f) = opts.file {

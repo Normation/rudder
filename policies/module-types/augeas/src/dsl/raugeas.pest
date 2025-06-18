@@ -25,7 +25,7 @@ integer = @{ ASCII_DIGIT+ }
 
 password_score_value = @{ "0" | "1" | "2" | "3" | "4" }
 numeric_comparator = @{ "==" | "!=" | "<=" | ">=" | "<" | ">" }
-regex_comparator = @{ "~" | "!~" | "==" | "!=" }
+regex_comparator = @{ "~" | "!~" | "eq" | "neq" }
 
 // Array syntax
 array = _{ "[" ~ (string ~ ("," ~ string)*)? ~ "]" }
@@ -40,6 +40,7 @@ values_equal = { "values" ~ "==" ~ array }
 values_equal_ordered = { "values" ~ "===" ~ array }
 values_in = { "values" ~ "in" ~ array }
 values_len = { "values" ~ "len" ~ numeric_comparator ~ integer }
+in_ip_range = { "in_ip_range" ~ array }
 has_type = { "is" ~ string }
 compare_num = { numeric_comparator ~ string }
 compare_string = { regex_comparator ~ string }
@@ -55,6 +56,7 @@ check_commands = _{
     values_len |
     values_in |
     has_type |
+    in_ip_range |
     compare_num |
     compare_string
 }
@@ -77,6 +79,7 @@ defvar = { "defvar" ~ string ~ string }
 defnode = { "defnode" ~ string ~ string ~ string }
 save = { "save" }
 quit = { "quit" }
+load_file = { "load-file" ~ path }
 load = { "load" }
 other_command = { !("save" | "quit" | "strlen" | "check") ~ (!NEWLINE ~ ANY)+ }
 
@@ -98,6 +101,7 @@ command = {
     defnode |
     save |
     quit |
+    load_file |
     load |
     other_command
 }

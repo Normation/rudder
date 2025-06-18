@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
-use crate::report::diff;
 use crate::{
     AugeasParameters, RUDDER_LENS_LIB,
     dsl::{
@@ -10,12 +9,13 @@ use crate::{
             CheckMode, Interpreter, InterpreterOut, InterpreterOutcome, InterpreterPerms,
         },
     },
+    report::diff,
 };
 use anyhow::bail;
 use bytesize::ByteSize;
 use raugeas::{Flags, SaveMode};
 use rudder_module_type::{
-    CheckApplyResult, Outcome, PolicyMode, backup::Backup, rudder_debug, rudder_error,
+    CheckApplyResult, Outcome, PolicyMode, backup::Backup, rudder_debug, rudder_error, rudder_info,
 };
 use std::{
     borrow::Cow,
@@ -124,6 +124,7 @@ impl Augeas {
 
         let already_exists = p.path.exists();
         let path_str = p.path.display().to_string();
+        let path_relative = path_str.strip_prefix("/").unwrap_or(path_str.as_str());
 
         let current_content = if already_exists {
             Some(fs::read_to_string(&p.path)?)
@@ -153,6 +154,7 @@ impl Augeas {
 
         if let Some(l) = p.lens.as_deref() {
             rudder_debug!("Using lens: {l}");
+
             aug.transform(l, p.path.as_os_str(), false)?;
         }
         if already_exists {
@@ -179,7 +181,7 @@ impl Augeas {
         let context: Cow<str> = if let Some(c) = p.context.as_deref() {
             c.into()
         } else {
-            format!("files/{path_str}").into()
+            format!("files/{path_relative}").into()
         };
         rudder_debug!("Setting context to: {context}");
         aug.set("/augeas/context", context.as_ref())?;
@@ -242,6 +244,7 @@ impl Augeas {
                     if quit {
                         bail!("Script quit unexpectedly: {output}");
                     }
+                    report.push_str(output.trim());
                     match outcome {
                         InterpreterOutcome::Ok => {}
                         InterpreterOutcome::CheckErrors(errors) => {
@@ -253,26 +256,22 @@ impl Augeas {
                     }
                 }
                 Err(e) => {
-                    report.push_str(format!("{:?}", e).as_str());
+                    report.push_str(format!("{:?}\n", e).as_str());
                     is_err = true;
                 }
             }
 
-            // We have run the script once.
-            //
-            // Now let's check for idempotency by running it again.
-
-            // FIXME: do it on new files too.
+            // We have run the script once. Now let's check for idempotency by running it again.
+            // TODO: find a way to do it on new files too. Currently preview does not work on new files.
             if already_exists {
                 let content_after1 = interpreter.preview(&p.path)?.unwrap();
 
-                interpreter.run(
+                // TODO check result?
+                let _ = interpreter.run(
                     InterpreterPerms::ReadWriteTree,
                     CheckMode::StackErrors,
                     &p.script,
-                )?;
-
-                // TODO check result?
+                );
 
                 let content_after2 = interpreter.preview(&p.path)?.unwrap();
 
@@ -287,35 +286,35 @@ impl Augeas {
         }
 
         // Avoid writing if we are in audit mode.
-        match policy_mode {
-            PolicyMode::Enforce => {
-                aug.set_save_mode(SaveMode::Backup)?;
+        let save_mode = match policy_mode {
+            PolicyMode::Enforce => SaveMode::Backup,
+            PolicyMode::Audit => SaveMode::Noop,
+        };
+        rudder_debug!("Setting save mode to: {:?}", save_mode);
+        aug.set_save_mode(save_mode)?;
+
+        let modified = if let Some(old) = &current_content {
+            let prefixed = PathBuf::from("/files/").join(path_relative);
+            let new = aug.preview(&prefixed)?.unwrap();
+
+            let different = old != &new;
+
+            if different {
+                let diff = diff(old, &new);
+                if p.show_file_content {
+                    rudder_info!("Diff:\n{:?}\n", diff);
+                }
+                report.push_str(format!("File modified:\n{}\n", diff).as_str());
             }
-            PolicyMode::Audit => {
-                aug.set_save_mode(SaveMode::Noop)?;
-            }
-        }
-
-        // TODO: No preview() when creating the file.
-
-        /*
-        let src = read_to_string(&p.path).unwrap_or("".to_string());
-        let preview = aug.preview(p.path).unwrap().unwrap_or("".to_string());
-
-        let diff = diff(&src, &preview);
-
-        if p.show_diff {
-            rudder_info!("Diff: {diff:?}");
-        }*/
-
-        aug.save()?;
+            different
+        } else {
+            report.push_str("File did not exist\n");
+            true // If the file did not exist, we consider it modified.
+        };
 
         // NOTE: Here we could reload the library in case of error somewhere to avoid
-        // influencing the following calls. But for now no cases where it is needed have been
+        // influencing the following calls. But for now no cases where it is necessary have been
         // identified.
-
-        // Get information about changes
-        let modified = true;
 
         // Make a backup if needed.
         if let Some(b) = backup_dir {
@@ -327,6 +326,10 @@ impl Augeas {
             }
         }
 
+        // FIXME audit mode should report non compliance
+
+        aug.save()?;
+
         if let Some(r) = p.report_file {
             fs::write(r, &report)?;
         }
@@ -335,7 +338,11 @@ impl Augeas {
             // The full error is in the report.
             bail!("Script failed");
         }
-        Ok(Outcome::Repaired(report))
+        Ok(if modified {
+            Outcome::Repaired(format!("File {} modified", p.path.display()))
+        } else {
+            Outcome::Success(Some(format!("File {} already correct", p.path.display())))
+        })
     }
 }
 
@@ -351,7 +358,7 @@ mod tests {
         script: String,
         path: PathBuf,
         lens: Option<String>,
-        size_mb: u64,
+        size_mb: Option<u64>,
     ) -> AugeasParameters {
         AugeasParameters {
             script,
@@ -359,9 +366,29 @@ mod tests {
             lens,
             show_file_content: true,
             context: Some("".to_string()),
-            max_file_size: ByteSize::mb(size_mb),
+            max_file_size: ByteSize::mb(size_mb.unwrap_or(10)),
             ..Default::default()
         }
+    }
+
+    /// Returns the outcome, and the report content as a `String`.
+    fn module_call(
+        p: AugeasParameters,
+        policy_mode: PolicyMode,
+        backup_dir: Option<&Path>,
+    ) -> (CheckApplyResult, String) {
+        let mut augeas = Augeas::new_module(None, vec![]).unwrap();
+
+        let d = tempdir().unwrap().into_path();
+        let f = d.join("report.log");
+        let p = AugeasParameters {
+            report_file: Some(f.clone()),
+            ..p
+        };
+
+        let res = augeas.handle_check_apply(p, policy_mode, backup_dir);
+
+        (res, read_to_string(f).unwrap())
     }
 
     #[test]
@@ -377,19 +404,21 @@ mod tests {
                     format!("set /files{}/0 \"hello world\"", f.display()),
                     f.clone(),
                     Some(lens.to_string()),
-                    10,
+                    None,
                 ),
                 PolicyMode::Enforce,
                 None,
             )
             .unwrap();
-        assert_eq!(r, Outcome::repaired("".to_string()));
+        assert_eq!(
+            r,
+            Outcome::repaired(format!("File {} modified", f.display()))
+        );
         let content = read_to_string(&f).unwrap();
         assert_eq!(content.trim(), "hello world");
         fs::remove_dir_all(d).unwrap();
     }
 
-    #[ignore]
     #[test]
     fn it_writes_file_from_commands_in_existing_file() {
         let mut augeas = Augeas::new_module(None, vec![]).unwrap();
@@ -397,21 +426,24 @@ mod tests {
         let f = d.join("test");
         let lens = "Simplelines";
 
-        fs::write(&f, "hello").unwrap();
+        fs::write(&f, "hello\n").unwrap();
 
         let r = augeas
             .handle_check_apply(
                 arguments(
-                    dbg!(format!("set /files{}/1 \"world\"", f.display())),
+                    format!("set /files{}/1 \"world\"", f.display()),
                     f.clone(),
                     Some(lens.to_string()),
-                    10,
+                    None,
                 ),
                 PolicyMode::Enforce,
                 None,
             )
             .unwrap();
-        assert_eq!(r, Outcome::repaired("".to_string()));
+        assert_eq!(
+            r,
+            Outcome::repaired(format!("File {} modified", f.display()))
+        );
         let content = read_to_string(&f).unwrap();
         assert_eq!(content.trim(), "world");
         fs::remove_dir_all(d).unwrap();
@@ -429,10 +461,10 @@ mod tests {
         let r = augeas
             .handle_check_apply(
                 arguments(
-                    dbg!(format!("set /files{}/1 \"world\"", f.display())),
+                    format!("set /files{}/1 \"world\"", f.display()),
                     f.clone(),
                     Some(lens.to_string()),
-                    0,
+                    Some(0),
                 ),
                 PolicyMode::Enforce,
                 None,
@@ -442,5 +474,78 @@ mod tests {
         assert!(r.to_string().starts_with("File is too big to be loaded"));
         assert!(r.to_string().ends_with(" (5 B > 0 B)"));
         fs::remove_dir_all(d).unwrap();
+    }
+
+    #[test]
+    fn it_compares_lists_of_values() {
+        let mut augeas = Augeas::new_module(None, vec![]).unwrap();
+        let d = tempdir().unwrap().into_path();
+        let f = d.join("test");
+        let lens = "Sshd";
+
+        fs::write(&f, "Ciphers aes128-ctr,aes192-ctr,aes256-ctr\n").unwrap();
+
+        let r = augeas
+            .handle_check_apply(
+                arguments(
+                    format!("check /files{}/Ciphers/* values == [\"aes128-ctr\",\"aes192-ctr\",\"aes256-ctr\"]", f.display()),
+                    f.clone(),
+                    Some(lens.to_string()),
+                    None,
+                ),
+                PolicyMode::Enforce,
+                None,
+            ).unwrap();
+        assert_eq!(
+            r,
+            Outcome::Success(Some(format!("File {} already correct", f.display())))
+        );
+    }
+
+    #[test]
+    fn it_compares_lists_of_incorrect_values() {
+        let mut augeas = Augeas::new_module(None, vec![]).unwrap();
+        let d = tempdir().unwrap().into_path();
+        let f = d.join("test");
+        let lens = "Sshd";
+
+        fs::write(&f, "Ciphers aes128-ctr,aes192-ctr,aes512-ctr\n").unwrap();
+
+        let r = augeas
+            .handle_check_apply(
+                arguments(
+                    format!("check /files{}/Ciphers/* values == [\"aes128-ctr\",\"aes192-ctr\",\"aes256-ctr\"]", f.display()),
+                    f.clone(),
+                    Some(lens.to_string()),
+                    None,
+                ),
+                PolicyMode::Enforce,
+                None,
+            ).err().unwrap().to_string();
+        assert_eq!(r, "Script failed".to_string());
+    }
+
+    #[test]
+    fn it_reports_parsing_errors() {
+        let mut augeas = Augeas::new_module(None, vec![]).unwrap();
+        let d = tempdir().unwrap().into_path();
+        let f = d.join("test");
+        let lens = "Sshd";
+
+        fs::write(&f, "Ciphersaes128-ctr,aes192-ctr,aes256-ctr").unwrap();
+
+        let r = augeas
+            .handle_check_apply(
+                arguments(
+                    format!("check /files{}/Ciphers/* values == [\"aes128-ctr\",\"aes192-ctr\",\"aes256-ctr\"]", f.display()),
+                    f.clone(),
+                    Some(lens.to_string()),
+                    None,
+                ),
+                PolicyMode::Enforce,
+                None,
+            )
+            .err().unwrap();
+        assert!(r.to_string().starts_with("Error: Load error: parse_failed"));
     }
 }
