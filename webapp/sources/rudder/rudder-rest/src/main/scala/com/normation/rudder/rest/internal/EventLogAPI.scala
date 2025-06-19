@@ -39,6 +39,7 @@ package com.normation.rudder.rest.internal
 import cats.syntax.all.*
 import com.normation.box.*
 import com.normation.eventlog.*
+import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.rest.OldInternalApiAuthz
@@ -232,18 +233,20 @@ class EventLogAPI(
         restExtractor.extractBoolean("prettify")(req)(identity).getOrElse(Some(false)).getOrElse(false)
       implicit val action:   String  = "eventDetails"
       OldInternalApiAuthz.withReadAdmin((for {
-        realId     <- Box.tryo(id.toLong)
-        event      <- repos.getEventLogById(realId).toBox
-        crId        = event.id.flatMap(repos.getEventLogWithChangeRequest(_).toBox match {
-                        case Full(Some((_, crId))) => crId
-                        case _                     => None
-                      })
-        htmlDetails = eventLogDetail.displayDetails(event, crId)(CurrentUser.queryContext)
+        realId            <- Box.tryo(id.toLong)
+        event             <- repos.getEventLogById(realId).toBox
+        crId               = event.id.flatMap(repos.getEventLogWithChangeRequest(_).toBox match {
+                               case Full(Some((_, crId))) => crId
+                               case _                     => None
+                             })
+        htmlDetails        = eventLogDetail.displayDetails(event, crId)(CurrentUser.queryContext)
+        nodePropertiesDiff = eventLogDetail.nodePropertiesDiff(event)
       } yield {
         val response = {
-          (("id"           -> id)
-          ~ ("content"     -> htmlDetails.toString())
-          ~ ("canRollback" -> event.canRollBack))
+          (("id"                  -> id)
+          ~ ("content"            -> htmlDetails.toString())
+          ~ ("nodePropertiesDiff" -> nodePropertiesDiff.map { case SimpleDiff(from, to) => (("from" -> from) ~ ("to" -> to)) })
+          ~ ("canRollback"        -> event.canRollBack))
         }
         toJsonResponse(None, response)
       }) match {
