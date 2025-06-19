@@ -1171,54 +1171,30 @@ class EventLogDetailsGenerator(
     )
   }
 
-  private def displaySimpleDiff[T](
-      diff:    Option[SimpleDiff[T]],
+  private def displaySimpleDiff(
+      diff:    Option[SimpleDiff[String]],
       name:    String,
       default: String
   ): NodeSeq = displaySimpleDiff(diff, name).getOrElse(Text(default))
 
-  private def displaySimpleDiff[T](
-      diff: Option[SimpleDiff[T]],
+  private def displaySimpleDiff(
+      diff: Option[SimpleDiff[String]],
       name: String
   ): Option[NodeSeq] = diff.map(value => displayFormDiff(value, name))
 
-  private def displayFormDiff[T](
-      diff: SimpleDiff[T],
+  private def displayFormDiff(
+      diff: SimpleDiff[String],
       name: String
-  )(implicit fun: T => String = (t: T) => t.toString): NodeSeq = {
-    <pre style="width:200px;" id={s"before${name}"}
-         class="nodisplay">{fun(diff.oldValue)}</pre>
-      <pre style="width:200px;" id={s"after${name}"}
-           class="nodisplay">{fun(diff.newValue)}</pre>
-      <pre id={s"result${name}"} ></pre> ++
-    Script(
-      OnLoad(
-        JsRaw(
-          s"""
-            var before = "before${name}";
-            var after  = "after${name}";
-            var result = "result${name}";
-            makeDiff(before,after,result);"""
-        )
-      )
-    )
+  ): NodeSeq = {
+    <pre id={s"result${name}"} style="white-space: pre-line; word-break: break-word; overflow: auto;">
+        <del>-{diff.oldValue}</del>
+        <ins>+{diff.newValue}</ins>
+      </pre>
   }
   private def displaydirectiveInnerFormDiff(diff: SimpleDiff[SectionVal], eventId: Option[Int]): NodeSeq = {
     eventId match {
       case None     => NodeSeq.Empty
-      case Some(id) =>
-        (
-          <pre style="width:200px;" id={"before" + id}
-               class="nodisplay">{xmlPretty.format(SectionVal.toXml(diff.oldValue))}</pre>
-            <pre style="width:200px;" id={"after" + id}
-                 class="nodisplay">{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
-            <pre id={"result" + id} ></pre>
-        ) ++ Script(OnLoad(JsRaw(s"""
-            var before = "before${id}";
-            var after  = "after${id}";
-            var result = "result${id}";
-            makeDiff(before,after,result);
-            """))) // JsRaw OK, id is int
+      case Some(id) => displayFormDiff(diff.map(s => SectionVal.toXml(s).toString), id.toString)
     }
   }
 
