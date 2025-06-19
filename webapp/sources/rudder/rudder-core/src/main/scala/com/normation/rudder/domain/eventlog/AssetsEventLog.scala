@@ -41,6 +41,7 @@ import com.normation.eventlog.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeInfo
+import java.time.Instant
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import scala.xml.Node
@@ -99,7 +100,7 @@ object AcceptNodeEventLog extends EventLogFilter {
       id:               Option[Int] = None,
       principal:        EventActor,
       inventoryDetails: InventoryLogDetails,
-      creationDate:     DateTime = DateTime.now(DateTimeZone.UTC),
+      creationDate:     Instant = Instant.now(),
       severity:         Int = 100,
       description:      Option[String] = None
   ): AcceptNodeEventLog = {
@@ -130,7 +131,7 @@ object RefuseNodeEventLog extends EventLogFilter {
       id:               Option[Int] = None,
       principal:        EventActor,
       inventoryDetails: InventoryLogDetails,
-      creationDate:     DateTime = DateTime.now(DateTimeZone.UTC),
+      creationDate:     Instant = Instant.now(),
       severity:         Int = 100,
       description:      Option[String] = None
   ): RefuseNodeEventLog = {
@@ -167,7 +168,7 @@ object DeleteNodeEventLog extends EventLogFilter {
       id:               Option[Int] = None,
       principal:        EventActor,
       inventoryDetails: InventoryLogDetails,
-      creationDate:     DateTime = DateTime.now(DateTimeZone.UTC),
+      creationDate:     Instant = Instant.now(),
       severity:         Int = 100,
       description:      Option[String] = None
   ): DeleteNodeEventLog = {

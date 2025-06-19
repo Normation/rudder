@@ -428,7 +428,7 @@ final class AsyncDeploymentActor(
                   principal = actor,
                   details = EventLog.withContent(deploymentStatusSerialisation.serialise(lastFinishedDeployement)),
                   cause = Some(deploymentEventId),
-                  creationDate = startTime,
+                  creationDate = java.time.Instant.ofEpochMilli(startTime.getMillis),
                   reason = None
                 )
               )
@@ -451,7 +451,7 @@ final class AsyncDeploymentActor(
                   principal = actor,
                   details = EventLog.withContent(deploymentStatusSerialisation.serialise(lastFinishedDeployement)),
                   cause = Some(deploymentEventId),
-                  creationDate = startTime,
+                  creationDate = java.time.Instant.ofEpochMilli(startTime.getMillis),
                   reason = None
                 )
               )

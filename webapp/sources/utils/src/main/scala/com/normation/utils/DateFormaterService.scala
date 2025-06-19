@@ -85,6 +85,9 @@ object DateFormaterService {
 
     implicit val transformDateTimeInstant: Transformer[DateTime, Instant] = { x => x.toJava.toInstant }
 
+    implicit val transformInstantDateTime: Transformer[Instant, DateTime] = { x =>
+      new DateTime(x.toEpochMilli, DateTimeZone.UTC)
+    }
   }
 
   object json extends DateTimeCodecs
@@ -129,7 +132,8 @@ object DateFormaterService {
     ZonedDateTime.ofInstant(datetime, ZoneOffset.UTC).format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
   }
 
-  def toInstant(datetime: DateTime): Instant = json.transformDateTimeInstant.transform(datetime)
+  def toInstant(datetime: DateTime): Instant  = json.transformDateTimeInstant.transform(datetime)
+  def toDateTime(instant: Instant):  DateTime = json.transformInstantDateTime.transform(instant)
 
   def parseDate(date: String): PureResult[DateTime] = {
     try {

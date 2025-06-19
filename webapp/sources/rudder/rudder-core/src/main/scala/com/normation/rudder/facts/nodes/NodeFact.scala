@@ -74,6 +74,7 @@ import io.scalaland.chimney.PartialTransformer
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.partial.Result
 import io.scalaland.chimney.syntax.*
+import java.time.Instant
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -1640,7 +1641,7 @@ object NodeFactChangeEvent {
 final case class ChangeContext(
     modId:     ModificationId,
     actor:     EventActor,
-    eventDate: DateTime,
+    eventDate: Instant,
     message:   Option[String],
     actorIp:   Option[String],
     nodePerms: NodeSecurityContext
@@ -1655,7 +1656,7 @@ object ChangeContext {
     ChangeContext(
       ModificationId(java.util.UUID.randomUUID.toString),
       eventlog.RudderEventActor,
-      DateTime.now(DateTimeZone.UTC),
+      Instant.now(),
       msg,
       actorIp,
       NodeSecurityContext.All

@@ -66,6 +66,7 @@ import com.normation.rudder.web.components.DisplayColumn
 import com.normation.rudder.web.components.RuleGrid
 import com.normation.rudder.web.model.*
 import com.normation.zio.UnsafeRun
+import java.time.Instant
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 import net.liftweb.http.DispatchSnippet
@@ -581,7 +582,7 @@ class ModificationValidationPopup(
               ChangeContext(
                 ModificationId(uuidGen.newUuid),
                 CurrentUser.actor,
-                new DateTime(DateTimeZone.UTC),
+                Instant.now(),
                 crReasons.map(_.get),
                 None,
                 CurrentUser.nodePerms
@@ -620,7 +621,7 @@ class ModificationValidationPopup(
                 ChangeContext(
                   ModificationId(uuidGen.newUuid),
                   CurrentUser.actor,
-                  new DateTime(DateTimeZone.UTC),
+                  Instant.now(),
                   crReasons.map(_.get),
                   None,
                   CurrentUser.nodePerms

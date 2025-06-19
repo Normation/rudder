@@ -43,6 +43,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.zio.*
+import java.time.Instant
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
@@ -101,7 +102,7 @@ class TestRemoveNodeService extends Specification with AfterAll {
     ChangeContext(
       ModificationId("test-mod-id"),
       EventActor("test"),
-      DateTime.now(DateTimeZone.UTC),
+      Instant.now(),
       None,
       None,
       QueryContext.testQC.nodePerms

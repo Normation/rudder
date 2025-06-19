@@ -181,11 +181,13 @@ import com.normation.rudder.web.services.DirectiveFieldFactory
 import com.normation.rudder.web.services.EventLogDetailsGenerator
 import com.normation.rudder.web.services.Section2FieldService
 import com.normation.rudder.web.services.Translator
+import com.normation.utils.DateFormaterService
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import doobie.*
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 import java.time.ZonedDateTime
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
@@ -317,7 +319,7 @@ class RestTestSetUp {
       id = Some(42),
       modificationId = None,
       principal = EventActor("test"),
-      creationDate = DateTime.parse("2024-12-04T15:30:10Z"),
+      creationDate = DateFormaterService.toInstant(DateTime.parse("2024-12-04T15:30:10Z")),
       details = <test/>,
       reason = None
     )
@@ -373,7 +375,7 @@ class RestTestSetUp {
 
   }
   val eventLogDetailsService = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null, null)
-  val modificationService = new ModificationService(null, null, null, null) {
+  val modificationService = new ModificationService(null, null, null) {
     override def restoreToEventLog(
         eventLog:         EventLog,
         commiter:         PersonIdent,
@@ -863,7 +865,7 @@ class RestTestSetUp {
       ChangeContext(
         ModificationId(uuidGen.newUuid),
         EventActor("test"),
-        DateTime.now(DateTimeZone.UTC),
+        Instant.now(),
         None,
         None,
         QueryContext.testQC.nodePerms

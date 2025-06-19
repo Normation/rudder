@@ -84,6 +84,7 @@ import com.normation.rudder.users.UserService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.http.LiftResponse
@@ -908,7 +909,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(DateTimeZone.UTC),
+      Instant.now(),
       Some(s"Restore archive for date time ${dateTime} requested from REST API"),
       None,
       qc.nodePerms
@@ -932,7 +933,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(DateTimeZone.UTC),
+      Instant.now(),
       Some(s"Restore archive for date time ${dateTime} requested from REST API"),
       None,
       qc.nodePerms
@@ -956,7 +957,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(DateTimeZone.UTC),
+      Instant.now(),
       Some(s"Restore archive for date time ${dateTime} requested from REST API"),
       None,
       qc.nodePerms
@@ -974,7 +975,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(DateTimeZone.UTC),
+      Instant.now(),
       Some(s"Restore archive for date time ${dateTime} requested from REST API"),
       None,
       qc.nodePerms
@@ -998,7 +999,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(DateTimeZone.UTC),
+      Instant.now(),
       Some(s"Restore archive for date time ${dateTime} requested from REST API"),
       None,
       qc.nodePerms
@@ -1069,7 +1070,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(DateTimeZone.UTC),
+      Instant.now(),
       Some("Restore latest archive required from REST API"),
       None,
       qc.nodePerms
@@ -1092,7 +1093,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(DateTimeZone.UTC),
+      Instant.now(),
       Some("Restore latest archive required from REST API"),
       None,
       qc.nodePerms
@@ -1115,7 +1116,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(DateTimeZone.UTC),
+      Instant.now(),
       Some("Restore latest archive required from REST API"),
       None,
       qc.nodePerms
@@ -1133,7 +1134,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(DateTimeZone.UTC),
+      Instant.now(),
       Some("Restore latest archive required from REST API"),
       None,
       qc.nodePerms
@@ -1157,7 +1158,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(DateTimeZone.UTC),
+      Instant.now(),
       Some("Restore latest archive required from REST API"),
       None,
       qc.nodePerms
@@ -1176,7 +1177,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(DateTimeZone.UTC),
+      Instant.now(),
       Some("Restore archive from latest commit on HEAD required from REST API"),
       None,
       qc.nodePerms
@@ -1195,7 +1196,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(DateTimeZone.UTC),
+      Instant.now(),
       Some("Restore archive from latest commit on HEAD required from REST API"),
       None,
       qc.nodePerms
@@ -1214,7 +1215,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(DateTimeZone.UTC),
+      Instant.now(),
       Some("Restore latest archive required from REST API"),
       None,
       qc.nodePerms
@@ -1233,7 +1234,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(DateTimeZone.UTC),
+      Instant.now(),
       Some("Restore latest archive required from REST API"),
       None,
       qc.nodePerms
@@ -1251,7 +1252,7 @@ class SystemApiService11(
     implicit val cc: ChangeContext = ChangeContext(
       newModId,
       qc.actor,
-      new DateTime(DateTimeZone.UTC),
+      Instant.now(),
       Some("Restore latest archive required from REST API"),
       None,
       qc.nodePerms

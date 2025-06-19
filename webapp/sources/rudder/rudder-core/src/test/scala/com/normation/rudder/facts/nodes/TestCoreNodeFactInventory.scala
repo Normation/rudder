@@ -58,6 +58,7 @@ import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.SearchScope
 import java.security.Security
+import java.time.Instant
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTime
@@ -263,7 +264,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     ChangeContext(
       ModificationId("test-mod-id"),
       EventActor("test"),
-      DateTime.now(DateTimeZone.UTC),
+      Instant.now(),
       None,
       None,
       QueryContext.testQC.nodePerms

@@ -62,10 +62,9 @@ import com.normation.rudder.services.workflows.*
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
 import com.normation.utils.StringUuidGenerator
+import java.time.Instant
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import scala.collection.MapView
 import zio.*
 import zio.syntax.*
@@ -337,7 +336,7 @@ class RuleApiService14(
                           ChangeContext(
                             ModificationId(uuidGen.newUuid),
                             actor,
-                            new DateTime(DateTimeZone.UTC),
+                            Instant.now(),
                             params.reason,
                             None,
                             qc.nodePerms

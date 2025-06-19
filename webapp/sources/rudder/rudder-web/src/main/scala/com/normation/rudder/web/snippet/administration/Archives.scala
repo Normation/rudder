@@ -52,6 +52,7 @@ import com.normation.rudder.rest.lift.SystemApiService11
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.snippet.WithNonce
 import com.normation.utils.DateFormaterService
+import java.time.Instant
 import java.util.Base64
 import net.liftweb.common.*
 import net.liftweb.http.*
@@ -96,7 +97,7 @@ class Archives extends DispatchSnippet with Loggable {
         implicit val cc: ChangeContext = ChangeContext(
           ModificationId(uuidGen.newUuid),
           qc.actor,
-          new DateTime(DateTimeZone.UTC),
+          Instant.now(),
           Some("User requested backup restoration to commit %s".format(commit.value)),
           None,
           qc.nodePerms

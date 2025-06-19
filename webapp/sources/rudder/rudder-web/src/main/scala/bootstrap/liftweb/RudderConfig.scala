@@ -2698,7 +2698,7 @@ object RudderConfigInit {
     lazy val nodeGridImpl = new NodeGrid(nodeFactRepository, configService)
 
     lazy val modificationService      =
-      new ModificationService(logRepository, gitModificationRepository, itemArchiveManagerImpl, stringUuidGenerator)
+      new ModificationService(gitModificationRepository, itemArchiveManagerImpl, stringUuidGenerator)
     lazy val eventListDisplayerImpl   = new EventListDisplayer(logRepository)
     lazy val eventLogDetailsGenerator = new EventLogDetailsGenerator(
       eventLogDetailsServiceImpl,

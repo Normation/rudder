@@ -116,6 +116,7 @@ import java.io.OutputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.NoSuchFileException
 import java.text.Normalizer
+import java.time.Instant
 import java.util.zip.ZipEntry
 import net.liftweb.http.FileParamHolder
 import net.liftweb.http.LiftResponse
@@ -1615,7 +1616,7 @@ class SaveArchiveServicebyRepo(
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
       qc.actor,
-      new DateTime(DateTimeZone.UTC),
+      Instant.now(),
       Some(s"Importing archive '${archive.metadata.filename}'"),
       None,
       qc.nodePerms
