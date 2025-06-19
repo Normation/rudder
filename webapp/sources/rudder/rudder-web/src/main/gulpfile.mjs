@@ -198,12 +198,12 @@ function scss(cb) {
     const deprecations = ['legacy-js-api', 'mixed-decls', 'color-functions', 'global-builtin', 'import'];
     const rudderScss = src(paths.scss.src)
       .pipe(sourcemaps.init())
-      .pipe(sass({outputStyle: 'compressed', silenceDeprecations: deprecations}).on('error', sass.logError))
+      .pipe(sass({style: 'compressed', silenceDeprecations: deprecations}).on('error', sass.logError))
       .pipe(sourcemaps.write())
       .pipe(dest(paths.scss.dest));
     const loginScss = src(paths.login_scss.src)
       .pipe(sourcemaps.init())
-      .pipe(sass({outputStyle: 'compressed', silenceDeprecations: deprecations}).on('error', sass.logError))
+      .pipe(sass({style: 'compressed', silenceDeprecations: deprecations}).on('error', sass.logError))
       .pipe(sourcemaps.write())
       .pipe(dest(paths.login_scss.dest));
     merge2(rudderScss, loginScss);
