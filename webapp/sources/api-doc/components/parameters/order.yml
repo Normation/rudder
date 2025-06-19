@@ -5,3 +5,12 @@ in: query
 required: false
 schema:
   type: string
+  enum:
+    - start
+    - startDate
+    - end
+    - endDate
+  description:
+    The start or end date column to sort (with 'asc' for the ascending or descending order)
+  example:
+    start
