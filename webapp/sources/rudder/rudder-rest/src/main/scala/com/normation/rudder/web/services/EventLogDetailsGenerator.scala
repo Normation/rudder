@@ -47,7 +47,6 @@ import com.normation.rudder.domain.eventlog.WorkflowStepChanged
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.GlobalParameter
-import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
@@ -74,13 +73,11 @@ import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.*
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.util.Failure as Catch
-import scala.util.Random
 import scala.util.Success
 import scala.util.Try
 import scala.xml.*
@@ -1029,7 +1026,7 @@ class EventLogDetailsGenerator(
                         case Some(hb) => heartbeatDetails(hb)
                       }
                     }
-                  }{nodePropertiesDiff(modDiff.modProperties)}{
+                  }<div id={"nodepropertiesdiff-" + event.id.getOrElse("unknown")}></div>{
                     mapComplexDiff(modDiff.modPolicyMode, <b>Policy Mode</b>) { (optMode: Option[PolicyMode]) =>
                       optMode match {
                         case None       =>
@@ -1139,6 +1136,18 @@ class EventLogDetailsGenerator(
 
     }).merge.runNow
 
+  }
+
+  def nodePropertiesDiff(event: EventLog): Option[SimpleDiff[JObject]] = {
+    event match {
+      case m: ModifyNode =>
+        logDetailsService
+          .getModifyNodeDetails(event.details)
+          .toOption
+          .flatMap(_.modProperties)
+          .map(_.map(_.toDataJson))
+      case _ => None
+    }
   }
 
   private def agentRunDetails(ar: AgentRunInterval): NodeSeq = {
@@ -1359,37 +1368,6 @@ class EventLogDetailsGenerator(
   }
 
   /*
-   * Special diff for json: use a json diff tool.
-   */
-  private def jsonDiff(diff: Option[SimpleDiff[JValue]]): NodeSeq = {
-    val s = Random.nextInt(100000)
-
-    def stringify(jValue: JValue): String = {
-      net.liftweb.json.compactRender(jValue)
-    }
-
-    diff match {
-      case None       => NodeSeq.Empty
-      case Some(diff) =>
-        <div>
-          <div id={s"nodediff-${s}"}>shouldBeReplacedByDiff</div>
-        </div> ++ Script(
-          OnLoad(
-            // See JsonDiffPatch doc for formatter option: https://github.com/benjamine/jsondiffpatch/blob/master/docs/formatters.md
-            // We can keep old, non modified values, but in our even log case, we prefer to jst show what changed.
-            JsRaw(
-              s"""
-                 |document.getElementById('nodediff-${s}').innerHTML = jsondiffpatch.formatters.html.format(
-                 |  jsondiffpatch.diff( ${stringify(diff.oldValue)}, ${stringify(diff.newValue)} )
-                 |);
-                 |""".stripMargin // JsRaw OK, no user input
-            )
-          )
-        )
-    }
-  }
-
-  /*
    * Special diff for tags as a list of key-value pair using a simple line diff against "key=value" tag format
    */
   private def tagsDiff(opt: Option[SimpleDiff[Tags]]) = {
@@ -1399,17 +1377,6 @@ class EventLogDetailsGenerator(
 
     val linesDiff = opt.map(diff => SimpleDiff(tagsToLines(diff.oldValue), tagsToLines(diff.newValue)))
     displaySimpleDiff(linesDiff, "tags")
-  }
-
-  /*
-   * Special diff for node properties using a json diff tool.
-   */
-  private def nodePropertiesDiff(opt: Option[SimpleDiff[List[NodeProperty]]]): NodeSeq = {
-    def toJson(props: List[NodeProperty]): JObject = {
-      props.toDataJson
-    }
-
-    jsonDiff(opt.map(diff => SimpleDiff(toJson(diff.oldValue), toJson(diff.newValue))))
   }
 
   private def promotedNodeDetails(id: NodeId, name: String) = (
