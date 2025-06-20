@@ -554,6 +554,18 @@ body copy_from ncf_remote_cp_method(from, server, method)
     copy_backup => "timestamp";
 }
 
+body copy_from ncf_remote_cp_purge(from, server, method)
+{
+    servers     => { "${server}" };
+    source      => "${from}";
+    type_check  => "true";
+    portnumber  => "${system_common.community_port}";
+    compare     => "${method}";
+    encrypt     => "true";
+    copy_backup => "timestamp";
+    purge       => "true";
+}
+
 # DEPRECATED
 #server may be a list
 body copy_from cp(from,server)
