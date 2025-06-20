@@ -950,7 +950,7 @@ class NodeApiService(
         NodeState.Enabled,
         isSystem = false,
         isPolicyServer = false,
-        creationDate = DateTime.now(DateTimeZone.UTC),
+        creationDate = Instant.now(),
         nodeReportingConfiguration = ReportingConfiguration(None, None, None),
         properties = Nil,
         policyMode = None,

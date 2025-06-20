@@ -88,6 +88,9 @@ object DateFormaterService {
     implicit val transformInstantDateTime: Transformer[Instant, DateTime] = { x =>
       new DateTime(x.toEpochMilli, DateTimeZone.UTC)
     }
+
+    implicit val transformInstantLocalDate: Transformer[Instant, LocalDate] = { x => LocalDate.ofInstant(x, ZoneOffset.UTC) }
+
   }
 
   object json extends DateTimeCodecs
@@ -119,6 +122,10 @@ object DateFormaterService {
     date.format(javaDisplayDateFormat)
   }
 
+  def getDisplayDate(instant: Instant): String = {
+    getDisplayDate(toDateTime(instant))
+  }
+
   /*
    * Format a date for serialisation (json, database, etc). We use
    * ISO 8601 (rfc 3339) for that (without millis)
@@ -132,14 +139,33 @@ object DateFormaterService {
     ZonedDateTime.ofInstant(datetime, ZoneOffset.UTC).format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
   }
 
-  def toInstant(datetime: DateTime): Instant  = json.transformDateTimeInstant.transform(datetime)
-  def toDateTime(instant: Instant):  DateTime = json.transformInstantDateTime.transform(instant)
+  def toInstant(datetime:  DateTime): Instant   = json.transformDateTimeInstant.transform(datetime)
+  def toDateTime(instant:  Instant):  DateTime  = json.transformInstantDateTime.transform(instant)
+  def toLocalDate(instant: Instant):  LocalDate = json.transformInstantLocalDate.transform(instant)
 
   def parseDate(date: String): PureResult[DateTime] = {
     try {
       Right(ISODateTimeFormat.dateTimeNoMillis().withZoneUTC().parseDateTime(date))
     } catch {
       case NonFatal(ex) => Left(Inconsistency(s"String '${date}' can't be parsed as an ISO date/time: ${ex.getMessage}"))
+    }
+  }
+
+  /*
+   * Parse a string as an Instant.
+   * The string must be an RFC 3339 date time.
+   * We are more lenient than java strict instant parsing, since we accept time zone.
+   */
+  def parseInstant(instant: String): PureResult[Instant] = {
+    try {
+      Right(Instant.parse(instant))
+    } catch {
+      case NonFatal(ex) =>
+        // try to parse as a ISO DateTime with time zone
+        parseDateZDT(instant).fold(
+          _ => Left(Inconsistency(s"String '${instant}' can't be parsed as an ISO instant: ${ex.getMessage}")),
+          zdt => Right(zdt.toInstant)
+        )
     }
   }
 
@@ -151,6 +177,7 @@ object DateFormaterService {
     }
   }
 
+  // ISO date time with timezone
   def parseDateZDT(date: String): PureResult[ZonedDateTime] = {
     try {
       Right(ZonedDateTime.parse(date, java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME))

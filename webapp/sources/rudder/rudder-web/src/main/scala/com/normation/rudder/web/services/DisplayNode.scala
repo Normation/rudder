@@ -535,7 +535,7 @@ object DisplayNode extends Loggable {
   def showNodeDetails(
       nodeFact:            NodeFact,
       globalMode:          GlobalPolicyMode,
-      creationDate:        Option[DateTime],
+      creationDate:        Option[Instant],
       salt:                String = "",
       isDisplayingInPopup: Boolean = false
   )(implicit qc: QueryContext): NodeSeq = {

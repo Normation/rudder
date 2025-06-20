@@ -86,6 +86,7 @@ import com.softwaremill.quicklens.*
 import java.io.File
 import java.nio.file.*
 import java.nio.file.attribute.BasicFileAttributes
+import java.time.Instant
 import net.liftweb.common.Full
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
@@ -264,8 +265,8 @@ object NodeConfigData {
     ),
     RudderAgent(CfeCommunity, rootAdmin, AgentVersion("7.0.0"), Certificate(CERT), Chunk.empty),
     Chunk.empty,
-    DateTime.now(DateTimeZone.UTC),
-    DateTime.now(DateTimeZone.UTC),
+    Instant.now(),
+    Instant.now(),
     None,
     Chunk(IpAddress("127.0.0.1"), IpAddress("192.168.0.100")),
     Some(NodeTimezone("UTC", "+00")),
@@ -294,8 +295,8 @@ object NodeConfigData {
     ),
     RudderAgent(CfeCommunity, admin1, AgentVersion("6.0.0"), Certificate(CERT), Chunk.empty),
     Chunk.empty,
-    DateTime.now(DateTimeZone.UTC),
-    DateTime.now(DateTimeZone.UTC),
+    Instant.now(),
+    Instant.now(),
     None,
     Chunk(IpAddress("192.168.0.10")),
     None,
@@ -360,8 +361,8 @@ object NodeConfigData {
     ),
     RudderAgent(Dsc, admin1, AgentVersion("7.0.0"), Certificate(CERT), Chunk.empty),
     Chunk.empty,
-    DateTime.now(DateTimeZone.UTC),
-    DateTime.now(DateTimeZone.UTC),
+    Instant.now(),
+    Instant.now(),
     None,
     Chunk(IpAddress("192.168.0.5")),
     None,
@@ -471,8 +472,8 @@ object NodeConfigData {
       ),
       RudderAgent(CfeCommunity, admin1, AgentVersion("6.0.0"), Certificate("node certificate"), Chunk.empty),
       Chunk.empty,
-      DateTime.now(DateTimeZone.UTC),
-      DateTime.now(DateTimeZone.UTC),
+      Instant.now(),
+      Instant.now(),
       None,
       Chunk(),
       None,

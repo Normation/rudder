@@ -66,7 +66,6 @@ import com.normation.rudder.services.reports.InvalidateCache
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import java.time.Instant
-import org.joda.time.DateTime
 import zio.ZIO
 
 /*

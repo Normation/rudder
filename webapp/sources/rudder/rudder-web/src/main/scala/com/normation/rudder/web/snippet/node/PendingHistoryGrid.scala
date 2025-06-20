@@ -247,7 +247,8 @@ object PendingHistoryGrid extends Loggable {
 
   import com.normation.rudder.domain.logger.ApplicationLoggerPure
   val result: Either[String, Boolean] = Left("plop")
-  result.left.map(e => ApplicationLoggerPure.Auth.logEffect.warn(s"Error while computing Argon2 hash: ${e}"))
+  result.left
+    .map(e => ApplicationLoggerPure.Auth.logEffect.warn(s"Error while computing Argon2 hash: ${e}"))
     .getOrElse(false)
 
   def displayIfDeleted(id: NodeId, lastInventoryDate: DateTime, deletedNodes: Map[NodeId, Seq[EventLog]]): NodeSeq = {

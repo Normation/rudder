@@ -60,8 +60,6 @@ import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import java.time.Instant
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import zio.*
 import zio.syntax.*
 

@@ -116,6 +116,7 @@ import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.RDN
 import com.unboundid.ldif.LDIFChangeRecord
+import java.time.Instant
 import net.liftweb.actor.MockLiftActor
 import net.liftweb.common.Box
 import net.liftweb.common.Full
@@ -1774,7 +1775,7 @@ object MockNodes {
         None,
         Some("Some explanation"),
         Some(SoftwareUpdateSeverity.Critical),
-        JsonSerializers.parseSoftwareUpdateDateTime(d0).toOption,
+        JsonSerializers.parseSoftwareUpdateInstant(d0).toOption,
         Some(List(id0, id1))
       ),
       SoftwareUpdate(
@@ -1855,6 +1856,14 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
   val rootHostname = "server.rudder.local"
   val rootAdmin    = "root"
 
+  // shallow exception for test
+  def parseInstant(s: String): Instant = {
+    DateFormaterService.parseInstant(s) match {
+      case Right(i)  => i
+      case Left(err) => throw new IllegalArgumentException(err.fullMsg)
+    }
+  }
+
   val rootNode: Node     = Node(
     rootId,
     "root",
@@ -1862,7 +1871,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     state = NodeState.Enabled,
     isSystem = true,
     isPolicyServer = true,
-    creationDate = DateTime.parse("2021-01-30T01:20+01:00"),
+    creationDate = parseInstant("2021-01-30T01:20+01:00"),
     nodeReportingConfiguration = emptyNodeReportingConfiguration,
     properties = Nil,
     policyMode = Some(PolicyMode.Enforce),
@@ -1874,7 +1883,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VmType.VirtualBox), None, None)),
     Linux(Debian, "Stretch", new Version("9.4"), None, new Version("4.5")),
     List("127.0.0.1", "192.168.0.100"),
-    DateTime.parse("2021-01-30T01:20+01:00"),
+    parseInstant("2021-01-30T01:20+01:00"),
     UndefinedKey,
     Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), Certificate(CERTIFICATE_NODE1), Set())),
     rootId,
@@ -1899,7 +1908,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     ram = Some(MemorySize(100000)),
     swap = Some(MemorySize(1000000)),
     inventoryDate = None,
-    receiveDate = DateFormaterService.parseDate("2021-01-31T03:05:00+01:00").toOption,
+    receiveDate = DateFormaterService.parseInstant("2021-01-31T03:05:00+01:00").toOption,
     archDescription = Some("x86_64"),
     lastLoggedUser = None,
     lastLoggedUserTime = None,
@@ -1941,7 +1950,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     state = NodeState.Enabled,
     isSystem = false,
     isPolicyServer = false,
-    creationDate = DateTime.parse("2021-01-30T01:20+01:00"),
+    creationDate = parseInstant("2021-01-30T01:20+01:00"),
     nodeReportingConfiguration = emptyNodeReportingConfiguration,
     properties = Nil,
     policyMode = Some(PolicyMode.Enforce),
@@ -1954,7 +1963,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VmType.VirtualBox), None, None)),
     Linux(Debian, "Buster", new Version("10.6"), None, new Version("4.19")),
     List("192.168.0.10"),
-    DateTime.parse("2021-01-30T01:20+01:00"),
+    parseInstant("2021-01-30T01:20+01:00"),
     UndefinedKey,
     Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), Certificate(CERTIFICATE_NODE1), Set())),
     rootId,
@@ -2035,7 +2044,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     state = NodeState.Enabled,
     isSystem = true,
     isPolicyServer = true, // is relay server
-    creationDate = DateTime.parse("2021-01-30T01:20+01:00"),
+    creationDate = parseInstant("2021-01-30T01:20+01:00"),
     nodeReportingConfiguration = emptyNodeReportingConfiguration,
     properties = Nil,
     policyMode = None,
@@ -2060,7 +2069,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
     Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VmType.VirtualBox), None, None)),
     Windows(Windows2012, "Windows 2012 youpla boom", new Version("2012"), Some("sp1"), new Version("win-kernel-2012")),
     List("192.168.0.5"),
-    DateTime.parse("2021-01-30T01:20+01:00"),
+    parseInstant("2021-01-30T01:20+01:00"),
     UndefinedKey,
     Seq(AgentInfo(AgentType.Dsc, Some(AgentVersion("7.0.0")), Certificate("windows-node-dsc-certificate"), Set())),
     rootId,
@@ -2167,7 +2176,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
       state = NodeState.Enabled,
       isSystem = false,
       isPolicyServer = false,
-      creationDate = DateTime.now(DateTimeZone.UTC),
+      creationDate = Instant.now(),
       nodeReportingConfiguration = ReportingConfiguration(None, None, None),
       properties = Nil,
       policyMode = None,
@@ -2183,7 +2192,7 @@ Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
         None,
         Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2")),
         Nil,
-        DateTime.now(DateTimeZone.UTC),
+        Instant.now(),
         UndefinedKey,
         Seq(AgentInfo(CfeCommunity, None, Certificate("node certificate"), Set())),
         NodeId("root"),
@@ -2378,7 +2387,7 @@ class MockNodes() {
             case A_ROOT_USER          => Right((n: NodeFact) => List(n.rudderAgent.user))
             case A_INVENTORY_DATE     =>
               Right((n: NodeFact) =>
-                List(n.lastInventoryDate.getOrElse(n.factProcessedDate).toString(ISODateTimeFormat.dateTimeNoMillis()))
+                List(DateFormaterService.serializeInstant(n.lastInventoryDate.getOrElse(n.factProcessedDate)))
               )
             case A_POLICY_SERVER_UUID => Right((n: NodeFact) => List(n.rudderSettings.policyServerId.value))
             case _                    => Left(Inconsistency(s"object '${objectName}' doesn't have attribute '${attribute}'"))

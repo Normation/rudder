@@ -24,8 +24,6 @@ import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.utils.StringUuidGeneratorImpl
 import io.scalaland.chimney.Transformer
 import java.time.Instant
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import scala.xml.*
 
 final case class EventActor(name: String) extends AnyVal

@@ -40,7 +40,7 @@ package com.normation.inventory.ldap.provisioning
 import com.normation.errors.*
 import com.normation.inventory.domain.*
 import com.normation.inventory.services.provisioning.*
-import org.joda.time.DateTimeZone
+import java.time.Instant
 import zio.syntax.*
 
 /**
@@ -72,12 +72,11 @@ object CheckOsType extends PreCommit {
  * Update last inventory date for Server and machine
  */
 class LastInventoryDate() extends PreCommit {
-  import org.joda.time.DateTime
 
   override val name = "pre_commit_inventory:set_last_inventory_date"
 
   override def apply(inventory: Inventory): IOResult[Inventory] = {
-    val now = DateTime.now(DateTimeZone.UTC)
+    val now = Instant.now
 
     inventory
       .copy(

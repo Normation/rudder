@@ -47,8 +47,6 @@ import com.normation.utils.StringUuidGenerator
 import java.time.Instant
 import net.liftweb.common.*
 import org.eclipse.jgit.lib.PersonIdent
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 
 class ModificationService(
     gitModificationRepository: GitModificationRepository,

@@ -50,6 +50,7 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.repository.*
+import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.*
 import org.joda.time.DateTime
@@ -94,7 +95,7 @@ class CheckInitUserTemplateLibrary(
         root.getAsGTime(A_INIT_DATETIME) match {
           case Some(date) =>
             BootstrapLogger.logEffect.debug(
-              "The root user template library was initialized on %s".format(date.dateTime.toString("YYYY/MM/dd HH:mm"))
+              s"The root user template library was initialized on ${DateFormaterService.serializeInstant(date.instant)}"
             )
           case None       =>
             BootstrapLogger.logEffect.info(

@@ -41,9 +41,8 @@ import com.normation.eventlog.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.utils.DateFormaterService
 import java.time.Instant
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import scala.xml.Node
 
 /**
@@ -52,7 +51,7 @@ import scala.xml.Node
 
 final case class InventoryLogDetails(
     nodeId:           NodeId,
-    inventoryVersion: DateTime,
+    inventoryVersion: Instant,
     hostname:         String,
     fullOsName:       String,
     actorIp:          String
@@ -75,7 +74,7 @@ object InventoryEventLog {
     scala.xml.Utility.trim(
       <node action={action} fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{logDetails.nodeId.value}</id>
-        <inventoryVersion>{logDetails.inventoryVersion}</inventoryVersion>
+        <inventoryVersion>{DateFormaterService.serializeInstant(logDetails.inventoryVersion)}</inventoryVersion>
         <hostname>{logDetails.hostname}</hostname>
         <fullOsName>{logDetails.fullOsName}</fullOsName>
         <actorIp>{logDetails.actorIp}</actorIp>

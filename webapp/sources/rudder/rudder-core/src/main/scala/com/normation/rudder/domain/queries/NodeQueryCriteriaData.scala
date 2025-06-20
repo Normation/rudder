@@ -258,7 +258,7 @@ class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository, insta
           A_INVENTORY_DATE,
           DateComparator,
           NodeCriterionMatcherDate(
-            _.lastInventoryDate.toChunk.map(dt => DateFormaterService.json.transformDateTime.transform(dt).toLocalDate)
+            _.lastInventoryDate.toChunk.map(DateFormaterService.toLocalDate)
           )
         ),
         Criterion(

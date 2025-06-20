@@ -62,6 +62,7 @@ import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.reports.*
 import com.normation.rudder.tenants.TenantId
+import com.normation.utils.DateFormaterService
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version
 import com.normation.zio.*
@@ -80,8 +81,6 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.json.JsonAST
 import net.liftweb.json.JsonAST.*
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import zio.*
 import zio.json.*
 import zio.json.ast.Json
@@ -183,7 +182,7 @@ final case class SoftwareFact(
     systemCategory:     Option[String] = None,
     licenseName:        Option[String] = None,
     licenseDescription: Option[String] = None,
-    expirationDate:     Option[DateTime] = None,
+    expirationDate:     Option[Instant] = None,
     productId:          Option[String] = None,
     productKey:         Option[String] = None,
     oem:                Option[String] = None
@@ -205,7 +204,7 @@ object SoftwareFact {
   }
 
   def fromSoftware(s: Software): Option[SoftwareFact] = {
-    import NodeFact.*
+    import com.normation.rudder.facts.nodes.NodeFact.*
     s.toFact
   }
 }
@@ -300,7 +299,7 @@ object MinimalNodeFactInterface {
       node.os.os.name,
       node.os.fullName,
       ipAddresses(node),
-      node.creationDate,
+      DateFormaterService.toDateTime(node.creationDate),
       isSystem(node)
     )
   }
@@ -672,7 +671,7 @@ object NodeFact {
   }
 
   def newFromFullInventory(inventory: FullInventory, software: Option[Iterable[Software]]): NodeFact = {
-    val now  = DateTime.now(DateTimeZone.UTC)
+    val now  = Instant.now()
     val fact = NodeFact(
       inventory.node.main.id,
       None,
@@ -922,9 +921,9 @@ trait MinimalNodeFactInterface {
   def rudderSettings:    RudderSettings
   def rudderAgent:       RudderAgent
   def properties:        Chunk[NodeProperty]
-  def creationDate:      DateTime
-  def factProcessedDate: DateTime
-  def lastInventoryDate: Option[DateTime]
+  def creationDate:      Instant
+  def factProcessedDate: Instant
+  def lastInventoryDate: Option[Instant]
   def ipAddresses:       Chunk[IpAddress]
   def timezone:          Option[NodeTimezone]
   def archDescription:   Option[String]
@@ -1003,9 +1002,9 @@ final case class CoreNodeFact(
     rudderSettings:    RudderSettings,
     rudderAgent:       RudderAgent,
     properties:        Chunk[NodeProperty],
-    creationDate:      DateTime,
-    factProcessedDate: DateTime,
-    lastInventoryDate: Option[DateTime] = None,
+    creationDate:      Instant,
+    factProcessedDate: Instant,
+    lastInventoryDate: Option[Instant] = None,
     ipAddresses:       Chunk[IpAddress] = Chunk.empty,
     timezone:          Option[NodeTimezone] = None,
     archDescription:   Option[String] = None,
@@ -1412,11 +1411,11 @@ final case class NodeFact(
 
     // inventory information part of minimal node info (node create api
     // the date on which the node was accepted/created by API
-    creationDate:      DateTime,
+    creationDate:      Instant,
     // the date on which the fact describing that node fact was processed
-    factProcessedDate: DateTime,
+    factProcessedDate: Instant,
     // the date on which information about that fact were generated on original system
-    lastInventoryDate: Option[DateTime] = None,
+    lastInventoryDate: Option[Instant] = None,
     ipAddresses:       Chunk[IpAddress] = Chunk.empty,
     timezone:          Option[NodeTimezone] = None,
 
@@ -1813,7 +1812,6 @@ object NodeFactSerialisation {
   // Method too large: com/normation/rudder/facts/nodes/NodeFactSerialisation$.<clinit> ()V
 
   import com.normation.inventory.domain.JsonSerializers.implicits.*
-  import com.normation.utils.DateFormaterService.json.*
 
   object SimpleCodec {
 
