@@ -1,0 +1,92 @@
+#####################################################################################
+# Copyright 2024 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Sharedfile from any
+# @description This method retrieves a file shared from other Rudder node
+# @documentation This method retrieves a file shared from many Rudder node using a unique file identifier.
+#
+# The files will be downloaded using native agent protocol and all copied into a single directory.
+# The destination path must be the complete absolute path of the destination directory.
+# The destination files will be named <file_id>.<node_uuid>
+# Any other destination files starting with <file_id> will be removed.
+#
+# See [sharedfile_to_node](#_sharedfile_to_node) for a complete example.
+#
+# @parameter file_id      Unique name that was used to identify the file on the sender
+# @parameter_constraint file_id "regex" : "^[A-z0-9._-]+$"
+# @parameter file_path    Where to put the file content
+#
+# @class_prefix sharedfile_from_any
+# @class_parameter file_id
+# @agent_support = ["cfengine-community"]
+
+bundle agent sharedfile_from_any(file_id, file_path)
+{
+  vars:
+      "old_class_prefix"  string => canonify("sharedfile_from_any${file_id}");
+      "args"              slist  => { "${file_id}", "${file_path}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("sharedfile_from_any${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      "temp_dir"          string => "/var/rudder/tmp/shared-files";
+    pass1::
+      # full path of remporary files
+      "files" slist => findfiles("${temp_dir}/*/${file_id}");
+      # array of name of files
+      "file_names[${files}]" string => regex_replace("${files}", "${temp_dir}/(.*)/(.*)", "$2.$1", "");
+      # slist of name of files
+      "name_list" slist => getvalues("file_names");
+
+  classes:
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  files:
+      # first synchronize all shared-files in a temporary directory
+      "${temp_dir}/"
+        copy_from    => ncf_remote_cp_purge("/var/rudder/shared-files/${g.uuid}/files/", "${sys.policy_hub}", "digest"),
+        depth_search => recurse("2"),
+        classes      => classes_generic_two("step1_${old_class_prefix}", "step1_${class_prefix}");
+    pass2::
+      # then extract all files with this specific file_id
+      "${file_path}/${file_names[${files}]}"
+        copy_from    => ncf_local_cp_method("${name_list}", "mtime"),
+        create       => "true",
+        classes      => classes_generic_two("step2_${old_class_prefix}", "step2_${class_prefix}");
+      # finally remove files with the same file_id that don't exist anymore
+      "${file_path}"
+        delete       => tidy,
+        depth_search => recurse("1"),
+        file_select  => include_exclude("${file_id}", @{name_list}),
+        classes      => classes_generic_two("step3_${old_class_prefix}", "step3_${class_prefix}");
+
+  methods:
+    pass2::
+      "combine_old" usebundle => _classes_combine_three("step1_${old_class_prefix}", "step2_${old_class_prefix}", "step3_${old_class_prefix}", "${old_class_prefix}");
+      "combine_new" usebundle => _classes_combine_three("step1_${class_prefix}", "step2_${class_prefix}", "step3_${class_prefix}" , "${class_prefix}");
+      "report" usebundle => _log_v3("Retrieving ${file_id} from other nodes into ${file_path}", "${file_id}", "${old_class_prefix}", "${class_prefix}", @{args});
+}
+
+body file_select include_exclude(base, names)
+{
+      leaf_name  => { @{names} };
+      path_name => { ".*/${base}\..*$" };
+      file_result => "path_name.!leaf_name";
+}
+
