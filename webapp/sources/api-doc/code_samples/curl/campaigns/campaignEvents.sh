@@ -1,1 +1,1 @@
-curl --header "X-API-Token: yourToken" --request POST 'https://rudder.example.com/rudder/api/latest/campaigns/0076a379-f32d-4732-9e91-33ab219d8fde/events'
+curl --header "X-API-Token: yourToken" --request POST 'https://rudder.example.com/rudder/api/latest/campaigns/0076a379-f32d-4732-9e91-33ab219d8fde/events?campaignType=system-update&state=running&limit=1&order=start&asc=desc&before=2025-06-19T16:13:35%2B01:00'
