@@ -83,11 +83,15 @@ class ScoreServiceImpl(
 
   def clean(): IOResult[Unit] = {
     for {
-      available    <- availableScore.get.map(_.map(_._1))
-      globalScore  <- cache.get
-      existingScore = globalScore.values.toList.flatMap(_.details.map(_.scoreId)).distinct
-      idsToClean    = existingScore.diff(available)
-      _            <- ZIO.foreach(idsToClean)(cleanScore(_)(QueryContext.systemQC))
+      available     <- availableScore.get.map(_.map(_._1))
+      existingScore <- scoreCache.get.map(_.flatMap(_._2.map(_.scoreId)))
+      idsToClean     = existingScore.toList.distinct.diff(available)
+      _             <- ZIO.when(idsToClean.nonEmpty)(ScoreLoggerPure.info(s"Scores to clean ${idsToClean.mkString(", ")}"))
+      _             <- ZIO.foreach(idsToClean)(id => {
+                         cleanScore(id)(QueryContext.systemQC).catchAll(err =>
+                           ScoreLoggerPure.error(s"Error when cleaning score ${id}: ${err.fullMsg} ")
+                         )
+                       })
     } yield {}
   }
 
@@ -158,9 +162,16 @@ class ScoreServiceImpl(
   }
   def cleanScore(name: String)(implicit qc: QueryContext): IOResult[Unit] = {
     for {
-      _         <- cache.update(_.map { case (id, gscore) => (id, gscore.copy(details = gscore.details.filterNot(_.scoreId == name))) })
+      _         <- ScoreLoggerPure.info(s"Cleaning score ${name}")
+      // Remove from score caches
+      newGlobal <- cache.updateAndGet(_.map {
+                     case (id, gscore) => (id, gscore.copy(details = gscore.details.filterNot(_.scoreId == name)))
+                   })
       newScores <- scoreCache.updateAndGet(_.map { case (id, scores) => (id, scores.filterNot(_.scoreId == name)) })
-      _         <- update(newScores)
+      // Remove from databases
+      _         <- ZIO.foreach(newScores.keySet) { case nodeId => scoreRepository.deleteScore(nodeId, Some(name)) }
+      _         <- ZIO.foreach(newGlobal) { case (id, gscore) => globalScoreRepository.save(id, gscore) }
+
     } yield {}
   }
 
