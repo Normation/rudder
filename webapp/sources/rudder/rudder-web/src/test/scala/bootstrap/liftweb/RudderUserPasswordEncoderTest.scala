@@ -37,6 +37,7 @@
 
 package bootstrap.liftweb
 
+import com.normation.rudder.users.Argon2IDHashString
 import com.normation.rudder.users.PasswordEncoderType
 import com.normation.rudder.users.RudderPasswordEncoder
 import org.junit.runner.RunWith
@@ -49,8 +50,6 @@ import org.specs2.runner.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class RudderUserPasswordEncoderTest extends Specification {
-
-  // value from linux command lines: echo -n 'pass' | md5sum (or other hashes)
 
   "decode special values" should {
     "be ok for sha1" in {
@@ -70,8 +69,10 @@ class RudderUserPasswordEncoderTest extends Specification {
     }
   }
 
-  "hash algo for 'admin' password" should {
+  "passwords" should {
     val pass1          = "admin"
+    val wrong_pass1    = "not_good"
+    val empty_pass1    = ""
     val pass1_md5      = "21232f297a57a5a743894a0e4a801fc3"
     val pass1_sha1     = "d033e22ae348aeb5660fc2140aec35850c4da997"
     val pass1_sha256   = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"
@@ -79,50 +80,57 @@ class RudderUserPasswordEncoderTest extends Specification {
       "c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"
     val pass1_bcrypt_a = "$2a$12$mgAVHJ2/312Q.hdWT0EzjOZHrGicXV/2K.1CLsnM3gOYqi5twcwtW"
     val pass1_bcrypt_y = "$2y$10$QA4RucUAlhOofuPMAnonk.Mvnq4GPSHaq757Hwj7C/pLb9cmZBHdW"
+    val pass1_argon2   = "$argon2id$v=19$m=19000,t=2,p=1$VU9VRmpORnlJZFlxZUFVYg$WyLWXe4yYQbFwUQbaGkBzw"
 
-    "be ok for md5" in {
+    "be correctly checked with md5" in {
       RudderPasswordEncoder.MD5.matches(pass1, pass1_md5) must beTrue
     }
-    "be ok for sha1" in {
+    "be correctly checked with sha1" in {
       RudderPasswordEncoder.SHA1.matches(pass1, pass1_sha1) must beTrue
     }
-    "be ok for sha256" in {
+    "be correctly checked with sha256" in {
       RudderPasswordEncoder.SHA256.matches(pass1, pass1_sha256) must beTrue
     }
-    "be ok for sha512" in {
+    "be correctly checked with sha512" in {
       RudderPasswordEncoder.SHA512.matches(pass1, pass1_sha512) must beTrue
     }
-    // Use same default BCRYPT cost as in RudderConfig
-    "be ok for bcrypt a" in {
+    "be correctly encoded with bcrypt" in {
+      val encoder = RudderPasswordEncoder.BCRYPT(12)
+      val hash    = encoder.encode(pass1)
+      encoder.matches(pass1, hash) must beTrue
+    }
+    "be correctly checked with bcrypt a" in {
       RudderPasswordEncoder.BCRYPT(12).matches(pass1, pass1_bcrypt_a) must beTrue
     }
-    "be ok for bcrypt y" in {
+    "be correctly checked with bcrypt y" in {
       RudderPasswordEncoder.BCRYPT(12).matches(pass1, pass1_bcrypt_y) must beTrue
     }
-
-  }
-
-  "hash algo for ';axG42!' password" should {
-    val pass1        = ";axG42!"
-    val pass1_md5    = "897b4148edc1184686f95afd18ab125f"
-    val pass1_sha1   = "c1193f9a893e816ef90a84a48a4085d2d9a39664"
-    val pass1_sha256 = "ccc3e8f4851e4a3211c083074077ce4484db8dd806fac8360fae438298e07ee0"
-    val pass1_sha512 =
-      "ae5e7cdad947b6d2325d336868d86feb5abf3c66a111c124b0d66366db3db8a757b1d96f1c03c18cffd14fa3cf6a204701615c49b9f0961e13b363b46d88bdb2"
-
-    "be ok for md5" in {
-      RudderPasswordEncoder.MD5.matches(pass1, pass1_md5) must beTrue
+    "fail when password is incorrect with bcrypt y" in {
+      RudderPasswordEncoder.BCRYPT(12).matches(wrong_pass1, pass1_bcrypt_y) must beFalse
     }
-    "be ok for sha1" in {
-      RudderPasswordEncoder.SHA1.matches(pass1, pass1_sha1) must beTrue
+    "fail when password is empty with bcrypt y" in {
+      RudderPasswordEncoder.BCRYPT(12).matches(empty_pass1, pass1_bcrypt_y) must beFalse
     }
-    "be ok for sha256" in {
-      RudderPasswordEncoder.SHA256.matches(pass1, pass1_sha256) must beTrue
+    "be correctly checked when cost is different with bcrypt" in {
+      RudderPasswordEncoder.BCRYPT(10).matches(pass1, pass1_bcrypt_y) must beTrue
     }
-    "be ok for sha512" in {
-      RudderPasswordEncoder.SHA512.matches(pass1, pass1_sha512) must beTrue
+    "be correctly encoded with argon2id" in {
+      val encoder = RudderPasswordEncoder.ARGON2ID(19000, 1, 2)
+      val hash    = encoder.encode(pass1)
+      encoder.matches(pass1, hash) must beTrue
     }
-
+    "succeed when password is valid with argon2id" in {
+      RudderPasswordEncoder.ARGON2ID(19000, 1, 2).matches(pass1, pass1_argon2) must beTrue
+    }
+    "fail when password is incorrect with argon2id" in {
+      RudderPasswordEncoder.ARGON2ID(19000, 1, 2).matches(wrong_pass1, pass1_argon2) must beFalse
+    }
+    "fail when password is empty with argon2id" in {
+      RudderPasswordEncoder.ARGON2ID(19000, 1, 2).matches(empty_pass1, pass1_argon2) must beFalse
+    }
+    "succeed when password is valid and encoder parameters are different with argon2id" in {
+      RudderPasswordEncoder.ARGON2ID(18000, 2, 1).matches(pass1, pass1_argon2) must beTrue
+    }
   }
 
   "hash algo recognition" should {
@@ -136,6 +144,7 @@ class RudderUserPasswordEncoderTest extends Specification {
       "c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"
     val pass1_bcrypt_a    = "$2a$12$mgAVHJ2/312Q.hdWT0EzjOZHrGicXV/2K.1CLsnM3gOYqi5twcwtW"
     val pass1_bcrypt_y    = "$2y$10$QA4RucUAlhOofuPMAnonk.Mvnq4GPSHaq757Hwj7C/pLb9cmZBHdW"
+    val pass1_argon2id    = "$argon2id$v=19$m=16,t=2,p=1$Y3NkY2RzY2RzY3M$AAAkKtLERhIhmS714tnQdw"
     val pass1_invalid_hex = "87d033e22ae348aeb5660fc2140aec35850c4da997"
     val pass1_invalid_z   = "z033e22ae348aeb5660fc2140aec35850c4da997"
 
@@ -157,6 +166,9 @@ class RudderUserPasswordEncoderTest extends Specification {
     "be ok for bcrypt y" in {
       RudderPasswordEncoder.getFromEncoded(pass1_bcrypt_y, legacy) must beRight(beEqualTo(PasswordEncoderType.BCRYPT))
     }
+    "be ok for argon2id" in {
+      RudderPasswordEncoder.getFromEncoded(pass1_argon2id, legacy) must beRight(beEqualTo(PasswordEncoderType.ARGON2ID))
+    }
     "reject invalid hex hash" in {
       RudderPasswordEncoder.getFromEncoded(pass1_invalid_hex, legacy) must beLeft(
         "Could not recognize a known hash format from hexadecimal encoded string of length 42"
@@ -175,6 +187,43 @@ class RudderUserPasswordEncoderTest extends Specification {
     "allow safe bcrypt hash in modern mode" in {
       RudderPasswordEncoder.getFromEncoded(pass1_bcrypt_y, modern) must beRight(beEqualTo(PasswordEncoderType.BCRYPT))
     }
+    "allow safe argon2id hash in modern mode" in {
+      RudderPasswordEncoder.getFromEncoded(pass1_argon2id, modern) must beRight(beEqualTo(PasswordEncoderType.ARGON2ID))
+    }
   }
 
+  "Argon2id hash string" should {
+    "be correctly written" in {
+      Argon2IDHashString(
+        version = 3,
+        memory = 64,
+        iterations = 1,
+        parallelism = 2,
+        salt = "azertyuiop".getBytes,
+        hash = "bobmaurane".getBytes
+      ).toShadowString must beEqualTo("$argon2id$v=3$m=64,t=1,p=2$YXplcnR5dWlvcA$Ym9ibWF1cmFuZQ")
+    }
+
+    "be correctly read" in {
+      val hash = Argon2IDHashString.parseShadowString("$argon2id$v=3$m=64,t=1,p=2$YXplcnR5dWlvcA$Ym9ibWF1cmFuZQ")
+
+      hash must beRight(
+        beEqualTo(
+          Argon2IDHashString(
+            version = 3,
+            memory = 64,
+            iterations = 1,
+            parallelism = 2,
+            salt = "azertyuiop".getBytes,
+            hash = "bobmaurane".getBytes
+          )
+        )
+      )
+    }
+
+    "fail on invalid value" in {
+      val hash = Argon2IDHashString.parseShadowString("$argon2id$v=3$m=64,t=1,p=2$YXplcnR5dWlvcA")
+      hash must beLeft
+    }
+  }
 }

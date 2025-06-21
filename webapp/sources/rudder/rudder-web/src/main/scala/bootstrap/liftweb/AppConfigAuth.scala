@@ -322,7 +322,12 @@ class AppConfigAuth extends ApplicationContextAware {
   }
 
   @Bean def passwordEncoderDispatcher: PasswordEncoderDispatcher = {
-    new PasswordEncoderDispatcher(RudderConfig.RUDDER_BCRYPT_COST)
+    new PasswordEncoderDispatcher(
+      RudderConfig.RUDDER_BCRYPT_COST,
+      RudderConfig.RUDDER_ARGON2_MEMORY,
+      RudderConfig.RUDDER_ARGON2_PARALLELISM,
+      RudderConfig.RUDDER_ARGON2_ITERATIONS
+    )
   }
 
   @Bean def checkUsersFile: CheckUsersFile = new CheckUsersFile(rudderUserListProvider)
