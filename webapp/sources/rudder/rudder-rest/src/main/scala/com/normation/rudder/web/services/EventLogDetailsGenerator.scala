@@ -57,15 +57,18 @@ import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.repository.*
+import com.normation.rudder.rest.StaticResourceRewrite
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.eventlog.EventLogDetailsService
 import com.normation.rudder.services.eventlog.RollbackInfo
 import com.normation.rudder.services.modification.ModificationService
 import com.normation.rudder.web.model.LinkUtil
+import com.normation.rudder.web.snippet.WithNonce
 import com.normation.utils.DateFormaterService
 import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
+import net.liftweb.http.LiftRules
 import net.liftweb.http.S
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE.*
@@ -84,12 +87,13 @@ import scala.xml.*
 import zio.json.*
 
 class EventLogDetailsGenerator(
-    logDetailsService:   EventLogDetailsService,
-    nodeGroupRepository: RoNodeGroupRepository,
-    ruleCatRepository:   RoRuleCategoryRepository,
-    modificationService: ModificationService,
-    linkUtil:            LinkUtil,
-    diffDisplayer:       DiffDisplayer
+    logDetailsService:     EventLogDetailsService,
+    nodeGroupRepository:   RoNodeGroupRepository,
+    ruleCatRepository:     RoRuleCategoryRepository,
+    modificationService:   ModificationService,
+    linkUtil:              LinkUtil,
+    diffDisplayer:         DiffDisplayer,
+    staticResourceRewrite: StaticResourceRewrite
 ) extends Loggable {
 
   private val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
@@ -248,8 +252,10 @@ class EventLogDetailsGenerator(
     }
   }
 
-  def displayDetails(event: EventLog, changeRequestId: Option[ChangeRequestId])(implicit qc: QueryContext): NodeSeq = {
-
+  def displayDetails(event: EventLog, changeRequestId: Option[ChangeRequestId])(implicit
+      qc:          QueryContext,
+      contextPath: String
+  ): NodeSeq = {
     (for {
       groupLib         <- nodeGroupRepository
                             .getFullGroupLibrary()
@@ -1187,14 +1193,16 @@ class EventLogDetailsGenerator(
       <pre style="width:200px;" id={s"after${name}"}
            class="d-none">{fun(diff.newValue)}</pre>
       <pre id={s"result${name}"} ></pre> ++
-    Script(
-      OnLoad(
-        JsRaw(
-          s"""
+    WithNonce.scriptWithNonce(
+      Script(
+        OnLoad(
+          JsRaw(
+            s"""
             var before = "before${name}";
             var after  = "after${name}";
             var result = "result${name}";
             makeDiff(before,after,result);"""
+          )
         )
       )
     )
@@ -1209,12 +1217,12 @@ class EventLogDetailsGenerator(
             <pre style="width:200px;" id={"after" + id}
                  class="d-none">{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
             <pre id={"result" + id} ></pre>
-        ) ++ Script(OnLoad(JsRaw(s"""
+        ) ++ WithNonce.scriptWithNonce(Script(OnLoad(JsRaw(s"""
             var before = "before${id}";
             var after  = "after${id}";
             var result = "result${id}";
             makeDiff(before,after,result);
-            """))) // JsRaw OK, id is int
+            """)))) // JsRaw OK, id is int
     }
   }
 
@@ -1381,7 +1389,7 @@ class EventLogDetailsGenerator(
   /*
    * Special diff for json: use a json diff tool.
    */
-  private def jsonDiff(diff: Option[SimpleDiff[JValue]]): NodeSeq = {
+  private def jsonDiff(diff: Option[SimpleDiff[JValue]])(implicit contextPath: String): NodeSeq = {
     val s = Random.nextInt(100000)
 
     def stringify(jValue: JValue): String = {
@@ -1392,19 +1400,33 @@ class EventLogDetailsGenerator(
       case None       => NodeSeq.Empty
       case Some(diff) =>
         <div>
-          <div id={s"nodediff-${s}"}>shouldBeReplacedByDiff</div>
-        </div> ++ Script(
-          OnLoad(
-            // See JsonDiffPatch doc for formatter option: https://github.com/benjamine/jsondiffpatch/blob/master/docs/formatters.md
-            // We can keep old, non modified values, but in our even log case, we prefer to jst show what changed.
-            JsRaw(
-              s"""
-                 |document.getElementById('nodediff-${s}').innerHTML = jsondiffpatch.formatters.html.format(
-                 |  jsondiffpatch.diff( ${stringify(diff.oldValue)}, ${stringify(diff.newValue)} )
-                 |);
-                 |""".stripMargin // JsRaw OK, no user input
+          <div id={s"nodediff-${s}"}>This shouldBeReplacedByDiff</div>
+        </div> ++ WithNonce.moduleWithNonce(
+          Script(
+            OnLoad(
+              // See JsonDiffPatch doc for formatter option: https://github.com/benjamine/jsondiffpatch/blob/master/docs/formatters.md
+              // We can keep old, non modified values, but in our even log case, we prefer to jst show what changed.
+              JsRaw(
+                s"""
+                   |document.getElementById('nodediff-${s}').innerHTML = htmlFormatter.format(
+                   |  jsondiffpatch.diff( ${stringify(diff.oldValue)}, ${stringify(diff.newValue)} )
+                   |);
+                   |""".stripMargin // JsRaw OK, no user input
+              )
             )
-          )
+          ),
+          imports = {
+            s"""
+               |import * as jsondiffpatch from '${staticResourceRewrite.resourceUrl(
+                "./javascript/libs/jsondiffpatch/lib/index.js",
+                contextPath
+              )}';
+               |import * as htmlFormatter from '${staticResourceRewrite.resourceUrl(
+                "/javascript/libs/jsondiffpatch/lib/formatters/html.js",
+                contextPath
+              )}';
+               |""".stripMargin
+          }
         )
     }
   }
@@ -1424,7 +1446,7 @@ class EventLogDetailsGenerator(
   /*
    * Special diff for node properties using a json diff tool.
    */
-  private def nodePropertiesDiff(opt: Option[SimpleDiff[List[NodeProperty]]]): NodeSeq = {
+  private def nodePropertiesDiff(opt: Option[SimpleDiff[List[NodeProperty]]])(implicit contextPath: String): NodeSeq = {
     def toJson(props: List[NodeProperty]): JObject = {
       props.toDataJson
     }
@@ -1728,7 +1750,7 @@ class EventLogDetailsGenerator(
         </div>
         <br/>
       </div>
-    </div> ++ Script(JsRaw(s"""
+    </div> ++ WithNonce.scriptWithNonce(Script(JsRaw(s"""
         $$('#rollbackTable${id}').dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
@@ -1756,7 +1778,7 @@ class EventLogDetailsGenerator(
             ],
             "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>'
           });
-        """)) // JsRaw OK, id is int.
+        """))) // JsRaw OK, id is int.
   }
 
   private def authorizedNetworksXML() = (
