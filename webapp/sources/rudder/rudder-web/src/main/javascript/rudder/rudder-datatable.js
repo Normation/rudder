@@ -1963,11 +1963,12 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                 url: contextPath + "/secure/api/eventlog/" + data.id + "/details" ,
                 contentType: "application/json; charset=utf-8",
                 success: function (response, status, jqXHR) {
-                  var id = response["data"]["id"]
-                  var rollback = setupRollbackBlock(id)
-                  var parser = new DOMParser();
-                  var content = parser.parseFromString(response["data"]["content"], 'text/html');
-                  var html = $(content.body).contents();
+                  const id = response["data"]["id"]
+                  const rollback = setupRollbackBlock(id)
+                  const parser = new DOMParser();
+                  const content = parser.parseFromString(response["data"]["content"], 'text/html');
+                  const html = $(content.body).contents();
+
                   if(response["data"]["canRollback"]){
                     table.row(row).child($(rollback).append(html)).show();
                     $('#showParameters' + id).off('click').on('click', function() { showParameters(event, id) });
@@ -1987,6 +1988,15 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                   } else {
                     table.row(row).child(html).show();
                     $('#showParameters' + id).off('click').on('click', function() { showParameters(event, id) });
+                  }
+
+                  // There may be some node properties to display in diff, we use JsonDiffPatch (see doc for formatter option: https://github.com/benjamine/jsondiffpatch/blob/master/docs/formatters.md)
+                  // We can keep old, non modified values, but in our even log case, we prefer to jst show what changed.
+                  const nodePropertiesDiff = response["data"]["nodePropertiesDiff"]
+                  if (nodePropertiesDiff) {
+                    document.getElementById(`nodepropertiesdiff-${data.id}`).innerHTML = jsondiffpatch.formatters.html.format(
+                      jsondiffpatch.diff(JSON.stringify(nodePropertiesDiff.from), JSON.stringify(nodePropertiesDiff.to))
+                    )
                   }
                 },
                 error: function (jqXHR, textStatus, errorThrown) {
