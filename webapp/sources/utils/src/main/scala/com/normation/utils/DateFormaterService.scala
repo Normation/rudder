@@ -81,11 +81,13 @@ object DateFormaterService {
 
   object json extends DateTimeCodecs
 
-  val displayDateFormat: DateTimeFormatter = new DateTimeFormatterBuilder()
-    .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
-    .appendLiteral(' ')
-    .append(DateTimeFormat.forPattern("HH:mm:ssZ"))
-    .toFormatter
+  val displayDateFormat: DateTimeFormatter =
+    new DateTimeFormatterBuilder()
+      .append(ISODateTimeFormat.date())
+      .appendLiteral(' ')
+      .append(ISODateTimeFormat.timeNoMillis())
+      .toFormatter
+      .withZoneUTC()
 
   val rfcDateformat:           DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZZ")
   val rfcDateformatWithMillis: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
@@ -116,7 +118,7 @@ object DateFormaterService {
 
   def parseDate(date: String): PureResult[DateTime] = {
     try {
-      Right(ISODateTimeFormat.dateTimeNoMillis().parseDateTime(date))
+      Right(ISODateTimeFormat.dateTimeNoMillis().withZoneUTC().parseDateTime(date))
     } catch {
       case NonFatal(ex) => Left(Inconsistency(s"String '${date}' can't be parsed as an ISO date/time: ${ex.getMessage}"))
     }
@@ -208,5 +210,6 @@ object DateFormaterService {
     .appendLiteral('.')
     .appendFractionOfSecond(3, 9)
     .toFormatter()
+    .withZoneUTC()
 
 }
