@@ -3,10 +3,7 @@
 name: campaignId
 in: query
 required: false
-description: id of the campaigns we want
+description: id of a specific campaign
 schema:
   type: string
-  enum:
-    - system-update
-    - software-update
-  example: system-update
+  example: 0076a379-f32d-4732-9e91-33ab219d8fde
