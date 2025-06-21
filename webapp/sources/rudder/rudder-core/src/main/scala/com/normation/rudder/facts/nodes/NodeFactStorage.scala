@@ -70,8 +70,8 @@ import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 import org.eclipse.jgit.lib.PersonIdent
-import org.joda.time.DateTime
 import scala.annotation.unused
 import zio.*
 import zio.json.*
@@ -858,7 +858,7 @@ class LdapNodeFactStorage(
               inv.machine.map(m => MachineInfo(m.id, m.machineType, m.systemSerialNumber, m.manufacturer)),
               inv.node.main.osDetails,
               inv.node.serverIps.toList,
-              inv.node.inventoryDate.getOrElse(DateTime.now),
+              inv.node.inventoryDate.getOrElse(Instant.now),
               inv.node.main.keyStatus,
               inv.node.agents,
               inv.node.main.policyServerId,

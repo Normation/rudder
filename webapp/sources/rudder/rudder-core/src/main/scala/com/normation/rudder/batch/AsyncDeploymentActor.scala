@@ -290,7 +290,7 @@ final class AsyncDeploymentActor(
           currentDeployerState match {
             case IdleDeployer => // ok, start a new deployment
               currentDeploymentId += 1
-              val newState = Processing(currentDeploymentId, DateTime.now)
+              val newState = Processing(currentDeploymentId, DateTime.now(DateTimeZone.UTC))
               currentDeployerState = newState
               PolicyGenerationLogger.manager.debug("Automatic policy generation request: start policy generation (none running)")
               val event    = eventLogger.repository
@@ -310,7 +310,7 @@ final class AsyncDeploymentActor(
                 "Automatic policy generation request: queued - one policy " +
                 "generation already running"
               )
-              currentDeployerState = ProcessingAndPendingAuto(DateTime.now, p, actor, 0)
+              currentDeployerState = ProcessingAndPendingAuto(DateTime.now(DateTimeZone.UTC), p, actor, 0)
 
             case p: ProcessingAndPendingAuto => // drop message, one is already pending
               PolicyGenerationLogger.manager.debug(
@@ -369,7 +369,8 @@ final class AsyncDeploymentActor(
                 .either
                 .runNow
                 .toOption
-              currentDeployerState = ProcessingAndPendingManual(DateTime.now, p, actor, event.flatMap(_.id).getOrElse(0), reason)
+              currentDeployerState =
+                ProcessingAndPendingManual(DateTime.now(DateTimeZone.UTC), p, actor, event.flatMap(_.id).getOrElse(0), reason)
 
             case p: ProcessingAndPendingManual => // drop message, one is already pending
               eventLogger.repository
@@ -393,8 +394,13 @@ final class AsyncDeploymentActor(
                 .either
                 .runNow
                 .toOption
-              currentDeployerState =
-                ProcessingAndPendingManual(DateTime.now, p.current, actor, event.flatMap(_.id).getOrElse(0), reason)
+              currentDeployerState = ProcessingAndPendingManual(
+                DateTime.now(DateTimeZone.UTC),
+                p.current,
+                actor,
+                event.flatMap(_.id).getOrElse(0),
+                reason
+              )
               PolicyGenerationLogger.manager.debug(
                 "Manual policy generation request: dropped - one policy generation already running"
               )
@@ -422,7 +428,7 @@ final class AsyncDeploymentActor(
                   principal = actor,
                   details = EventLog.withContent(deploymentStatusSerialisation.serialise(lastFinishedDeployement)),
                   cause = Some(deploymentEventId),
-                  creationDate = startTime,
+                  creationDate = java.time.Instant.ofEpochMilli(startTime.getMillis),
                   reason = None
                 )
               )
@@ -445,7 +451,7 @@ final class AsyncDeploymentActor(
                   principal = actor,
                   details = EventLog.withContent(deploymentStatusSerialisation.serialise(lastFinishedDeployement)),
                   cause = Some(deploymentEventId),
-                  creationDate = startTime,
+                  creationDate = java.time.Instant.ofEpochMilli(startTime.getMillis),
                   reason = None
                 )
               )
@@ -567,7 +573,15 @@ final class AsyncDeploymentActor(
                         )
                _   <-
                  IOResult.attempt(
-                   deploymentManager ! DeploymentResult(nd.id, nd.modId, nd.started, DateTime.now, res, nd.actor, nd.eventLogId)
+                   deploymentManager ! DeploymentResult(
+                     nd.id,
+                     nd.modId,
+                     nd.started,
+                     DateTime.now(DateTimeZone.UTC),
+                     res,
+                     nd.actor,
+                     nd.eventLogId
+                   )
                  )
              } yield ()).delay(zio.Duration.fromScala(d))
       } yield ()
@@ -576,7 +590,15 @@ final class AsyncDeploymentActor(
         val failure = Failure(s"Exception caught during policy update process: ${err.fullMsg}")
         IOResult
           .attempt(
-            deploymentManager ! DeploymentResult(nd.id, nd.modId, nd.started, DateTime.now, failure, nd.actor, nd.eventLogId)
+            deploymentManager ! DeploymentResult(
+              nd.id,
+              nd.modId,
+              nd.started,
+              DateTime.now(DateTimeZone.UTC),
+              failure,
+              nd.actor,
+              nd.eventLogId
+            )
           )
           .catchAll(fatal => {
             PolicyGenerationLoggerPure.manager.error(
@@ -605,8 +627,8 @@ final class AsyncDeploymentActor(
         deploymentManager ! DeploymentResult(
           -1,
           ModificationId.dummy,
-          DateTime.now,
-          DateTime.now,
+          DateTime.now(DateTimeZone.UTC),
+          DateTime.now(DateTimeZone.UTC),
           Failure(msg),
           RudderEventActor,
           0

@@ -123,6 +123,7 @@ import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import java.net.ConnectException
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 import java.util.Arrays
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
@@ -130,6 +131,7 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.OutputStreamResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.collection.MapView
 import scalaj.http.Http
 import scalaj.http.HttpOptions
@@ -376,7 +378,7 @@ class NodeApi(
                       ChangeContext(
                         ModificationId(uuidGen.newUuid),
                         authzToken.qc.actor,
-                        new DateTime(),
+                        Instant.now(),
                         _,
                         Some(req.remoteAddr),
                         authzToken.qc.nodePerms
@@ -386,7 +388,7 @@ class NodeApi(
                       ChangeContext(
                         ModificationId(uuidGen.newUuid),
                         authzToken.qc.actor,
-                        new DateTime(),
+                        Instant.now(),
                         restNode.reason,
                         Some(req.remoteAddr),
                         authzToken.qc.nodePerms
@@ -838,7 +840,7 @@ class NodeApiService(
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
       qc.actor,
-      new DateTime(),
+      Instant.now(),
       None,
       Some(actorIp),
       qc.nodePerms
@@ -948,7 +950,7 @@ class NodeApiService(
         NodeState.Enabled,
         isSystem = false,
         isPolicyServer = false,
-        creationDate = DateTime.now,
+        creationDate = Instant.now(),
         nodeReportingConfiguration = ReportingConfiguration(None, None, None),
         properties = Nil,
         policyMode = None,
@@ -1189,7 +1191,7 @@ class NodeApiService(
       _ <- NodeLogger.PendingNodePure.debug(s" Nodes to change Status : ${nodeIds.mkString("[ ", ", ", " ]")}")
 
       res <- modifyStatusFromAction(nodeIds, nodeStatusAction)(
-               ChangeContext(modId, qc.actor, DateTime.now(), None, actorIp, qc.nodePerms)
+               ChangeContext(modId, qc.actor, Instant.now(), None, actorIp, qc.nodePerms)
              )
     } yield {
       res
@@ -1499,8 +1501,9 @@ class NodeApiService(
     val modId = ModificationId(uuidGen.newUuid)
 
     for {
-      info <- removeNodeService
-                .removeNodePure(id, mode)(ChangeContext(modId, qc.actor, DateTime.now(), None, actorIp, qc.nodePerms))
+      info <-
+        removeNodeService
+          .removeNodePure(id, mode)(ChangeContext(modId, qc.actor, Instant.now(), None, actorIp, qc.nodePerms))
     } yield {
       Chunk.fromIterable(info.map(_.toNodeInfo.transformInto[JRNodeInfo]))
     }

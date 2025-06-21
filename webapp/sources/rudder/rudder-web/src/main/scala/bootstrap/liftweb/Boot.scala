@@ -93,6 +93,7 @@ import net.liftweb.util.TimeHelpers.*
 import net.liftweb.util.Vendor
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.reflections.Reflections
 import org.springframework.security.core.Authentication
 import org.springframework.security.core.context.SecurityContextHolder
@@ -379,7 +380,7 @@ object UserLogout {
         auth.getPrincipal() match {
           case u: RudderUserDetail =>
             val redirects: IterableOnce[Option[URI]] = {
-              (RudderConfig.userRepository.logCloseSession(u.getUsername, DateTime.now(), endCause) *>
+              (RudderConfig.userRepository.logCloseSession(u.getUsername, DateTime.now(DateTimeZone.UTC), endCause) *>
               RudderConfig.eventLogRepository
                 .saveEventLog(
                   ModificationId(RudderConfig.stringUuidGenerator.newUuid),

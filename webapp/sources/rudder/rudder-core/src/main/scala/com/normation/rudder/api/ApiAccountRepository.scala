@@ -56,6 +56,7 @@ import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.zio.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.*
 import zio.syntax.*
 
@@ -110,8 +111,8 @@ final class RoLDAPApiAccountRepository(
       Some(systemToken),
       "For internal use",
       isEnabled = true,
-      creationDate = DateTime.now,
-      tokenGenerationDate = DateTime.now,
+      creationDate = DateTime.now(DateTimeZone.UTC),
+      tokenGenerationDate = DateTime.now(DateTimeZone.UTC),
       tenants = NodeSecurityContext.All
     )
   }

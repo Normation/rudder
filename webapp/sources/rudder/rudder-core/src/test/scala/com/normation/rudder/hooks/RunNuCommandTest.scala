@@ -41,6 +41,7 @@ import com.normation.errors.*
 import com.normation.zio.*
 import java.io.File
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
@@ -96,7 +97,7 @@ class RunNuCommandTest() extends Specification {
     }
 
     "can actually modify the file system" in {
-      val date = DateTime.now().toString(ISODateTimeFormat.dateTime())
+      val date = DateTime.now(DateTimeZone.UTC).toString(ISODateTimeFormat.dateTime())
       val file = new File(s"/tmp/rudder-test/test-nucmd-$date")
       file.getParentFile.deleteOnExit()
       file.deleteOnExit()

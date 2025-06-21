@@ -39,7 +39,7 @@ package com.normation.inventory.domain
 
 import enumeratum.*
 import java.net.InetAddress
-import org.joda.time.DateTime
+import java.time.Instant
 import zio.json.*
 import zio.json.ast.*
 
@@ -552,7 +552,7 @@ final case class SoftwareUpdate(
     source:      Option[String],
     description: Option[String],
     severity:    Option[SoftwareUpdateSeverity],
-    date:        Option[DateTime],
+    date:        Option[Instant],
     ids:         Option[List[String]]
 )
 
@@ -578,11 +578,11 @@ final case class NodeInventory(
     description:          Option[String] = None,
     ram:                  Option[MemorySize] = None,
     swap:                 Option[MemorySize] = None,
-    inventoryDate:        Option[DateTime] = None,
-    receiveDate:          Option[DateTime] = None,
+    inventoryDate:        Option[Instant] = None,
+    receiveDate:          Option[Instant] = None,
     archDescription:      Option[String] = None,
     lastLoggedUser:       Option[String] = None,
-    lastLoggedUserTime:   Option[DateTime] = None,
+    lastLoggedUserTime:   Option[Instant] = None,
     agents:               Seq[AgentInfo] = Seq(),
     serverIps:            Seq[String] = Seq(),
     machineId:            Option[(MachineUuid, InventoryStatus)] =

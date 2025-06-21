@@ -259,7 +259,7 @@ class TestNodeUnserialisation extends Specification {
     }
 
     "correctly unserialize software updates node from 7_0" in {
-      val date = JsonSerializers.parseSoftwareUpdateDateTime("2022-01-26T00:00:00Z")
+      val date = JsonSerializers.parseSoftwareUpdateInstant("2022-01-26T00:00:00Z")
       (date must beRight) and (node(linux70Ldif).softwareUpdates(0) must beEqualTo(
         SoftwareUpdate(
           "rudder-agent",

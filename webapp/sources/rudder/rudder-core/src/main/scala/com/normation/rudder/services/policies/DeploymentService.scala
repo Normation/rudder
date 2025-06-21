@@ -105,6 +105,7 @@ import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JValue
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.Period
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.format.PeriodFormatterBuilder
@@ -161,7 +162,7 @@ trait PromiseGenerationService {
 
     val initialTime = System.currentTimeMillis
 
-    val generationTime = new DateTime(initialTime)
+    val generationTime = new DateTime(initialTime, DateTimeZone.UTC)
     val rootNodeId     = Constants.ROOT_POLICY_SERVER_ID
     // we need to add the current environment variables to the script context
     // plus the script environment variables used as script parameters
@@ -493,7 +494,13 @@ trait PromiseGenerationService {
 
       // finally, run post-generation hooks. They can lead to an error message for build, but node policies are updated
       postHooksTime       = System.currentTimeMillis
-      _                  <- runPostHooks(generationTime, new DateTime(postHooksTime), updatedNodeInfo, systemEnv, UPDATED_NODE_IDS_PATH)
+      _                  <- runPostHooks(
+                              generationTime,
+                              new DateTime(postHooksTime, DateTimeZone.UTC),
+                              updatedNodeInfo,
+                              systemEnv,
+                              UPDATED_NODE_IDS_PATH
+                            )
       timeRunPostGenHooks = (System.currentTimeMillis - postHooksTime)
       _                   = PolicyGenerationLogger.timing.debug(s"Post-policy-generation hooks ran in ${timeRunPostGenHooks} ms")
 
@@ -532,7 +539,7 @@ trait PromiseGenerationService {
           .getOrElse("")
         runFailureHooks(
           generationTime,
-          new DateTime(failureHooksTime),
+          new DateTime(failureHooksTime, DateTimeZone.UTC),
           systemEnv,
           f.messageChain + exceptionInfo,
           GENERATION_FAILURE_MSG_PATH
@@ -1537,8 +1544,12 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
       nodeConfigurations: Map[NodeId, NodeConfiguration],
       cache:              Map[NodeId, NodeConfigurationHash]
   ): Set[NodeId] = {
-    val notUsedTime =
-      new DateTime(0) // this seems to tell us the nodeConfigurationHash should be refactor to split time frome other properties
+    val notUsedTime    = {
+      new DateTime(
+        0,
+        DateTimeZone.UTC
+      ) // this seems to tell us the nodeConfigurationHash should be refactor to split time frome other properties
+    }
     val newConfigCache = nodeConfigurations.map { case (_, conf) => NodeConfigurationHash(conf, notUsedTime) }
 
     val (updatedConfig, notUpdatedConfig) = newConfigCache.toSeq.partition { p =>
@@ -1596,7 +1607,8 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
       // we always set date = 0, so we have the possibility to see with
       // our eyes (and perhaps some SQL) two identicals node config diverging
       // only by the date of generation
-      h.writtenDate.toString("YYYYMMdd-HHmmss") + "-" + h.copy(writtenDate = new DateTime(0)).hashCode.toHexString
+      h.writtenDate
+        .toString("YYYYMMdd-HHmmss") + "-" + h.copy(writtenDate = new DateTime(0, DateTimeZone.UTC)).hashCode.toHexString
     }
 
     /*
@@ -1650,7 +1662,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
                      generationTime,
                      maxParallelism
                    )
-      ldapWrite0 = DateTime.now.getMillis
+      ldapWrite0 = DateTime.now(DateTimeZone.UTC).getMillis
       fsWrite1   = (ldapWrite0 - fsWrite0)
       _          = PolicyGenerationLogger.timing.debug(s"Node configuration written on filesystem in ${fsWrite1} ms")
       // update the hash for the updated node configuration for that generation

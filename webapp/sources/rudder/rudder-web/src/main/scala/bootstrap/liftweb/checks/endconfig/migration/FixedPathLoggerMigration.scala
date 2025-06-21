@@ -4,6 +4,7 @@ import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.utils.DateFormaterService
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.springframework.core.io.ClassPathResource
 import scala.xml.Elem
 import scala.xml.Node as XmlNode
@@ -146,7 +147,7 @@ class FixedPathLoggerMigration extends BootstrapChecks {
 
     if (shouldMigrateLogback) {
       val newLogback = migrateLogback(xml)
-      val backPath   = logbackFile.parent / s"logback.xml-backup-${DateFormaterService.serialize(DateTime.now())}"
+      val backPath   = logbackFile.parent / s"logback.xml-backup-${DateFormaterService.serialize(DateTime.now(DateTimeZone.UTC))}"
 
       // In case file already exists
       logbackFile.copyTo(backPath, overwrite = true)

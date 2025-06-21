@@ -20,8 +20,10 @@
 
 package com.normation.ldap.sdk
 
+import com.normation.utils.DateFormaterService
 import com.unboundid.util.StaticUtils
 import java.text.ParseException
+import java.time.Instant
 import org.joda.time.DateTime
 
 /**
@@ -33,15 +35,19 @@ import org.joda.time.DateTime
  * http://en.wikipedia.org/wiki/ISO_8601)
  *
  */
-final case class GeneralizedTime(val dateTime: DateTime) extends AnyVal {
+final case class GeneralizedTime(val instant: Instant) extends AnyVal {
 
   /**
    * Print the string into a well formed generalize time format.
    */
-  override def toString(): String = StaticUtils.encodeGeneralizedTime(dateTime.toDate)
+  override def toString(): String = StaticUtils.encodeGeneralizedTime(instant.toEpochMilli)
 }
 
 object GeneralizedTime {
+
+  def apply(dt: DateTime): GeneralizedTime = {
+    new GeneralizedTime(DateFormaterService.toInstant(dt))
+  }
 
   /**
    * Try to parse the given string into a GeneralizedTime.
@@ -50,7 +56,7 @@ object GeneralizedTime {
    */
   @throws(classOf[ParseException])
   def apply(s: String): GeneralizedTime = {
-    new GeneralizedTime(new DateTime(StaticUtils.decodeGeneralizedTime(s)))
+    new GeneralizedTime(StaticUtils.decodeGeneralizedTime(s).toInstant)
   }
 
   /**

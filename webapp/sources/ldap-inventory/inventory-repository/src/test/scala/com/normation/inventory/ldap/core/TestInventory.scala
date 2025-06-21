@@ -508,7 +508,7 @@ class TestInventory extends Specification {
       val inv = repo.get(NodeId("node0")).testRunGet
       val su1 = inv.node.softwareUpdates
       val d0  = "2022-01-01T00:00:00Z"
-      val dt0 = JsonSerializers.parseSoftwareUpdateDateTime(d0).toOption
+      val dt0 = JsonSerializers.parseSoftwareUpdateInstant(d0).toOption
       val id0 = "RHSA-2020-4566"
       val id1 = "CVE-2021-4034"
 

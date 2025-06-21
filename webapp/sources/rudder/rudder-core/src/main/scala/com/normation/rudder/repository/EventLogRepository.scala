@@ -71,7 +71,7 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.eventlog.EventLogFactory
 import doobie.*
-import org.joda.time.DateTime
+import java.time.Instant
 
 trait EventLogRepository {
   def eventLogFactory: EventLogFactory
@@ -438,7 +438,7 @@ trait EventLogRepository {
       principal:  EventActor,
       modifyDiff: ModifyNodeDiff,
       reason:     Option[String],
-      eventDate:  DateTime
+      eventDate:  Instant
   ): IOResult[EventLog] = {
     for {
       e <- saveEventLog(

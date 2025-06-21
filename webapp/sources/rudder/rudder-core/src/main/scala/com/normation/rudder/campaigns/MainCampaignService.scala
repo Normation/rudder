@@ -101,7 +101,7 @@ class MainCampaignService(
     for {
       _ <- campaignRepo.save(c)
       _ <- campaignArchiver.saveCampaign(c.info.id)(ChangeContext.newForRudder())
-      _ <- scheduleCampaignEvent(c, DateTime.now())
+      _ <- scheduleCampaignEvent(c, DateTime.now(DateTimeZone.UTC))
     } yield {
       c
     }
@@ -146,7 +146,7 @@ class MainCampaignService(
 
       def base(event: CampaignEvent): PartialFunction[Campaign, IOResult[CampaignEvent]] = { case _ => event.succeed }
 
-      val now = DateTime.now()
+      val now = DateTime.now(DateTimeZone.UTC)
 
       @nowarn
       def failingLog(err: RudderError) = {
@@ -387,7 +387,7 @@ class MainCampaignService(
           _                <- campaignArchiver.init(ChangeContext.newForRudder())
           _                <- CampaignLogger.debug(s"Got ${campaigns.size} campaigns, check all started")
           toStart           = campaigns.filterNot(c => alreadyScheduled.exists(_.campaignId == c.info.id))
-          optNewEvents     <- ZIO.foreach(toStart)(c => scheduleCampaignEvent(c, DateTime.now()))
+          optNewEvents     <- ZIO.foreach(toStart)(c => scheduleCampaignEvent(c, DateTime.now(DateTimeZone.UTC)))
           newEvents         = optNewEvents.collect { case Some(ev) => ev }
           _                <- CampaignLogger.debug(s"Scheduled ${newEvents.size} new events, queue them")
           _                <- ZIO.foreach(newEvents)(ev => s.queueCampaign(ev))

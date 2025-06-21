@@ -217,7 +217,7 @@ final case class Hourly(min: Int) extends CleanFrequency {
   def checker(date: DateTime): DateTime = date.withMinuteOfHour(min)
 
   def next: DateTime = {
-    val now = DateTime.now()
+    val now = DateTime.now(DateTimeZone.UTC)
     if (now.isBefore(checker(now)))
       checker(now)
     else
@@ -237,7 +237,7 @@ final case class Daily(hour: Int, min: Int) extends CleanFrequency {
   def checker(date: DateTime): DateTime = date.withMinuteOfHour(min).withHourOfDay(hour)
 
   def next: DateTime = {
-    val now = DateTime.now()
+    val now = DateTime.now(DateTimeZone.UTC)
     if (now.isBefore(checker(now)))
       checker(now)
     else
@@ -257,7 +257,7 @@ final case class Weekly(day: Int, hour: Int, min: Int) extends CleanFrequency {
   def checker(date: DateTime): DateTime = date.withMinuteOfHour(min).withHourOfDay(hour).withDayOfWeek(day)
 
   def next: DateTime = {
-    val now = DateTime.now()
+    val now = DateTime.now(DateTimeZone.UTC)
     if (now.isBefore(checker(now)))
       checker(now)
     else
@@ -484,7 +484,7 @@ class AutomaticReportsCleaning(
           currentState match {
             case IdleCleaner =>
               logger.trace("***** Check launch *****")
-              if (freq.check(DateTime.now)) {
+              if (freq.check(DateTime.now(DateTimeZone.UTC))) {
                 logger.trace("***** Automatic %s entering in active State *****".format(cleanaction.name.toLowerCase()))
                 currentState = ActiveCleaner
                 (this) ! CleanDatabase
@@ -512,7 +512,7 @@ class AutomaticReportsCleaning(
         currentState match {
 
           case ActiveCleaner =>
-            val now               = DateTime.now
+            val now               = DateTime.now(DateTimeZone.UTC)
             val reportsCommand    = DeleteCommand.Reports(now.minusDays(reportsttl))
             val complianceCommand = if (compliancettl > 0) {
               Some(DeleteCommand.ComplianceLevel(now.minusDays(compliancettl)))

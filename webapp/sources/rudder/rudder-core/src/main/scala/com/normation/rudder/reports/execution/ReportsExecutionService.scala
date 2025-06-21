@@ -51,6 +51,7 @@ import com.normation.rudder.services.reports.ComputeNodeStatusReportService
 import com.normation.rudder.services.reports.FindNewNodeStatusReports
 import net.liftweb.common.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.PeriodFormat
 
 // message for the queue: what nodes were updated?
@@ -77,7 +78,7 @@ class ReportsExecutionService(
   // * mark them as processed
   // * save compliance
   def findAndSaveExecutions(processId: Long): Box[Option[DB.StatusUpdate]] = {
-    val startTime = DateTime.now()
+    val startTime = DateTime.now(DateTimeZone.UTC)
     statusUpdateRepository.getExecutionStatus match {
       // Find it, start looking for new executions
       case Full(Some((lastReportId, lastReportDate))) =>
@@ -103,7 +104,7 @@ class ReportsExecutionService(
             for {
               nodes        <- fetchRunsAndCompliance().toBox
               _             = hookForChanges(lastReportId, maxReportId)
-              executionTime = DateTime.now().getMillis() - startTime.getMillis
+              executionTime = DateTime.now(DateTimeZone.UTC).getMillis() - startTime.getMillis
               _             = logger.debug(
                                 s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] (${executionTime} ms) " +
                                 s"Added or updated ${nodes.size} agent runs"
@@ -154,7 +155,10 @@ class ReportsExecutionService(
       _                   <- ReportLoggerPure.Cache.debug(
                                s"Invalidated and updated compliance for nodes: [${nodeWithCompliances.map(_._1.value).mkString(", ")}]"
                              )
-      _                   <- computeNodeStatusReportService.outDatedCompliance(new DateTime(startCompliance), nodeWithCompliances.keySet)
+      _                   <- computeNodeStatusReportService.outDatedCompliance(
+                               new DateTime(startCompliance, DateTimeZone.UTC),
+                               nodeWithCompliances.keySet
+                             )
       _                   <-
         ReportLoggerPure.Cache.debug(
           s"Computing compliance in : ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startCompliance).toPeriod())}"

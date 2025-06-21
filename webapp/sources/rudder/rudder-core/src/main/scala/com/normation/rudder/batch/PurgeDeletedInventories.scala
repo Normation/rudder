@@ -43,6 +43,7 @@ import com.normation.rudder.domain.logger.ScheduledJobLoggerPure
 import com.normation.rudder.services.servers.PurgeDeletedNodes
 import com.normation.zio.ZioRuntime
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.concurrent.duration.FiniteDuration
 import zio.*
 
@@ -69,7 +70,7 @@ class PurgeDeletedInventories(
         s"***** starting batch that purge deleted inventories older than ${TTL} days, every ${updateInterval.toString()} *****"
       )
       val prog: UIO[Unit] = purgeDeletedNodes
-        .purgeDeletedNodesPreviousDate(DateTime.now().withTimeAtStartOfDay().minusDays(TTL))
+        .purgeDeletedNodesPreviousDate(DateTime.now(DateTimeZone.UTC).withTimeAtStartOfDay().minusDays(TTL))
         .either
         .flatMap(_ match {
           case Right(nodes) =>
