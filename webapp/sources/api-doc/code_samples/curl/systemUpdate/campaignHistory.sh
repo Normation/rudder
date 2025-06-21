@@ -1,1 +1,1 @@
-curl --silent --header "X-API-Token: yourToken" --request GET 'https://rudder.example.com/rudder/api/latest/systemUpdate/campaign/0076a379-f32d-4732-9e91-33ab219d8fde/history'
+curl --silent --header "X-API-Token: yourToken" --request GET 'https://rudder.example.com/rudder/api/latest/systemUpdate/campaign/0076a379-f32d-4732-9e91-33ab219d8fde/history?limit=1&order=start&asc=desc&before=2023-09-27T16:13:35%2B01:00'
