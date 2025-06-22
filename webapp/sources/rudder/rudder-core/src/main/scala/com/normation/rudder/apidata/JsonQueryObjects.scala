@@ -344,8 +344,19 @@ object JsonQueryObjects {
       transform:   Option[String],
       where:       Option[List[StringCriterionLine]]
   ) {
-    def toQueryString: StringQuery =
-      StringQuery(select.getOrElse(NodeReturnType), composition, transform, where.getOrElse(Nil))
+    def toQueryString: StringQuery = {
+      val c = composition.flatMap {
+        case x if (x.strip().isEmpty) => None
+        case x                        => Some(x)
+      }
+
+      def d = transform.flatMap {
+        case x if (x.strip().isEmpty) => None
+        case x                        => Some(x)
+      }
+
+      StringQuery(select.getOrElse(NodeReturnType), c, d, where.getOrElse(Nil))
+    }
   }
 
   final case class GroupPatch(

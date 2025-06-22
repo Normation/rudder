@@ -945,7 +945,6 @@ object ExecutionBatch extends Loggable {
     val t1        = System.currentTimeMillis
     val overrides = runInfo match {
       case x: ExpectedConfigAvailable => x.expectedConfig.overrides
-      case x: LastRunAvailable        => x.lastRunConfigInfo.map(_.overrides).getOrElse(Nil).toList
       case _ => Nil
     }
 

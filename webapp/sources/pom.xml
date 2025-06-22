@@ -166,9 +166,10 @@ limitations under the License.
             <arg>-language:higherKinds</arg>         <!-- Allow higher-kinded types -->
             <arg>-language:implicitConversions</arg> <!-- Allow definition of implicit functions called views -->
             <arg>-Xmax-inlines</arg><arg>100</arg>
-            <arg>-Ysafe-init</arg>                   <!--  Wrap field accessors to throw an exception on uninitialized access. -->
-            <!-- Removed during scala3 migration -->
-            <!-- <arg>-Xfatal-warnings</arg> -->     <!-- Fail the compilation if there are any warnings. -->
+            <!-- Ignore warning for BoxTrait existential type, no way to change that -->
+            <arg>-Wconf:msg=An existential type that came from a Scala-2 classfile for trait BoxTrait:s</arg>
+            <!--<arg>-Wsafe-init</arg> -->      <!--  Wrap field accessors to throw an exception on uninitialized access. Disabled because of technique repo and API -->
+            <arg>-Xfatal-warnings</arg>         <!-- Fail the compilation if there are any warnings. -->
             <arg>-Wunused:imports</arg>         <!-- Warn if an import selector is not referenced. -->
             <arg>-Wunused:locals</arg>          <!-- Warn if a local definition is unused. -->
             <arg>-Wunused:implicits</arg>       <!-- Warn if an implicit parameter is unused. -->
@@ -255,7 +256,7 @@ limitations under the License.
             <goals>
               <goal>check</goal>
             </goals>
-            <phase>verify</phase> <!-- verify: default value -->
+            <phase>validate</phase>
           </execution>
         </executions>
       </plugin>

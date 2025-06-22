@@ -111,7 +111,7 @@ class TestJsonQueryLexing {
 {  "select":"node", "transform":"invert", "where":[] }
 """
 
-  val errorMissing1 =
+  val noSelectDefaultToNode =
     """
 {  "composition":"or", "where":[
   { "objectType":"processor", "attribute":"speed", "comparator":"gteq"   , "value":"2000" },
@@ -140,28 +140,28 @@ class TestJsonQueryLexing {
 ]}
 """
 
-  val errorEmpty1   =
+  val errorEmpty1       =
     """
 {  "select":"", "composition":"or", "where":[
   { "objectType":"processor", "attribute":"speed", "comparator":"gteq"   , "value":"2000" },
   { "objectType":"node"   , "attribute":"ram"  , "comparator":"exists" }
 ]}
 """
-  val errorEmpty2_0 =
+  val okEmptyObjectName =
     """
 {  "select":"node", "composition":"or", "where":[
   { "objectType":"processor", "attribute":"speed", "comparator":"gteq"   , "value":"2000" },
   { "objectType":""   , "attribute":"ram"  , "comparator":"exists" }
 ]}
 """
-  val errorEmpty2_1 =
+  val errorEmpty2_1     =
     """
 {  "select":"node", "composition":"or", "where":[
   { "objectType":"processor", "":"speed", "comparator":"gteq"   , "value":"2000" },
   { "objectType":"node"   , "attribute":"ram"  , "comparator":"exists" }
 ]}
 """
-  val errorEmpty2_2 =
+  val okComparatorEmpty =
     """
 {  "select":"node", "composition":"or", "where":[
   { "objectType":"processor", "attribute":"speed", "comparator":"gteq"   , "value":"2000" },
@@ -192,14 +192,17 @@ class TestJsonQueryLexing {
 
     assertEquals(Full(StringQuery(NodeReturnType, None, Some("invert"), Nil)), lexer.lex(valid5_0))
 
-    assertFalse(lexer.lex(errorMissing1).isDefined)
+    assertEquals(lexer.lex(noSelectDefaultToNode).map(_.returnType), Full(NodeReturnType))
+
     assertFalse(lexer.lex(errorMissing2_0).isDefined)
     assertFalse(lexer.lex(errorMissing2_1).isDefined)
     assertFalse(lexer.lex(errorMissing2_2).isDefined)
 
     assertFalse(lexer.lex(errorEmpty1).isDefined)
-    assertFalse(lexer.lex(errorEmpty2_0).isDefined)
+
+    assertTrue(lexer.lex(okEmptyObjectName).isDefined) // ok, we parse after that with known objects
+
     assertFalse(lexer.lex(errorEmpty2_1).isDefined)
-    assertFalse(lexer.lex(errorEmpty2_2).isDefined)
+    assertTrue(lexer.lex(okComparatorEmpty).isDefined) // ok, it's checked for each object latter on
   }
 }
