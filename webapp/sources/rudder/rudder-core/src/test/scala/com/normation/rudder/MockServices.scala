@@ -3312,8 +3312,8 @@ class MockCampaign() {
         offset:       Option[Int],
         afterDate:    Option[DateTime],
         beforeDate:   Option[DateTime],
-        order:        Option[String],
-        asc:          Option[String]
+        order:        Option[CampaignSortOrder],
+        asc:          Option[CampaignSortDirection]
     ): IOResult[List[CampaignEvent]] = {
 
       val allEvents            = items.get.map(_.values.toList)
@@ -3340,21 +3340,21 @@ class MockCampaign() {
       }
 
       val ordered = order match {
-        case Some("endDate" | "end")                =>
+        case Some(CampaignSortOrder.EndDate)              =>
           beforeDateFiltered.map(
             _.sortWith((a, b) => {
               asc match {
-                case Some("asc") => a.end.isBefore(b.end)
-                case _           => a.end.isAfter(b.end)
+                case Some(CampaignSortDirection.Asc) => a.end.isBefore(b.end)
+                case _                               => a.end.isAfter(b.end)
               }
             })
           )
-        case Some("startDate" | "start") | None | _ =>
+        case Some(CampaignSortOrder.StartDate) | None | _ =>
           beforeDateFiltered.map(
             _.sortWith((a, b) => {
               asc match {
-                case Some("asc") => a.start.isBefore(b.start)
-                case _           => a.start.isAfter(b.start)
+                case Some(CampaignSortDirection.Asc) => a.start.isBefore(b.start)
+                case _                               => a.start.isAfter(b.start)
               }
             })
           )

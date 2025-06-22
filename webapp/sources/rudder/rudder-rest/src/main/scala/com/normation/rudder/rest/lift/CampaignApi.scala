@@ -227,8 +227,8 @@ class CampaignApi(
       val offset       = req.params.get("offset").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val beforeDate   = req.params.get("before").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
       val afterDate    = req.params.get("after").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
-      val order        = req.params.get("order").flatMap(_.headOption)
-      val asc          = req.params.get("asc").flatMap(_.headOption)
+      val order        = req.params.get("order").flatMap(l => l.headOption.flatMap(CampaignSortOrder.withNameInsensitiveOption))
+      val asc          = req.params.get("asc").flatMap(l => l.headOption.flatMap(CampaignSortDirection.withNameInsensitiveOption))
       campaignEventRepository
         .getWithCriteria(states, campaignType, campaignId, limit, offset, afterDate, beforeDate, order, asc)
         .toLiftResponseList(params, schema)
@@ -268,12 +268,11 @@ class CampaignApi(
       val offset       = req.params.get("offset").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val beforeDate   = req.params.get("before").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
       val afterDate    = req.params.get("after").flatMap(_.headOption).flatMap(i => DateFormaterService.parseDate(i).toOption)
-      val order        = req.params.get("order").flatMap(_.headOption)
-      val asc          = req.params.get("asc").flatMap(_.headOption)
+      val order        = req.params.get("order").flatMap(l => l.headOption.flatMap(CampaignSortOrder.withNameInsensitiveOption))
+      val asc          = req.params.get("asc").flatMap(l => l.headOption.flatMap(CampaignSortDirection.withNameInsensitiveOption))
       campaignEventRepository
         .getWithCriteria(states, campaignType, Some(CampaignId(resources)), limit, offset, afterDate, beforeDate, order, asc)
         .toLiftResponseList(params, schema)
-
     }
   }
 }
