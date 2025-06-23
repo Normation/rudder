@@ -401,19 +401,13 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       multivalued = false
     ),
     SystemVariableSpec(
-      "ADDITIONAL_POLICY_SERVER_KEY_HASH",
-      "Additional server certificate to trust",
-      multivalued = true,
-      constraint = Constraint(mayBeEmpty = true)
-    ),
-    SystemVariableSpec(
       "POLICY_SERVER_CERT_CA",
       "AC user for checking certificate name",
       multivalued = false,
       constraint = Constraint(mayBeEmpty = true)
     ),
     SystemVariableSpec(
-      "POLICY_SERVER_CERT_NAME_VALIDATION",
+      "POLICY_SERVER_SECURE_VALIDATION",
       "Check policy server certificate name",
       multivalued = false,
       constraint = Constraint(mayBeEmpty = true)

@@ -506,7 +506,14 @@ class SystemVariableServiceImpl(
     // base64(sha256(der encoded pub key))) version
     val varPolicyServerKeyHashB64Sha256 = systemVariableSpecService
       .get("POLICY_SERVER_KEY_HASH")
-      .toVariable(Seq("sha256//" + allNodeInfos(nodeInfo.rudderSettings.policyServerId).keyHashBase64Sha256))
+      // for additional key hash, we need to have only one string, with ";" separating each hash
+      .toVariable(
+        Seq(
+          "sha256//" + allNodeInfos(
+            nodeInfo.rudderSettings.policyServerId
+          ).keyHashBase64Sha256 ++ policyServerCertificate.additionalKeyHash.mkString(";", ";", "")
+        )
+      )
 
     /*
      * RUDDER_NODE_CONFIG_ID is a very special system variable:
@@ -666,13 +673,10 @@ class SystemVariableServiceImpl(
         varPolicyServerKeyHashCfengine,
         varPolicyServerKeyHashB64Sha256,
         systemVariableSpecService
-          .get("ADDITIONAL_POLICY_SERVER_KEY_HASH")
-          .toVariable(policyServerCertificate.additionalKeyHash),
-        systemVariableSpecService
           .get("POLICY_SERVER_CERT_CA")
           .toVariable(Seq(policyServerCertificate.certCA)),
         systemVariableSpecService
-          .get("POLICY_SERVER_CERT_NAME_VALIDATION")
+          .get("POLICY_SERVER_SECURE_VALIDATION")
           .toVariable(Seq(policyServerCertificate.certNameValidation.toString))
       ) map (x => (x.spec.name, x))
     }

@@ -545,7 +545,11 @@ object RudderParsedProperties {
 
   val RUDDER_SERVER_CERTIFICATE_CONFIG: PolicyServerCertificateConfig = PolicyServerCertificateConfig(
     try {
-      config.getString("rudder.server.certificate.additionalKeyHash").split(",").map(_.strip()).toList
+      config
+        .getString("rudder.server.certificate.additionalKeyHash")
+        .split(";")
+        .collect { case s if (s.strip().nonEmpty) => s.strip() }
+        .toList
     } catch {
       case ex: ConfigException =>
         println(ex.getMessage)
