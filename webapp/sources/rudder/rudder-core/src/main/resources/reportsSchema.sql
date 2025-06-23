@@ -314,14 +314,26 @@ ALTER TABLE statusupdate set (autovacuum_vacuum_threshold = 0);
  *************************************************************************************
  */
 
+CREATE TYPE campaignEventState AS enum ('scheduled', 'prehooks', 'running', 'posthooks', 'finished', 'skipped');
+
 CREATE TABLE CampaignEvents (
   campaignId   text
-, eventid      text PRIMARY KEY
+, eventId      text PRIMARY KEY
 , name         text
-, state        jsonb
+, state        campaignEventState NOT NULL
 , startDate    timestamp with time zone NOT NULL
 , endDate      timestamp with time zone NOT NULL
 , campaignType text
+);
+
+
+CREATE TABLE CampaignEventsStateHistory (
+  eventId   text references CampaignEvents(eventId)
+, state     campaignEventState
+, startDate timestamp with time zone NOT NULL
+, endDate   timestamp with time zone
+, data      jsonb
+, PRIMARY KEY (eventId, state)
 );
 
 
