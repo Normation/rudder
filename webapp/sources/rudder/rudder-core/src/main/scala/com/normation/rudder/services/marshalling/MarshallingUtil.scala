@@ -37,18 +37,38 @@
 
 package com.normation.rudder.services.marshalling
 
-import scala.xml.*
+import scala.xml.Elem
+import scala.xml.MetaData
+import scala.xml.NodeSeq
+import scala.xml.Null
+import scala.xml.TopScope
+import scala.xml.UnprefixedAttribute
 
 object MarshallingUtil {
-
-  def createElem(label: String, fileFormat: String)(children: NodeSeq): Elem = {
-    Elem(null, label, new UnprefixedAttribute("fileFormat", fileFormat, Null), TopScope, minimizeEmpty = false, child = children*)
-  }
 
   def createTrimedElem(label: String, fileFormat: String)(children: NodeSeq): Elem = {
     // scala XML is lying, the contract is to call trim and
     // returned an Elem, not a Node.
     // See scala.xml.Utility#trim implementation.
     scala.xml.Utility.trim(createElem(label, fileFormat)(children)).asInstanceOf[Elem]
+  }
+
+  def createTrimedElem(label: String, fileFormat: String, changeType: String)(children: NodeSeq): Elem = {
+    scala.xml.Utility.trim(createElem(label, fileFormat, changeType)(children)).asInstanceOf[Elem]
+  }
+
+  private def createElem(label: String, fileFormat: String)(children: NodeSeq): Elem = {
+    val attributes = new UnprefixedAttribute("fileFormat", fileFormat, Null)
+    createElem(label, attributes)(children)
+  }
+
+  private def createElem(label: String, fileFormat: String, changeType: String)(children: NodeSeq): Elem = {
+    val attributes =
+      new UnprefixedAttribute("fileFormat", fileFormat, Null).append(new UnprefixedAttribute("changeType", changeType, Null))
+    createElem(label, attributes)(children)
+  }
+
+  private def createElem(label: String, attributes: MetaData)(children: NodeSeq): Elem = {
+    Elem(null, label, attributes, TopScope, minimizeEmpty = false, child = children*)
   }
 }

@@ -45,7 +45,7 @@ import scala.xml.*
  */
 
 final case class SimpleDiff[T](oldValue: T, newValue: T) {
-  def map[U](f: T => U) = SimpleDiff(f(oldValue), f(newValue))
+  def map[U](f: T => U): SimpleDiff = SimpleDiff(f(oldValue), f(newValue))
 }
 
 object SimpleDiff {
