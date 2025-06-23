@@ -1,0 +1,107 @@
+description: Get all campaigns
+method: GET
+url: /api/latest/campaigns
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getCampaigns",
+      "result" : "success",
+      "data" : {
+        "campaigns" : [
+          {
+            "campaignType" : "dumb-campaign",
+            "info" : {
+              "id" : "c0",
+              "name" : "first campaign",
+              "description" : "a test campaign present when rudder boot",
+              "status" : {
+                "value" : "enabled"
+              },
+              "schedule" : {
+                "type" : "weekly",
+                "start" : {
+                  "day" : 1,
+                  "hour" : 3,
+                  "minute" : 42
+                },
+                "end" : {
+                  "day" : 1,
+                  "hour" : 4,
+                  "minute" : 42
+                }
+              }
+            },
+            "details" : {
+              "name" : "campaign #0"
+            },
+            "version" : 1
+          }
+        ]
+      }
+    }
+
+---
+description: Get all events
+method: GET
+url: /api/latest/campaigns/events
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getCampaignEvents",
+      "result" : "success",
+      "data" : {
+        "campaignEvents" : [
+          {
+            "id" : "e0",
+            "campaignId" : "c0",
+            "name" : "campaign #0",
+            "state" : {
+              "value": "finished"
+            },
+            "start" : "1970-01-01T00:00:00Z",
+            "end" : "1970-01-01T00:00:00Z",
+            "campaignType" : "dumb-campaign"
+          }
+        ]
+      }
+    }
+
+---
+description: Save an event
+method: POST
+headers:
+  - "Content-Type: application/json"
+url: /api/latest/campaigns/events/739e1295
+body: >-
+  { 
+    "id": "739e1295",
+    "campaignId": "c0",
+    "name": "c0 #2",
+    "state" : { "value" : "skipped", "reason":"user did it"},
+    "start" : "2025-03-09T09:00:00Z",
+    "end" : "2025-03-10T10:00:00Z",
+    "campaignType" : "dumb-campaign"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "saveCampaignEvent",
+      "result" : "success",
+      "data" : {
+        "campaignEvents": [
+          { 
+            "id": "739e1295",
+            "campaignId": "c0",
+            "name": "c0 #2",
+            "state" : { "value" : "skipped", "reason":"user did it"},
+            "start" : "2025-03-09T09:00:00Z",
+            "end" : "2025-03-10T10:00:00Z",
+            "campaignType" : "dumb-campaign"
+          }
+        ]
+      }
+    }
+

@@ -40,7 +40,7 @@ package com.normation.rudder.rest
 import better.files.File
 import com.normation.JsonSpecMatcher
 import com.normation.rudder.campaigns.CampaignEvent
-import com.normation.rudder.campaigns.CampaignEventState.*
+import com.normation.rudder.campaigns.CampaignEventStateType.*
 import com.normation.rudder.campaigns.MainCampaignService
 import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponse
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
@@ -160,7 +160,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
               .getOrElse(throw new IllegalArgumentException(s"Missing test value"))
             // it's in the future
             (next.start.getMillis must be_>(System.currentTimeMillis())) and
-            (next.state must beEqualTo(Scheduled)) and
+            (next.state.value must beEqualTo(Scheduled)) and
             (next.campaignId must beEqualTo(ce0.campaignId))
           }
 
