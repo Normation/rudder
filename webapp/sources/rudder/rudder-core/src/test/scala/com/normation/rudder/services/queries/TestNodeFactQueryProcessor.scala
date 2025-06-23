@@ -201,7 +201,7 @@ class TestNodeFactQueryProcessor {
       "q2",
       parser("""
       {  "select":"node", "composition":"and", "where":[
-        { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node1" }
+        { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node1" },
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"eq", "value":"node5" }
       ] }
       """).openOrThrowException("For tests"),
@@ -642,7 +642,7 @@ class TestNodeFactQueryProcessor {
       "q0",
       parser("""
       {  "select":"node", "composition":"or" , "where":[
-        , { "objectType":"fileSystemLogicalElement", "attribute":"description", "comparator":"regex", "value":"matchOnM[e]" }
+          { "objectType":"fileSystemLogicalElement", "attribute":"description", "comparator":"regex", "value":"matchOnM[e]" }
       ] }
       """).openOrThrowException("For tests"),
       s(3) :: Nil
@@ -734,7 +734,7 @@ class TestNodeFactQueryProcessor {
       "q5",
       parser("""
       {  "select":"nodeAndPolicyServer","composition":"or",  "where":[
-        , { "objectType":"fileSystemLogicalElement" , "attribute":"mountPoint" , "comparator":"regex", "value":"[/]" }
+         { "objectType":"fileSystemLogicalElement" , "attribute":"mountPoint" , "comparator":"regex", "value":"[/]" }
       ] }
       """).openOrThrowException("For tests"),
       s(3) :: s(7) :: root :: Nil
@@ -829,7 +829,7 @@ class TestNodeFactQueryProcessor {
       "q0",
       parser("""
       {  "select":"node", "composition":"or" , "where":[
-        , { "objectType":"fileSystemLogicalElement", "attribute":"description", "comparator":"regex", "value":"matchOnM[e]" }
+          { "objectType":"fileSystemLogicalElement", "attribute":"description", "comparator":"regex", "value":"matchOnM[e]" }
       ] }
       """).openOrThrowException("For tests"),
       s(3) :: Nil
@@ -863,7 +863,7 @@ class TestNodeFactQueryProcessor {
       "q5",
       parser("""
       {  "select":"nodeAndPolicyServer","composition":"or",  "where":[
-        , { "objectType":"fileSystemLogicalElement" , "attribute":"mountPoint" , "comparator":"regex", "value":"[/]" }
+          { "objectType":"fileSystemLogicalElement" , "attribute":"mountPoint" , "comparator":"regex", "value":"[/]" }
       ] }
       """).openOrThrowException("For tests"),
       s(3) :: s(7) :: root :: Nil

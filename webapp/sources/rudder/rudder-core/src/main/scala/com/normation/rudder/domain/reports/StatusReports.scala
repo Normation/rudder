@@ -78,17 +78,17 @@ trait ComponentCompliance extends HasCompliance {
   def status:        ReportType = ReportType.getWorseType(allReports)
 }
 
-trait BlockCompliance[Sub] extends ComponentCompliance {
-  def subs:           List[Sub & ComponentCompliance]
+trait BlockCompliance[Sub <: ComponentCompliance] extends ComponentCompliance {
+  def subs:           List[Sub]
   def reportingLogic: ReportingLogic
 
-  def findChildren(componentName: String): List[Sub & ComponentCompliance] = {
+  def findChildren(componentName: String): List[ComponentCompliance] = {
     subs.find(_.componentName == componentName).toList :::
-    subs.collect { case g: BlockCompliance[Sub] => g }.flatMap(_.findChildren(componentName))
+    subs.collect { case g: BlockCompliance[?] => g }.flatMap(_.findChildren(componentName))
   }
 
   def allReports: List[ReportType] = subs.flatMap {
-    case block: BlockCompliance[Sub] => block.allReports
+    case block: BlockCompliance[?] => block.allReports
     case s => s.allReports
   }
 
@@ -106,7 +106,7 @@ trait BlockCompliance[Sub] extends ComponentCompliance {
     reportingLogic match {
       // simple weighted compliance, as usual
       case WeightedReport => ComplianceLevel.sum(subs.map(_.compliance))
-      // worst case bubble up, and its weight can be either 1 or the sum of sub-component weight
+      // worst case bubble up, and its weight can be either 1 or the sum of subcomponent weight
       case worst: WorstReportWeightedReportingLogic =>
         val worstReport    = ReportType.getWorseType(allReports)
         val weightedReport = allReports.map(_ => worstReport)
@@ -116,7 +116,7 @@ trait BlockCompliance[Sub] extends ComponentCompliance {
         }
         ComplianceLevel.compute(kept)
       case FocusWorst =>
-        // Get reports of sub-components to find the worst by percent
+        // Get reports of subcomponents to find the worst by percent
         val allReports = subs.map {
           case b: BlockCompliance[?] =>
             // Convert block compliance to percent, take the worst
@@ -142,7 +142,7 @@ trait ComponentComplianceByNode extends ComponentCompliance {
   def reportsByNode: Map[NodeId, Seq[ReportType]]
 }
 
-trait BlockComplianceByNode[Sub] extends ComponentComplianceByNode with BlockCompliance[Sub] {
+trait BlockComplianceByNode[Sub <: ComponentCompliance] extends ComponentComplianceByNode with BlockCompliance[Sub] {
 
   def subs:          List[Sub & ComponentComplianceByNode]
   def reportsByNode: Map[NodeId, Seq[ReportType]] = {
