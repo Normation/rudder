@@ -556,7 +556,7 @@ object RudderParsedProperties {
         Nil
     },
     try {
-      config.getString("rudder.server.certificate.ca.name")
+      config.getString("rudder.server.certificate.ca.path")
     } catch {
       case _:  ConfigException => ""
     },

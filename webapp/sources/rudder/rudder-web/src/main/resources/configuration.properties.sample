@@ -601,12 +601,12 @@ rudder.batch.storeAgentRunTimes.updateInterval=5
 rudder.server.certificate.additionalKeyHash=
 
 #
-# Value for POLICY_SERVER_CERT_CA, ie the AC that should be used
-# for server certificate validation (the validation is not handled by Rudder)
+# Value for POLICY_SERVER_CERT_CA, ie the path to the file with the CA cert that should be used
+# for server certificate validation (the validation is not handled by Rudder).
 # Let empty for not restricting the list of possible CA to use.
 # Default empty.
 #
-rudder.server.certificate.ca.name=
+rudder.server.certificate.ca.path=
 
 #
 # Value for POLICY_SERVER_SECURE_VALIDATION, ie should the server certificate
