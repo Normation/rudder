@@ -82,8 +82,8 @@ class ModificationService(
                           target,
                           "after",
                           includeSystem = false
-                        )(
-                          using ChangeContext(
+                        )(using
+                          ChangeContext(
                             ModificationId(uuidGen.newUuid),
                             eventLog.principal,
                             new DateTime(),
@@ -121,8 +121,8 @@ class ModificationService(
                           target,
                           "before",
                           includeSystem = false
-                        )(
-                          using ChangeContext(
+                        )(using
+                          ChangeContext(
                             ModificationId(uuidGen.newUuid),
                             eventLog.principal,
                             new DateTime(),

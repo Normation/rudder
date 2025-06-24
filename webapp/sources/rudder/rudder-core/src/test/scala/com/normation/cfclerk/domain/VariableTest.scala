@@ -294,8 +294,8 @@ class VariableTest extends Specification {
     beAnInput
     haveType("datetime")
 
-    haveValue(ISODateTimeFormat.dateTimeParser.parseDateTime(dateValue).toString)(
-      using dateVariable.copyWithSavedValue(dateValue).orThrow
+    haveValue(ISODateTimeFormat.dateTimeParser.parseDateTime(dateValue).toString)(using
+      dateVariable.copyWithSavedValue(dateValue).orThrow
     )
   }
 

@@ -38,7 +38,6 @@
 package com.normation.rudder.campaigns
 
 import cats.implicits.*
-
 import com.normation.errors.Inconsistency
 import com.normation.errors.IOResult
 import com.normation.errors.PureResult
@@ -46,12 +45,9 @@ import com.normation.errors.RudderError
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
-
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
-
 import scala.annotation.nowarn
-
 import zio.Duration
 import zio.Queue
 import zio.ZIO

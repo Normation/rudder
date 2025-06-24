@@ -347,8 +347,10 @@ object MergeNodeProperties {
     val overrided      = merged.map { k =>
       val p          = properties(k)
       val d          = defaults(k)
-      val mergedProp =
-        NodeProperty(GenericProperty.mergeConfig(d.prop.config, p.config)(using d.prop.inheritMode)).withProvider(OVERRIDE_PROVIDER)
+      val mergedProp = {
+        NodeProperty(GenericProperty.mergeConfig(d.prop.config, p.config)(using d.prop.inheritMode))
+          .withProvider(OVERRIDE_PROVIDER)
+      }
       val obj        = p match {
         case x: NodeProperty    => ParentProperty.Node("this node", NodeId(objectId), p.value)
         case x: GroupProperty   => ParentProperty.Group("this group", NodeGroupId(NodeGroupUid(objectId)), p.value)

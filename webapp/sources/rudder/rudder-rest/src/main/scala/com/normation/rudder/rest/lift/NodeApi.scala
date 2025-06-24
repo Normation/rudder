@@ -1188,8 +1188,8 @@ class NodeApiService(
     for {
       _ <- NodeLogger.PendingNodePure.debug(s" Nodes to change Status : ${nodeIds.mkString("[ ", ", ", " ]")}")
 
-      res <- modifyStatusFromAction(nodeIds, nodeStatusAction)(
-               using ChangeContext(modId, qc.actor, DateTime.now(), None, actorIp, qc.nodePerms)
+      res <- modifyStatusFromAction(nodeIds, nodeStatusAction)(using
+               ChangeContext(modId, qc.actor, DateTime.now(), None, actorIp, qc.nodePerms)
              )
     } yield {
       res

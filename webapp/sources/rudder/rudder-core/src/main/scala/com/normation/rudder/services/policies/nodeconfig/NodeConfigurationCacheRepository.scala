@@ -516,7 +516,10 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
   private def nonAtomicWrite(hashes: NodeConfigurationHashes): IOResult[Unit] = {
     import java.nio.file.StandardOpenOption.*
     IOResult.attempt(
-      hashesFile.writeText(NodeConfigurationHashes.toJson(hashes))(using Seq(WRITE, CREATE, TRUNCATE_EXISTING), StandardCharsets.UTF_8)
+      hashesFile.writeText(NodeConfigurationHashes.toJson(hashes))(using
+        Seq(WRITE, CREATE, TRUNCATE_EXISTING),
+        StandardCharsets.UTF_8
+      )
     )
   }
 

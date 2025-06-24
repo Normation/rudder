@@ -77,7 +77,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
       checkOS ::
       checkKernelVersion ::
       checkAgentType(agentTagContent) ::
-      checkSecurityToken(agentTagContent)  ::
+      checkSecurityToken(agentTagContent) ::
       Nil
     }
 

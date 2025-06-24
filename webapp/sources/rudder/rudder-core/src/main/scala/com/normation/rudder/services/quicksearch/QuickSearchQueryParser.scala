@@ -98,8 +98,8 @@ object QSRegexQueryParser {
         val in = filters.collect { case FilterAttr(set) => set }.flatten
 
         (for {
-          o <- getObjects(is.toSet).chainError ("The 'is' filter(s) contain unknown value(s)")
-          a <- getAttributes(in.toSet).chainError ("The 'in' filter(s) contain unknown value(s)")
+          o <- getObjects(is.toSet).chainError("The 'is' filter(s) contain unknown value(s)")
+          a <- getAttributes(in.toSet).chainError("The 'in' filter(s) contain unknown value(s)")
         } yield {
           val (objs, oKeys)  = o
           val (attrs, aKeys) = a

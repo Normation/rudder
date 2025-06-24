@@ -318,8 +318,8 @@ class UpdateDynamicGroups(
               initialTime                  <- currentTimeMillis
               results                      <- dynGroupIds.accumulateParN(maxParallelism) { dynGroupId =>
                                                 dynGroupUpdaterService
-                                                  .update(dynGroupId)(
-                                                    using ChangeContext(
+                                                  .update(dynGroupId)(using
+                                                    ChangeContext(
                                                       modId,
                                                       RudderEventActor,
                                                       new DateTime(),
@@ -340,8 +340,8 @@ class UpdateDynamicGroups(
               preComputeDependantGroups    <- currentTimeMillis
               results2                     <- dynGroupsWithDependencyIds.accumulateParN(1) { dynGroupId =>
                                                 dynGroupUpdaterService
-                                                  .update(dynGroupId)(
-                                                    using ChangeContext(
+                                                  .update(dynGroupId)(using
+                                                    ChangeContext(
                                                       modId,
                                                       RudderEventActor,
                                                       new DateTime(),

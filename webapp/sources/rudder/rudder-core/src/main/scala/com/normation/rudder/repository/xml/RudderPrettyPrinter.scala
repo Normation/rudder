@@ -61,7 +61,7 @@ class RudderPrettyPrinter(width: Int, step: Int) {
     var i   = s.indexOf(' ')
     if (i > tmp || i == -1) throw new BrokenException() // cannot break
 
-    var last: List[Int]  = Nil
+    var last: List[Int] = Nil
     while (i != -1 && i < tmp) {
       last = i :: last
       i = s.indexOf(' ', i + 1)

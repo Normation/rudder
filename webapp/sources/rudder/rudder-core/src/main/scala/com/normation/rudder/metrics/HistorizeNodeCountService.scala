@@ -241,7 +241,10 @@ class WriteNodeCSV(
     for {
       _ <- ZIO.whenZIO(IOResult.attempt(!f.exists)) {
              IOResult.attempt(
-               f.writeText(FrequentNodeMetrics.csvHeaders(csvSeparator) + "\n")(using File.OpenOptions.default, StandardCharsets.UTF_8)
+               f.writeText(FrequentNodeMetrics.csvHeaders(csvSeparator) + "\n")(using
+                 File.OpenOptions.default,
+                 StandardCharsets.UTF_8
+               )
              )
            }
       _ <- IOResult.attempt(f.writeText(csv(date, metrics))(using File.OpenOptions.append, StandardCharsets.UTF_8))
