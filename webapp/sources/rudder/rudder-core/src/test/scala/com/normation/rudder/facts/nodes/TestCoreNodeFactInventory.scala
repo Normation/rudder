@@ -469,7 +469,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       val nonExistingTenantId = TenantId("zoneXXX")
 
       val res = (for {
-        _ <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(nonExistingTenantId))))(ChangeContext.newForRudder())
+        _ <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(nonExistingTenantId))))(using ChangeContext.newForRudder())
       } yield ()).either.runNow
 
       res must beLike {
@@ -497,7 +497,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       val res = (for {
         n      <- factRepo.get(nodeId)(qcB).notOptional(s"node0 must be there for tests")
         newNode = n.modify(_.rudderSettings.security).setTo(Some(SecurityTag(Chunk(nonExistingTenantId))))
-        e      <- factRepo.save(newNode)(ChangeContext.newForRudder())
+        e      <- factRepo.save(newNode)(using ChangeContext.newForRudder())
       } yield e).runNow
 
       res.event must beEqualTo(NodeFactChangeEvent.Noop(nodeId, SelectFacts.none))
@@ -509,7 +509,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
       tenantService.setTenantEnabled(false).runNow
 
       val res = (for {
-        e <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(nonExistingTenantId))))(ChangeContext.newForRudder())
+        e <- factRepo.setSecurityTag(nodeId, Some(SecurityTag(Chunk(nonExistingTenantId))))(using ChangeContext.newForRudder())
       } yield e).runNow
 
       tenantService.setTenantEnabled(true).runNow
@@ -545,7 +545,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
         val (n1, n2, e) = (for {
           n1 <- factRepo.get(id)(QueryContext.testQC).notOptional("error: missing node2 for test")
           n2 <- factRepo.slowGet(id)(QueryContext.testQC, attrs = SelectFacts.all).notOptional("error: missing node2 for test")
-          e  <- factRepo.save(n2)(ChangeContext.newForRudder(), SelectFacts.all)
+          e  <- factRepo.save(n2)(using ChangeContext.newForRudder(), SelectFacts.all)
         } yield (n1, n2, e)).runNow
 
         (CoreNodeFact.same(n1, n2.toCore)) and

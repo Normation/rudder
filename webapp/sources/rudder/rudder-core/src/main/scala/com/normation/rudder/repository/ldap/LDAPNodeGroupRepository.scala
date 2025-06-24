@@ -1197,13 +1197,13 @@ class WoLDAPNodeGroupRepository(
                          case Some(diff) =>
                            actionlogEffect.saveModifyNodeGroup(modId, principal = actor, modifyDiff = diff, reason = message)
                        }
-      res           <- getNodeGroup(nodeGroupId)(cc.toQuery)
+      res           <- getNodeGroup(nodeGroupId)(using cc.toQuery)
       (nodeGroup, _) = res
       autoArchive   <-
         ZIO
           .when(autoExportOnModify && optDiff.isDefined && !nodeGroup.isSystem) { // only persists if that was a real move (not a move in the same category)
             for {
-              get      <- getNodeGroup(nodeGroupId)(cc.toQuery)
+              get      <- getNodeGroup(nodeGroupId)(using cc.toQuery)
               (ng, cId) = get
               parents  <- getParents_NodeGroupCategory(cId)
               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)

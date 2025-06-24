@@ -50,7 +50,7 @@ trait JsonExtractorUtils[A[_]] {
   def getOrElse[T](value: A[T], default: T): T
   def boxedIdentity[T]: T => Box[T] = Full(_)
   def emptyValue[T](id: String): Box[A[T]]
-  protected[this] def extractJson[T, U](
+  protected def extractJson[T, U](
       json:      JValue,
       key:       String,
       convertTo: U => Box[T],
@@ -63,7 +63,7 @@ trait JsonExtractorUtils[A[_]] {
       case invalidJson                           => Failure(s"Not a good value for parameter ${key}: ${compactRender(invalidJson)}")
     }
   }
-  protected[this] def extractJson[T, U](
+  protected def extractJson[T, U](
       json:      JValue,
       keys:      List[String],
       convertTo: U => Box[T],

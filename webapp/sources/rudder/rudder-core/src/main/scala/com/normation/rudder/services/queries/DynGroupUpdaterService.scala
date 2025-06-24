@@ -124,7 +124,7 @@ class DynGroupUpdaterServiceImpl(
       dynGroups  = allGroups.filter(_.isDynamic)
       result    <- com.normation.utils.Control.traverse(dynGroups) { group =>
                      for {
-                       newGroup   <- computeDynGroup(group)(cc.toQuery)
+                       newGroup   <- computeDynGroup(group)(using cc.toQuery)
                        savedGroup <-
                          woNodeGroupRepository
                            .updateDynGroupNodes(newGroup, cc.modId, cc.actor, cc.message)
@@ -143,8 +143,8 @@ class DynGroupUpdaterServiceImpl(
   )(implicit cc: ChangeContext): Box[DynGroupDiff] = {
     val timePreUpdate = System.currentTimeMillis
     for {
-      (group, _)     <- roNodeGroupRepository.getNodeGroup(dynGroupId)(cc.toQuery).toBox
-      newGroup       <- computeDynGroup(group)(cc.toQuery)
+      (group, _)     <- roNodeGroupRepository.getNodeGroup(dynGroupId)(using cc.toQuery).toBox
+      newGroup       <- computeDynGroup(group)(using cc.toQuery)
       savedGroup     <- woNodeGroupRepository
                           .updateDynGroupNodes(newGroup, cc.modId, cc.actor, cc.message)
                           .toBox ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.serialize})"

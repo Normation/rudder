@@ -305,7 +305,7 @@ object LDAPEntry {
   def apply(rdn: Option[RDN], parentDn: Option[DN], attributes: Attribute*): LDAPEntry = {
     (rdn, parentDn) match {
       case (Some(r), Some(p)) => apply(new DN(r, p), attributes)
-      case (Some(r), _)       => apply(new DN(r :: Nil: _*), attributes)
+      case (Some(r), _)       => apply(new DN(r :: Nil*), attributes)
       case _                  => apply(NULL_DN, attributes)
     }
   }

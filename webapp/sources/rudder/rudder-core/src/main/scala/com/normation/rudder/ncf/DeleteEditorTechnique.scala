@@ -141,7 +141,7 @@ class DeleteEditorTechniqueImpl(
                                       .reduceOption(mergeCrs)
                                       .notOptional(s"Could not create a change request to delete '${techniqueId.serialize}' directives")
                               _  <- wf.startWorkflow(cr)(
-                                      ChangeContext(
+                                      using ChangeContext(
                                         modId,
                                         committer.actor,
                                         new DateTime(),

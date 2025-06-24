@@ -207,7 +207,7 @@ object MigrateJsonTechniquesService {
       .whenZIO(IOResult.attempt(jsonFile.exists)) {
         for {
           json <- IOResult.attempt(s"Error when reading file '${jsonFile.pathAsString}'") {
-                    jsonFile.contentAsString(StandardCharsets.UTF_8)
+                    jsonFile.contentAsString(using StandardCharsets.UTF_8)
                   }
           yaml <- toYaml(json).toIO
           _    <- IOResult.attempt(yamlFile.write(yaml))

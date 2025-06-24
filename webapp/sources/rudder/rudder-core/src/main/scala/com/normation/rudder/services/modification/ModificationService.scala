@@ -83,7 +83,7 @@ class ModificationService(
                           "after",
                           includeSystem = false
                         )(
-                          ChangeContext(
+                          using ChangeContext(
                             ModificationId(uuidGen.newUuid),
                             eventLog.principal,
                             new DateTime(),
@@ -122,7 +122,7 @@ class ModificationService(
                           "before",
                           includeSystem = false
                         )(
-                          ChangeContext(
+                          using ChangeContext(
                             ModificationId(uuidGen.newUuid),
                             eventLog.principal,
                             new DateTime(),

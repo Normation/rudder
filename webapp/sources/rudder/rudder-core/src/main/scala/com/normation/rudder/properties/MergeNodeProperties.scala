@@ -348,7 +348,7 @@ object MergeNodeProperties {
       val p          = properties(k)
       val d          = defaults(k)
       val mergedProp =
-        NodeProperty(GenericProperty.mergeConfig(d.prop.config, p.config)(d.prop.inheritMode)).withProvider(OVERRIDE_PROVIDER)
+        NodeProperty(GenericProperty.mergeConfig(d.prop.config, p.config)(using d.prop.inheritMode)).withProvider(OVERRIDE_PROVIDER)
       val obj        = p match {
         case x: NodeProperty    => ParentProperty.Node("this node", NodeId(objectId), p.value)
         case x: GroupProperty   => ParentProperty.Group("this group", NodeGroupId(NodeGroupUid(objectId)), p.value)
@@ -417,7 +417,7 @@ object MergeNodeProperties {
                 case None          => // ok, no merge needed
                   (k, v)
                 case Some(oldProp) => // merge prop and add old to parents
-                  val config     = GenericProperty.mergeConfig(oldProp.prop.config, v.prop.config)(inheritMode)
+                  val config     = GenericProperty.mergeConfig(oldProp.prop.config, v.prop.config)(using inheritMode)
                   val mergedProp = v.modify(_.prop).using(_.fromConfig(config)).modify(_.hierarchy).using(_ ::: oldProp.hierarchy)
                   (k, mergedProp)
               }
@@ -472,7 +472,7 @@ object MergeNodeProperties {
                      List.empty[List[GroupProp]]
                    }
       // add global values as the most default NodePropertyHierarchy
-      overridden = sorted.map(groups => overrideValues(groups.map(_.toNodePropHierarchy(globalParams))))
+      overridden = sorted.map(groups => overrideValues(groups.map(_.toNodePropHierarchy(using globalParams))))
       // now flatten properties from all groups so that we can check for duplicates
       flatten    = overridden.map(_.values).flatten
       merged    <- mergeAll(flatten)

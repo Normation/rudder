@@ -347,7 +347,7 @@ class CheckPendingNodeInDynGroups(
         case (h :: tail, b, res) => // standard step: takes the group and deals with it
           NodeLogger.PendingNode.Policies.trace("==> process " + h.id.serialize)
           (queryChecker
-            .check(h.query, Some(h.testNodes.toSeq))(QueryContext.systemQC) // dyn groups need access to all nodes
+            .check(h.query, Some(h.testNodes.toSeq))(using QueryContext.systemQC) // dyn groups need access to all nodes
             .flatMap { nIds =>
               // node matching that group - also include the one from "include" coming from "or" dep
               val setNodeIds                       = nIds.toSet ++ h.includeNodes

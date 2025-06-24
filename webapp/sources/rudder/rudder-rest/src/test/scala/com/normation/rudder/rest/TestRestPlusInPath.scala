@@ -80,7 +80,7 @@ class TestRestPlusInPath extends Specification with BeforeAfterAll {
       env.mockNodes.nodeFactRepo.get(NodeId("node1"))(QueryContext.testQC).runNow.get.modify(_.id.value).setTo("node@domain.com")
     )
     ZioRuntime.unsafeRun {
-      env.mockNodes.nodeFactRepo.save(nodeCom)(ChangeContext.newForRudder()) *>
+      env.mockNodes.nodeFactRepo.save(nodeCom)(using ChangeContext.newForRudder()) *>
       env.mockRules.ruleRepo.rulesMap.update(_ + (rule.id -> rule))
     }
   }

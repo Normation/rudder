@@ -175,6 +175,7 @@ limitations under the License.
             <arg>-Wunused:implicits</arg>       <!-- Warn if an implicit parameter is unused. -->
             <arg>-Wunused:privates</arg>        <!-- Warn if a private member is unused. -->
             <arg>-Ysemanticdb</arg>
+            <arg>-rewrite -source 3.7-migration</arg>
           </args>
           <jvmArgs>
             <jvmArg>-Xmx${jvmArg-Xmx}</jvmArg>

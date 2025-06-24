@@ -183,7 +183,7 @@ class ComplianceExpirationServiceTest extends Specification {
     val res = (for {
       n1 <- mockNodes.nodeFactRepo.get(nodeId1)(QueryContext.testQC)
       up  = n1.force.modify(_.properties).using(ps => ps.appended(expirationPolicyProp))
-      _  <- mockNodes.nodeFactRepo.save(up)(ChangeContext.newForRudder())
+      _  <- mockNodes.nodeFactRepo.save(up)(using ChangeContext.newForRudder())
       _  <- mockGroup.propService.updateAll()
       v  <- expirationService.getExpirationPolicy(List(nodeId1))
     } yield v).runNow

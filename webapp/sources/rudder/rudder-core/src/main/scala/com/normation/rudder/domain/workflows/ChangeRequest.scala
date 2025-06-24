@@ -144,7 +144,7 @@ final case class ConfigurationChangeRequest(
       (directives.values ++ rules.values ++ nodeGroups.values ++ globalParams.values).toSeq
     val change:  Seq[Change[?, ?, ? <: ChangeItem[?]]]  = changes.map(_.changes)
     val firsts:  Seq[ChangeItem[?]]                     = change.map(_.firstChange)
-    firsts.sortWith((a, b) => a.creationDate isAfter b.creationDate).headOption.map(_.actor.name).getOrElse("No One")
+    firsts.sortWith((a, b) => a.creationDate.isAfter(b.creationDate)).headOption.map(_.actor.name).getOrElse("No One")
   }
 }
 

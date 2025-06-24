@@ -191,7 +191,7 @@ object MergePolicyService {
             // Be careful, there is TWO merge to consider:
             // 1. the order on which the vars are merged. It must follow existing semantic, i.e:
             //    first by priority, then by rule order, then by directive order.
-            sortedVars         = NonEmptyList(d, tail).sorted(priorityThenBundleOrder).map { d =>
+            sortedVars         = NonEmptyList(d, tail).sorted(using priorityThenBundleOrder).map { d =>
                                    PolicyVars(
                                      d.id,
                                      d.policyMode,
@@ -203,7 +203,7 @@ object MergePolicyService {
             // 2. what is the rule / directive (and corresponding bundle order) to use. Here,
             //    we need to keep the most prioritary based on BundleOrder to ensure that variables
             //    are correctly initialized before there use in the bundle sequence.
-            mainDraft         <- NonEmptyList(d, tail).sorted(onlyBundleOrder).head.toPolicy(agentType)
+            mainDraft         <- NonEmptyList(d, tail).sorted(using onlyBundleOrder).head.toPolicy(agentType)
           } yield {
             // and then we merge all draft values into main draft.
             mainDraft.copy(policyVars = sortedVars, policyMode = samePolicyMode)
@@ -372,7 +372,7 @@ object MergePolicyService {
     // (ie: some directive id => only keep the first by (rule name, directive name)
     val deduplicatedMultiDirective = groupedDrafts.multiDirectives.groupBy(_.id.directiveId).map {
       case (directiveId, set) =>
-        val sorted = set.toList.sorted(onlyBundleOrder.toOrdering)
+        val sorted = set.toList.sorted(using onlyBundleOrder.toOrdering)
         setOverrides(sorted.head, sorted.tail) // head can't be null because of groupBy
     }
 

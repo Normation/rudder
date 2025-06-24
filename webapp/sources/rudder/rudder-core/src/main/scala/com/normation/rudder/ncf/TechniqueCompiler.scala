@@ -81,7 +81,7 @@ trait TechniqueCompiler {
     val yamlFile = techniqueBaseDirectory / TechniqueFiles.yaml
     for {
       yaml <- IOResult.attempt(s"Error when reading technique metadata '${yamlFile}'") {
-                yamlFile.contentAsString(StandardCharsets.UTF_8)
+                yamlFile.contentAsString(using StandardCharsets.UTF_8)
               }
       t    <- yaml.fromYaml[EditorTechnique].toIO
       _    <- EditorTechnique.checkTechniqueIdConsistency(techniqueBaseDirectory, t)
@@ -141,7 +141,7 @@ trait TechniqueCompiler {
     (for {
       f       <- IOResult.attempt(Option.when(file.exists)(file))
       content <-
-        ZIO.foreach(f)(c => IOResult.attempt(c.contentAsString(StandardCharsets.UTF_8)))
+        ZIO.foreach(f)(c => IOResult.attempt(c.contentAsString(using StandardCharsets.UTF_8)))
       out     <- ZIO.foreach(content)(_.fromYaml[TechniqueCompilationOutput].toIO)
     } yield {
       out
@@ -321,7 +321,7 @@ class RuddercServiceImpl(
                           } else {
                             ResourceFile(dest.name, ResourceFileState.New)
                           }
-                          f.moveTo(techniqueDir / f.name)(Seq[CopyOption](StandardCopyOption.REPLACE_EXISTING))
+                          f.moveTo(techniqueDir / f.name)(using Seq[CopyOption](StandardCopyOption.REPLACE_EXISTING))
                           s
                         }
                       } <*
@@ -460,7 +460,7 @@ class RuddercTechniqueCompiler(
       content <- IOResult.attempt(s"Error when writing compilation file for technique '${getTechniqueRelativePath(technique)}'") {
                    val config = getCompilationConfigFile(technique)
                    if (config.exists) { // this is optional
-                     val s = config.contentAsString(StandardCharsets.UTF_8)
+                     val s = config.contentAsString(using StandardCharsets.UTF_8)
                      if (s.strip().isEmpty) None else Some(s)
                    } else {
                      None

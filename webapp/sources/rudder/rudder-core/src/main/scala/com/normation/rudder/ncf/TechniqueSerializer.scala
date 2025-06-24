@@ -104,7 +104,7 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
       case None    => Nil
     }
 
-    editorTechnique.toJsonAST.map(_.merge(Json(("source", Json.Str("editor")) :: output: _*)))
+    editorTechnique.toJsonAST.map(_.merge(Json(("source", Json.Str("editor")) :: output*)))
   }
 
   def serializeMethodMetadata(method: GenericMethod): Json = {

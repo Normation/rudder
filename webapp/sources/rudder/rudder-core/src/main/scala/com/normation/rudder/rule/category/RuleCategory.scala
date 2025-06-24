@@ -162,6 +162,6 @@ final case class RuleCategory(
     val baseMap: ChildMap = Map((List.empty[RuleCategoryId]) -> (this :: Nil))
 
     // fold all maps together
-    augmentedChildMap.foldLeft(baseMap)(mergeChildMaps _)
+    augmentedChildMap.foldLeft(baseMap)(mergeChildMaps)
   }
 }

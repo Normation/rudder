@@ -1189,7 +1189,7 @@ class NodeApiService(
       _ <- NodeLogger.PendingNodePure.debug(s" Nodes to change Status : ${nodeIds.mkString("[ ", ", ", " ]")}")
 
       res <- modifyStatusFromAction(nodeIds, nodeStatusAction)(
-               ChangeContext(modId, qc.actor, DateTime.now(), None, actorIp, qc.nodePerms)
+               using ChangeContext(modId, qc.actor, DateTime.now(), None, actorIp, qc.nodePerms)
              )
     } yield {
       res
@@ -1452,7 +1452,7 @@ class NodeApiService(
     } yield res).catchAll { err =>
       NodeLoggerPure.error(errorMessageWithHint(err.fullMsg)) *>
       IOResult.attempt(
-        copyStreamTo(pipeSize, new ByteArrayInputStream(errorMessageWithHint(err.msg).getBytes(StandardCharsets.UTF_8))) _
+        copyStreamTo(pipeSize, new ByteArrayInputStream(errorMessageWithHint(err.msg).getBytes(StandardCharsets.UTF_8)))
       )
     }.runNow
   }
@@ -1500,7 +1500,7 @@ class NodeApiService(
 
     for {
       info <- removeNodeService
-                .removeNodePure(id, mode)(ChangeContext(modId, qc.actor, DateTime.now(), None, actorIp, qc.nodePerms))
+                .removeNodePure(id, mode)(using ChangeContext(modId, qc.actor, DateTime.now(), None, actorIp, qc.nodePerms))
     } yield {
       Chunk.fromIterable(info.map(_.toNodeInfo.transformInto[JRNodeInfo]))
     }

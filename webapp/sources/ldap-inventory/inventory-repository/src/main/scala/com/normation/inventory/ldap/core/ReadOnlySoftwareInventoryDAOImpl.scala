@@ -75,7 +75,7 @@ class ReadOnlySoftwareDAOImpl(
                     n1      <- currentTimeMillis
                     entries <- con.searchOne(
                                  inventoryDitService.getSoftwareBaseDN,
-                                 OR(softIds map { (x: SoftwareUuid) => EQ(A_SOFTWARE_UUID, x.value) }: _*)
+                                 OR(softIds map { (x: SoftwareUuid) => EQ(A_SOFTWARE_UUID, x.value) }*)
                                )
                     n2      <- currentTimeMillis
 

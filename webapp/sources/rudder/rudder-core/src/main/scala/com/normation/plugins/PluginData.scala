@@ -256,7 +256,7 @@ object GlobalPluginsLicense {
     implicit val minZonedDateTime: Semigroup[ZonedDateTime] = Semigroup.instance((x, y) => if (x.isBefore(y)) x else y)
   }
 
-  def fromLicense[T: ToEndDate: Semigroup](info: PluginLicense): GlobalPluginsLicense[T] = {
+  def fromLicense[T: {ToEndDate}](info: PluginLicense): GlobalPluginsLicense[T] = {
     new GlobalPluginsLicense[T](
       Some(NonEmptyChunk(info.licensee.value)),
       Some(info.startDate),
@@ -265,14 +265,14 @@ object GlobalPluginsLicense {
     ) {}
   }
 
-  def from[T: ToEndDate: Semigroup](licenses: Iterable[PluginLicense]): Option[GlobalPluginsLicense[T]] = {
+  def from[T: {ToEndDate, Semigroup}](licenses: Iterable[PluginLicense]): Option[GlobalPluginsLicense[T]] = {
     NonEmptyChunk
       .fromIterableOption(licenses)
       .map(from(_))
       .flatMap(r => Option.when(r.isDefined)(r))
   }
 
-  private def from[T: ToEndDate: Semigroup](licenses: NonEmptyChunk[PluginLicense]): GlobalPluginsLicense[T] = {
+  private def from[T: {ToEndDate, Semigroup}](licenses: NonEmptyChunk[PluginLicense]): GlobalPluginsLicense[T] = {
     licenses
       .reduceMapLeft(fromLicense(_)) { case (lim, lic) => lim.combine(fromLicense(lic)) }
       .sortDistinctLicensees

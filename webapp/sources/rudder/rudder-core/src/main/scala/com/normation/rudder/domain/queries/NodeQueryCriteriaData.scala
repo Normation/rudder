@@ -479,7 +479,7 @@ trait NodeCriterionOrderedValueMatcher[A] extends NodeCriterionMatcher {
   }
 
   def matches(n: CoreNodeFact, comparator: CriterionComparator, value: String): IOResult[Boolean] = {
-    implicit val ser = serialise _
+    implicit val ser = serialise(_)
 
     comparator match {
       case Equals    =>
@@ -590,7 +590,7 @@ case object MatchineTypeCriterionMatcherCaseIgnoreString extends NodeCriterionMa
           case _          => false
         }
       })
-    )(_.kind)
+    )(using _.kind)
   }
 
   override def matches(n: CoreNodeFact, comparator: CriterionComparator, value: String): IOResult[Boolean] = {
@@ -607,7 +607,7 @@ case object VmTypeCriterionMatcherCaseIgnoreString extends NodeCriterionMatcher 
       DebugInfo(Equals.id, Some(value)),
       Chunk(n.machine.machineType),
       _.exists(t => t.kind.equalsIgnoreCase(value))
-    )(_.kind)
+    )(using _.kind)
   }
 
   override def matches(n: CoreNodeFact, comparator: CriterionComparator, value: String): IOResult[Boolean] = {
@@ -725,7 +725,7 @@ trait NodeCriterionKeyValueMatcher[A] extends NodeCriterionMatcher {
   def order: Ordering[String] = Ordering.String
 
   def matches(n: CoreNodeFact, comparator: CriterionComparator, value: String): IOResult[Boolean] = {
-    implicit val ser = serialise _
+    implicit val ser = serialise(_)
 
     // for Key/Value comparator, we have an expected format for the value for some operator:
     // Equals and NotEquals: value is: ${key}=${value}, ie "=" is mandatory

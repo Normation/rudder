@@ -113,7 +113,7 @@ class PluginErrorTest extends Specification {
         )
 
         val errors = PluginError.fromRudderPackagePlugin(plugin)(
-          rudderVersion,
+          using rudderVersion,
           AbiVersion(ParseVersion.parse("9.9.9").getOrElse(throw new Exception("bad version in test")))
         )
         errors must containTheSameElementsAs(
@@ -131,7 +131,7 @@ class PluginErrorTest extends Specification {
 
         val v      = s"${rudderVersion}-SNAPSHOT"
         val errors = PluginError.fromRudderPackagePlugin(plugin)(
-          v,
+          using v,
           AbiVersion(ParseVersion.parse(v).getOrElse(throw new Exception("bad version in test")))
         )
         errors must beEmpty
@@ -158,7 +158,7 @@ class PluginErrorTest extends Specification {
         )
 
         val errors = PluginError.fromRudderPackagePlugin(plugin)(
-          rudderVersion,
+          using rudderVersion,
           AbiVersion(ParseVersion.parse("9.9.9").getOrElse(throw new Exception("bad version in test")))
         )
         errors must containTheSameElementsAs(
