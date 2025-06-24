@@ -1448,7 +1448,7 @@ case class RudderServiceApi(
     systemApiService:                    SystemApiService11,
     stringUuidGenerator:                 StringUuidGenerator,
     inventoryWatcher:                    InventoryFileWatcher,
-    configService:                       ReadConfigService with UpdateConfigService,
+    configService:                       ReadConfigService & UpdateConfigService,
     historizeNodeCountBatch:             IOResult[Unit],
     policyGenerationBootGuard:           zio.Promise[Nothing, Unit],
     healthcheckNotificationService:      HealthcheckNotificationService,
@@ -1653,7 +1653,7 @@ object RudderConfigInit {
         woLDAPParameterRepository,
         asyncDeploymentAgent,
         dependencyAndDeletionService,
-        configService.rudder_workflow_enabled _,
+        configService.rudder_workflow_enabled,
         xmlSerializer,
         xmlUnserializer,
         sectionSpecParser,
@@ -1711,7 +1711,7 @@ object RudderConfigInit {
 
     // REST API - old
     lazy val restQuicksearch = new RestQuicksearch(
-      new FullQuickSearchService()(
+      new FullQuickSearchService()(using
         roLDAPConnectionProvider,
         nodeDit,
         acceptedNodesDit,
@@ -1947,7 +1947,7 @@ object RudderConfigInit {
         maxParallel,
         // it's always rudder doing these checking queries
         new InventoryDigestServiceV1((id: NodeId) =>
-          nodeFactRepository.get(id)(QueryContext.systemQC, SelectNodeStatus.Accepted)
+          nodeFactRepository.get(id)(using QueryContext.systemQC, SelectNodeStatus.Accepted)
         ),
         checkLdapAlive
       )
@@ -2067,7 +2067,7 @@ object RudderConfigInit {
           roDirectiveRepository,
           roNodeGroupRepository,
           nodeFactRepository,
-          configService.rudder_global_policy_mode _,
+          configService.rudder_global_policy_mode,
           ruleApplicationStatus
         )
       }
@@ -2291,7 +2291,7 @@ object RudderConfigInit {
       )
     }
     lazy val asyncWorkflowInfo = new AsyncWorkflowInfo
-    lazy val configService: ReadConfigService with UpdateConfigService = {
+    lazy val configService: ReadConfigService & UpdateConfigService = {
       new GenericConfigService(
         RudderProperties.config,
         new LdapConfigRepository(rudderDit, rwLdap, ldapEntityMapper, eventLogRepository, stringUuidGenerator),
@@ -2506,9 +2506,9 @@ object RudderConfigInit {
     }
 
     lazy val userPropertyServiceImpl = new StatelessUserPropertyService(
-      configService.rudder_ui_changeMessage_enabled _,
-      configService.rudder_ui_changeMessage_mandatory _,
-      configService.rudder_ui_changeMessage_explanation _
+      configService.rudder_ui_changeMessage_enabled,
+      configService.rudder_ui_changeMessage_mandatory,
+      configService.rudder_ui_changeMessage_explanation
     )
     lazy val userPropertyService: UserPropertyService = userPropertyServiceImpl
 
@@ -3220,12 +3220,12 @@ object RudderConfigInit {
       doobie
     }
 
-    lazy val parseRules:                  ParseRules with RuleRevisionRepository         = new GitParseRules(
+    lazy val parseRules:                  ParseRules & RuleRevisionRepository         = new GitParseRules(
       ruleUnserialisation,
       gitConfigRepo,
       rulesDirectoryName
     )
-    lazy val parseActiveTechniqueLibrary: GitParseActiveTechniqueLibrary                 = new GitParseActiveTechniqueLibrary(
+    lazy val parseActiveTechniqueLibrary: GitParseActiveTechniqueLibrary              = new GitParseActiveTechniqueLibrary(
       activeTechniqueCategoryUnserialisation,
       activeTechniqueUnserialisation,
       directiveUnserialisation,
@@ -3233,35 +3233,35 @@ object RudderConfigInit {
       gitRevisionProvider,
       userLibraryDirectoryName
     )
-    lazy val importTechniqueLibrary:      ImportTechniqueLibrary                         = new ImportTechniqueLibraryImpl(
+    lazy val importTechniqueLibrary:      ImportTechniqueLibrary                      = new ImportTechniqueLibraryImpl(
       rudderDitImpl,
       rwLdap,
       ldapEntityMapper,
       uptLibReadWriteMutex
     )
-    lazy val parseGroupLibrary:           ParseGroupLibrary with GroupRevisionRepository = new GitParseGroupLibrary(
+    lazy val parseGroupLibrary:           ParseGroupLibrary & GroupRevisionRepository = new GitParseGroupLibrary(
       nodeGroupCategoryUnserialisation,
       nodeGroupUnserialisation,
       gitConfigRepo,
       groupLibraryDirectoryName
     )
-    lazy val parseGlobalParameter:        ParseGlobalParameters                          = new GitParseGlobalParameters(
+    lazy val parseGlobalParameter:        ParseGlobalParameters                       = new GitParseGlobalParameters(
       globalParameterUnserialisation,
       gitConfigRepo,
       parametersDirectoryName
     )
-    lazy val parseRuleCategories:         ParseRuleCategories                            = new GitParseRuleCategories(
+    lazy val parseRuleCategories:         ParseRuleCategories                         = new GitParseRuleCategories(
       ruleCategoryUnserialisation,
       gitConfigRepo,
       ruleCategoriesDirectoryName
     )
-    lazy val importGroupLibrary:          ImportGroupLibrary                             = new ImportGroupLibraryImpl(
+    lazy val importGroupLibrary:          ImportGroupLibrary                          = new ImportGroupLibraryImpl(
       rudderDitImpl,
       rwLdap,
       ldapEntityMapper,
       groupLibReadWriteMutex
     )
-    lazy val importRuleCategoryLibrary:   ImportRuleCategoryLibrary                      = new ImportRuleCategoryLibraryImpl(
+    lazy val importRuleCategoryLibrary:   ImportRuleCategoryLibrary                   = new ImportRuleCategoryLibraryImpl(
       rudderDitImpl,
       rwLdap,
       ldapEntityMapper,

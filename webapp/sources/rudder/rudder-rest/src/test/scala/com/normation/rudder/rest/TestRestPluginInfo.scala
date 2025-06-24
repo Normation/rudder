@@ -179,7 +179,7 @@ class TestRestPluginInfo extends Specification with JsonSpecMatcher {
   }
 
   val pluginApi = new PluginApi(pluginSettingsService, pluginService, pluginInfo.succeed)
-  val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema with SortIndex]] = List(pluginApi)
+  val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema & SortIndex]] = List(pluginApi)
 
   val (handlers, rules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, List(ApiVersion(42, deprecated = false)), None)
   val test              = new RestTest(rules)
@@ -192,7 +192,7 @@ class TestRestPluginInfo extends Specification with JsonSpecMatcher {
     val mockReq = new MockHttpServletRequest("http://localhost:8080")
     mockReq.method = "GET"
     mockReq.path = "/api/latest/plugins/info"
-    mockReq.body = ""
+    mockReq.body = "".getBytes
     mockReq.headers = Map()
     mockReq.contentType = "application/json"
 
@@ -274,7 +274,7 @@ class TestRestPluginInfo extends Specification with JsonSpecMatcher {
       "proxyUrl": "http://localhost:8888",
       "proxyUser": "testuser",
       "proxyPassword": "testpassword"
-    }"""
+    }""".getBytes
     mockReq.headers = Map()
     mockReq.contentType = "application/json"
 

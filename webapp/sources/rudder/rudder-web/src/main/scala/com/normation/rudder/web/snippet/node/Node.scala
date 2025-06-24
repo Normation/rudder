@@ -51,7 +51,7 @@ import net.liftweb.http.StatefulSnippet
  */
 class Node extends StatefulSnippet {
 
-  private val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
+  private val getFullGroupLibrary = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
 
   private val groupLibrary = getFullGroupLibrary().toBox match {
     case Full(x) => x

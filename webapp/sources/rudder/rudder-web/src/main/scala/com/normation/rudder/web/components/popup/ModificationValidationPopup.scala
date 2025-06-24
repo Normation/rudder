@@ -221,7 +221,7 @@ class ModificationValidationPopup(
   private val woDirectiveRepository = RudderConfig.woDirectiveRepository
 
   // function to read state of things
-  private val getGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
+  private val getGroupLib = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
     case "popupContent" =>
@@ -398,13 +398,13 @@ class ModificationValidationPopup(
 
   def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
-      override def setFilter   = notNull _ :: trim _ :: Nil
+      override def setFilter   = notNull :: trim :: Nil
       override def inputField  = super.inputField % ("style" -> "height:8em;") % ("tabindex" -> "2") % ("placeholder" -> {
         userPropertyService.reasonsFieldExplanation
       })
       override def validations = {
         if (mandatory) {
-          valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
+          valMinLen(5, "The reason must have at least 5 characters.") :: Nil
         } else {
           Nil
         }
@@ -413,16 +413,16 @@ class ModificationValidationPopup(
   }
 
   private val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex" -> "1")
     override def validations =
-      valMinLen(1, "Name must not be empty") _ :: Nil
+      valMinLen(1, "Name must not be empty") :: Nil
   }
 
   private val changeRequestDescription = new WBTextAreaField("Description", "") {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def inputField     = super.inputField % ("style" -> "height:7em") % ("tabindex" -> "2") % ("class" -> "d-none")
     override def errorClassName = "col-xl-12 errors-container"
     override def validations: List[String => List[FieldError]] = Nil
@@ -576,7 +576,7 @@ class ModificationValidationPopup(
             .move(
               nodeGroup.id,
               parentCategoryId
-            )(
+            )(using
               ChangeContext(
                 ModificationId(uuidGen.newUuid),
                 CurrentUser.actor,
@@ -615,7 +615,7 @@ class ModificationValidationPopup(
     (for {
       cr <- purecr.toIO
       id <- workflowService
-              .startWorkflow(cr)(
+              .startWorkflow(cr)(using
                 ChangeContext(
                   ModificationId(uuidGen.newUuid),
                   CurrentUser.actor,

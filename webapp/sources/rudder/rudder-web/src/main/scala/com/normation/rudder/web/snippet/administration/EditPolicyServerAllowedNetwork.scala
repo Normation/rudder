@@ -244,7 +244,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
         } &
         "#addNetworkButton" #> SHtml.ajaxButton(
           <span class="fa fa-plus"></span>,
-          add _,
+          () => add(),
           ("id", s"addNetworkButton${policyServerId.value}")
         ) &
         "#addaNetworkfield" #> SHtml.ajaxText(
@@ -255,7 +255,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
         "#submitAllowedNetwork" #> {
           (SHtml.ajaxSubmit(
             "Save changes",
-            process _,
+            process,
             ("id", s"submitAllowedNetwork${policyServerId.value}"),
             ("class", "btn btn-success")
           ): NodeSeq) ++ WithNonce.scriptWithNonce(

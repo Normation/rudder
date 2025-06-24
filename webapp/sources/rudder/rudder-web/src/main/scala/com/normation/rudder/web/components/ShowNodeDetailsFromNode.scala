@@ -165,7 +165,7 @@ class ShowNodeDetailsFromNode(
     val cc          = ChangeContext(modId, CurrentUser.actor, DateTime.now(), None, None, CurrentUser.nodePerms)
 
     (for {
-      _ <- nodeFactRepo.save(newNodeFact)(cc)
+      _ <- nodeFactRepo.save(newNodeFact)(using cc)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
     }).toBox
@@ -220,7 +220,7 @@ class ShowNodeDetailsFromNode(
           <p>Error message was: {e.messageChain}</p>
         </div>
       case Full(Some(node)) => // currentSelectedNode = Some(server)
-        nodeFactRepo.slowGet(node.id)(CurrentUser.queryContext, attrs = SelectFacts.noSoftware).toBox match {
+        nodeFactRepo.slowGet(node.id)(using CurrentUser.queryContext, attrs = SelectFacts.noSoftware).toBox match {
           case Full(Some(nf)) =>
             val tab  = displayDetailsMode.tab
             val jsId = JsNodeId(nodeId, "")

@@ -441,7 +441,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       val btnId = nodeBtnId(node)
       scriptLinkButton(btnId, link)
     }
-    val allNodes = nodeFactRepo.getAll()(QueryContext.systemQC).runNow
+    val allNodes = nodeFactRepo.getAll()(using QueryContext.systemQC).runNow
     val nodesErrors:                   Map[MinimalNodeFactInterface, String] = nodeProperties.flatMap {
       case (_, _: SuccessNodePropertyHierarchy)     => None
       case (nodeId, f: FailedNodePropertyHierarchy) => allNodes.get(nodeId).map(_ -> f.getMessage)

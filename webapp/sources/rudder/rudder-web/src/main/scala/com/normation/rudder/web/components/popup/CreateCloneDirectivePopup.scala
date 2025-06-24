@@ -115,7 +115,7 @@ class CreateCloneDirectivePopup(
     & "#cancel" #> (SHtml.ajaxButton("Cancel", () => closePopup()) % ("tabindex" -> "4")                         % ("class"    -> "btn btn-default"))
     & "#save" #> (SHtml.ajaxSubmit(
       "Clone",
-      onSubmit _
+      onSubmit
     )                                                              % ("id"       -> "createDirectiveSaveButton") % ("tabindex" -> "3") % ("class" -> "btn"))
     andThen
     "#notifications" #> updateAndDisplayNotifications())(html)
@@ -135,14 +135,14 @@ class CreateCloneDirectivePopup(
 
   def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
-      override def setFilter      = notNull _ :: trim _ :: Nil
+      override def setFilter      = notNull :: trim :: Nil
       override def inputField     = super.inputField % ("style" -> "height:5em;") % ("tabindex" -> "3") % ("placeholder" -> {
         userPropertyService.reasonsFieldExplanation
       })
       override def errorClassName = "col-xl-12 errors-container"
       override def validations    = {
         if (mandatory) {
-          valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
+          valMinLen(5, "The reason must have at least 5 characters.") :: Nil
         } else {
           Nil
         }
@@ -151,17 +151,17 @@ class CreateCloneDirectivePopup(
   }
 
   private val directiveName = new WBTextField("Name", "Copy of <%s>".format(directive.name)) {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex" -> "1")
     override def validations =
-      valMinLen(1, "Name must not be empty") _ :: Nil
+      valMinLen(1, "Name must not be empty") :: Nil
   }
 
   private val directiveShortDescription = {
     new WBTextAreaField("Short description", directive.shortDescription) {
-      override def setFilter      = notNull _ :: trim _ :: Nil
+      override def setFilter      = notNull :: trim :: Nil
       override def inputField     = super.inputField % ("style" -> "height:7em") % ("tabindex" -> "2")
       override def errorClassName = "col-xl-12 errors-container"
       override def validations: List[String => List[FieldError]] = Nil

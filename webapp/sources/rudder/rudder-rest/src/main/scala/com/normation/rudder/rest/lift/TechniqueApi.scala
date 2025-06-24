@@ -96,7 +96,6 @@ class TechniqueApi(
     configRepoPath:      String
 ) extends LiftApiModuleProvider[API] {
 
-  import com.normation.rudder.rest.lift.TechniqueApi.*
   import zio.json.*
   import zio.json.yaml.*
 
@@ -389,7 +388,7 @@ class TechniqueApi(
                           .whenZIO(IOResult.attempt(workspaceDir.exists)) {
                             IOResult.attempt("Error when moving resource file from workspace to final destination") {
                               finalDir.createDirectoryIfNotExists(createParents = true)
-                              workspaceDir.moveTo(finalDir)(File.CopyOptions.apply(true))
+                              workspaceDir.moveTo(finalDir)(using File.CopyOptions.apply(true))
                               workspaceDir.parent.parent.delete()
                             }
                           }

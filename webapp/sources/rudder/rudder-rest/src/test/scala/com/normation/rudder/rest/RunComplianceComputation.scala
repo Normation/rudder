@@ -109,7 +109,7 @@ object RunTestCompliance {
 
     // This is the actual thing we want to measure
     /////////////// -- ///////////////
-    val (t, x) = cs.getRulesCompliancePure(Some(1))(QueryContext.systemQC).timed.runNow
+    val (t, x) = cs.getRulesCompliancePure(Some(1))(using QueryContext.systemQC).timed.runNow
     /////////////// -- ///////////////
 
     // it looks like if we want to be sure to have the file written, we must dump it before stop...

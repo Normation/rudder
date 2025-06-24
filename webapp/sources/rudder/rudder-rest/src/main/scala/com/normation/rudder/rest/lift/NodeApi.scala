@@ -382,7 +382,7 @@ class NodeApi(
                         authzToken.qc.nodePerms
                       )
                     )
-        result   <- nodeApiService.updateRestNode(NodeId(id), restNode)(
+        result   <- nodeApiService.updateRestNode(NodeId(id), restNode)(using
                       ChangeContext(
                         ModificationId(uuidGen.newUuid),
                         authzToken.qc.actor,
@@ -565,7 +565,7 @@ class NodeApi(
                        .extractIdsFromParams(req.params)
                        .map(_.getOrElse(Nil).map(NodeId(_)))
                        .toIO
-        nodes     <- nodeApiService.nodeFactRepository.getAll()(authzToken.qc, SelectNodeStatus.Any).chainError(errorMsg(ids))
+        nodes     <- nodeApiService.nodeFactRepository.getAll()(using authzToken.qc, SelectNodeStatus.Any).chainError(errorMsg(ids))
         nodeStatus = {
           Chunk
             .fromIterable(ids)
@@ -597,7 +597,7 @@ class NodeApi(
     ): LiftResponse = {
       import ScoreSerializer.*
       (for {
-        score <- nodeApiService.getNodeGlobalScore(NodeId(id))(authzToken.qc)
+        score <- nodeApiService.getNodeGlobalScore(NodeId(id))(using authzToken.qc)
       } yield {
         score
       }).toLiftResponseOne(params, schema, _ => Some(id))
@@ -618,7 +618,7 @@ class NodeApi(
     ): LiftResponse = {
       import ScoreSerializer.*
       import com.normation.rudder.rest.implicits.*
-      nodeApiService.getNodeDetailsScore(NodeId(id))(authzToken.qc).toLiftResponseOne(params, schema, _ => Some(id))
+      nodeApiService.getNodeDetailsScore(NodeId(id))(using authzToken.qc).toLiftResponseOne(params, schema, _ => Some(id))
     }
   }
 
@@ -639,7 +639,7 @@ class NodeApi(
       import ScoreSerializer.*
       val (nodeId, scoreId) = id
       (for {
-        allDetails <- nodeApiService.getNodeDetailsScore(NodeId(nodeId))(authzToken.qc)
+        allDetails <- nodeApiService.getNodeDetailsScore(NodeId(nodeId))(using authzToken.qc)
       } yield {
         allDetails.filter(_.scoreId == scoreId)
       }).toLiftResponseOne(params, schema, _ => Some(nodeId))
@@ -777,7 +777,7 @@ class NodeApiInheritedProperties(
             f.error match {
               case propsErrors: NodePropertySpecificError =>
                 // these are individual errors by property that can be resolved and rendered individually
-                Chunk.from(propsErrors.propertiesErrors.values.map((ErrorInheritedPropertyStatus.from _).tupled))
+                Chunk.from(propsErrors.propertiesErrors.values.map((ErrorInheritedPropertyStatus.from).tupled))
               case _:           NodePropertyError         =>
                 // we don't know the errored props, it may be all of them and there may be a global status error
                 Chunk(GlobalPropertyStatus.fromResolvedNodeProperty(f))
@@ -1139,7 +1139,7 @@ class NodeApiService(
   def pendingNodeDetails(nodeId: NodeId)(implicit qc: QueryContext): IOResult[Chunk[JRNodeInfo]] = {
     implicit val status: InventoryStatus = PendingInventory
     for {
-      pendingNodes <- nodeFactRepository.getAll()(qc, SelectNodeStatus.Pending)
+      pendingNodes <- nodeFactRepository.getAll()(using qc, SelectNodeStatus.Pending)
       nodeFact     <- pendingNodes.get(nodeId).notOptional(s"Could not find pending Node ${nodeId.value}")
     } yield {
       Chunk(nodeFact.toNodeInfo.transformInto[JRNodeInfo])
@@ -1154,7 +1154,7 @@ class NodeApiService(
       implicit val status: InventoryStatus = RemovedInventory
       for {
         nodeFact <- nodeFactRepository
-                      .get(id)(cc.toQuery)
+                      .get(id)(using cc.toQuery)
                       .notOptional(s"Can not removed the node with id '${id.value}' because it was not found")
         _        <- removeNodeService.removeNode(nodeFact.id)
       } yield {
@@ -1446,8 +1446,8 @@ class NodeApiService(
       in  <- IOResult.attempt(new PipedInputStream(pipeSize))
       out <- IOResult.attempt(new PipedOutputStream(in))
       _   <- NodeLoggerPure.trace("remote-run: reading stream from remote API")
-      _   <- copy(out, readTimeout).forkDaemon              // read from HTTP request
-      res <- IOResult.attempt(copyStreamTo(pipeSize, in) _) // give the writer function waiting for out
+      _   <- copy(out, readTimeout).forkDaemon            // read from HTTP request
+      res <- IOResult.attempt(copyStreamTo(pipeSize, in)) // give the writer function waiting for out
       // don't close out here, it was closed inside `copy`
     } yield res).catchAll { err =>
       NodeLoggerPure.error(errorMessageWithHint(err.fullMsg)) *>

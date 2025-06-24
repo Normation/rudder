@@ -1550,7 +1550,6 @@ class MockConfigRepo(
 }
 
 class MockGlobalParam() {
-  import com.normation.rudder.domain.properties.GenericProperty.*
 
   val mode: InheritMode = {
     import com.normation.rudder.domain.properties.InheritMode.*

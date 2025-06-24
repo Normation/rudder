@@ -129,8 +129,8 @@ object ReportLineTest {
       message
     )
 
-    def toRS: ResultSuccessReport  = (ResultSuccessReport.apply _).tupled.apply(toT)
-    def toRE: ResultErrorReport    = (ResultErrorReport.apply _).tupled.apply(toT)
-    def toAC: AuditCompliantReport = (AuditCompliantReport.apply _).tupled.apply(toT)
+    def toRS: ResultSuccessReport  = (ResultSuccessReport.apply).tupled.apply(toT)
+    def toRE: ResultErrorReport    = (ResultErrorReport.apply).tupled.apply(toT)
+    def toAC: AuditCompliantReport = (AuditCompliantReport.apply).tupled.apply(toT)
   }
 }

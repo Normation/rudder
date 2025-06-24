@@ -53,12 +53,12 @@ class ScoreServiceTest extends Specification {
   "Score service" should {
 
     "Should contain score for initialised nodes" in {
-      val scores = scoreService.getAll()(QueryContext.testQC).runNow
+      val scores = scoreService.getAll()(using QueryContext.testQC).runNow
       scores.map(c => (c._1, c._2.value)) must havePairs(rootId -> A, id2 -> D)
     }
     "Should not contain score of non existing nodes (maybe pending nodes ?)" in {
       scoreManager.handleEvent(TestScoreEvent(NodeId("non-existing-node"))).runNow
-      val scores = scoreService.getAll()(QueryContext.testQC).runNow
+      val scores = scoreService.getAll()(using QueryContext.testQC).runNow
       scores.map(c => (c._1, c._2.value)) must havePairs(rootId -> A, id2 -> D)
     }
     "Should not contain score of non existing nodes (maybe pending nodes ?)" in {

@@ -214,7 +214,7 @@ class RuleCategoryTree(
             if( destCatId ) {
               if( sourceCatId ) {
                 var arg = JSON.stringify({ 'sourceCatId' : sourceCatId, 'destCatId' : destCatId });
-                ${SHtml.ajaxCall(JsVar("arg"), moveCategory _)._2.toJsCmd};
+                ${SHtml.ajaxCall(JsVar("arg"), moveCategory)._2.toJsCmd};
               } else {
                 alert("Can not move that kind of object");
                 $$.jstree.rollback(data.rlbk);
@@ -270,7 +270,7 @@ class RuleCategoryTree(
             // Create the checkbox with their values, then set the "indeterminate" content
             SHtml.ajaxCheckbox(
               directiveApplication.isCompletecategory(category.id),
-              check _,
+              check,
               ("id", toCheckboxId(category.id)),
               ("style", "margin : 2px 5px 0px 2px;")
             ) ++

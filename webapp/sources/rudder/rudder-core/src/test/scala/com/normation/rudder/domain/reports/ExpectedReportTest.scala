@@ -71,7 +71,7 @@ class ExpectedReportTest extends Specification {
   implicit private def r2n(s: String): RuleId      = RuleId(RuleUid(s))
   implicit private def d2n(s: String): DirectiveId = DirectiveId(DirectiveUid(s), GitVersion.DEFAULT_REV)
 
-  val parse: String => Box[JsonNodeExpectedReports] = ExpectedReportsSerialisation.parseJsonNodeExpectedReports _
+  val parse: String => Box[JsonNodeExpectedReports] = ExpectedReportsSerialisation.parseJsonNodeExpectedReports
   def serialize(e: ExpectedReportsSerialisation.JsonNodeExpectedReports) = {
     e.toJson
   }

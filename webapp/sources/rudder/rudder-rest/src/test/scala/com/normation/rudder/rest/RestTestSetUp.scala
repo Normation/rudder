@@ -210,6 +210,7 @@ import org.apache.commons.io.output.ByteArrayOutputStream
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.specs2.matcher.MatchResult
+import scala.annotation.nowarn
 import scala.collection.MapView
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.FiniteDuration
@@ -278,6 +279,7 @@ class RestTestSetUp {
     new DynGroupUpdaterServiceImpl(mockNodeGroups.groupsRepo, mockNodeGroups.groupsRepo, mockNodes.queryProcessor)
 
   val quickSearchService = new FullQuickSearchService()( // no LDAP : only directives, etc. are searchable
+    using
     null,
     null,
     null,
@@ -746,10 +748,11 @@ class RestTestSetUp {
     override def forType(fieldType: VariableSpec, id: String): DirectiveField = default(id)
     override def default(withId: String): DirectiveField = new DirectiveField {
       self => type ValueType = String
-      def manifest: ClassTag[String] = classTag[String]
-      val id   = withId
-      def name = id
+      def manifest:               ClassTag[String]                 = classTag[String]
+      val id:                     String                           = withId
+      def name:                   String                           = id
       override val uniqueFieldId: Box[String]                      = Full(id)
+      @nowarn("any")
       protected var _x:           String                           = getDefaultValue
       def validate:               List[FieldError]                 = Nil
       def validations:            List[String => List[FieldError]] = Nil
@@ -758,8 +761,8 @@ class RestTestSetUp {
       def toClient: String = if (null == _x) "" else _x
       def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
       def getDefaultValue = ""
-      def get             = _x
-      def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
+      def get: String = _x
+      def set(x: String): String = { if (null == x) _x = "" else _x = x; _x }
       def toForm: Box[NodeSeq] = Full(SHtml.textarea("", s => parseClient(s)))
     }
   }
@@ -880,7 +883,7 @@ class RestTestSetUp {
 
     override def saveInventory(inventory: FullInventory)(implicit cc: ChangeContext): IO[Creation.CreationError, NodeId] = {
       mockNodes.nodeFactRepo
-        .updateInventory(inventory, None)(cc)
+        .updateInventory(inventory, None)(using cc)
         .mapBoth(
           err => CreationError.OnSaveInventory(s"Error when saving node: ${err.fullMsg}"),
           _ => inventory.node.main.id
@@ -891,7 +894,7 @@ class RestTestSetUp {
       (for {
         n <- mockNodes.nodeFactRepo.get(id).notOptional(s"Can not merge node: missing")
         n2 = CoreNodeFact.updateNode(n, mergeNodeSetup(n.toNode, setup))
-        _ <- mockNodes.nodeFactRepo.save(n2)(testCC)
+        _ <- mockNodes.nodeFactRepo.save(n2)(using testCC)
       } yield {
         n.id
       }).mapError(err => CreationError.OnSaveInventory(err.fullMsg))
@@ -1113,7 +1116,7 @@ class RestTestSetUp {
   val mockApiAccounts = new MockApiAccountService(userService)
   val apiAccountApi: ApiAccountApi = new ApiAccountApi(mockApiAccounts.service)
 
-  val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema with SortIndex]] = List(
+  val apiModules: List[LiftApiModuleProvider[? <: EndpointSchema & SortIndex]] = List(
     systemApi,
     parameterApi,
     new TechniqueApi(
@@ -1315,7 +1318,10 @@ class RestTest(liftRules: LiftRules) {
 
   private def mockJsonRequest(path: String, method: String, data: JValue) = {
     val mockReq = mockRequest(path, method)
-    mockReq.body = data
+    import net.liftweb.json.JsonAST
+
+    mockReq.body = JsonAST.prettyRender(data).getBytes()
+    mockReq.contentType = "application/json"
     mockReq
   }
 

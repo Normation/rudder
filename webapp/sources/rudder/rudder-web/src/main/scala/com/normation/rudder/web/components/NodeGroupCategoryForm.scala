@@ -156,7 +156,7 @@ class NodeGroupCategoryForm(
            (
              "directive-save" #> (
                if (CurrentUser.checkRights(AuthorizationType.Group.Edit))
-                 SHtml.ajaxSubmit("Update", onSubmit _, ("class", "btn btn-success"))
+                 SHtml.ajaxSubmit("Update", onSubmit, ("class", "btn btn-success"))
                else NodeSeq.Empty
              )
              & "directive-delete" #> (
@@ -207,7 +207,7 @@ class NodeGroupCategoryForm(
                </div>
                <div class="modal-footer" style="text-align:center">
                  <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
-                 {SHtml.ajaxButton("Delete", onDelete _, ("class", "btn btn-danger"))}
+                 {SHtml.ajaxButton("Delete", () => onDelete(), ("class", "btn btn-danger"))}
                </div>
              </div>
            </div>
@@ -247,16 +247,16 @@ class NodeGroupCategoryForm(
 
   ///////////// fields for category settings ///////////////////
   private val name = new WBTextField("Category name", _nodeGroupCategory.name) {
-    override def setFilter             = notNull _ :: trim _ :: Nil
+    override def setFilter             = notNull :: trim :: Nil
     override def className             = "form-control"
     override def labelClassName        = ""
     override def subContainerClassName = ""
     override def validations           =
-      valMinLen(1, "Name must not be empty") _ :: Nil
+      valMinLen(1, "Name must not be empty") :: Nil
   }
 
   private val description = new WBTextAreaField("Category description", _nodeGroupCategory.description.toString) {
-    override def setFilter             = notNull _ :: trim _ :: Nil
+    override def setFilter             = notNull :: trim :: Nil
     override def className             = "form-control"
     override def labelClassName        = ""
     override def subContainerClassName = ""
@@ -279,7 +279,7 @@ class NodeGroupCategoryForm(
         override def labelClassName        = ""
         override def subContainerClassName = ""
         override def validations           =
-          valMinLen(1, "Please select a category") _ :: Nil
+          valMinLen(1, "Please select a category") :: Nil
       }
     case Full(category) =>
       new WBSelectField(
@@ -293,13 +293,11 @@ class NodeGroupCategoryForm(
         override def labelClassName        = ""
         override def subContainerClassName = ""
         override def validations           =
-          valMinLen(1, "Please select a category") _ :: Nil
+          valMinLen(1, "Please select a category") :: Nil
       }
   }
 
   private val formTracker = new FormTracker(name, description, container)
-
-  private var notifications = List.empty[NodeSeq]
 
   private def updateFormClientSide: JsCmd = {
     SetHtml(htmlIdCategory, showForm())
@@ -308,8 +306,6 @@ class NodeGroupCategoryForm(
   private def error(msg: String) = <span class="col-sm-12 errors-container">{msg}</span>
 
   private def onSuccess: JsCmd = {
-
-    notifications ::= <span class="text-success">Category was correctly updated</span>
     updateFormClientSide
   }
 

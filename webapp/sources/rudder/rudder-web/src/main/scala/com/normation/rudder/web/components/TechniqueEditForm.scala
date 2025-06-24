@@ -290,12 +290,12 @@ class TechniqueEditForm(
 
   def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
-      override def setFilter             = notNull _ :: trim _ :: Nil
+      override def setFilter             = notNull :: trim :: Nil
       override def inputField            = super.inputField % ("placeholder" -> { userPropertyService.reasonsFieldExplanation })
       override def subContainerClassName = containerClass
       override def validations           = {
         if (mandatory) {
-          valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
+          valMinLen(5, "The reason must have at least 5 characters.") :: Nil
         } else {
           Nil
         }
@@ -395,7 +395,7 @@ class TechniqueEditForm(
       }
     }
 
-    SHtml.ajaxSubmit("Delete", deleteActiveTechnique _)
+    SHtml.ajaxSubmit("Delete", deleteActiveTechnique)
   }
 
   private def dialogDeleteTree(htmlId: String, activeTechnique: ActiveTechnique): NodeSeq = {
@@ -416,9 +416,9 @@ class TechniqueEditForm(
     }
 
     if (activeTechnique.isEnabled) {
-      SHtml.ajaxSubmit("Disable", switchActivation(false) _)
+      SHtml.ajaxSubmit("Disable", switchActivation(false))
     } else {
-      SHtml.ajaxSubmit("Enable", switchActivation(true) _)
+      SHtml.ajaxSubmit("Enable", switchActivation(true))
     }
   }
 
@@ -486,7 +486,7 @@ class TechniqueEditForm(
 
               SHtml.ajaxButton(
                 Text("Add this Technique to user library category ") ++ <b>{category.name}</b>,
-                onClickAddTechniqueToCategory _
+                () => onClickAddTechniqueToCategory()
               )
             }
           }
