@@ -76,7 +76,7 @@ object QSRegexQueryParser {
     if (value.trim.isEmpty()) {
       Left(Unexpected("You can't search with an empty or whitespace only query"))
     } else {
-      (fastparse.parse(value, all(_)): @unchecked) match {
+      fastparse.parse(value, { case given P[?] => all }) match {
         case Parsed.Success(parsed, index)   => interprete(parsed)
         case Parsed.Failure(label, i, extra) =>
           Left(Unexpected(s"""Error when parsing query "${value}", error message is: ${label}"""))
@@ -98,8 +98,8 @@ object QSRegexQueryParser {
         val in = filters.collect { case FilterAttr(set) => set }.flatten
 
         (for {
-          o <- getObjects(is.toSet) chainError ("The 'is' filter(s) contain unknown value(s)")
-          a <- getAttributes(in.toSet) chainError ("The 'in' filter(s) contain unknown value(s)")
+          o <- getObjects(is.toSet).chainError("The 'is' filter(s) contain unknown value(s)")
+          a <- getAttributes(in.toSet).chainError("The 'in' filter(s) contain unknown value(s)")
         } yield {
           val (objs, oKeys)  = o
           val (attrs, aKeys) = a
@@ -227,7 +227,7 @@ object QSRegexQueryParser {
     if (keys == names) {
       Right((values, keys))
     } else {
-      Left(Unexpected(s"These filters are not known: [${(names -- keys).mkString("', '")}]")) chainError {
+      Left(Unexpected(s"These filters are not known: [${(names -- keys).mkString("', '")}]")).chainError {
         s"Please choose among: '${map.keys.mkString("', '")}'"
       }
     }

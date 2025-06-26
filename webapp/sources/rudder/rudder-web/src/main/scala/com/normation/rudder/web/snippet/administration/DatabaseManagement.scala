@@ -86,7 +86,7 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
             </li>)
     }
         </ul> &
-    "#deleteReports" #> SHtml.ajaxSubmit("Clean reports", process _, ("class", "btn btn-default")) &
+    "#deleteReports" #> SHtml.ajaxSubmit("Clean reports", process, ("class", "btn btn-default")) &
     "#reportFromDate" #> SHtml.text(from, x => from = x))(xml) ++ WithNonce.scriptWithNonce(
       Script(
         OnLoad(JsRaw("""initReportDatepickler("#reportFromDate");""") & updateValue) // JsRaw ok, const

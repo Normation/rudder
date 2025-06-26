@@ -483,7 +483,7 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
   // read the file, of return the empty string if file does not exist
   def readHashesAsJsonString(): IOResult[String] = {
     IOResult.attempt(hashesFile.exists).flatMap {
-      case true  => IOResult.attempt(hashesFile.contentAsString(StandardCharsets.UTF_8))
+      case true  => IOResult.attempt(hashesFile.contentAsString(using StandardCharsets.UTF_8))
       case false => "".succeed
     }
   }
@@ -516,7 +516,10 @@ class FileBasedNodeConfigurationHashRepository(path: String) extends NodeConfigu
   private def nonAtomicWrite(hashes: NodeConfigurationHashes): IOResult[Unit] = {
     import java.nio.file.StandardOpenOption.*
     IOResult.attempt(
-      hashesFile.writeText(NodeConfigurationHashes.toJson(hashes))(Seq(WRITE, CREATE, TRUNCATE_EXISTING), StandardCharsets.UTF_8)
+      hashesFile.writeText(NodeConfigurationHashes.toJson(hashes))(using
+        Seq(WRITE, CREATE, TRUNCATE_EXISTING),
+        StandardCharsets.UTF_8
+      )
     )
   }
 

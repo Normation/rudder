@@ -93,10 +93,10 @@ class RuleGrid(
 
   import RuleGrid.*
 
-  private val getFullNodeGroupLib      = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
-  private val getFullDirectiveLib      = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
-  private val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied _
-  private val getRootRuleCategory      = RudderConfig.roRuleCategoryRepository.getRootCategory _
+  private val getFullNodeGroupLib      = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
+  private val getFullDirectiveLib      = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary()
+  private val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied
+  private val getRootRuleCategory      = () => RudderConfig.roRuleCategoryRepository.getRootCategory()
 
   private val recentChanges          = RudderConfig.recentChangesService
   private val techniqueRepository    = RudderConfig.techniqueRepository
@@ -345,7 +345,7 @@ class RuleGrid(
             var data = $$("#${htmlId_rulesGridId}").dataTable()._('tr', {"filter":"applied", "page":"current"});
             var rules = $$.map(data, function(e,i) { return e.id })
             var rulesIds = JSON.stringify({ "rules" : rules });
-            ${SHtml.ajaxCall(JsVar("rulesIds"), moveCategory _)};
+            ${SHtml.ajaxCall(JsVar("rulesIds"), moveCategory)};
         """) // JsRaw ok, no user inputs
       case None               => Noop
     }

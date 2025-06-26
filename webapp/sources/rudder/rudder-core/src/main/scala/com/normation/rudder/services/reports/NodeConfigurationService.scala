@@ -156,7 +156,7 @@ class CachedNodeConfigurationService(
     for {
       _       <- logger.debug("Init cache in NodeConfigurationService")
       // first, get all nodes
-      nodeIds <- nodeFactRepository.getAll()(QueryContext.systemQC).map(_.keySet)
+      nodeIds <- nodeFactRepository.getAll()(using QueryContext.systemQC).map(_.keySet)
       // void the cache
       _       <- semaphore.withPermit(cache.set(nodeIds.map(_ -> None).toMap))
     } yield ()

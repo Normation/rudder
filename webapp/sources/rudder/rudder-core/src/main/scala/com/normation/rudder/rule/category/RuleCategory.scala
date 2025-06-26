@@ -39,7 +39,6 @@ package com.normation.rudder.rule.category
 
 import com.normation.rudder.domain.policies.Rule
 import net.liftweb.common.*
-import scala.annotation.nowarn
 
 /**
  * The Id for the server group category
@@ -79,7 +78,8 @@ final case class RuleCategory(
     childPath(categoryId) match {
       // special case for long hierarchy
       case Right(list) if list.size > 2     =>
-        val parent :: category :: Nil = list.takeRight(2): @nowarn("msg=match may not be exhaustive") // because we checked size
+        val parent :: category :: Nil =
+          list.takeRight(2): @unchecked // because we checked size
         Full((category, parent.id))
       case Right(parent :: category :: Nil) => Full((category, parent.id))
       case Right(category :: Nil)           => Full((category, category.id))
@@ -162,6 +162,6 @@ final case class RuleCategory(
     val baseMap: ChildMap = Map((List.empty[RuleCategoryId]) -> (this :: Nil))
 
     // fold all maps together
-    augmentedChildMap.foldLeft(baseMap)(mergeChildMaps _)
+    augmentedChildMap.foldLeft(baseMap)(mergeChildMaps)
   }
 }

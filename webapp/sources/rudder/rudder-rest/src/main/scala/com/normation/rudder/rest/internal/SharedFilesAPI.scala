@@ -101,7 +101,7 @@ class SharedFilesAPI(
       catch { case _: NoSuchFileException => 0L }))
       ~ ("type"   -> (if (file.isDirectory) "dir" else "file"))
       ~ ("date"   -> date.toString("yyyy-MM-dd HH:mm:ss"))
-      ~ ("rights" -> file.permissionsAsString(File.LinkOptions.noFollow)))
+      ~ ("rights" -> file.permissionsAsString(using File.LinkOptions.noFollow)))
     }
   }
   def errorResponse(message: String, code: Int = 500): LiftResponse           = {
@@ -163,7 +163,7 @@ class SharedFilesAPI(
       if (file.exists) {
         if (file.isRegularFile) {
           import net.liftweb.json.JsonDSL.*
-          val result = JObject(List(JField("result", file.contentAsString(StandardCharsets.UTF_8))))
+          val result = JObject(List(JField("result", file.contentAsString(using StandardCharsets.UTF_8))))
           JsonResponse(result, List(), List(), 200).succeed
         } else {
           Unexpected(s"File '${file.name}' is not a regular file").fail

@@ -245,7 +245,7 @@ class LiftHandler(
      * This should not provided on all url. It seems very strange to
      */
     def getVersionFromHeader() = {
-      forceVersion orElse RestUtils.apiVersionFromRequest(req)(supportedVersions).toOption
+      forceVersion orElse RestUtils.apiVersionFromRequest(req)(using supportedVersions).toOption
     }
 
     for {
@@ -263,7 +263,7 @@ class LiftHandler(
       case ApiError.BadParam(x, _)   => "Bad parameters for request: " + x
       case ApiError.Authz(x, _)      => "Authorization error: " + x
     }
-    Full(RestUtils.toJsonError(None, JString(msg), error.restCode)(error.apiName, prettify = true))
+    Full(RestUtils.toJsonError(None, JString(msg), error.restCode)(using error.apiName, prettify = true))
   }
 
   // Get the lift object that can be added in lift rooting logic

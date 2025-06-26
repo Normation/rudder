@@ -44,7 +44,7 @@ import scala.xml.NodeSeq
 class Nodes extends StatefulSnippet with Loggable {
   val srvGrid = RudderConfig.srvGrid
 
-  val dispatch: DispatchIt = { case "table" => table _ }
+  val dispatch: DispatchIt = { case "table" => table }
 
   def table(html: NodeSeq): NodeSeq = {
     srvGrid.displayAndInit(None, "nodes")

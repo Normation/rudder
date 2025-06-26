@@ -205,7 +205,7 @@ object BuildBundleSequence {
               ("", "component", None),
               ("", "value", None),
               (id.directiveId.serialize ++ id.ruleId.serialize, "report_id", None)
-            ).map((BundleParam.DoubleQuote.apply _).tupled)
+            ).map((BundleParam.DoubleQuote.apply).tupled)
           ) :: Nil
       }
       .flatten

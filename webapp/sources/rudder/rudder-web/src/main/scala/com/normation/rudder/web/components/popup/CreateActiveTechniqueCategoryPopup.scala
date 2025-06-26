@@ -75,7 +75,7 @@ class CreateActiveTechniqueCategoryPopup(
 
   private val categories = activeTechniqueCategoryRepository.getAllActiveTechniqueCategories().toBox
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => popupContent _ }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => popupContent }
 
   def popupContent(html: NodeSeq): NodeSeq = {
     SHtml.ajaxForm(
@@ -86,7 +86,7 @@ class CreateActiveTechniqueCategoryPopup(
         & "item-cancel" #> (SHtml.ajaxButton("Cancel", () => closePopup()) % ("tabindex" -> "4")                   % ("class"    -> "btn btn-default"))
         & "item-save" #> (SHtml.ajaxSubmit(
           "Save",
-          onSubmit _
+          onSubmit
         )                                                                  % ("id"       -> "createATCSaveButton") % ("tabindex" -> "3") % ("class" -> "btn btn-success"))
         andThen
         "item-notifications" #> updateAndDisplayNotifications()
@@ -96,16 +96,16 @@ class CreateActiveTechniqueCategoryPopup(
 
 ///////////// fields for category settings ///////////////////
   private val categoryName = new WBTextField("Name", "") {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createATCSaveButton')") % ("tabindex" -> "1")
     override def validations =
-      valMinLen(1, "Name must not be empty") _ :: Nil
+      valMinLen(1, "Name must not be empty") :: Nil
   }
 
   private val categoryDescription = new WBTextAreaField("Description", "") {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def inputField     = super.inputField % ("class" -> "form-control col-xl-12 col-md-12 col-sm-12") % ("tabindex" -> "2")
     override def errorClassName = "col-xl-12 errors-container"
     override def validations: List[String => List[FieldError]] = Nil
@@ -116,7 +116,7 @@ class CreateActiveTechniqueCategoryPopup(
     new WBSelectField("Parent category: ", (categories.getOrElse(Seq()).map(x => (x.id.value -> x.name))), "") {
       override def className   = "form-select col-xl-12 col-md-12 col-sm-12"
       override def validations =
-        valMinLen(1, "Please select a category") _ :: Nil
+        valMinLen(1, "Please select a category") :: Nil
     }
   }
 

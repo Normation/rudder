@@ -153,9 +153,9 @@ class FetchDataServiceImpl(nodeFactRepo: NodeFactRepository, reportingService: R
     }
 
     for {
-      accepted   <- nodeFactRepo.getAll()(QueryContext.systemQC, SelectNodeStatus.Accepted)
-      pending    <- nodeFactRepo.getAll()(QueryContext.systemQC, SelectNodeStatus.Pending)
-      compliance <- reportingService.getUserNodeStatusReports()(QueryContext.systemQC)
+      accepted   <- nodeFactRepo.getAll()(using QueryContext.systemQC, SelectNodeStatus.Accepted)
+      pending    <- nodeFactRepo.getAll()(using QueryContext.systemQC, SelectNodeStatus.Pending)
+      compliance <- reportingService.getUserNodeStatusReports()(using QueryContext.systemQC)
     } yield {
       val modes = compliance.values.groupMapReduce(r => mode(r.compliance))(_ => 1)(_ + _)
       FrequentNodeMetrics(
@@ -241,10 +241,13 @@ class WriteNodeCSV(
     for {
       _ <- ZIO.whenZIO(IOResult.attempt(!f.exists)) {
              IOResult.attempt(
-               f.writeText(FrequentNodeMetrics.csvHeaders(csvSeparator) + "\n")(File.OpenOptions.default, StandardCharsets.UTF_8)
+               f.writeText(FrequentNodeMetrics.csvHeaders(csvSeparator) + "\n")(using
+                 File.OpenOptions.default,
+                 StandardCharsets.UTF_8
+               )
              )
            }
-      _ <- IOResult.attempt(f.writeText(csv(date, metrics))(File.OpenOptions.append, StandardCharsets.UTF_8))
+      _ <- IOResult.attempt(f.writeText(csv(date, metrics))(using File.OpenOptions.append, StandardCharsets.UTF_8))
     } yield ()
   }
 }

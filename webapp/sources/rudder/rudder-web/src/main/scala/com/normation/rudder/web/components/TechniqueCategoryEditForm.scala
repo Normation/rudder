@@ -99,7 +99,7 @@ class TechniqueCategoryEditForm(
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-bs-dismiss="modal">Cancel</button>
-                {SHtml.ajaxButton(<span>Delete</span>, deleteCategory _) % ("class" -> "btn btn-danger")}
+                {SHtml.ajaxButton(<span>Delete</span>, () => deleteCategory()) % ("class" -> "btn btn-danger")}
             </div>
         </div>
     </div>
@@ -139,13 +139,13 @@ class TechniqueCategoryEditForm(
   /////////////////////  Category Details Form  /////////////////////
 
   val categoryName: WBTextField = new WBTextField("Category name", currentCategory.name) {
-    override def setFilter   = notNull _ :: trim _ :: Nil
+    override def setFilter   = notNull :: trim :: Nil
     override def validations =
-      valMinLen(1, "Name must not be empty") _ :: Nil
+      valMinLen(1, "Name must not be empty") :: Nil
   }
 
   val categoryDescription: WBTextAreaField = new WBTextAreaField("Category description", currentCategory.description.toString) {
-    override def setFilter  = notNull _ :: trim _ :: Nil
+    override def setFilter  = notNull :: trim :: Nil
     override def inputField = super.inputField % ("style" -> "height:10em")
 
     override def validations: List[String => List[FieldError]] = Nil

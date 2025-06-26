@@ -199,7 +199,7 @@ final case class TargetExclusion(
    * Add a target to the included target
    */
   def updateInclude(target: RuleTarget): TargetExclusion = {
-    val newIncluded = includedTarget addTarget target
+    val newIncluded = includedTarget.addTarget(target)
     copy(newIncluded)
   }
 
@@ -207,7 +207,7 @@ final case class TargetExclusion(
    * Add a target to the excluded target
    */
   def updateExclude(target: RuleTarget): TargetExclusion = {
-    val newExcluded = excludedTarget addTarget target
+    val newExcluded = excludedTarget.addTarget(target)
     copy(includedTarget, newExcluded)
   }
 

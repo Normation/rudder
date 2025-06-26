@@ -77,8 +77,8 @@ class LoadDemoDataTest extends Specification {
       i + x
   }
 
-  val ldap: InMemoryDsConnectionProvider[RwLDAPConnection with RoLDAPConnection] = {
-    InMemoryDsConnectionProvider[RwLDAPConnection with RoLDAPConnection](
+  val ldap: InMemoryDsConnectionProvider[RwLDAPConnection & RoLDAPConnection] = {
+    InMemoryDsConnectionProvider[RwLDAPConnection & RoLDAPConnection](
       baseDNs = baseDN :: Nil,
       schemaLDIFPaths = schemaLDIFs,
       bootstrapLDIFPaths = bootstrapLDIFs

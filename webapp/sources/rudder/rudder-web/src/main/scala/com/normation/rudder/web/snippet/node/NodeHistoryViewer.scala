@@ -67,7 +67,7 @@ class NodeHistoryViewer extends StatefulSnippet {
   // id of html element to update
   var hid = ""
 
-  var dispatch: DispatchIt = { case "render" => render _ }
+  var dispatch: DispatchIt = { case "render" => render }
 
   def render(xml: NodeSeq): NodeSeq = {
 
@@ -78,7 +78,7 @@ class NodeHistoryViewer extends StatefulSnippet {
         initState(s)
 
         <div>
-          <p>{SHtml.ajaxSelectObj[DateTime](dates, Full(selectedDate), onSelect _)}</p>
+          <p>{SHtml.ajaxSelectObj[DateTime](dates, Full(selectedDate), onSelect)}</p>
           {
           (for {
             globalMode <- configService

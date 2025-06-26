@@ -73,7 +73,7 @@ class ScoreServiceImpl(
 
   def init(): IOResult[Unit] = {
     for {
-      nodeIds      <- nodeFactRepo.getAll()(QueryContext.systemQC).map(_.keySet)
+      nodeIds      <- nodeFactRepo.getAll()(using QueryContext.systemQC).map(_.keySet)
       globalScores <- globalScoreRepository.getAll()
       _            <- cache.set(globalScores.filter(n => nodeIds.contains(n._1)))
       scores       <- scoreRepository.getAll()
@@ -87,7 +87,7 @@ class ScoreServiceImpl(
       globalScore  <- cache.get
       existingScore = globalScore.values.toList.flatMap(_.details.map(_.scoreId)).distinct
       idsToClean    = existingScore.diff(available)
-      _            <- ZIO.foreach(idsToClean)(cleanScore(_)(QueryContext.systemQC))
+      _            <- ZIO.foreach(idsToClean)(cleanScore(_)(using QueryContext.systemQC))
     } yield {}
   }
 
@@ -226,7 +226,7 @@ class ScoreServiceManager(readScore: ScoreService) {
     handlers.update(handler :: _) *>
     (for {
       s <- readScore
-             .getAll()(QueryContext.systemQC)
+             .getAll()(using QueryContext.systemQC)
              .map(_.exists(g => handler.initForScore(g._2)))
              .catchAll(err => ScoreLoggerPure.error(s"Error when getting available scores for initialization") *> false.succeed)
       _ <- handler.initEvents.flatMap(ZIO.foreach(_)(handleEvent(_))).unit
@@ -245,7 +245,7 @@ class ScoreServiceManager(readScore: ScoreService) {
       newScore = handled.flatMap(_.groupMapReduce(_._1)(_._2)(_ ++ _)).toMap
       _       <- ScoreLoggerPure.debug(s"${newScore.size} score for event")
       _       <- ScoreLoggerPure.ifTraceEnabled(ZIO.foreach(newScore.toList)(s => ScoreLoggerPure.trace(s"${s}")))
-      _       <- readScore.update(newScore)(QueryContext.systemQC)
+      _       <- readScore.update(newScore)(using QueryContext.systemQC)
     } yield {}).catchAll(err =>
       ScoreLoggerPure.error(s"An error occurred while treating score event of type '${scoreEvent.getClass}': ${err.fullMsg}")
     )

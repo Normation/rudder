@@ -76,7 +76,7 @@ class DebugScript extends DispatchSnippet with Loggable {
     "#launchDebugScriptButton" #> {
       SHtml.ajaxButton(
         (<span class="fa fa-download"></span>: NodeSeq) ++ Text(" Download debug information"),
-        process _,
+        () => process(),
         ("class", "btn btn-primary")
       )
     }

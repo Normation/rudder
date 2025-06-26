@@ -43,6 +43,7 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.core.AsExecution
+import scala.annotation.nowarn
 import scala.xml.Elem
 
 @RunWith(classOf[JUnitRunner])
@@ -95,6 +96,7 @@ class TestCheckUsersFile extends Specification {
     }
   }
 
+  @nowarn("any")
   private def withMigrationCtx[A: AsExecution](
       resourceFile: String
   )(block: (() => Elem, CheckUsersFile) => A): A = {

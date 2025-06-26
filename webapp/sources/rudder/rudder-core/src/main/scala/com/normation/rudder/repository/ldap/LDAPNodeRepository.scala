@@ -141,7 +141,7 @@ class WoLDAPNodeRepository(
                          }
         con           <- ldap
         existingEntry <- con
-                           .get(acceptedDit.NODES.NODE.dn(nodeId.value), A_KEY_STATUS :: A_AGENT_NAME :: Nil: _*)
+                           .get(acceptedDit.NODES.NODE.dn(nodeId.value), A_KEY_STATUS :: A_AGENT_NAME :: Nil*)
                            .notOptional(
                              s"Cannot update node with id ${nodeId.value}: there is no node with that id"
                            )

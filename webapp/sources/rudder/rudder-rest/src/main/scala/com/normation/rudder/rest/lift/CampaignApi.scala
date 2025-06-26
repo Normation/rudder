@@ -82,7 +82,7 @@ class CampaignApi(
       val res = {
         for {
           campaign   <- campaignRepository.get(CampaignId(resources))
-          serialized <- ZIO.foreach(campaign)(campaignSerializer.getJson _)
+          serialized <- ZIO.foreach(campaign)(campaignSerializer.getJson)
         } yield {
           serialized
         }

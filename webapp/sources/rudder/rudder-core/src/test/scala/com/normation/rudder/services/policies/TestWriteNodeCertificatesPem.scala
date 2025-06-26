@@ -145,7 +145,7 @@ class TestWriteNodeCertificatesPem extends Specification {
       val res    = ZioRuntime.runNow(writer.writeCertificates(dest, nodes).either)
 
       (res must beRight) and
-      (dest.contentAsString(StandardCharsets.UTF_8) must beEqualTo(expectedFileContent))
+      (dest.contentAsString(using StandardCharsets.UTF_8) must beEqualTo(expectedFileContent))
     }
   }
 
@@ -189,6 +189,6 @@ class TestWriteNodeCertificatesPem extends Specification {
       """(?s).*Unexpected: Error when executing reload command.*code: -2147483648.*""".r
     )
       .eventually(10, 100.millis.asScala)) and
-    (dest.contentAsString(StandardCharsets.UTF_8) must beEqualTo(expectedFileContent).eventually(10, 100.millis.asScala))
+    (dest.contentAsString(using StandardCharsets.UTF_8) must beEqualTo(expectedFileContent).eventually(10, 100.millis.asScala))
   }
 }

@@ -89,7 +89,9 @@ class SystemInfoServiceImpl(
       fv  <- rudderFullVersion.toIO
       bt  <- builtTimestamp.toIO
       r   <-
-        nodeFactRepository.get(Constants.ROOT_POLICY_SERVER_ID)(QueryContext.systemQC).notOptional(s"The root server is missing!")
+        nodeFactRepository
+          .get(Constants.ROOT_POLICY_SERVER_ID)(using QueryContext.systemQC)
+          .notOptional(s"The root server is missing!")
       jvmN = System.getProperty("java.vm.name")
       jvmV = System.getProperty("java.vm.version")
       cmd <- IOResult
@@ -108,7 +110,7 @@ class SystemInfoServiceImpl(
   override def getPrivateInfo(): IOResult[PrivateSystemInfo] = {
     for {
       servers <- policyServerService.getPolicyServers()
-      nodes   <- nodeFactRepository.getAll()(QueryContext.systemQC)
+      nodes   <- nodeFactRepository.getAll()(using QueryContext.systemQC)
     } yield {
       val pi = PluginsInfo.pluginInfos
       PrivateSystemInfo(

@@ -166,7 +166,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         new GiveReasonPopup(
           onSuccessCallback = { onSuccessReasonPopup },
           onFailureCallback = { onFailureReasonPopup },
-          refreshActiveTreeLibrary = { refreshActiveTreeLibrary _ },
+          refreshActiveTreeLibrary = { () => refreshActiveTreeLibrary() },
           sourceActiveTechniqueId = s,
           destCatId = d
         )
@@ -333,11 +333,11 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                   // %1$s
                   htmlId_activeTechniquesTree,
                   // %2$s
-                  SHtml.ajaxCall(JsVar("arg"), bindTechnique _)._2.toJsCmd,
+                  SHtml.ajaxCall(JsVar("arg"), bindTechnique)._2.toJsCmd,
                   // %3$s
-                  SHtml.ajaxCall(JsVar("arg"), moveTechnique _)._2.toJsCmd,
+                  SHtml.ajaxCall(JsVar("arg"), moveTechnique)._2.toJsCmd,
                   // %4$s
-                  SHtml.ajaxCall(JsVar("arg"), moveCategory _)._2.toJsCmd,
+                  SHtml.ajaxCall(JsVar("arg"), moveCategory)._2.toJsCmd,
                   htmlId_techniqueLibraryTree
                 )
               ) // JsRaw ok, escaped
@@ -820,7 +820,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       override def body: NodeSeq = {
         val tooltipContent = s"<h3>${category.name}</h3>\n<div>${category.description}</div>"
         SHtml.a(
-          onClickUserCategory _,
+          () => onClickUserCategory(),
           <span class="treeActiveTechniqueCategoryName" data-bs-toggle="tooltip" title={tooltipContent}>{
             category.name
           }</span>
@@ -891,7 +891,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     }
 
     (WithNonce.scriptWithNonce(Script(OnLoad(initJs))): NodeSeq) ++
-    SHtml.ajaxButton("Reload techniques", process _, ("class", "btn btn-primary"))
+    SHtml.ajaxButton("Reload techniques", () => process(), ("class", "btn btn-primary"))
   }
 
 }

@@ -413,7 +413,7 @@ object JsEngine {
   }
 
   final case class GraalEngine(engine: Engine) {
-    def buildContext: ZIO[Any with Any with Scope, SystemError, Context] = ZIO.acquireRelease(
+    def buildContext: ZIO[Any & Any & Scope, SystemError, Context] = ZIO.acquireRelease(
       IOResult.attempt(
         Context
           .newBuilder("js")

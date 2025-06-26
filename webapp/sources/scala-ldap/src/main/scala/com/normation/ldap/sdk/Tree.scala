@@ -61,10 +61,12 @@ object Tree {
     require(null != r, "root of a tree can't be null")
     require(null != c, "children map of a tree can't be null")
 
-    val root     = r
-    var children = Map[RDN, Tree[X]]() ++ c
+    private var _children = Map[RDN, Tree[X]]() ++ c
 
-    override def addChild(rdn: RDN, child: Tree[X]): Unit = children += ((rdn, child))
+    override val root:     X                 = r
+    override def children: Map[RDN, Tree[X]] = _children
+
+    override def addChild(rdn: RDN, child: Tree[X]): Unit = _children += ((rdn, child))
   }
 
   def apply[X](r: X): Tree[X] = apply(r, Seq[(RDN, Tree[X])]())

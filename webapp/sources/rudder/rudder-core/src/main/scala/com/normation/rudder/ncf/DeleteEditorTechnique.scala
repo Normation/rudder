@@ -140,7 +140,7 @@ class DeleteEditorTechniqueImpl(
                                       .map(createCr(_, technique.rootSection))
                                       .reduceOption(mergeCrs)
                                       .notOptional(s"Could not create a change request to delete '${techniqueId.serialize}' directives")
-                              _  <- wf.startWorkflow(cr)(
+                              _  <- wf.startWorkflow(cr)(using
                                       ChangeContext(
                                         modId,
                                         committer.actor,

@@ -140,7 +140,7 @@ object HomePage {
     }
   }
 
-  object nodeFacts extends RequestVar[MapView[NodeId, CoreNodeFact]](initNodeInfos()(CurrentUser.queryContext))
+  object nodeFacts extends RequestVar[MapView[NodeId, CoreNodeFact]](initNodeInfos()(using CurrentUser.queryContext))
 }
 
 class HomePage extends StatefulSnippet {
@@ -396,7 +396,7 @@ class HomePage extends StatefulSnippet {
     val agents = getRudderAgentVersion(HomePage.nodeFacts.get)
     TimingDebugLogger.debug(s"Get software: ${System.currentTimeMillis - n4}ms")
 
-    val agentsValue = agents.toList.sortBy(_._2)(Ordering[Int]).foldLeft((Nil: List[JsExp], Nil: List[JsExp])) {
+    val agentsValue = agents.toList.sortBy(_._2)(using Ordering[Int]).foldLeft((Nil: List[JsExp], Nil: List[JsExp])) {
       case ((labels, values), (label, value)) => (label :: labels, value :: values)
     }
     val agentsData  = JsObj("labels" -> JsArray(agentsValue._1), "values" -> JsArray(agentsValue._2))

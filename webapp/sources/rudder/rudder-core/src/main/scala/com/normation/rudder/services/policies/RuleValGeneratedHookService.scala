@@ -15,7 +15,7 @@ trait RuleValGeneratedHook {
 
 class RuleValGeneratedHookService {
 
-  private[this] val hooksRef: Ref[Chunk[RuleValGeneratedHook]] = Ref.make(Chunk.empty[RuleValGeneratedHook]).runNow
+  private val hooksRef: Ref[Chunk[RuleValGeneratedHook]] = Ref.make(Chunk.empty[RuleValGeneratedHook]).runNow
 
   def addHook(hook: RuleValGeneratedHook): UIO[Unit] = {
     hooksRef.update(_ :+ hook)

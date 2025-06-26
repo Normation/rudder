@@ -86,7 +86,7 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
       _    <- checkParentDirOK(file)
       certs = allNodeInfos.map { case (_, node) => node.rudderAgent.securityToken.key }
       _    <- writeCertificatesToNew(allCertsNew, certs)
-      _    <- IOResult.attempt(allCertsNew.moveTo(file)(File.CopyOptions(overwrite = true)))
+      _    <- IOResult.attempt(allCertsNew.moveTo(file)(using File.CopyOptions(overwrite = true)))
       _    <- execHook(reloadScriptPath)
     } yield ()
   }

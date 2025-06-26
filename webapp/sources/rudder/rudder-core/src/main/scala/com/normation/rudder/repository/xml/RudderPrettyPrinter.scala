@@ -58,19 +58,16 @@ class RudderPrettyPrinter(width: Int, step: Int) {
     val tmp = width - cur
     if (s.length <= tmp)
       return List(Box(ind, s))
-    var i   = s indexOf ' '
+    var i   = s.indexOf(' ')
     if (i > tmp || i == -1) throw new BrokenException() // cannot break
 
-    var last: List[Int]  = Nil
+    var last: List[Int] = Nil
     while (i != -1 && i < tmp) {
       last = i :: last
       i = s.indexOf(' ', i + 1)
     }
-    var res:  List[Item] = Nil
     while (Nil != last) try {
-      val b = Box(ind, s.substring(0, last.head))
       cur = ind
-      res = b :: Break :: cut(s.substring(last.head, s.length), ind)
       // backtrack
       last = last.tail
     } catch {

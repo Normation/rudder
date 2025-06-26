@@ -90,7 +90,7 @@ class MainCampaignService(
       case Some(s) =>
         for {
           _ <- s.deleteCampaign(c)
-          _ <- campaignArchiver.deleteCampaign(c)(ChangeContext.newForRudder())
+          _ <- campaignArchiver.deleteCampaign(c)(using ChangeContext.newForRudder())
           _ <- campaignRepo.delete(c)
         } yield { () }
       case None    => CampaignLogger.debug(s"Campaign system not initialized yet, campaign ${c.value} was not deleted")
@@ -100,7 +100,7 @@ class MainCampaignService(
   def saveCampaign(c: Campaign):       ZIO[Any, RudderError, Campaign]        = {
     for {
       _ <- campaignRepo.save(c)
-      _ <- campaignArchiver.saveCampaign(c.info.id)(ChangeContext.newForRudder())
+      _ <- campaignArchiver.saveCampaign(c.info.id)(using ChangeContext.newForRudder())
       _ <- scheduleCampaignEvent(c, DateTime.now())
     } yield {
       c
@@ -129,7 +129,7 @@ class MainCampaignService(
                         })
                     }
         _        <- repo.deleteEvent(campaignId = Some(c))
-        _        <- campaignArchiver.deleteCampaign(c)(ChangeContext.newForRudder())
+        _        <- campaignArchiver.deleteCampaign(c)(using ChangeContext.newForRudder())
       } yield {
         ()
       }
@@ -384,7 +384,7 @@ class MainCampaignService(
           _                <- ZIO.foreach(alreadyScheduled)(ev => s.queueCampaign(ev))
           _                <- CampaignLogger.debug("queued events, check campaigns")
           campaigns        <- campaignRepo.getAll(Nil, CampaignStatusValue.Enabled :: Nil)
-          _                <- campaignArchiver.init(ChangeContext.newForRudder())
+          _                <- campaignArchiver.init(using ChangeContext.newForRudder())
           _                <- CampaignLogger.debug(s"Got ${campaigns.size} campaigns, check all started")
           toStart           = campaigns.filterNot(c => alreadyScheduled.exists(_.campaignId == c.info.id))
           optNewEvents     <- ZIO.foreach(toStart)(c => scheduleCampaignEvent(c, DateTime.now()))

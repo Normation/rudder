@@ -78,7 +78,7 @@ class GiveReasonPopup(
   private val userPropertyService         = RudderConfig.userPropertyService
   private val techniqueRepository         = RudderConfig.techniqueRepository
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => popupContent _ }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => popupContent }
 
   def popupContent(html: NodeSeq): NodeSeq = {
     SHtml.ajaxForm(
@@ -93,7 +93,7 @@ class GiveReasonPopup(
           .ajaxButton("Cancel", () => closePopup() & refreshActiveTreeLibrary(), ("tabindex", "4"), ("class", "btn btn-default"))
         & "item-save" #> SHtml.ajaxSubmit(
           "Save",
-          onSubmit _,
+          onSubmit,
           ("id", "createATCSaveButton"),
           ("tabindex", "3"),
           ("class", "btn btn-success")
@@ -113,13 +113,13 @@ class GiveReasonPopup(
 
   def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
-      override def setFilter  = notNull _ :: trim _ :: Nil
+      override def setFilter  = notNull :: trim :: Nil
       override def inputField = super.inputField %
         ("style" -> "height:8em;") % ("placeholder" -> { userPropertyService.reasonsFieldExplanation })
       override def subContainerClassName = containerClass
       override def validations           = {
         if (mandatory) {
-          valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
+          valMinLen(5, "The reason must have at least 5 characters.") :: Nil
         } else {
           Nil
         }

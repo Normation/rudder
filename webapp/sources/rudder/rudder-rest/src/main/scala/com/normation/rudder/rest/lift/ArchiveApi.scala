@@ -325,7 +325,7 @@ class ArchiveApi(
             merge   <- parseMergePolicy(req)
             archive <- parseArchive(zip, originalFilename)
             _       <- checkArchiveService.check(archive)
-            _       <- saveArchiveService.save(archive, merge)(authzToken.qc)
+            _       <- saveArchiveService.save(archive, merge)(using authzToken.qc)
             _       <- ApplicationLoggerPure.Archive.info(s"Uploaded archive '${originalFilename}' processed successfully")
           } yield JRArchiveImported(success = true)
       }).tapError(err => ApplicationLoggerPure.Archive.error(s"Error when processing uploaded archive: ${err.fullMsg}"))
@@ -1568,7 +1568,7 @@ class SaveArchiveServicebyRepo(
              )
            }
       // now we can check if we create a new group or update one
-      x <- roGroupRepos.getNodeGroupOpt(g.group.id)(cc.toQuery)
+      x <- roGroupRepos.getNodeGroupOpt(g.group.id)(using cc.toQuery)
       _ <- x match {
              case Some((_, parentId)) =>
                woGroupRepos.update(g.group, modId, actor, message) *>

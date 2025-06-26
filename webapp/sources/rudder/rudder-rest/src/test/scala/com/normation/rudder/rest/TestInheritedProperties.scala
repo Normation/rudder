@@ -99,7 +99,7 @@ class TestInheritedProperties extends ZIOSpecDefault {
 
   val g0Id: NodeGroupId = restTestSetUp.mockNodeGroups.g0.id
   (for {
-    g <- restTestSetUp.mockNodeGroups.groupsRepo.getNodeGroupOpt(g0Id)(QueryContext.testQC).notOptional("test")
+    g <- restTestSetUp.mockNodeGroups.groupsRepo.getNodeGroupOpt(g0Id)(using QueryContext.testQC).notOptional("test")
     up = g._1.modify(_.properties).using(_.appended(gProp))
     _ <- restTestSetUp.mockNodeGroups.groupsRepo.update(up, ModificationId("test"), eventlog.RudderEventActor, None)
     _ <- restTestSetUp.mockNodeGroups.propService.updateAll() // the properties also need to be recomputed after group is updated
@@ -111,7 +111,7 @@ class TestInheritedProperties extends ZIOSpecDefault {
     .asInstanceOf[ch.qos.logback.classic.Logger]
     .setLevel(ch.qos.logback.classic.Level.OFF)
 
-  override def spec: Spec[TestEnvironment with Scope, Any] = {
+  override def spec: Spec[TestEnvironment & Scope, Any] = {
     (suite("All REST tests defined in files") {
 
       for {
