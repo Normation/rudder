@@ -279,7 +279,7 @@ fn read_metadata(path: &str) -> Result<Metadata> {
         if entry_title == "metadata" {
             let _ = entry.read_to_string(&mut buffer)?;
             let m: Metadata = serde_json::from_str(&buffer)
-                .with_context(|| format!("Failed to parse {} metadata", path))?;
+                .with_context(|| format!("Failed to parse {path} metadata"))?;
             return Ok(m);
         };
     }

@@ -189,7 +189,7 @@ pub mod filters {
                     .map(canonify_expression)
                     .collect::<Vec<String>>()
                     .join(" + ");
-                format!("({})", sum)
+                format!("({sum})")
             }
             Expression::Scalar(_) | Expression::Empty => format!("'{}'", e.fmt(Target::Windows)),
             _ => format!("([Rudder.Condition]::Canonify({}))", e.fmt(Target::Windows)),

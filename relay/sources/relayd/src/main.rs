@@ -28,12 +28,12 @@ fn main() {
     if cli_cfg.test {
         match check_configuration(Path::new(&cli_cfg.config)) {
             Err(e) => {
-                println!("{}", e);
+                println!("{e}");
                 exit(ExitStatus::StartError(e).code());
             }
             Ok(warns) => {
                 for w in warns {
-                    println!("warning: {}", w);
+                    println!("warning: {w}");
                 }
                 println!("Syntax: OK");
             }
@@ -42,7 +42,7 @@ fn main() {
         let reload_handle = match init_logger() {
             Ok(handle) => handle,
             Err(e) => {
-                println!("{}", e);
+                println!("{e}");
                 exit(ExitStatus::StartError(e).code());
             }
         };

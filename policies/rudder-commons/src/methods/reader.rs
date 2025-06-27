@@ -59,7 +59,7 @@ pub fn read_lib(path: &Path) -> Result<Vec<MethodInfo>> {
             }
             Err(e) => {
                 // Display error
-                warn!("{:?}", e);
+                warn!("{e:?}");
                 // Skip broken file
                 continue;
             }

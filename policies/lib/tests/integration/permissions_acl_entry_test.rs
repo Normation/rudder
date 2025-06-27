@@ -22,7 +22,7 @@ fn it_should_apply_mixed_acl_modifications() {
         &[
             file_path_str,
             "false", // not recursive
-            &format!("*:-x,{}:", username),
+            &format!("*:-x,{username}:"),
             "*:+rw",
             "=r",
         ],
@@ -49,9 +49,8 @@ fn it_should_apply_mixed_acl_modifications() {
         "Expected user owner permissions to be updated to rw-"
     );
     assert!(
-        acl.contains(&format!("user:{}:---", username)),
-        "Expected ACL entry for user '{}' to be reset",
-        username
+        acl.contains(&format!("user:{username}:---")),
+        "Expected ACL entry for user '{username}' to be reset"
     );
     assert!(
         acl.contains("group::rw-"),
@@ -77,7 +76,7 @@ fn audit_should_pass_when_acl_already_set() {
 
     let tested_method = &method(
         "permissions_acl_entry",
-        &[file_path_str, "false", &format!("{}:-x", username), "", ""],
+        &[file_path_str, "false", &format!("{username}:-x"), "", ""],
     )
     .audit();
 
@@ -93,9 +92,8 @@ fn audit_should_pass_when_acl_already_set() {
 
     let acl = PosixACL::read_acl(file_path_str).unwrap().as_text();
     assert!(
-        acl.contains(&format!("user:{}:r--", username)),
-        "Expected ACL entry for user '{}' to be kept",
-        username
+        acl.contains(&format!("user:{username}:r--")),
+        "Expected ACL entry for user '{username}' to be kept"
     );
     r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Success]);
     r.assert_log_v4_result_conditions(tested_method, MethodStatus::Success);
@@ -114,7 +112,7 @@ fn audit_should_error_when_acl_is_not_already_set() {
 
     let tested_method = &method(
         "permissions_acl_entry",
-        &[file_path_str, "false", &format!("{}:-x", username), "", ""],
+        &[file_path_str, "false", &format!("{username}:-x"), "", ""],
     )
     .audit();
 
@@ -130,9 +128,8 @@ fn audit_should_error_when_acl_is_not_already_set() {
 
     let acl = PosixACL::read_acl(file_path_str).unwrap().as_text();
     assert!(
-        acl.contains(&format!("user:{}:--x", username)),
-        "Expected ACL entry for user '{}' to be kept",
-        username
+        acl.contains(&format!("user:{username}:--x")),
+        "Expected ACL entry for user '{username}' to be kept"
     );
     r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Error]);
     r.assert_log_v4_result_conditions(tested_method, MethodStatus::Error);

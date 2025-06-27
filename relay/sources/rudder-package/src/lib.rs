@@ -85,7 +85,7 @@ pub fn run() -> Result<ExitCode> {
         Some((Path::new(DEFAULT_LOG_FOLDER), "rudder-pkg")),
     );
     if let Err(ref e) = log_r {
-        eprintln!("{:?}", e);
+        eprintln!("{e:?}");
         return Ok(ExitCode::FAILURE);
     }
 
@@ -128,10 +128,7 @@ pub fn run_inner(args: Args) -> Result<()> {
     let mut errors = false;
 
     create_dir_all(TMP_PLUGINS_FOLDER).with_context(|| {
-        format!(
-            "Failed to create temporary directory in '{}'",
-            TMP_PLUGINS_FOLDER
-        )
+        format!("Failed to create temporary directory in '{TMP_PLUGINS_FOLDER}'")
     })?;
 
     match args.command {

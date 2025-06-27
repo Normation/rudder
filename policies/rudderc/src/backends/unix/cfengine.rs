@@ -48,11 +48,11 @@ pub const MAX_INT: i64 = 99_999_999_999;
 // FIXME only quote when necessary + only concat when necessary
 // no need to call explicitly
 pub fn quoted(s: &str) -> String {
-    format!("\"{}\"", s)
+    format!("\"{s}\"")
 }
 
 pub fn expanded(s: &str) -> String {
-    format!("\"${{{}}}\"", s)
+    format!("\"${{{s}}}\"")
 }
 
 /// Escapes the string for usage in CFEngine
@@ -119,7 +119,7 @@ pub fn cfengine_canonify(input: &str) -> String {
         })
         .collect::<Vec<u8>>();
     std::str::from_utf8(&s)
-        .unwrap_or_else(|_| panic!("Canonify failed on {}", input))
+        .unwrap_or_else(|_| panic!("Canonify failed on {input}"))
         .to_owned()
 }
 

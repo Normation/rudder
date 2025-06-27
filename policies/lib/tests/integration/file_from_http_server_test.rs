@@ -17,7 +17,7 @@ fn start_test_http_server(
     listener.set_nonblocking(true).unwrap(); // Important!
 
     let port = listener.local_addr().unwrap().port();
-    let url = format!("http://127.0.0.1:{}", port);
+    let url = format!("http://127.0.0.1:{port}");
 
     let (shutdown_tx, shutdown_rx) = mpsc::channel();
 
@@ -59,7 +59,7 @@ fn it_should_download_file_if_not_exists() {
 
     let tested_method = &method(
         "file_from_http_server",
-        &[&format!("{}/some.txt", url), file_str],
+        &[&format!("{url}/some.txt"), file_str],
     )
     .enforce();
 
@@ -94,7 +94,7 @@ fn it_should_not_download_if_file_already_exists() {
 
     let tested_method = &method(
         "file_from_http_server",
-        &[&format!("{}/ignored.txt", url), file_str],
+        &[&format!("{url}/ignored.txt"), file_str],
     )
     .enforce();
 
@@ -129,7 +129,7 @@ fn it_should_fail_in_audit_if_file_is_missing() {
 
     let tested_method = &method(
         "file_from_http_server",
-        &[&format!("{}/missing.txt", url), file_str],
+        &[&format!("{url}/missing.txt"), file_str],
     )
     .audit();
 

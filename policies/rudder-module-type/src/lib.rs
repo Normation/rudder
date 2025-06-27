@@ -184,7 +184,7 @@ pub fn run_module<T: ModuleType0>(module_type: T) -> Result<(), Error> {
     } else if cli_cfg.yaml {
         let info = module_type.metadata();
         if let Some(m) = info.metadata {
-            println!("{}", m);
+            println!("{m}");
             exit(0)
         } else {
             println!("Missing metadata information");

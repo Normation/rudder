@@ -27,9 +27,9 @@ pub enum Hooks {
 impl fmt::Display for Hooks {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Hooks::PreUpgrade => write!(f, "{}", PRE_UPGRADE_HOOK),
-            Hooks::PreReboot => write!(f, "{}", PRE_REBOOT_HOOK),
-            Hooks::PostUpgrade => write!(f, "{}", POST_HOOK_DIR),
+            Hooks::PreUpgrade => write!(f, "{PRE_UPGRADE_HOOK}"),
+            Hooks::PreReboot => write!(f, "{PRE_REBOOT_HOOK}"),
+            Hooks::PostUpgrade => write!(f, "{POST_HOOK_DIR}"),
         }
     }
 }

@@ -114,10 +114,9 @@ impl FromStr for RunInfo {
                 debug!("Parsed run info {:#?}", raw_runinfo.1);
                 Ok(raw_runinfo.1)
             }
-            Err(e) => Err(RudderError::InvalidRunInfo(format!(
-                "invalid runinfo '{}' with {:?}",
-                s, e
-            ))
+            Err(e) => Err(RudderError::InvalidRunInfo(
+                format!("invalid runinfo '{s}' with {e:?}",),
+            )
             .into()),
         }
     }
@@ -219,12 +218,12 @@ mod tests {
                              tmh in 0u32..13, tmm in 0u32..60,
                              ref id in r"[a-zA-Z0-1-]+") {
             let reference = RunInfo {
-                timestamp: DateTime::parse_from_str(&format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}{}{:02}:{:02}", y, m, d, h, min, s, pm, tmh, tmm), "%+").expect("invalid date"),
+                timestamp: DateTime::parse_from_str(&format!("{y:04}-{m:02}-{d:02}T{h:02}:{min:02}:{s:02}{pm}{tmh:02}:{tmm:02}"), "%+").expect("invalid date"),
                 node_id: id.clone(),
             };
 
             let runinfo = RunInfo::from_str(
-                &format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}{}{:02}:{:02}@{}.log", y, m, d, h, min, s, pm, tmh, tmm, id)).unwrap();
+                &format!("{y:04}-{m:02}-{d:02}T{h:02}:{min:02}:{s:02}{pm}{tmh:02}:{tmm:02}@{id}.log")).unwrap();
 
             prop_assert_eq!(runinfo, reference);
         }

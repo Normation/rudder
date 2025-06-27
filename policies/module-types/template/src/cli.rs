@@ -18,7 +18,7 @@ impl std::fmt::Display for Engine {
             Engine::Minijinja => "minijinja".to_string(),
             Engine::Jinja2 => "jinja2".to_string(),
         };
-        write!(f, "{}", engine)
+        write!(f, "{engine}")
     }
 }
 

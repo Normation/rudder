@@ -16,7 +16,7 @@ impl CmdOutput {
     pub fn new(cmd: &mut Command) -> Result<Self> {
         let output = cmd.output()?;
         let cmd_output = CmdOutput {
-            command: format!("{:?}", cmd),
+            command: format!("{cmd:?}"),
             output,
         };
         debug!("{}", cmd_output);
