@@ -40,14 +40,12 @@ package bootstrap.liftweb.checks.earlyconfig.db
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.errors.*
-import com.normation.rudder.users.RudderPasswordEncoder.SecurityLevel
-import com.normation.rudder.users.UserFileProcessing
-import com.normation.rudder.users.UserFileSecurityLevelMigration
+import com.normation.rudder.users.UserFileHashTypeMigration
 import com.normation.rudder.users.UserManagementIO
 import com.normation.zio.UnsafeRun
-import zio.ZIO
+import zio.*
 
-class CheckUsersFile(migration: UserFileSecurityLevelMigration) extends BootstrapChecks {
+class CheckUsersFile(migration: UserFileHashTypeMigration) extends BootstrapChecks {
 
   override def description: String = "Check if hash algorithm for user password is a modern one, if not enable unsafe_hashes"
 
@@ -59,39 +57,11 @@ class CheckUsersFile(migration: UserFileSecurityLevelMigration) extends Bootstra
   }
 
   def prog: IOResult[Unit] = {
-    // at startup we need to read the file that may need to be migrated
-    (for {
-      xml               <- UserFileProcessing.readUserFile(migration.file)
-      parsedHash        <- UserFileProcessing.parseXmlHash(xml)
-      parsedUnsafeHashes = UserFileProcessing.parseXmlUnsafeHashes(xml)
-
-      // invalid hash also need to be renamed to modern one
-      securityLevel <- (parsedHash, parsedUnsafeHashes) match {
-                         case (Right(hash), Right(_)) =>
-                           allChecks(SecurityLevel.fromPasswordEncoderType(hash))
-
-                         case (Left(unknownValue), _) =>
-                           BootstrapLogger.Early.DB.warn(
-                             s"Error when reading users file hash in ${migration.file.name}, value '${unknownValue}' is unknown, falling back to secure authentication method"
-                           ) *>
-                           migration.enforceModern(userFile)
-                         case (_, Left(unknownValue)) =>
-                           BootstrapLogger.Early.DB.warn(
-                             s"Error when reading users file unsafe-hashes in ${migration.file.name}, value '${unknownValue}' is unknown, falling back to safe hashes"
-                           ) *>
-                           migration.enforceModern(userFile)
-                       }
-    } yield {})
-  }
-
-  def allChecks(currentSecurityLevel: SecurityLevel): IOResult[Unit] = {
     for {
-      _ <- currentSecurityLevel match {
-             case SecurityLevel.Modern => ZIO.unit // it has already been migrated
-             case SecurityLevel.Legacy => migration.allowLegacy(userFile)
-           }
+      _ <- migration.enforceModern(userFile)
     } yield {}
   }
 
   private def userFile = UserManagementIO.getUserFilePath(migration.file)
+
 }

@@ -49,86 +49,23 @@ import zio.test.junit.ZTestJUnitRunner
 class PasswordEncoderTypeTest extends ZIOSpecDefault {
   def spec = {
     suiteAll("Password encoder type") {
-      val legacy = RudderPasswordEncoder.SecurityLevel.Legacy
-      val modern = RudderPasswordEncoder.SecurityLevel.Modern
-
       test("recognize bcrypt a") {
         assert(
           RudderPasswordEncoder
-            .getFromEncoded("$2a$12$mgAVHJ2/312Q.hdWT0EzjOZHrGicXV/2K.1CLsnM3gOYqi5twcwtW", modern)
+            .getFromEncoded("$2a$12$mgAVHJ2/312Q.hdWT0EzjOZHrGicXV/2K.1CLsnM3gOYqi5twcwtW")
         )(isRight(equalTo(PasswordEncoderType.BCRYPT)))
       }
       test("recognize bcrypt y") {
         assert(
           RudderPasswordEncoder
-            .getFromEncoded("$2a$12$mgAVHJ2/312Q.hdWT0EzjOZHrGicXV/2K.1CLsnM3gOYqi5twcwtW", modern)
+            .getFromEncoded("$2a$12$mgAVHJ2/312Q.hdWT0EzjOZHrGicXV/2K.1CLsnM3gOYqi5twcwtW")
         )(isRight(equalTo(PasswordEncoderType.BCRYPT)))
       }
       test("recognize argon2 id") {
         assert(
           RudderPasswordEncoder
-            .getFromEncoded("$argon2id$v=19$m=16,t=2,p=1$Y3NkY2RzY2RzY3M$AAAkKtLERhIhmS714tnQdw", modern)
+            .getFromEncoded("$argon2id$v=19$m=16,t=2,p=1$Y3NkY2RzY2RzY3M$AAAkKtLERhIhmS714tnQdw")
         )(isRight(equalTo(PasswordEncoderType.ARGON2ID)))
-      }
-      test("recognize md5") {
-        assert(
-          RudderPasswordEncoder.getFromEncoded("21232f297a57a5a743894a0e4a801fc3", legacy)
-        )(isRight(equalTo(PasswordEncoderType.MD5)))
-      }
-      test("recognize sha1") {
-        assert(
-          RudderPasswordEncoder
-            .getFromEncoded("d033e22ae348aeb5660fc2140aec35850c4da997", legacy)
-        )(isRight(equalTo(PasswordEncoderType.SHA1)))
-      }
-      test("recognize sha256") {
-        assert(
-          RudderPasswordEncoder
-            .getFromEncoded("8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918", legacy)
-        )(isRight(equalTo(PasswordEncoderType.SHA256)))
-      }
-      test("recognize sha512") {
-        assert(
-          RudderPasswordEncoder
-            .getFromEncoded(
-              "c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec",
-              legacy
-            )
-        )(isRight(equalTo(PasswordEncoderType.SHA512)))
-
-      }
-      test("recognize invalid hexadecimal hash") {
-        assert(
-          RudderPasswordEncoder
-            .getFromEncoded("z033e22ae348aeb5660fc2140aec35850c4da997", legacy)
-        )(isLeft(equalTo("Could not recognize a known hash format from encoded password")))
-      }
-      test("recognize alternative SHA1 name") {
-        assert(PasswordEncoderType.withNameInsensitiveOption("sha"))(
-          isSome(equalTo(PasswordEncoderType.SHA1))
-        )
-        assert(PasswordEncoderType.withNameInsensitiveOption("sha-1"))(
-          isSome(equalTo(PasswordEncoderType.SHA1))
-        )
-        assert(PasswordEncoderType.withNameInsensitiveOption("sha1"))(
-          isSome(equalTo(PasswordEncoderType.SHA1))
-        )
-      }
-      test("recognize alternative SHA256 name") {
-        assert(PasswordEncoderType.withNameInsensitiveOption("sha256"))(
-          isSome(equalTo(PasswordEncoderType.SHA256))
-        )
-        assert(PasswordEncoderType.withNameInsensitiveOption("sha-256"))(
-          isSome(equalTo(PasswordEncoderType.SHA256))
-        )
-      }
-      test("recognize alternative SHA512 name") {
-        assert(PasswordEncoderType.withNameInsensitiveOption("sha512"))(
-          isSome(equalTo(PasswordEncoderType.SHA512))
-        )
-        assert(PasswordEncoderType.withNameInsensitiveOption("sha-512"))(
-          isSome(equalTo(PasswordEncoderType.SHA512))
-        )
       }
     }
   }

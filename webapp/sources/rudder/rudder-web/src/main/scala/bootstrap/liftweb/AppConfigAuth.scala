@@ -338,7 +338,7 @@ class AppConfigAuth extends ApplicationContextAware {
     // we need to register a callback to check and update users file and a callback to update password encoder when needed
     val checkUsersFileCallback = RudderAuthorizationFileReloadCallback(
       "check-users-file-callback",
-      (c: ValidatedUserList) => checkUsersFile.allChecks(c.encoder.securityLevel)
+      (c: ValidatedUserList) => checkUsersFile.prog
     )
     rudderUserListProvider.registerCallback(checkUsersFileCallback)
 
@@ -356,10 +356,7 @@ class AppConfigAuth extends ApplicationContextAware {
     // For that, we let the user either let undefined rudder.auth.admin.login,
     // or let empty udder.auth.admin.login or rudder.auth.admin.password
 
-    import RudderPasswordEncoder.SecurityLevel.Modern
-
-    // Only support modern algorithms for root admin account
-    val encoder = RudderPasswordEncoder(Modern, passwordEncoderDispatcher)
+    val encoder = RudderPasswordEncoder(passwordEncoderDispatcher)
     val admins  = if (config.hasPath("rudder.auth.admin.login") && config.hasPath("rudder.auth.admin.password")) {
       val login    = config.getString("rudder.auth.admin.login")
       val password = config.getString("rudder.auth.admin.password")
