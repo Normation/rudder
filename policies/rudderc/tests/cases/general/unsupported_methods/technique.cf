@@ -28,9 +28,9 @@ bundle agent call_unsupported_methods_82a3d8ca_bf7c_4b5d_a8e6_4423ecb5f532(c_nam
     "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532_${report_data.directive_id}_${c_key}" usebundle => user_group("${login}", "${group_name}"),
                                              if => "${method_call_condition}";
-    "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532_${report_data.directive_id}_${c_key}" usebundle => _classes_noop(canonify("${class_prefix}_user_group_${c_key}")),
+    "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532_${report_data.directive_id}_${c_key}" usebundle => _classes_noop(canonify("user_group_${c_key}")),
                                          unless => "${method_call_condition}";
-    "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532_${report_data.directive_id}_${c_key}" usebundle => log_rudder("Skipping method 'User group' with key parameter 'bob' since condition 'windows' is not reached", "bob", canonify("${class_prefix}_user_group_${c_key}"), canonify("${class_prefix}_user_group_${c_key}"), @{args}),
+    "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532_${report_data.directive_id}_${c_key}" usebundle => log_rudder("Skipping method 'User group' with key parameter 'bob' since condition 'windows' is not reached", "bob", canonify("user_group_${c_key}"), canonify("user_group_${c_key}"), @{args}),
                                          unless => "${method_call_condition}";
 
 }

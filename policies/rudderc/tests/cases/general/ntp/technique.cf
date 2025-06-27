@@ -28,8 +28,8 @@ bundle agent call_ntp_technique_d86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_k
 
   methods:
     "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
-    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => _classes_noop(canonify("${class_prefix}_package_present_${c_key}"));
-    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => log_rudder("Skipping method 'Package present' with key parameter 'htop' since condition 'false' is not reached", "htop", canonify("${class_prefix}_package_present_${c_key}"), canonify("${class_prefix}_package_present_${c_key}"), @{args});
+    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => _classes_noop(canonify("package_present_${c_key}"));
+    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => log_rudder("Skipping method 'Package present' with key parameter 'htop' since condition 'false' is not reached", "htop", canonify("package_present_${c_key}"), canonify("package_present_${c_key}"), @{args});
 
 }
 bundle agent call_ntp_technique_cf06e919_02b7_41a7_a03f_4239592f3c12(c_name, c_key, report_id, args, class_prefix, method_call_condition, name) {
@@ -38,9 +38,9 @@ bundle agent call_ntp_technique_cf06e919_02b7_41a7_a03f_4239592f3c12(c_name, c_k
     "cf06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "cf06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}_${c_key}" usebundle => package_install("${name}"),
                                              if => "${method_call_condition}";
-    "cf06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}_${c_key}" usebundle => _classes_noop(canonify("${class_prefix}_package_install_${c_key}")),
+    "cf06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}_${c_key}" usebundle => _classes_noop(canonify("package_install_${c_key}")),
                                          unless => "${method_call_condition}";
-    "cf06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}_${c_key}" usebundle => log_rudder("Skipping method 'Package install' with key parameter '/bin/true \"# ${node.inventory[os][fullName]}\"' since condition 'linux.fedora' is not reached", "/bin/true \"# ${node.inventory[os][fullName]}\"", canonify("${class_prefix}_package_install_${c_key}"), canonify("${class_prefix}_package_install_${c_key}"), @{args}),
+    "cf06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}_${c_key}" usebundle => log_rudder("Skipping method 'Package install' with key parameter '/bin/true \"# ${node.inventory[os][fullName]}\"' since condition 'linux.fedora' is not reached", "/bin/true \"# ${node.inventory[os][fullName]}\"", canonify("package_install_${c_key}"), canonify("package_install_${c_key}"), @{args}),
                                          unless => "${method_call_condition}";
 
 }
