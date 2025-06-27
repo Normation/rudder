@@ -325,10 +325,30 @@ class NodeGroupForm(
       </button>
       & "group-clone" #> {
         if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
-          SHtml.ajaxButton(
-            <span>Clone <i class="fa fa-clone"></i></span>,
+          <li>
+            {SHtml.ajaxButton(
+            <span>
+              <i class="fa fa-clone"></i>
+              Clone
+            </span>,
             () => showCloneGroupPopup()
-          ) % ("id" -> "groupCloneButtonId") % ("class" -> " btn btn-default btn-icon")
+          ) % ("class" -> "dropdown-item")}
+          </li>
+        } else NodeSeq.Empty
+      }
+      & "group-disable" #> {
+        if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
+          val btnText = if (nodeGroup.isEnabled) { "Disable" } else { "Enable" }
+          val btnIcon = if (nodeGroup.isEnabled) { "fa fa-ban" } else { "fa fa-circle-check" }
+          <li>
+            {SHtml.ajaxButton(
+                <span>
+                  <i class={btnIcon}></i>
+                  {btnText}
+                </span>,
+            () => showCloneGroupPopup()
+            ) % ("id" -> "groupDisableButtonId") % ("class" -> "dropdown-item")}
+          </li>
         } else NodeSeq.Empty
       }
       & "group-save" #> {
@@ -345,13 +365,18 @@ class NodeGroupForm(
                     </span>
         } else NodeSeq.Empty
       }
-      & "group-delete" #> SHtml.ajaxButton(
-        <span>Delete
-          <i class="fa fa-trash"></i>
-        </span>,
-        () => onSubmitDelete(),
-        ("class" -> " btn btn-danger btn-icon")
-      )
+      & "group-delete" #>
+        <li>
+          {SHtml.ajaxButton(
+            <span>
+              <i class="fa fa-times-circle"></i>
+              Delete
+            </span>,
+            () => onSubmitDelete(),
+            ("class" -> "dropdown-item action-danger")
+            )
+          }
+        </li>
       & "group-notifications" #> updateAndDisplayNotifications()
       & "#groupPropertiesTabContent" #> showGroupProperties(nodeGroup)
       & "#group-shownodestable *" #> (searchNodeComponent.get match {
