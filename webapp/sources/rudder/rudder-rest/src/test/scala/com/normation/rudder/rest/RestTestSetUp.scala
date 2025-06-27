@@ -386,6 +386,7 @@ class RestTestSetUp {
     mockRules.ruleCategoryRepo,
     modificationService,
     linkUtil,
+    null,
     null
   )
   val eventLogger:      EventLogDeploymentService = new EventLogDeploymentService(eventLogRepo, null) {
