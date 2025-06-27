@@ -61,7 +61,9 @@ class PropertiesRepositoryTest extends Specification {
     // node2 has some properties
     val resolvedNode2 = SuccessNodePropertyHierarchy(
       Chunk.from(
-        MockNodes.node2Node.properties.map(NodePropertyHierarchy(_, List.empty))
+        MockNodes.node2Node.properties.map(n =>
+          NodePropertyHierarchy(ParentProperty.Node(MockNodes.node2.hostname, MockNodes.node2.id, n, None))
+        )
       )
     )
     val initialProps  = Map(
