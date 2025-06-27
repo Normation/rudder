@@ -70,6 +70,7 @@ import org.eclipse.jgit.lib.PersonIdent
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.revwalk.RevWalk
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -89,7 +90,7 @@ import zio.syntax.*
 @RunWith(classOf[JUnitRunner])
 class JGitRepositoryTest extends Specification with Loggable with AfterAll {
 
-  val gitRoot: File = File("/tmp/test-jgit-" + DateTime.now().toString())
+  val gitRoot: File = File("/tmp/test-jgit-" + DateTime.now(DateTimeZone.UTC).toString())
 
   // Set sequential execution
   sequential

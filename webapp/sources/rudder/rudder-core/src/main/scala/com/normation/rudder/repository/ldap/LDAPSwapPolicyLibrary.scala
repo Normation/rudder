@@ -55,6 +55,7 @@ import com.normation.rudder.repository.ActiveTechniqueLibraryArchiveId
 import com.normation.rudder.repository.ImportTechniqueLibrary
 import com.unboundid.ldap.sdk.DN
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import zio.*
 import zio.syntax.*
@@ -106,7 +107,7 @@ class ImportTechniqueLibraryImpl(
           val categoryEntry = mapper.activeTechniqueCategory2ldap(content.category, parentDN)
           if (isRoot) {
             categoryEntry.addValues(A_OC, OC_ACTIVE_TECHNIQUE_LIB_VERSION)
-            categoryEntry.resetValuesTo(A_INIT_DATETIME, GeneralizedTime(DateTime.now()).toString)
+            categoryEntry.resetValuesTo(A_INIT_DATETIME, GeneralizedTime(DateTime.now(DateTimeZone.UTC)).toString)
             gitId.foreach(x => categoryEntry.resetValuesTo(A_TECHNIQUE_LIB_VERSION, x))
           }
 
@@ -143,7 +144,7 @@ class ImportTechniqueLibraryImpl(
         recSaveUserLib(rudderDit.ACTIVE_TECHNIQUES_LIB.dn.getParent, userLib, isRoot = true)
       }
 
-      val archiveId       = ActiveTechniqueLibraryArchiveId(DateTime.now().toString(ISODateTimeFormat.dateTime))
+      val archiveId       = ActiveTechniqueLibraryArchiveId(DateTime.now(DateTimeZone.UTC).toString(ISODateTimeFormat.dateTime))
       val targetArchiveDN = rudderDit.ARCHIVES.userLibDN(archiveId)
 
       // the sequence of operation to actually perform the swap with rollback

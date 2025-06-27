@@ -61,7 +61,7 @@ class NodeCountHistorizationTest extends Specification with BeforeAfter {
     }
   }
 
-  lazy val startDate: DateTime = DateTime.now()
+  lazy val startDate: DateTime = DateTime.now(DateTimeZone.UTC)
   lazy val rootDir:   String   = s"/tmp/rudder-test-nodecount/${startDate.toString(ISODateTimeFormat.dateTime())}"
 
   val rudder: CommitInformation = CommitInformation(

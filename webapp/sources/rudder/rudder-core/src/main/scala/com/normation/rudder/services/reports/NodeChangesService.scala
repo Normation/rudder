@@ -49,6 +49,7 @@ import net.liftweb.common.*
 import net.liftweb.http.js
 import net.liftweb.http.js.JE.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.Interval
 import zio.{System as _, *}
 import zio.syntax.*
@@ -94,8 +95,8 @@ trait NodeChangesService {
    *
    */
   final def getCurrentValidIntervals(since: Option[DateTime]): List[Interval] = {
-    val startTime = since.getOrElse(DateTime.now.minusDays(changesMaxAge))
-    val endTime   = DateTime.now
+    val startTime = since.getOrElse(DateTime.now(DateTimeZone.UTC).minusDays(changesMaxAge))
+    val endTime   = DateTime.now(DateTimeZone.UTC)
     getInterval(startTime, endTime)
   }
 
@@ -121,7 +122,7 @@ trait NodeChangesService {
       // utility that create an interval from the given date to date+6hours
       def sixHours(t: DateTime): Interval = {
         // 6 hours in milliseconds
-        new Interval(t, new DateTime(t.getMillis + 6L * 3600 * 1000))
+        new Interval(t, new DateTime(t.getMillis + 6L * 3600 * 1000, DateTimeZone.UTC))
       }
 
       // find the starting time, set minute/seconds/millis to 0

@@ -57,6 +57,7 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.marshalling.*
+import java.time.Instant
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
@@ -71,7 +72,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       addDiff:        AddRuleDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): AddRule
@@ -81,7 +82,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       deleteDiff:     DeleteRuleDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): DeleteRule
@@ -91,7 +92,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       modifyDiff:     ModifyRuleDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ModifyRule
@@ -102,7 +103,7 @@ trait EventLogFactory {
       principal:           EventActor,
       addDiff:             AddDirectiveDiff,
       varsRootSectionSpec: SectionSpec,
-      creationDate:        DateTime = DateTime.now(),
+      creationDate:        Instant = Instant.now(),
       severity:            Int = 100,
       reason:              Option[String]
   ): AddDirective
@@ -113,7 +114,7 @@ trait EventLogFactory {
       principal:           EventActor,
       deleteDiff:          DeleteDirectiveDiff,
       varsRootSectionSpec: SectionSpec,
-      creationDate:        DateTime = DateTime.now(),
+      creationDate:        Instant = Instant.now(),
       severity:            Int = 100,
       reason:              Option[String]
   ): DeleteDirective
@@ -123,7 +124,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       modifyDiff:     ModifyDirectiveDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ModifyDirective
@@ -133,7 +134,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       addDiff:        AddNodeGroupDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): AddNodeGroup
@@ -143,7 +144,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       deleteDiff:     DeleteNodeGroupDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): DeleteNodeGroup
@@ -153,7 +154,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       modifyDiff:     ModifyNodeGroupDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ModifyNodeGroup
@@ -163,7 +164,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       addDiff:        AddTechniqueDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): AddTechnique
@@ -173,7 +174,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       modifyDiff:     ModifyTechniqueDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ModifyTechnique
@@ -183,7 +184,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       deleteDiff:     DeleteTechniqueDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): DeleteTechnique
@@ -193,7 +194,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       addDiff:        AddGlobalParameterDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): AddGlobalParameter
@@ -203,7 +204,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       deleteDiff:     DeleteGlobalParameterDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): DeleteGlobalParameter
@@ -213,7 +214,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       modifyDiff:     ModifyGlobalParameterDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ModifyGlobalParameter
@@ -223,7 +224,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       diff:           ChangeRequestDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ChangeRequestEventLog
@@ -233,7 +234,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       step:           WorkflowStepChange,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): WorkflowStepChanged
@@ -243,7 +244,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       addDiff:        AddApiAccountDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): CreateAPIAccountEventLog
@@ -253,7 +254,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       modifyDiff:     ModifyApiAccountDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ModifyAPIAccountEventLog
@@ -263,7 +264,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       deleteDiff:     DeleteApiAccountDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): DeleteAPIAccountEventLog
@@ -272,7 +273,7 @@ trait EventLogFactory {
       id:             Option[Int] = None,
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String],
       oldProperty:    RudderWebProperty,
@@ -285,7 +286,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       modifyDiff:     ModifyNodeDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ModifyNode
@@ -295,7 +296,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       promotedNode:   NodeInfo,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): PromoteNode
@@ -305,7 +306,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       demotedRelay:   NodeInfo,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): DemoteRelay
@@ -315,7 +316,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       secret:         Secret,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): AddSecret
@@ -325,7 +326,7 @@ trait EventLogFactory {
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       secret:         Secret,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): DeleteSecret
@@ -336,7 +337,7 @@ trait EventLogFactory {
       principal:      EventActor,
       oldSecret:      Secret,
       newSecret:      Secret,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ModifySecret
@@ -363,7 +364,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       addDiff:        AddRuleDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): AddRule = {
@@ -386,7 +387,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       deleteDiff:     DeleteRuleDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): DeleteRule = {
@@ -409,7 +410,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       modifyDiff:     ModifyRuleDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ModifyRule = {
@@ -468,7 +469,7 @@ class EventLogFactoryImpl(
       principal:           EventActor,
       addDiff:             AddDirectiveDiff,
       varsRootSectionSpec: SectionSpec,
-      creationDate:        DateTime = DateTime.now(),
+      creationDate:        Instant = Instant.now(),
       severity:            Int = 100,
       reason:              Option[String]
   ): AddDirective = {
@@ -498,7 +499,7 @@ class EventLogFactoryImpl(
       principal:           EventActor,
       deleteDiff:          DeleteDirectiveDiff,
       varsRootSectionSpec: SectionSpec,
-      creationDate:        DateTime = DateTime.now(),
+      creationDate:        Instant = Instant.now(),
       severity:            Int = 100,
       reason:              Option[String]
   ): DeleteDirective = {
@@ -527,7 +528,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       modifyDiff:     ModifyDirectiveDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ModifyDirective = {
@@ -576,7 +577,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       addDiff:        AddNodeGroupDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): AddNodeGroup = {
@@ -599,7 +600,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       deleteDiff:     DeleteNodeGroupDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): DeleteNodeGroup = {
@@ -622,7 +623,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       modifyDiff:     ModifyNodeGroupDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ModifyNodeGroup = {
@@ -674,7 +675,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       addDiff:        AddTechniqueDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): AddTechnique = {
@@ -702,7 +703,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       modifyDiff:     ModifyTechniqueDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ModifyTechnique = {
@@ -732,7 +733,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       deleteDiff:     DeleteTechniqueDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): DeleteTechnique = {
@@ -762,7 +763,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       addDiff:        AddGlobalParameterDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): AddGlobalParameter = {
@@ -785,7 +786,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       deleteDiff:     DeleteGlobalParameterDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): DeleteGlobalParameter = {
@@ -808,7 +809,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       modifyDiff:     ModifyGlobalParameterDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ModifyGlobalParameter = {
@@ -838,7 +839,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       diff:           ChangeRequestDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ChangeRequestEventLog = {
@@ -881,7 +882,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       step:           WorkflowStepChange,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): WorkflowStepChanged = {
@@ -912,7 +913,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       addDiff:        AddApiAccountDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): CreateAPIAccountEventLog = {
@@ -935,7 +936,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       diff:           ModifyApiAccountDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ModifyAPIAccountEventLog = {
@@ -985,7 +986,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       deleteDiff:     DeleteApiAccountDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): DeleteAPIAccountEventLog = {
@@ -1007,7 +1008,7 @@ class EventLogFactoryImpl(
       id:             Option[Int] = None,
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String],
       oldProperty:    RudderWebProperty,
@@ -1034,7 +1035,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       promotedNode:   NodeInfo,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): PromoteNode = {
@@ -1065,7 +1066,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       promotedNode:   NodeInfo,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): DemoteRelay = {
@@ -1096,7 +1097,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       modifyDiff:     ModifyNodeDiff,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ModifyNode = {
@@ -1195,7 +1196,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       secret:         Secret,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): AddSecret = {
@@ -1218,7 +1219,7 @@ class EventLogFactoryImpl(
       modificationId: Option[ModificationId] = None,
       principal:      EventActor,
       secret:         Secret,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): DeleteSecret = {
@@ -1243,7 +1244,7 @@ class EventLogFactoryImpl(
       principal:      EventActor,
       oldSecret:      Secret,
       newSecret:      Secret,
-      creationDate:   DateTime = DateTime.now(),
+      creationDate:   Instant = Instant.now(),
       severity:       Int = 100,
       reason:         Option[String]
   ): ModifySecret = {

@@ -116,12 +116,14 @@ import java.io.OutputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.NoSuchFileException
 import java.text.Normalizer
+import java.time.Instant
 import java.util.zip.ZipEntry
 import net.liftweb.http.FileParamHolder
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.OutputStreamResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.util.matching.Regex
 import zio.*
 import zio.json.*
@@ -1614,7 +1616,7 @@ class SaveArchiveServicebyRepo(
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
       qc.actor,
-      new DateTime(),
+      Instant.now(),
       Some(s"Importing archive '${archive.metadata.filename}'"),
       None,
       qc.nodePerms

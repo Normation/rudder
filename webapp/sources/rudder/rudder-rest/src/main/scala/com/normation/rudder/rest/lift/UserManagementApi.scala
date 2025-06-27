@@ -89,6 +89,7 @@ import io.scalaland.chimney.dsl.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import sourcecode.Line
 import zio.ZIO
 import zio.syntax.*
@@ -499,7 +500,7 @@ class UserManagementApiImpl(
                         case UserStatus.Disabled => {
                           val eventTrace = EventTrace(
                             authzToken.qc.actor,
-                            DateTime.now,
+                            DateTime.now(DateTimeZone.UTC),
                             "User current disabled status set to 'active' by user management API"
                           )
                           (userRepo.setActive(List(user.id), eventTrace) *> userService.reloadPure())
@@ -532,7 +533,7 @@ class UserManagementApiImpl(
                         case UserStatus.Active   => {
                           val eventTrace = EventTrace(
                             authzToken.qc.actor,
-                            DateTime.now,
+                            DateTime.now(DateTimeZone.UTC),
                             "User current active status set to 'disabled' by user management API"
                           )
                           (userRepo.disable(List(user.id), None, List.empty, eventTrace) *> userService.reloadPure())

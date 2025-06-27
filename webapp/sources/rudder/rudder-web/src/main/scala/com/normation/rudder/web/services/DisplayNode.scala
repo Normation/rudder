@@ -67,6 +67,7 @@ import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.syntax.*
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -79,6 +80,7 @@ import net.liftweb.util.*
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.xml.*
 import zio.json.*
 import zio.syntax.*
@@ -533,7 +535,7 @@ object DisplayNode extends Loggable {
   def showNodeDetails(
       nodeFact:            NodeFact,
       globalMode:          GlobalPolicyMode,
-      creationDate:        Option[DateTime],
+      creationDate:        Option[Instant],
       salt:                String = "",
       isDisplayingInPopup: Boolean = false
   )(implicit qc: QueryContext): NodeSeq = {
@@ -749,7 +751,7 @@ object DisplayNode extends Loggable {
                 SHA1.hash(cert.getEncoded).grouped(2).mkString(":")
               }</samp></div>
                     <div><label>Expiration date: </label> {
-                DateFormaterService.getDisplayDate(new DateTime(cert.getNotAfter))
+                DateFormaterService.getDisplayDate(new DateTime(cert.getNotAfter, DateTimeZone.UTC))
               }</div>
             )
           }
@@ -783,7 +785,7 @@ object DisplayNode extends Loggable {
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(RudderConfig.stringUuidGenerator.newUuid),
       CurrentUser.actor,
-      DateTime.now(),
+      Instant.now(),
       Some("Trusted key status reset to accept new key (first use)"),
       None,
       CurrentUser.nodePerms
@@ -1319,7 +1321,7 @@ object DisplayNode extends Loggable {
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
       CurrentUser.actor,
-      DateTime.now(),
+      Instant.now(),
       None,
       S.request.map(_.remoteAddr).toOption,
       CurrentUser.nodePerms
