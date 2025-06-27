@@ -92,10 +92,7 @@ pub fn method_call(
             .map(|p| expanded(p.as_str()))
             .collect(),
     );
-    let na_condition = format!(
-        "canonify(\"${{class_prefix}}_{}_${{c_key}}\")",
-        info.bundle_name
-    );
+    let na_condition = format!("canonify(\"{}_${{c_key}}\")", info.bundle_name);
 
     let push_policy_mode = dry_run_mode::push_policy_mode(m.policy_mode_override);
     let pop_policy_mode = dry_run_mode::pop_policy_mode(m.policy_mode_override);
