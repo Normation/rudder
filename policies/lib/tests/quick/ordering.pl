@@ -7,7 +7,7 @@ my $exit = 0;
 # ordering from cfengine documentation
 # convert to a hash { promise_type => order_id }
 my $orderings = {
-  agent => make_hash(qw/meta vars defaults classes users files packages guest_environments methods processes services commands storage databases reports/),
+  agent => make_hash(qw/meta vars defaults classes users files packages guest_environments methods processes services commands storage databases augeas template reports/),
   edit_line => make_hash(qw/meta vars defaults classes delete_lines field_edits insert_lines replace_patterns reports/),
   server => make_hash(qw/vars classes access roles/),
   monitor => make_hash(qw/vars classes measurements reports/),

@@ -43,6 +43,11 @@ test_python_error()
   find . ! -wholename '*language/repos/*' ! -wholename '*rudder-pkg/lib/*' ! -name 'convertOpenLDAPSchema.py' ! -name 'systemctl3.py' ! -wholename '*jsondiff/*' -name '*.py' | xargs ${PYLINT} -E --persistent=n --disable=C,R,import-error,no-member,no-name-in-module
 }
 
+test_quick_methods()
+{
+  find policies/lib/tests/quick -type f -exec {} \;
+}
+
 #####
 
 if [ "$1" = "--shell" ]; then
@@ -50,6 +55,9 @@ if [ "$1" = "--shell" ]; then
   exit 0
 elif [ "$1" = "--python" ]; then
   test_python_error
+  exit 0
+elif [ "$1" = "--methods" ]; then
+  test_quick_methods
   exit 0
 else
   # quick tests to be launched during merge
