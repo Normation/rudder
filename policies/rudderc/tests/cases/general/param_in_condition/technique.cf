@@ -3,33 +3,27 @@
 
 bundle agent param_in_condition(file) {
 
-  vars:
-    "args"              slist => {"${file}"};
-    "report_param"      string => join("_", args);
-    "full_class_prefix" string => canonify("param_in_condition_${report_param}");
-    "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
   classes:
     "pass3" expression => "pass2";
     "pass2" expression => "pass1";
     "pass1" expression => "any";
 
   methods:
-    "9e763779-9f33-44bc-ad73-1c5d5732301c_${report_data.directive_id}" usebundle => call_param_in_condition_9e763779_9f33_44bc_ad73_1c5d5732301c("Check if a file exists", "/tmp/${file}", "9e763779-9f33-44bc-ad73-1c5d5732301c", @{args}, "${class_prefix}", "/tmp/${file}"),
+    "9e763779-9f33-44bc-ad73-1c5d5732301c_${report_data.directive_id}" usebundle => call_param_in_condition_9e763779_9f33_44bc_ad73_1c5d5732301c("Check if a file exists", "/tmp/${file}", "9e763779-9f33-44bc-ad73-1c5d5732301c", @{args}, "/tmp/${file}"),
                                              if => "pass3";
 
-    "e8362340-dc50-4231-9b7f-748b51e9fa07_${report_data.directive_id}" usebundle => call_param_in_condition_e8362340_dc50_4231_9b7f_748b51e9fa07("Execute only if...", "echo \"May be executed or not\"", "e8362340-dc50-4231-9b7f-748b51e9fa07", @{args}, "${class_prefix}", concat("file_check_exists__tmp_",canonify("${file}"),"_kept"), "echo \"May be executed or not\""),
+    "e8362340-dc50-4231-9b7f-748b51e9fa07_${report_data.directive_id}" usebundle => call_param_in_condition_e8362340_dc50_4231_9b7f_748b51e9fa07("Execute only if...", "echo \"May be executed or not\"", "e8362340-dc50-4231-9b7f-748b51e9fa07", @{args}, concat("file_check_exists__tmp_",canonify("${file}"),"_kept"), "echo \"May be executed or not\""),
                                              if => "pass3";
 
 }
-bundle agent call_param_in_condition_9e763779_9f33_44bc_ad73_1c5d5732301c(c_name, c_key, report_id, args, class_prefix, path) {
+bundle agent call_param_in_condition_9e763779_9f33_44bc_ad73_1c5d5732301c(c_name, c_key, report_id, args, path) {
 
   methods:
     "9e763779-9f33-44bc-ad73-1c5d5732301c_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "9e763779-9f33-44bc-ad73-1c5d5732301c_${report_data.directive_id}_${c_key}" usebundle => file_check_exists("${path}");
 
 }
-bundle agent call_param_in_condition_e8362340_dc50_4231_9b7f_748b51e9fa07(c_name, c_key, report_id, args, class_prefix, method_call_condition, command) {
+bundle agent call_param_in_condition_e8362340_dc50_4231_9b7f_748b51e9fa07(c_name, c_key, report_id, args, method_call_condition, command) {
 
   methods:
     "e8362340-dc50-4231-9b7f-748b51e9fa07_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
@@ -37,7 +31,7 @@ bundle agent call_param_in_condition_e8362340_dc50_4231_9b7f_748b51e9fa07(c_name
                                              if => "${method_call_condition}";
     "e8362340-dc50-4231-9b7f-748b51e9fa07_${report_data.directive_id}_${c_key}" usebundle => _classes_noop(canonify("command_execution_${c_key}")),
                                          unless => "${method_call_condition}";
-    "e8362340-dc50-4231-9b7f-748b51e9fa07_${report_data.directive_id}_${c_key}" usebundle => log_rudder("Skipping method 'Command execution' with key parameter 'echo \"May be executed or not\"' since condition 'file_check_exists__tmp_${file}_kept' is not reached", "echo \"May be executed or not\"", canonify("command_execution_${c_key}"), canonify("command_execution_${c_key}"), @{args}),
+    "e8362340-dc50-4231-9b7f-748b51e9fa07_${report_data.directive_id}_${c_key}" usebundle => log_rudder("Skipping method 'Command execution' with key parameter 'echo \"May be executed or not\"' since condition 'file_check_exists__tmp_${file}_kept' is not reached", "echo \"May be executed or not\"", canonify("command_execution_${c_key}"), canonify("e8362340-dc50-4231-9b7f-748b51e9fa07_${report_data.directive_id}_${c_key}"), @{args}),
                                          unless => "${method_call_condition}";
 
 }

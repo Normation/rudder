@@ -4,12 +4,6 @@
 
 bundle agent escaping(server) {
 
-  vars:
-    "args"              slist => {"${server}"};
-    "report_param"      string => join("_", args);
-    "full_class_prefix" string => canonify("escaping_${report_param}");
-    "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
   classes:
     "pass3" expression => "pass2";
     "pass2" expression => "pass1";
@@ -18,21 +12,21 @@ bundle agent escaping(server) {
   methods:
     "a86ce2e5-d5b6-45cc-87e8-c11cca71d966_${report_data.directive_id}" usebundle => call_escaping_a86ce2e5_d5b6_45cc_87e8_c11cca71d966("${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3
 	", "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3
-	", "a86ce2e5-d5b6-45cc-87e8-c11cca71d966", @{args}, "${class_prefix}", concat("",canonify("${my_cond}"),".debian|",canonify("${sys.${plouf}"),"}"), "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3
+	", "a86ce2e5-d5b6-45cc-87e8-c11cca71d966", @{args}, concat("",canonify("${my_cond}"),".debian|",canonify("${sys.${plouf}"),"}"), "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3
 	", "if(Get-Service \"Zabbix agent\") { write-output \"exists\" }", "", ""),
                                              if => "pass3";
 
     "a86ce2e5-d5b6-45cc-87e8-c11cca71d977_${report_data.directive_id}" usebundle => call_escaping_a86ce2e5_d5b6_45cc_87e8_c11cca71d977("${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3
 	", "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3
-	", "a86ce2e5-d5b6-45cc-87e8-c11cca71d977", @{args}, "${class_prefix}", "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3
+	", "a86ce2e5-d5b6-45cc-87e8-c11cca71d977", @{args}, "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3
 	", "if(Get-Service \"Zabbix agent\") { write-output \"exists\" }", "", ""),
                                              if => "pass3";
 
-    "a86ce2e5-d5b6-45cc-87e8-c11cca71d978_${report_data.directive_id}" usebundle => call_escaping_a86ce2e5_d5b6_45cc_87e8_c11cca71d978("cache_prefix=\"zapache-$UID-${STATUS_URL//[^a-zA-Z0-9_-]/_}\" ", "cache_prefix=\"zapache-$UID-${STATUS_URL//[^a-zA-Z0-9_-]/_}\" ", "a86ce2e5-d5b6-45cc-87e8-c11cca71d978", @{args}, "${class_prefix}", "cache_prefix=\"zapache-$UID-${STATUS_URL//[^a-zA-Z0-9_-]/_}\" ", "plop", "", ""),
+    "a86ce2e5-d5b6-45cc-87e8-c11cca71d978_${report_data.directive_id}" usebundle => call_escaping_a86ce2e5_d5b6_45cc_87e8_c11cca71d978("cache_prefix=\"zapache-$UID-${STATUS_URL//[^a-zA-Z0-9_-]/_}\" ", "cache_prefix=\"zapache-$UID-${STATUS_URL//[^a-zA-Z0-9_-]/_}\" ", "a86ce2e5-d5b6-45cc-87e8-c11cca71d978", @{args}, "cache_prefix=\"zapache-$UID-${STATUS_URL//[^a-zA-Z0-9_-]/_}\" ", "plop", "", ""),
                                              if => "pass3";
 
 }
-bundle agent call_escaping_a86ce2e5_d5b6_45cc_87e8_c11cca71d966(c_name, c_key, report_id, args, class_prefix, method_call_condition, name, version, architecture, provider) {
+bundle agent call_escaping_a86ce2e5_d5b6_45cc_87e8_c11cca71d966(c_name, c_key, report_id, args, method_call_condition, name, version, architecture, provider) {
 
   methods:
     "a86ce2e5-d5b6-45cc-87e8-c11cca71d966_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
@@ -42,18 +36,18 @@ bundle agent call_escaping_a86ce2e5_d5b6_45cc_87e8_c11cca71d966(c_name, c_key, r
                                          unless => "${method_call_condition}";
     "a86ce2e5-d5b6-45cc-87e8-c11cca71d966_${report_data.directive_id}_${c_key}" usebundle => log_rudder("Skipping method 'Package present' with key parameter '${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3
 	' since condition '${my_cond}.debian|${sys.${plouf}}' is not reached", "${sys.host} . | / ${sys.${host}} ' '' ''' $ $$ \" \"\" \\ \\\\😋aà3
-	", canonify("package_present_${c_key}"), canonify("package_present_${c_key}"), @{args}),
+	", canonify("package_present_${c_key}"), canonify("a86ce2e5-d5b6-45cc-87e8-c11cca71d966_${report_data.directive_id}_${c_key}"), @{args}),
                                          unless => "${method_call_condition}";
 
 }
-bundle agent call_escaping_a86ce2e5_d5b6_45cc_87e8_c11cca71d977(c_name, c_key, report_id, args, class_prefix, name, version, architecture, provider) {
+bundle agent call_escaping_a86ce2e5_d5b6_45cc_87e8_c11cca71d977(c_name, c_key, report_id, args, name, version, architecture, provider) {
 
   methods:
     "a86ce2e5-d5b6-45cc-87e8-c11cca71d977_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "a86ce2e5-d5b6-45cc-87e8-c11cca71d977_${report_data.directive_id}_${c_key}" usebundle => package_present("${name}", "${version}", "${architecture}", "${provider}");
 
 }
-bundle agent call_escaping_a86ce2e5_d5b6_45cc_87e8_c11cca71d978(c_name, c_key, report_id, args, class_prefix, name, version, architecture, provider) {
+bundle agent call_escaping_a86ce2e5_d5b6_45cc_87e8_c11cca71d978(c_name, c_key, report_id, args, name, version, architecture, provider) {
 
   methods:
     "a86ce2e5-d5b6-45cc-87e8-c11cca71d978_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");

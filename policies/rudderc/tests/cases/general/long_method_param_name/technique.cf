@@ -3,23 +3,17 @@
 
 bundle agent Windows_long_param_names {
 
-  vars:
-    "args"              slist => {};
-    "report_param"      string => join("_", args);
-    "full_class_prefix" string => canonify("Windows_long_param_names_${report_param}");
-    "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
   classes:
     "pass3" expression => "pass2";
     "pass2" expression => "pass1";
     "pass1" expression => "any";
 
   methods:
-    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => call_Windows_long_param_names_d86ce2e5_d5b6_45cc_87e8_c11cca71d907("Report if condition", "This should be ReportMessage", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907", @{args}, "${class_prefix}", "This should be ReportMessage", "it_generates_properly"),
+    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => call_Windows_long_param_names_d86ce2e5_d5b6_45cc_87e8_c11cca71d907("Report if condition", "This should be ReportMessage", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907", @{args}, "This should be ReportMessage", "it_generates_properly"),
                                              if => "pass3";
 
 }
-bundle agent call_Windows_long_param_names_d86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_key, report_id, args, class_prefix, report_message, condition) {
+bundle agent call_Windows_long_param_names_d86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_key, report_id, args, report_message, condition) {
 
   methods:
     "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");

@@ -3,26 +3,20 @@
 
 bundle agent unsupported_methods {
 
-  vars:
-    "args"              slist => {};
-    "report_param"      string => join("_", args);
-    "full_class_prefix" string => canonify("unsupported_methods_${report_param}");
-    "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
   classes:
     "pass3" expression => "pass2";
     "pass2" expression => "pass1";
     "pass1" expression => "any";
 
   methods:
-    "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532_${report_data.directive_id}" usebundle => call_unsupported_methods_82a3d8ca_bf7c_4b5d_a8e6_4423ecb5f532("Linux user group on Windows", "bob", "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532", @{args}, "${class_prefix}", "windows", "bob", "rudder"),
+    "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532_${report_data.directive_id}" usebundle => call_unsupported_methods_82a3d8ca_bf7c_4b5d_a8e6_4423ecb5f532("Linux user group on Windows", "bob", "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532", @{args}, "windows", "bob", "rudder"),
                                              if => "pass3";
 
-    "0a9dcb32-e310-488c-b3e8-cbcfc6ae284a_${report_data.directive_id}" usebundle => call_unsupported_methods_0a9dcb32_e310_488c_b3e8_cbcfc6ae284a("Powershell exec on Linux", "Write-Host \"hello world\"", "0a9dcb32-e310-488c-b3e8-cbcfc6ae284a", @{args}, "${class_prefix}", "linux", "Write-Host \"hello world\"", "success", ".*"),
+    "0a9dcb32-e310-488c-b3e8-cbcfc6ae284a_${report_data.directive_id}" usebundle => call_unsupported_methods_0a9dcb32_e310_488c_b3e8_cbcfc6ae284a("Powershell exec on Linux", "Write-Host \"hello world\"", "0a9dcb32-e310-488c-b3e8-cbcfc6ae284a", @{args}, "linux", "Write-Host \"hello world\"", "success", ".*"),
                                              if => "pass3";
 
 }
-bundle agent call_unsupported_methods_82a3d8ca_bf7c_4b5d_a8e6_4423ecb5f532(c_name, c_key, report_id, args, class_prefix, method_call_condition, login, group_name) {
+bundle agent call_unsupported_methods_82a3d8ca_bf7c_4b5d_a8e6_4423ecb5f532(c_name, c_key, report_id, args, method_call_condition, login, group_name) {
 
   methods:
     "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
@@ -30,11 +24,11 @@ bundle agent call_unsupported_methods_82a3d8ca_bf7c_4b5d_a8e6_4423ecb5f532(c_nam
                                              if => "${method_call_condition}";
     "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532_${report_data.directive_id}_${c_key}" usebundle => _classes_noop(canonify("user_group_${c_key}")),
                                          unless => "${method_call_condition}";
-    "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532_${report_data.directive_id}_${c_key}" usebundle => log_rudder("Skipping method 'User group' with key parameter 'bob' since condition 'windows' is not reached", "bob", canonify("user_group_${c_key}"), canonify("user_group_${c_key}"), @{args}),
+    "82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532_${report_data.directive_id}_${c_key}" usebundle => log_rudder("Skipping method 'User group' with key parameter 'bob' since condition 'windows' is not reached", "bob", canonify("user_group_${c_key}"), canonify("82a3d8ca-bf7c-4b5d-a8e6-4423ecb5f532_${report_data.directive_id}_${c_key}"), @{args}),
                                          unless => "${method_call_condition}";
 
 }
-bundle agent call_unsupported_methods_0a9dcb32_e310_488c_b3e8_cbcfc6ae284a(c_name, c_key, report_id, args, class_prefix, method_call_condition, command, successRegex, repairedRegex) {
+bundle agent call_unsupported_methods_0a9dcb32_e310_488c_b3e8_cbcfc6ae284a(c_name, c_key, report_id, args, method_call_condition, command, successRegex, repairedRegex) {
 
   methods:
     "0a9dcb32-e310-488c-b3e8-cbcfc6ae284a_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");

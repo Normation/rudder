@@ -3,19 +3,13 @@
 
 bundle agent test_windows(content) {
 
-  vars:
-    "args"              slist => {"${content}"};
-    "report_param"      string => join("_", args);
-    "full_class_prefix" string => canonify("test_windows_${report_param}");
-    "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
   classes:
     "pass3" expression => "pass2";
     "pass2" expression => "pass1";
     "pass1" expression => "any";
 
   methods:
-    "d982a7e6-494a-40a5-aea1-7d9a185eed61_${report_data.directive_id}" usebundle => call_test_windows_d982a7e6_494a_40a5_aea1_7d9a185eed61("File content", "/some/path", "d982a7e6-494a-40a5-aea1-7d9a185eed61", @{args}, "${class_prefix}", "/some/path", "# Raw string
+    "d982a7e6-494a-40a5-aea1-7d9a185eed61_${report_data.directive_id}" usebundle => call_test_windows_d982a7e6_494a_40a5_aea1_7d9a185eed61("File content", "/some/path", "d982a7e6-494a-40a5-aea1-7d9a185eed61", @{args}, "/some/path", "# Raw string
 foo foobar
 # With parameter
 foo ${content} foobar
@@ -28,7 +22,7 @@ ${node.properties[name][key]}", "true"),
                                              if => "pass3";
 
 }
-bundle agent call_test_windows_d982a7e6_494a_40a5_aea1_7d9a185eed61(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+bundle agent call_test_windows_d982a7e6_494a_40a5_aea1_7d9a185eed61(c_name, c_key, report_id, args, path, lines, enforce) {
 
   methods:
     "d982a7e6-494a-40a5-aea1-7d9a185eed61_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
