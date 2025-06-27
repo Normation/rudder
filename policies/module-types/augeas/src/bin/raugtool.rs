@@ -147,9 +147,7 @@ pub struct Cli {
 /// rudder-module-augeas 8.3.0 (augeas: 1.14.1)
 /// ```
 fn version(augeas_version: String) -> String {
-    format!(
-        "{CRATE_NAME} {CRATE_VERSION} (augeas: {augeas_version})"
-    )
+    format!("{CRATE_NAME} {CRATE_VERSION} (augeas: {augeas_version})")
 }
 
 impl Cli {

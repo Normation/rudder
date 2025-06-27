@@ -440,9 +440,7 @@ impl Expression {
                 let key = a.fmt(target);
                 match target {
                     Target::Unix => format!("${{rudder.parameters[{key}]}}"),
-                    Target::Windows => {
-                        nustache_render(&format!("{{{{rudder.parameters.{key}}}}}"))
-                    }
+                    Target::Windows => nustache_render(&format!("{{{{rudder.parameters.{key}}}}}")),
                 }
             }
             Self::Sys(e) => match target {

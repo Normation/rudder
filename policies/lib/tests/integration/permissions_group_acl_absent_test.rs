@@ -90,9 +90,7 @@ fn it_should_not_remove_group_acl_entry_from_file_in_audit() {
 
     assert_eq!(
         PosixACL::read_acl(file_path_str).unwrap().as_text(),
-        format!(
-            "user::rw-\ngroup::r--\ngroup:{current_group_name}:r--\nmask::r--\nother::r--\n"
-        ),
+        format!("user::rw-\ngroup::r--\ngroup:{current_group_name}:r--\nmask::r--\nother::r--\n"),
         "Group ACL entry for GID {} was not removed as expected",
         current_gid
     );
@@ -135,9 +133,7 @@ fn it_should_success_in_audit_if_the_acl_is_absent() {
 
     assert_eq!(
         PosixACL::read_acl(file_path_str).unwrap().as_text(),
-        format!(
-            "user::rw-\nuser:{current_user_name}:r--\ngroup::r--\nmask::r--\nother::r--\n"
-        ),
+        format!("user::rw-\nuser:{current_user_name}:r--\ngroup::r--\nmask::r--\nother::r--\n"),
         "Group ACL entry for GID {} was somehow present",
         current_group_name
     );

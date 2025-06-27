@@ -80,9 +80,7 @@ pub fn hash(data: String, algorithm: Option<&str>) -> Result<String, Error> {
         x => {
             return Err(Error::new(
                 ErrorKind::UnknownMethod,
-                format!(
-                    "hash filter does not implement the '{x}' cryptographic hash function"
-                ),
+                format!("hash filter does not implement the '{x}' cryptographic hash function"),
             ));
         }
     };
