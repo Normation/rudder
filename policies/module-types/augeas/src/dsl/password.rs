@@ -62,7 +62,7 @@ impl PasswordPolicy {
 
                 let password_len = password.expose_secret().len();
                 if password_len < *t as usize {
-                    errors.push(format!("it is too short: {} < {}", password_len, t));
+                    errors.push(format!("it is too short: {password_len} < {t}"));
                 }
                 if *l > 0u8 {
                     let l_count = password
@@ -72,8 +72,7 @@ impl PasswordPolicy {
                         .count();
                     if l_count < *l as usize {
                         errors.push(format!(
-                            "it does not contain enough lowercase characters: {} < {}",
-                            l_count, l
+                            "it does not contain enough lowercase characters: {l_count} < {l}"
                         ));
                     }
                 }
@@ -85,8 +84,7 @@ impl PasswordPolicy {
                         .count();
                     if u_count < *u as usize {
                         errors.push(format!(
-                            "it does not contain enough uppercase characters: {} < {}",
-                            u_count, u
+                            "it does not contain enough uppercase characters: {u_count} < {u}"
                         ));
                     }
                 }
@@ -98,8 +96,7 @@ impl PasswordPolicy {
                         .count();
                     if d_count < *d as usize {
                         errors.push(format!(
-                            "it does not contain enough digits: {} < {}",
-                            d_count, d
+                            "it does not contain enough digits: {d_count} < {d}"
                         ));
                     }
                 }
@@ -111,8 +108,7 @@ impl PasswordPolicy {
                         .count();
                     if s_count < *s as usize {
                         errors.push(format!(
-                            "it does not contain enough special characters: {} < {}",
-                            s_count, s
+                            "it does not contain enough special characters: {s_count} < {s}"
                         ));
                     }
                 }

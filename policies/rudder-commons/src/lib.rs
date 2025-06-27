@@ -362,8 +362,7 @@ impl PolicyMode {
             "audit" => Ok(Some(PolicyMode::Audit)),
             "none" => Ok(None),
             _ => Err(Error::custom(format!(
-                "Could not parse policy mode '{}'",
-                string
+                "Could not parse policy mode '{string}'"
             ))),
         })
     }

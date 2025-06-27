@@ -251,19 +251,16 @@ fn it_can_copy_a_folder() {
     r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Repaired]);
     assert!(
         destination_folder.is_dir(),
-        "The folder '{}' should exists",
-        destination_folder_path
+        "The folder '{destination_folder_path}' should exists"
     );
     assert!(
         destination_file.is_file(),
-        "The file '{}' should exists",
-        destination_file_path
+        "The file '{destination_file_path}' should exists"
     );
     assert_eq!(
         read_to_string(destination_file_path).unwrap(),
         "Hello world 👋!".to_string(),
-        "The file '{}' content should have been updated by the method execution",
-        destination_file_path
+        "The file '{destination_file_path}' content should have been updated by the method execution"
     );
     end_test(workdir);
 }
@@ -300,19 +297,16 @@ fn it_can_detect_a_folder_is_not_a_copy_in_audit() {
     r.assert_legacy_result_conditions(tested_method, vec![MethodStatus::Error]);
     assert!(
         destination_folder.is_dir(),
-        "The folder '{}' should exists",
-        destination_folder_path
+        "The folder '{destination_folder_path}' should exists"
     );
     assert!(
         destination_file.is_file(),
-        "The file '{}' should exists",
-        destination_file_path
+        "The file '{destination_file_path}' should exists"
     );
     assert_eq!(
         read_to_string(destination_file_path).unwrap(),
         "Bye bye world 👋!".to_string(),
-        "The file '{}' content should not have been updated by the method execution",
-        destination_file_path
+        "The file '{destination_file_path}' content should not have been updated by the method execution"
     );
     end_test(workdir);
 }

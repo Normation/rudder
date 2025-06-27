@@ -113,7 +113,7 @@ impl Cli {
                 }
                 for event_id in s.events {
                     let event = db.event(event_id)?;
-                    println!("{}", event);
+                    println!("{event}");
                 }
             }
             Some(Command::Run(opts)) => {

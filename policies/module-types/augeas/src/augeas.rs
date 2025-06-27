@@ -249,14 +249,14 @@ impl Augeas {
                         InterpreterOutcome::Ok => {}
                         InterpreterOutcome::CheckErrors(errors) => {
                             for e in errors {
-                                report.push_str(format!("{:?}", e).as_str());
+                                report.push_str(format!("{e:?}").as_str());
                             }
                             is_err = true;
                         }
                     }
                 }
                 Err(e) => {
-                    report.push_str(format!("{:?}\n", e).as_str());
+                    report.push_str(format!("{e:?}\n").as_str());
                     is_err = true;
                 }
             }
@@ -304,7 +304,7 @@ impl Augeas {
                 if p.show_file_content {
                     rudder_info!("Diff:\n{:?}\n", diff);
                 }
-                report.push_str(format!("File modified:\n{}\n", diff).as_str());
+                report.push_str(format!("File modified:\n{diff}\n").as_str());
             }
             different
         } else {

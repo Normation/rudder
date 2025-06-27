@@ -160,7 +160,7 @@ pub fn method_call(
     };
 
     // Calling bundle
-    let bundle_name = format!("call_{}_{}", technique_id, c_id);
+    let bundle_name = format!("call_{technique_id}_{c_id}");
     let mut call_parameters = vec![
         quoted(&report_component),
         quoted(&report_parameter),

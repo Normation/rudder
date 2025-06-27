@@ -249,7 +249,7 @@ impl Report {
         self.stdout_lines(res.stdout.as_slice());
         self.stderr_lines(res.stderr.as_slice());
         if let Err(ref e) = res.inner {
-            self.stderr(format!("{:?}", e));
+            self.stderr(format!("{e:?}"));
         }
         self.status = match (self.status, res.inner.is_ok()) {
             (Status::Error, _) => Status::Error,

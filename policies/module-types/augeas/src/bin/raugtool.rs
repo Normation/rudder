@@ -147,10 +147,7 @@ pub struct Cli {
 /// rudder-module-augeas 8.3.0 (augeas: 1.14.1)
 /// ```
 fn version(augeas_version: String) -> String {
-    format!(
-        "{} {} (augeas: {})",
-        CRATE_NAME, CRATE_VERSION, augeas_version
-    )
+    format!("{CRATE_NAME} {CRATE_VERSION} (augeas: {augeas_version})")
 }
 
 impl Cli {
@@ -165,7 +162,7 @@ impl Cli {
             let flags = Flags::NO_MODULE_AUTOLOAD;
             let aug = Augeas::new_aug::<&str>(None, &[], flags)?;
             let version = version(aug.version()?);
-            println!("{}", version);
+            println!("{version}");
             return Ok(());
         }
 

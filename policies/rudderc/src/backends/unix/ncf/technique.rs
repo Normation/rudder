@@ -75,7 +75,7 @@ impl fmt::Display for Technique {
             writeln!(f, "# @description {}", self.description.as_ref().unwrap())?;
         }
         for bundle in &self.bundles {
-            write!(f, "\n{}", bundle)?;
+            write!(f, "\n{bundle}")?;
         }
         writeln!(f)?;
         Ok(())

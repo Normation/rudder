@@ -61,7 +61,7 @@ impl Unix {
                 .collect(),
         );
         let call = Bundle::agent("main").promise_group(vec![init, policy_mode, technique_call]);
-        format!("{static_prelude}\n{}", call)
+        format!("{static_prelude}\n{call}")
     }
 }
 
