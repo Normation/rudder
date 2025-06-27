@@ -92,7 +92,7 @@ pub struct RunLog {
 impl Display for RunLog {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for report in &self.reports {
-            writeln!(f, "R: {:}", report)?
+            writeln!(f, "R: {report:}")?
         }
         Ok(())
     }
@@ -164,7 +164,7 @@ impl TryFrom<(RunInfo, &str)> for RunLog {
             }
             Err(e) => {
                 warn!("{:?}: could not parse '{}'", e, raw_reports.0);
-                Err(RudderError::InvalidRunLog(format!("{:?}", e)).into())
+                Err(RudderError::InvalidRunLog(format!("{e:?}")).into())
             }
         }
     }

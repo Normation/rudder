@@ -291,16 +291,14 @@ impl ModuleType0 for Template {
 
             if reported_diff.len() > max_reported_diff {
                 format!(
-                    "Changes to {} could not be reported. The diff output exceeds the maximum size limit.",
-                    output_file_d
+                    "Changes to {output_file_d} could not be reported. The diff output exceeds the maximum size limit."
                 )
             } else {
                 reported_diff
             }
         } else {
             format!(
-                "Changes to {} could not be reported. The diff output is disabled.",
-                output_file_d
+                "Changes to {output_file_d} could not be reported. The diff output is disabled."
             )
         };
 

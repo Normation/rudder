@@ -22,10 +22,9 @@ impl ExecutionResult {
         for c in expected_conditions.clone() {
             assert!(
                 self.conditions.contains(&c),
-                "Could not find the expected result condition '{}'",
-                c
+                "Could not find the expected result condition '{c}'"
             );
-            debug!("Found expected result condition '{}'", c);
+            debug!("Found expected result condition '{c}'");
         }
         let pattern = method_call.get_result_condition_prefix();
         let matching: Vec<String> = self
@@ -52,8 +51,7 @@ impl ExecutionResult {
         for expected_pattern in expected_conditions.clone() {
             assert!(
                 self.conditions.iter().any(|c| expected_pattern.is_match(c)),
-                "Could not find the expected result condition '{}'",
-                expected_pattern
+                "Could not find the expected result condition '{expected_pattern}'"
             );
             debug!(
                 "Found expected log v4 result condition '{}'",

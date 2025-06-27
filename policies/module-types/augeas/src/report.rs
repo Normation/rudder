@@ -104,16 +104,16 @@ impl<'a> Report<'a> {
             ));
 
             if let Some(diff) = &event.diff {
-                s.push_str(&format!("Diff:\n{}\n", diff));
+                s.push_str(&format!("Diff:\n{diff}\n"));
             }
         }
 
         for non_compliance in &self.non_compliances {
-            s.push_str(&format!("Non-compliance: {}\n", non_compliance));
+            s.push_str(&format!("Non-compliance: {non_compliance}\n"));
         }
 
         for error in &self.errors {
-            s.push_str(&format!("Error: {}\n", error));
+            s.push_str(&format!("Error: {error}\n"));
         }
 
         s
@@ -173,7 +173,7 @@ mod tests {
             }],
         }
         .human_format();
-        println!("{}", report);
+        println!("{report}");
         // FIXME add assertions
     }
 }

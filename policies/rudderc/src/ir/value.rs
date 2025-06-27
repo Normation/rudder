@@ -64,7 +64,7 @@ pub fn known_vars() -> &'static serde_yaml::Value {
 }
 
 fn nustache_render(s: &str) -> String {
-    format!("[Rudder.Datastate]::Render('{{{{{{' + {} + '}}}}}}')", s)
+    format!("[Rudder.Datastate]::Render('{{{{{{' + {s} + '}}}}}}')")
 }
 
 /// Rudder variable expression.
@@ -439,9 +439,9 @@ impl Expression {
                 let a = *p.to_owned();
                 let key = a.fmt(target);
                 match target {
-                    Target::Unix => format!("${{rudder.parameters[{}]}}", key),
+                    Target::Unix => format!("${{rudder.parameters[{key}]}}"),
                     Target::Windows => {
-                        nustache_render(&format!("{{{{rudder.parameters.{}}}}}", key))
+                        nustache_render(&format!("{{{{rudder.parameters.{key}}}}}"))
                     }
                 }
             }
@@ -469,7 +469,7 @@ impl Expression {
                 Target::Unix => {
                     let a = *e.to_owned();
                     let key = a.fmt(target);
-                    format!("${{const.{}}}", key)
+                    format!("${{const.{key}}}")
                 }
                 Target::Windows => Expression::GenericVar(vec![
                     Expression::Scalar("const".to_string()),
@@ -481,7 +481,7 @@ impl Expression {
                 Target::Unix => {
                     let a = *e.to_owned();
                     let key = a.fmt(target);
-                    format!("${{ncf_const.{}}}", key)
+                    format!("${{ncf_const.{key}}}")
                 }
                 Target::Windows => Expression::GenericVar(vec![
                     Expression::Scalar("ncf_const".to_string()),

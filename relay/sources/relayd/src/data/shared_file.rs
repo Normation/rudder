@@ -61,22 +61,18 @@ impl SharedFile {
         // More than enough for node ids too but we don't have a precise spec
         let check = Regex::new(r"^[A-Za-z0-9\-_.]+$").unwrap();
         if !check.is_match(&source_id) {
-            return Err(RudderError::InvalidSharedFile(format!(
-                "invalid source_id: {}",
-                source_id
-            ))
-            .into());
+            return Err(
+                RudderError::InvalidSharedFile(format!("invalid source_id: {source_id}",)).into(),
+            );
         }
         if !check.is_match(&target_id) {
-            return Err(RudderError::InvalidSharedFile(format!(
-                "invalid target_id: {}",
-                target_id
-            ))
-            .into());
+            return Err(
+                RudderError::InvalidSharedFile(format!("invalid target_id: {target_id}",)).into(),
+            );
         }
         if !check.is_match(&file_id) {
             return Err(
-                RudderError::InvalidSharedFile(format!("invalid file_id: {}", file_id)).into(),
+                RudderError::InvalidSharedFile(format!("invalid file_id: {file_id}")).into(),
             );
         }
         Ok(SharedFile {
@@ -130,7 +126,7 @@ impl fmt::Display for Metadata {
         writeln!(f, "keydate={}", &self.key_date)?;
         writeln!(f, "keyid={}", &self.key_id)?;
         if let Some(expires) = self.expires {
-            writeln!(f, "expires={}", expires)?;
+            writeln!(f, "expires={expires}")?;
         }
         Ok(())
     }
@@ -199,11 +195,8 @@ impl FromStr for Metadata {
 impl Metadata {
     fn parse_pubkey(short_key: &str) -> Result<PKey<Public>, ErrorStack> {
         PKey::from_rsa(Rsa::public_key_from_pem_pkcs1(
-            format!(
-                "-----BEGIN RSA PUBLIC KEY-----\n{}\n-----END RSA PUBLIC KEY-----\n",
-                short_key
-            )
-            .as_bytes(),
+            format!("-----BEGIN RSA PUBLIC KEY-----\n{short_key}\n-----END RSA PUBLIC KEY-----\n",)
+                .as_bytes(),
         )?)
     }
 

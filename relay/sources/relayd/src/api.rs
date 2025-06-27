@@ -139,10 +139,7 @@ async fn customize_error(reject: Rejection) -> Result<impl Reply, Rejection> {
             StatusCode::NOT_FOUND,
         ))
     } else if let Some(e) = reject.find::<RudderReject>() {
-        Ok(reply::with_status(
-            format!("{}", e),
-            StatusCode::BAD_REQUEST,
-        ))
+        Ok(reply::with_status(format!("{e}"), StatusCode::BAD_REQUEST))
     } else if let Some(_e) = reject.find::<reject::MethodNotAllowed>() {
         // TODO find why we only have MethodNotAllowed when file in found in fs::dir
         Ok(reply::with_status(
@@ -151,7 +148,7 @@ async fn customize_error(reject: Rejection) -> Result<impl Reply, Rejection> {
         ))
     } else {
         Ok(reply::with_status(
-            format!("{:?}", reject),
+            format!("{reject:?}"),
             StatusCode::INTERNAL_SERVER_ERROR,
         ))
     }

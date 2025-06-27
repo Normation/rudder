@@ -140,7 +140,7 @@ pub fn method(method_name: &str, args: &[&str]) -> MethodToTest {
     let lib = get_lib();
     let method_info = lib
         .get(method_name)
-        .unwrap_or_else(|| panic!("Method info not found for: {}", method_name));
+        .unwrap_or_else(|| panic!("Method info not found for: {method_name}"));
     assert_eq!(
         method_info.parameter.len(),
         args.len(),

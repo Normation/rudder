@@ -253,7 +253,7 @@ fn update(
     let services_list = match services.inner {
         Ok(ref p) => p.clone(),
         Err(ref e) => {
-            eprintln!("{}", e);
+            eprintln!("{e}");
             vec![]
         }
     };

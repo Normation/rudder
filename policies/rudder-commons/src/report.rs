@@ -236,7 +236,7 @@ impl Report {
                 let (reports, failed): (Vec<_>, Vec<_>) =
                     run_log.into_iter().partition(Result::is_ok);
                 for invalid_report in failed.into_iter().map(Result::unwrap_err) {
-                    eprintln!("Invalid report: {}", invalid_report);
+                    eprintln!("Invalid report: {invalid_report}");
                 }
                 let reports: Vec<Report> = reports.into_iter().map(Result::unwrap).collect();
                 Ok(reports)

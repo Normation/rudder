@@ -113,7 +113,7 @@ impl fmt::Display for Bundle {
             .iter()
             .filter_map(|t| self.promises.get(t).map(|p| (t, p)))
         {
-            writeln!(f, "  {}:", promise_type)?;
+            writeln!(f, "  {promise_type}:")?;
 
             for group in promises {
                 // Align promise groups

@@ -144,7 +144,7 @@ impl Runner {
                 }
                 Err(e) => {
                     // Send the report to server
-                    fail_campaign(&format!("{:?}", e), self.parameters.report_file.as_ref())?;
+                    fail_campaign(&format!("{e:?}"), self.parameters.report_file.as_ref())?;
                     return Err(e);
                 }
             }

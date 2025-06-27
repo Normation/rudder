@@ -18,7 +18,7 @@ pub fn b64decode(encoded: String) -> Result<String, Error> {
     let d = BASE64_STANDARD.decode(&encoded).map_err(|e| {
         Error::new(
             ErrorKind::CannotDeserialize,
-            format!("cannot decode base64: {}", encoded),
+            format!("cannot decode base64: {encoded}"),
         )
         .with_source(e)
     })?;
@@ -65,7 +65,7 @@ pub fn urldecode(encoded: String) -> Result<String, Error> {
     let d = decode(&encoded).map_err(|e| {
         Error::new(
             ErrorKind::CannotDeserialize,
-            format!("cannot decode url encoded: {}", encoded),
+            format!("cannot decode url encoded: {encoded}"),
         )
         .with_source(e)
     })?;
@@ -81,8 +81,7 @@ pub fn hash(data: String, algorithm: Option<&str>) -> Result<String, Error> {
             return Err(Error::new(
                 ErrorKind::UnknownMethod,
                 format!(
-                    "hash filter does not implement the '{}' cryptographic hash function",
-                    x
+                    "hash filter does not implement the '{x}' cryptographic hash function"
                 ),
             ));
         }
@@ -94,7 +93,7 @@ pub fn quote(data: String) -> Result<String, Error> {
     let s = try_quote(&data).map_err(|e| {
         Error::new(
             ErrorKind::BadSerialization,
-            format!("could not quote: '{}'", data),
+            format!("could not quote: '{data}'"),
         )
         .with_source(e)
     })?;
@@ -115,7 +114,7 @@ pub fn regex_replace(
     let r = Regex::new(&regex).map_err(|e| {
         Error::new(
             ErrorKind::SyntaxError,
-            format!("could not compile regex: {}", regex),
+            format!("could not compile regex: {regex}"),
         )
         .with_source(e)
     })?;

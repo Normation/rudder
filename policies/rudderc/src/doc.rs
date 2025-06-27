@@ -142,7 +142,7 @@ pub mod book {
             }
 
             // Category method index
-            let md_file = format!("{}.md", category);
+            let md_file = format!("{category}.md");
             let mut file = File::create(src_dir.join(&md_file))?;
             writeln!(file, "# {pretty_category}")?;
             for (_, m) in methods.iter().filter(|(n, _)| n.starts_with(category)) {

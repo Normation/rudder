@@ -76,8 +76,7 @@ fn it_should_repair_if_directory_missing_in_enforce_mode() {
 
     assert!(
         target_dir.exists() && target_dir.is_dir(),
-        "Directory '{}' should be created by directory_present",
-        target_str
+        "Directory '{target_str}' should be created by directory_present"
     );
 
     end_test(workdir);

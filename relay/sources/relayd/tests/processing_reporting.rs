@@ -41,7 +41,7 @@ pub fn check_prometheus(metrics: &str, mut expected: HashMap<&str, &str>) -> boo
 
         if let Some(rvalue) = expected.get(name) {
             if *rvalue != value {
-                println!("{} should equal {} but is {}", name, rvalue, value);
+                println!("{name} should equal {rvalue} but is {value}");
                 is_ok = false;
             }
             expected.remove(name);
@@ -50,7 +50,7 @@ pub fn check_prometheus(metrics: &str, mut expected: HashMap<&str, &str>) -> boo
 
     for key in expected.keys() {
         is_ok = false;
-        println!("{} should be present but is not there", key);
+        println!("{key} should be present but is not there");
     }
 
     is_ok
