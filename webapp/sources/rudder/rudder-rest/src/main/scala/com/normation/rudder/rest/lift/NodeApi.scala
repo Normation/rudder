@@ -135,7 +135,6 @@ import scalaj.http.Http
 import scalaj.http.HttpOptions
 import scalaj.http.HttpRequest
 import zio.{System as _, *}
-import zio.json.DeriveJsonEncoder
 import zio.json.JsonEncoder
 import zio.stream.ZSink
 import zio.syntax.*
@@ -254,11 +253,7 @@ class NodeApi(
       implicit val qc: QueryContext = authzToken.qc
 
       implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = {
-        if (version.value < 20) {
-          JRNodeDetailsLevelV19Encoders.finalEncoder
-        } else {
-          com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
-        }
+        com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
       }
 
       (for {
@@ -276,7 +271,6 @@ class NodeApi(
 
   object NodeInheritedProperties extends LiftApiModule {
     val schema: OneParam = API.NodeInheritedProperties
-    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -296,7 +290,6 @@ class NodeApi(
 
   object NodeDisplayInheritedProperties extends LiftApiModule {
     val schema: OneParam = API.NodeDisplayInheritedProperties
-    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -316,7 +309,6 @@ class NodeApi(
 
   object PendingNodeDetails extends LiftApiModule {
     val schema: OneParam = API.PendingNodeDetails
-    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -447,11 +439,7 @@ class NodeApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val qc:                     QueryContext                   = authzToken.qc
       implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = {
-        if (version.value < 20) {
-          JRNodeDetailsLevelV19Encoders.finalEncoder
-        } else {
-          com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
-        }
+        com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
       }
       val state = AcceptedInventory
       (for {
@@ -477,11 +465,7 @@ class NodeApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val qc:                     QueryContext                   = authzToken.qc
       implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = {
-        if (version.value < 20) {
-          JRNodeDetailsLevelV19Encoders.finalEncoder
-        } else {
-          com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
-        }
+        com.normation.rudder.apidata.implicits.nodeDetailLevelEncoder
       }
       val state = PendingInventory
       (for {
@@ -585,7 +569,6 @@ class NodeApi(
 
   object GetNodeGlobalScore extends LiftApiModule {
     val schema: API.NodeGlobalScore.type = API.NodeGlobalScore
-    val restExtractor = zioJsonExtractor
 
     def process(
         version:    ApiVersion,
@@ -595,7 +578,7 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      import ScoreSerializer.*
+      import com.normation.rudder.score.ScoreSerializer.*
       (for {
         score <- nodeApiService.getNodeGlobalScore(NodeId(id))(authzToken.qc)
       } yield {
@@ -606,7 +589,6 @@ class NodeApi(
 
   object GetNodeScoreDetails extends LiftApiModule {
     val schema: API.NodeScoreDetails.type = API.NodeScoreDetails
-    val restExtractor = zioJsonExtractor
 
     def process(
         version:    ApiVersion,
@@ -616,7 +598,7 @@ class NodeApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      import ScoreSerializer.*
+      import com.normation.rudder.score.ScoreSerializer.*
       import com.normation.rudder.rest.implicits.*
       nodeApiService.getNodeDetailsScore(NodeId(id))(authzToken.qc).toLiftResponseOne(params, schema, _ => Some(id))
     }
@@ -624,7 +606,6 @@ class NodeApi(
 
   object GetNodeScoreDetail extends LiftApiModuleString2 {
     val schema: API.NodeScoreDetail.type = API.NodeScoreDetail
-    val restExtractor = zioJsonExtractor
 
     def process(
         version:    ApiVersion,
@@ -636,7 +617,7 @@ class NodeApi(
     ): LiftResponse = {
       // implicit val action = "getNodeGlobalScore"
       // implicit val prettify = params.prettify
-      import ScoreSerializer.*
+      import com.normation.rudder.score.ScoreSerializer.*
       val (nodeId, scoreId) = id
       (for {
         allDetails <- nodeApiService.getNodeDetailsScore(NodeId(nodeId))(authzToken.qc)
@@ -672,7 +653,6 @@ class NodeApi(
 
   object NodeDetailsSoftware extends LiftApiModule {
     val schema: OneParam = API.NodeDetailsSoftware
-    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -699,7 +679,6 @@ class NodeApi(
   }
   object NodeDetailsProperty extends LiftApiModule {
     val schema: OneParam = API.NodeDetailsProperty
-    val restExtractor = zioJsonExtractor
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -723,16 +702,6 @@ class NodeApi(
         RudderJsonResponse.LiftJsonResponse(_, params.prettify, 200)
       )
     }
-  }
-
-  // We need to derive the whole tree of datastructures again when using the older version of inventory JSON tree
-  object JRNodeDetailsLevelV19Encoders {
-    import com.normation.inventory.domain.JsonSerializers.older_implicits.*
-    import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
-    import com.normation.utils.DateFormaterService.json.*
-
-    implicit val finalEncoder: JsonEncoder[JRNodeDetailLevel] =
-      DeriveJsonEncoder.gen[JRNodeDetailLevel]
   }
 
   private def extractReason(restNode: JQUpdateNode): IOResult[Option[String]] = {

@@ -2050,25 +2050,6 @@ object RudderConfigInit {
       )
     }
 
-    /*
-     * API versions are incremented each time incompatible changes are made (like adding or deleting endpoints - modification
-     * of an existing endpoint, if done in a purely compatible way, don't change api version).
-     * It may happen that some rudder branches don't have a version bump, and other have several (in case of
-     * horrible breaking bugs). We avoid the case where a previous release need a version bump.
-     * For ex:
-     * - 5.0: 14
-     * - 5.1: 14 (no change)
-     * - 5.2[.0~.4]: 15
-     * - 5.2.5: 16
-     */
-    lazy val ApiVersions: List[ApiVersion] = {
-      ApiVersion(18, deprecated = true) ::  // rudder 8.0 - allowed network
-      ApiVersion(19, deprecated = true) ::  // rudder 8.1 - (score), tenants
-      ApiVersion(20, deprecated = true) ::  // rudder 8.2 - zio-json
-      ApiVersion(21, deprecated = false) :: // rudder 8.3 - zio-json, api accounts,new authorization model
-      Nil
-    }
-
     lazy val pluginsIndexFile     = root / "var" / "rudder" / "packages" / "index.json"
     lazy val jsonPluginDefinition = new ReadPluginPackageInfo(pluginsIndexFile)
 
@@ -2334,7 +2315,7 @@ object RudderConfigInit {
 
       val api = new LiftHandler(
         apiDispatcher,
-        ApiVersions,
+        SupportedApiVersion.apiVersions,
         new AclApiAuthorization(LiftApiProcessingLogger, userService, () => apiAuthorizationLevelService.aclEnabled),
         None
       )
@@ -3881,7 +3862,7 @@ object RudderConfigInit {
       linkUtil,
       userRepository,
       userService,
-      ApiVersions,
+      SupportedApiVersion.apiVersions,
       apiDispatcher,
       configurationRepository,
       roParameterService,

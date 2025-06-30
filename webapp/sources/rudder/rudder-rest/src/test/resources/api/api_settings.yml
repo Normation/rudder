@@ -63,101 +63,6 @@ response:
       }
     }
 ---
-description: Get allowed networks - old format api
-method: GET
-url: /api/17/settings/allowed_networks
-response:
-  code: 200
-  content: >-
-    {
-      "action":"getAllAllowedNetworks",
-      "result":"success",
-      "data":{
-        "settings":[
-          {
-            "id":"root",
-            "allowed_networks":[
-              "192.168.2.0/32"
-            ]
-          },
-          {
-            "id":"node-dsc",
-            "allowed_networks":[
-
-            ]
-          }
-        ]
-      }
-    }
----
-description: Get allowed networks for root - old api format
-method: GET
-url: /api/17/settings/allowed_networks/root
-response:
-  code: 200
-  content: >-
-    {
-      "action":"getAllowedNetworks",
-      "id":"root",
-      "result":"success",
-      "data":{
-        "settings":{"allowed_networks":["192.168.2.0/32"]}
-      }
-    }
----
-description: Set allowed networks for root - old api format
-method: POST
-url: /api/17/settings/allowed_networks/root
-headers:
-  - "Content-Type: application/json"
-body: >-
-  {
-    "allowed_networks": [
-      "192.168.1.0/24",
-      "192.168.2.0/32"
-    ]
-  }
-response:
-  code: 200
-  content: >-
-    {
-      "action":"modifyAllowedNetworks",
-      "id":"root",
-      "result":"success",
-      "data":{
-        "settings":["192.168.1.0/24","192.168.2.0/32"]
-      }
-    }
----
-description: Modify allowed networks for root - old api format
-method: POST
-url: /api/17/settings/allowed_networks/root/diff
-headers:
-  - "Content-Type: application/json"
-body: >-
-  {
-    "allowed_networks": {
-      "add": [
-        "192.168.2.0/24",
-        "192.168.0.0/16"
-      ],
-      "delete": [
-        "192.168.1.0/24"
-      ]
-    }
-  }
-response:
-  code: 200
-  content: >-
-    {
-      "action":"modifyDiffAllowedNetworks",
-      "id":"root",
-      "result":"success",
-      "data":{
-        "settings":["192.168.0.0/16","192.168.2.0/24","192.168.2.0/32"]
-      }
-    }
----
 description: Get allowed networks
 method: GET
 url: /api/latest/settings/allowed_networks
@@ -172,8 +77,6 @@ response:
           {
             "id":"root",
             "allowed_networks":[
-              "192.168.0.0/16",
-              "192.168.2.0/24",
               "192.168.2.0/32"
             ]
           },
@@ -199,8 +102,6 @@ response:
       "result":"success",
       "data":{
         "allowed_networks":[
-          "192.168.0.0/16",
-          "192.168.2.0/24",
           "192.168.2.0/32"
         ]
       }

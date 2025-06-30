@@ -162,14 +162,7 @@ class SystemApi(
 
       systemInfoService
         .getAll()
-        .map { i =>
-          // at version 21, in Rudder 8.3 we introduce about page with more info
-          (if (version.value < 21) {
-             AboutInfoJsonV20(AboutRudderInfoJsonV20.transformSystemInfo.transform(i))
-           } else {
-             SystemInfoJson.transformSystemInfo.transform(i)
-           }): SystemInfoJson
-        }
+        .map(i => SystemInfoJson.transformSystemInfo.transform(i))
         .toLiftResponseOne(params, schema, None)
     }
   }

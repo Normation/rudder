@@ -1,22 +1,4 @@
 ---
-description: Get system info for Rudder prior to Rudder 8.3 (API V20)
-method: GET
-url: /api/20/system/info
-response:
-  code: 200
-  content: >-
-    {
-      "action":"info",
-      "result":"success",
-      "data":{
-        "rudder" : {
-          "major-version" : "8.3",
-          "full-version" : "8.3.0",
-          "build-time" : "2025-01-05T21:53:20+01:00"
-        }
-      }
-    }
----
 description: Get system info for Rudder 8.3 (API V21)
 method: GET
 url: /api/latest/system/info
