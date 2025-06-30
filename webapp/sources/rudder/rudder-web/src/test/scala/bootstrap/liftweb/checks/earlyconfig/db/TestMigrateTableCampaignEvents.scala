@@ -245,99 +245,21 @@ class TestMigrateTableCampaignEvents extends DBCommon {
         transactIOResult(s"step3")(xa => MigrateTableCampaignEvents.sql3.update.run.transact(xa))
       ).either.runNow
 
-      val sql = sql"""SELECT eventid, state, startDate, endDate, data from CampaignEventsStateHistory"""
-
       // we should have details for all skipped
       step3 must beRight
 
-      doobie.transactRunEither(sql.query[EventHistory].to[Seq].transact(_)) must beRight(
+      val sql1 = sql"""SELECT eventid, state, startDate, endDate, data from CampaignEventsStateHistory"""
+
+      doobie.transactRunEither(sql1.query[EventHistory].to[Seq].transact(_)) must beRight(
         containTheSameElementsAs(history)
       )
+
+      // jsonstate column was deleted
+      val sql2 = sql"""SELECT jsontate from CampaignEvents"""
+      val res  = doobie.transactRunEither(sql2.query[EventHistory].to[Seq].transact(_))
+
+      // for some reason, the "matching" matcher does not work here
+      res must beLeft
     }
   }
 }
-
-//    "migrate all columns successfully" in {
-//      migrateChangeValidation.migrateAsync.runNow.join.runNow
-//
-//      doobie.transactRunEither(
-//        (sql"""
-//          SELECT DISTINCT column_name, is_nullable
-//          FROM INFORMATION_SCHEMA.COLUMNS
-//        """ ++ whereOr(
-//          and(fr"table_name = ${tempCRTableName}", fr"column_name = 'content'"),
-//          and(fr"table_name = ${tempWorkflowTableName}", fr"column_name = 'id'"),
-//          and(fr"table_name = ${tempWorkflowTableName}", fr"column_name = 'state'")
-//        ))
-//          .query[(String, String)]
-//          .to[List]
-//          .transact(_)
-//      ) match {
-//        case Right(res) =>
-//          res must containTheSameElementsAs(
-//            List(
-//              ("content", "NO"),
-//              ("id", "NO"),
-//              ("state", "NO")
-//            )
-//          )
-//        case Left(ex)   =>
-//          ko(
-//            s"The migration of 'ChangeRequest' and 'Workflow' tables does not add NOT NULL constraint to all columns with error : ${ex.getMessage}"
-//          )
-//      }
-//    }
-//
-//    "catch all migration errors" in {
-//      lazy val migrateChangeValidation =
-//        new MigrateChangeValidationEnforceSchemaTempTable(doobie, Some(ZIO.fail(new Exception("some database error"))))
-//
-//      Try(migrateChangeValidation.migrateAsync.runNow.join.runNow) match {
-//        case Failure(_)  => ko("The parent program should not fail even if the fiber failed")
-//        case Success(()) => ok("The parent program continued to run despite the migration fiber error")
-//      }
-//
-
-//object TestMigrateTableCampaignEvents {
-//  private val tempCRTableName       = "changerequest_migratetest"
-//  private val tempCRTable           = fragment.Fragment.const(tempCRTableName)
-//  private val tempWorkflowTableName = "workflow_migratetest"
-//  private val tempWorkflowTable     = fragment.Fragment.const(tempWorkflowTableName)
-//
-//  private class MigrateChangeValidationEnforceSchemaTempTable(doobie: Doobie, overrideEffect: Option[Task[Unit]] = None)
-//      extends MigrateChangeValidationEnforceSchema(doobie) {
-//    override def changeRequestTableName:                         String     = tempCRTableName
-//    override def workflowTableName:                              String     = tempWorkflowTableName
-//    override def migrationEffect(implicit xa: Transactor[Task]): Task[Unit] = {
-//      val default = super.migrationEffect(xa)
-//      overrideEffect.getOrElse(default)
-//    }
-//  }
-//
-//  val sqlMigration = {
-//    """
-//      | CREATE TYPE campaignEventState AS enum ('scheduled', 'prehooks', 'running', 'posthooks', 'finished', 'skipped');
-//      | ALTER TABLE campaignevents RENAME state TO stateJson;
-//      | ALTER TABLE campaignevents ADD COLUMN state campaigneventstate;
-//      | UPDATE campaignevents SET state = (stateJson ->> 'value')::campaigneventstate;
-//      | ALTER TABLE campaignevents UPDATE COLUMN state NOT NULL;
-//      |
-//      | DROP INDEX event_state_index ;
-//      |
-//      | INSERT INTO campaigneventsstatehistory (eventid, state, startdate, enddate, data)
-//      |   SELECT
-//      |     c.eventid,
-//      |     c.state,
-//      |     c.startdate,
-//      |     c.enddate,
-//      |     (SELECT json_build_object('reason', c.statejson ->> 'reason')::json WHERE c.state = 'skipped') as js
-//      |   FROM campaignevents c;
-//      |
-//      | delete column stateJson
-//      |
-//      |
-//      |
-//      |""".stripMargin
-//  }
-//
-//}
