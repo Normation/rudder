@@ -103,10 +103,21 @@ class TestMigrateTableCampaignEvents extends DBCommon {
     }
 
     def getData: Option[Json] = {
+      // when we don't have a correct pair, we say that reason is the empty message
+      val REASON = "reason"
+      def toJson(k: String, v: String) = Some(Json.Obj(Chunk((REASON, Json.Str(v)))))
+
       state match {
         case Json.Obj(pairs) =>
-          pairs.collectFirst { case (k, Json.Str(v)) if k == "reason" => Some(Json.Obj(Chunk(("reason", Json.Str(v))))) }.flatten
-        case _               =>
+          pairs.collectFirst {
+            case (k, v) if k == REASON =>
+              v match {
+                case Json.Str(s) => toJson(REASON, s)
+                case _           => toJson(REASON, "")
+              }
+          }.flatten
+
+        case _ =>
           None
       }
     }
@@ -174,7 +185,7 @@ class TestMigrateTableCampaignEvents extends DBCommon {
     OldCampaignEvent("1c2fceec","7aab5d52", "test1 #2"        , """{"value": "finished"}                                        """.json, "2024-04-01 10:00:00+00".date, "2024-04-01 16:00:00+00".date, "software-update"),
     OldCampaignEvent("840494c4","eab80401", "rearezarezr #3"  , """{"value": "running"}                                         """.json, "2024-04-01 10:00:00+00".date, "2024-04-01 16:00:00+00".date, "system-update"),
     OldCampaignEvent("77d4cb38","c34cf085", "testing time #8" , """{"value": "finished"}                                        """.json, "2024-04-02 09:59:00+00".date, "2024-04-02 10:59:00+00".date, "system-update"),
-    OldCampaignEvent("77d4cb38","af039286", "testing time #9" , """{"value": "skipped"}                                         """.json, "2024-04-09 09:59:00+00".date, "2024-04-09 10:59:00+00".date, "system-update"),
+    OldCampaignEvent("77d4cb38","af039286", "testing time #9" , """{"value": "skipped", "reason": null}                         """.json, "2024-04-09 09:59:00+00".date, "2024-04-09 10:59:00+00".date, "system-update"),
     OldCampaignEvent("f2f68d18","4e615889", "test badge #2"   , """{"value": "scheduled"}                                       """.json, "2024-07-10 13:20:00+00".date, "2024-07-10 19:20:00+00".date, "software-update"),
  )
   // format: on

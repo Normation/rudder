@@ -52,7 +52,6 @@ import zio.interop.catz.*
  */
 class MigrateTableCampaignEvents(doobie: Doobie) extends BootstrapChecks {
   import bootstrap.liftweb.checks.earlyconfig.db.MigrateTableCampaignEvents.*
-
   import doobie.*
 
   override def description: String = "Check if campaign events state history exist"
@@ -69,7 +68,6 @@ class MigrateTableCampaignEvents(doobie: Doobie) extends BootstrapChecks {
     //   - create table CampaignEventsStateHistory
     //   - copy reason messages for skipped state from CampaignEvents
     //   - delete CampaignEvents->stateJson
-
 
     // they must be done in sequence, an error interrupting following statements
     transactIOResult(s"Error when creating 'campaignEventState' enumeration")(xa => sql1.update.run.transact(xa)).unit *>
@@ -100,7 +98,7 @@ class MigrateTableCampaignEvents(doobie: Doobie) extends BootstrapChecks {
 object MigrateTableCampaignEvents {
 
   // create new enum for campaign event state
-  val sql1 =
+  val sql1 = {
     sql"""DO $$$$ BEGIN
                     CREATE TYPE campaignEventState AS enum (
                       'scheduled', 'prehooks', 'running', 'posthooks', 'finished', 'skipped'
@@ -108,10 +106,11 @@ object MigrateTableCampaignEvents {
                   EXCEPTION
                     WHEN duplicate_object THEN null;
                   END $$$$;"""
+  }
 
   // migrate state to the new enum for table CampaignEvents
   // (data_type changes from 'jsonb' to 'USER-DEFINED'
-  val sql2 =
+  val sql2 = {
     sql"""
     DO $$$$ BEGIN
       IF EXISTS (
@@ -125,10 +124,11 @@ object MigrateTableCampaignEvents {
         DROP INDEX IF EXISTS event_state_index;
       END IF;
     END $$$$;"""
+  }
 
   // create the new table and fill it with data from CampaignEvents, then delete old column
 
-  val sql3 =
+  val sql3 = {
     sql"""
     DO $$$$ BEGIN
       IF NOT EXISTS (
@@ -149,11 +149,12 @@ object MigrateTableCampaignEvents {
           c.state,
           c.startdate,
           c.enddate,
-          (SELECT jsonb_build_object('reason', c.statejson ->> 'reason' as js)::json WHERE c.state = 'skipped' AND js NOT NULL) as js
+          (SELECT jsonb_build_object('reason', COALESCE(c.statejson ->> 'reason', ''))::json WHERE c.state = 'skipped')
         FROM campaignevents c;
 
         ALTER TABLE campaignevents DROP COLUMN IF EXISTS statejson;
       END IF;
     END $$$$;"""
+  }
 
 }
