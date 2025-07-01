@@ -159,6 +159,12 @@ if [ "${SELINUX}" = "true" ]; then
   fi
 fi
 
+# initialize policy_server.pem if it doesn't exist
+if [ ! -f /var/rudder/lib/ssl/policy_server.pem ];
+then
+  cp /opt/rudder/etc/ssl/agent.cert /var/rudder/lib/ssl/policy_server.pem
+fi
+
 systemctl start rudder-relayd.service rudder-package.timer >> ${LOG_FILE}
 systemctl start "${APACHE}" >> ${LOG_FILE}
 
