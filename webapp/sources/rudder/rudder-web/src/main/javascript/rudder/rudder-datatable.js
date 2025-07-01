@@ -1993,9 +1993,7 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                 success: function (response, status, jqXHR) {
                   var id = response["data"]["id"]
                   var rollback = setupRollbackBlock(id)
-                  var parser = new DOMParser();
-                  var content = parser.parseFromString(response["data"]["content"], 'text/html');
-                  var html = $(content.body).contents();
+                  var html = $.parseHTML( response["data"]["content"], true );
                   if(response["data"]["canRollback"]){
                     table.row(row).child($(rollback).append(html)).show();
                     $('#showParameters' + id).off('click').on('click', function() { showParameters(event, id) });
