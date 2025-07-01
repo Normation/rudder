@@ -38,7 +38,6 @@
 package bootstrap.liftweb
 
 import com.normation.rudder.users.*
-import com.normation.rudder.users.RudderPasswordEncoder.SecurityLevel
 import org.junit.*
 import org.junit.runner.RunWith
 import zio.*
@@ -55,9 +54,8 @@ class RudderPasswordEncoderTest extends ZIOSpecDefault {
 
   // Check basic properties of a password hash
   def testEncoder(dispatcher: PasswordEncoderDispatcher, encoderType: PasswordEncoderType) = {
-    val encoder       = dispatcher.dispatch(encoderType)
-    val securityLevel = SecurityLevel.fromPasswordEncoderType(encoderType)
-    val name          = encoderType.name
+    val encoder = dispatcher.dispatch(encoderType)
+    val name    = encoderType.name
 
     suite(s"$name test")(
       test(s"$name hash matches password") {
@@ -66,12 +64,7 @@ class RudderPasswordEncoderTest extends ZIOSpecDefault {
           val hash2 = encoder.encode(pass)
           assert(encoder.matches(pass, hash1))(isTrue) &&
           assert(encoder.matches(pass, hash2))(isTrue) &&
-          (if (securityLevel == SecurityLevel.Legacy) {
-             // hashes include a random part
-             assert(hash1)(equalTo(hash2))
-           } else {
-             assert(hash1)(not(equalTo("hash2")))
-           })
+          assert(hash1)(not(equalTo("hash2")))
         })
       },
       test(s"$name hash does not accept wrong password") {
@@ -141,27 +134,6 @@ class RudderPasswordEncoderTest extends ZIOSpecDefault {
           val altEncoderParams = Argon2EncoderParams(Argon2Memory(18), Argon2Iterations(1), Argon2Parallelism(2))
           val altEncoder       = RudderPasswordEncoder.argon2Encoder(altEncoderParams)
           assert(altEncoder.matches(pass, pass_argon2))(isTrue)
-        }
-      },
-      suiteAll("DIGEST specific") {
-        val pass        = "admin"
-        val pass_md5    = "21232f297a57a5a743894a0e4a801fc3"
-        val pass_sha1   = "d033e22ae348aeb5660fc2140aec35850c4da997"
-        val pass_sha256 = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918"
-        val pass_sha512 =
-          "c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec"
-
-        test("matches MD5 value") {
-          assert(RudderPasswordEncoder.MD5.matches(pass, pass_md5))(isTrue)
-        }
-        test("matches SHA1 value") {
-          assert(RudderPasswordEncoder.SHA1.matches(pass, pass_sha1))(isTrue)
-        }
-        test("matches SHA256 value") {
-          assert(RudderPasswordEncoder.SHA256.matches(pass, pass_sha256))(isTrue)
-        }
-        test("matches SHA512 value") {
-          assert(RudderPasswordEncoder.SHA512.matches(pass, pass_sha512))(isTrue)
         }
       }
     )
