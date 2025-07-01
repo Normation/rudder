@@ -60,38 +60,38 @@ class TestCheckUsersFile extends Specification {
     def haveUnsafeHashes(unsafeHashes: Option[String]) =
       beEqualTo(unsafeHashes) ^^ ((_: Elem).attribute("unsafe-hashes").flatMap(_.headOption).map(_.text))
 
-    "start with a sha-1 hash and no unsafe-hashes" in withMigrationCtx(shaLegacyFile) {
+    "start with a bcrypt hash and unsafe-hashes" in withMigrationCtx(shaLegacyFile) {
       case (initialFile, _) =>
-        initialFile() must (haveHash("sha-1") and haveUnsafeHashes(None))
+        initialFile() must (haveHash("bcrypt") and haveUnsafeHashes(Some("true")))
     }
 
-    "migrate legacy hash to argon2id and enable unsafe-hashes" in withMigrationCtx(shaLegacyFile) {
+    "migrate legacy hash to argon2id and remove unsafe-hashes" in withMigrationCtx(shaLegacyFile) {
       case (getFile, checkUsersFile) =>
         checkUsersFile.prog.runNow
 
-        getFile() must (haveHash("argon2id") and haveUnsafeHashes(Some("true")))
+        getFile() must (haveHash("argon2id") and haveUnsafeHashes(None))
     }
 
     "keep hash unchanged" in withMigrationCtx(shaLegacyFile) {
       case (getFile, checkUsersFile) =>
         checkUsersFile.prog.runNow
-        getFile() must (haveHash("argon2id") and haveUnsafeHashes(Some("true")))
+        getFile() must (haveHash("argon2id") and haveUnsafeHashes(None))
 
         // idempotent check
         checkUsersFile.prog.runNow
-        getFile() must (haveHash("argon2id") and haveUnsafeHashes(Some("true")))
+        getFile() must (haveHash("argon2id") and haveUnsafeHashes(None))
     }
 
-    "migrate unknown hash to argon2id with unsafe-hashes set to false" in withMigrationCtx(unknownHashFile) {
+    "migrate unknown hash to argon2id" in withMigrationCtx(unknownHashFile) {
       case (getFile, checkUsersFile) =>
         checkUsersFile.prog.runNow
-        getFile() must (haveHash("argon2id") and haveUnsafeHashes(Some("false")))
+        getFile() must (haveHash("argon2id") and haveUnsafeHashes(None))
     }
 
-    "migrate non-boolean unsafe-hashes to false" in withMigrationCtx(unknownUnsafeHashesFile) {
+    "remove non-boolean unsafe-hashes" in withMigrationCtx(unknownUnsafeHashesFile) {
       case (getFile, checkUsersFile) =>
         checkUsersFile.prog.runNow
-        getFile() must (haveHash("argon2id") and haveUnsafeHashes(Some("false")))
+        getFile() must (haveHash("argon2id") and haveUnsafeHashes(None))
     }
   }
 
