@@ -234,8 +234,9 @@ import zio.test.*
 
 /*
  * Mock everything needed to test rest API, ie almost a whole rudder.
+ * One can customize API version, but by default they match the one supported in Rudder.
  */
-class RestTestSetUp {
+class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiVersions) {
 
   implicit val userService: TestUserService = new TestUserService
   class TestUserService extends UserService {
@@ -1178,14 +1179,6 @@ class RestTestSetUp {
     new PluginInternalApi(pluginsSystemService)
   )
 
-  val apiVersions: List[ApiVersion] = {
-    ApiVersion(17, deprecated = true) ::
-    ApiVersion(18, deprecated = true) ::
-    ApiVersion(19, deprecated = true) ::
-    ApiVersion(20, deprecated = false) ::
-    ApiVersion(21, deprecated = false) ::
-    Nil
-  }
   val (rudderApi, liftRules) = TraitTestApiFromYamlFiles.buildLiftRules(apiModules, apiVersions, Some(userService))
 
   // RestHelpers

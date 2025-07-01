@@ -164,7 +164,7 @@ class SettingsApi(
         }
         JField(setting.key, result)
       }
-      val data     = if (version.value >= 11) {
+      val data     = {
         val networks = GetAllAllowedNetworks.getAllowedNetworks()(authzToken.qc).either.runNow match {
           case Right(nets) =>
             nets
@@ -173,8 +173,6 @@ class SettingsApi(
             JString(fail)
         }
         JField("allowed_networks", networks) :: settings
-      } else {
-        settings
       }
 
       // sort settings alphanum
@@ -801,8 +799,7 @@ class SettingsApi(
   }
 
   def getRootNameForVersion(version: ApiVersion): String = {
-    if (version.value <= 17) { "settings" }
-    else { "allowed_networks" }
+    "allowed_networks"
   }
 
   object GetAllAllowedNetworks extends LiftApiModule0 {
@@ -866,11 +863,7 @@ class SettingsApi(
                     }
         networks <- getAllowedNetworksForServer(NodeId(id))
       } yield {
-        if (version.value <= 17) {
-          JObject(JField("allowed_networks", JArray(networks.toList.sorted.map(JString))))
-        } else {
-          JArray(networks.toList.sorted.map(JString))
-        }
+        JArray(networks.toList.sorted.map(JString))
       }
       RestUtils.response(getRootNameForVersion(version), Some(id))(
         result.toBox,

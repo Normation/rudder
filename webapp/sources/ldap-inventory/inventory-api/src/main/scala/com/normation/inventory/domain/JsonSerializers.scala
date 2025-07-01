@@ -66,14 +66,9 @@ object JsonSerializers {
   val softwareUpdateDateTimeFormat: DateTimeFormatter = ISODateTimeFormat.dateTimeNoMillis().withZoneUTC()
 
   // We need another JSON data tree for older versions where some JSON are serialized in humanized form
-  object implicits       {
+  object implicits {
     export InventoryJsonDecoders.*
     export InventoryJsonEncoders.*
-    export SoftwareUpdateJsonDecoders.*
-    export SoftwareUpdateJsonEncoders.*
-  }
-  object older_implicits {
-    export InventoryJsonEncodersHumanized.*
     export SoftwareUpdateJsonDecoders.*
     export SoftwareUpdateJsonEncoders.*
   }
@@ -160,26 +155,6 @@ private object InventoryCommonJsonDecoders {
       }
     })
   }
-}
-
-// The previous JSON schema had humanized version of MemorySize and Bios#releaseDate
-private object InventoryJsonEncodersHumanized {
-  private object PrivateHumanizedEncoders {
-    implicit val datetimeEncoder: JsonEncoder[DateTime] = JsonEncoder[String].contramap(DateFormaterService.getDisplayDate)
-  }
-  export InventoryCommonJsonEncoders.*
-  import PrivateHumanizedEncoders.*
-
-  // Bios needs to be overridden with the humanized Datetime encoder
-  implicit val encoderBios: JsonEncoder[Bios] = DeriveJsonEncoder.gen[Bios]
-
-  // any datastructure depending on an encoder of MemorySize will need to be overridden
-  implicit val encoderMemorySize: JsonEncoder[MemorySize] = JsonEncoder[Long].contramap(MemorySize.sizeMb)
-
-  implicit val encoderFileSystem: JsonEncoder[FileSystem] = DeriveJsonEncoder.gen[FileSystem]
-  implicit val encoderMemorySlot: JsonEncoder[MemorySlot] = DeriveJsonEncoder.gen[MemorySlot]
-  implicit val encoderStorage:    JsonEncoder[Storage]    = DeriveJsonEncoder.gen[Storage]
-  implicit val encoderVideo:      JsonEncoder[Video]      = DeriveJsonEncoder.gen[Video]
 }
 
 // encoder from object to json string

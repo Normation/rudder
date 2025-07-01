@@ -1,6 +1,6 @@
 description: Get all API accounts
 method: GET
-url: /api/apiaccounts
+url: /api/latest/apiaccounts
 response:
   code: 200
   content: >-
@@ -58,7 +58,7 @@ response:
 ---
 description: Get one API accounts
 method: GET
-url: /api/apiaccounts/user1
+url: /api/latest/apiaccounts/user1
 response:
   code: 200
   content: >-
@@ -86,7 +86,7 @@ response:
 ---
 description: Get one API accounts - bad ID
 method: GET
-url: /api/apiaccounts/user+1
+url: /api/latest/apiaccounts/user+1
 response:
   code: 500
   content: >-
