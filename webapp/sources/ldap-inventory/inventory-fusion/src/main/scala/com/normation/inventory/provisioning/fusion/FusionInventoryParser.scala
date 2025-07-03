@@ -57,24 +57,49 @@ import zio.json.*
 import zio.json.ast.*
 import zio.syntax.*
 
+object FusionInventoryParser {
+
+  private val biosFormats: List[String]            = List("MM/dd/yyyy")
+  private val biosParsers: List[DateTimeFormatter] = biosFormats.map(toFusionDateParsers)
+
+  private val loggedUserFormats: List[String]            = List("EEE MMM dd HH:mm", "EEE MMM dd HH:mm:ss")
+  private val loggedUserParsers: List[DateTimeFormatter] = loggedUserFormats.map(toFusionDateParsers)
+
+  private def toFusionDateParsers(format: String): DateTimeFormatter = {
+    DateTimeFormat.forPattern(format).withLocale(Locale.ENGLISH).withZoneUTC()
+  }
+
+  private def parseDateTime(s: String, parsers: List[DateTimeFormatter], formats: List[String]): Either[String, DateTime] = {
+    def parse(p: DateTimeFormatter, s: String): Option[DateTime] = {
+      try {
+        Some(p.parseDateTime(s))
+      } catch {
+        case _: IllegalArgumentException => None
+      }
+    }
+
+    parsers
+      .foldLeft(Option.empty[DateTime]) { case (dt, p) => dt.orElse(parse(p, s)) }
+      .toRight(s"Awaited format is one of [${formats.mkString("'", "','", "'")}], found: ${s}")
+  }
+
+  def parseBiosDate(s:       String): Either[String, DateTime] = parseDateTime(s, biosParsers, biosFormats)
+  def parseLoggedUserDate(s: String): Either[String, DateTime] = parseDateTime(s, loggedUserParsers, loggedUserFormats)
+
+}
+
 class FusionInventoryParser(
-    uuidGen:                      StringUuidGenerator,
-    rootParsingExtensions:        List[FusionInventoryParserExtension] = Nil,
-    contentParsingExtensions:     List[FusionInventoryParserExtension] = Nil,
-    biosDateFormat:               String = "MM/dd/yyyy",
-    slotMemoryUnit:               String = "Mo",
-    ramUnit:                      String = "Mo",
-    swapUnit:                     String = "Mo",
-    fsSpaceUnit:                  String = "Mo",
-    lastLoggedUserDatetimeFormat: String = "EEE MMM dd HH:mm",
-    ignoreProcesses:              Boolean = false
+    uuidGen:                  StringUuidGenerator,
+    rootParsingExtensions:    List[FusionInventoryParserExtension] = Nil,
+    contentParsingExtensions: List[FusionInventoryParserExtension] = Nil,
+    slotMemoryUnit:           String = "Mo",
+    ramUnit:                  String = "Mo",
+    swapUnit:                 String = "Mo",
+    fsSpaceUnit:              String = "Mo",
+    ignoreProcesses:          Boolean = false
 ) extends XmlInventoryParser {
 
   import OptText.optText
-
-  val userLoginDateTimeFormat: DateTimeFormatter =
-    DateTimeFormat.forPattern(lastLoggedUserDatetimeFormat).withLocale(Locale.ENGLISH)
-  val biosDateTimeFormat:      DateTimeFormatter = DateTimeFormat.forPattern(biosDateFormat).withLocale(Locale.ENGLISH)
 
   // extremely specialized convert used for optional field only, that
   // log the error in place of using a box
@@ -360,6 +385,7 @@ class FusionInventoryParser(
    *     <POLICY_SERVER_HOSTNAME>127.0.0.1</POLICY_SERVER_HOSTNAME>
    *     <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
    *   </AGENT>
+   *   <AGENT_VERSION>xxx</AGENT_VERSION> <!-- added in 8.3.1 -->
    *   <AGENT_CAPABILITIES>
    *     <AGENT_CAPABILITY>cfengine</AGENT_CAPABILITY>
    *     ...
@@ -384,7 +410,7 @@ class FusionInventoryParser(
 
     // as a temporary solution, we are getting information from packages
 
-    def findAgentVersion(software: Seq[Software], agentType: AgentType): Option[AgentVersion] = {
+    def findAgentVersionFromPackages(software: Seq[Software], agentType: AgentType): Option[AgentVersion] = {
       val agentSoftName = agentType.inventorySoftwareName.toLowerCase()
 
       software.filter(_.name.exists(_.toLowerCase().contains(agentSoftName))).toList.flatMap(_.version) match {
@@ -434,10 +460,13 @@ class FusionInventoryParser(
               case Some(cert) => Right(Certificate(cert))
               case None       => Left(Inconsistency("could not parse agent security token (tag AGENT_CERT), which is mandatory"))
             }
-          version        <-
-            findAgentVersion(inventory.applications, agentType).notOptionalPure(
-              s"Agent is not present in software list and so we can't get its version. This is not supported anymore."
-            )
+          version        <- optText(rudderXml \ "AGENT_VERSION") match {
+                              case Some(version) => Right(AgentVersion(version))
+                              case None          =>
+                                findAgentVersionFromPackages(inventory.applications, agentType).notOptionalPure(
+                                  s"Agent is not present in software list and so we can't get its version. This is not supported anymore."
+                                )
+                            }
         } yield {
           (AgentInfo(agentType, Some(version), securityToken, Set()), rootUser, policyServerId)
         }
@@ -734,21 +763,17 @@ class FusionInventoryParser(
       archDescription =
         inventory.node.archDescription.orElse(optText(xml \\ "ARCHNAME").map(normalizeArch(inventory.node.main.osDetails))),
       lastLoggedUser = optText(xml \\ "LASTLOGGEDUSER"),
-      lastLoggedUserTime = {
-        try {
-          optText(xml \\ "DATELASTLOGGEDUSER").map(date => userLoginDateTimeFormat.parseDateTime(date))
-        } catch {
-          case e: IllegalArgumentException =>
-            InventoryProcessingLogger.logEffect.warn(
-              "Error when parsing date for last user loggin. Awaited format is %s, found: %s".format(
-                lastLoggedUserDatetimeFormat,
-                (xml \\ "DATELASTLOGGEDUSER").text
-              )
-            )
+      lastLoggedUserTime = optText(xml \\ "DATELASTLOGGEDUSER").flatMap { s =>
+        FusionInventoryParser.parseLoggedUserDate(s) match {
+          case Left(err)   =>
+            InventoryProcessingLogger.logEffect.warn(s"Error when parsing date for last user login. ${err}")
             None
+          case Right(time) =>
+            Some(time)
         }
       }
     )
+
     Some((newNode, newMachine))
   }
 
@@ -1021,15 +1046,13 @@ class FusionInventoryParser(
         InventoryProcessingLogger.logEffect.debug(b.toString())
         None
       case Some(model) =>
-        val date = {
-          try {
-            optText(b \ "BDATE").map(d => biosDateTimeFormat.parseDateTime(d))
-          } catch {
-            case e: IllegalArgumentException =>
-              InventoryProcessingLogger.logEffect.warn(
-                "Error when parsing date for Bios. Awaited format is %s, found: %s".format(biosDateFormat, (b \ "BDATE").text)
-              )
+        val date = optText(b \ "BDATE").flatMap { s =>
+          // it happens that bios has 3 digits for months
+          FusionInventoryParser.parseBiosDate(s) match {
+            case Left(err) =>
+              InventoryProcessingLogger.logEffect.warn(s"Error when parsing date for Bios. ${err}")
               None
+            case Right(dt) => Some(dt)
           }
         }
 

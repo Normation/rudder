@@ -125,11 +125,20 @@ case class UserSession(
 }
 
 object UserSerialization {
-  implicit val codecUserStatus:    JsonCodec[UserStatus]    = new JsonCodec[UserStatus](
+  implicit val codecUserStatus: JsonCodec[UserStatus] = new JsonCodec[UserStatus](
     JsonEncoder.string.contramap(_.value),
     JsonDecoder.string.mapOrFail(s => UserStatus.parse(s))
   )
-  implicit val codecEventActor:    JsonCodec[EventActor]    = DeriveJsonCodec.gen[EventActor]
+
+  // in scala 2, zio-json was happily deriving a Codec for an AnyVal as for any case class.
+  // it's not the case in scala 3
+  // it's probably not the original intent of the author but for compatibility purpose,
+  // we need to maintain this serialization format.
+  private case class EventActorSerializable(name: String)
+  implicit val codecEventActor: JsonCodec[EventActor] = DeriveJsonCodec
+    .gen[EventActorSerializable]
+    .transform(serializable => EventActor(name = serializable.name), eventActor => EventActorSerializable(name = eventActor.name))
+
   implicit val codecDateTime:      JsonCodec[DateTime]      = new JsonCodec[DateTime](
     JsonEncoder.string.contramap(_.toString(DateFormaterService.rfcDateformatWithMillis)),
     JsonDecoder.string.mapOrFail { s =>

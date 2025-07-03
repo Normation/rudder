@@ -40,7 +40,7 @@
 # which will likely be useful, as Jinja2 is very rich and allows a lot more
 # that what is explained here.
 #
-# This section presents some simple cases that cover what can be done with mustache templating,
+# This section presents some simple cases that cover what can be done with Jinja2 templating,
 # and the way the agent data is provided to the templating engine.
 #
 # The main specificity of jinja2 templating is the use of two root containers:
@@ -236,8 +236,8 @@ bundle agent file_from_template_jinja2(source_template, path)
   vars:
       "class_prefix"  string => canonify("file_from_template_${path}");
 
-      "jinja2_script"     string => "${sys.workdir}/modules/templates/jinja2-templating.py";
-      "datastate_tpl"     string => "${sys.workdir}/modules/templates/datastate.json.tpl";
+      "jinja2_script"     string => "${configuration.modules_dir}/templates/jinja2-templating.py";
+      "datastate_tpl"     string => "${configuration.modules_dir}/templates/datastate.json.tpl";
       "datastate_file"    string => "${source_template}.datastate.${this.promiser_pid}.json";
       "destination_canon" string => canonify("${path}");
       "destination_tmp"   string => "${source_template}.${this.promiser_pid}.new";

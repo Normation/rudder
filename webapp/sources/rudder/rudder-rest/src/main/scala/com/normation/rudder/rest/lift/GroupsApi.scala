@@ -44,7 +44,6 @@ import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.RenderInheritedProperties
-import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.batch.AsyncDeploymentActor
@@ -63,8 +62,7 @@ import com.normation.rudder.properties.PropertiesRepository
 import com.normation.rudder.repository.CategoryAndNodeGroup
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
-import com.normation.rudder.rest.*
-import com.normation.rudder.rest.GroupApi as API
+import com.normation.rudder.rest.{GroupApi as API, *}
 import com.normation.rudder.rest.RudderJsonRequest.*
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.services.queries.CmdbQueryParser
@@ -390,8 +388,7 @@ class GroupApiService14(
     asyncDeploymentAgent: AsyncDeploymentActor,
     workflowLevelService: WorkflowLevelService,
     queryParser:          CmdbQueryParser,
-    queryProcessor:       QueryProcessor,
-    restDataSerializer:   RestDataSerializer
+    queryProcessor:       QueryProcessor
 ) {
 
   private def createChangeRequest(
@@ -512,7 +509,7 @@ class GroupApiService14(
     }
 
     (for {
-      name    <- restGroup.displayName.checkMandatory(_.size > 3, v => "'displayName' is mandatory and must be at least 3 char long")
+      name    <- restGroup.displayName.checkMandatory(_.size > 3, _ => "'displayName' is mandatory and must be at least 3 char long")
       change  <- createOrClone(restGroup, nodeGroupId, name, clone, params, actor)
       created <- actualGroupCreation(change, nodeGroupId)
     } yield {

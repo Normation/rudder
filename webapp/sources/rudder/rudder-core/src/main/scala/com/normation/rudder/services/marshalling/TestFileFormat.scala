@@ -37,6 +37,8 @@
 
 package com.normation.rudder.services.marshalling
 
+import com.normation.errors.Inconsistency
+import com.normation.errors.PureResult
 import com.normation.rudder.domain.Constants
 import net.liftweb.common.*
 import scala.xml.Node
@@ -46,5 +48,10 @@ object TestFileFormat {
   def apply(xml: Node, fileFormat: String = Constants.XML_CURRENT_FILE_FORMAT.toString): Box[String] = {
     if (xml.attribute("fileFormat").map(_.text) == Some(fileFormat)) Full("OK")
     else Failure("Bad fileFormat (expecting %s): %s".format(fileFormat, xml))
+  }
+
+  def check(xml: Node, fileFormat: String = Constants.XML_CURRENT_FILE_FORMAT.toString): PureResult[Unit] = {
+    if (xml.attribute("fileFormat").map(_.text) == Some(fileFormat)) Right(())
+    else Left(Inconsistency(s"Bad fileFormat (expecting ${fileFormat}): ${xml}"))
   }
 }

@@ -40,7 +40,6 @@ package com.normation.rudder.services.policies
 import better.files.File
 import com.normation.NamedZioLogger
 import com.normation.errors.*
-import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.hooks.Cmd
@@ -48,7 +47,6 @@ import com.normation.rudder.hooks.RunNuCommand
 import com.normation.zio.ZioRuntime
 import java.nio.charset.StandardCharsets
 import zio.*
-import zio.Duration
 import zio.syntax.*
 
 /**
@@ -85,17 +83,11 @@ class WriteNodeCertificatesPemImpl(reloadScriptPath: Option[String]) extends Wri
     val allCertsNew = File(file.pathAsString + ".new")
 
     for {
-      _      <- checkParentDirOK(file)
-      certs   = allNodeInfos.flatMap {
-                  case (id, node) =>
-                    node.rudderAgent.securityToken match {
-                      case x: Certificate => Some(x.key)
-                      case _ => None
-                    }
-                }
-      writen <- writeCertificatesToNew(allCertsNew, certs)
-      moved  <- IOResult.attempt(allCertsNew.moveTo(file)(File.CopyOptions(overwrite = true)))
-      hook   <- execHook(reloadScriptPath)
+      _    <- checkParentDirOK(file)
+      certs = allNodeInfos.map { case (_, node) => node.rudderAgent.securityToken.key }
+      _    <- writeCertificatesToNew(allCertsNew, certs)
+      _    <- IOResult.attempt(allCertsNew.moveTo(file)(File.CopyOptions(overwrite = true)))
+      _    <- execHook(reloadScriptPath)
     } yield ()
   }
 

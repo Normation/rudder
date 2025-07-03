@@ -43,7 +43,6 @@ import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.repository.*
-import com.normation.rudder.repository.EventLogRepository
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.common.*
 import org.eclipse.jgit.lib.PersonIdent

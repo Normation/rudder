@@ -12,16 +12,17 @@
     </div>
     <div id="technique-editor">
     </div>
-      <script>
-        var hasWriteRights = false;
-      </script>
+    <script data-lift="with-nonce">
+      var hasWriteRights = false;
+    </script>
 
-      <lift:authz role="technique_write">
-        <script>
+    <lift:authz role="technique_write">
+      <script data-lift="with-nonce">
         var hasWriteRights = true;
       </script>
-      </lift:authz>
-      <script>
+    </lift:authz>
+
+<script data-lift="with-nonce">
 
     function getTechniqueRedirection(app){
       var path = window.location.pathname.split("/")

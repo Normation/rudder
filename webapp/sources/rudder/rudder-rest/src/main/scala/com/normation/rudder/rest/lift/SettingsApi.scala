@@ -60,7 +60,6 @@ import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.OneParam
-import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.SettingsApi as API
 import com.normation.rudder.services.policies.SendMetrics
@@ -86,7 +85,6 @@ import zio.*
 import zio.syntax.*
 
 class SettingsApi(
-    val restExtractorService:          RestExtractorService,
     val configService:                 ReadConfigService with UpdateConfigService,
     val asyncDeploymentAgent:          AsyncDeploymentActor,
     val uuidGen:                       StringUuidGenerator,
@@ -153,9 +151,8 @@ class SettingsApi(
   }
 
   object GetAllSettings extends LiftApiModule0 {
-    val schema: API.GetAllSettings.type = API.GetAllSettings
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.GetAllSettings.type = API.GetAllSettings
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse            = {
       val settings = for {
         setting <- allSettings
       } yield {
@@ -181,7 +178,7 @@ class SettingsApi(
       }
 
       // sort settings alphanum
-      RestUtils.response(restExtractorService, "settings", None)(Full(data.sortBy(_.name)), req, s"Could not settings")(
+      RestUtils.response("settings", None)(Full(data.sortBy(_.name)), req, s"Could not settings")(
         "getAllSettings",
         params.prettify
       )
@@ -189,9 +186,8 @@ class SettingsApi(
   }
 
   object ModifySettings extends LiftApiModule0 {
-    val schema: API.ModifySettings.type = API.ModifySettings
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.ModifySettings.type = API.ModifySettings
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse            = {
       var generate = false
       val data     = for {
         setting <- allSettings
@@ -201,7 +197,7 @@ class SettingsApi(
         JField(setting.key, value)
       }
       startNewPolicyGeneration(authzToken.qc.actor)
-      RestUtils.response(restExtractorService, "settings", None)(Full(data), req, s"Could not modfiy settings")(
+      RestUtils.response("settings", None)(Full(data), req, s"Could not modfiy settings")(
         "modifySettings",
         params.prettify
       )
@@ -210,7 +206,6 @@ class SettingsApi(
 
   object GetSetting extends LiftApiModule {
     val schema: OneParam = API.GetSetting
-    val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -225,7 +220,7 @@ class SettingsApi(
       } yield {
         (key -> value)
       }
-      RestUtils.response(restExtractorService, "settings", Some(key))(data, req, s"Could not get parameter '${key}'")(
+      RestUtils.response("settings", Some(key))(data, req, s"Could not get parameter '${key}'")(
         "getSetting",
         params.prettify
       )
@@ -234,7 +229,6 @@ class SettingsApi(
 
   object ModifySetting extends LiftApiModule {
     val schema: OneParam = API.ModifySetting
-    val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -249,7 +243,7 @@ class SettingsApi(
       } yield {
         (key -> value)
       }
-      RestUtils.response(restExtractorService, "settings", Some(key))(data, req, s"Could not modify parameter '${key}'")(
+      RestUtils.response("settings", Some(key))(data, req, s"Could not modify parameter '${key}'")(
         "modifySetting",
         params.prettify
       )
@@ -700,7 +694,7 @@ class SettingsApi(
       action:   String,
       prettify: Boolean
   ): LiftResponse = {
-    RestUtils.response(restExtractorService, kind, id)(function, req, errorMessage)
+    RestUtils.response(kind, id)(function, req, errorMessage)
   }
 
   case object RestComputeChanges extends RestBooleanSetting {
@@ -833,12 +827,11 @@ class SettingsApi(
       }
     }
 
-    override val schema: API.GetAllAllowedNetworks.type = API.GetAllAllowedNetworks
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    override val schema:                                                                                       API.GetAllAllowedNetworks.type = API.GetAllAllowedNetworks
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                   = {
       implicit val action = "getAllAllowedNetworks"
       implicit val prettify: Boolean = params.prettify
-      RestUtils.response(restExtractorService, getRootNameForVersion(version), None)(
+      RestUtils.response(getRootNameForVersion(version), None)(
         getAllowedNetworks()(authzToken.qc).toBox,
         req,
         s"Could not get allowed networks"
@@ -848,7 +841,6 @@ class SettingsApi(
 
   object GetAllowedNetworks extends LiftApiModule {
     override val schema: OneParam = API.GetAllowedNetworks
-    val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -880,7 +872,7 @@ class SettingsApi(
           JArray(networks.toList.sorted.map(JString))
         }
       }
-      RestUtils.response(restExtractorService, getRootNameForVersion(version), Some(id))(
+      RestUtils.response(getRootNameForVersion(version), Some(id))(
         result.toBox,
         req,
         s"Could not get allowed networks for policy server '${id}'"
@@ -890,7 +882,6 @@ class SettingsApi(
 
   object ModifyAllowedNetworks     extends LiftApiModule {
     override val schema: OneParam = API.ModifyAllowedNetworks
-    val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -955,7 +946,7 @@ class SettingsApi(
         asyncDeploymentAgent.launchDeployment(AutomaticStartDeployment(ModificationId(uuidGen.newUuid), actor))
         JArray(networks.map(JString).toList)
       }
-      RestUtils.response(restExtractorService, getRootNameForVersion(version), Some(id))(
+      RestUtils.response(getRootNameForVersion(version), Some(id))(
         result,
         req,
         s"Error when trying to modify allowed networks for policy server '${id}'"
@@ -974,7 +965,6 @@ class SettingsApi(
    */
   object ModifyDiffAllowedNetworks extends LiftApiModule {
     override val schema: OneParam = API.ModifyDiffAllowedNetworks
-    val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -1029,7 +1019,8 @@ class SettingsApi(
           s""" "delete":["192.168.1.0/24", ...]"}}, got: ${if (json == JNothing) "nothing" else compactRender(json)}"""
         }
         _        <- if (json == JNothing) Failure(msg) else Full(())
-        diff     <- try { Full(json.extract[AllowedNetDiff]) }
+        // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+        diff     <- try { Full(json.extract[AllowedNetDiff]): @annotation.nowarn("cat=deprecation") }
                     catch { case NonFatal(ex) => Failure(msg) }
         _        <- traverse(diff.add)(checkAllowedNetwork)
         // for now, we use inet as the name, too
@@ -1039,7 +1030,7 @@ class SettingsApi(
         asyncDeploymentAgent.launchDeployment(AutomaticStartDeployment(ModificationId(uuidGen.newUuid), actor))
         JArray(res.map(n => JString(n.inet)).toList)
       }
-      RestUtils.response(restExtractorService, getRootNameForVersion(version), Some(id))(
+      RestUtils.response(getRootNameForVersion(version), Some(id))(
         result,
         req,
         s"Error when trying to modify allowed networks for policy server '${id}'"

@@ -60,6 +60,7 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import org.joda.time.DateTime
 import org.joda.time.Duration
+import scala.annotation.nowarn
 import zio.json.*
 import zio.json.internal.Write
 
@@ -686,6 +687,7 @@ object NodeConfigIdSerializer {
     else {
       implicit val formats = DefaultFormats
       val configs          = parse(ids)
+        // avoid Compiler synthesis of Manifest and OptManifest is deprecated
         .extractOrElse[List[Map[String, String]]](List())
         .flatMap {
           case map =>
@@ -696,7 +698,7 @@ object NodeConfigIdSerializer {
             }
         }
         .flatten
-        .sortBy(_._2.getMillis)
+        .sortBy(_._2.getMillis): @nowarn("cat=deprecation")
 
       // build interval
       configs match {

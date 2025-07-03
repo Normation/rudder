@@ -231,14 +231,14 @@ impl Database {
                     .iter()
                     .all(|j| enabled_jars.contains(j))
             {
-                disabled.push(format!("disabled {}", name));
+                disabled.push(format!("disabled {name}"));
             }
         }
         fs::write(
             backup_path,
             disabled
                 .iter()
-                .fold("".to_string(), |acc, s| format!("{}{}\n", acc, s)),
+                .fold("".to_string(), |acc, s| format!("{acc}{s}\n")),
         )
         .with_context(|| {
             format!(
@@ -256,16 +256,10 @@ impl Database {
     fn apply_plugin_status_line_from_backup(&self, line: &str, webapp: &mut Webapp) -> Result<()> {
         let mut split = line.split_whitespace();
         let status = split.next().with_context(|| {
-            format!(
-                "Failed to parse the plugin status from the status backup file line '{}'",
-                line
-            )
+            format!("Failed to parse the plugin status from the status backup file line '{line}'")
         })?;
         let plugin_name = split.next().with_context(|| {
-            format!(
-                "Failed to parse the plugin name from the status backup file line '{}'",
-                line
-            )
+            format!("Failed to parse the plugin name from the status backup file line '{line}'")
         })?;
         if plugin_name.ends_with(".jar") && plugin_name.starts_with('/') {
             match status {
@@ -275,8 +269,7 @@ impl Database {
             }
         } else {
             let i = self.plugins.get(plugin_name).context(format!(
-                "The plugin {} is not installed, it could not be enabled.",
-                plugin_name
+                "The plugin {plugin_name} is not installed, it could not be enabled."
             ))?;
             match status {
                 "disabled" => i.disable(webapp),

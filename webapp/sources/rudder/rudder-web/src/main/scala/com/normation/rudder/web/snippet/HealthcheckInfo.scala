@@ -117,7 +117,6 @@ class HealthcheckInfo(
               case Warning(_, _, _)  => Some(("warning", "Something may cause an anomaly", transformed))
               case _                 => None
             }
-          case _      => None
         }
         notifInfo match {
           case Some((notifiClass, msg, liHtml)) => notifHtml(notifiClass, msg, liHtml)

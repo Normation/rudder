@@ -4,14 +4,13 @@ import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
-import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.ScoreApi
 import com.normation.rudder.rest.ScoreApi as API
 import com.normation.rudder.score.ScoreService
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 
-class ScoreApiImpl(restExtractorService: RestExtractorService, scoreService: ScoreService) extends LiftApiModuleProvider[API] {
+class ScoreApiImpl(scoreService: ScoreService) extends LiftApiModuleProvider[API] {
 
   def schemas: ApiModuleProvider[API] = API
 
@@ -21,7 +20,6 @@ class ScoreApiImpl(restExtractorService: RestExtractorService, scoreService: Sco
 
   object GetScoreList extends LiftApiModule0 {
     val schema: ScoreApi.GetScoreList.type = API.GetScoreList
-    val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
 

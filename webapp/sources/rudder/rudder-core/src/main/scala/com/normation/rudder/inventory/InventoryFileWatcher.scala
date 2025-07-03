@@ -526,6 +526,66 @@ object WatchEvent {
   final case class Mod(file: File) extends WatchEvent
 }
 
+object ProcessFile {
+
+  // time after the last mod event after which we consider that a file is written
+  private val fileWrittenThreshold: Duration = Duration(500, TimeUnit.MILLISECONDS)
+
+  def start(inventoryProcessor: ProcessInventoryService, prioIncomingDirPath: String): UIO[ProcessFile] = {
+
+    for {
+      /*
+       * We need a queue of add file / file written even to delimit when a file should be
+       * processed.
+       * We are going to receive a stream of "write file xxx" event, and updating the map accordingly
+       * (resetting the task). Once the task is started, we want to free space in the map, and so enqueue
+       * a "file written" event.
+       */
+      watchEventQueue <- Queue.bounded[WatchEvent](16384)
+
+      /*
+       * This is the map of be processed file based on received events.
+       * Each time we receive a new event, we cancel the previous one and replace by the new (for the same file).
+       * The task is configured to be processed after some delay.
+       * We only modify that map as a result of a dequeue event.
+       */
+      toBeProcessed <- zio.Ref.Synchronized.make(Map.empty[File, Fiber[RudderError, Unit]])
+
+      /*
+       * Process fully written files
+       * ---------------------------
+       * We have a second queue that is used as buffer for the step between "file ok to be processed"
+       * and "saving file" because "saving file" implies parsing XML and doing other memory and CPU
+       * inefficient tasks.
+       * The buffer also allows to filter inventory for identical nodes to avoid having a command to parse an inventory
+       * while it was already processed earlier in the buffer (and so its files were already moved).
+       * As only a small structure is saved (`SaveInventory`: a name and two function to create stream from file), buffer
+       * can be big.
+       * When queue is full, we prefer to drop old `SaveInventory` to new ones. In the worst case, they will be caught up
+       * by the SchedulerMissedNotify and put again in the WatchEvent queue.
+       */
+      saveInventoryBuffer <- Queue.sliding[InventoryPair](1024)
+
+      prioIncomingDir = File(prioIncomingDirPath)
+      sign            = if (InventoryProcessingUtils.signExtension.charAt(0) == '.') {
+                          InventoryProcessingUtils.signExtension
+                        } else {
+                          "." + InventoryProcessingUtils.signExtension
+                        }
+      processFile     = new ProcessFile(
+                          inventoryProcessor = inventoryProcessor,
+                          prioIncomingDir = prioIncomingDir,
+                          sign = sign,
+                          watchEventQueue = watchEventQueue,
+                          toBeProcessed = toBeProcessed,
+                          saveInventoryBuffer = saveInventoryBuffer
+                        )
+      _              <- processFile.start
+    } yield processFile
+  }
+
+}
+
 /*
  * Process file: interpret the stream of file modification events to decide when a
  * file is completely written, and if so, should it be sent to the backend processor.
@@ -533,15 +593,14 @@ object WatchEvent {
  */
 class ProcessFile(
     inventoryProcessor:  ProcessInventoryService,
-    prioIncomingDirPath: String
+    prioIncomingDir:     File,
+    sign:                String,
+    watchEventQueue:     Queue[WatchEvent],
+    toBeProcessed:       Ref.Synchronized[Map[File, Fiber[RudderError, Unit]]],
+    saveInventoryBuffer: Queue[InventoryPair]
 ) extends HandleIncomingInventoryFile {
 
-  val prioIncomingDir: File   = File(prioIncomingDirPath)
-  val sign:            String = if (InventoryProcessingUtils.signExtension.charAt(0) == '.') {
-    InventoryProcessingUtils.signExtension
-  } else {
-    "." + InventoryProcessingUtils.signExtension
-  }
+  import com.normation.rudder.inventory.ProcessFile.fileWrittenThreshold
 
   /*
    * Detect new files with inotify events
@@ -557,28 +616,21 @@ class ProcessFile(
    * trigger which actually say "hey, look, we have a new file!"
    */
 
-  // time after the last mod event after which we consider that a file is written
-  val fileWrittenThreshold: Duration = Duration(500, TimeUnit.MILLISECONDS)
+  def addFilePure(file: File): IOResult[Unit] = {
+    watchEventQueue.offer(WatchEvent.Mod(file)).unit
+  }
 
-  /*
-   * This is the map of be processed file based on received events.
-   * Each time we receive a new event, we cancel the previous one and replace by the new (for the same file).
-   * The task is configured to be processed after some delay.
-   * We only modify that map as a result of a dequeue event.
-   */
-  val toBeProcessed: Ref.Synchronized[Map[File, Fiber[RudderError, Unit]]] =
-    ZioRuntime.unsafeRun(zio.Ref.Synchronized.make(Map.empty[File, Fiber[RudderError, Unit]]))
+  def addFile(file: File): Unit = {
+    ZioRuntime.unsafeRun(addFilePure(file))
+  }
 
-  /*
-   * We need a queue of add file / file written even to delimit when a file should be
-   * processed.
-   * We are going to receive a stream of "write file xxx" event, and updating the map accordingly
-   * (resetting the task). Once the task is started, we want to free space in the map, and so enqueue
-   * a "file written" event.
-   */
-  val watchEventQueue: Queue[WatchEvent] = ZioRuntime.unsafeRun(Queue.bounded[WatchEvent](16384))
+  // start the process, must be called only once
+  private def start: UIO[Unit] = for {
+    _ <- processMessage().forever.forkDaemon
+    _ <- saveInventoryBufferProcessing().forever.forkDaemon
+  } yield ()
 
-  def processMessage(): UIO[Unit] = {
+  private def processMessage(): UIO[Unit] = {
     watchEventQueue.take.flatMap {
       case WatchEvent.End(file) => // simple case: remove file from map
         toBeProcessed.update(s => (s - file)).unit
@@ -616,32 +668,6 @@ class ProcessFile(
     }
   }
 
-  // start the process
-  ZioRuntime.unsafeRun(processMessage().forever.forkDaemon)
-
-  def addFilePure(file: File): IOResult[Unit] = {
-    watchEventQueue.offer(WatchEvent.Mod(file)).unit
-  }
-
-  def addFile(file: File): Unit = {
-    ZioRuntime.unsafeRun(addFilePure(file))
-  }
-
-  /*
-   * Process fully written files
-   * ---------------------------
-   * We have a second queue that is used as buffer for the step between "file ok to be processed"
-   * and "saving file" because "saving file" implies parsing XML and doing other memory and CPU
-   * inefficient tasks.
-   * The buffer also allows to filter inventory for identical nodes to avoid having a command to parse an inventory
-   * while it was already processed earlier in the buffer (and so its files were already moved).
-   * As only a small structure is saved (`SaveInventory`: a name and two function to create stream from file), buffer
-   * can be big.
-   * When queue is full, we prefer to drop old `SaveInventory` to new ones. In the worst case, they will be caught up
-   * by the SchedulerMissedNotify and put again in the WatchEvent queue.
-   */
-  protected val saveInventoryBuffer: Queue[InventoryPair] = Queue.sliding[InventoryPair](1024).runNow
-
   /*
    * The logic is:
    * - when a file is created, we look if it's a sig or an inventory (ends by .sign or not)
@@ -650,9 +676,8 @@ class ProcessFile(
    * - if it's a signature, look for the corresponding inventory. If available, remove possible action
    *   timeout and process, else do nothing.
    */
-  def processFile(file: File): ZIO[Any, RudderError, Unit] = {
-    // the ZIO program
-    val prog = for {
+  private def processFile(file: File): ZIO[Any, RudderError, Unit] = {
+    for {
       _ <- InventoryProcessingLogger.trace(s"Processing new file: ${file.pathAsString}")
       // We need to only try to do things on fully-written file.
       // The canonical way seems to be to try to get a write lock on the file and see if
@@ -698,9 +723,6 @@ class ProcessFile(
              }
            }
     } yield ()
-
-    // run program for that input file.
-    prog
   }
 
   /*
@@ -709,7 +731,7 @@ class ProcessFile(
    * It likely means that we add several "watch event: add" for that file (either copied several time,
    * touched, or inotify event emission not what we thought)
    */
-  val saveInventoryBufferProcessing: ZIO[Any, Nothing, Unit] = {
+  private def saveInventoryBufferProcessing(): ZIO[Any, Nothing, Unit] = {
     import com.normation.rudder.inventory.StatusLog.*
     for {
       fst  <- saveInventoryBuffer.take
@@ -728,5 +750,4 @@ class ProcessFile(
       _    <- saveInventoryBuffer.offerAll((all ++ all2).filterNot(inv.inventory.name == _.inventory.name))
     } yield ()
   }
-  saveInventoryBufferProcessing.forever.forkDaemon.runNow
 }

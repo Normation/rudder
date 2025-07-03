@@ -627,7 +627,7 @@ rudder.users.cleanup.sessions.purgeAfter=30 days
 # By default, the account is disabled (either by letting the
 # the login or the password empty, or by commenting it).
 #
-# The password is a bcrypt hash, you can create it for example with the following command:
+# The password is a bcrypt or argon2id hash, you can create it for example with the following command:
 #  htpasswd -nBC 12 "" | tr -d ':\n'
 # Where htpasswd is provided by apache tools.
 #
@@ -672,6 +672,22 @@ rudder.auth.userRestToken=enabled
 # Set an empty value to disable session expiration when the page stays open.
 #
 rudder.auth.idle-timeout=30 minutes
+
+#
+# Local password hash configuration
+#
+
+# Cost factor for the bcrypt hash algorithm.
+#rudder.bcrypt.cost=12
+
+# Memory parameter for the Argon2id algorithm, in KiB
+#rudder.argon2.memory=131072
+
+# Iteration count for the Argon2id algorithm
+#rudder.argon2.iterations=3
+
+# Parallelism parameter for the Argon2id algorithm
+#rudder.argon2.parallelism=1
 
 ####################
 # Server side Hooks #############################################################

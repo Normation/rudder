@@ -42,6 +42,7 @@ import cats.data.*
 import com.normation.NamedZioLogger
 import com.normation.box.*
 import com.normation.errors.*
+import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.json.implicits.*
@@ -49,6 +50,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.JsonPostgresqlSerialization.JNodeStatusReport
+import com.normation.utils.XmlSafe
 import com.normation.zio.*
 import doobie.*
 import doobie.postgres.implicits.*
@@ -306,7 +308,7 @@ object Doobie {
     Meta.Advanced.many[Elem](
       NonEmptyList.of(SqlXml),
       NonEmptyList.of("xml"),
-      (rs, n) => XML.load(rs.getObject(n).asInstanceOf[SQLXML].getBinaryStream),
+      (rs, n) => XmlSafe.load(rs.getObject(n).asInstanceOf[SQLXML].getBinaryStream),
       (ps, n, e) => {
         val sqlXml = ps.getConnection.createSQLXML
         val osw    = new java.io.OutputStreamWriter(sqlXml.setBinaryStream())
@@ -317,6 +319,10 @@ object Doobie {
       (_, _, _) => sys.error("update not supported, sorry")
     )
   }
+
+  implicit val eventActorCompositeRead:  Read[EventActor]  = Read[String].map(s => EventActor(s))
+  implicit val eventActorCompositeWrite: Write[EventActor] = Write[String].contramap(_.name)
+
 }
 
 // Same as doobie-circe , but for zio-json, did not find someone who already have done it, should be in a dependency

@@ -16,11 +16,6 @@ use rudder_module_augeas::{
 };
 use rudder_module_type::cfengine::log::{LevelFilter, set_max_level};
 use std::{env, fs, path::PathBuf};
-/*
-TODO: implement
- --timing               after executing each command, show how long it took
-Time: 565 ms after each command
-*/
 
 #[derive(Debug, Options)]
 pub struct Cli {
@@ -108,7 +103,8 @@ pub struct Cli {
     #[options(help = "save changes in files with extension '.augnew', leave original unchanged")]
     new: bool,
 
-    #[options(no_short, help = "load span positions for nodes related to a file")]
+    // Enable span as it is used for our error messages.
+    #[options(no_short, help = "always enabled, this option does nothing")]
     span: bool,
 
     /// Do not load any files into the tree on startup.
@@ -151,10 +147,7 @@ pub struct Cli {
 /// rudder-module-augeas 8.3.0 (augeas: 1.14.1)
 /// ```
 fn version(augeas_version: String) -> String {
-    format!(
-        "{} {} (augeas: {})",
-        CRATE_NAME, CRATE_VERSION, augeas_version
-    )
+    format!("{CRATE_NAME} {CRATE_VERSION} (augeas: {augeas_version})")
 }
 
 impl Cli {
@@ -169,7 +162,7 @@ impl Cli {
             let flags = Flags::NO_MODULE_AUTOLOAD;
             let aug = Augeas::new_aug::<&str>(None, &[], flags)?;
             let version = version(aug.version()?);
-            println!("{}", version);
+            println!("{version}");
             return Ok(());
         }
 
@@ -180,9 +173,7 @@ impl Cli {
         if opts.dont_load_tree {
             flags.insert(Flags::NO_LOAD);
         }
-        if opts.span {
-            flags.insert(Flags::ENABLE_SPAN);
-        }
+        flags.insert(Flags::ENABLE_SPAN);
         if opts.type_check_lenses {
             flags.insert(Flags::TYPE_CHECK);
         }
@@ -199,6 +190,11 @@ impl Cli {
         let mut aug = Augeas::new_aug(opts.root.as_deref(), &opts.lens_paths, flags)?;
 
         // FIXME read from stdin
+
+        // Apply transforms
+        if let Some(t) = opts.transform {
+            aug.srun("transform ".to_owned() + t.as_str())?;
+        }
 
         if let Some(f) = opts.file {
             let script = fs::read_to_string(f)?;

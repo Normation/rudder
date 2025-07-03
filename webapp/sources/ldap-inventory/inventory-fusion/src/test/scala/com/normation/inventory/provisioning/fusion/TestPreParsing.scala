@@ -38,13 +38,13 @@ package com.normation.inventory.provisioning.fusion
 
 import com.normation.errors.*
 import com.normation.inventory.services.provisioning.PreInventoryParser
+import com.normation.utils.XmlSafe
 import com.normation.zio.*
 import java.io.InputStream
 import org.junit.runner.*
 import org.specs2.mutable.*
 import org.specs2.runner.*
 import scala.xml.NodeSeq
-import scala.xml.XML
 import zio.*
 
 /**
@@ -59,7 +59,7 @@ class TestPreParsing extends Specification {
   implicit private class TestParser(pre: PreInventoryParser) {
 
     def fromXml(checkName: String, is: InputStream): IOResult[NodeSeq] = {
-      ZIO.attempt(XML.load(is)).mapError(SystemError("error in test", _))
+      ZIO.attempt(XmlSafe.load(is)).mapError(SystemError("error in test", _))
     }
 
     def check(checkRelativePath: String): Either[RudderError, NodeSeq] = {

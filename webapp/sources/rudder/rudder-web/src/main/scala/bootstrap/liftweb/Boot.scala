@@ -54,6 +54,7 @@ import com.normation.plugins.RudderPluginLicenseStatus
 import com.normation.plugins.RudderPluginModule
 import com.normation.plugins.RudderPluginVersion
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.AuthorizationType as Authz
 import com.normation.rudder.domain.eventlog.ApplicationStarted
 import com.normation.rudder.domain.eventlog.LogoutEventLog
 import com.normation.rudder.domain.logger.ApplicationLogger
@@ -73,7 +74,7 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.web.snippet.CustomPageJs
 import com.normation.rudder.web.snippet.WithCachedResource
-import com.normation.rudder.web.snippet.WithEnabledCSP
+import com.normation.rudder.web.snippet.WithDisabledCSP
 import com.normation.rudder.web.snippet.WithNonce
 import com.normation.zio.*
 import io.scalaland.chimney.syntax.*
@@ -84,11 +85,10 @@ import java.util.Locale
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.provider.HTTPRequest
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.sitemap.*
 import net.liftweb.sitemap.Loc.*
-import net.liftweb.sitemap.Loc.TestAccess
-import net.liftweb.sitemap.Menu
 import net.liftweb.util.TimeHelpers.*
 import net.liftweb.util.Vendor
 import org.apache.commons.text.StringEscapeUtils
@@ -116,7 +116,8 @@ object Boot {
     */
   final class RequestHeadersFactoryVendor(csp: ContentSecurityPolicy) extends Vendor[List[(String, String)]] {
 
-    LiftRules.registerInjection(this)
+    // avoid Compiler synthesis of Manifest and OptManifest is deprecated
+    LiftRules.registerInjection(this): @annotation.nowarn("cat=deprecation")
 
     implicit override def make: Box[List[(String, String)]] = Empty // never used in LiftRules.supplementalHeaders, see `vend`
 
@@ -128,10 +129,12 @@ object Boot {
     private val cspHeaderNames = List("Content-Security-Policy", "X-Content-Security-Policy")
 
     /**
-      * Returns all headers depending on page url, using current request nonce and add all other initial CSP directives
+      * Returns default headers with all other initial CSP directive, using current request nonce unless CSP are disabled
       */
     private def addCspHeaders(allHeaders: List[(String, String)]): List[(String, String)] = {
-      if (WithEnabledCSP.isEnabled) {
+      if (WithDisabledCSP.isDisabled) {
+        allHeaders // no headers to override
+      } else {
         val nonce = WithNonce.getCurrentNonce
 
         val cspHeader     = compileCSPHeader(
@@ -153,8 +156,6 @@ object Boot {
             case (header, _) if cspHeaderNames.contains(header) => header -> cspHeader
           }
         newCspHeaders ++ allHeaders.filterNot(h => cspHeaderNames.contains(h._1))
-      } else {
-        allHeaders // no headers to override
       }
     }
 
@@ -270,7 +271,6 @@ object PluginsInfo {
             case Some(x) =>
               x.schemas match {
                 case p: ApiModuleProvider[?] => recApi(p.endpoints ::: apis, tail)
-                case _ => recApi(apis, tail)
               }
           }
       }
@@ -595,7 +595,7 @@ class Boot extends Loggable {
         ContentSourceRestriction.Self :: ContentSourceRestriction.UnsafeInline :: ContentSourceRestriction.UnsafeEval :: Nil
     )
 
-    LiftRules.snippetDispatch.append(Map("with-nonce" -> WithNonce, "with-enabled-csp" -> WithEnabledCSP))
+    LiftRules.snippetDispatch.append(Map("with-nonce" -> WithNonce, "with-disabled-csp" -> WithDisabledCSP))
     LiftRules.securityRules = () => {
       SecurityRules(
         https = hsts,
@@ -746,9 +746,6 @@ class Boot extends Loggable {
      * to allow explicit locale switch with just the addition
      * of &locale=en at the end of urls
      */
-    import net.liftweb.http.provider.HTTPRequest
-    import java.util.Locale
-    import com.normation.rudder.AuthorizationType as Authz
     val DefaultLocale = new Locale("")
     LiftRules.localeCalculator = { (request: Box[HTTPRequest]) =>
       {

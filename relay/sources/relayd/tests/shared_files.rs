@@ -73,14 +73,14 @@ fn it_shares_files() {
     // tools/rudder-sign tests/api_shared_files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/file2 tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.priv tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.pub "node1.rudder.local"
 
     let file = "tests/api_shared_files/37817c4d-fbf7-4850-a985-50021f4e8f41/files/e745a140-40bc-4b86-b6dc-084488fc906b/file2";
-    let signature = read_to_string(format!("{}.sign", file)).unwrap();
-    let content = read_to_string(format!("{}.source", file)).unwrap();
+    let signature = read_to_string(format!("{file}.sign")).unwrap();
+    let content = read_to_string(format!("{file}.source")).unwrap();
 
     // Wrong digest
 
-    let wrong_signature = read_to_string(format!("{}.wrongsign", file)).unwrap();
+    let wrong_signature = read_to_string(format!("{file}.wrongsign")).unwrap();
     let upload = client.put(format!(
-        "http://localhost:{api_port}/rudder/relay-api/1/shared-files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/file2?ttl=1d")).body(format!("{}\n{}", wrong_signature, content))
+        "http://localhost:{api_port}/rudder/relay-api/1/shared-files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/file2?ttl=1d")).body(format!("{wrong_signature}\n{content}"))
         .send().unwrap();
     assert_eq!(500, upload.status());
 
@@ -92,29 +92,29 @@ fn it_shares_files() {
     // Correct upload
 
     let upload = client.put(format!(
-        "http://localhost:{api_port}/rudder/relay-api/1/shared-files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/file2?ttl=1d")).body(format!("{}\n{}", signature, content))
+        "http://localhost:{api_port}/rudder/relay-api/1/shared-files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/file2?ttl=1d")).body(format!("{signature}\n{content}"))
         .send().unwrap();
     assert_eq!(200, upload.status());
 
     let mut written_metadata =
-        Metadata::from_str(&read_to_string(format!("{}.metadata", file)).unwrap()).unwrap();
+        Metadata::from_str(&read_to_string(format!("{file}.metadata")).unwrap()).unwrap();
     let expiration = (chrono::Utc::now() + chrono::Duration::days(1)).timestamp();
     // Check expiration is correct
     assert!((expiration - written_metadata.expires.unwrap()).abs() < 500);
     written_metadata.expires = None;
 
     let source_metadata =
-        Metadata::from_str(&read_to_string(format!("{}.sign", file)).unwrap()).unwrap();
+        Metadata::from_str(&read_to_string(format!("{file}.sign")).unwrap()).unwrap();
 
     // Check uploaded file
     assert_eq!(
         read_to_string(file).unwrap(),
-        read_to_string(format!("{}.source", file)).unwrap()
+        read_to_string(format!("{file}.source")).unwrap()
     );
     // Check metadata file
     assert_eq!(source_metadata, written_metadata);
 
     // Remove leftover
     remove_file(file).unwrap();
-    remove_file(format!("{}.metadata", file)).unwrap();
+    remove_file(format!("{file}.metadata")).unwrap();
 }

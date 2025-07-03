@@ -262,6 +262,10 @@ class JsonPostresqlSerializationTest extends Specification {
     fromJson(ExpectedJson.test1) === JNodeStatusReport.from(nsr1)
   }
 
+  "Old Rudder 8.2 serialization of ReportType must be readable" >> {
+    fromJson(ExpectedJson.rudder82ReportType) === JNodeStatusReport.from(nsr1)
+  }
+
 }
 
 object ExpectedJson {
@@ -317,9 +321,7 @@ object ExpectedJson {
       |                                    "rtid" : "reportId-check2.1",
       |                                    "msrs" : [
       |                                      {
-      |                                        "rt" : {
-      |                                          "EnforceRepaired" : {}
-      |                                        },
+      |                                        "rt" : "EnforceRepaired",
       |                                        "m" : "check 2.1 is repaired"
       |                                      }
       |                                    ]
@@ -338,9 +340,7 @@ object ExpectedJson {
       |                                    "rtid" : "reportId-check2.2",
       |                                    "msrs" : [
       |                                      {
-      |                                        "rt" : {
-      |                                          "EnforceRepaired" : {}
-      |                                        },
+      |                                        "rt" : "EnforceRepaired",
       |                                        "m" : "check 2.2 is repaired"
       |                                      }
       |                                    ]
@@ -367,9 +367,7 @@ object ExpectedJson {
       |                                    "rtid" : "reportId-check3",
       |                                    "msrs" : [
       |                                      {
-      |                                        "rt" : {
-      |                                          "AuditCompliant" : {}
-      |                                        },
+      |                                        "rt" : "AuditCompliant",
       |                                        "m" : "check 3 is compliant"
       |                                      }
       |                                    ]
@@ -388,9 +386,7 @@ object ExpectedJson {
       |                                    "rtid" : "reportId-check2",
       |                                    "msrs" : [
       |                                      {
-      |                                        "rt" : {
-      |                                          "EnforceError" : {}
-      |                                        },
+      |                                        "rt" : "EnforceError",
       |                                        "m" : "check 2 failed"
       |                                      }
       |                                    ]
@@ -401,15 +397,11 @@ object ExpectedJson {
       |                                    "rtid" : "reportId-check1",
       |                                    "msrs" : [
       |                                      {
-      |                                        "rt" : {
-      |                                          "EnforceSuccess" : {}
-      |                                        },
+      |                                        "rt" : "EnforceSuccess",
       |                                        "m" : "check 1#1 is valid"
       |                                      },
       |                                      {
-      |                                        "rt" : {
-      |                                          "EnforceSuccess" : {}
-      |                                        },
+      |                                        "rt" : "EnforceSuccess",
       |                                        "m" : "check 1#2 is valid"
       |                                      }
       |                                    ]
@@ -447,9 +439,7 @@ object ExpectedJson {
       |                              "rtid" : "reportId-check6",
       |                              "msrs" : [
       |                                {
-      |                                  "rt" : {
-      |                                    "EnforceError" : {}
-      |                                  },
+      |                                  "rt" : "EnforceError",
       |                                  "m" : "check 6 is in error"
       |                                }
       |                              ]
@@ -460,9 +450,7 @@ object ExpectedJson {
       |                              "rtid" : "reportId-check5",
       |                              "msrs" : [
       |                                {
-      |                                  "rt" : {
-      |                                    "EnforceNotApplicable" : {}
-      |                                  },
+      |                                  "rt" : "EnforceNotApplicable",
       |                                  "m" : "check 5 is N/A"
       |                                }
       |                              ]
@@ -473,9 +461,242 @@ object ExpectedJson {
       |                              "rtid" : "reportId-check4",
       |                              "msrs" : [
       |                                {
-      |                                  "rt" : {
-      |                                    "EnforceRepaired" : {}
+      |                                  "rt" : "EnforceRepaired",
+      |                                  "m" : "check 4 is repaired"
+      |                                }
+      |                              ]
+      |                            }
+      |                          ]
+      |                        }
+      |                      }
+      |                    ]
+      |                  }
+      |                }
+      |              ]
+      |            }
+      |          ]
+      |        }
+      |      ]
+      |    }],
+      |    ["user", {
+      |       "rnsrs" : [
+      |         {
+      |           "nid" : "n0",
+      |           "rid" : "rule1",
+      |           "ct" : "user",
+      |           "art" : "2024-01-05T05:05:00Z",
+      |           "cid" : "config0_0",
+      |           "exp" : "2024-01-12T03:03:03Z",
+      |           "dsrs" : [
+      |             {
+      |               "did" : "directive2",
+      |               "pts" : [
+      |                 "user"
+      |               ],
+      |               "o" : "rule2",
+      |               "csrs" : []
+      |             }
+      |           ]
+      |         }
+      |       ]
+      |    }]
+      |  ]
+      |}
+      |""".stripMargin
+  }
+
+  val rudder82ReportType = {
+    """{
+      |  "nid" : "n0",
+      |  "ri" : {
+      |    "k" : "ComputeCompliance",
+      |    "ecid" : "config0_0",
+      |    "ecs" : "2024-01-01T01:00:00Z",
+      |    "rt" : "2024-01-05T05:05:00Z",
+      |    "rid" : "config0_0"
+      |  },
+      |  "si" : {
+      |    "OK" : {}
+      |  },
+      |  "rs" : [
+      |    ["system", {
+      |      "rnsrs" : [
+      |        {
+      |          "nid" : "n0",
+      |          "rid" : "rule0",
+      |          "ct" : "system",
+      |          "art" : "2024-01-05T05:05:00Z",
+      |          "cid" : "config0_0",
+      |          "exp" : "2024-01-12T03:03:03Z",
+      |          "dsrs" : [
+      |            {
+      |              "did" : "directive0",
+      |              "pts" : [
+      |                "system"
+      |              ],
+      |              "csrs" : [
+      |                {
+      |                  "bsr" : {
+      |                    "cn" : "block0",
+      |                    "rl" : "weighted",
+      |                    "csrs" : [
+      |                      {
+      |                        "bsr" : {
+      |                          "cn" : "block2",
+      |                          "rl" : "weighted",
+      |                          "csrs" : [
+      |                            {
+      |                              "vsr" : {
+      |                                "cn" : "component3",
+      |                                "ecn" : "exp-component3",
+      |                                "cvsrs" : [
+      |                                  {
+      |                                    "cn" : "check2.1",
+      |                                    "ecn" : "expected-check2.1",
+      |                                    "rtid" : "reportId-check2.1",
+      |                                    "msrs" : [
+      |                                      {
+      |                                        "rt" : "EnforceRepaired",
+      |                                        "m" : "check 2.1 is repaired"
+      |                                      }
+      |                                    ]
+      |                                  }
+      |                                ]
+      |                              }
+      |                            },
+      |                            {
+      |                              "vsr" : {
+      |                                "cn" : "component4",
+      |                                "ecn" : "exp-component4",
+      |                                "cvsrs" : [
+      |                                  {
+      |                                    "cn" : "check2.2",
+      |                                    "ecn" : "expected-check2.2",
+      |                                    "rtid" : "reportId-check2.2",
+      |                                    "msrs" : [
+      |                                      {
+      |                                        "rt" : "EnforceRepaired",
+      |                                        "m" : "check 2.2 is repaired"
+      |                                      }
+      |                                    ]
+      |                                  }
+      |                                ]
+      |                              }
+      |                            }
+      |                          ]
+      |                        }
+      |                      },
+      |                      {
+      |                        "bsr" : {
+      |                          "cn" : "block1",
+      |                          "rl" : "worst-case-weighted-one",
+      |                          "csrs" : [
+      |                            {
+      |                              "vsr" : {
+      |                                "cn" : "component2",
+      |                                "ecn" : "exp-component2",
+      |                                "cvsrs" : [
+      |                                  {
+      |                                    "cn" : "check3",
+      |                                    "ecn" : "expected-check3",
+      |                                    "rtid" : "reportId-check3",
+      |                                    "msrs" : [
+      |                                      {
+      |                                        "rt" : "AuditCompliant",
+      |                                        "m" : "check 3 is compliant"
+      |                                      }
+      |                                    ]
+      |                                  }
+      |                                ]
+      |                              }
+      |                            },
+      |                            {
+      |                              "vsr" : {
+      |                                "cn" : "component1",
+      |                                "ecn" : "exp-component1",
+      |                                "cvsrs" : [
+      |                                  {
+      |                                    "cn" : "check2",
+      |                                    "ecn" : "expected-check2",
+      |                                    "rtid" : "reportId-check2",
+      |                                    "msrs" : [
+      |                                      {
+      |                                        "rt" : "EnforceError",
+      |                                        "m" : "check 2 failed"
+      |                                      }
+      |                                    ]
       |                                  },
+      |                                  {
+      |                                    "cn" : "check1",
+      |                                    "ecn" : "expected-check1",
+      |                                    "rtid" : "reportId-check1",
+      |                                    "msrs" : [
+      |                                      {
+      |                                        "rt" : "EnforceSuccess",
+      |                                        "m" : "check 1#1 is valid"
+      |                                      },
+      |                                      {
+      |                                        "rt" : "EnforceSuccess",
+      |                                        "m" : "check 1#2 is valid"
+      |                                      }
+      |                                    ]
+      |                                  }
+      |                                ]
+      |                              }
+      |                            }
+      |                          ]
+      |                        }
+      |                      }
+      |                    ]
+      |                  }
+      |                }
+      |              ]
+      |            },
+      |            {
+      |              "did" : "directive1",
+      |              "pts" : [
+      |                "system"
+      |              ],
+      |              "csrs" : [
+      |                {
+      |                  "bsr" : {
+      |                    "cn" : "block3",
+      |                    "rl" : "focus:check4",
+      |                    "csrs" : [
+      |                      {
+      |                        "vsr" : {
+      |                          "cn" : "component5",
+      |                          "ecn" : "exp-component5",
+      |                          "cvsrs" : [
+      |                            {
+      |                              "cn" : "check6",
+      |                              "ecn" : "expected-check6",
+      |                              "rtid" : "reportId-check6",
+      |                              "msrs" : [
+      |                                {
+      |                                  "rt" : "EnforceError",
+      |                                  "m" : "check 6 is in error"
+      |                                }
+      |                              ]
+      |                            },
+      |                            {
+      |                              "cn" : "check5",
+      |                              "ecn" : "expected-check5",
+      |                              "rtid" : "reportId-check5",
+      |                              "msrs" : [
+      |                                {
+      |                                  "rt" : "EnforceNotApplicable",
+      |                                  "m" : "check 5 is N/A"
+      |                                }
+      |                              ]
+      |                            },
+      |                            {
+      |                              "cn" : "check4",
+      |                              "ecn" : "expected-check4",
+      |                              "rtid" : "reportId-check4",
+      |                              "msrs" : [
+      |                                {
+      |                                  "rt" : "EnforceRepaired",
       |                                  "m" : "check 4 is repaired"
       |                                }
       |                              ]

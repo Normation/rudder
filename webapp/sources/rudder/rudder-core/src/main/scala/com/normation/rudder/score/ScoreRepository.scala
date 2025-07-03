@@ -137,7 +137,7 @@ class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
 
   import doobie.*
   override def getAll(): IOResult[Map[NodeId, List[Score]]] = {
-    val q = sql"select nodeId, scoreId, score, message, details from scoreDetails "
+    val q = sql"select nodeId, scoreId, score, message, details from scoredetails "
     transactIOResult(s"error when getting scores for node")(xa => q.query[(NodeId, Score)].to[List].transact(xa))
       .map(_.groupMap(_._1)(_._2))
   }
@@ -146,7 +146,7 @@ class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
 
     val whereName = fr"scoreId = ${scoreId}"
     val where     = Fragments.whereAnd(whereName)
-    val q         = sql"select nodeid, scoreId, score, message, details from scoreDetails " ++ where
+    val q         = sql"select nodeid, scoreId, score, message, details from scoredetails " ++ where
     transactIOResult(s"error when getting one score for all nodes")(xa => q.query[(NodeId, Score)].toMap.transact(xa))
   }
 
@@ -155,7 +155,7 @@ class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
     val whereNode = Some(fr"nodeId = ${nodeId.value}")
     val whereName = scoreId.map(n => fr"scoreId = ${n}")
     val where     = Fragments.whereAndOpt(whereNode, whereName)
-    val q         = sql"select scoreId, score, message, details from scoreDetails " ++ where
+    val q         = sql"select scoreId, score, message, details from scoredetails " ++ where
     transactIOResult(s"error when getting scores for node ${nodeId} ")(xa => q.query[Score].to[List].transact(xa))
   }
 
@@ -163,14 +163,14 @@ class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
     val whereNode = fr"nodeId = ${nodeId.value}"
     val whereName = fr"scoreId = ${scoreId}"
     val where     = Fragments.whereAnd(whereNode, whereName)
-    val q         = sql"select scoreId, score, message, details from scoreDetails " ++ where
+    val q         = sql"select scoreId, score, message, details from scoredetails " ++ where
     transactIOResult(s"error when getting scores for node")(xa => q.query[Score].unique.transact(xa))
   }
 
   override def saveScore(nodeId: NodeId, score: Score): IOResult[Unit] = {
 
     val query = {
-      sql"""insert into scoreDetails (nodeId, scoreId, score, message, details) values (${(nodeId, score)})
+      sql"""insert into scoredetails (nodeId, scoreId, score, message, details) values (${(nodeId, score)})
            |  ON CONFLICT (nodeId, scoreId) DO UPDATE
            |  SET score = ${score.value}, message = ${score.message}, details = ${score.details} ; """.stripMargin
     }
@@ -183,7 +183,7 @@ class ScoreRepositoryImpl(doobie: Doobie) extends ScoreRepository {
     val whereNode = Some(fr"nodeId = ${nodeId.value}")
     val whereName = scoreId.map(n => fr"scoreId = ${n}")
     val where     = Fragments.whereAndOpt(whereNode, whereName)
-    val q         = sql"delete from scoreDetails " ++ where
+    val q         = sql"delete from scoredetails " ++ where
     transactIOResult(s"error when deleting score for node ${nodeId.value}")(xa => q.update.run.transact(xa).unit)
   }
 }

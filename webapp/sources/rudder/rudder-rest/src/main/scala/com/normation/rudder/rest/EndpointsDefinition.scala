@@ -50,19 +50,18 @@ import sourcecode.Line
  * in Rudder base.
  *
  * Any module wanting to contribute an API
- * More preciselly, it defines the data format of
+ * More precisely, it defines the data format of
  * an endpoint descriptor, an endpoint descriptor container,
- * and prefil all the known endpoints into the corner.
+ * and pre-fill all the known endpoints into the corner.
  *
- * It also defined interpretor for endpoint descriptor toward
+ * It also defined interpreter for endpoint descriptor toward
  * Lift RestAPI objects.
  *
  */
 
 // we need a marker trait to get endpoint in a sorted way. Bad, but nothing better
-// safe rewriting sealerate
 trait SortIndex {
-  protected[rest] def z: Int
+  def z: Int
 }
 
 sealed trait CampaignApi extends EnumEntry with EndpointSchema with GeneralApi with SortIndex
@@ -167,12 +166,16 @@ object ComplianceApi       extends Enum[ComplianceApi] with ApiModuleProvider[Co
     val authz:         List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
   }
 
+  /**
+   * this compliance is more about how rudder works on that node, it's not really "compliance"
+   * so, it can be accessed with node read rights
+   */
   case object GetNodeSystemCompliance extends ComplianceApi with InternalApi with OneParam with StartsAtVersion7 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get compliance information for the given node"
     val (action, path) = GET / "compliance" / "nodes" / "{id}" / "system"
     val dataContainer: Some[String]            = Some("nodes")
-    val authz:         List[AuthorizationType] = AuthorizationType.Compliance.Read :: Nil
+    val authz:         List[AuthorizationType] = AuthorizationType.Compliance.Read :: AuthorizationType.Node.Read :: Nil
   }
   case object GetNodeComplianceId     extends ComplianceApi with GeneralApi with OneParam with StartsAtVersion7 with SortIndex   {
     val z: Int = implicitly[Line].value
@@ -258,8 +261,8 @@ object EventLogApi extends Enum[EventLogApi] with ApiModuleProvider[EventLogApi]
   case object RollbackEventLog extends EventLogApi with InternalApi with OneParam with StartsAtVersion2 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Rollback a specific event log"
-    val (action, path) = GET / "eventlog" / "{id}" / "details" / "rollback"
-    val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+    val (action, path) = POST / "eventlog" / "{id}" / "details" / "rollback"
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
 
   def endpoints: List[EventLogApi] = values.toList.sortBy(_.z)
@@ -810,7 +813,7 @@ object PluginInternalApi       extends Enum[PluginInternalApi] with ApiModulePro
 }
 
 sealed trait TechniqueApi     extends EnumEntry with EndpointSchema with SortIndex {
-  override def dataContainer: Some[String] = Some("techniques")
+  override def dataContainer: Option[String] = Some("techniques")
 }
 sealed trait TechniqueApiPub  extends TechniqueApi with GeneralApi
 sealed trait TechniqueApiPriv extends TechniqueApi with InternalApi
@@ -834,6 +837,9 @@ object TechniqueApi extends Enum[TechniqueApi] with ApiModuleProvider[TechniqueA
     val description    = "Get all technique categories"
     val (action, path) = GET / "techniques" / "categories"
     val authz: List[AuthorizationType] = AuthorizationType.Technique.Read :: Nil
+
+    override def name:          String         = "techniqueCategories"
+    override def dataContainer: Option[String] = None
   }
   case object ListTechniques            extends TechniqueApiPub with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
@@ -885,12 +891,17 @@ object TechniqueApi extends Enum[TechniqueApi] with ApiModuleProvider[TechniqueA
     val description    = "Get currently deployed resources of a technique"
     val (action, path) = GET / "techniques" / "{techniqueId}" / "{techniqueVersion}" / "resources"
     val authz: List[AuthorizationType] = AuthorizationType.Technique.Read :: Nil
+
+    override def name:          String         = "techniqueResources"
+    override def dataContainer: Option[String] = Some("resources")
   }
   case object GetNewResources          extends TechniqueApiPub with TwoParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
     val description    = "Get resources of a technique draft"
     val (action, path) = GET / "drafts" / "{techniqueId}" / "{techniqueVersion}" / "resources"
     val authz: List[AuthorizationType] = AuthorizationType.Technique.Read :: Nil
+
+    override def dataContainer: Option[String] = Some("resources")
   }
   case object CopyResourcesWhenCloning extends TechniqueApiPriv with TwoParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
@@ -918,6 +929,9 @@ object TechniqueApi extends Enum[TechniqueApi] with ApiModuleProvider[TechniqueA
     val description    = "Get all methods metadata"
     val (action, path) = GET / "methods"
     val authz: List[AuthorizationType] = AuthorizationType.Technique.Read :: Nil
+
+    override def dataContainer: Option[String] = None
+    override def name:          String         = "methods"
   }
   case object UpdateMethods            extends TechniqueApiPub with ZeroParam with StartsAtVersion14 with SortIndex {
     val z: Int = implicitly[Line].value
@@ -1117,9 +1131,8 @@ object SystemApi       extends Enum[SystemApi] with ApiModuleProvider[SystemApi]
   case object DebugInfo extends SystemApi with ZeroParam with StartsAtVersion11 with SortIndex {
     val z: Int = implicitly[Line].value
     val description    = "Launch the support info script and get the result"
-    val (action, path) = GET / "system" / "debug" / "info"
-    val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
-
+    val (action, path) = POST / "system" / "debug" / "info"
+    val authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
   }
 
   // For now, the techniques reload endpoint is implemented in the System API
@@ -1544,7 +1557,7 @@ object UserApi       extends Enum[UserApi] with ApiModuleProvider[UserApi]      
     val z: Int = implicitly[Line].value
     val description    = "Update user personal UserApi token"
     val (action, path) = POST / "user" / "api" / "token"
-    val authz: List[AuthorizationType] = AuthorizationType.UserAccount.Write :: Nil
+    val authz: List[AuthorizationType] = List(AuthorizationType.UserAccount.Edit, AuthorizationType.UserAccount.Write)
   }
 
   def endpoints: List[UserApi] = values.toList.sortBy(_.z)

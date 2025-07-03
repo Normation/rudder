@@ -255,6 +255,7 @@ view model =
                         , div[]
                             [ rowNbInfo "Nodes in audit mode" info.nodes.audit
                             , rowNbInfo "Nodes in enforce mode" info.nodes.enforce
+                            , rowNbInfo "Nodes in mixed mode" info.nodes.mixed
                             , rowNbInfo "Enabled nodes" info.nodes.enabled
                             , rowNbInfo "Disabled nodes" info.nodes.disabled
                             , rowNbInfo "Total" info.nodes.total

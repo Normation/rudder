@@ -40,8 +40,6 @@ package com.normation.rudder.rest
 import better.files.*
 import com.normation.box.IOManaged
 import com.normation.errors.*
-import com.normation.errors.IOResult
-import com.normation.errors.effectUioUnit
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.api.ApiVersion
@@ -70,6 +68,7 @@ import net.liftweb.mocks.MockHttpServletRequest
 import net.liftweb.util.Helpers.tryo
 import org.yaml.snakeyaml.Yaml
 import scala.jdk.CollectionConverters.*
+import scala.reflect.Selectable
 import scala.util.control.NonFatal
 import zio.*
 import zio.syntax.*
@@ -286,36 +285,33 @@ object TraitTestApiFromYamlFiles {
       case inMemory: InMemoryResponse => (inMemory.code, new String(inMemory.data, "UTF-8"))
 
       // copied from liftweb source code (sendResponse)
-      case StreamingResponse(stream, endFunc, _, _, _, code) =>
+      case streaming: StreamingResponse =>
         import scala.language.reflectiveCalls
+
+        // this is a workaround for a scala compiler bug, see https://github.com/scala/scala3/issues/11043
+        def read(array: Array[Byte]): Int =
+          Selectable.reflectiveSelectable(streaming.data).applyDynamic("read", classOf[Array[Byte]])(array).asInstanceOf[Int]
 
         val os = new ByteArrayOutputStream()
         try {
           var len = 0
-          val ba  = new Array[Byte](8192)
-          stream match {
-            case jio: java.io.InputStream => len = jio.read(ba)
-            case stream => len = stream.read(ba)
-          }
+          val ba: Array[Byte] = new Array[Byte](8192)
+          len = read(ba)
           while (len >= 0) {
-            if (len > 0) os.write(ba, 0, len)
-            stream match {
-              case jio: java.io.InputStream => len = jio.read(ba)
-              case stream => len = stream.read(ba)
-            }
+            len = read(ba)
           }
           os.flush()
         } finally {
-          endFunc()
+          streaming.onEnd()
         }
-        (code, os.toString(StandardCharsets.UTF_8))
+        (streaming.code, os.toString(StandardCharsets.UTF_8))
 
-      case OutputStreamResponse(out, _, _, _, code) =>
+      case outputStream: OutputStreamResponse =>
         val os = new ByteArrayOutputStream()
-        out(os)
+        outputStream.out(os)
         os.flush()
-        (code, os.toString(StandardCharsets.UTF_8))
-      case _                                        => (500, "Unknown response in test framework")
+        (outputStream.code, os.toString(StandardCharsets.UTF_8))
+      case _ => (500, "Unknown response in test framework")
     }
 
     (responseCode, responseContent)

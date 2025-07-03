@@ -70,8 +70,7 @@ impl PromiseType {
                 AttributeType::UseBundle,
             ],
         }
-        .iter()
-        .any(|a| attribute_type == *a)
+        .contains(&attribute_type)
     }
 }
 
@@ -217,7 +216,7 @@ impl Promise {
     }
 
     pub fn unique_id(index: usize) -> String {
-        format!("index_${{local_index}}_{}", index)
+        format!("index_${{local_index}}_{index}")
     }
 
     /// Index is used to make methods promises unique
@@ -238,14 +237,14 @@ impl Promise {
         let comment = match &self.comments {
             Some(c) => c
                 .split('\n')
-                .map(|c| format!("    # {}\n", c))
+                .map(|c| format!("    # {c}\n"))
                 .collect::<Vec<String>>()
                 .concat(),
             None => "".to_string(),
         };
 
         if self.attributes.is_empty() {
-            format!("{}{};", comment, promiser)
+            format!("{comment}{promiser};")
         } else {
             format!(
                 "{}{};",

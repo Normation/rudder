@@ -57,9 +57,6 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyMode.*
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.reports.*
-import com.normation.rudder.reports.ChangesOnly
-import com.normation.rudder.reports.ComplianceMode
-import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.services.policies.SendMetrics
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.*

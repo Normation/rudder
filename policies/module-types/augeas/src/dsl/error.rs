@@ -74,7 +74,7 @@ mod tests {
             "192.168.215.135 lists.normation.com\n192.168.215.12 mail.normation.com",
             Some("This is a note"),
         );
-        println!("{}", report);
+        println!("{report}");
         let reference = include_str!("../../tests/ariadne.out");
         assert_eq!(trim_lines(&report), trim_lines(reference));
     }

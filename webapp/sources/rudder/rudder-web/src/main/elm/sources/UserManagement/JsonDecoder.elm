@@ -63,7 +63,7 @@ decodeUser =
         |> required "login" D.string
         |> optional "name" D.string ""
         |> optional "email" D.string ""
-        |> required "otherInfo" (D.dict D.string)
+        |> required "otherInfo" (D.dict D.value)
         |> required "status" decodeUserStatus
         |> required "authz" (D.list <| D.string)
         |> required "permissions" (D.list <| D.string)
@@ -100,21 +100,6 @@ decodeApiUpdateUserResult =
 decodeUpdateUser : Decoder String
 decodeUpdateUser =
     D.at [ "updatedUser" ] (D.at [ "username" ] D.string)
-
-decodeApiUpdateUserInfoResult : Decoder UserInfoForm
-decodeApiUpdateUserInfoResult =
-    D.at [ "data" ] decodeUpdateUserInfo
-
-decodeUpdateUserInfoResult : Decoder UserInfoForm
-decodeUpdateUserInfoResult =
-    D.at [ "updatedUser" ] decodeUpdateUserInfo
-
-decodeUpdateUserInfo : Decoder UserInfoForm
-decodeUpdateUserInfo =
-    D.succeed UserInfoForm
-        |> optional "name" D.string ""
-        |> optional "email" D.string ""
-        |> optional "otherInfo" (D.dict D.string) Dict.empty
 
 decodeApiDeleteUserResult : Decoder String
 decodeApiDeleteUserResult =

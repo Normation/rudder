@@ -40,7 +40,6 @@ package com.normation.rudder.rest
 import com.normation.box.*
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.VariableSpec
-import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.services.UpdateTechniqueLibrary
@@ -50,6 +49,7 @@ import com.normation.eventlog.EventLog
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.Linux
 import com.normation.inventory.domain.NodeId
@@ -58,7 +58,6 @@ import com.normation.inventory.domain.Version as IVersion
 import com.normation.plugins.*
 import com.normation.rudder.*
 import com.normation.rudder.api.{ApiAuthorization as ApiAuthz, *}
-import com.normation.rudder.apidata.RestDataSerializerImpl
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch.*
 import com.normation.rudder.batch.PolicyGenerationTrigger.AllGeneration
@@ -71,6 +70,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveUid
 import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyMode.Audit
 import com.normation.rudder.domain.policies.PolicyMode.Enforce
 import com.normation.rudder.domain.policies.PolicyModeOverrides
@@ -92,6 +92,7 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitPath
+import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.HookEnvPairs
 import com.normation.rudder.metrics.FrequentNodeMetrics
 import com.normation.rudder.metrics.JvmInfo
@@ -100,8 +101,20 @@ import com.normation.rudder.metrics.PublicSystemInfo
 import com.normation.rudder.metrics.RelayInfo
 import com.normation.rudder.metrics.SystemInfo
 import com.normation.rudder.metrics.SystemInfoService
+import com.normation.rudder.ncf.BundleName
+import com.normation.rudder.ncf.Constraints
+import com.normation.rudder.ncf.EditorTechnique
 import com.normation.rudder.ncf.EditorTechniqueReader
+import com.normation.rudder.ncf.GenericMethod
+import com.normation.rudder.ncf.MethodCall
+import com.normation.rudder.ncf.MethodParameter
+import com.normation.rudder.ncf.ParameterId
+import com.normation.rudder.ncf.ParameterType
+import com.normation.rudder.ncf.ParameterType.BasicParameterTypeService
+import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileService
+import com.normation.rudder.ncf.ResourceFileState
+import com.normation.rudder.ncf.TechniqueParameter
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
 import com.normation.rudder.reports.AgentRunInterval
@@ -537,28 +550,10 @@ class RestTestSetUp {
     )
   )
   val userPropertyService = new StatelessUserPropertyService(() => false.succeed, () => false.succeed, () => "".succeed)
-  val restExtractorService: RestExtractorService = RestExtractorService(
-    mockRules.ruleRepo,
-    mockDirectives.directiveRepo,
-    null, // roNodeGroupRepository
-
-    mockTechniques.techniqueRepo,
-    mockLdapQueryParsing.queryParser, // queryParser
-    userPropertyService,
-    workflowLevelService,
-    uuidGen,
-    null
-  )
 
   val zioJsonExtractor = new ZioJsonExtractor(mockLdapQueryParsing.queryParser)
 
-  val restDataSerializer: RestDataSerializerImpl = RestDataSerializerImpl(
-    mockTechniques.techniqueRepo,
-    null // diffService
-  )
-
   val sharedFilesApi = new SharedFilesAPI(
-    restExtractorService,
     userService,
     "unknown-shared-folder-path",
     mockGitRepo.configurationRepositoryRoot.pathAsString
@@ -712,7 +707,6 @@ class RestTestSetUp {
   val apiService13           = new SystemApiService13(
     fakeHealthcheckService,
     fakeHcNotifService,
-    restDataSerializer,
     null
   )
 
@@ -753,8 +747,8 @@ class RestTestSetUp {
     override def default(withId: String): DirectiveField = new DirectiveField {
       self => type ValueType = String
       def manifest: ClassTag[String] = classTag[String]
-      lazy val id = withId
-      def name    = id
+      val id   = withId
+      def name = id
       override val uniqueFieldId: Box[String]                      = Full(id)
       protected var _x:           String                           = getDefaultValue
       def validate:               List[FieldError]                 = Nil
@@ -783,19 +777,9 @@ class RestTestSetUp {
       asyncDeploymentAgent,
       workflowLevelService,
       directiveEditorService,
-      restDataSerializer,
       mockTechniques.techniqueRepo
     )
   }
-
-  val techniqueAPIService14 = new TechniqueAPIService14(
-    mockDirectives.directiveRepo,
-    mockTechniques.techniqueRevisionRepo,
-    null,
-    null,
-    null,
-    null
-  )
 
   object TestSystemInfoService extends SystemInfoService {
     private val pub = PublicSystemInfo(
@@ -839,7 +823,7 @@ class RestTestSetUp {
     override def getAll():         IOResult[SystemInfo]        = SystemInfo(priv, pub).succeed
   }
 
-  val systemApi = new SystemApi(restExtractorService, apiService11, apiService13, TestSystemInfoService)
+  val systemApi = new SystemApi(apiService11, apiService13, TestSystemInfoService)
   val authzToken:       AuthzToken = AuthzToken(userService.getCurrentUser.queryContext)
   val systemStatusPath: String     = "api" + systemApi.Status.schema.path
 
@@ -930,14 +914,88 @@ class RestTestSetUp {
     asyncDeploymentAgent,
     workflowLevelService,
     mockLdapQueryParsing.queryParser,
-    mockNodes.queryProcessor,
-    restDataSerializer
+    mockNodes.queryProcessor
   )
-  val ncfTechniqueWriter:  TechniqueWriter       = null
-  val ncfTechniqueReader:  EditorTechniqueReader = null
-  val techniqueRepository: TechniqueRepository   = null
-  val techniqueSerializer: TechniqueSerializer   = null
-  val resourceFileService: ResourceFileService   = null
+
+  val ncfTechniqueReader: EditorTechniqueReader = new EditorTechniqueReader {
+    private def gm(id: Int) = GenericMethod(
+      BundleName("gm" + id),
+      "gm" + id,
+      (0 until id).map(i => {
+        MethodParameter(
+          ParameterId("param" + i),
+          "param desc for " + i,
+          Nil,
+          ParameterType.StringParameter
+        )
+      }),
+      ParameterId("classParam" + id),
+      "classPrefix" + id,
+      Seq(AgentType.CfeCommunity, AgentType.Dsc),
+      "gm desc " + id,
+      Some("doc for gm" + id),
+      None,
+      None,
+      Nil
+    )
+
+    private def tech(id: Int) = EditorTechnique(
+      BundleName("tech" + id),
+      new com.normation.inventory.domain.Version("1.0"),
+      "tech" + id,
+      "catTech" + id,
+      (0 until id).map { i =>
+        MethodCall(
+          BundleName("methodCall" + i),
+          "methodCall" + i,
+          Map((0 until i).map(j => ((ParameterId("param" + j), "value" + j)))*),
+          "condMethodCall" + i,
+          "componentMethodCall" + i,
+          disabledReporting = false,
+          Some(PolicyMode.Enforce),
+          if (i == 0) None else Some((0 until i).map(j => Map((0 until j).map(k => (("k" + k, "value" + k)))*)).toList),
+          if (i == 0) None else Some("foreachName" + i)
+        )
+      },
+      "tech description " + id,
+      "tech documentation " + id,
+      (0 until id).map { i =>
+        TechniqueParameter(
+          ParameterId("techParam" + id),
+          "techParam" + id,
+          Some("tech param " + id),
+          Some("tech param doc " + id),
+          false,
+          Some(Constraints(Some(false), Some(true), Some(0), Some(42), None, None, None))
+        )
+      },
+      (0 until id).map(i => ResourceFile("resource" + i, ResourceFileState.Untouched)),
+      Map(("tag" + id, zio.json.ast.Json.Str("tag" + id))),
+      Some("internalId" + id)
+    )
+
+    val techniques: List[EditorTechnique]          = List(tech(0), tech(2))
+    val methods:    Map[BundleName, GenericMethod] = List(gm(0), gm(1), gm(2)).map(gm => (gm.id, gm)).toMap
+
+    override def readTechniquesMetadataFile
+        : IOResult[(List[EditorTechnique], Map[BundleName, GenericMethod], List[RudderError])] =
+      (techniques, methods, List(Inconsistency("for test"))).succeed
+    override def getMethodsMetadata:        IOResult[Map[BundleName, GenericMethod]] = methods.succeed
+    override def updateMethodsMetadataFile: IOResult[CmdResult]                      = CmdResult(0, "", "").succeed
+  }
+
+  val techniqueSerializer: TechniqueSerializer = new TechniqueSerializer(new BasicParameterTypeService)
+
+  val techniqueAPIService14 = new TechniqueAPIService14(
+    mockDirectives.directiveRepo,
+    mockTechniques.techniqueRevisionRepo,
+    ncfTechniqueReader,
+    techniqueSerializer,
+    null
+  )
+
+  val ncfTechniqueWriter:  TechniqueWriter     = null
+  val resourceFileService: ResourceFileService = null
   val settingsService = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())
 
   object archiveAPIModule {
@@ -1059,11 +1117,10 @@ class RestTestSetUp {
     systemApi,
     parameterApi,
     new TechniqueApi(
-      restExtractorService,
       techniqueAPIService14,
       ncfTechniqueWriter,
       ncfTechniqueReader,
-      techniqueRepository,
+      mockTechniques.techniqueRepo,
       techniqueSerializer,
       uuidGen,
       userPropertyService,
@@ -1081,7 +1138,6 @@ class RestTestSetUp {
     new NodeApi(
       zioJsonExtractor,
       mockNodeGroups.propService,
-      restDataSerializer,
       nodeApiService,
       userPropertyService,
       new NodeApiInheritedProperties(mockNodes.propRepo),
@@ -1096,7 +1152,6 @@ class RestTestSetUp {
       groupService14
     ),
     new SettingsApi(
-      restExtractorService,
       settingsService.configService,
       asyncDeploymentAgent,
       uuidGen,
@@ -1106,7 +1161,6 @@ class RestTestSetUp {
     archiveAPIModule.api,
     campaignApiModule.api,
     new ComplianceApi(
-      restExtractorService,
       mockCompliance.complianceAPIService,
       mockDirectives.directiveRepo
     ),

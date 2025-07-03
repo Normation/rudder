@@ -19,7 +19,6 @@ import Editor.ViewTechniqueList exposing (..)
 import Maybe.Extra
 import Json.Decode
 import Regex
-import String.Extra
 
 
 --
@@ -266,7 +265,7 @@ showTechnique model technique origin ui editInfo =
       |> addAttributeList [ id "methods", class "list-unstyled" ]
       |> appendChild
            ( element "li"
-             |> addAttribute (id "no-methods")
+             |> addAttribute (class "no-methods")
              |> appendChildList
                 [ element "i"
                   |> addClass "fas fa-sign-in-alt"
@@ -279,17 +278,10 @@ showTechnique model technique origin ui editInfo =
            )
       |> appendChildConditional
            ( element "li"
-             |> addAttribute (id "no-methods")
+             |> addClass "no-methods drop-zone"
              |> addStyle ("text-align", "center")
-             |> addClass (if (DragDrop.isCurrentDropTarget model.dnd StartList) then " drop-target" else "")
-             |> appendChild
-                ( element "i"
-                  |> addClass "fas fa-sign-in-alt"
-                  |> addStyle ("transform", "rotate(90deg)")
-                )
-             |> addStyle ("padding", "3px 15px")
+             |> addClassConditional "drop-target" (DragDrop.isCurrentDropTarget model.dnd StartList)
              |> DragDrop.makeDroppable model.dnd StartList dragDropMessages
-
            ) ( case DragDrop.currentlyDraggedObject model.dnd of
                  Nothing -> False
                  Just _ -> not (List.isEmpty technique.elems)
@@ -304,16 +296,11 @@ showTechnique model technique origin ui editInfo =
                                                        Just _ -> False
                   dropElem = AfterElem Nothing call
                   dropTarget =  element "li"
-                                   |> addAttribute (id "no-methods")
-                                   |> addStyle ("padding", "3px 15px")
+                                   |> addClass "no-methods drop-zone"
                                    |> addStyle ("text-align", "center")
-                                   |> addClass (if (DragDrop.isCurrentDropTarget model.dnd dropElem) then " drop-target" else  "")
+                                   |> addClassConditional "drop-target" (DragDrop.isCurrentDropTarget model.dnd dropElem)
                                    |> DragDrop.makeDroppable model.dnd dropElem dragDropMessages
-                                   |> appendChild
-                                      ( element "i"
-                                        |> addClass "fas fa-sign-in-alt"
-                                        |> addStyle ("transform", "rotate(90deg)")
-                                      )
+
                   base = if currentDrag then [] else [dropTarget]
                   elem =
                       case call of

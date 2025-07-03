@@ -945,7 +945,6 @@ object ExecutionBatch extends Loggable {
     val t1        = System.currentTimeMillis
     val overrides = runInfo match {
       case x: ExpectedConfigAvailable => x.expectedConfig.overrides
-      case x: LastRunAvailable        => x.lastRunConfigInfo.map(_.overrides).getOrElse(Nil).toList
       case _ => Nil
     }
 
@@ -1764,7 +1763,7 @@ object ExecutionBatch extends Loggable {
           // we look in the free values for one matching the report. If found, we return (remaining freevalues, Some[paired value]
           // else (all free values, None).
           // never increment the cardinality for free value.
-          val (newFreeValues, tryPair) = findMatchingValue(report, freeValues, (value, report) => false)
+          val (newFreeValues, tryPair) = findMatchingValue(report, freeValues, (_, _) => false)
 
           logger.trace(s"found unpaired value for '${report.keyValue}'? " + tryPair)
 

@@ -51,7 +51,7 @@ response:
     {
       "action":"parameterDetails",
       "result":"error",
-      "errorDetails":"Inconsistency: Could not find Parameter xxxxxxxx"
+      "errorDetails":"Could not find Parameter xxxxxxxx"
     }
 ---
 description: List parameters (hiddenParam is not listed)

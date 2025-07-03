@@ -39,7 +39,6 @@ package com.normation.rudder.campaign
 
 import com.normation.errors.*
 import com.normation.rudder.campaigns.*
-import com.normation.rudder.campaigns.WeeklySchedule
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat

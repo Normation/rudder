@@ -187,7 +187,7 @@ impl FromStr for MethodInfo {
                         parameter.constraints.update(constraint)?;
                     }
                     "parameter_type" => parameter.escaping = caps[4].parse()?,
-                    _ => debug!("Unknown tag {}", tag),
+                    _ => debug!("Unknown tag {tag}"),
                 }
                 continue;
             }
@@ -226,7 +226,7 @@ impl FromStr for MethodInfo {
                         }
                     }
                     p if p.starts_with("parameter") => (),
-                    _ => debug!("Unknown tag {}", tag),
+                    _ => debug!("Unknown tag {tag}"),
                 }
                 continue;
             }

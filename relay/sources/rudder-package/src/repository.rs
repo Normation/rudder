@@ -34,8 +34,8 @@ pub enum RepositoryError {
 impl std::fmt::Display for RepositoryError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InvalidCredentials(err) => write!(f, "{}", err),
-            Self::Unauthorized(err) => write!(f, "{}", err),
+            Self::InvalidCredentials(err) => write!(f, "{err}"),
+            Self::Unauthorized(err) => write!(f, "{err}"),
         }
     }
 }
@@ -201,10 +201,10 @@ impl Repository {
             debug!("Updating licenses");
             let license_folder = Path::new(LICENSES_FOLDER);
             create_dir_all(license_folder).context("Creating the license folder")?;
-            let archive_name = format!("{}-license.tar.gz", user);
+            let archive_name = format!("{user}-license.tar.gz");
             let local_archive_path = &license_folder.join(&archive_name);
             if let Err(e) = self.download_unsafe(
-                &format!("licenses/{}/{}", user, archive_name),
+                &format!("licenses/{user}/{archive_name}"),
                 local_archive_path,
             ) {
                 bail!(

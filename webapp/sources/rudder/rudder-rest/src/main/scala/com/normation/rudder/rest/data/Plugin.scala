@@ -37,6 +37,7 @@
 package com.normation.rudder.rest.data
 
 import com.normation.plugins.*
+import com.normation.plugins.settings.PluginSettings
 import com.normation.utils.DateFormaterService
 import com.normation.utils.Version
 import enumeratum.Enum
@@ -150,8 +151,7 @@ final case class JsonPluginsLicense(
 )
 object JsonPluginsLicense {
 
-  import DateFormaterService.JodaTimeToJava
-  import GlobalPluginsLicense.*
+  import com.normation.plugins.GlobalPluginsLicense.*
 
   implicit val dateFieldEncoder: JsonFieldEncoder[ZonedDateTime] =
     JsonFieldEncoder[String].contramap(DateFormaterService.serializeZDT)
@@ -231,4 +231,27 @@ object JsonPluginError {
       .withFieldComputed(_.message, _.displayMsg)
       .buildTransformer
   }
+}
+
+/**
+ * (De)Serialized version of the PluginSettings structure,
+ * without leaking passwords.
+ */
+final case class JsonPluginSettings(
+    url:                        Option[String],
+    username:                   Option[String],
+    @jsonExclude password:      Option[String],
+    proxyUrl:                   Option[String],
+    proxyUser:                  Option[String],
+    @jsonExclude proxyPassword: Option[String]
+)
+
+object JsonPluginSettings {
+  implicit val encoder: JsonEncoder[JsonPluginSettings] = DeriveJsonEncoder.gen[JsonPluginSettings]
+  implicit val decoder: JsonDecoder[JsonPluginSettings] = DeriveJsonDecoder.gen[JsonPluginSettings]
+
+  implicit val transformer:     Transformer[PluginSettings, JsonPluginSettings] =
+    Transformer.derive[PluginSettings, JsonPluginSettings]
+  implicit val backTransformer: Transformer[JsonPluginSettings, PluginSettings] =
+    Transformer.derive[JsonPluginSettings, PluginSettings]
 }

@@ -106,6 +106,7 @@ import com.normation.rudder.rest.lift.ImportAnswer.*
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.utils.StringUuidGenerator
+import com.normation.utils.XmlSafe
 import com.normation.zio.*
 import enumeratum.*
 import io.scalaland.chimney.syntax.*
@@ -122,7 +123,6 @@ import net.liftweb.http.OutputStreamResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
 import scala.util.matching.Regex
-import scala.xml.XML
 import zio.*
 import zio.json.*
 import zio.syntax.*
@@ -306,27 +306,27 @@ class ArchiveApi(
         }
       }
 
-      def parseArchive(archive: FileParamHolder): IOResult[PolicyArchive] = {
-        val originalFilename = archive.fileName
-
+      def parseArchive(archive: FileParamHolder, name: String): IOResult[PolicyArchive] = {
         ZIO
           .acquireReleaseWith(IOResult.attempt(archive.fileStream))(is => effectUioUnit(is.close())) { is =>
-            ZipUtils.getZipEntries(originalFilename, is)
+            ZipUtils.getZipEntries(name, is)
           }
-          .flatMap(entries => zipArchiveReader.readPolicyItems(originalFilename, entries))
+          .flatMap(entries => zipArchiveReader.readPolicyItems(name, entries))
       }
 
       val prog = (req.uploadedFiles.find(_.name == FILE) match {
         case None      =>
           Unexpected(s"Missing uploaded file with parameter name '${FILE}'").fail
         case Some(zip) =>
+          val originalFilename = File(zip.fileName).name
+
           for {
-            _       <- ApplicationLoggerPure.Archive.info(s"Received a new policy archive '${zip.fileName}', processing")
+            _       <- ApplicationLoggerPure.Archive.info(s"Received a new policy archive '${originalFilename}', processing")
             merge   <- parseMergePolicy(req)
-            archive <- parseArchive(zip)
+            archive <- parseArchive(zip, originalFilename)
             _       <- checkArchiveService.check(archive)
             _       <- saveArchiveService.save(archive, merge)(authzToken.qc)
-            _       <- ApplicationLoggerPure.Archive.info(s"Uploaded archive '${zip.fileName}' processed successfully")
+            _       <- ApplicationLoggerPure.Archive.info(s"Uploaded archive '${originalFilename}' processed successfully")
           } yield JRArchiveImported(success = true)
       }).tapError(err => ApplicationLoggerPure.Archive.error(s"Error when processing uploaded archive: ${err.fullMsg}"))
 
@@ -1067,7 +1067,7 @@ class ZipArchiveReaderImpl(
 
         case TechniqueType.Metadata.name =>
           for {
-            xml  <- IOResult.attempt(XML.load(new ByteArrayInputStream(content)))
+            xml  <- IOResult.attempt(XmlSafe.load(new ByteArrayInputStream(content)))
             tech <- techniqueParser.parseXml(xml, id).toIO
             _    <- optTech.update {
                       case None    => Some(TechniqueInfo(tech.id, tech.name, TechniqueType.Metadata))
@@ -1186,7 +1186,6 @@ class ZipArchiveReaderImpl(
   }
 
   def readPolicyItems(archiveName: String, zipEntries: Seq[(ZipEntry, Option[Array[Byte]])]): IOResult[PolicyArchive] = {
-
     // sort files in rules, directives, groups, techniques
     val sortedEntries = zipEntries.foldLeft(SortedEntries.empty) {
       case (arch, (e, optContent)) =>
@@ -1231,7 +1230,7 @@ class ZipArchiveReaderImpl(
     }
 
     // then, group by base path (cats/id/version) for technique ; then for each group, find from base path category
-    // if its a json or yml technique
+    // if it's a json or yml technique
     val techniqueUnzips = sortedEntries.techniques.groupBy {
       case (filename, _) =>
         techniques.find(base => filename.startsWith(base))
@@ -1253,6 +1252,8 @@ class ZipArchiveReaderImpl(
       _                 <- ApplicationLoggerPure.Archive.debug(
                              s"Processing archive '${archiveName}': techniques: '${techniqueUnzips.keys.mkString("', '")}'"
                            )
+      // check for ZipSlip path traversal
+      _                 <- ZIO.foreach(zipEntries) { case (e, _) => ZipUtils.checkForZipSlip(e) }
       withTechniques    <- parseTechniques(archiveName, PolicyArchiveUnzip.empty, techniqueUnzips)
       _                 <-
         ApplicationLoggerPure.Archive.debug(

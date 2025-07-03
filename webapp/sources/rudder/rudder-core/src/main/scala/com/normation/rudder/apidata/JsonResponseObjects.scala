@@ -449,8 +449,8 @@ object JsonResponseObjects {
       implicit val transformer: Transformer[Option[domain.MachineType], MachineType] = {
         Transformer
           .define[Option[domain.MachineType], MachineType]
-          .withCoproductInstance[None.type] { case None => NoMachine }
-          .withCoproductInstance[Some[domain.MachineType]] {
+          .withEnumCaseHandled[None.type] { case None => NoMachine }
+          .withEnumCaseHandled[Some[domain.MachineType]] {
             case Some(domain.UnknownMachineType)    => UnknownMachineType
             case Some(domain.PhysicalMachineType)   => PhysicalMachineType
             case Some(_: domain.VirtualMachineType) => VirtualMachineType
@@ -2111,23 +2111,19 @@ object JsonResponseObjects {
 }
 //////////////////////////// zio-json encoders ////////////////////////////
 
-trait RudderJsonEncoders {
-  import JsonResponseObjects.*
-  import JsonResponseObjects.JRNodeDetailLevel.*
-  import JsonResponseObjects.JRRuleTarget.*
-  import com.normation.inventory.domain.JsonSerializers.implicits.*
-  import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.array.*
-  import com.normation.rudder.facts.nodes.NodeFactSerialisation.*
-  import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
-  import com.normation.rudder.score.ScoreSerializer.*
-  import com.normation.utils.DateFormaterService.json.*
+object JRRuleEncoder {
 
-  implicit lazy val stringTargetEnc: JsonEncoder[JRRuleTargetString]          = JsonEncoder[String].contramap(_.r.target)
-  implicit lazy val andTargetEnc:    JsonEncoder[JRRuleTargetComposition.or]  = JsonEncoder[List[JRRuleTarget]].contramap(_.list)
-  implicit lazy val orTargetEnc:     JsonEncoder[JRRuleTargetComposition.and] = JsonEncoder[List[JRRuleTarget]].contramap(_.list)
-  implicit lazy val comp1TargetEnc:  JsonEncoder[JRRuleTargetComposed]        = DeriveJsonEncoder.gen
-  implicit lazy val comp2TargetEnc:  JsonEncoder[JRRuleTargetComposition]     = DeriveJsonEncoder.gen
-  implicit lazy val targetEncoder:   JsonEncoder[JRRuleTarget]                = new JsonEncoder[JRRuleTarget] {
+  import JsonResponseObjects.*
+  import JsonResponseObjects.JRRuleTarget.*
+
+  // FIXME: hide / split some encoders to reduce method size
+  implicit val targetEncoder: JsonEncoder[JRRuleTarget] = new JsonEncoder[JRRuleTarget] {
+    implicit lazy val stringTargetEnc: JsonEncoder[JRRuleTargetString]          = JsonEncoder[String].contramap(_.r.target)
+    implicit lazy val andTargetEnc:    JsonEncoder[JRRuleTargetComposition.or]  = JsonEncoder[List[JRRuleTarget]].contramap(_.list)
+    implicit lazy val orTargetEnc:     JsonEncoder[JRRuleTargetComposition.and] = JsonEncoder[List[JRRuleTarget]].contramap(_.list)
+    implicit lazy val comp1TargetEnc:  JsonEncoder[JRRuleTargetComposed]        = DeriveJsonEncoder.gen
+    implicit lazy val comp2TargetEnc:  JsonEncoder[JRRuleTargetComposition]     = DeriveJsonEncoder.gen
+
     override def unsafeEncode(a: JRRuleTarget, indent: Option[Int], out: Write): Unit = {
       a match {
         case x: JRRuleTargetString      => stringTargetEnc.unsafeEncode(x, indent, out)
@@ -2137,51 +2133,70 @@ trait RudderJsonEncoders {
     }
   }
 
-  implicit val ruleTargetInfoEncoder: JsonEncoder[JRRuleTargetInfo] = DeriveJsonEncoder.gen[JRRuleTargetInfo]
+  implicit lazy val applicationStatusEncoder:  JsonEncoder[JRApplicationStatus]   = DeriveJsonEncoder.gen
+  implicit lazy val ruleTargetInfoEncoder:     JsonEncoder[JRRuleTargetInfo]      = DeriveJsonEncoder.gen
+  implicit lazy val ruleEncoder:               JsonEncoder[JRRule]                = DeriveJsonEncoder.gen
+  implicit lazy val ruleNodesDirectiveEncoder: JsonEncoder[JRRuleNodesDirectives] = DeriveJsonEncoder.gen
+  implicit lazy val ruleInfoEncoder:           JsonEncoder[JRRuleInfo]            = DeriveJsonEncoder.gen
+}
 
-  implicit val ruleIdEncoder:          JsonEncoder[RuleId]              = JsonEncoder[String].contramap(_.serialize)
-  implicit val groupIdEncoder:         JsonEncoder[NodeGroupId]         = JsonEncoder[String].contramap(_.serialize)
-  implicit val groupCategoryIdEncoder: JsonEncoder[NodeGroupCategoryId] = JsonEncoder[String].contramap(_.value)
+object CategoryEncoder {
+  import JRRuleEncoder.*
+  import JsonResponseObjects.*
 
-  implicit val applicationStatusEncoder: JsonEncoder[JRApplicationStatus] = DeriveJsonEncoder.gen
+  implicit lazy val simpleCategoryEncoder: JsonEncoder[JRSimpleRuleCategory]        = DeriveJsonEncoder.gen
+  implicit lazy val fullCategoryEncoder:   JsonEncoder[JRFullRuleCategory]          = DeriveJsonEncoder.gen
+  implicit lazy val infoCategoryEncoder:   JsonEncoder[JRRuleCategoryInfo]          = DeriveJsonEncoder.gen
+  implicit lazy val rootCategoryEncoder1:  JsonEncoder[JRCategoriesRootEntryFull]   = DeriveJsonEncoder.gen
+  implicit lazy val rootCategoryEncoder2:  JsonEncoder[JRCategoriesRootEntrySimple] = DeriveJsonEncoder.gen
+  implicit lazy val rootCategoryEncoder3:  JsonEncoder[JRCategoriesRootEntryInfo]   = DeriveJsonEncoder.gen
 
-  implicit val ruleEncoder: JsonEncoder[JRRule]  = DeriveJsonEncoder.gen
-  implicit val hookEncoder: JsonEncoder[JRHooks] = DeriveJsonEncoder.gen
+}
 
-  implicit val ruleNodesDirectiveEncoder: JsonEncoder[JRRuleNodesDirectives] = DeriveJsonEncoder.gen
-  implicit val ruleInfoEncoder:           JsonEncoder[JRRuleInfo]            = DeriveJsonEncoder.gen
+object DirectiveEncoder {
+  import JsonResponseObjects.*
 
-  implicit val simpleCategoryEncoder:    JsonEncoder[JRSimpleRuleCategory]        = DeriveJsonEncoder.gen
-  implicit lazy val fullCategoryEncoder: JsonEncoder[JRFullRuleCategory]          = DeriveJsonEncoder.gen
-  implicit lazy val infoCategoryEncoder: JsonEncoder[JRRuleCategoryInfo]          = DeriveJsonEncoder.gen
-  implicit val rootCategoryEncoder1:     JsonEncoder[JRCategoriesRootEntryFull]   = DeriveJsonEncoder.gen
-  implicit val rootCategoryEncoder2:     JsonEncoder[JRCategoriesRootEntrySimple] = DeriveJsonEncoder.gen
-  implicit val rootCategoryEncoder3:     JsonEncoder[JRCategoriesRootEntryInfo]   = DeriveJsonEncoder.gen
-
-  implicit val rulesEncoder: JsonEncoder[JRRules] = DeriveJsonEncoder.gen
-
-  implicit val directiveSectionVarEncoder:         JsonEncoder[JRDirectiveSectionVar]    = DeriveJsonEncoder.gen
+  implicit lazy val directiveSectionVarEncoder:    JsonEncoder[JRDirectiveSectionVar]    = DeriveJsonEncoder.gen
   implicit lazy val directiveSectionHolderEncoder: JsonEncoder[JRDirectiveSectionHolder] = DeriveJsonEncoder.gen
   implicit lazy val directiveSectionEncoder:       JsonEncoder[JRDirectiveSection]       = DeriveJsonEncoder.gen
-  implicit val directiveEncoder:                   JsonEncoder[JRDirective]              = DeriveJsonEncoder.gen
-  implicit val directivesEncoder:                  JsonEncoder[JRDirectives]             = DeriveJsonEncoder.gen
-  implicit val directiveTreeTechniqueEncoder:      JsonEncoder[JRDirectiveTreeTechnique] = DeriveJsonEncoder.gen
-  implicit val directiveTreeEncoder:               JsonEncoder[JRDirectiveTreeCategory]  = DeriveJsonEncoder.gen
+  implicit lazy val directiveEncoder:              JsonEncoder[JRDirective]              = DeriveJsonEncoder.gen
+  implicit lazy val directivesEncoder:             JsonEncoder[JRDirectives]             = DeriveJsonEncoder.gen
+  implicit lazy val directiveTreeTechniqueEncoder: JsonEncoder[JRDirectiveTreeTechnique] = DeriveJsonEncoder.gen
+  implicit lazy val directiveTreeEncoder:          JsonEncoder[JRDirectiveTreeCategory]  = DeriveJsonEncoder.gen
+}
 
-  implicit val activeTechniqueEncoder: JsonEncoder[JRActiveTechnique] = DeriveJsonEncoder.gen
+trait RudderJsonEncoders {
+  export CategoryEncoder.*
+  export DirectiveEncoder.*
+  export JRRuleEncoder.*
+  import JsonResponseObjects.*
+  import JsonResponseObjects.JRNodeDetailLevel.*
+  import com.normation.inventory.domain.JsonSerializers.implicits.*
+  import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.array.*
+  import com.normation.rudder.facts.nodes.NodeFactSerialisation.*
+  import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
+  import com.normation.rudder.score.ScoreSerializer.*
+  import com.normation.utils.DateFormaterService.json.*
 
-  implicit val configValueEncoder:      JsonEncoder[ConfigValue]              = new JsonEncoder[ConfigValue] {
+  implicit lazy val ruleIdEncoder:          JsonEncoder[RuleId]              = JsonEncoder[String].contramap(_.serialize)
+  implicit lazy val groupIdEncoder:         JsonEncoder[NodeGroupId]         = JsonEncoder[String].contramap(_.serialize)
+  implicit lazy val groupCategoryIdEncoder: JsonEncoder[NodeGroupCategoryId] = JsonEncoder[String].contramap(_.value)
+  implicit lazy val hookEncoder:            JsonEncoder[JRHooks]             = DeriveJsonEncoder.gen
+  implicit lazy val rulesEncoder:           JsonEncoder[JRRules]             = DeriveJsonEncoder.gen
+  implicit lazy val activeTechniqueEncoder: JsonEncoder[JRActiveTechnique]   = DeriveJsonEncoder.gen
+
+  implicit lazy val configValueEncoder:      JsonEncoder[ConfigValue]              = new JsonEncoder[ConfigValue] {
     override def unsafeEncode(a: ConfigValue, indent: Option[Int], out: Write): Unit = {
       val options = ConfigRenderOptions.concise().setJson(true).setFormatted(indent.isDefined)
       out.write(a.render(options))
     }
   }
-  implicit val propertyProviderEncoder: JsonEncoder[Option[PropertyProvider]] = JsonEncoder[Option[String]].contramap {
+  implicit lazy val propertyProviderEncoder: JsonEncoder[Option[PropertyProvider]] = JsonEncoder[Option[String]].contramap {
     case None | Some(PropertyProvider.defaultPropertyProvider) => None
     case Some(x)                                               => Some(x.value)
   }
-  implicit val inheritModeEncoder:      JsonEncoder[InheritMode]              = JsonEncoder[String].contramap(_.value)
-  implicit val globalParameterEncoder:  JsonEncoder[JRGlobalParameter]        = DeriveJsonEncoder
+  implicit lazy val inheritModeEncoder:      JsonEncoder[InheritMode]              = JsonEncoder[String].contramap(_.value)
+  implicit lazy val globalParameterEncoder:  JsonEncoder[JRGlobalParameter]        = DeriveJsonEncoder
     .gen[JRGlobalParameter]
     .contramap(g => {
       // when inheritMode or property provider are set to their default value, don't write them
@@ -2197,9 +2212,9 @@ trait RudderJsonEncoders {
         }
     })
 
-  implicit val propertyJRParentProperty: JsonEncoder[JRParentProperty] = DeriveJsonEncoder.gen
+  implicit lazy val propertyJRParentProperty: JsonEncoder[JRParentProperty] = DeriveJsonEncoder.gen
 
-  implicit val propertyHierarchyEncoder:        JsonEncoder[JRPropertyHierarchy]        = new JsonEncoder[JRPropertyHierarchy] {
+  implicit lazy val propertyHierarchyEncoder:        JsonEncoder[JRPropertyHierarchy]        = new JsonEncoder[JRPropertyHierarchy] {
     override def unsafeEncode(a: JRPropertyHierarchy, indent: Option[Int], out: Write): Unit = {
       a match {
         case JRPropertyHierarchy.JRPropertyHierarchyJson(parents) =>
@@ -2209,64 +2224,59 @@ trait RudderJsonEncoders {
       }
     }
   }
-  implicit val propertyDetailsEncoder:          JsonEncoder[JRParentPropertyDetails]    = DeriveJsonEncoder.gen
-  implicit val propertyHierarchyStatusEncoder:  JsonEncoder[JRPropertyHierarchyStatus]  = DeriveJsonEncoder.gen
-  implicit val propertyEncoder:                 JsonEncoder[JRProperty]                 = DeriveJsonEncoder.gen
-  implicit val criteriumEncoder:                JsonEncoder[JRCriterium]                = DeriveJsonEncoder.gen
-  implicit val queryEncoder:                    JsonEncoder[JRQuery]                    = DeriveJsonEncoder.gen
-  implicit val groupEncoder:                    JsonEncoder[JRGroup]                    = DeriveJsonEncoder.gen
-  implicit val objectInheritedObjectProperties: JsonEncoder[JRGroupInheritedProperties] = DeriveJsonEncoder.gen
+  implicit lazy val propertyDetailsEncoder:          JsonEncoder[JRParentPropertyDetails]    = DeriveJsonEncoder.gen
+  implicit lazy val propertyHierarchyStatusEncoder:  JsonEncoder[JRPropertyHierarchyStatus]  = DeriveJsonEncoder.gen
+  implicit lazy val propertyEncoder:                 JsonEncoder[JRProperty]                 = DeriveJsonEncoder.gen
+  implicit lazy val criteriumEncoder:                JsonEncoder[JRCriterium]                = DeriveJsonEncoder.gen
+  implicit lazy val queryEncoder:                    JsonEncoder[JRQuery]                    = DeriveJsonEncoder.gen
+  implicit lazy val groupEncoder:                    JsonEncoder[JRGroup]                    = DeriveJsonEncoder.gen
+  implicit lazy val objectInheritedObjectProperties: JsonEncoder[JRGroupInheritedProperties] = DeriveJsonEncoder.gen
 
-  implicit val fullGroupCategoryEncoder:      JsonEncoder[JRFullGroupCategory]             =
-    DeriveJsonEncoder.gen[JRFullGroupCategory]
-  implicit val minimalGroupCategoryEncoder:   JsonEncoder[JRMinimalGroupCategory]          =
-    DeriveJsonEncoder.gen[JRMinimalGroupCategory]
-  implicit val groupCategoriesFullEncoder:    JsonEncoder[JRGroupCategoriesFull]           =
-    DeriveJsonEncoder.gen[JRGroupCategoriesFull]
-  implicit val groupCategoriesMinimalEncoder: JsonEncoder[JRGroupCategoriesMinimal]        =
-    DeriveJsonEncoder.gen[JRGroupCategoriesMinimal]
-  implicit val groupInfoEncoder:              JsonEncoder[JRGroupCategoryInfo.JRGroupInfo] =
-    DeriveJsonEncoder.gen[JRGroupCategoryInfo.JRGroupInfo]
-  implicit lazy val groupCategoryInfoEncoder: JsonEncoder[JRGroupCategoryInfo]             = DeriveJsonEncoder.gen[JRGroupCategoryInfo]
+  implicit lazy val fullGroupCategoryEncoder:      JsonEncoder[JRFullGroupCategory]             = DeriveJsonEncoder.gen
+  implicit lazy val minimalGroupCategoryEncoder:   JsonEncoder[JRMinimalGroupCategory]          = DeriveJsonEncoder.gen
+  implicit lazy val groupCategoriesFullEncoder:    JsonEncoder[JRGroupCategoriesFull]           = DeriveJsonEncoder.gen
+  implicit lazy val groupCategoriesMinimalEncoder: JsonEncoder[JRGroupCategoriesMinimal]        = DeriveJsonEncoder.gen
+  implicit lazy val groupInfoEncoder:              JsonEncoder[JRGroupCategoryInfo.JRGroupInfo] = DeriveJsonEncoder.gen
+  implicit lazy val groupCategoryInfoEncoder:      JsonEncoder[JRGroupCategoryInfo]             = DeriveJsonEncoder.gen
 
-  implicit val nodeIdEncoder:                  JsonEncoder[NodeId]                    = JsonEncoder[String].contramap(_.value)
-  implicit val nodeInheritedPropertiesEncdoer: JsonEncoder[JRNodeInheritedProperties] = DeriveJsonEncoder.gen
+  implicit lazy val nodeIdEncoder:                  JsonEncoder[NodeId]                    = JsonEncoder[String].contramap(_.value)
+  implicit lazy val nodeInheritedPropertiesEncdoer: JsonEncoder[JRNodeInheritedProperties] = DeriveJsonEncoder.gen
 
-  implicit val revisionInfoEncoder: JsonEncoder[JRRevisionInfo] = DeriveJsonEncoder.gen
+  implicit lazy val revisionInfoEncoder: JsonEncoder[JRRevisionInfo] = DeriveJsonEncoder.gen
 
-  implicit val statusEncoder: JsonEncoder[JRInventoryStatus] = JsonEncoder[String].contramap(_.name)
-  implicit val stateEncoder:  JsonEncoder[NodeState]         = JsonEncoder[String].contramap(_.name)
+  implicit lazy val statusEncoder: JsonEncoder[JRInventoryStatus] = JsonEncoder[String].contramap(_.name)
+  implicit lazy val stateEncoder:  JsonEncoder[NodeState]         = JsonEncoder[String].contramap(_.name)
 
-  implicit val machineTypeEncoder: JsonEncoder[MachineType] = JsonEncoder[String].contramap(_.name)
+  implicit lazy val machineTypeEncoder: JsonEncoder[MachineType] = JsonEncoder[String].contramap(_.name)
 
-  implicit val nodeInfoEncoder: JsonEncoder[JRNodeInfo] = DeriveJsonEncoder.gen[JRNodeInfo]
+  implicit lazy val nodeInfoEncoder: JsonEncoder[JRNodeInfo] = DeriveJsonEncoder.gen
 
-  implicit val nodeChangeStatusEncoder: JsonEncoder[JRNodeChangeStatus] = DeriveJsonEncoder.gen[JRNodeChangeStatus]
+  implicit lazy val nodeChangeStatusEncoder: JsonEncoder[JRNodeChangeStatus] = DeriveJsonEncoder.gen
 
-  implicit val nodeIdStatusEncoder:         JsonEncoder[JRNodeIdStatus]         = DeriveJsonEncoder.gen[JRNodeIdStatus]
-  implicit val nodeIdHostnameResultEncoder: JsonEncoder[JRNodeIdHostnameResult] = DeriveJsonEncoder.gen[JRNodeIdHostnameResult]
+  implicit lazy val nodeIdStatusEncoder:         JsonEncoder[JRNodeIdStatus]         = DeriveJsonEncoder.gen
+  implicit lazy val nodeIdHostnameResultEncoder: JsonEncoder[JRNodeIdHostnameResult] = DeriveJsonEncoder.gen
 
-  implicit val updateNodeEncoder: JsonEncoder[JRUpdateNode] = DeriveJsonEncoder.gen[JRUpdateNode]
+  implicit lazy val updateNodeEncoder: JsonEncoder[JRUpdateNode] = DeriveJsonEncoder.gen
 
   // Node details
 
-  implicit val vmTypeEncoder: JsonEncoder[VmType] = JsonEncoder[String].contramap(_.name)
+  implicit lazy val vmTypeEncoder: JsonEncoder[VmType] = JsonEncoder[String].contramap(_.name)
 
-  implicit val nodeKindEncoder:          JsonEncoder[NodeKind]            = JsonEncoder[String].contramap(_.name)
-  implicit val managementEncoder:        JsonEncoder[Management]          = DeriveJsonEncoder.gen[Management]
-  implicit val scheduleOverrideEncoder:  JsonEncoder[ScheduleOverride]    = DeriveJsonEncoder.gen[ScheduleOverride]
-  implicit val managementDetailsEncoder: JsonEncoder[ManagementDetails]   = DeriveJsonEncoder.gen[ManagementDetails]
-  implicit val licenseEncoder:           JsonEncoder[domain.License]      = DeriveJsonEncoder.gen[domain.License]
-  implicit val softwareUuidEncoder:      JsonEncoder[domain.SoftwareUuid] = JsonEncoder[String].contramap(_.value)
-  implicit val softwareEncoder:          JsonEncoder[domain.Software]     = DeriveJsonEncoder.gen[domain.Software]
+  implicit lazy val nodeKindEncoder:          JsonEncoder[NodeKind]            = JsonEncoder[String].contramap(_.name)
+  implicit lazy val managementEncoder:        JsonEncoder[Management]          = DeriveJsonEncoder.gen
+  implicit lazy val scheduleOverrideEncoder:  JsonEncoder[ScheduleOverride]    = DeriveJsonEncoder.gen
+  implicit lazy val managementDetailsEncoder: JsonEncoder[ManagementDetails]   = DeriveJsonEncoder.gen
+  implicit lazy val licenseEncoder:           JsonEncoder[domain.License]      = DeriveJsonEncoder.gen
+  implicit lazy val softwareUuidEncoder:      JsonEncoder[domain.SoftwareUuid] = JsonEncoder[String].contramap(_.value)
+  implicit lazy val softwareEncoder:          JsonEncoder[domain.Software]     = DeriveJsonEncoder.gen
 
-  implicit val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = DeriveJsonEncoder.gen[JRNodeDetailLevel]
+  implicit lazy val nodeDetailLevelEncoder: JsonEncoder[JRNodeDetailLevel] = DeriveJsonEncoder.gen
 
-  implicit val runAnalysisKindEncoder:  JsonEncoder[RunAnalysisKind]   = JsonEncoder[String].contramap(_.entryName)
-  implicit val jrNodeComplianceEncoder: JsonEncoder[JRNodeCompliance]  = JsonEncoder[ComplianceLevel].contramap(_.compliance)
-  implicit val policyModeSerializer:    JsonEncoder[PolicyMode]        = JsonEncoder[String].contramap(_.name)
-  implicit val jrGlobalScoreEncoder:    JsonEncoder[JRGlobalScore]     = DeriveJsonEncoder.gen[JRGlobalScore]
-  implicit val nodeDetailTableEncoder:  JsonEncoder[JRNodeDetailTable] = DeriveJsonEncoder.gen[JRNodeDetailTable]
+  implicit lazy val runAnalysisKindEncoder:  JsonEncoder[RunAnalysisKind]   = JsonEncoder[String].contramap(_.entryName)
+  implicit lazy val jrNodeComplianceEncoder: JsonEncoder[JRNodeCompliance]  = JsonEncoder[ComplianceLevel].contramap(_.compliance)
+  implicit lazy val policyModeSerializer:    JsonEncoder[PolicyMode]        = JsonEncoder[String].contramap(_.name)
+  implicit lazy val jrGlobalScoreEncoder:    JsonEncoder[JRGlobalScore]     = DeriveJsonEncoder.gen
+  implicit lazy val nodeDetailTableEncoder:  JsonEncoder[JRNodeDetailTable] = DeriveJsonEncoder.gen
 }
 
 /*

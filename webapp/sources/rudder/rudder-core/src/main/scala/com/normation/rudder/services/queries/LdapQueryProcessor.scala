@@ -39,7 +39,6 @@ package com.normation.rudder.services.queries
 import cats.implicits.*
 import com.normation.NamedZioLogger
 import com.normation.errors.*
-import com.normation.errors.RudderError
 import com.normation.inventory.domain.*
 import com.normation.inventory.ldap.core.*
 import com.normation.inventory.ldap.core.LDAPConstants.*

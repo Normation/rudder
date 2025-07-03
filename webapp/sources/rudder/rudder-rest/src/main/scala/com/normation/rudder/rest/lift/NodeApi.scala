@@ -43,7 +43,6 @@ import cats.data.ValidatedNel
 import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.*
-import com.normation.inventory.domain.NodeId
 import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.UUID_ENTRY
 import com.normation.ldap.sdk.LDAPConnectionProvider
@@ -54,7 +53,6 @@ import com.normation.rudder.apidata.JsonQueryObjects.*
 import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.apidata.RenderInheritedProperties
-import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
 import com.normation.rudder.config.ReasonBehavior
@@ -97,13 +95,9 @@ import com.normation.rudder.rest.OneParam
 import com.normation.rudder.rest.RudderJsonResponse
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.data.Creation.CreationError
-import com.normation.rudder.rest.data.NodeSetup
-import com.normation.rudder.rest.data.NodeTemplate
 import com.normation.rudder.rest.data.NodeTemplate.AcceptedNodeTemplate
 import com.normation.rudder.rest.data.NodeTemplate.PendingNodeTemplate
-import com.normation.rudder.rest.data.Rest
 import com.normation.rudder.rest.data.Rest.NodeDetails
-import com.normation.rudder.rest.data.Validation
 import com.normation.rudder.rest.data.Validation.NodeValidationError
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.score.GlobalScore
@@ -155,7 +149,6 @@ import zio.syntax.*
 class NodeApi(
     zioJsonExtractor:      ZioJsonExtractor,
     nodePropertiesService: NodePropertiesService,
-    serializer:            RestDataSerializer,
     nodeApiService:        NodeApiService,
     userPropertyService:   UserPropertyService,
     inheritedProperties:   NodeApiInheritedProperties,

@@ -42,7 +42,6 @@ import com.normation.box.*
 import com.normation.eventlog.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.eventlog.*
-import com.normation.rudder.domain.eventlog.DeleteNodeEventLog
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.services.DisplayNode

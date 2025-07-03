@@ -5,6 +5,7 @@ import com.normation.errors.*
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.domain.logger.RuddercLogger
 import com.normation.rudder.git.GitConfigItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.hooks.Cmd
@@ -83,7 +84,7 @@ class EditorTechniqueReaderImpl(
                           case ((accT, accE), file) =>
                             (for {
                               content    <- IOResult.attempt(s"Error when reading '${file.pathAsString}'")(file.contentAsString)
-                              editorTech <- yamlTechniqueSerializer.yamlToEditorTechnique(file.contentAsString)
+                              editorTech <- yamlTechniqueSerializer.yamlToEditorTechnique(content)
                               _          <- EditorTechnique.checkTechniqueIdConsistency(file.parent, editorTech)
                             } yield editorTech)
                               .chainError(s"An Error occurred while extracting data from technique ${file.pathAsString}")
@@ -147,14 +148,14 @@ class EditorTechniqueReaderImpl(
 
     val cmd = Cmd(ruddercCmd, ruddercParams ::: ruddercLibs, Map.empty, None)
     for {
+      _         <- RuddercLogger.debug(s"Reading generic methods information with command: '${cmd.display}'")
       updateCmd <- RunNuCommand.run(cmd)
       res       <- updateCmd.await
-      _         <-
-        ZIO.when(res.code != 0)(
-          Inconsistency(
-            s"An error occurred while updating generic methods library with command '${cmd.display}':\n ${res.debugString(sep = "\n ")}"
-          ).fail
-        )
+      _         <- ZIO.when(res.code != 0) {
+                     Inconsistency(
+                       s"An error occurred while updating generic methods library with command '${cmd.display}':\n ${res.debugString(sep = "\n ")}"
+                     ).fail
+                   }
       // write file
       _         <- IOResult.attempt(methodsFile.parent.createDirectories())
       _         <- IOResult.attempt(methodsFile.parent.setGroup(groupOwner))

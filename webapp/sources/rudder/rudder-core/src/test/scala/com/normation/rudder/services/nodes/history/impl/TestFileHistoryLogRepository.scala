@@ -21,11 +21,11 @@
 package com.normation.rudder.services.nodes.history.impl
 
 import com.normation.errors.*
-import com.normation.errors.RudderError
 import com.normation.zio.ZioRuntime
 import java.io.File
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
+import org.joda.time.format.ISODateTimeFormat
 import org.junit.*
 import org.junit.Assert.*
 import org.junit.runner.RunWith
@@ -56,7 +56,8 @@ import TestFileHistoryLogRepository.*
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestFileHistoryLogRepository {
 
-  val repos = new FileHistoryLogRepository(rootDir, StringMarshaller, StringId)
+  val repos =
+    new FileHistoryLogRepository(rootDir, StringMarshaller, StringId, new JodaDateTimeConverter(ISODateTimeFormat.dateTime()))
 
   implicit class RunThing[R, E, T](thing: ZIO[Any, E, T]) {
     def runNow: Either[E, T] = ZioRuntime.unsafeRun(thing.either)

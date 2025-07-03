@@ -63,7 +63,6 @@ import com.normation.utils.StringUuidGeneratorImpl
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import net.liftweb.common.*
-import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
 import org.junit.runner.RunWith

@@ -805,7 +805,7 @@ class InventoryMapper(
     root.setOpt(server.lastLoggedUserTime, A_LAST_LOGGED_USER_TIME, (x: DateTime) => GeneralizedTime(x).toString)
     root.setOpt(server.inventoryDate, A_INVENTORY_DATE, (x: DateTime) => GeneralizedTime(x).toString)
     root.setOpt(server.receiveDate, A_RECEIVE_DATE, (x: DateTime) => GeneralizedTime(x).toString)
-    root.resetValuesTo(A_AGENTS_NAME, server.agents.map(x => x.toJson)*)
+    root.resetValuesTo(A_AGENT_NAME, server.agents.map(x => x.toJson)*)
     root.resetValuesTo(A_SOFTWARE_DN, server.softwareIds.map(x => dit.SOFTWARE.SOFT.dn(x).toString)*)
     root.resetValuesTo(A_EV, server.environmentVariables.map(_.toJson)*)
     root.resetValuesTo(A_LIST_OF_IP, server.serverIps.distinct*)
@@ -999,7 +999,7 @@ class InventoryMapper(
       rootUser       <- entry.required(A_ROOT_USER).toIO
       policyServerId <- entry.required(A_POLICY_SERVER_UUID).toIO
       agentNames     <- ZIO
-                          .foreach(entry.valuesFor(A_AGENTS_NAME).toList) {
+                          .foreach(entry.valuesFor(A_AGENT_NAME).toList) {
                             case agent =>
                               agent.fromJson[AgentInfo].toIO.chainError(s"Error when parsing agent security token '${agent}'")
                           }

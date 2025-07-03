@@ -13,11 +13,11 @@ chmod +x sccache-v$SCCACHE_VER-x86_64-unknown-linux-musl/sccache
 mv sccache-v$SCCACHE_VER-x86_64-unknown-linux-musl/sccache /usr/local/bin/
 
 # Install pre-compiled cargo-deny
-DENY_VER=0.18.0
+DENY_VER=0.18.3
 wget --quiet https://github.com/EmbarkStudios/cargo-deny/releases/download/$DENY_VER/cargo-deny-$DENY_VER-x86_64-unknown-linux-musl.tar.gz
 tar -xf cargo-deny-$DENY_VER-x86_64-unknown-linux-musl.tar.gz
 mv cargo-deny-$DENY_VER-x86_64-unknown-linux-musl/cargo-deny /usr/local/bin/
 
 # Build & check tools
-cargo install --locked cargo-auditable@0.6.6
+cargo install --locked cargo-auditable@0.6.7
 cargo install --locked cargo-cyclonedx@0.5.7

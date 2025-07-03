@@ -43,7 +43,6 @@ import com.normation.rudder.api.*
 import com.normation.rudder.batch.ErrorStatus
 import com.normation.rudder.batch.SuccessStatus
 import com.normation.rudder.domain.eventlog.*
-import com.normation.rudder.domain.eventlog.WorkflowStepChanged
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.GlobalParameter
@@ -1323,15 +1322,34 @@ class EventLogDetailsGenerator(
       "#description" #> globalParameter.description
   )(xml)
 
-  private def apiAccountDetails(xml: NodeSeq, apiAccount: ApiAccount) = (
-    "#id" #> apiAccount.id.value &
-      "#name" #> apiAccount.name.value &
-      "#token" #> apiAccount.token.flatMap(_.exposeHash()).getOrElse("") &
-      "#description" #> apiAccount.description &
-      "#isEnabled" #> apiAccount.isEnabled &
-      "#creationDate" #> DateFormaterService.getDisplayDate(apiAccount.creationDate) &
-      "#tokenGenerationDate" #> DateFormaterService.getDisplayDate(apiAccount.tokenGenerationDate)
-  )(xml)
+  private def apiAccountDetails(xml: NodeSeq, apiAccount: ApiAccount) = {
+    val (expiration, kind, authz) = apiAccount.kind match {
+      case ApiAccountKind.System                                    => ("N/A", "system", Text("N/A"))
+      case ApiAccountKind.User                                      => ("N/A", "user", Text("N/A"))
+      case ApiAccountKind.PublicApi(authorizations, expirationDate) =>
+        (
+          expirationDate.map(DateFormaterService.getDisplayDate).getOrElse("N/A"),
+          "API",
+          authorizations match {
+            case ApiAuthorization.None     => Text("none")
+            case ApiAuthorization.RW       => Text("read/write")
+            case ApiAuthorization.RO       => Text("read only")
+            case ApiAuthorization.ACL(acl) => <div> ACL <ul>{acl.map(x => <li>{x.display}</li>)}</ul></div>
+          }
+        )
+    }
+
+    ("#id" #> apiAccount.id.value &
+    "#name" #> apiAccount.name.value &
+    "#token" #> apiAccount.token.flatMap(_.exposeHash()).getOrElse("") &
+    "#description" #> apiAccount.description &
+    "#isEnabled" #> apiAccount.isEnabled &
+    "#creationDate" #> DateFormaterService.getDisplayDate(apiAccount.creationDate) &
+    "#tokenGenerationDate" #> DateFormaterService.getDisplayDate(apiAccount.tokenGenerationDate) &
+    "#expirationDate" #> expiration &
+    "#accountKind" #> kind &
+    "#authz" #> authz)(xml)
+  }
 
   private def mapSimpleDiffT[T](opt: Option[SimpleDiff[T]], t: T => String) = opt.map { diff =>
     ".diffOldValue *" #> t(diff.oldValue) &
@@ -1529,7 +1547,7 @@ class EventLogDetailsGenerator(
         <li><b>Token Generation date:&nbsp;</b><value id="tokenGenerationDate"/></li>
         <li><b>Token Expiration date:&nbsp;</b><value id="expirationDate"/></li>
         <li><b>Account Kind:&nbsp;</b><value id="accountKind"/></li>
-        <li><b>ACLs:&nbsp;</b><value id="acls"/></li>
+        <li><b>Authorization:&nbsp;</b><value id="authz"/></li>
       </ul>
     </div>
   }

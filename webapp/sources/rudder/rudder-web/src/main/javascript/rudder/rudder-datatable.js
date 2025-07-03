@@ -56,11 +56,16 @@ const equalsCheck = (a, b) =>
     a.length === b.length &&
     a.every((v, i) => v === b[i]);
 
+// Renaming table ids to specific CSV file name, also later enforce snake_case if necessary
+const csvRenameFilename = (filename) => (({
+  "serverGrid": "nodes_search_result"
+})[filename] ?? filename)
+
 // Shared config for DataTables Button CSV
-const csvButtonConfig = (filename) => ({
+const csvButtonConfig = (filename, additionalCls) => ({
   extend: 'csv',
-  className: 'btn btn-primary btn-export',
-  filename: filename,
+  className: 'btn btn-primary btn-export ' + (additionalCls ?? ''),
+  filename: 'rudder_' + csvRenameFilename(filename) + '_' + getDateString(),
   text: 'Export',
   exportOptions: {
     customizeData: function (data) {
@@ -95,7 +100,7 @@ $.fn.dataTable.ext.search.push(
     function(settings, data, dataIndex ) {
         // param needs to be JSON only so we remove the hash tag # at index 0
 
-        var param = decodeURIComponent(window.location.hash.substring(1));
+        var param = filterXSS(decodeURIComponent(window.location.hash.substring(1)));
         if (param !== "" && window.location.pathname === contextPath + "/secure/nodeManager/nodes") {
             var obj = JSON.parse(param);
             var score = obj.score
@@ -1389,7 +1394,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
   var allColumnsKeys =  Object.keys(allColumns)
 
   var isResizing = false,
-    hasHandle = $(tableWrapper + ' #drag').length > 0,
+    hasHandle = $('#drag').length > 0,
     offsetBottom = 250;
 
   $(function () {
@@ -1461,7 +1466,7 @@ function createNodeTable(gridId, nodeIds, refresh, scores) {
   var colTitle = columns.map(function(c) { return c.title})
   dynColumns = allColumnsKeys.filter(function(c) { return !(colTitle.includes(c))})
 
-  var param = decodeURIComponent(window.location.hash.substring(1));
+  var param = filterXSS(decodeURIComponent(window.location.hash.substring(1)));
   if (param !== "") {
     try {
       var obj = JSON.parse(param);
@@ -1736,7 +1741,7 @@ function handleNodesTableDisplayByGroupTab(show) {
  *   , "message" : Report message [String]
  *   }
  */
-function createTechnicalLogsTable(gridId, data, contextPath, refresh, regroup) {
+function createTechnicalLogsTable(gridId, nodeId, data, contextPath, refresh, regroup) {
   var columns = [ {
       "sWidth": "10%"
     , "mDataProp": "executionDate"
@@ -1821,8 +1826,10 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh, regroup) {
         "sSearch": ""
     }
     , "aaSorting": [[ 0, "desc" ]]
-    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh"><"dataTables_pickdates"><"dataTables_pickend"><"dataTables_pickstart">'+
-      '>rt<"dataTables_wrapper_bottom"lip>'
+    , "sDom": '<"dataTables_wrapper_top newFilter d-flex"f<"d-flex ms-auto my-auto" B <"dataTables_refresh ms-2" r>>'+
+      '>t<"dataTables_wrapper_bottom"lip>'
+    , "buttons" : [ csvButtonConfig(`node_${nodeId}_technical_logs`) ],
+
   };
 
   if (regroup) {
@@ -1993,15 +2000,17 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                     table.row(row).child($(rollback).append(html)).show();
                     $('#showParameters' + id).off('click').on('click', function() { showParameters(event, id) });
                     $("#restoreBtn" + id).click(function(event){
-                      var rollback ='#rollback'+id
+                      const rollback = "#rollback" + id
                       $(rollback).hide();
-                      var confirm = "#confirm" + id.toString();
-                      var radios = $('.radio-btn');
-                      var action = getRadioChecked(radios);
-                      var confirmHtml = "<div class='d-flex text-start align-items-center'><i class='fa fa-exclamation-triangle fs-2 me-3' aria-hidden='true'></i>Are you sure you want to restore configuration policy " + action + " this</div><span><button class='btn btn-default rollback-action'>Cancel</button></span>&nbsp;&nbsp;<button class='btn btn-danger rollback-action'>Confirm</button></span>";
-                      $(confirm).append(confirmHtml).addClass("alert alert-warning d-flex align-items-center");
-                      $('#confirm' + id + ' .rollback-action.btn-danger').off('click').on('click', '', function() { confirmRollback(id) });
-                      $('#confirm' + id + ' .rollback-action.btn-default').off('click').on('click', '', function() { cancelRollback(id) });
+                      const confirm = "#confirm" + id.toString();
+                      const radios = $(".radio-btn");
+                      const action = getRadioChecked(radios, value => (value === "before" || value === "after") ? value : null);
+                      if (action !== null) {
+                        const confirmHtml = "<div class='d-flex text-start align-items-center'><i class='fa fa-exclamation-triangle fs-2 me-3' aria-hidden='true'></i>Are you sure you want to restore configuration policy " + action + " this</div><span><button class='btn btn-default rollback-action'>Cancel</button></span>&nbsp;&nbsp;<button class='btn btn-danger rollback-action'>Confirm</button></span>";
+                        $(confirm).append(confirmHtml).addClass("alert alert-warning d-flex align-items-center");
+                        $('#confirm' + id + ' .rollback-action.btn-danger').off('click').on('click', '', function() { confirmRollback(id, action) });
+                        $('#confirm' + id + ' .rollback-action.btn-default').off('click').on('click', '', function() { cancelRollback(id) });
+                      }
                     });
                   } else {
                     table.row(row).child(html).show();
@@ -2020,8 +2029,9 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
           }
 
       }
-    , "dom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh"><"dataTables_pickdates"><"dataTables_pickend"><"dataTables_pickstart">'+
-      '>rt<"dataTables_wrapper_bottom"lip>'
+    , "sDom": '<"dataTables_wrapper_top newFilter d-flex"f<"d-flex ms-auto my-auto" B <"dataTables_refresh ms-2" r>>'+
+      '>t<"dataTables_wrapper_bottom"lip>'
+    , "buttons" : [ csvButtonConfig("change_logs") ],
   };
 
   createTable(gridId,data, columns, params, contextPath, refresh, "event_logs", false);
@@ -2038,20 +2048,19 @@ function setupRollbackBlock(id) {
   return returnedHTML
 }
 
-function getRadioChecked(radios) {
+function getRadioChecked(radios, validate = s => s) {
  for (var i = 0, length = radios.length; i < length; i++) {
    if (radios[i].checked) {
-     return radios[i].value;
+     return validate(radios[i].value);
    }
  }
+ return null;
 }
 
-function confirmRollback(id) {
-  var radios = $('.radio-btn');
-  var action = getRadioChecked(radios);
+function confirmRollback(id, action) {
   $.ajax({
-    type: "GET",
-    url: contextPath + '/secure/api/eventlog/' + id + "/details/rollback?action=" + action ,
+    type: "POST",
+    url: contextPath + '/secure/api/eventlog/' + id + "/details/rollback?action=" + action,
     contentType: "application/json; charset=utf-8",
     beforeSend: function() {
       $('.rollback-action').prop("disabled", true)

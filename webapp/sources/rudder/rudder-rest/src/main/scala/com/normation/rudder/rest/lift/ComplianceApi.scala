@@ -74,11 +74,11 @@ import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.rest.*
-import com.normation.rudder.rest.ComplianceApi as API
-import com.normation.rudder.rest.RestExtractorService
+import com.normation.rudder.rest.{ComplianceApi as API, *}
 import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.rest.data.*
+import com.normation.rudder.rest.data.CsvCompliance.*
+import com.normation.rudder.rest.data.JsonCompliance.*
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.ComputePolicyMode.ComputedPolicyMode
@@ -96,13 +96,47 @@ import zio.ZIO
 import zio.syntax.*
 
 class ComplianceApi(
-    restExtractorService: RestExtractorService,
-    complianceService:    ComplianceAPIService,
-    readDirective:        RoDirectiveRepository
+    complianceService: ComplianceAPIService,
+    readDirective:     RoDirectiveRepository
 ) extends LiftApiModuleProvider[API] {
 
-  import CsvCompliance.*
-  import JsonCompliance.*
+  def extractComplianceLevel(params: Map[String, List[String]]): Box[Option[Int]] = {
+    params.get("level") match {
+      case None | Some(Nil) => Full(None)
+      case Some(h :: tail)  => // only take into account the first level param is several are passed
+        try { Full(Some(h.toInt)) }
+        catch {
+          case ex: NumberFormatException =>
+            Failure(s"level (displayed level of compliance details) must be an integer, was: '${h}'")
+        }
+    }
+  }
+
+  def extractPercentPrecision(params: Map[String, List[String]]): Box[Option[CompliancePrecision]] = {
+    params.get("precision") match {
+      case None | Some(Nil) => Full(None)
+      case Some(h :: tail)  => // only take into account the first level param is several are passed
+        for {
+          extracted <- try { Full(h.toInt) }
+                       catch {
+                         case ex: NumberFormatException => Failure(s"percent precison must be an integer, was: '${h}'")
+                       }
+          level     <- CompliancePrecision.fromPrecision(extracted)
+        } yield {
+          Some(level)
+        }
+
+    }
+  }
+
+  def extractComplianceFormat(params: Map[String, List[String]]): Box[ComplianceFormat] = {
+    params.get("format") match {
+      case None | Some(Nil) | Some("" :: Nil) =>
+        Full(ComplianceFormat.JSON) // by default if no there is no format, should I choose the only one available ?
+      case Some(format :: _)                  =>
+        ComplianceFormat.fromValue(format).toBox
+    }
+  }
 
   def schemas: ApiModuleProvider[API] = API
 
@@ -131,17 +165,16 @@ class ComplianceApi(
   }
 
   object GetRules extends LiftApiModule0 {
-    val schema: API.GetRulesCompliance.type = API.GetRulesCompliance
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.GetRulesCompliance.type = API.GetRulesCompliance
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                = {
       implicit val action   = schema.name
       implicit val prettify = params.prettify
 
       implicit val qc: QueryContext = authzToken.qc
 
       (for {
-        level        <- restExtractor.extractComplianceLevel(req.params)
-        precision    <- restExtractor.extractPercentPrecision(req.params)
+        level        <- extractComplianceLevel(req.params)
+        precision    <- extractPercentPrecision(req.params)
         computeLevel <- Full(if (version.value <= 6) {
                           None
                         } else {
@@ -169,7 +202,6 @@ class ComplianceApi(
 
   object GetRuleId extends LiftApiModule {
     val schema: OneParam = API.GetRulesComplianceId
-    val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -183,9 +215,9 @@ class ComplianceApi(
       implicit val qc: QueryContext = authzToken.qc
 
       (for {
-        level     <- restExtractor.extractComplianceLevel(req.params)
+        level     <- extractComplianceLevel(req.params)
         t1         = System.currentTimeMillis
-        precision <- restExtractor.extractPercentPrecision(req.params)
+        precision <- extractPercentPrecision(req.params)
         id        <- RuleId.parse(ruleId).toBox
         t2         = System.currentTimeMillis
 
@@ -218,8 +250,7 @@ class ComplianceApi(
   }
 
   object GetDirectiveId extends LiftApiModule {
-    val schema:        API.GetDirectiveComplianceId.type = API.GetDirectiveComplianceId
-    val restExtractor: RestExtractorService              = restExtractorService
+    val schema: API.GetDirectiveComplianceId.type = API.GetDirectiveComplianceId
 
     def process(
         version:     ApiVersion,
@@ -233,10 +264,10 @@ class ComplianceApi(
       implicit val prettify = params.prettify
       implicit val qc: QueryContext = authzToken.qc
       (for {
-        level     <- restExtractor.extractComplianceLevel(req.params)
+        level     <- extractComplianceLevel(req.params)
         t1         = System.currentTimeMillis
-        precision <- restExtractor.extractPercentPrecision(req.params)
-        format    <- restExtractorService.extractComplianceFormat(req.params)
+        precision <- extractPercentPrecision(req.params)
+        format    <- extractComplianceFormat(req.params)
         id        <- DirectiveId.parse(directiveId).toBox
         d         <- readDirective.getDirective(id.uid).notOptional(s"Directive with id '${id.serialize}' not found'").toBox
         t2         = System.currentTimeMillis
@@ -268,7 +299,6 @@ class ComplianceApi(
 
   object GetDirectives extends LiftApiModule0 {
     val schema: API.GetDirectivesCompliance.type = API.GetDirectivesCompliance
-    val restExtractor = restExtractorService
 
     def process0(
         version:    ApiVersion,
@@ -282,9 +312,9 @@ class ComplianceApi(
       implicit val qc: QueryContext = authzToken.qc
 
       (for {
-        level      <- restExtractor.extractComplianceLevel(req.params)
+        level      <- extractComplianceLevel(req.params)
         t1          = System.currentTimeMillis
-        precision  <- restExtractor.extractPercentPrecision(req.params)
+        precision  <- extractPercentPrecision(req.params)
         t2          = System.currentTimeMillis
         _           = TimingDebugLogger.trace(s"API DirectivesCompliance - getting query param in ${t2 - t1} ms")
         t4          = System.currentTimeMillis
@@ -315,7 +345,6 @@ class ComplianceApi(
 
   object GetNodeGroupSummary extends LiftApiModule0 {
     val schema: API.GetNodeGroupComplianceSummary.type = API.GetNodeGroupComplianceSummary
-    val restExtractor = restExtractorService
     def process0(
         version:    ApiVersion,
         path:       ApiPath,
@@ -328,7 +357,7 @@ class ComplianceApi(
       implicit val qc: QueryContext = authzToken.qc
 
       (for {
-        precision <- restExtractor.extractPercentPrecision(req.params)
+        precision <- extractPercentPrecision(req.params)
         targets    = req.params.getOrElse("groups", List.empty).flatMap { nodeGroups =>
                        nodeGroups.split(",").toList.flatMap(parseSimpleTargetOrNodeGroupId(_).toOption)
                      }
@@ -354,7 +383,6 @@ class ComplianceApi(
 
   object GetNodeGroupId extends LiftApiModule {
     val schema: OneParam = API.GetNodeGroupComplianceId
-    val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -368,8 +396,8 @@ class ComplianceApi(
       implicit val qc: QueryContext = authzToken.qc
 
       (for {
-        level     <- restExtractor.extractComplianceLevel(req.params)
-        precision <- restExtractor.extractPercentPrecision(req.params)
+        level     <- extractComplianceLevel(req.params)
+        precision <- extractPercentPrecision(req.params)
         target    <- parseSimpleTargetOrNodeGroupId(groupId).chainError("Could not parse the node group id or group target").toBox
         group     <- complianceService.getNodeGroupCompliance(target, level)
       } yield {
@@ -387,7 +415,6 @@ class ComplianceApi(
 
   object GetNodeGroupTargetId extends LiftApiModule {
     val schema: OneParam = API.GetNodeGroupComplianceTargetId
-    val restExtractor = restExtractorService
     def process(
         version:    ApiVersion,
         path:       ApiPath,
@@ -401,8 +428,8 @@ class ComplianceApi(
       implicit val qc: QueryContext = authzToken.qc
 
       (for {
-        level     <- restExtractor.extractComplianceLevel(req.params)
-        precision <- restExtractor.extractPercentPrecision(req.params)
+        level     <- extractComplianceLevel(req.params)
+        precision <- extractPercentPrecision(req.params)
         target    <- parseSimpleTargetOrNodeGroupId(groupId).chainError("Could not parse the node group id or group target").toBox
         group     <- complianceService.getNodeGroupCompliance(target, level, isGlobalCompliance = false)
       } yield {
@@ -419,16 +446,15 @@ class ComplianceApi(
   }
 
   object GetNodes extends LiftApiModule0 {
-    val schema: API.GetNodesCompliance.type = API.GetNodesCompliance
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.GetNodesCompliance.type = API.GetNodesCompliance
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                = {
       implicit val action   = schema.name
       implicit val prettify = params.prettify
       implicit val qc: QueryContext = authzToken.qc
 
       (for {
-        level     <- restExtractor.extractComplianceLevel(req.params)
-        precision <- restExtractor.extractPercentPrecision(req.params)
+        level     <- extractComplianceLevel(req.params)
+        precision <- extractPercentPrecision(req.params)
         nodes     <- complianceService.getNodesCompliance(PolicyTypeName.rudderBase).toBox
       } yield {
         if (version.value <= 6) {
@@ -449,7 +475,6 @@ class ComplianceApi(
 
   object GetNodeId extends LiftApiModule {
     val schema: OneParam = API.GetNodeComplianceId
-    val restExtractor = restExtractorService
 
     def process(
         version:    ApiVersion,
@@ -464,8 +489,8 @@ class ComplianceApi(
       implicit val qc: QueryContext = authzToken.qc
 
       (for {
-        level     <- restExtractor.extractComplianceLevel(req.params)
-        precision <- restExtractor.extractPercentPrecision(req.params)
+        level     <- extractComplianceLevel(req.params)
+        precision <- extractPercentPrecision(req.params)
         node      <- complianceService.getNodeCompliance(NodeId(nodeId), PolicyTypeName.rudderBase).toBox
       } yield {
         if (version.value <= 6) {
@@ -486,7 +511,6 @@ class ComplianceApi(
 
   object GetNodeSystemCompliance extends LiftApiModule {
     val schema: OneParam = API.GetNodeSystemCompliance
-    val restExtractor = restExtractorService
 
     def process(
         version:    ApiVersion,
@@ -501,8 +525,8 @@ class ComplianceApi(
       implicit val qc       = authzToken.qc
 
       (for {
-        level     <- restExtractor.extractComplianceLevel(req.params)
-        precision <- restExtractor.extractPercentPrecision(req.params)
+        level     <- extractComplianceLevel(req.params)
+        precision <- extractPercentPrecision(req.params)
         node      <- complianceService.getNodeCompliance(NodeId(nodeId), PolicyTypeName.rudderSystem).toBox
       } yield {
         node.toJson(level.getOrElse(10), precision.getOrElse(CompliancePrecision.Level2))
@@ -518,15 +542,14 @@ class ComplianceApi(
   }
 
   object GetGlobal extends LiftApiModule0 {
-    val schema: API.GetGlobalCompliance.type = API.GetGlobalCompliance
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.GetGlobalCompliance.type = API.GetGlobalCompliance
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                 = {
       implicit val action   = schema.name
       implicit val prettify = params.prettify
       implicit val qc: QueryContext = authzToken.qc
 
       (for {
-        precision     <- restExtractor.extractPercentPrecision(req.params)
+        precision     <- extractPercentPrecision(req.params)
         optCompliance <- complianceService.getGlobalCompliance().toBox
       } yield {
         optCompliance.toJson(precision.getOrElse(CompliancePrecision.Level2))

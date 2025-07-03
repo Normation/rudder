@@ -100,13 +100,11 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.repository.jdbc.*
 import com.normation.rudder.repository.ldap.*
 import com.normation.rudder.repository.xml.*
-import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.rest.*
 import com.normation.rudder.rest.data.ApiAccountMapping
 import com.normation.rudder.rest.internal.*
 import com.normation.rudder.rest.lift.*
 import com.normation.rudder.rule.category.*
-import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.score.*
 import com.normation.rudder.services.*
 import com.normation.rudder.services.eventlog.*
@@ -151,6 +149,7 @@ import net.liftweb.http.S
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTimeZone
+import org.joda.time.format.ISODateTimeFormat
 import scala.collection.mutable.Buffer
 import scala.concurrent.duration
 import scala.concurrent.duration.FiniteDuration
@@ -732,16 +731,72 @@ object RudderParsedProperties {
   }
 
   val RUDDER_BCRYPT_COST: Int = {
+    val defaultValue = PasswordEncoderType.BCRYPT.defaultCost
     try {
       config.getInt("rudder.bcrypt.cost")
     } catch {
       case ex: ConfigException =>
         ApplicationLogger.debug(
-          "Property 'rudder.bcrypt.cost' is absent or empty in rudder.configFile. Default cost to 12."
+          s"Property 'rudder.bcrypt.cost' is absent or empty in rudder.configFile. Default cost to $defaultValue."
         )
-        12
+        defaultValue
     }
   }
+
+  val RUDDER_ARGON2_MEMORY: Argon2Memory = {
+    val defaultValue = PasswordEncoderType.ARGON2ID.defaultMemory
+    val minimumValue = PasswordEncoderType.ARGON2ID.minimumMemory
+    try {
+      val value = config.getInt("rudder.argon2.memory")
+      // There is a high likelihood of units confusion.
+      if (value < minimumValue.toInt) {
+        ApplicationLogger.warn(
+          s"Property 'rudder.argon2.memory' has a value lower than $minimumValue KiB. This is likely a configuration mistake, using $defaultValue KiB instead"
+        )
+        defaultValue
+      } else {
+        Argon2Memory(value)
+      }
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.debug(
+          s"Property 'rudder.argon2.memory' is absent or empty in rudder.configFile. Default memory to $defaultValue bytes."
+        )
+        defaultValue
+    }
+  }
+
+  val RUDDER_ARGON2_ITERATIONS: Argon2Iterations = {
+    val defaultValue = PasswordEncoderType.ARGON2ID.defaultIterations
+    try {
+      Argon2Iterations(config.getInt("rudder.argon2.iterations"))
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.debug(
+          s"Property 'rudder.argon2.iterations' is absent or empty in rudder.configFile. Default iterations to $defaultValue."
+        )
+        defaultValue
+    }
+  }
+
+  val RUDDER_ARGON2_PARALLELISM: Argon2Parallelism = {
+    val defaultValue = PasswordEncoderType.ARGON2ID.defaultParallelism
+    try {
+      Argon2Parallelism(config.getInt("rudder.argon2.parallelism"))
+    } catch {
+      case ex: ConfigException =>
+        ApplicationLogger.debug(
+          s"Property 'rudder.argon2.parallelism' is absent or empty in rudder.configFile. Default parallelism to $defaultValue."
+        )
+        defaultValue
+    }
+  }
+
+  val RUDDER_ARGON2_PARAMS = Argon2EncoderParams(
+    RUDDER_ARGON2_MEMORY,
+    RUDDER_ARGON2_ITERATIONS,
+    RUDDER_ARGON2_PARALLELISM
+  )
 
   val RUDDER_BATCH_PURGE_DELETED_INVENTORIES_INTERVAL: Int = {
     try {
@@ -1197,6 +1252,7 @@ object RudderConfig extends Loggable {
   def RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL         = RudderParsedProperties.RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL
   def RUDDER_GIT_ROOT_CONFIG_REPO                  = RudderParsedProperties.RUDDER_GIT_ROOT_CONFIG_REPO
   def RUDDER_BCRYPT_COST                           = RudderParsedProperties.RUDDER_BCRYPT_COST
+  def RUDDER_ARGON2_PARAMS                         = RudderParsedProperties.RUDDER_ARGON2_PARAMS
   def RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL = RudderParsedProperties.RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL
 
   //
@@ -1224,6 +1280,7 @@ object RudderConfig extends Loggable {
   val automaticReportLogger:               AutomaticReportLogger                    = rci.automaticReportLogger
   val automaticReportsCleaning:            AutomaticReportsCleaning                 = rci.automaticReportsCleaning
   val campaignEventRepo:                   CampaignEventRepositoryImpl              = rci.campaignEventRepo
+  val campaignRepo:                        CampaignRepository                       = rci.campaignRepo
   val campaignSerializer:                  CampaignSerializer                       = rci.campaignSerializer
   val categoryHierarchyDisplayer:          CategoryHierarchyDisplayer               = rci.categoryHierarchyDisplayer
   val changeRequestChangesSerialisation:   ChangeRequestChangesSerialisation        = rci.changeRequestChangesSerialisation
@@ -1293,8 +1350,6 @@ object RudderConfig extends Loggable {
   val reportingService:                    ReportingService                         = rci.reportingService
   val reportsRepository:                   ReportsRepository                        = rci.reportsRepository
   val restCompletion:                      RestCompletion                           = rci.restCompletion
-  val restDataSerializer:                  RestDataSerializer                       = rci.restDataSerializer
-  val restExtractorService:                RestExtractorService                     = rci.restExtractorService
   val restQuicksearch:                     RestQuicksearch                          = rci.restQuicksearch
   val roleApiMapping:                      RoleApiMapping                           = rci.roleApiMapping
   val roAgentRunsRepository:               RoReportsExecutionRepository             = rci.roAgentRunsRepository
@@ -1465,7 +1520,6 @@ case class RudderServiceApi(
     ncfTechniqueReader:                  EditorTechniqueReader,
     recentChangesService:                NodeChangesService,
     ruleCategoryService:                 RuleCategoryService,
-    restExtractorService:                RestExtractorService,
     snippetExtensionRegister:            SnippetExtensionRegister,
     clearCacheService:                   ClearCacheService,
     linkUtil:                            LinkUtil,
@@ -1479,7 +1533,6 @@ case class RudderServiceApi(
     asyncWorkflowInfo:                   AsyncWorkflowInfo,
     commitAndDeployChangeRequest:        CommitAndDeployChangeRequestService,
     doobie:                              Doobie,
-    restDataSerializer:                  RestDataSerializer,
     workflowEventLogService:             WorkflowEventLogService,
     changeRequestEventLogService:        ChangeRequestEventLogService,
     changeRequestChangesUnserialisation: ChangeRequestChangesUnserialisation,
@@ -1493,6 +1546,7 @@ case class RudderServiceApi(
     interpolationCompiler:               InterpolatedValueCompilerImpl,
     deploymentService:                   PromiseGeneration_Hooks,
     campaignEventRepo:                   CampaignEventRepositoryImpl,
+    campaignRepo:                        CampaignRepository,
     mainCampaignService:                 MainCampaignService,
     campaignSerializer:                  CampaignSerializer,
     jsonReportsAnalyzer:                 JSONReportsAnalyser,
@@ -1604,7 +1658,12 @@ object RudderConfigInit {
 
     lazy val roleApiMapping = new RoleApiMapping(authorizationApiMapping)
 
-    lazy val passwordEncoderDispatcher = new PasswordEncoderDispatcher(RUDDER_BCRYPT_COST)
+    lazy val passwordEncoderDispatcher = {
+      new PasswordEncoderDispatcher(
+        bcryptCost = RUDDER_BCRYPT_COST,
+        argon2Params = RUDDER_ARGON2_PARAMS
+      )
+    }
 
     // rudder user list
     lazy val rudderUserListProvider: FileUserDetailListProvider = {
@@ -1670,20 +1729,6 @@ object RudderConfigInit {
     ///////////////////////////////////////// REST ///////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////////////
 
-    lazy val restExtractorService = {
-      RestExtractorService(
-        roRuleRepository,
-        roDirectiveRepository,
-        roNodeGroupRepository,
-        techniqueRepository,
-        queryParser,
-        userPropertyService,
-        workflowLevelService,
-        stringUuidGenerator,
-        typeParameterService
-      )
-    }
-
     lazy val zioJsonExtractor = new ZioJsonExtractor(queryParser)
 
     lazy val tokenGenerator = new TokenGeneratorImpl(32)
@@ -1727,8 +1772,6 @@ object RudderConfigInit {
     lazy val linkUtil = new LinkUtil(roRuleRepository, roNodeGroupRepository, roDirectiveRepository, nodeFactRepository)
 
     // REST API - old
-    lazy val restDataSerializer = RestDataSerializerImpl(techniqueRepository, diffService)
-
     lazy val restQuicksearch = new RestQuicksearch(
       new FullQuickSearchService()(
         roLDAPConnectionProvider,
@@ -1985,7 +2028,7 @@ object RudderConfigInit {
     }
 
     lazy val inventoryWatcher = {
-      val fileProcessor = new ProcessFile(inventoryProcessor, INVENTORY_DIR_INCOMING)
+      val fileProcessor = ProcessFile.start(inventoryProcessor, INVENTORY_DIR_INCOMING).runNow
 
       new InventoryFileWatcher(
         fileProcessor,
@@ -2109,7 +2152,6 @@ object RudderConfigInit {
       lazy val systemApiService13 = new SystemApiService13(
         healthcheckService,
         healthcheckNotificationService,
-        restDataSerializer,
         deprecated.softwareService
       )
 
@@ -2151,7 +2193,7 @@ object RudderConfigInit {
       lazy val apiModules = {
         import com.normation.rudder.rest.lift.*
         List(
-          new ComplianceApi(restExtractorService, complianceAPIService, roDirectiveRepository),
+          new ComplianceApi(complianceAPIService, roDirectiveRepository),
           new GroupsApi(
             propertiesService,
             zioJsonExtractor,
@@ -2167,8 +2209,7 @@ object RudderConfigInit {
               asyncDeploymentAgent,
               workflowLevelService,
               queryParser,
-              queryProcessor,
-              restDataSerializer
+              queryProcessor
             )
           ),
           new DirectiveApi(
@@ -2182,14 +2223,12 @@ object RudderConfigInit {
               asyncDeploymentAgent,
               workflowLevelService,
               directiveEditorService,
-              restDataSerializer,
               techniqueRepositoryImpl
             )
           ),
           new NodeApi(
             zioJsonExtractor,
             propertiesService,
-            restDataSerializer,
             new NodeApiService(
               rwLdap,
               nodeFactRepository,
@@ -2217,7 +2256,6 @@ object RudderConfigInit {
           ),
           new ParameterApi(zioJsonExtractor, parameterApiService14),
           new SettingsApi(
-            restExtractorService,
             configService,
             asyncDeploymentAgent,
             stringUuidGenerator,
@@ -2225,13 +2263,11 @@ object RudderConfigInit {
             nodeFactRepository
           ),
           new TechniqueApi(
-            restExtractorService,
             new TechniqueAPIService14(
               roDirectiveRepository,
               gitParseTechniqueLibrary,
               ncfTechniqueReader,
               techniqueSerializer,
-              restDataSerializer,
               techniqueCompiler
             ),
             ncfTechniqueWriter,
@@ -2249,7 +2285,6 @@ object RudderConfigInit {
             stringUuidGenerator
           ),
           new SystemApi(
-            restExtractorService,
             systemApiService11,
             systemApiService13,
             systemInfoService
@@ -2276,10 +2311,10 @@ object RudderConfigInit {
               userService
             )
           ),
-          new InventoryApi(restExtractorService, inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
-          new PluginApi(restExtractorService, pluginSettingsService, PluginsInfo.pluginJsonInfos.succeed),
+          new InventoryApi(inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
+          new PluginApi(pluginSettingsService, pluginSystemService, PluginsInfo.pluginJsonInfos.succeed),
           new PluginInternalApi(pluginSystemService),
-          new RecentChangesAPI(recentChangesService, restExtractorService),
+          new RecentChangesAPI(recentChangesService),
           new RulesInternalApi(ruleInternalApiService, ruleApiService13),
           new GroupsInternalApi(groupInternalApiService),
           new CampaignApi(
@@ -2291,7 +2326,7 @@ object RudderConfigInit {
           ),
           new HookApi(hookApiService),
           archiveApi,
-          new ScoreApiImpl(restExtractorService, scoreService),
+          new ScoreApiImpl(scoreService),
           eventLogApi
           // info api must be resolved latter, because else it misses plugin apis !
         )
@@ -2309,7 +2344,7 @@ object RudderConfigInit {
 
     // Internal APIs
     lazy val sharedFileApi     =
-      new SharedFilesAPI(restExtractorService, userService, RUDDER_DIR_SHARED_FILES_FOLDER, RUDDER_GIT_ROOT_CONFIG_REPO)
+      new SharedFilesAPI(userService, RUDDER_DIR_SHARED_FILES_FOLDER, RUDDER_GIT_ROOT_CONFIG_REPO)
     lazy val eventLogApi       = {
       new EventLogAPI(
         new EventLogService(eventLogRepository, eventLogDetailsGenerator, personIdentService),
@@ -2717,7 +2752,8 @@ object RudderConfigInit {
 
       new InventoryHistoryLogRepository(
         HISTORY_INVENTORIES_ROOTDIR,
-        new FullInventoryFileParser(fullInventoryFromLdapEntries, inventoryMapper)
+        new FullInventoryFileParser(fullInventoryFromLdapEntries, inventoryMapper),
+        new JodaDateTimeConverter(ISODateTimeFormat.dateTime())
       )
     }
 
@@ -2946,7 +2982,6 @@ object RudderConfigInit {
       roLDAPParameterRepository,
       woLDAPParameterRepository,
       gitConfigRepo,
-      gitRevisionProviderImpl,
       gitRuleArchiver,
       gitRuleCategoryArchiver,
       gitActiveTechniqueCategoryArchiver,
@@ -3841,7 +3876,6 @@ object RudderConfigInit {
       ncfTechniqueReader,
       recentChangesService,
       ruleCategoryService,
-      restExtractorService,
       snippetExtensionRegister,
       clearCacheService,
       linkUtil,
@@ -3855,7 +3889,6 @@ object RudderConfigInit {
       asyncWorkflowInfo,
       commitAndDeployChangeRequest,
       doobie,
-      restDataSerializer,
       workflowEventLogService,
       changeRequestEventLogService,
       changeRequestChangesUnserialisation,
@@ -3869,6 +3902,7 @@ object RudderConfigInit {
       interpolationCompiler,
       deploymentService,
       campaignEventRepo,
+      campaignRepo,
       mainCampaignService,
       campaignSerializer,
       jsonReportsAnalyzer,

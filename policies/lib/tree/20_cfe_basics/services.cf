@@ -103,7 +103,7 @@ bundle agent ncf_services(service, action)
       # boot
       "svc_action_cmd[enable]"     string => "${paths.path[svcadm]} enable -s ${service}";
       "svc_action_cmd[disable]"    string => "${paths.path[svcadm]} disable -s ${service}";
-      "svc_action_cmd[is-enabled]" string => "${paths.path[svcs]} -l ${service} | ${paths.path[egrep]} '^enabled [ 	]+(true|false \(temporary\))'";
+      "svc_action_cmd[is-enabled]" string => "${paths.path[svcs]} -l ${service} | ${paths.path[grep]} -E '^enabled [ 	]+(true|false \(temporary\))'";
       "action_command"             string => "${svc_action_cmd[${action}]}";
       "method"                     string => "svcadm/svcs";
 
@@ -133,7 +133,7 @@ bundle agent ncf_services(service, action)
     pass1.is_boot_action.!systemctl_utility_present.!is_upstart_service.!svcadm_utility_present.!chkconfig_utility_present.!update_rcd_utility_present.chitab_utility_present::
       "chitab_action_cmd[enable]"     string => "/usr/sbin/chitab \"`lsitab -a | grep '^${service}:' | sed 's/\([^:]*\):\([^:]*\):[^:]*:\(.*\)/\1:\2:respawn:\3/'`\"";
       "chitab_action_cmd[disable]"    string => "/usr/sbin/chitab \"`lsitab -a | grep '^${service}:' | sed 's/\([^:]*\):\([^:]*\):[^:]*:\(.*\)/\1:\2:off:\3/'`\"";
-      "lsitab_action_cmd[is-enabled]" string => "/usr/sbin/lsitab -a | ${paths.path[egrep]} '^${service}:[0-9]+:(respawn|boot|bootwait|wait|once|initdefault|sysinit):'";
+      "lsitab_action_cmd[is-enabled]" string => "/usr/sbin/lsitab -a | ${paths.path[grep]} -E '^${service}:[0-9]+:(respawn|boot|bootwait|wait|once|initdefault|sysinit):'";
       "action_command"                string => "${lsitab_action_cmd[${action}]}";
       "method"                        string => "lsitab/chitab";
 

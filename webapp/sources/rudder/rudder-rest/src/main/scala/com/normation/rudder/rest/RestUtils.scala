@@ -46,7 +46,6 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.http.*
-import net.liftweb.http.Req
 import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.*
 import net.liftweb.json.JsonAST.RenderSettings
@@ -199,9 +198,8 @@ object RestUtils {
   }
 
   def response(
-      restExtractor: RestExtractorService,
-      dataName:      String,
-      id:            Option[String]
+      dataName: String,
+      id:       Option[String]
   )(function: Box[JValue], req: Req, errorMessage: String)(implicit action: String, prettify: Boolean): LiftResponse = {
     function match {
       case Full(category: JValue) =>

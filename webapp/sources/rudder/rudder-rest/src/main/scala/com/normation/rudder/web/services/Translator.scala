@@ -161,7 +161,6 @@ object Translator {
 import com.normation.rudder.web.model.FilePerms
 import java.io.File
 import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormatter
 
 object StringTranslator
     extends Translator[String](

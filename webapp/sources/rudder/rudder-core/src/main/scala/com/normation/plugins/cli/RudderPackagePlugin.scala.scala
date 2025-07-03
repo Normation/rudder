@@ -163,10 +163,10 @@ object RudderPackageService {
     def fromResult(cmdResult: CmdResult): PureResult[Option[PluginSettingsError]] = {
       val result = sanitizeCmdResult(cmdResult)
       result.code match {
-        case 0 => Right(None)
-        case 2 => Right(Some(PluginSettingsError.InvalidCredentials(result.stderr)))
-        case 3 => Right(Some(PluginSettingsError.Unauthorized(result.stderr)))
-        case _ => Left(Inconsistency(result.debugString()))
+        case 0 | 15 => Right(None) // 15: SIGTERM when services are restarted
+        case 2      => Right(Some(PluginSettingsError.InvalidCredentials(result.stderr)))
+        case 3      => Right(Some(PluginSettingsError.Unauthorized(result.stderr)))
+        case _      => Left(Inconsistency(result.debugString()))
       }
     }
   }

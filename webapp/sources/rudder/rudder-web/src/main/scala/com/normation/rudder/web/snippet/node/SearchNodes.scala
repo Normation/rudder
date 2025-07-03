@@ -50,6 +50,7 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.SearchNodeComponent
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
+import com.normation.rudder.web.snippet.WithNonce
 import net.liftweb.common.*
 import net.liftweb.http.LocalSnippet
 import net.liftweb.http.SHtml
@@ -118,9 +119,11 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
     <head>
       {
-      Script(
-        JsRaw(s"function forceParseHashtag() { ${parseHashtag().toJsCmd} }") & // JsRaw ok, escaped
-        OnLoad(JsRaw("forceParseHashtag()"))                                   // JsRaw ok, const
+      WithNonce.scriptWithNonce(
+        Script(
+          JsRaw(s"function forceParseHashtag() { ${parseHashtag().toJsCmd} }") & // JsRaw ok, escaped
+          OnLoad(JsRaw("forceParseHashtag()"))                                   // JsRaw ok, const
+        )
       )
     }
     </head>

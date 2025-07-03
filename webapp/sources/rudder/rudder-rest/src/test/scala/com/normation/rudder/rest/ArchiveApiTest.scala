@@ -37,7 +37,7 @@
 
 package com.normation.rudder.rest
 
-import better.files.File
+import better.files.*
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
@@ -60,6 +60,7 @@ import com.normation.rudder.git.ZipUtils
 import com.normation.rudder.ncf.ResourceFile
 import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.repository.xml.TechniqueFiles
+import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponse
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.rudder.rest.lift.CheckArchiveServiceImpl
 import com.normation.rudder.rest.lift.MergePolicy
@@ -164,6 +165,26 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
         case err        => ko(s"I got an error in test: ${err}")
       }
     }
+  }
+
+  "forbid import of archive with ZipSlip path transversal" >> {
+    // archive `ZipSlip.zip` contains only one file with path '../vuln/pwn.sh' which is forbidden
+
+    restTest.testBinaryPOSTResponse(
+      s"/api/latest/archives/import",
+      "archive",
+      "archive.zip",
+      Resource.getAsStream(s"archives/ZipSlip.zip").readAllBytes()
+    ) {
+      case Full(LiftJsonResponse(JsonRudderApiResponse(_, _, "error", _, Some(err)), _, 500)) =>
+        if (err.contains("../")) ok(s"Archive refused with message: '${err}''")
+        else ko(s"Error message does not talk about ../: ${err}")
+      case Full(x)                                                                            =>
+        ko(s"Response should be an error but got: ${x}")
+      case err                                                                                =>
+        ko(s"I got an error in test: ${err}")
+    }
+
   }
 
   "correctly build an archive of one rule, no deps" >> {

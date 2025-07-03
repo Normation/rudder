@@ -49,13 +49,13 @@ import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.repository.xml.TechniqueFiles
+import com.normation.utils.XmlSafe
 import com.normation.zio.*
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.io.IOException
 import java.nio.charset.StandardCharsets
-import net.liftweb.common.*
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.errors.MissingObjectException
@@ -140,7 +140,7 @@ class GitTechniqueReader(
 
     val relativePathToGitRepos: Option[String],
     val directiveDefaultName:   String // full (with extension) name of the file containing default name for directive (default-directive-names.conf)
-) extends TechniqueReader with Loggable {
+) extends TechniqueReader {
 
   // semaphore to have consistent read
   val semaphore: Semaphore = Semaphore.make(1).runNow
@@ -398,21 +398,21 @@ class GitTechniqueReader(
                          }
                          ids match {
                            case Nil      =>
-                             logger.error(
+                             TechniqueReaderLoggerPure.logEffect.error(
                                s"Metadata file ${techniqueDescriptorName} was not found for technique with id ${techniqueId.debugString}."
                              )
                              Option.empty[ObjectStream]
                            case h :: Nil =>
                              Some(repo.db.open(h).openStream)
                            case _        =>
-                             logger.error(
+                             TechniqueReaderLoggerPure.logEffect.error(
                                s"There is more than one Technique with ID '${techniqueId.debugString}', what is forbidden. Please check if several categories have that Technique, and rename or delete the clones."
                              )
                              Option.empty[ObjectStream]
                          }
                        } catch {
                          case ex: FileNotFoundException =>
-                           logger.debug(() => "Template %s does not exist".format(path), ex)
+                           TechniqueReaderLoggerPure.logEffect.debug(s"Template '${path}' does not exist")
                            Option.empty[ObjectStream]
                        }
                      }
@@ -458,19 +458,23 @@ class GitTechniqueReader(
                          }
                          ids match {
                            case Nil      =>
-                             logger.error(s"Template with id ${techniqueResourceId.displayPath} was not found")
+                             TechniqueReaderLoggerPure.logEffect.error(
+                               s"Template with id ${techniqueResourceId.displayPath} was not found"
+                             )
                              Option.empty[ObjectStream]
                            case h :: Nil =>
                              Some(repo.db.open(h).openStream)
                            case _        =>
-                             logger.error(
+                             TechniqueReaderLoggerPure.logEffect.error(
                                s"There is more than one Technique with name '${techniqueResourceId.name}' which is forbidden. Please check if several categories have that Technique and rename or delete the clones"
                              )
                              Option.empty[ObjectStream]
                          }
                        } catch {
                          case ex: FileNotFoundException =>
-                           logger.debug(() => s"Technique Template ${techniqueResourceId.displayPath} does not exist", ex)
+                           TechniqueReaderLoggerPure.logEffect.debug(
+                             s"Technique Template ${techniqueResourceId.displayPath} does not exist"
+                           )
                            Option.empty[ObjectStream]
                        }
                      }
@@ -591,7 +595,7 @@ class GitTechniqueReader(
           prop.load(is)
         } catch {
           case ex: Exception =>
-            logger.error(
+            TechniqueReaderLoggerPure.logEffect.error(
               s"Error when trying to load directive default name from '${directiveDefaultName}' No specific default naming rules will be available. ",
               ex
             )
@@ -695,11 +699,19 @@ class GitTechniqueReader(
         case Nil       => root
         case h :: tail =>
           h match {
-            case sId @ SubTechniqueCategoryId(_, RootTechniqueCategoryId)     => // update root
+            case sId @ SubTechniqueCategoryId(_, RootTechniqueCategoryId)                                                   =>
+              // update root
               recBuildRoot(root.copy(subCategoryIds = root.subCategoryIds + sId), techniqueInfos, tail)
-            case sId @ SubTechniqueCategoryId(_, pId: SubTechniqueCategoryId) =>
+            case sId @ SubTechniqueCategoryId(_, pId: SubTechniqueCategoryId) if techniqueInfos.subCategories.contains(pId) =>
               val cat = techniqueInfos.subCategories(pId)
               techniqueInfos.subCategories(pId) = cat.copy(subCategoryIds = cat.subCategoryIds + sId)
+              recBuildRoot(root, techniqueInfos, tail)
+            case _                                                                                                          =>
+              // unknown sub-technique category, may happen in case we end up in a corrupted technique library, just skip it
+              // see https://issues.rudder.io/issues/26912
+              TechniqueReaderLoggerPure.logEffect.warn(
+                s"Can not find the subcategory ${h} back in the parsed technique information, the technique library may have inconsistencies"
+              )
               recBuildRoot(root, techniqueInfos, tail)
           }
       }
@@ -779,7 +791,7 @@ class GitTechniqueReader(
     }
   }
 
-  private val dummyTechnique = Technique(
+  private lazy val dummyTechnique = Technique(
     TechniqueId(
       TechniqueName("dummy"),
       TechniqueVersion.parse("1.0").getOrElse(throw new RuntimeException("Version of dummy technique is not parsable"))
@@ -822,7 +834,7 @@ class GitTechniqueReader(
               info.subCategories(sid) = cat.copy(techniqueIds = cat.techniqueIds.union(Set(techniqueId)))
               true
             case None      =>
-              logger.error(
+              TechniqueReaderLoggerPure.logEffect.error(
                 s"Can not find the parent (root) category '${descriptorFile.getParent}' for technique '${techniqueId.debugString}'"
               )
               false
@@ -860,9 +872,8 @@ class GitTechniqueReader(
                                      info.techniquesCategory(techniqueId) = parentCategoryId
                                    }
                                  case Some(v) => // error, policy package version already exists
-                                   logger.error(
-                                     "Ignoring package for policy with ID %s and root directory %s because an other policy is already defined with that id and root path %s"
-                                       .format(TechniqueId, descriptorFile.getParent, info.techniquesCategory(techniqueId).toString)
+                                   TechniqueReaderLoggerPure.logEffect.error(
+                                     s"Ignoring package for policy with ID '${techniqueId.debugString}' and root directory '${descriptorFile.getParent}' because an other policy is already defined with that id and root path '${info.techniquesCategory(techniqueId).toString}'"
                                    )
                                }
                            }
@@ -980,7 +991,7 @@ class GitTechniqueReader(
     ZIO.scoped(
       managedStream.flatMap(is => {
         ZIO.attempt {
-          XML.load(is)
+          XmlSafe.load(is)
         }.foldZIO(
           err =>
             err match {

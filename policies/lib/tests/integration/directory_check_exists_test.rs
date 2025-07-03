@@ -76,8 +76,7 @@ fn it_should_return_error_if_directory_missing_in_enforce_mode() {
 
     assert!(
         !target_dir.exists(),
-        "Directory '{}' should not be created by directory_check_exists",
-        target_str
+        "Directory '{target_str}' should not be created by directory_check_exists"
     );
 
     end_test(workdir);

@@ -67,7 +67,6 @@ import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
-import com.normation.zio.ZioRuntime
 import com.softwaremill.quicklens.*
 import com.typesafe.config.ConfigValueFactory
 import cron4s.Cron

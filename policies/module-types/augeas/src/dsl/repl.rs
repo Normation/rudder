@@ -37,7 +37,7 @@ pub fn start(interpreter: &mut Interpreter) -> Result<()> {
                                 InterpreterOutcome::Ok => {}
                                 InterpreterOutcome::CheckErrors(errors) => {
                                     for e in errors {
-                                        eprintln!("check error: {:?}", e);
+                                        eprintln!("check error: {e:?}");
                                     }
                                 }
                             }
@@ -47,7 +47,7 @@ pub fn start(interpreter: &mut Interpreter) -> Result<()> {
                             }
                         }
                         Err(e) => {
-                            eprintln!("error: {:?}", e);
+                            eprintln!("error: {e:?}");
                         }
                     }
                 }

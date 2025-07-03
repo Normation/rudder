@@ -117,7 +117,7 @@ impl PackageDatabase {
 
     fn init_schema(&mut self) -> Result<(), rusqlite::Error> {
         let schema = include_str!("packages.sql");
-        self.conn.execute(schema, ())?;
+        self.conn.execute_batch(schema)?;
         Ok(())
     }
 

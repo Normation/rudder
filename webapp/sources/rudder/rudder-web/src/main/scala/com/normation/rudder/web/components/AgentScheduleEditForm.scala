@@ -39,6 +39,7 @@ package com.normation.rudder.web.components
 
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.web.ChooseTemplate
+import com.normation.rudder.web.snippet.WithNonce
 import io.scalaland.chimney.*
 import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
@@ -168,7 +169,7 @@ class AgentScheduleEditForm(
 
         ("#cfagentSchedule" #> "Error when retrieving agent schedule from the database. Please, contact an admin or try again later")
       case Full(initScheduleParam) =>
-        ("#cfagentSchedule *+" #> Script(OnLoad(JsRaw(initScheduleParam)) & Noop))
+        ("#cfagentSchedule *+" #> WithNonce.scriptWithNonce(Script(OnLoad(JsRaw(initScheduleParam)) & Noop)))
     }
     transform(agentScheduleTemplate);
   }

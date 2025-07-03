@@ -275,7 +275,7 @@ export CFENGINE_TEST_OVERRIDE_WORKDIR TEMP NCF_TREE NCF_TESTS_ACCEPTANCE
     ESCAPED_TEST="$(echo "($TEST|default.cf.sub)" | sed -e 's/\./\\./g')"
 
     if [ -z "$EXPECTED_CRASH" ]; then
-      if [ $RETVAL -eq 0 ] && echo "$OUT" | egrep -q -e "R: .*$ESCAPED_TEST Pass"; then
+      if [ $RETVAL -eq 0 ] && echo "$OUT" | grep -qE "R: .*$ESCAPED_TEST Pass"; then
         RESULT=Pass
       else
         RESULT=FAIL

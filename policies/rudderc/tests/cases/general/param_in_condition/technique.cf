@@ -62,7 +62,7 @@ bundle agent call_param_in_condition_e8362340_dc50_4231_9b7f_748b51e9fa07(c_name
                                     if => "${method_call_condition}";
     "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_command_execution_${c_key}")),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'Command execution' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "echo \"May be executed or not\"", canonify("${class_prefix}_command_execution_${c_key}"), canonify("${class_prefix}_command_execution_${c_key}"), @{args}),
+    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'Command execution' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("${class_prefix}_command_execution_${c_key}"), canonify("${class_prefix}_command_execution_${c_key}"), @{args}),
                                 unless => "${method_call_condition}";
 
 }

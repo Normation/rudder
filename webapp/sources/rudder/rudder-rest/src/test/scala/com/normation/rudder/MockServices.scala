@@ -52,7 +52,6 @@ import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.Software
 import com.normation.rudder.api.*
 import com.normation.rudder.api.ApiAccountKind.PublicApi
-import com.normation.rudder.api.HttpAction
 import com.normation.rudder.batch.AsyncWorkflowInfo
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.appconfig.RudderWebProperty
@@ -66,7 +65,6 @@ import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.NodeStatusReport.*
-import com.normation.rudder.domain.reports.ValueStatusReport
 import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.FullCompliance
@@ -98,6 +96,10 @@ import com.normation.rudder.services.servers.PolicyServersUpdateCommand
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.rudder.tenants.TenantId
 import com.normation.rudder.tenants.TenantService
+import com.normation.rudder.users.Argon2EncoderParams
+import com.normation.rudder.users.Argon2Iterations
+import com.normation.rudder.users.Argon2Memory
+import com.normation.rudder.users.Argon2Parallelism
 import com.normation.rudder.users.EventTrace
 import com.normation.rudder.users.FileUserDetailListProvider
 import com.normation.rudder.users.PasswordEncoderDispatcher
@@ -122,7 +124,6 @@ import scala.collection.immutable.SortedMap
 import zio.*
 import zio.System as _
 import zio.Tag as _
-import zio.ZIO
 import zio.json.ast.Json
 import zio.syntax.*
 
@@ -871,7 +872,8 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
 
   val usersInputStream: () => InputStream = () => IOUtils.toInputStream(usersConfigFile.contentAsString, StandardCharsets.UTF_8)
 
-  val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0)
+  val argon2Params              = Argon2EncoderParams(Argon2Memory(0), Argon2Iterations(0), Argon2Parallelism(0))
+  val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0, argon2Params)
 
   val userService: FileUserDetailListProvider = {
     val usersFile = UserFile(usersConfigFile.pathAsString, usersInputStream)

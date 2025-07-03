@@ -45,6 +45,7 @@ fn test_minijinja_template_engine() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
+#[cfg(target_family = "unix")]
 fn test_jinja2_template_engine() -> Result<(), Box<dyn std::error::Error>> {
     let mut output_file = NamedTempFile::new()?;
     let mut cmd = Command::cargo_bin("rudder-module-template")?;
@@ -93,7 +94,7 @@ fn test_mustache_cfengine() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut file_content = String::new();
     output_file.read_to_string(&mut file_content)?;
-    assert_eq!("[\"one\",\"two\"]\n", file_content);
+    assert_eq!("[\"one\",\"two\"]", file_content);
 
     Ok(())
 }

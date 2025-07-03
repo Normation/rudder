@@ -163,7 +163,8 @@ class ReportsTest extends DBCommon {
 
     "find the last reports for node0" in {
       val result = repostsRepo.getExecutionReports(Set(AgentRunId(NodeId("n0"), run1))).open
-      result.values.flatten.toSeq must contain(exactly(reports("n0")(0)))
+      val actual: Seq[Reports] = result.values.toSeq.flatten
+      actual must contain(exactly(reports("n0")(0)))
     }
 
     "find reports for node 0,1,2" in {

@@ -68,8 +68,6 @@ final case class TechniqueVersion protected (version: Version, rev: Revision) ex
     case r                      => version.toVersionString + "+" + r.value
   }
 
-  // to avoid compatibility error
-  @deprecated(s"Please use `debugString` or `serialize` in place of toString()", "7.0")
   override def toString: String = serialize
 }
 

@@ -137,7 +137,11 @@ pre.json-beautify, .content-wrapper pre.json-beautify{
   white-space: pre-wrap;
   word-break: break-all;
   word-wrap: break-word;
-  overflow-wrap: anywhere;
+
+  &,
+  & > code{
+    overflow-wrap: anywhere;
+  }
 }
 pre.json-beautify.toggle, .content-wrapper pre.json-beautify.toggle{
   height:auto;
@@ -167,6 +171,7 @@ pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
 /* override syntax highlighting background */
 pre.json-beautify code.elmsh {
   background: transparent !important;
+
 }
 
 /* - LABEL BOOTSTRAP */

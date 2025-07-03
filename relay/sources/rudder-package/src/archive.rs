@@ -279,7 +279,7 @@ fn read_metadata(path: &str) -> Result<Metadata> {
         if entry_title == "metadata" {
             let _ = entry.read_to_string(&mut buffer)?;
             let m: Metadata = serde_json::from_str(&buffer)
-                .with_context(|| format!("Failed to parse {} metadata", path))?;
+                .with_context(|| format!("Failed to parse {path} metadata"))?;
             return Ok(m);
         };
     }
@@ -356,22 +356,24 @@ mod tests {
         let bind;
         let r = Rpkg::from_path("./tests/archive/rudder-plugin-notify-8.0.0-2.2.rpkg").unwrap();
         let expected_dir_content = "./tests/archive/expected_dir_content";
+        let d = tempdir().unwrap().keep();
         let effective_target = {
             let real_unpack_target = r.get_txz_dst("files.txz");
             let trimmed = Path::new(&real_unpack_target).strip_prefix("/").unwrap();
-            bind = tempdir().unwrap().into_path().join(trimmed);
+            bind = d.join(trimmed);
             bind.to_str().unwrap()
         };
         r.unpack_embedded_txz("files.txz", PathBuf::from(effective_target))
             .unwrap();
         assert!(!dir_diff::is_different(effective_target, expected_dir_content).unwrap());
+        fs::remove_dir_all(d).unwrap();
     }
 
     #[test]
     fn test_extract_broken_archive() {
         let r = Rpkg::from_path("./tests/archive/broken-archive.rpkg").unwrap();
         assert!(
-            r.unpack_embedded_txz("files.txz", tempdir().unwrap().into_path())
+            r.unpack_embedded_txz("files.txz", tempdir().unwrap().keep())
                 .is_err()
         );
     }

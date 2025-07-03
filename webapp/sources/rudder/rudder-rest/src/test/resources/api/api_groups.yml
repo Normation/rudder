@@ -379,7 +379,7 @@ response:
     {
       "action":"groupDetails",
       "result":"error",
-      "errorDetails":"Inconsistency: Group with id 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa' was not found'"
+      "errorDetails":"Group with id 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa' was not found'"
     }
 ---
 description: List groups
@@ -1551,7 +1551,7 @@ response:
     {
       "action" : "deleteGroup",
       "result" : "error",
-      "errorDetails" : "Inconsistency: Could not delete group 'all-nodes', cause is: system groups cannot be deleted."
+      "errorDetails" : "Could not delete group 'all-nodes', cause is: system groups cannot be deleted."
     }
 ---
 description: Create a node group category (JSON)

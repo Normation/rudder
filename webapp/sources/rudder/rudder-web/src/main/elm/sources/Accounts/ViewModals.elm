@@ -121,10 +121,10 @@ displayModal model =
                           else
                               text ""
 
-                      -- if the plugin is disable, only show a read-only view of tenants. Else, it's an option among all, none, a list
+                      -- if the plugin is disabled, only show a read-only view of tenants. Else, it's an option among all, none, a list. Tenants should not be set for full RW access, so we disable it in that case
                       displayTenantAccess =
                           if model.tenantsPluginEnabled then
-                              select [ id "newAccount-tenants", class "form-select", onInput (\s -> UpdateAccountForm { account | tenantMode = Tuple.first (parseTenants s) }) ]
+                              select [ id "newAccount-tenants", class "form-select", onInput (\s -> UpdateAccountForm { account | tenantMode = Tuple.first (parseTenants s) }), disabled (account.authorisationType == "rw") ]
                                   [ option [ value "*", selected (account.tenantMode == AllAccess) ] [ text "Access to all tenants" ]
                                   , option [ value "-", selected (account.tenantMode == NoAccess) ] [ text "Access to no tenant" ]
                                   , option [ value "list", selected (account.tenantMode == ByTenants) ]

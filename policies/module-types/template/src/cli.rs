@@ -3,7 +3,7 @@
 
 use crate::{Engine, get_python_version};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::Parser;
 use serde_json::Value;
 use std::fs;
@@ -18,7 +18,7 @@ impl std::fmt::Display for Engine {
             Engine::Minijinja => "minijinja".to_string(),
             Engine::Jinja2 => "jinja2".to_string(),
         };
-        write!(f, "{}", engine)
+        write!(f, "{engine}")
     }
 }
 
@@ -40,6 +40,10 @@ pub struct Cli {
     /// Output file
     #[arg(short, long)]
     out: PathBuf,
+
+    /// Audit mode
+    #[arg(short, long)]
+    audit: bool,
 }
 
 impl Cli {
@@ -47,6 +51,9 @@ impl Cli {
         let cli = Cli::parse();
         let data = read_to_string(&cli.data)
             .with_context(|| format!("Failed to load data {}", cli.data.display()))?;
+        if data.is_empty() {
+            bail!("The data file '{}' is empty.", cli.data.display());
+        }
 
         let value: Value = serde_json::from_str(&data)?;
         let output = match cli.engine {
@@ -66,8 +73,21 @@ impl Cli {
             }
         };
 
-        fs::write(&cli.out, output)
-            .with_context(|| format!("Failed to write file {}", cli.out.display()))?;
+        if cli.audit {
+            let audited_content = fs::read_to_string(&cli.out).with_context(|| {
+                format!("Failed to read audited template {}", cli.out.display())
+            })?;
+
+            if output != audited_content {
+                bail!(
+                    "The content in the audited template file ({}) does not match with the rendered template.",
+                    cli.out.display()
+                )
+            }
+        } else {
+            fs::write(&cli.out, output)
+                .with_context(|| format!("Failed to write file {}", cli.out.display()))?;
+        }
 
         Ok(())
     }

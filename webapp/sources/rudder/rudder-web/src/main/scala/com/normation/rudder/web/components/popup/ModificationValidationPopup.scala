@@ -521,7 +521,7 @@ class ModificationValidationPopup(
     }
   }
 
-  private def saveChangeRequest(): JsCmd = {
+  private def saveChangeRequest(): JsCmd = scala.util.boundary {
     // we only have quick change request now
     val purecr = item match {
       case Left(
@@ -594,7 +594,7 @@ class ModificationValidationPopup(
               // early return here
               logger.error(s"Exception when trying to update a change request:" + err.fullMsg)
               parentFormTracker.addFormError(error(err.fullMsg))
-              return onFailureCallback(Text(err.fullMsg))
+              scala.util.boundary.break(onFailureCallback(Text(err.fullMsg)))
           }
         }
 

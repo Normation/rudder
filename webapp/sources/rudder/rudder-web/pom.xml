@@ -298,6 +298,13 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${spring-security-version}</version>
     </dependency>
 
+    <!-- this is needed for doobie/cats/zio compat in scala 3 - it must be at compile level else rudder breaks -->
+    <dependency>
+      <groupId>org.typelevel</groupId>
+      <artifactId>cats-effect-std_${scala-binary-version}</artifactId>
+      <version>${cats-effect-version}</version>
+    </dependency>
+
     <!-- TESTS -->
     <dependency>
       <groupId>com.normation.rudder</groupId>

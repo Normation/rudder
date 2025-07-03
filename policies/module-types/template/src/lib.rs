@@ -10,7 +10,6 @@ use rudder_module_type::ProtocolResult;
 use similar::TextDiff;
 use std::collections::HashMap;
 use std::io::Write;
-use std::os::unix::fs::PermissionsExt;
 use std::process::{Command, Stdio};
 use tempfile::{NamedTempFile, TempPath};
 
@@ -51,19 +50,21 @@ impl Engine {
         template_src: Option<String>,
         data: Value,
     ) -> Result<String> {
-        let template = match (&template_path, template_src) {
-            (Some(p), _) => read_to_string(p)
-                .with_context(|| format!("Failed to read template {}", p.display()))?,
-            (_, Some(s)) => s,
+        let (template, template_name) = match (&template_path, template_src) {
+            (Some(p), _) => (
+                read_to_string(p)
+                    .with_context(|| format!("Failed to read template {}", p.display()))?,
+                p.file_name().unwrap().to_string_lossy().into_owned(),
+            ),
+            (_, Some(s)) => (s, "template".to_string()),
             _ => unreachable!(),
         };
-
         // We need to create the Environment even for one template
         let mut env = minijinja::Environment::new();
         // Fail on non-defined values, even in iteration
         env.set_undefined_behavior(UndefinedBehavior::Strict);
         minijinja_contrib::add_to_environment(&mut env);
-        env.add_template("rudder", &template)?;
+        env.add_template(&template_name, &template)?;
         env.add_filter("b64encode", minijinja_filters::b64encode);
         env.add_filter("b64decode", minijinja_filters::b64decode);
         env.add_filter("basename", minijinja_filters::basename);
@@ -73,7 +74,7 @@ impl Engine {
         env.add_filter("quote", minijinja_filters::quote);
         env.add_filter("regex_escape", minijinja_filters::regex_escape);
         env.add_filter("regex_replace", minijinja_filters::regex_replace);
-        let tmpl = env.get_template("rudder").unwrap();
+        let tmpl = env.get_template(&template_name).unwrap();
         Ok(tmpl.render(data)?)
     }
 
@@ -107,8 +108,18 @@ impl Engine {
 
         if !fs::exists(templating_script_path)? {
             fs::write(templating_script_path, templating_script_content)?;
-            let perms = fs::Permissions::from_mode(0o755);
-            fs::set_permissions(templating_script_path, perms)?;
+            #[cfg(target_family = "unix")]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let perms = fs::Permissions::from_mode(0o755);
+                fs::set_permissions(templating_script_path, perms)?;
+            }
+            #[cfg(target_family = "windows")]
+            {
+                let mut perms = fs::metadata(templating_script_path)?.permissions();
+                perms.set_readonly(false);
+                fs::set_permissions(templating_script_path, perms)?;
+            }
         }
 
         let output = if cfg!(target_os = "linux") {
@@ -143,9 +154,9 @@ impl Engine {
     ) -> Result<String> {
         let template =
             match (&template_path, template_src) {
-                (Some(p), _) => mustache::compile_path(p)
+                (_, Some(ref s)) if !s.is_empty() => mustache::compile_str(s)
                     .with_context(|| "Failed to compile mustache template")?,
-                (_, Some(ref s)) => mustache::compile_str(s)
+                (Some(p), _) => mustache::compile_path(p)
                     .with_context(|| "Failed to compile mustache template")?,
                 _ => unreachable!(),
             };
@@ -172,6 +183,9 @@ pub struct TemplateParameters {
     /// Data to use for templating
     #[serde(default)]
     data: Value,
+    /// Datastate file path
+    #[serde(skip_serializing_if = "Option::is_none")]
+    datastate_path: Option<PathBuf>,
     /// Controls output of diffs in the report
     #[serde(default = "default_as_true")]
     show_content: bool,
@@ -205,15 +219,9 @@ impl ModuleType0 for Template {
         let parameters: TemplateParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))?;
 
-        match (
-            parameters.template_path.is_some(),
-            parameters.template_src.is_some(),
-        ) {
-            (true, true) => bail!("Only one of 'template_path' and 'template_src' can be provided"),
-            (false, false) => {
-                bail!("Need one of 'template_path' and 'template_src'")
-            }
-            _ => (),
+        match (parameters.template_path, parameters.template_src) {
+            (None, None) => bail!("Need one of 'template_path' and 'template_src'"),
+            _ => {}
         }
 
         Ok(())
@@ -225,12 +233,24 @@ impl ModuleType0 for Template {
         let output_file = &p.path;
         let output_file_d = output_file.display();
 
-        let output = match p.engine {
-            Engine::Mustache => {
-                Engine::mustache(p.template_path.as_deref(), p.template_src, p.data)?
+        let data = match (p.data.clone(), p.datastate_path) {
+            (Value::String(s), _) if !s.is_empty() => p.data,
+            (_, Some(ref datastate_path)) => {
+                let datastate = read_to_string(datastate_path).with_context(|| {
+                    format!(
+                        "Failed to read datastate file: '{}'",
+                        datastate_path.to_string_lossy()
+                    )
+                })?;
+                serde_json::from_str(&datastate)?
             }
+            _ => bail!("Could not get datastate file"),
+        };
+
+        let output = match p.engine {
+            Engine::Mustache => Engine::mustache(p.template_path.as_deref(), p.template_src, data)?,
             Engine::Minijinja => {
-                Engine::minijinja(p.template_path.as_deref(), p.template_src, p.data)?
+                Engine::minijinja(p.template_path.as_deref(), p.template_src, data)?
             }
             Engine::Jinja2 => {
                 // Only detect if necessary
@@ -246,7 +266,7 @@ impl ModuleType0 for Template {
                 Engine::jinja2(
                     p.template_path.as_deref(),
                     p.template_src,
-                    p.data,
+                    data,
                     parameters.temporary_dir.as_path(),
                     python_bin,
                 )?
@@ -280,16 +300,14 @@ impl ModuleType0 for Template {
 
             if reported_diff.len() > max_reported_diff {
                 format!(
-                    "Changes to {} could not be reported. The diff output exceeds the maximum size limit.",
-                    output_file_d
+                    "Changes to {output_file_d} could not be reported. The diff output exceeds the maximum size limit."
                 )
             } else {
                 reported_diff
             }
         } else {
             format!(
-                "Changes to {} could not be reported. The diff output is disabled.",
-                output_file_d
+                "Changes to {output_file_d} could not be reported. The diff output is disabled."
             )
         };
 

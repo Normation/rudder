@@ -40,6 +40,7 @@ package bootstrap.liftweb
 import com.normation.errors.IOResult
 import com.normation.rudder.ActionType
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.AuthorizationType.*
 import com.normation.rudder.CustomRoleResolverResult
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
@@ -53,27 +54,28 @@ import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.AuthorizationApiMapping
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.tenants.TenantId
+import com.normation.rudder.users.Argon2EncoderParams
+import com.normation.rudder.users.Argon2Iterations
+import com.normation.rudder.users.Argon2Memory
+import com.normation.rudder.users.Argon2Parallelism
 import com.normation.rudder.users.PasswordEncoderDispatcher
 import com.normation.rudder.users.UserDetailListProvider
 import com.normation.rudder.users.UserFileProcessing
 import com.normation.rudder.users.ValidatedUserList
 import com.normation.zio.*
 import org.junit.runner.RunWith
-import org.specs2.mutable.*
-import org.specs2.runner.JUnitRunner
-import org.specs2.specification.core.Fragments
-import scala.annotation.nowarn
 import scala.xml.Elem
-import zio.Chunk
+import zio.*
+import zio.test.*
+import zio.test.Assertion.*
+import zio.test.junit.ZTestJUnitRunner
 
 /*
  * Test hash algo for user password.
  */
 
-@nowarn("msg=a type was inferred to be `AnyVal`")
-@RunWith(classOf[JUnitRunner])
-class RudderUserDetailsTest extends Specification {
-  sequential
+@RunWith(classOf[ZTestJUnitRunner])
+class RudderUserDetailsTest extends ZIOSpecDefault {
 
   implicit class ForceEither[A](iores: IOResult[A]) {
     def force: A = iores.either.runNow match {
@@ -89,7 +91,8 @@ class RudderUserDetailsTest extends Specification {
 
   // org.slf4j.LoggerFactory.getLogger("application.authorization").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
 
-  val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0)
+  val argon2Params              = Argon2EncoderParams(Argon2Memory(0), Argon2Iterations(0), Argon2Parallelism(0))
+  val passwordEncoderDispatcher = new PasswordEncoderDispatcher(0, argon2Params)
 
   def getUserDetailList(xml: Elem, debugName: String): ValidatedUserList =
     UserFileProcessing.parseXml(roleApiMapping, passwordEncoderDispatcher, xml, debugName, reload = false).force
@@ -108,47 +111,6 @@ class RudderUserDetailsTest extends Specification {
   val userXML_empty: Elem = <authentication case-sensitivity="false">
     <user name="admin" roles="administrator"/>
   </authentication>
-
-  "simple file with case sensitivity should discern users with similar username" >> {
-    val userDetailList = getUserDetailList(userXML_1, "userXML_1")
-
-    (userDetailList.isCaseSensitive must beTrue) and
-    (userDetailList.users.size must beEqualTo(2))
-  }
-
-  "simple file *without* case sensitivity should filter out ALL similar username" >> {
-    val userDetailList = getUserDetailList(userXML_2, "userXML_2")
-
-    (userDetailList.isCaseSensitive must beFalse) and
-    (userDetailList.users.size must beEqualTo(0))
-  }
-
-  "retrieving user by name with case sensitivity" >> {
-    val userDetailListProvider = new UserDetailListProvider {
-      override def authConfig: ValidatedUserList = getUserDetailList(userXML_1, "userXML_1")
-
-    }
-
-    (userDetailListProvider.getUserByName("admin") must beRight) and (
-      userDetailListProvider.getUserByName("Admin") must beLeft
-    )
-  }
-
-  "retrieving user by name *without* case sensitivity" >> {
-    val userDetailListProvider = new UserDetailListProvider {
-      override def authConfig: ValidatedUserList = getUserDetailList(userXML_empty, "userXML_empty")
-    }
-
-    (userDetailListProvider.getUserByName("admin") must beRight) and (
-      userDetailListProvider.getUserByName("Admin") must beRight
-    )
-  }
-
-  "an account without password field get a random 32 chars pass" >> {
-    val userDetailList = getUserDetailList(userXML_empty, "userXML_empty")
-
-    (userDetailList.users.size must beEqualTo(1)) and (userDetailList.users("admin").getPassword.size must beEqualTo(32))
-  }
 
   val userXML_3: Elem = <authentication>
     <custom-roles>
@@ -177,135 +139,215 @@ class RudderUserDetailsTest extends Specification {
     <user name="user_a1" password="..." permissions="role-A1"/>   <!-- node_read,node_write,config_*,parameter_*,technique_*,directive_*,rule_* -->
   </authentication>
 
-  "general rules around custom roles definition and error should be parsed correctly" >> {
-    import AuthorizationType.*
+  // add a plugin built-in role and check it is available too
 
-    // add a plugin built-in role and check it is available too
-
-    sealed trait PluginAuth extends AuthorizationType { def authzKind = "pluginAuth" }
-    object PluginAuth {
-      final case object Read  extends PluginAuth with ActionType.Read with AuthorizationType
-      final case object Edit  extends PluginAuth with ActionType.Edit with AuthorizationType
-      final case object Write extends PluginAuth with ActionType.Write with AuthorizationType
-      def values: Set[AuthorizationType] = Set(Read, Edit, Write)
-    }
-    val pluginRole = Builtin(BuiltinName.PluginRoleName("plugin"), Rights(PluginAuth.values))
-    RudderRoles.registerBuiltin(pluginRole).force
-
-    val userDetailList = getUserDetailList(userXML_3, "userXML_3")
-
-    val roleA0 = NamedCustom(
-      "role-a0",
-      List(Role.forRight(Node.Read), Role.forRight(Node.Write), Role.allBuiltInRoles(Role.BuiltinName.Configuration.value))
-    )
-    val roleA1 = NamedCustom("role-a1", List(roleA0))
-    val roleA2 = NamedCustom("role-a2", List(pluginRole))
-    val roleB0 = NamedCustom("ROLE-B0", List(Role.allBuiltInRoles(Role.BuiltinName.Inventory.value)))
-    val roleC0 = NamedCustom("role-c0", List(Role.allBuiltInRoles(Role.BuiltinName.RuleOnly.value)))
-    val roleC1 = NamedCustom("role-c1", List(Role.allBuiltInRoles(Role.BuiltinName.RuleOnly.value)))
-    val roleC2 = NamedCustom("role-c2", List())
-
-    val parsedRoles = {
-      roleA0 ::
-      roleA1 ::
-      roleA2 ::
-      roleB0 ::
-      roleC0 ::
-      roleC1 ::
-      roleC2 ::
-      NamedCustom("role-d0", List(roleA1, roleB0, roleC0)) ::
-      NamedCustom("role-e6", Nil) ::
-      Nil
-    }
-
-    (userDetailList.isCaseSensitive must beTrue) and
-    (userDetailList.users.size must beEqualTo(3)) and
-    (userDetailList.customRoles must containTheSameElementsAs(parsedRoles)) and
-    (userDetailList.users("user_a1").roles must containTheSameElementsAs(List(roleA1))) and
-    (roleC2.rights must beEqualTo(Role.NoRights.rights))
+  sealed trait PluginAuth extends AuthorizationType {
+    def authzKind = "pluginAuth"
   }
 
-  /// role specific  unit tests
+  object PluginAuth {
+    case object Read extends PluginAuth with ActionType.Read with AuthorizationType
 
-  "Unknown roles in user list are ignored but don't lead to no_right" >> {
-    RudderRoles.parseRoles(List("configuration", "non-existing-role", "inventory")).runNow must beEqualTo(
-      List(Role.allBuiltInRoles(Role.BuiltinName.Configuration.value), Role.allBuiltInRoles(Role.BuiltinName.Inventory.value))
-    )
+    case object Edit extends PluginAuth with ActionType.Edit with AuthorizationType
+
+    case object Write extends PluginAuth with ActionType.Write with AuthorizationType
+
+    def values: Set[AuthorizationType] = Set(Read, Edit, Write)
   }
 
-  "if one role leads to NoRights, parseRoles is only one NoRights" >> {
-    RudderRoles.parseRoles(List("configuration", "no_rights", "inventory")).runNow must beEqualTo(List(Role.NoRights))
-  }
+  val pluginRole: Builtin = Builtin(BuiltinName.PluginRoleName("plugin"), Rights(PluginAuth.values))
 
-  "Administrator does not gibe additional roles but it give the special right 'any-rights'" >> {
-    (RudderRoles.parseRoles(List("administrator")).runNow must beEqualTo(List(Role.Administrator))) and
-    (Role.Administrator.rights.authorizationTypes.collect { case a if (a == AuthorizationType.AnyRights) => a } must beEqualTo(
-      Set(AuthorizationType.AnyRights)
-    ))
-  }
+  override def spec: Spec[TestEnvironment with Scope, Any] = {
 
-  "We have reserved word for named custom role: authorization-like named are forbidden" >> {
-    val crs        = List("any", "foo_all", "foo_read", "foo_write", "foo_edit").map(n => UncheckedCustomRole(n, Nil))
-    val knownRoles = RudderRoles.getAllRoles.runNow
-    Fragments.foreach(crs) { cr =>
-      s"'${cr.name}' can not be part of a named custom role" >> {
-        RudderRoles.resolveCustomRoles(List(cr), knownRoles).runNow must beEqualTo(
-          CustomRoleResolverResult(
-            Nil,
-            List((cr, "'any' and patterns 'kind_[read,edit,write,all] are reserved that can't be used for a custom role"))
+    suiteAll("All REST tests defined in files") {
+
+      test("simple file with case sensitivity should discern users with similar username") {
+
+        val userDetailList = getUserDetailList(userXML_1, "userXML_1")
+
+        assert(userDetailList.isCaseSensitive)(isTrue) &&
+        assert(userDetailList.users.size)(equalTo(2))
+      }
+
+      test("simple file *without* case sensitivity should filter out ALL similar username") {
+        val userDetailList = getUserDetailList(userXML_2, "userXML_2")
+
+        assert(userDetailList.isCaseSensitive)(isFalse) &&
+        assert(userDetailList.users)(isEmpty)
+      }
+
+      test("retrieving user by name with case sensitivity") {
+        val userDetailListProvider = new UserDetailListProvider {
+          override def authConfig: ValidatedUserList = getUserDetailList(userXML_1, "userXML_1")
+        }
+
+        assert(userDetailListProvider.getUserByName("admin"))(isRight) &&
+        assert(userDetailListProvider.getUserByName("Admin"))(isLeft)
+      }
+
+      test("retrieving user by name *without* case sensitivity") {
+        val userDetailListProvider = new UserDetailListProvider {
+          override def authConfig: ValidatedUserList = getUserDetailList(userXML_empty, "userXML_empty")
+        }
+
+        assert(userDetailListProvider.getUserByName("admin"))(isRight) &&
+        assert(userDetailListProvider.getUserByName("Admin"))(isRight)
+      }
+
+      test("an account without password field get a random 32 chars pass") {
+        val userDetailList = getUserDetailList(userXML_empty, "userXML_empty")
+
+        assert(userDetailList.users.size)(equalTo(1)) &&
+        assert(userDetailList.users("admin").getPassword.length)(equalTo(32))
+      }
+
+      test("general rules around custom roles definition and error should be parsed correctly") {
+        RudderRoles.registerBuiltin(pluginRole).force
+
+        val userDetailList = getUserDetailList(userXML_3, "userXML_3")
+
+        val roleA0 = NamedCustom(
+          "role-a0",
+          List(Role.forRight(Node.Read), Role.forRight(Node.Write), Role.allBuiltInRoles(Role.BuiltinName.Configuration.value))
+        )
+        val roleA1 = NamedCustom("role-a1", List(roleA0))
+        val roleA2 = NamedCustom("role-a2", List(pluginRole))
+        val roleB0 = NamedCustom("ROLE-B0", List(Role.allBuiltInRoles(Role.BuiltinName.Inventory.value)))
+        val roleC0 = NamedCustom("role-c0", List(Role.allBuiltInRoles(Role.BuiltinName.RuleOnly.value)))
+        val roleC1 = NamedCustom("role-c1", List(Role.allBuiltInRoles(Role.BuiltinName.RuleOnly.value)))
+        val roleC2 = NamedCustom("role-c2", List())
+
+        val parsedRoles = {
+          roleA0 ::
+          roleA1 ::
+          roleA2 ::
+          roleB0 ::
+          roleC0 ::
+          roleC1 ::
+          roleC2 ::
+          NamedCustom("role-d0", List(roleA1, roleB0, roleC0)) ::
+          NamedCustom("role-e6", Nil) ::
+          Nil
+        }
+
+        assert(userDetailList.isCaseSensitive)(isTrue) &&
+        assert(userDetailList.users.size)(equalTo(3)) &&
+        assert(userDetailList.customRoles)(equalTo(parsedRoles)) &&
+        assert(userDetailList.users("user_a1").roles)(equalTo(Set[Role](roleA1))) &&
+        assert(roleC2.rights)(equalTo(Role.NoRights.rights))
+      }
+
+      /// role specific  unit tests
+      test("Unknown roles in user list are ignored but don't lead to no_right") {
+        for {
+          res <- RudderRoles.parseRoles(List("configuration", "non-existing-role", "inventory"))
+        } yield assert(res)(
+          equalTo(
+            List(
+              Role.allBuiltInRoles(Role.BuiltinName.Configuration.value),
+              Role.allBuiltInRoles(Role.BuiltinName.Inventory.value)
+            )
           )
         )
       }
+
+      test("if one role leads to NoRights, parseRoles is only one NoRights") {
+        for {
+          res <- RudderRoles.parseRoles(List("configuration", "no_rights", "inventory"))
+        } yield assert(res)(equalTo(List(Role.NoRights)))
+      }
+
+      test("Administrator does not gibe additional roles but it give the special right 'any-rights'") {
+        for {
+          res <- RudderRoles.parseRoles(List("administrator"))
+        } yield {
+
+          val roles = Role.Administrator.rights.authorizationTypes.collect {
+            case a if (a == AuthorizationType.AnyRights) => a
+          }
+
+          assert(res)(equalTo(List(Role.Administrator))) &&
+          assert(roles)(equalTo(Set[AuthorizationType](AuthorizationType.AnyRights)))
+        }
+      }
+
+      suite("We have reserved word for named custom role: authorization-like named are forbidden") {
+        val crs = List("any", "foo_all", "foo_read", "foo_write", "foo_edit").map(n => UncheckedCustomRole(n, Nil))
+        for {
+          knownRoles <- RudderRoles.getAllRoles
+          tests      <- ZIO.foreach(crs) { cr =>
+                          RudderRoles
+                            .resolveCustomRoles(List(cr), knownRoles)
+                            .map { res =>
+                              val expected = List(
+                                (
+                                  cr,
+                                  "'any' and patterns 'kind_[read,edit,write,all] are reserved that can't be used for a custom role"
+                                )
+                              )
+                              test(s"'${cr.name}' can not be part of a named custom role")(
+                                assert(res)(equalTo(CustomRoleResolverResult(Nil, expected)))
+                              )
+                            }
+                        }
+        } yield tests
+      }
+
+      suiteAll("In definition of tenants, we") {
+
+        val tenantXML_1 = <authentication hash="sha512" case-sensitivity="true">
+        <!-- single tenants -->
+        <user name="user_single" role="administrator" tenants="zoneA"/>
+        <!-- multiple tenants -->
+        <user name="user_multi" role="administrator" tenants="zoneA, zoneB"/>
+        <!-- compat: access to all -->
+        <user name="user_all_compat" role="administrator" />
+        <!-- explicit access to all + check merge -->
+        <user name="user_all_explicit" role="administrator" tenants="*,zoneA" />
+        <!-- no tenant: none -->
+        <user name="user_empty_list" role="administrator" tenants="" />
+        <!-- explicit none, win over everything -->
+        <user name="user_none_explicit" role="administrator" tenants="-, *, zoneA"/>
+        <!-- non alnum are ignored -->
+        <user name="user_ascii" role="administrator" tenants="zoneA, @reza\,,"/>
+      </authentication>
+
+        val userDetailList = getUserDetailList(tenantXML_1, "tenantXML_1")
+
+        test("be able to define one tenants") {
+          assert(userDetailList.users("user_single").nodePerms)(equalTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA")))))
+        }
+
+        test("be able to define a list of tenants") {
+          assert(userDetailList.users("user_multi").nodePerms)(
+            equalTo(
+              NodeSecurityContext.ByTenants(
+                Chunk(TenantId("zoneA"), TenantId("zoneB"))
+              )
+            )
+          )
+        }
+
+        test("have no tenants attribute means ALL for compat reason") {
+          assert(userDetailList.users("user_all_compat").nodePerms)(equalTo(NodeSecurityContext.All))
+        }
+
+        test("have explicit '*' means ALL") {
+          assert(userDetailList.users("user_all_explicit").nodePerms)(equalTo(NodeSecurityContext.All))
+        }
+
+        test("have an empty list means NONE") {
+          assert(userDetailList.users("user_empty_list").nodePerms)(equalTo(NodeSecurityContext.None))
+        }
+
+        test("have explicit '-' means NONE") {
+          assert(userDetailList.users("user_none_explicit").nodePerms)(equalTo(NodeSecurityContext.None))
+        }
+
+        test("only have access to sane ascii identifier") {
+          assert(userDetailList.users("user_ascii").nodePerms)(equalTo(NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA")))))
+        }
+      }
     }
   }
-
-  "In definition of tenants, we" should {
-    val tenantXML_1 = <authentication hash="sha512" case-sensitivity="true">
-      <!-- single tenants -->
-      <user name="user_single" role="administrator" tenants="zoneA"/>
-      <!-- multiple tenants -->
-      <user name="user_multi" role="administrator" tenants="zoneA, zoneB"/>
-      <!-- compat: access to all -->
-      <user name="user_all_compat" role="administrator" />
-      <!-- explicit access to all + check merge -->
-      <user name="user_all_explicit" role="administrator" tenants="*,zoneA" />
-      <!-- no tenant: none -->
-      <user name="user_empty_list" role="administrator" tenants="" />
-      <!-- explicit none, win over everything -->
-      <user name="user_none_explicit" role="administrator" tenants="-, *, zoneA"/>
-      <!-- non alnum are ignored -->
-      <user name="user_ascii" role="administrator" tenants="zoneA, @reza\,,"/>
-    </authentication>
-
-    val userDetailList = getUserDetailList(tenantXML_1, "tenantXML_1")
-
-    "be able to define one tenants" in {
-      userDetailList.users("user_single").nodePerms === NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA")))
-    }
-
-    "be able to define a list of tenants" in {
-      userDetailList.users("user_multi").nodePerms === NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA"), TenantId("zoneB")))
-    }
-
-    "have no tenants attribute means ALL for compat reason" in {
-      userDetailList.users("user_all_compat").nodePerms === NodeSecurityContext.All
-    }
-
-    "have explicit '*' means ALL" in {
-      userDetailList.users("user_all_explicit").nodePerms === NodeSecurityContext.All
-    }
-
-    "have an empty list means NONE" in {
-      userDetailList.users("user_empty_list").nodePerms === NodeSecurityContext.None
-    }
-
-    "have explicit '-' means NONE" in {
-      userDetailList.users("user_none_explicit").nodePerms === NodeSecurityContext.None
-    }
-
-    "only have access to sane ascii identifier" in {
-      userDetailList.users("user_ascii").nodePerms === NodeSecurityContext.ByTenants(Chunk(TenantId("zoneA")))
-    }
-  }
-
 }

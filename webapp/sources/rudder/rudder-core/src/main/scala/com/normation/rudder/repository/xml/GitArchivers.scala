@@ -74,6 +74,7 @@ import com.normation.rudder.ncf.TechniqueCompiler
 import com.normation.rudder.repository.*
 import com.normation.rudder.services.marshalling.*
 import com.normation.rudder.services.user.PersonIdentService
+import com.normation.utils.XmlSafe
 import java.io.File
 import java.io.FileNotFoundException
 import net.liftweb.common.*
@@ -81,7 +82,6 @@ import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.PersonIdent
 import scala.collection.mutable.Buffer
 import scala.xml.Source
-import scala.xml.XML
 import zio.*
 import zio.syntax.*
 
@@ -469,14 +469,14 @@ class TechniqueArchiverImpl(
       known      = resourcesStatus.map(f => (f.path, f)).toMap
       updated    = res.fileStatus.map(f => (f.path, f)).toMap
       fileStates = Chunk.fromIterable((known ++ updated).values)
-      metadata  <- IOResult.attempt(XML.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
+      metadata  <- IOResult.attempt(XmlSafe.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
       tech      <- techniqueParser.parseXml(metadata, techniqueId).toIO
       files      = getFilesToCommit(tech, techniqueGitPath, fileStates)
       ident     <- personIdentservice.getPersonIdentOrDefault(committer.name)
-      added     <- ZIO.foreach(files.add)(f => IOResult.attempt(gitRepo.git.add.addFilepattern(f).call()))
-      removed   <- ZIO.foreach(files.delete)(f => IOResult.attempt(gitRepo.git.rm.addFilepattern(f).call()))
-      staged    <- ZIO.foreach(files.stage)(f => IOResult.attempt(gitRepo.git.add.setUpdate(true).addFilepattern(f).call()))
-      commit    <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
+      _         <- ZIO.foreach(files.add)(f => IOResult.attempt(gitRepo.git.add.addFilepattern(f).call()))
+      _         <- ZIO.foreach(files.delete)(f => IOResult.attempt(gitRepo.git.rm.addFilepattern(f).call()))
+      _         <- ZIO.foreach(files.stage)(f => IOResult.attempt(gitRepo.git.add.setUpdate(true).addFilepattern(f).call()))
+      _         <- IOResult.attempt(gitRepo.git.commit.setCommitter(ident).setMessage(msg).call())
     } yield ()).chainError(s"error when committing Technique '${techniqueId.serialize}'").unit
   }
 
@@ -484,7 +484,7 @@ class TechniqueArchiverImpl(
     // to have a future-proof version, we should deal with the different kinds of technique descriptor: yml, xml
     // as it is done ArchiveApi checkParseTechniqueDescriptor
     for {
-      metadata <- IOResult.attempt(XML.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
+      metadata <- IOResult.attempt(XmlSafe.load(Source.fromFile((techniquePath / TechniqueFiles.Generated.metadata).toJava)))
       tech     <- techniqueParser.parseXml(metadata, techniqueId).toIO
     } yield tech
   }
@@ -507,7 +507,7 @@ class TechniqueArchiverImpl(
         (for {
           // the file may not exist, which is not an error in that case
           existing <- IOResult.attempt {
-                        val elem = XML.load(Source.fromFile(categoryFile.toJava))
+                        val elem = XmlSafe.load(Source.fromFile(categoryFile.toJava))
                         Some(TechniqueCategoryMetadata.parseXML(elem, catId))
                       }.catchSome { case SystemError(_, _: FileNotFoundException) => None.succeed }
           _        <- if (existing.contains(metadata)) {
@@ -767,19 +767,19 @@ class UpdatePiOnActiveTechniqueEvent(
                                      None.succeed
                                    } else {
                                      for {
-                                       technique  <-
+                                       technique <-
                                          techniqeRepository
                                            .get(TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion))
                                            .notOptional(
                                              s"Can not find Technique '${activeTechnique.techniqueName.value}:${directive.techniqueVersion.debugString}'"
                                            )
-                                       archivedPi <- gitDirectiveArchiver.archiveDirective(
-                                                       directive,
-                                                       technique.id.name,
-                                                       parents,
-                                                       technique.rootSection,
-                                                       gitCommit
-                                                     )
+                                       _         <- gitDirectiveArchiver.archiveDirective(
+                                                      directive,
+                                                      technique.id.name,
+                                                      parents,
+                                                      technique.rootSection,
+                                                      gitCommit
+                                                    )
                                      } yield {
                                        None
                                      }

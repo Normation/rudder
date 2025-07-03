@@ -30,5 +30,5 @@ encodeUserInfo user =
     object
     [ ("name", string user.name)
     , ("email", string user.email)
-    , ("otherInfo", object (List.map (\(k, v) -> (k, string v)) (Dict.toList user.otherInfo)))
+    , ("otherInfo",  object (user.info |> Dict.toList |> List.map (\(k, v) -> (k, string v)) |> List.append (Dict.toList user.otherInfo)))
     ]

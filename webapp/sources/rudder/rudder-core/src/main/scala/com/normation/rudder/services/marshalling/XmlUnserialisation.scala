@@ -38,6 +38,7 @@
 package com.normation.rudder.services.marshalling
 
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.errors.PureResult
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.nodes.NodeGroup
@@ -110,7 +111,7 @@ trait NodeGroupCategoryUnserialisation {
         <isSystem>{cat.isSystem}</isSystem>
       </nodeGroupCategory>
    */
-  def unserialise(xml: XNode): Box[NodeGroupCategory]
+  def unserialise(xml: XNode): PureResult[NodeGroupCategory]
 }
 
 /**
@@ -135,7 +136,7 @@ trait NodeGroupUnserialisation {
        </nodeIds>
      </nodeGroup>
    */
-  def unserialise(xml: XNode): Box[NodeGroup]
+  def unserialise(xml: XNode): PureResult[NodeGroup]
 }
 
 /**
@@ -161,7 +162,7 @@ trait RuleUnserialisation {
         <isSystem>{rule.isSystem}</isSystem>
       </rule>
    */
-  def unserialise(xml: XNode): Box[Rule]
+  def unserialise(xml: XNode): PureResult[Rule]
 }
 
 /**
@@ -178,7 +179,7 @@ trait RuleCategoryUnserialisation {
         <isSystem>{ngc.isSystem}</isSystem>
       </ruleCategory>
    */
-  def unserialise(xml: XNode): Box[RuleCategory]
+  def unserialise(xml: XNode): PureResult[RuleCategory]
 }
 
 /**
@@ -259,7 +260,7 @@ trait DirectiveUnserialisation {
        </section>
      </directive>
    */
-  def unserialise(xml: XNode): Box[(TechniqueName, Directive, SectionVal)]
+  def unserialise(xml: XNode): PureResult[(TechniqueName, Directive, SectionVal)]
 
   /**
    * A section val look like:
@@ -282,7 +283,7 @@ trait DirectiveUnserialisation {
    *
    * We await for a node that contains an unique <section>
    */
-  def parseSectionVal(xml: NodeSeq): Box[SectionVal]
+  def parseSectionVal(xml: NodeSeq): PureResult[SectionVal]
 }
 
 /**
@@ -300,7 +301,7 @@ trait GlobalParameterUnserialisation {
        <overridable>{param.overridable}</overridable>
      </globalParameter>
    */
-  def unserialise(xml: XNode): Box[GlobalParameter]
+  def unserialise(xml: XNode): PureResult[GlobalParameter]
 }
 
 /**
@@ -412,9 +413,9 @@ trait ChangeRequestChangesUnserialisation {
         </globalParameters>
       </changeRequest>
    */
-  def unserialise(xml: XNode): Box[
+  def unserialise(xml: XNode): PureResult[
     (
-        Box[Map[DirectiveId, DirectiveChanges]],
+        Map[DirectiveId, DirectiveChanges],
         Map[NodeGroupId, NodeGroupChanges],
         Map[RuleId, RuleChanges],
         Map[String, GlobalParameterChanges]

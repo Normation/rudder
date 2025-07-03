@@ -44,8 +44,7 @@ import com.normation.errors.PureResult
 import com.normation.errors.RudderError
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import com.normation.inventory.domain.*
-import com.normation.inventory.domain.Version as SVersion
+import com.normation.inventory.domain.{Version as SVersion, *}
 import com.normation.rudder.apidata.NodeDetailLevel
 import com.normation.rudder.domain.eventlog
 import com.normation.rudder.domain.logger.PolicyGenerationLogger

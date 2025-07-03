@@ -432,8 +432,6 @@ class SystemVariableServiceImpl(
                   Some(x)
               }
               Some((node, cert, parsedCert))
-            case _ =>
-              None
           }
       }
       val varManagedNodesCertificate =

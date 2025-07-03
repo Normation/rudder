@@ -110,7 +110,7 @@ pub fn method_call(
             Some(Promise::usebundle("_classes_noop", Some(&report_component), vec![na_condition.clone()]).unless_condition(incall_condition.clone())),
             Some(Promise::usebundle("log_rudder", Some(&report_component), vec![
                 quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", &method_name, incall_condition)),
-                quoted(&report_parameter),
+                quoted("${c_key}"),
                 na_condition.clone(),
                 na_condition,
                 "@{args}".to_string()
@@ -121,7 +121,7 @@ pub fn method_call(
             Promise::usebundle("_classes_noop", Some(&report_component), vec![na_condition.clone()]),
             Promise::usebundle("log_rudder", Some(&report_component),  vec![
                 quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", &method_name, condition)),
-                quoted(&report_parameter),
+                quoted("${c_key}"),
                 na_condition.clone(),
                 na_condition,
                 "@{args}".to_string()
@@ -160,7 +160,7 @@ pub fn method_call(
     };
 
     // Calling bundle
-    let bundle_name = format!("call_{}_{}", technique_id, c_id);
+    let bundle_name = format!("call_{technique_id}_{c_id}");
     let mut call_parameters = vec![
         quoted(&report_component),
         quoted(&report_parameter),

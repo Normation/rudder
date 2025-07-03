@@ -24,7 +24,7 @@ bundle agent init
   vars:
       "tmp"        string => getenv("TEMP", 1024);
 
-      "command[1]" string => "/bin/date | ${paths.path[egrep]} '[0-9]'";
+      "command[1]" string => "/bin/date | ${paths.path[grep]} -E '[0-9]'";
       "result[1]"  string => "repaired";
 
       "command[2]" string => "/bin/false";

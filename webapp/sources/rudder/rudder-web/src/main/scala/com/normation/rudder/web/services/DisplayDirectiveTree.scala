@@ -48,10 +48,10 @@ import com.normation.rudder.domain.policies.PolicyModeOverrides.*
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.web.model.JsTreeNode
+import com.normation.rudder.web.snippet.WithNonce
 import net.liftweb.common.Loggable
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE.*
-import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers
@@ -386,7 +386,7 @@ object DisplayDirectiveTree extends Loggable {
           NodeSeq.Empty
         }
 
-        val (isDeprecated, deprecationInfo, deprecatedIcon) = {
+        val (_, deprecationInfo, deprecatedIcon) = {
           if (activeTechnique.techniques.values.forall(t => t.deprecrationInfo.isDefined)) {
             val message = <p><b>↳ Deprecated: </b>{
               technique.flatMap(_.deprecrationInfo).map(_.message).getOrElse("this technique is deprecated.")
@@ -497,11 +497,13 @@ object DisplayDirectiveTree extends Loggable {
           }
           </span> ++ { directiveTagsTooltip } ++
           <div class="treeActions-container"> {actionBtns} {editButton} </div> ++
-          Script(
-            JsRaw(
-              s"""$$('#badge-apm-${tooltipId}').replaceWith(createBadgeAgentPolicyMode('directive',"${policyMode}", "${explanation
-                  .toString()}"));"""
-            ) // JsRaw ok, const
+          WithNonce.scriptWithNonce(
+            Script(
+              JsRaw(
+                s"""$$('#badge-apm-${tooltipId}').replaceWith(createBadgeAgentPolicyMode('directive',"${policyMode}", "${explanation
+                    .toString()}"));"""
+              ) // JsRaw ok, const
+            )
           )
         }
 

@@ -2,19 +2,20 @@
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
 use crate::dsl::{
+    comparator::{Comparison, Number},
     error::format_report_from_span,
     parser::{CheckExpr, Expr},
     password::PasswordPolicy,
     script::{ExprType, Script},
 };
 use anyhow::{Result, bail};
-use raugeas::{Augeas, Span};
+use raugeas::Augeas;
 use rudder_module_type::{rudder_debug, rudder_trace};
 use std::path::Path;
 
 /// The mode of the interpreter.
 ///
-/// Different from policy mode, which only affects the save operation.
+/// Different from the policy mode, which only affects the save operation.
 /// Here we limit what the script can do based on the mode to allow pure conditions.
 ///
 /// The unrestricted mode is only available in the REPL.
@@ -148,11 +149,9 @@ impl<'a> Interpreter<'a> {
     }
 
     pub fn preview(&mut self, file: &Path) -> Result<Option<String>> {
-        // FIXME should not be necessary
+        // TODO: should not be necessary?
         self.aug.set("/augeas/context", "/files")?;
-
         let file = file.strip_prefix("/")?;
-
         self.aug.preview(file).map_err(Into::into)
     }
 
@@ -270,10 +269,21 @@ impl<'a> Interpreter<'a> {
                 if matches.is_empty() {
                     bail!("No matches for path {}", path);
                 }
-                let values = matches
-                    .iter()
-                    .map(|m| (self.aug.get(m).unwrap().unwrap(), self.aug.span(m).unwrap()))
-                    .collect::<Vec<(String, Option<Span>)>>();
+
+                rudder_debug!("Found {} matches for path {}", matches.len(), path);
+
+                let mut values = vec![];
+                for v in matches {
+                    let get = self.aug.get(&v)?;
+                    let span = self.aug.span(&v)?;
+                    if let Some(value) = get {
+                        rudder_debug!("Value for match {}: {}", &value, value);
+                        values.push((value.clone(), span));
+                    } else {
+                        bail!("No value for match {}, try adding /*", v);
+                    }
+                }
+
                 let values_str = values
                     .iter()
                     .map(|(s, _)| s.as_ref())
@@ -353,6 +363,21 @@ impl<'a> Interpreter<'a> {
                             )
                         })?)
                     }
+                    CheckExpr::ValuesIn(expected_values) => {
+                        let is_ok = values_str.iter().all(|v| expected_values.contains(v));
+                        Some(InterpreterOut::from_out(if is_ok {
+                            format!(
+                                "values '{}' is a subset of the allowed values",
+                                values_str.join(", ")
+                            )
+                        } else {
+                            bail!(
+                                "values '{}' is not a subset of the allowed values '{}'",
+                                values_str.join(", "),
+                                expected_values.join(", ")
+                            )
+                        })?)
+                    }
                     CheckExpr::ValuesLen(comparator, size) => {
                         let len = values.len();
                         Some(InterpreterOut::from_out(
@@ -399,16 +424,40 @@ impl<'a> Interpreter<'a> {
                             let out = policy.check(value.into())?;
                             InterpreterOut::from_out(out)?
                         }
-                        CheckExpr::Compare(_) => {
-                            todo!()
-                        }
+                        CheckExpr::Compare(c) => match c {
+                            Comparison::Str(s) => InterpreterOut::from_out(if s.matches(&value) {
+                                format!("comparison: {value} {} {} is valid", s.comparator, s.value)
+                            } else {
+                                bail!(
+                                    "comparison: {value} {} {} is invalid",
+                                    s.comparator,
+                                    s.value
+                                )
+                            })?,
+                            Comparison::Num(s) => {
+                                let number = value.parse::<Number>()?;
+
+                                InterpreterOut::from_out(if s.matches(number)? {
+                                    format!(
+                                        "numeric comparison: {value} {} {} is valid",
+                                        s.comparator, s.value
+                                    )
+                                } else {
+                                    bail!(
+                                        "numeric comparison: {value} {} {} is invalid",
+                                        s.comparator,
+                                        s.value
+                                    )
+                                })?
+                            }
+                        },
                         CheckExpr::Len(comparator, size) => {
                             let len = value.len();
 
                             InterpreterOut::from_out(if comparator.numeric_compare(&len, size) {
                                 format!("length of '{value}', {len} matches {comparator} {size}")
                             } else {
-                                format!(
+                                bail!(
                                     "length of '{value}', {len} does not match {comparator} {size}"
                                 )
                             })?
@@ -427,6 +476,7 @@ impl<'a> Interpreter<'a> {
             }
             Expr::Save => vec![InterpreterOut::from_aug_res(self.aug.save())?],
             Expr::Load => vec![InterpreterOut::from_aug_res(self.aug.load())?],
+            Expr::LoadFile(f) => vec![InterpreterOut::from_aug_res(self.aug.load_file(f))?],
             Expr::Quit => vec![InterpreterOut::ok_quit()?],
         });
         Ok(res)
@@ -437,15 +487,12 @@ impl<'a> Interpreter<'a> {
 mod tests {
     use crate::dsl::interpreter::Interpreter;
     use raugeas::{Augeas, Flags};
-    use std::fs;
-    use std::path::Path;
+    use std::{fs, path::Path};
 
     #[test]
-    #[ignore]
     fn preview_interpreter() {
         let mut flags = Flags::NONE;
 
-        // BREAKS preview ?!
         flags.insert(Flags::ENABLE_SPAN);
 
         let mut a = Augeas::init(None::<&str>, "", flags).unwrap();

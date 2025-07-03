@@ -52,7 +52,6 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.workflows.*
-import com.normation.rudder.domain.workflows.ChangeRequestInfo
 import org.joda.time.DateTime
 
 /**

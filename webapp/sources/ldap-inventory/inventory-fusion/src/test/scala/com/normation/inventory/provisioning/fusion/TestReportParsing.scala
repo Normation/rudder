@@ -358,6 +358,19 @@ class TestInventoryParsing extends Specification with Loggable {
       )
     }
 
+    "Correctly parse the version from AGENT_VERSION when available" in {
+      val inventory = parseRun("fusion-inventories/rudder-tag/linux-8-3-with-agent-version.ocs")
+
+      inventory.node.agents.head.version === Some(AgentVersion("8.3.1"))
+
+    }
+    "Correctly revert to agent package version if AGENT_VERSION is missing" in {
+      val inventory = parseRun("fusion-inventories/rudder-tag/linux-8-3-without-agent-version.ocs")
+
+      inventory.node.agents.head.version === Some(AgentVersion("8.3.1-ubuntu22.04"))
+
+    }
+
   }
 
   "Parsing Processors" should {
@@ -394,6 +407,19 @@ class TestInventoryParsing extends Specification with Loggable {
         case Some(ssn) => ssn === Some("be7c0c4f-5f27-6648-9adb-6cce2129061d")
         case None      => ko("Missing <SSN> from <BIOS> section in fusion-inventories/alma.ocs")
       }
+    }
+  }
+
+  "Parsing date" should {
+    "Be ok for logged user when format has only minutes" in {
+      FusionInventoryParser.parseLoggedUserDate("Thu Sep 22 12:27") must beRight
+    }
+    "Be ok for logged user when format has seconds" in {
+      FusionInventoryParser.parseLoggedUserDate("Wed Jun 11 08:12:05") must beRight
+    }
+
+    "Be ok for bios usual format" in {
+      FusionInventoryParser.parseBiosDate("05/17/25") must beRight
     }
   }
 

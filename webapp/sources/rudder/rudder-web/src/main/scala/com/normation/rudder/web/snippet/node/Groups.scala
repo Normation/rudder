@@ -43,9 +43,6 @@ import com.normation.eventlog.ModificationId
 import com.normation.plugins.DefaultExtendableSnippet
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.*
-import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.nodes.NodeGroupCategory
-import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.ChangeContext
@@ -56,9 +53,9 @@ import com.normation.rudder.web.components.NodeGroupCategoryForm
 import com.normation.rudder.web.components.NodeGroupForm
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
 import com.normation.rudder.web.services.DisplayNodeGroupTree
+import com.normation.rudder.web.snippet.WithNonce
 import net.liftweb.common.*
 import net.liftweb.http.*
-import net.liftweb.http.LocalSnippet
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
@@ -141,95 +138,97 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
       )
     )
     _ =>
-      Script(
-        OnLoad(
-          JsRaw(
-            s"""
-               |var main = document.getElementById("groups-app");
-               |var initValues = {
-               |  contextPath    : contextPath
-               |, hasGroupToDisplay : hasGroupToDisplay
-               |, hasWriteRights : hasWriteRights
-               |};
-               |var app = Elm.Groups.init({node: main, flags: initValues});
-               |app.ports.errorNotification.subscribe(function(str) {
-               |  createErrorNotification(str)
-               |});
-               |app.ports.pushUrl.subscribe(function(url) {
-               |  var hashKey = url[0];
-               |  var hashValue = url[1];
-               |  var url = contextPath + "/secure/nodeManager/groups";
-               |  if (hashKey == "") {
-               |    window.location.hash = "";
-               |  } else {
-               |    window.location.hash = JSON.stringify({[hashKey]: hashValue});
-               |  }
-               |});
-               |// support loading another group from change in URL hash while staying in page (e.g. from quicksearch result)
-               |window.addEventListener('hashchange', function (e) {
-               |  var newHash = e.target.location.hash;
-               |  var splitHash = newHash.split("#");
-               |  if (splitHash.length > 0) {
-               |    try {
-               |      var hashJsonObj = JSON.parse(decodeURIComponent(splitHash[1]));
-               |      if ("groupId" in hashJsonObj) {
-               |        app.ports.readUrl.send(hashJsonObj["groupId"]);
-               |      }
-               |    } catch {}
-               |  }
-               |});
-               |app.ports.adjustComplianceCols.subscribe(function() {
-               |  //call the equalize width function
-               |  var group = $$(".compliance-col");
-               |  var widest = 0;
-               |  group.each(function() {
-               |      var thisWidth = $$(this).width();
-               |      if(thisWidth > widest) {
-               |          widest = thisWidth;
-               |      }
-               |  });
-               |  group.width(widest);
-               |});
-               |app.ports.displayCategoryDetails.subscribe(function(categoryId) {
-               |  var displayCategoryDetailsCallback = ${displayCategoryDetails.toJsCmd};
-               |  displayCategoryDetailsCallback()
-               |});
-               |app.ports.displayGroupDetails.subscribe(function(groupIdOrTarget) {
-               |  var displayGroupDetailsCallback = ${displayGroupDetails.toJsCmd};
-               |  displayGroupDetailsCallback()
-               |});
-               |var createGroupCallback = ${newItemCallback.toJsCmd};
-               |app.ports.createGroupModal.subscribe(function(msg) {
-               |  createGroupCallback()
-               |});
-               |
-               |// We need to notify the Elm app when an action could have been executed to refresh the display
-               |$$("#createGroupPopup").on("hidden.bs.modal", function () {
-               |  app.ports.closeModal.send(null)
-               |});
-               |$$("#basePopup").on("hidden.bs.modal", function () {
-               |  app.ports.closeModal.send(null)
-               |});
-               |$$("#confirmUpdateActionDialog").on("hidden.bs.modal", function () {
-               |  app.ports.closeModal.send(null)
-               |});
-               |$$("#createCloneGroupPopup").on("hidden.bs.modal", function () {
-               |  app.ports.closeModal.send(null)
-               |});
-               |// When custom event to close group details fires, we load the group table state in the Elm app
-               |$$("#${htmlId_item}").on("group-close-detail", function () {
-               |  $$("#${htmlId_item} .main-container").hide(); // guarantee to hide details
-               |  app.ports.loadGroupTable.send(null)
-               |});
-               |
-               |// Initialize tooltips
-               |app.ports.initTooltips.subscribe(function(msg) {
-               |  initBsTooltips();
-               |  setTimeout(function(){
-               |    initBsTooltips();
-               |  }, 800);
-               |});
+      WithNonce.scriptWithNonce(
+        Script(
+          OnLoad(
+            JsRaw(
+              s"""
+                 |var main = document.getElementById("groups-app");
+                 |var initValues = {
+                 |  contextPath    : contextPath
+                 |, hasGroupToDisplay : hasGroupToDisplay
+                 |, hasWriteRights : hasWriteRights
+                 |};
+                 |var app = Elm.Groups.init({node: main, flags: initValues});
+                 |app.ports.errorNotification.subscribe(function(str) {
+                 |  createErrorNotification(str)
+                 |});
+                 |app.ports.pushUrl.subscribe(function(url) {
+                 |  var hashKey = url[0];
+                 |  var hashValue = url[1];
+                 |  var url = contextPath + "/secure/nodeManager/groups";
+                 |  if (hashKey == "") {
+                 |    window.location.hash = "";
+                 |  } else {
+                 |    window.location.hash = JSON.stringify({[hashKey]: hashValue});
+                 |  }
+                 |});
+                 |// support loading another group from change in URL hash while staying in page (e.g. from quicksearch result)
+                 |window.addEventListener('hashchange', function (e) {
+                 |  var newHash = e.target.location.hash;
+                 |  var splitHash = newHash.split("#");
+                 |  if (splitHash.length > 0) {
+                 |    try {
+                 |      var hashJsonObj = JSON.parse(decodeURIComponent(splitHash[1]));
+                 |      if ("groupId" in hashJsonObj) {
+                 |        app.ports.readUrl.send(hashJsonObj["groupId"]);
+                 |      }
+                 |    } catch {}
+                 |  }
+                 |});
+                 |app.ports.adjustComplianceCols.subscribe(function() {
+                 |  //call the equalize width function
+                 |  var group = $$(".compliance-col");
+                 |  var widest = 0;
+                 |  group.each(function() {
+                 |      var thisWidth = $$(this).width();
+                 |      if(thisWidth > widest) {
+                 |          widest = thisWidth;
+                 |      }
+                 |  });
+                 |  group.width(widest);
+                 |});
+                 |app.ports.displayCategoryDetails.subscribe(function(categoryId) {
+                 |  var displayCategoryDetailsCallback = ${displayCategoryDetails.toJsCmd};
+                 |  displayCategoryDetailsCallback()
+                 |});
+                 |app.ports.displayGroupDetails.subscribe(function(groupIdOrTarget) {
+                 |  var displayGroupDetailsCallback = ${displayGroupDetails.toJsCmd};
+                 |  displayGroupDetailsCallback()
+                 |});
+                 |var createGroupCallback = ${newItemCallback.toJsCmd};
+                 |app.ports.createGroupModal.subscribe(function(msg) {
+                 |  createGroupCallback()
+                 |});
+                 |
+                 |// We need to notify the Elm app when an action could have been executed to refresh the display
+                 |$$("#createGroupPopup").on("hidden.bs.modal", function () {
+                 |  app.ports.closeModal.send(null)
+                 |});
+                 |$$("#basePopup").on("hidden.bs.modal", function () {
+                 |  app.ports.closeModal.send(null)
+                 |});
+                 |$$("#confirmUpdateActionDialog").on("hidden.bs.modal", function () {
+                 |  app.ports.closeModal.send(null)
+                 |});
+                 |$$("#createCloneGroupPopup").on("hidden.bs.modal", function () {
+                 |  app.ports.closeModal.send(null)
+                 |});
+                 |// When custom event to close group details fires, we load the group table state in the Elm app
+                 |$$("#${htmlId_item}").on("group-close-detail", function () {
+                 |  $$("#${htmlId_item} .main-container").hide(); // guarantee to hide details
+                 |  app.ports.loadGroupTable.send(null)
+                 |});
+                 |
+                 |// Initialize tooltips
+                 |app.ports.initTooltips.subscribe(function(msg) {
+                 |  initBsTooltips();
+                 |  setTimeout(function(){
+                 |    initBsTooltips();
+                 |  }, 800);
+                 |});
               """.stripMargin
+            )
           )
         )
       )
@@ -240,7 +239,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
    * the tree if necessary)
    */
   def initRightPanel()(implicit qc: QueryContext): NodeSeq = {
-    Script(OnLoad(parseJsArg(boxGroupLib)))
+    WithNonce.scriptWithNonce(Script(OnLoad(parseJsArg(boxGroupLib))))
   }
 
   /**

@@ -27,7 +27,7 @@ FILES_TO_CHECK=`find "${GIT_ROOT}/policies/lib/tests/" -name "*.cf"`
 ERRORS=0
 for f in $FILES_TO_CHECK
 do
-  if egrep -q "^[^#]*perms\s*=>\s*mog\([^,]+,\s*[^,]+,\s*['\"]root['\"]\)" ${f}; then
+  if grep -Eq "^[^#]*perms\s*=>\s*mog\([^,]+,\s*[^,]+,\s*['\"]root['\"]\)" ${f}; then
     echo "File $f uses 'root' group, will break tests on non-Linux OSes"
     ERRORS=`expr $ERRORS + 1`
   fi

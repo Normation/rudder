@@ -41,7 +41,7 @@ pub fn check_prometheus(metrics: &str, mut expected: HashMap<&str, &str>) -> boo
 
         if let Some(rvalue) = expected.get(name) {
             if *rvalue != value {
-                println!("{} should equal {} but is {}", name, rvalue, value);
+                println!("{name} should equal {rvalue} but is {value}");
                 is_ok = false;
             }
             expected.remove(name);
@@ -50,7 +50,7 @@ pub fn check_prometheus(metrics: &str, mut expected: HashMap<&str, &str>) -> boo
 
     for key in expected.keys() {
         is_ok = false;
-        println!("{} should be present but is not there", key);
+        println!("{key} should be present but is not there");
     }
 
     is_ok
@@ -100,7 +100,7 @@ fn it_reads_and_inserts_a_runlog() {
     let file_unknown_failed = "target/tmp/reporting/failed/2018-02-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906d.log";
 
     copy(
-        "tests/files/runlogs/2017-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
+        "tests/files/runlogs/2017-08-24T15_55_01+00_00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
         file_old,
     )
     .unwrap();
@@ -133,7 +133,7 @@ fn it_reads_and_inserts_a_runlog() {
     assert!(start_number(&mut db, 1).is_ok());
 
     copy(
-        "tests/files/runlogs/2018-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
+        "tests/files/runlogs/2018-08-24T15_55_01+00_00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
         file_new,
     )
     .unwrap();
@@ -188,12 +188,12 @@ fn it_cleans_old_reports() {
     let file_very_old = "target/tmp/reporting_old/incoming/1970-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.log";
 
     copy(
-        "tests/files/runlogs/2017-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
+        "tests/files/runlogs/2017-08-24T15_55_01+00_00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
         file_new,
     )
     .unwrap();
     copy(
-        "tests/files/runlogs/2017-08-24T15:55:01+00:00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
+        "tests/files/runlogs/2017-08-24T15_55_01+00_00@e745a140-40bc-4b86-b6dc-084488fc906b.signed",
         file_very_old,
     )
     .unwrap();

@@ -40,6 +40,7 @@ package com.normation.cfclerk.domain
 import com.normation.cfclerk.domain.HashAlgoConstraint.*
 import com.normation.cfclerk.xmlparsers.*
 import com.normation.rudder.services.policies.write.CFEngineAgentSpecificGeneration
+import com.normation.utils.XmlSafe
 import java.io.FileNotFoundException
 import org.joda.time.format.*
 import org.junit.runner.RunWith
@@ -95,7 +96,7 @@ class VariableTest extends Specification {
   val variables: mutable.Map[String, Variable] = {
     val doc = {
       try {
-        XML.load(ClassLoader.getSystemResourceAsStream("testVariable.xml"))
+        XmlSafe.load(ClassLoader.getSystemResourceAsStream("testVariable.xml"))
       } catch {
         case e: SAXParseException              => throw new Exception("Unexpected issue (unvalid xml?) with testVariable.xml ")
         case e: java.net.MalformedURLException => throw new FileNotFoundException("testVariable.xml file not found ")
@@ -133,7 +134,7 @@ class VariableTest extends Specification {
   "SYSTEM_VARIABLE tag" should {
     "lead to an exception" in {
       val sysvar = (for {
-        elt      <- (XML.load(ClassLoader.getSystemResourceAsStream("testSystemVariable.xml")) \\ "VARIABLES")
+        elt      <- (XmlSafe.load(ClassLoader.getSystemResourceAsStream("testSystemVariable.xml")) \\ "VARIABLES")
         specNode <- elt.nonEmptyChildren
         if (!specNode.isInstanceOf[Text])
       } yield {

@@ -78,17 +78,17 @@ trait ComponentCompliance extends HasCompliance {
   def status:        ReportType = ReportType.getWorseType(allReports)
 }
 
-trait BlockCompliance[Sub] extends ComponentCompliance {
-  def subs:           List[Sub & ComponentCompliance]
+trait BlockCompliance[Sub <: ComponentCompliance] extends ComponentCompliance {
+  def subs:           List[Sub]
   def reportingLogic: ReportingLogic
 
-  def findChildren(componentName: String): List[Sub & ComponentCompliance] = {
+  def findChildren(componentName: String): List[ComponentCompliance] = {
     subs.find(_.componentName == componentName).toList :::
-    subs.collect { case g: BlockCompliance[Sub] => g }.flatMap(_.findChildren(componentName))
+    subs.collect { case g: BlockCompliance[?] => g }.flatMap(_.findChildren(componentName))
   }
 
   def allReports: List[ReportType] = subs.flatMap {
-    case block: BlockCompliance[Sub] => block.allReports
+    case block: BlockCompliance[?] => block.allReports
     case s => s.allReports
   }
 
@@ -102,11 +102,11 @@ trait BlockCompliance[Sub] extends ComponentCompliance {
   }
 
   def compliance: ComplianceLevel = {
-    import ReportingLogic.*
+    import com.normation.cfclerk.domain.ReportingLogic.*
     reportingLogic match {
       // simple weighted compliance, as usual
       case WeightedReport => ComplianceLevel.sum(subs.map(_.compliance))
-      // worst case bubble up, and its weight can be either 1 or the sum of sub-component weight
+      // worst case bubble up, and its weight can be either 1 or the sum of subcomponent weight
       case worst: WorstReportWeightedReportingLogic =>
         val worstReport    = ReportType.getWorseType(allReports)
         val weightedReport = allReports.map(_ => worstReport)
@@ -116,7 +116,7 @@ trait BlockCompliance[Sub] extends ComponentCompliance {
         }
         ComplianceLevel.compute(kept)
       case FocusWorst =>
-        // Get reports of sub-components to find the worst by percent
+        // Get reports of subcomponents to find the worst by percent
         val allReports = subs.map {
           case b: BlockCompliance[?] =>
             // Convert block compliance to percent, take the worst
@@ -142,7 +142,7 @@ trait ComponentComplianceByNode extends ComponentCompliance {
   def reportsByNode: Map[NodeId, Seq[ReportType]]
 }
 
-trait BlockComplianceByNode[Sub] extends ComponentComplianceByNode with BlockCompliance[Sub] {
+trait BlockComplianceByNode[Sub <: ComponentCompliance] extends ComponentComplianceByNode with BlockCompliance[Sub] {
 
   def subs:          List[Sub & ComponentComplianceByNode]
   def reportsByNode: Map[NodeId, Seq[ReportType]] = {
@@ -150,7 +150,7 @@ trait BlockComplianceByNode[Sub] extends ComponentComplianceByNode with BlockCom
   }
 
   override def compliance: ComplianceLevel = {
-    import ReportingLogic.*
+    import com.normation.cfclerk.domain.ReportingLogic.*
     reportingLogic match {
       // simple weighted compliance, as usual
       case WeightedReport => super.compliance
@@ -193,8 +193,8 @@ final class RuleStatusReport private (
     val forRule: RuleId,
     val report:  AggregatedStatusReport
 ) extends StatusReport {
-  lazy val compliance = report.compliance
-  lazy val byNodes: Map[NodeId, AggregatedStatusReport] =
+  lazy val compliance: ComplianceLevel                     = report.compliance
+  lazy val byNodes:    Map[NodeId, AggregatedStatusReport] =
     report.reports.groupBy(_.nodeId).view.mapValues(AggregatedStatusReport(_)).toMap
 }
 
@@ -908,7 +908,25 @@ object JsonPostgresqlSerialization {
   import zio.json.*
 
   implicit lazy val codecNodeConfigId:      JsonCodec[NodeConfigId]      = JsonCodec.string.transform(NodeConfigId.apply, _.value)
-  implicit lazy val codecReportType:        JsonCodec[ReportType]        = DeriveJsonCodec.gen
+  // for compat with Scala 3 and just sane encoding, we want to serialize that based on entry name, see: https://issues.rudder.io/issues/27035
+  implicit lazy val codecReportType:        JsonCodec[ReportType]        = {
+    def parse(s: String) = ReportType.withNameInsensitiveEither(s).left.map(_.getMessage())
+    new JsonCodec[ReportType](
+      JsonEncoder.string.contramap(_.entryName),
+      JsonDecoder.string
+        .mapOrFail(parse)
+        .orElse(
+          JsonDecoder
+            .map[String, Map[String, String]]
+            .mapOrFail(m => {
+              m.headOption match {
+                case Some((k, _)) => parse(k)
+                case _            => Left(s"Error: can not parse report type even with compat semantic")
+              }
+            })
+        )
+    )
+  }
   implicit lazy val encoderReportingLogic:  JsonEncoder[ReportingLogic]  = JsonEncoder.string.contramap(_.value)
   implicit lazy val decoderReportingLogic:  JsonDecoder[ReportingLogic]  =
     JsonDecoder.string.mapOrFail(s => ReportingLogic.parse(s).left.map(_.fullMsg))

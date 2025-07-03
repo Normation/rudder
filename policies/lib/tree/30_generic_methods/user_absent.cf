@@ -29,19 +29,21 @@
 bundle agent user_absent(login)
 {
   vars:
-      "old_class_prefix"  string => canonify("user_absent_${login}");
-      "args"               slist => { "${login}" };
-      "report_param"      string => join("_", args);
-      "full_class_prefix" string => canonify("user_absent_${report_param}");
-      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+      "class_prefix" string => canonify("user_absent_${login}");
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   users:
-      "${login}"  policy      => "absent",
-                  classes     => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+    pass3::
+      "${login}"
+         policy => "absent",
+        classes => classes_generic_two("${report_data.method_id}", "${class_prefix}");
 
   methods:
-      "report"
-        usebundle => _log_v3("User ${login} absent", "${login}", "${old_class_prefix}", "${class_prefix}", @{args}),
-        ifvarclass => "${old_class_prefix}_reached|${class_prefix}_reached";
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${login}", "User ${login} absent", "");
 
 }

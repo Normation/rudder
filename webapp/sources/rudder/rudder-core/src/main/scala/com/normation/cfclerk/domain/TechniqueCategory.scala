@@ -37,8 +37,11 @@
 
 package com.normation.cfclerk.domain
 
+import better.files.File
+import com.normation.errors.IOResult
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.utils.XmlSafe
 import scala.collection.SortedSet
 import scala.xml.Elem
 import zio.json.*
@@ -75,6 +78,12 @@ object TechniqueCategoryMetadata {
         <description>{metadata.description}</description>
         {if (metadata.isSystem) <system>true</system> else xml.NodeSeq.Empty}
       </xml>
+    }
+  }
+
+  def parse(file: File, defaultName: String): IOResult[TechniqueCategoryMetadata] = {
+    IOResult.attempt(s"Error when parsing category descriptor for '${defaultName}' at '${file.pathAsString}'") {
+      parseXML(XmlSafe.loadFile(file.toJava), defaultName)
     }
   }
 
