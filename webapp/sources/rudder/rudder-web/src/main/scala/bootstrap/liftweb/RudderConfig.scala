@@ -2309,6 +2309,9 @@ object RudderConfigInit {
           () => authenticationProviders.getProviderProperties().view.mapValues(_.providerRoleExtension).toMap,
           () => authenticationProviders.getConfiguredProviders().map(_.name).toSet
         ),
+        new UserManagementInternalApiImpl(
+          rudderUserListProvider
+        ),
         new InventoryApi(restExtractorService, inventoryWatcher, better.files.File(INVENTORY_DIR_INCOMING)),
         new PluginApi(restExtractorService, pluginSettingsService, PluginsInfo.pluginInfos.succeed),
         new RecentChangesAPI(recentChangesService, restExtractorService),
