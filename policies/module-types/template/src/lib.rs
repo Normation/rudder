@@ -154,9 +154,9 @@ impl Engine {
     ) -> Result<String> {
         let template =
             match (&template_path, template_src) {
-                (Some(p), _) => mustache::compile_path(p)
+                (_, Some(ref s)) if !s.is_empty() => mustache::compile_str(s)
                     .with_context(|| "Failed to compile mustache template")?,
-                (_, Some(ref s)) => mustache::compile_str(s)
+                (Some(p), _) => mustache::compile_path(p)
                     .with_context(|| "Failed to compile mustache template")?,
                 _ => unreachable!(),
             };
@@ -183,6 +183,9 @@ pub struct TemplateParameters {
     /// Data to use for templating
     #[serde(default)]
     data: Value,
+    /// Datastate file path
+    #[serde(skip_serializing_if = "Option::is_none")]
+    datastate_path: Option<PathBuf>,
     /// Controls output of diffs in the report
     #[serde(default = "default_as_true")]
     show_content: bool,
@@ -216,15 +219,9 @@ impl ModuleType0 for Template {
         let parameters: TemplateParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))?;
 
-        match (
-            parameters.template_path.is_some(),
-            parameters.template_src.is_some(),
-        ) {
-            (true, true) => bail!("Only one of 'template_path' and 'template_src' can be provided"),
-            (false, false) => {
-                bail!("Need one of 'template_path' and 'template_src'")
-            }
-            _ => (),
+        match (parameters.template_path, parameters.template_src) {
+            (None, None) => bail!("Need one of 'template_path' and 'template_src'"),
+            _ => {}
         }
 
         Ok(())
@@ -236,12 +233,24 @@ impl ModuleType0 for Template {
         let output_file = &p.path;
         let output_file_d = output_file.display();
 
-        let output = match p.engine {
-            Engine::Mustache => {
-                Engine::mustache(p.template_path.as_deref(), p.template_src, p.data)?
+        let data = match (p.data.clone(), p.datastate_path) {
+            (Value::String(s), _) if !s.is_empty() => p.data,
+            (_, Some(ref datastate_path)) => {
+                let datastate = read_to_string(datastate_path).with_context(|| {
+                    format!(
+                        "Failed to read datastate file: '{}'",
+                        datastate_path.to_string_lossy()
+                    )
+                })?;
+                serde_json::from_str(&datastate)?
             }
+            _ => bail!("Could not get datastate file"),
+        };
+
+        let output = match p.engine {
+            Engine::Mustache => Engine::mustache(p.template_path.as_deref(), p.template_src, data)?,
             Engine::Minijinja => {
-                Engine::minijinja(p.template_path.as_deref(), p.template_src, p.data)?
+                Engine::minijinja(p.template_path.as_deref(), p.template_src, data)?
             }
             Engine::Jinja2 => {
                 // Only detect if necessary
@@ -257,7 +266,7 @@ impl ModuleType0 for Template {
                 Engine::jinja2(
                     p.template_path.as_deref(),
                     p.template_src,
-                    p.data,
+                    data,
                     parameters.temporary_dir.as_path(),
                     python_bin,
                 )?
