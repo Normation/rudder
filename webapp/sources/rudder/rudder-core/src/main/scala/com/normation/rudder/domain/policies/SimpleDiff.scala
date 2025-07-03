@@ -44,7 +44,9 @@ import scala.xml.*
  * old and new value of something.
  */
 
-final case class SimpleDiff[T](oldValue: T, newValue: T)
+final case class SimpleDiff[T](oldValue: T, newValue: T) {
+  def map[U](f: T => U): SimpleDiff[U] = SimpleDiff(f(oldValue), f(newValue))
+}
 
 object SimpleDiff {
   def toXml[T](eltTag: Elem, diff: SimpleDiff[T])(serialize: T => NodeSeq): NodeSeq = {

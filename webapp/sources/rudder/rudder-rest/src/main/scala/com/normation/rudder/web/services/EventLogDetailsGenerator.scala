@@ -71,14 +71,11 @@ import net.liftweb.http.S
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers.*
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.util.Failure as Catch
-import scala.util.Random
 import scala.util.Success
 import scala.util.Try
 import scala.xml.*
@@ -1024,7 +1021,7 @@ class EventLogDetailsGenerator(
                         case Some(hb) => heartbeatDetails(hb)
                       }
                     }
-                  }{nodePropertiesDiff(modDiff.modProperties)}{
+                  }<div id={"nodepropertiesdiff-" + event.id.getOrElse("unknown")}></div>{
                     mapComplexDiff(modDiff.modPolicyMode, <b>Policy Mode</b>) { (optMode: Option[PolicyMode]) =>
                       optMode match {
                         case None       =>
@@ -1138,6 +1135,18 @@ class EventLogDetailsGenerator(
 
   }
 
+  def nodePropertiesDiff(event: EventLog): Option[SimpleDiff[List[NodeProperty]]] = {
+    event match {
+      case m: ModifyNode =>
+        logDetailsService
+          .getModifyNodeDetails(event.details)
+          .toOption
+          .flatMap(_.modProperties)
+      case _ => None
+    }
+
+  }
+
   private def agentRunDetails(ar: AgentRunInterval): NodeSeq = {
     (
       "#override" #> ar.overrides.map(_.toString()).getOrElse("false")
@@ -1168,54 +1177,30 @@ class EventLogDetailsGenerator(
     )
   }
 
-  private def displaySimpleDiff[T](
-      diff:    Option[SimpleDiff[T]],
+  private def displaySimpleDiff(
+      diff:    Option[SimpleDiff[String]],
       name:    String,
       default: String
   ): NodeSeq = displaySimpleDiff(diff, name).getOrElse(Text(default))
 
-  private def displaySimpleDiff[T](
-      diff: Option[SimpleDiff[T]],
+  private def displaySimpleDiff(
+      diff: Option[SimpleDiff[String]],
       name: String
   ): Option[NodeSeq] = diff.map(value => displayFormDiff(value, name))
 
-  private def displayFormDiff[T](
-      diff: SimpleDiff[T],
+  private def displayFormDiff(
+      diff: SimpleDiff[String],
       name: String
-  )(implicit fun: T => String = (t: T) => t.toString): NodeSeq = {
-    <pre style="width:200px;" id={s"before${name}"}
-         class="d-none">{fun(diff.oldValue)}</pre>
-      <pre style="width:200px;" id={s"after${name}"}
-           class="d-none">{fun(diff.newValue)}</pre>
-      <pre id={s"result${name}"} ></pre> ++
-    Script(
-      OnLoad(
-        JsRaw(
-          s"""
-            var before = "before${name}";
-            var after  = "after${name}";
-            var result = "result${name}";
-            makeDiff(before,after,result);"""
-        )
-      )
-    )
+  ): NodeSeq = {
+    <pre id={s"result${name}"} style="white-space: pre-line; word-break: break-word; overflow: auto;">
+        <del>-{diff.oldValue}</del>
+        <ins>+{diff.newValue}</ins>
+      </pre>
   }
   private def displaydirectiveInnerFormDiff(diff: SimpleDiff[SectionVal], eventId: Option[Int]): NodeSeq = {
     eventId match {
       case None     => NodeSeq.Empty
-      case Some(id) =>
-        (
-          <pre style="width:200px;" id={"before" + id}
-               class="d-none">{xmlPretty.format(SectionVal.toXml(diff.oldValue))}</pre>
-            <pre style="width:200px;" id={"after" + id}
-                 class="d-none">{xmlPretty.format(SectionVal.toXml(diff.newValue))}</pre>
-            <pre id={"result" + id} ></pre>
-        ) ++ Script(OnLoad(JsRaw(s"""
-            var before = "before${id}";
-            var after  = "after${id}";
-            var result = "result${id}";
-            makeDiff(before,after,result);
-            """))) // JsRaw OK, id is int
+      case Some(id) => displayFormDiff(diff.map(s => SectionVal.toXml(s).toString), id.toString)
     }
   }
 
@@ -1380,37 +1365,6 @@ class EventLogDetailsGenerator(
   }
 
   /*
-   * Special diff for json: use a json diff tool.
-   */
-  private def jsonDiff(diff: Option[SimpleDiff[JValue]]): NodeSeq = {
-    val s = Random.nextInt(100000)
-
-    def stringify(jValue: JValue): String = {
-      net.liftweb.json.compactRender(jValue)
-    }
-
-    diff match {
-      case None       => NodeSeq.Empty
-      case Some(diff) =>
-        <div>
-          <div id={s"nodediff-${s}"}>shouldBeReplacedByDiff</div>
-        </div> ++ Script(
-          OnLoad(
-            // See JsonDiffPatch doc for formatter option: https://github.com/benjamine/jsondiffpatch/blob/master/docs/formatters.md
-            // We can keep old, non modified values, but in our even log case, we prefer to jst show what changed.
-            JsRaw(
-              s"""
-                 |document.getElementById('nodediff-${s}').innerHTML = jsondiffpatch.formatters.html.format(
-                 |  jsondiffpatch.diff( ${stringify(diff.oldValue)}, ${stringify(diff.newValue)} )
-                 |);
-                 |""".stripMargin // JsRaw OK, no user input
-            )
-          )
-        )
-    }
-  }
-
-  /*
    * Special diff for tags as a list of key-value pair using a simple line diff against "key=value" tag format
    */
   private def tagsDiff(opt: Option[SimpleDiff[Tags]]) = {
@@ -1420,17 +1374,6 @@ class EventLogDetailsGenerator(
 
     val linesDiff = opt.map(diff => SimpleDiff(tagsToLines(diff.oldValue), tagsToLines(diff.newValue)))
     displaySimpleDiff(linesDiff, "tags")
-  }
-
-  /*
-   * Special diff for node properties using a json diff tool.
-   */
-  private def nodePropertiesDiff(opt: Option[SimpleDiff[List[NodeProperty]]]): NodeSeq = {
-    def toJson(props: List[NodeProperty]): JObject = {
-      props.toDataJson
-    }
-
-    jsonDiff(opt.map(diff => SimpleDiff(toJson(diff.oldValue), toJson(diff.newValue))))
   }
 
   private def promotedNodeDetails(id: NodeId, name: String) = (
