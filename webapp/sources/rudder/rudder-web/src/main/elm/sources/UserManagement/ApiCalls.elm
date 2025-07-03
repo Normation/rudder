@@ -168,3 +168,20 @@ getRoleConf model =
                 }
     in
     req
+
+
+getSafeHashes : Model -> Cmd Msg
+getSafeHashes model =
+    let
+        req =
+            request
+                { method = "GET"
+                , headers = [header "X-Requested-With" "XMLHttpRequest"]
+                , url = getUrl model "/usermanagementinternal/safe-hashes"
+                , body = emptyBody
+                , expect = expectJson GetSafeHashes Decode.bool
+                , timeout = Nothing
+                , tracker = Nothing
+                }
+    in
+    req

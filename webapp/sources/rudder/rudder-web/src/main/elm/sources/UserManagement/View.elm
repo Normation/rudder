@@ -599,6 +599,7 @@ displayUsersConf model =
                         , lstOfExtProviders
                         ]
                     ]
+                , displaySafeHashesStatus model
                 ]
             ]
             , div [ class "one-col-main" ]
@@ -884,6 +885,22 @@ displayUsersTable model users =
         List.map (\u -> trUser u ) users
       )
     ]
+
+displaySafeHashesStatus : Model -> Html Msg
+displaySafeHashesStatus { safeHashes } =
+    if safeHashes then
+        text ""
+
+    else
+        div [ class "callout-fade callout-danger" ]
+        [ p [] [ i [ class "me-1 fa fa-warning" ] [], text "Your configuration allows unsafe hashes, which will be removed in an upcoming version of Rudder." ]
+        , p []
+          [ text "You should migrate all user passwords and set "
+          , code [] [ text "unsafe-hashes=\"false\""]
+          , text " in the users configuration file."
+          ]
+        ]
+
 
 thClass : TableFilters -> SortBy -> String
 thClass tableFilters sortBy =
