@@ -51,6 +51,7 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.model.*
 import com.normation.zio.UnsafeRun
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.SHtml
@@ -59,6 +60,7 @@ import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.xml.*
 import zio.syntax.ToZio
 
@@ -272,7 +274,7 @@ class RuleModificationValidationPopup(
                       ChangeContext(
                         ModificationId(uuidGen.newUuid),
                         CurrentUser.actor,
-                        new DateTime(),
+                        Instant.now(),
                         crReasons.map(_.get),
                         None,
                         CurrentUser.nodePerms

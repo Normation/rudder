@@ -63,8 +63,9 @@ import com.normation.rudder.services.nodes.history.impl.InventoryHistoryJdbcRepo
 import com.normation.rudder.services.reports.CacheComplianceQueueAction
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.reports.InvalidateCache
+import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
-import org.joda.time.DateTime
+import java.time.Instant
 import zio.ZIO
 
 /*
@@ -332,7 +333,7 @@ class HistorizeNodeState(
 
   override def run(change: NodeFactChangeEventCC): IOResult[Unit] = {
 
-    def save(node: MinimalNodeFactInterface, eventDate: DateTime, alsoJDBC: Boolean, status: InventoryStatus): IOResult[Unit] = {
+    def save(node: MinimalNodeFactInterface, eventDate: Instant, alsoJDBC: Boolean, status: InventoryStatus): IOResult[Unit] = {
       // we want to save the fact with everything
       implicit val attrs = SelectFacts.all
       if (gitFactStorage == NoopFactStorage && !alsoJDBC) ZIO.unit
@@ -345,7 +346,13 @@ class HistorizeNodeState(
               NodeFact.fromMinimal(node)
           }
           for {
-            _ <- ZIO.when(alsoJDBC)(historyRepos.save(node.id, FactLogData(nf, change.cc.actor, AcceptedInventory), eventDate))
+            _ <- ZIO.when(alsoJDBC)(
+                   historyRepos.save(
+                     node.id,
+                     FactLogData(nf, change.cc.actor, AcceptedInventory),
+                     DateFormaterService.toDateTime(eventDate)
+                   )
+                 )
             _ <- gitFactStorage.save(nf)
           } yield ()
         }
@@ -362,7 +369,7 @@ class HistorizeNodeState(
           if (cleanUpImmediately) {
             historyRepos.delete(nodeId)
           } else { // save delete event, clean-up will be automatically done by script
-            historyRepos.saveDeleteEvent(nodeId, change.cc.eventDate, change.cc.actor)
+            historyRepos.saveDeleteEvent(nodeId, DateFormaterService.toDateTime(change.cc.eventDate), change.cc.actor)
           }
         ).catchAll(err => {
           NodeLoggerPure

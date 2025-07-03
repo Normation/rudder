@@ -40,11 +40,14 @@ package com.normation.utils
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
 import io.scalaland.chimney.*
+import java.time.Instant
+import java.time.LocalDate
 import java.time.ZonedDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
 import org.joda.time.DateTime
 import org.joda.time.DateTimeFieldType
+import org.joda.time.DateTimeZone
 import org.joda.time.Duration
 import org.joda.time.chrono.ISOChronology
 import org.joda.time.format.*
@@ -76,16 +79,30 @@ object DateFormaterService {
       _.toJava
     }
 
-    implicit val transformZonedDateTime: Transformer[ZonedDateTime, DateTime] = { x => new DateTime(x.toInstant.toEpochMilli) }
+    implicit val transformZonedDateTime: Transformer[ZonedDateTime, DateTime] = { x =>
+      new DateTime(x.toInstant.toEpochMilli, DateTimeZone.UTC)
+    }
+
+    implicit val transformDateTimeInstant: Transformer[DateTime, Instant] = { x => x.toJava.toInstant }
+
+    implicit val transformInstantDateTime: Transformer[Instant, DateTime] = { x =>
+      new DateTime(x.toEpochMilli, DateTimeZone.UTC)
+    }
+
+    implicit val transformInstantLocalDate: Transformer[Instant, LocalDate] = { x => LocalDate.ofInstant(x, ZoneOffset.UTC) }
+
   }
 
   object json extends DateTimeCodecs
 
-  val displayDateFormat: DateTimeFormatter = new DateTimeFormatterBuilder()
-    .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
-    .appendLiteral(' ')
-    .append(DateTimeFormat.forPattern("HH:mm:ssZ"))
-    .toFormatter
+  val displayDateFormat: DateTimeFormatter = {
+    new DateTimeFormatterBuilder()
+      .append(ISODateTimeFormat.date())
+      .appendLiteral(' ')
+      .append(ISODateTimeFormat.timeNoMillis())
+      .toFormatter
+      .withZoneUTC()
+  }
 
   val rfcDateformat:           DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZZ")
   val rfcDateformatWithMillis: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
@@ -105,6 +122,10 @@ object DateFormaterService {
     date.format(javaDisplayDateFormat)
   }
 
+  def getDisplayDate(instant: Instant): String = {
+    getDisplayDate(toDateTime(instant))
+  }
+
   /*
    * Format a date for serialisation (json, database, etc). We use
    * ISO 8601 (rfc 3339) for that (without millis)
@@ -114,27 +135,62 @@ object DateFormaterService {
   def serializeZDT(datetime: ZonedDateTime): String =
     datetime.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneOffset.UTC))
 
+  def serializeInstant(datetime: Instant): String = {
+    ZonedDateTime.ofInstant(datetime, ZoneOffset.UTC).format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+  }
+
+  def toInstant(datetime:  DateTime): Instant   = json.transformDateTimeInstant.transform(datetime)
+  def toDateTime(instant:  Instant):  DateTime  = json.transformInstantDateTime.transform(instant)
+  def toLocalDate(instant: Instant):  LocalDate = json.transformInstantLocalDate.transform(instant)
+
   def parseDate(date: String): PureResult[DateTime] = {
     try {
-      Right(ISODateTimeFormat.dateTimeNoMillis().parseDateTime(date))
+      Right(ISODateTimeFormat.dateTimeNoMillis().withZoneUTC().parseDateTime(date))
     } catch {
       case NonFatal(ex) => Left(Inconsistency(s"String '${date}' can't be parsed as an ISO date/time: ${ex.getMessage}"))
+    }
+  }
+
+  /*
+   * Parse a string as an Instant.
+   * The string must be an RFC 3339 date time.
+   * We are more lenient than java strict instant parsing, since we accept time zone.
+   */
+  def parseInstant(instant: String): PureResult[Instant] = {
+    try {
+      Right(Instant.parse(instant))
+    } catch {
+      case NonFatal(ex) =>
+        // try to parse as a ISO DateTime with time zone
+        parseDateZDT(instant).fold(
+          _ => Left(Inconsistency(s"String '${instant}' can't be parsed as an ISO instant: ${ex.getMessage}")),
+          zdt => Right(zdt.toInstant)
+        )
     }
   }
 
   def parseDateOnly(date: String): PureResult[DateTime] = {
     try {
-      Right(ISODateTimeFormat.date().parseDateTime(date))
+      Right(ISODateTimeFormat.date().parseDateTime(date).withZone(DateTimeZone.UTC))
     } catch {
       case NonFatal(ex) => Left(Inconsistency(s"String '${date}' can't be parsed as an ISO date: ${ex.getMessage}"))
     }
   }
 
+  // ISO date time with timezone
   def parseDateZDT(date: String): PureResult[ZonedDateTime] = {
     try {
       Right(ZonedDateTime.parse(date, java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME))
     } catch {
       case NonFatal(ex) => Left(Inconsistency(s"String '${date}' can't be parsed as an ISO date/time: ${ex.getMessage}"))
+    }
+  }
+
+  def parseDateOnlyZDT(date: String): PureResult[LocalDate] = {
+    try {
+      Right(LocalDate.parse(date, java.time.format.DateTimeFormatter.ISO_LOCAL_DATE))
+    } catch {
+      case NonFatal(ex) => Left(Inconsistency(s"String '${date}' can't be parsed as an ISO date: ${ex.getMessage}"))
     }
   }
 
@@ -208,5 +264,6 @@ object DateFormaterService {
     .appendLiteral('.')
     .appendFractionOfSecond(3, 9)
     .toFormatter()
+    .withZoneUTC()
 
 }

@@ -486,7 +486,7 @@ object NodeStatusReportInternal {
             Nil
           )
         ),
-        ra.expirationDateTime.orElse(ra.lastRunExpiration).getOrElse(DateTime.now())
+        ra.expirationDateTime.orElse(ra.lastRunExpiration).getOrElse(DateTime.now(DateTimeZone.UTC))
       )
     }
 
@@ -540,7 +540,7 @@ object ExecutionBatch extends Loggable {
   /**
    * Then end of times, used to denote report which are not expiring
    */
-  final val END_OF_TIME = new DateTime(Long.MaxValue)
+  final val END_OF_TIME = new DateTime(Long.MaxValue, DateTimeZone.UTC)
 
   /**
    * Takes a string, that should contains a CFEngine var ( $(xxx) or ${xxx} )

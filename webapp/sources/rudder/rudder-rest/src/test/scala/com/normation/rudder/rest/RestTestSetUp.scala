@@ -181,11 +181,13 @@ import com.normation.rudder.web.services.DirectiveFieldFactory
 import com.normation.rudder.web.services.EventLogDetailsGenerator
 import com.normation.rudder.web.services.Section2FieldService
 import com.normation.rudder.web.services.Translator
+import com.normation.utils.DateFormaterService
 import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import doobie.*
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 import java.time.ZonedDateTime
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
@@ -209,6 +211,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.output.ByteArrayOutputStream
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.specs2.matcher.MatchResult
 import scala.collection.MapView
 import scala.concurrent.duration.Duration
@@ -317,7 +320,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       id = Some(42),
       modificationId = None,
       principal = EventActor("test"),
-      creationDate = DateTime.parse("2024-12-04T15:30:10"),
+      creationDate = DateFormaterService.toInstant(DateTime.parse("2024-12-04T15:30:10Z")),
       details = <test/>,
       reason = None
     )
@@ -373,7 +376,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
 
   }
   val eventLogDetailsService = new EventLogDetailsServiceImpl(null, null, null, null, null, null, null, null, null)
-  val modificationService = new ModificationService(null, null, null, null) {
+  val modificationService = new ModificationService(null, null, null) {
     override def restoreToEventLog(
         eventLog:         EventLog,
         commiter:         PersonIdent,
@@ -651,7 +654,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       * Here, we want to make these methods returning fake archives for testing the API logic.
       */
     val fakeArchives:                     Map[DateTime, GitArchiveId]           = Map[DateTime, GitArchiveId](
-      new DateTime(42) -> fakeGitArchiveId
+      new DateTime("1970-01-01T01:00:00.042Z", DateTimeZone.UTC) -> fakeGitArchiveId
     )
     override def getFullArchiveTags:      IOResult[Map[DateTime, GitArchiveId]] = ZIO.succeed(fakeArchives)
     override def getGroupLibraryTags:     IOResult[Map[DateTime, GitArchiveId]] = ZIO.succeed(fakeArchives)
@@ -863,7 +866,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
       ChangeContext(
         ModificationId(uuidGen.newUuid),
         EventActor("test"),
-        DateTime.now(),
+        Instant.now(),
         None,
         None,
         QueryContext.testQC.nodePerms

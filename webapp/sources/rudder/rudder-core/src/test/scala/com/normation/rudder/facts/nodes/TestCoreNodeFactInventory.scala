@@ -58,9 +58,11 @@ import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.SearchScope
 import java.security.Security
+import java.time.Instant
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.*
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.*
@@ -182,7 +184,7 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
 
   implicit def stringToNodeId(id: String): NodeId = NodeId(id)
 
-  val basePath: String = s"/tmp/test-rudder-nodefact/${DateFormaterService.gitTagFormat.print(DateTime.now())}"
+  val basePath: String = s"/tmp/test-rudder-nodefact/${DateFormaterService.gitTagFormat.print(DateTime.now(DateTimeZone.UTC))}"
 
   override def beforeAll(): Unit = {}
 
@@ -258,8 +260,16 @@ class TestCoreNodeFactInventory extends Specification with BeforeAfterAll {
     n.vms
   )
 
-  implicit val testChangeContext: ChangeContext =
-    ChangeContext(ModificationId("test-mod-id"), EventActor("test"), DateTime.now(), None, None, QueryContext.testQC.nodePerms)
+  implicit val testChangeContext: ChangeContext = {
+    ChangeContext(
+      ModificationId("test-mod-id"),
+      EventActor("test"),
+      Instant.now(),
+      None,
+      None,
+      QueryContext.testQC.nodePerms
+    )
+  }
   implicit val qc:                QueryContext  = QueryContext.todoQC
 
   "basic change in node fact" should {

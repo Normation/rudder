@@ -62,6 +62,7 @@ import com.normation.rudder.web.model.*
 import com.normation.zio.UnsafeRun
 import com.typesafe.config.ConfigValue
 import com.typesafe.config.ConfigValueType
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -70,6 +71,7 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.xml.*
 import zio.syntax.*
 
@@ -171,7 +173,7 @@ class CreateOrUpdateGlobalParameterPopup(
                        ChangeContext(
                          ModificationId(uuidGen.newUuid),
                          qc.actor,
-                         new DateTime(),
+                         Instant.now(),
                          paramReasons.map(_.get),
                          None,
                          qc.nodePerms

@@ -41,7 +41,8 @@ import com.normation.eventlog.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeInfo
-import org.joda.time.DateTime
+import com.normation.utils.DateFormaterService
+import java.time.Instant
 import scala.xml.Node
 
 /**
@@ -50,7 +51,7 @@ import scala.xml.Node
 
 final case class InventoryLogDetails(
     nodeId:           NodeId,
-    inventoryVersion: DateTime,
+    inventoryVersion: Instant,
     hostname:         String,
     fullOsName:       String,
     actorIp:          String
@@ -73,7 +74,7 @@ object InventoryEventLog {
     scala.xml.Utility.trim(
       <node action={action} fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{logDetails.nodeId.value}</id>
-        <inventoryVersion>{logDetails.inventoryVersion}</inventoryVersion>
+        <inventoryVersion>{DateFormaterService.serializeInstant(logDetails.inventoryVersion)}</inventoryVersion>
         <hostname>{logDetails.hostname}</hostname>
         <fullOsName>{logDetails.fullOsName}</fullOsName>
         <actorIp>{logDetails.actorIp}</actorIp>
@@ -98,7 +99,7 @@ object AcceptNodeEventLog extends EventLogFilter {
       id:               Option[Int] = None,
       principal:        EventActor,
       inventoryDetails: InventoryLogDetails,
-      creationDate:     DateTime = DateTime.now(),
+      creationDate:     Instant = Instant.now(),
       severity:         Int = 100,
       description:      Option[String] = None
   ): AcceptNodeEventLog = {
@@ -129,7 +130,7 @@ object RefuseNodeEventLog extends EventLogFilter {
       id:               Option[Int] = None,
       principal:        EventActor,
       inventoryDetails: InventoryLogDetails,
-      creationDate:     DateTime = DateTime.now(),
+      creationDate:     Instant = Instant.now(),
       severity:         Int = 100,
       description:      Option[String] = None
   ): RefuseNodeEventLog = {
@@ -166,7 +167,7 @@ object DeleteNodeEventLog extends EventLogFilter {
       id:               Option[Int] = None,
       principal:        EventActor,
       inventoryDetails: InventoryLogDetails,
-      creationDate:     DateTime = DateTime.now(),
+      creationDate:     Instant = Instant.now(),
       severity:         Int = 100,
       description:      Option[String] = None
   ): DeleteNodeEventLog = {

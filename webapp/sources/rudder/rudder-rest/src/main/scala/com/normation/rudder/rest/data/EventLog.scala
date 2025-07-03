@@ -85,28 +85,17 @@ object RestEventLog {
     Transformer
       .define[EventLog, RestEventLog]
       .enableMethodAccessors // because source is a trait
-      .withFieldComputed(
-        _.actor,
-        _.principal
-      )
-      .withFieldComputed(
-        _.eventType,
-        e => translateEventType(e.eventType)
-      )
-      .withFieldComputed(
-        _.description,
-        eventLogDetail.displayDescription(_)
-      )
-      .withFieldComputed(
-        _.hasDetails,
-        _.details != <entry></entry>
-      )
+      .withFieldComputed(_.actor, _.principal)
+      .withFieldComputed(_.eventType, e => translateEventType(e.eventType))
+      .withFieldComputed(_.description, eventLogDetail.displayDescription)
+      .withFieldComputed(_.hasDetails, _.details != <entry></entry>)
+      .withFieldComputed(_.creationDate, e => DateFormaterService.toDateTime(e.creationDate))
       .buildTransformer
   }
 }
 
 /**
-  * Response data from the event log API : 
+  * Response data from the event log API :
   * - success has non-empty "data"
   * - error has "error" message
   */
