@@ -141,6 +141,8 @@ class NodeStatusReportRepositoryTest extends Specification {
     } yield (s, new NodeStatusReportRepositoryImpl(s, x))).runNow
   }
 
+  sequential
+
   "If we save exactly the same reports, no storage is done at all" >> {
 
     val (counter, repo) = initServices()
@@ -169,6 +171,23 @@ class NodeStatusReportRepositoryTest extends Specification {
     counters must containTheSameElementsAs(
       ("ner", 1) :: ("nurd", 1) :: ("uv", 1) :: ("uuv", 1) :: ("unv", 1) :: ("cc", 1) :: Nil
     )
+  }
+
+  "ComputeCompliance with a new run get in cache with the new run" >> {
+    val (counter, repo) = initServices()
+    implicit val cc     = ChangeContext.newForRudder()
+
+    val okReportInit = counter.get("cc")
+    val newOkReport  = nsr("cc", ComputeCompliance(expiration.plusMinutes(10), expected("cc", None), expiration.plusMinutes(15)))
+
+    repo.saveNodeStatusReports((newOkReport :: Nil).map(x => (x.nodeId, x))).runNow
+
+    // we have one modification because we have a new report
+    counter.getCount("cc") === 1
+    // and it's actually the new report in backend
+    okReportInit must not(beEqualTo(newOkReport))
+    counter.get("cc") must beEqualTo(newOkReport)
+
   }
 
   "A Pending or a ComputeCompliance which becomes missing is missing when no keep compliance" >> {
