@@ -90,7 +90,7 @@ displayMainHeader v license now loading contextPath =
         [ h1 []
             [ span [] [ text "Plugins management" ]
             ]
-        , div [class "text-danger"] [settingError]
+        , div [ class "text-danger" ] [ settingError ]
         ]
         :: (if loading then
                 []
@@ -514,22 +514,17 @@ pluginCardBgClass p =
 
 
 pluginErrorCallouts : Plugin -> List (Html Msg)
-pluginErrorCallouts { licenseStatus, abiVersionError } =
-    case ( licenseStatus, abiVersionError ) of
-        ( ExpiredLicense message, _ ) ->
-            [ div [ class "callout-fade callout-danger" ] [ i [ class "me-1 fa fa-warning" ] [], text message ] ]
+pluginErrorCallouts { errors } =
+    errors
+        |> List.map
+            (\e ->
+                case e of
+                    CalloutError message ->
+                        div [ class "callout-fade callout-danger" ] [ i [ class "me-1 fa fa-warning" ] [], text message ]
 
-        ( MissingLicense message, _ ) ->
-            [ div [ class "callout-fade callout-danger" ] [ i [ class "me-1 fa fa-warning" ] [], text message ] ]
-
-        ( NearExpirationLicense message, _ ) ->
-            [ div [ class "callout-fade callout-warning" ] [ i [ class "me-1 fa fa-warning" ] [], text message ] ]
-
-        ( _, Just message ) ->
-            [ div [ class "callout-fade callout-warning" ] [ i [ class "me-1 fa fa-warning" ] [], text message ] ]
-
-        _ ->
-            []
+                    CalloutWarning message ->
+                        div [ class "callout-fade callout-warning" ] [ i [ class "me-1 fa fa-warning" ] [], text message ]
+            )
 
 
 pluginInputCheck : { a | id : PluginId } -> Selected -> List (Html Msg)

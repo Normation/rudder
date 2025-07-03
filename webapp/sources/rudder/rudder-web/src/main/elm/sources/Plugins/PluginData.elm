@@ -2,6 +2,7 @@ module Plugins.PluginData exposing (..)
 
 import List.Extra
 import Maybe.Extra
+import Ordering exposing (Ordering)
 import Time.ZonedDateTime exposing (ZonedDateTime)
 
 
@@ -15,6 +16,11 @@ type alias PluginMetadata =
     }
 
 
+type PluginCalloutError
+    = CalloutWarning String
+    | CalloutError String
+
+
 type alias Plugin =
     { id : PluginId
     , name : String
@@ -24,7 +30,7 @@ type alias Plugin =
     , description : String
     , version : String
     , licenseStatus : LicenseStatus
-    , abiVersionError : Maybe String
+    , errors : List PluginCalloutError
     }
 
 
@@ -69,6 +75,7 @@ type alias PluginInfo =
     , pluginType : PluginType
     , errors : List PluginInfoError
     , status : PluginStatus
+    , statusMessage : Maybe String
     , license : Maybe LicenseInfo
     }
 
@@ -115,7 +122,11 @@ type alias PluginInfoError =
 
 
 toPlugin : PluginInfo -> Plugin
-toPlugin { id, name, abiVersion, pluginType, description, status, pluginVersion, errors, license } =
+toPlugin { id, name, abiVersion, pluginType, description, status, statusMessage, pluginVersion, errors, license } =
+    let
+        licenseStatus =
+            findLicenseStatus (Maybe.map toPluginLicense license) errors
+    in
     { id = id
     , name = name
     , pluginType = pluginType
@@ -123,17 +134,23 @@ toPlugin { id, name, abiVersion, pluginType, description, status, pluginVersion,
     , docLink = docLink { id = id, abiVersion = abiVersion }
     , description = description
     , version = pluginVersion
-    , licenseStatus = findLicenseStatus (Maybe.map toPluginLicense license) errors
-    , abiVersionError = findAbiVersionError errors
+    , licenseStatus = licenseStatus
+    , errors =
+        [ toLicenseStatusCallout licenseStatus
+        , findAbiVersionError errors
+        , statusMessage |> Maybe.map CalloutError
+        ]
+            |> List.filterMap identity
+            |> List.sortWith pluginCalloutErrorOrdering
     }
 
 
-findAbiVersionError : List PluginInfoError -> Maybe String
+findAbiVersionError : List PluginInfoError -> Maybe PluginCalloutError
 findAbiVersionError =
     List.Extra.findMap
         (\{ error, message } ->
             if error == "abi.version.error" then
-                Just message
+                Just (CalloutWarning message)
 
             else
                 Nothing
@@ -162,6 +179,22 @@ findLicenseStatus license errors =
 
         ( Nothing, ( Nothing, Nothing, Nothing ) ) ->
             NoLicense
+
+
+toLicenseStatusCallout : LicenseStatus -> Maybe PluginCalloutError
+toLicenseStatusCallout licenseStatus =
+    case licenseStatus of
+        ExpiredLicense message ->
+            Just (CalloutError message)
+
+        MissingLicense message ->
+            Just (CalloutError message)
+
+        NearExpirationLicense message ->
+            Just (CalloutWarning message)
+
+        _ ->
+            Nothing
 
 
 toInstallStatus : PluginStatus -> InstallStatus
@@ -220,3 +253,17 @@ pluginTypeText arg =
 
         Integration ->
             "Integration"
+
+
+pluginCalloutErrorOrdering : Ordering PluginCalloutError
+pluginCalloutErrorOrdering =
+    Ordering.byRank
+        (\err ->
+            case err of
+                CalloutError _ ->
+                    1
+
+                CalloutWarning _ ->
+                    2
+        )
+        (\_ _ -> Ordering.noConflicts)
