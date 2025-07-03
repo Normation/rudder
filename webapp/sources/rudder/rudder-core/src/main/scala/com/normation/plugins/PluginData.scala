@@ -65,11 +65,12 @@ object PluginId {
   }
 }
 
-final case class Licensee(value: String)      extends AnyVal
-final case class SoftwareId(value: String)    extends AnyVal
-final case class MinVersion(value: String)    extends AnyVal
-final case class MaxVersion(value: String)    extends AnyVal
-final case class MaxNodes(value: Option[Int]) extends AnyVal
+final case class Licensee(value: String)                     extends AnyVal
+final case class SoftwareId(value: String)                   extends AnyVal
+final case class MinVersion(value: String)                   extends AnyVal
+final case class MaxVersion(value: String)                   extends AnyVal
+final case class MaxNodes(value: Option[Int])                extends AnyVal
+final case class StatusDisabledReason(value: Option[String]) extends AnyVal
 object MaxNodes {
   val unlimited:            MaxNodes                           = MaxNodes(None)
   implicit val transformer: Transformer[MaxNodes, Option[Int]] = _.value
@@ -137,12 +138,21 @@ object PluginInstallStatus {
   case object Disabled    extends PluginInstallStatus
   case object Uninstalled extends PluginInstallStatus
 
-  def from(pluginType: PluginType, installed: Boolean, enabled: Boolean): PluginInstallStatus = {
+  def from(
+      pluginType:           PluginType,
+      installed:            Boolean,
+      enabled:              Boolean,
+      statusDisabledReason: StatusDisabledReason
+  ): PluginInstallStatus = {
     import PluginType.*
-    (pluginType, installed, enabled) match {
-      case (_, false, _)                                => Uninstalled
-      case (_, true, true) | (Integration, true, false) => Enabled
-      case (Webapp, true, false)                        => Disabled
+    if (statusDisabledReason.value.isDefined) {
+      Disabled
+    } else {
+      (pluginType, installed, enabled) match {
+        case (_, false, _)                                => Uninstalled
+        case (_, true, true) | (Integration, true, false) => Enabled
+        case (Webapp, true, false)                        => Disabled
+      }
     }
   }
 }
