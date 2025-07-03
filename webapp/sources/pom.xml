@@ -435,14 +435,14 @@ limitations under the License.
     <janino-version>3.1.12</janino-version>
     <jodatime-version>2.13.0</jodatime-version>
     <jodaconvert-version>3.0.1</jodaconvert-version>
-    <commons-io-version>2.18.0</commons-io-version>
+    <commons-io-version>2.19.0</commons-io-version>
     <commons-lang-version>3.17.0</commons-lang-version>
     <commons-text-version>1.13.0</commons-text-version>
     <commons-codec-version>1.18.0</commons-codec-version>
-    <commons-fileupload>2.0.0-M2</commons-fileupload>
+    <commons-fileupload>2.0.0-M4</commons-fileupload>
     <commons-csv-version>1.12.0</commons-csv-version>
     <jgit-version>7.0.1.202505221510-r</jgit-version>
-    <spring-version>6.1.18</spring-version>
+    <spring-version>6.1.21</spring-version>
     <spring-security-version>6.3.8</spring-security-version>
     <cglib-version>3.3.0</cglib-version>
     <asm-version>9.7.1</asm-version>
@@ -456,7 +456,7 @@ limitations under the License.
     <nuprocess-version>3.0.0</nuprocess-version>
     <postgresql-version>42.7.7</postgresql-version>
     <json-path-version>2.9.0</json-path-version>
-    <json-smart-version>2.5.1</json-smart-version>
+    <json-smart-version>2.5.2</json-smart-version>
     <scalaj-version>2.4.2</scalaj-version>
     <unboundid-version>7.0.2</unboundid-version>
     <fastparse-version>3.1.1</fastparse-version>
