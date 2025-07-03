@@ -740,8 +740,8 @@ class EventLogDetailsServiceImpl(
     for {
       entry         <- getEntryContent(xml)
       changeRequest <- (entry \ "changeRequest").headOption ?~! s"Entry type is not a 'changeRequest': ${entry}"
-      kind          <-
-        (changeRequest \ "@changeType").headOption.map(_.text) ?~! s"diff is not a valid changeRequest diff: ${changeRequest}"
+      kind           =
+        (changeRequest \ "@changeType").headOption.map(_.text)
       crId          <- (changeRequest \ "id").headOption.map(id =>
                          ChangeRequestId(id.text.toInt)
                        ) ?~! s"change request does not have any Id: ${changeRequest}"
@@ -752,14 +752,18 @@ class EventLogDetailsServiceImpl(
                        ) ?~! s"change request does not have any description: ${changeRequest}"
       diffName      <- getFromToString((changeRequest \ "diffName").headOption)
       diffDesc      <- getFromToString((changeRequest \ "diffDescription").headOption)
-    } yield {
-      val changeRequest =
+      changeRequest  =
         ConfigurationChangeRequest(crId, modId, ChangeRequestInfo(name, description), Map(), Map(), Map(), Map())
-      kind match {
-        case "add"    => AddChangeRequestDiff(changeRequest)
-        case "delete" => DeleteChangeRequestDiff(changeRequest)
-        case "modify" => ModifyToChangeRequestDiff(changeRequest, diffName, diffDesc)
-      }
+      res           <-
+        kind match {
+          case Some("add")           => Full(AddChangeRequestDiff(changeRequest))
+          case Some("delete")        => Full(DeleteChangeRequestDiff(changeRequest))
+          // None for compat : previously the "modify" was not serialized in the event log xml
+          case Some("modify") | None => Full(ModifyToChangeRequestDiff(changeRequest, diffName, diffDesc))
+          case Some(_)               => Failure(s"diff is not a valid changeRequest diff: ${changeRequest}")
+        }
+    } yield {
+      res
     }
 
   }

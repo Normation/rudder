@@ -13,8 +13,6 @@
  * In accordance with the terms of section 7 (7. Additional Terms.) of
  * the GNU General Public License version 3, the copyright holders add
  * the following Additional permissions:DecoderOps
-import zio.json.EncoderOps
-import zio.json.ast.Json
  * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
  * Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
  * Public License version 3, when you create a Related Module, this
