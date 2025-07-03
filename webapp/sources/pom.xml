@@ -436,14 +436,14 @@ limitations under the License.
     <logback-version>1.5.6</logback-version>
     <jodatime-version>2.12.7</jodatime-version>
     <jodaconvert-version>2.2.3</jodaconvert-version>
-    <commons-io-version>2.16.1</commons-io-version>
+    <commons-io-version>2.19.0</commons-io-version>
     <commons-lang-version>3.15.0</commons-lang-version>
     <commons-text-version>1.12.0</commons-text-version>
     <commons-codec-version>1.17.0</commons-codec-version> <!-- can't update to 1.17.1 because of md5 requiring a non-empty salt prefix -->
-    <commons-fileupload>2.0.0-M2</commons-fileupload>
+    <commons-fileupload>2.0.0-M4</commons-fileupload>
     <commons-csv-version>1.11.0</commons-csv-version>
     <jgit-version>6.10.1.202505221210-r</jgit-version>
-    <spring-version>6.1.18</spring-version>
+    <spring-version>6.1.21</spring-version>
     <spring-security-version>6.3.8</spring-security-version>
     <cglib-version>3.3.0</cglib-version>
     <asm-version>9.7</asm-version>
@@ -457,7 +457,7 @@ limitations under the License.
     <nuprocess-version>3.0.0</nuprocess-version>
     <postgresql-version>42.7.3</postgresql-version>
     <json-path-version>2.9.0</json-path-version>
-    <json-smart-version>2.5.1</json-smart-version>
+    <json-smart-version>2.5.2</json-smart-version>
     <scalaj-version>2.4.2</scalaj-version>
     <unboundid-version>7.0.0</unboundid-version>
     <fastparse-version>3.1.1</fastparse-version>
