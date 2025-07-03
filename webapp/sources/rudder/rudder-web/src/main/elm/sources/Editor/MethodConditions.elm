@@ -11,9 +11,7 @@ module Editor.MethodConditions exposing (..)
 --
 
 
-type OS = AIX     { version : Maybe  Int }
-        | Linux   ( Maybe LinuxOS )
-        | Solaris { major : Maybe  Int, minor : Maybe Int }
+type OS = Linux   ( Maybe LinuxOS )
         | Windows ( Maybe WindowsOS )
 
 type alias Condition =
@@ -70,8 +68,6 @@ osName maybeOs =
     Nothing -> "All"
     Just os ->
       case os of
-        AIX _              -> "AIX"
-        Solaris _          -> "Solaris"
         Windows Nothing    -> "Windows family"
         Windows (Just win) -> "Windows " ++ (showWindowsOS win)
         Linux Nothing      -> "Linux"
@@ -148,9 +144,7 @@ conditionLinux os =
 conditionOs : OS -> String
 conditionOs os =
   case os of
-    AIX v                -> Maybe.withDefault "aix" (Maybe.map (String.fromInt >> (++) "aix_") v.version)
     Linux Nothing        -> "linux"
-    Solaris v            -> majorMinorVersionCondition "solaris" v
     Windows Nothing      -> "windows"
     Windows (Just winOs) -> conditionWin winOs
     Linux (Just linuxOs) -> conditionLinux linuxOs
@@ -306,22 +300,6 @@ parseOs os =
                                        (Nothing, Just _ ) -> Nothing
                                        (x, y)             -> Just (Linux (Just (Slackware { major = x, minor = y })))
 
-    -- end linux distrib, other unixes --
-
-    [ "solaris" ]               -> Just (Solaris { major = Nothing, minor = Nothing })
-    [ "solaris", major ]        -> case String.toInt major of
-                                    Nothing -> Nothing
-                                    x       -> Just (Solaris { major = x, minor = Nothing })
-    [ "solaris", major, minor ] -> case (String.toInt major, String.toInt minor) of
-                                     (Nothing, Nothing) -> Nothing
-                                     (Just _, Nothing)  -> Nothing
-                                     (Nothing, Just _ ) -> Nothing
-                                     (x, y)             -> Just (Solaris { major = x, minor = y })
-
-    [ "aix" ]        -> Just (AIX  { version = Nothing })
-    [ "aix", major ] -> case String.toInt major of
-                          Nothing -> Nothing
-                          x       -> Just (AIX { version = x })
     _ -> Nothing
 
 
@@ -354,8 +332,6 @@ osList =
   , Just (Windows (Just V2025))
   , Just (Windows (Just WinTen))
   , Just (Windows (Just Eleven))
-  , Just ( AIX {version = Nothing} )
-  , Just ( Solaris noVersion)
   ]
 
 -- VERSION in the condition part --
@@ -367,7 +343,6 @@ hasVersion os =
     Just (Linux (Just (Amazon _))) -> True
     Just (Linux (Just (SLES _))) -> True
     Just (Linux (Just (SLED _))) -> True
-    Just (AIX _) -> True
     _ -> False
 
 getVersion: Maybe OS -> Maybe Int
@@ -377,7 +352,6 @@ getVersion os =
     Just (Linux (Just (Amazon v))) -> v.version
     Just (Linux (Just (SLES v))) -> v.version
     Just (Linux (Just (SLED v))) -> v.version
-    Just (AIX v) -> v.version
     _ -> Nothing
 
 updateVersion:  Maybe Int -> Maybe OS -> Maybe OS
@@ -386,8 +360,6 @@ updateVersion newVersion os =
     Just (Linux (Just (SLES v))) -> Just (Linux (Just (SLES {v | version = newVersion})))
     Just (Linux (Just (SLED v))) -> Just (Linux (Just (SLED {v | version = newVersion})))
     Just (Linux (Just (Fedora v))) -> Just (Linux (Just (Fedora {v | version = newVersion})))
-    Just (Linux (Just (Amazon v))) -> Just (Linux (Just (Amazon {v | version = newVersion})))
-    Just (AIX v) -> Just (AIX {v | version = newVersion})
     _ -> os
 
 -- for OS with service packs
@@ -431,7 +403,6 @@ hasMajorMinorVersion os =
     Just (Linux (Just (Oracle _))) -> True
     Just (Linux (Just (OpenSuse _))) -> True
     Just (Linux (Just (Slackware _))) -> True
-    Just (Solaris _) -> True
     _ -> False
 
 
@@ -447,7 +418,6 @@ getMajorVersion os =
     Just (Linux (Just (Oracle v))) -> v.major
     Just (Linux (Just (OpenSuse v))) -> v.major
     Just (Linux (Just (Slackware v))) -> v.major
-    Just (Solaris v) -> v.major
     _ -> Nothing
 
 getUbuntuMinor:  Maybe OS -> String
@@ -468,7 +438,6 @@ getMinorVersion os =
     Just (Linux (Just (Oracle v))) -> v.minor
     Just (Linux (Just (OpenSuse v))) -> v.minor
     Just (Linux (Just (Slackware v))) -> v.minor
-    Just (Solaris v) -> v.minor
     _ -> Nothing
 
 updateMajorVersion: Maybe Int -> Maybe OS -> Maybe OS
@@ -483,7 +452,6 @@ updateMajorVersion newMajor os =
     Just (Linux (Just (Oracle v))) -> Just (Linux (Just (Oracle {v | major = newMajor})))
     Just (Linux (Just (OpenSuse v))) -> Just (Linux (Just (OpenSuse {v | major = newMajor})))
     Just (Linux (Just (Slackware v))) -> Just (Linux (Just (Slackware {v | major = newMajor})))
-    Just (Solaris v) -> Just ( Solaris { v | major = newMajor } )
     _ -> os
 
 updateUbuntuMinor: UbuntuMinor -> Maybe OS -> Maybe OS
@@ -507,7 +475,6 @@ updateMinorVersion newMinor os =
     Just (Linux (Just (Oracle v))) -> Just (Linux (Just (Oracle {v | minor = newMinor})))
     Just (Linux (Just (OpenSuse v))) -> Just (Linux (Just (OpenSuse {v | minor = newMinor})))
     Just (Linux (Just (Slackware v))) -> Just (Linux (Just (Slackware {v | minor = newMinor})))
-    Just (Solaris v) -> Just ( Solaris { v | minor = newMinor } )
     _ -> os
 
 
@@ -517,8 +484,6 @@ osClass maybeOs =
     Nothing -> "optGroup"
     Just os ->
       case os of
-        AIX _ -> "optGroup"
-        Solaris _ -> "optGroup"
         Windows Nothing -> "optGroup"
         Windows (Just _) -> "optChild"
         Linux Nothing -> "optGroup"
