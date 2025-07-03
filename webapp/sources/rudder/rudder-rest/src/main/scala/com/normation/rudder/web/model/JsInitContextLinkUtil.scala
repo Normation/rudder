@@ -135,8 +135,14 @@ class LinkUtil(
   def changeRequestLink(id: ChangeRequestId): String =
     s"${S.contextPath}${baseChangeRequestLink(id)}"
 
-  def redirectToChangeRequestLink(id: ChangeRequestId): JsCmd =
-    RedirectTo(baseChangeRequestLink(id))
+  def redirectToChangeRequestLink(id: ChangeRequestId, contextPath: String = S.contextPath): JsCmd = {
+    if (S.contextPath == "") {
+      RedirectTo(s"${contextPath}${baseChangeRequestLink(id)}")
+    } else {
+      RedirectTo(baseChangeRequestLink(id))
+    }
+
+  }
 
   def createRuleLink(id: RuleId): Elem = {
     roRuleRepository.get(id).either.runNow match {
