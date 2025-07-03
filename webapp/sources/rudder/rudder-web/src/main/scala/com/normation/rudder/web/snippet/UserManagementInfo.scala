@@ -54,10 +54,10 @@ class UserManagementInfo extends DispatchSnippet with RenderDispatch {
         val tooltipContent =
           "<h4><i class='fa fa-exclamation-triangle'></i> User configuration require your attention</h4><div class=\"tooltip-content\">Passwords configuration is insecure and will be deprecated, please open the page to see the details.</div>"
         <i class={
-           "fa fa-exclamation-triangle plugin-icon icon-info text-danger"
-           } data-bs-toggle="tooltip" data-bs-placement="right" title={
-            tooltipContent
-           } data-bs-container="body"></i>
+          "fa fa-exclamation-triangle plugin-icon icon-info text-danger"
+        } data-bs-toggle="tooltip" data-bs-placement="right" title={
+          tooltipContent
+        } data-bs-container="body"></i>
     }
   }
 }
