@@ -264,18 +264,56 @@ case class CampaignEvent(
 )
 case class CampaignEventId(value: String)
 
+sealed abstract class CampaignSortDirection(override val entryName: String) extends EnumEntry
+
+object CampaignSortDirection extends Enum[CampaignSortDirection] {
+  case object Asc  extends CampaignSortDirection("asc")
+  case object Desc extends CampaignSortDirection("desc")
+
+  override def values: IndexedSeq[CampaignSortDirection] = findValues
+}
+
+sealed abstract class CampaignSortOrder(override val entryName: String) extends EnumEntry
+object CampaignSortOrder                                                extends Enum[CampaignSortOrder] {
+  case object StartDate extends CampaignSortOrder("startDate")
+  case object EndDate   extends CampaignSortOrder("endDate")
+
+  override def extraNamesToValuesMap: Map[String, CampaignSortOrder] = {
+    Map(
+      "start" -> StartDate,
+      "end"   -> EndDate
+    )
+  }
+
+  override def values: IndexedSeq[CampaignSortOrder] = findValues
+}
+
+// can't be an enumeration because skipped is a class, the msg should be out of it
 @jsonDiscriminator("value")
 sealed trait CampaignEventState {
   def value: String
 }
-@jsonHint(Scheduled.value)
-case object Scheduled extends CampaignEventState { val value = "scheduled" }
-@jsonHint(Running.value)
-case object Running                      extends CampaignEventState { val value = "running"  }
-@jsonHint(Finished.value)
-case object Finished                     extends CampaignEventState { val value = "finished" }
-@jsonHint(Skipped("").value)
-final case class Skipped(reason: String) extends CampaignEventState { val value = "skipped"  }
+
+object CampaignEventState {
+  @jsonHint(Scheduled.value)
+  case object Scheduled                    extends CampaignEventState { val value = "scheduled" }
+  @jsonHint(Running.value)
+  case object Running                      extends CampaignEventState { val value = "running"   }
+  @jsonHint(Finished.value)
+  case object Finished                     extends CampaignEventState { val value = "finished"  }
+  @jsonHint(Skipped("").value)
+  final case class Skipped(reason: String) extends CampaignEventState { val value = "skipped"   }
+
+  def parse(s: String): Either[String, CampaignEventState] = {
+    s.toLowerCase.trim match {
+      case Scheduled.value => Right(Scheduled)
+      case Running.value   => Right(Running)
+      case Finished.value  => Right(Finished)
+      case "skipped"       => Right(Skipped(""))
+      case x               => Left(s"Error when parsing CampaignEventState: unrecognized case '${s}'")
+    }
+  }
+}
 
 trait CampaignResult {
   def id: CampaignEventId
