@@ -234,8 +234,8 @@ impl ModuleType0 for Template {
 
         let data = match (p.data.clone(), p.datastate_path) {
             (Value::String(s), _) if !s.is_empty() => p.data,
-            (Value::Object(o), _) if o.len() > 0 => p.data,
-            (Value::Array(a), _) if a.len() > 0 => p.data,
+            (Value::Object(o), _) if !o.is_empty() => p.data,
+            (Value::Array(a), _) if !a.is_empty() => p.data,
             (Value::Number(_), _) => p.data,
             (_, Some(ref datastate_path)) => {
                 let datastate = read_to_string(datastate_path).with_context(|| {
