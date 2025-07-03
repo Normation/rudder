@@ -56,19 +56,12 @@ type LinuxOS = DebianFamily
 -- Treat all Windows versions as specific enum variants. Numbering is inconsistant
 -- and trying to use integers would be misleading to users.
 -- We don't have anything generic other server vs. non server, so we only have one enum
-type WindowsOS = Seven | Eight | EightDotOne | WinTen | Eleven | V2008 | V2008R2 | V2012 | V2012R2 | V2016 | V2019 | V2022 | V2025
+type WindowsOS =WinTen | Eleven | V2016 | V2019 | V2022 | V2025
 showWindowsOS: WindowsOS -> String
 showWindowsOS os =
   case os of
-    Seven       -> "7"
-    Eight       -> "8"
-    EightDotOne -> "8.1"
     WinTen      -> "10"
     Eleven      -> "11"
-    V2008   -> "Server 2008"
-    V2008R2 -> "Server 2008 R2"
-    V2012   -> "Server 2012"
-    V2012R2 -> "Server 2012 R2"
     V2016   -> "Server 2016"
     V2019   -> "Server 2019"
     V2022   -> "Server 2022"
@@ -128,15 +121,8 @@ versionSPCondition s v =
 conditionWin: WindowsOS -> String
 conditionWin os =
   case os of
-    Seven       -> "windows_7"
-    Eight       -> "windows_8"
-    EightDotOne -> "windows_8_1"
     WinTen      -> "windows_10"
     Eleven      -> "windows_11"
-    V2008   -> "windows_server_2008"
-    V2008R2 -> "windows_server_2008_R2"
-    V2012   -> "windows_server_2012"
-    V2012R2 -> "windows_server_2012_R2"
     V2016   -> "windows_server_2016"
     V2019   -> "windows_server_2019"
     V2022   -> "windows_server_2022"
@@ -185,16 +171,9 @@ parseOs: String -> Maybe OS
 parseOs os =
   case String.split "_" os of
     [ "windows" ]                         -> Just (Windows Nothing)
-    [ "windows", "server", "2008" ]       -> Just (Windows (Just V2008))
-    [ "windows", "server", "2008", "R2" ] -> Just (Windows (Just V2008R2))
-    [ "windows", "server", "2012" ]       -> Just (Windows (Just V2012))
-    [ "windows", "server", "2012", "R2" ] -> Just (Windows (Just V2012R2))
     [ "windows", "server", "2016" ]       -> Just (Windows (Just V2016))
     [ "windows", "server", "2019" ]       -> Just (Windows (Just V2019))
     [ "windows", "server", "2022" ]       -> Just (Windows (Just V2022))
-    [ "windows", "7" ]      -> Just (Windows (Just Seven))
-    [ "windows", "8" ]      -> Just (Windows (Just Eight))
-    [ "windows", "8", "1" ] -> Just (Windows (Just EightDotOne))
     [ "windows", "10" ]     -> Just (Windows (Just WinTen))
     [ "windows", "11" ]     -> Just (Windows (Just Eleven))
     
@@ -359,17 +338,10 @@ osList =
   , Just (Linux (Just (OpenSuse noVersion)))
   , Just (Linux (Just (Slackware noVersion)))
   , Just (Windows Nothing)
-  , Just (Windows (Just V2008))
-  , Just (Windows (Just V2008R2))
-  , Just (Windows (Just V2012))
-  , Just (Windows (Just V2012R2))
   , Just (Windows (Just V2016))
   , Just (Windows (Just V2019))
   , Just (Windows (Just V2022))
   , Just (Windows (Just V2025))
-  , Just (Windows (Just Seven))
-  , Just (Windows (Just Eight))
-  , Just (Windows (Just EightDotOne))
   , Just (Windows (Just WinTen))
   , Just (Windows (Just Eleven))
   , Just ( AIX {version = Nothing} )
