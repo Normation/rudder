@@ -189,7 +189,8 @@ body > .ng-toast {
 }
 .rudder-template .method textarea.form-control{
   display: block;
-  overflow: hidden;
+  overflow: auto;
+  max-height: 200px;
 }
 
 .icon-output {
