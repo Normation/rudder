@@ -42,6 +42,7 @@ import com.normation.errors.*
 import com.normation.eventlog.*
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.EventLogsLoggerPure
+import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.rest.ApiModuleProvider
@@ -60,6 +61,7 @@ import com.normation.rudder.rest.data.RestEventLogRollback
 import com.normation.rudder.rest.data.RestEventLogRollback.Action.After
 import com.normation.rudder.rest.data.RestEventLogRollback.Action.Before
 import com.normation.rudder.rest.data.RestEventLogSuccess
+import com.normation.rudder.rest.data.SimpleDiffJson
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rest.lift.DefaultParams
 import com.normation.rudder.rest.lift.LiftApiModule
@@ -258,14 +260,16 @@ class EventLogService(
   def getEventLogDetails(id: Long)(implicit qc: QueryContext): IOResult[RestEventLogDetails] = {
 
     (for {
-      event      <- repo.getEventLogById(id)
-      crId       <- ZIO.foreach(event.id)(repo.getEventLogWithChangeRequest(_).notOptional("").map(_._2).catchAll(_ => None.succeed))
-      htmlDetails = eventLogDetailGenerator.displayDetails(event, crId.flatten)
+      event             <- repo.getEventLogById(id)
+      crId              <- ZIO.foreach(event.id)(repo.getEventLogWithChangeRequest(_).notOptional("").map(_._2).catchAll(_ => None.succeed))
+      htmlDetails        = eventLogDetailGenerator.displayDetails(event, crId.flatten)
+      nodePropertiesDiff = eventLogDetailGenerator.nodePropertiesDiff(event)
     } yield {
       RestEventLogDetails(
         id.toString,
         htmlDetails,
-        event.canRollBack
+        event.canRollBack,
+        nodePropertiesDiff.map(_.transformInto[SimpleDiffJson[List[NodeProperty]]])
       )
     }).catchSystemErrors
   }

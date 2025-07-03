@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2011 Normation SAS
+ * Copyright 2025 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -35,40 +35,23 @@
  *************************************************************************************
  */
 
-package com.normation.rudder.services.marshalling
+package com.normation.rudder.rest.data
 
-import scala.xml.Elem
-import scala.xml.MetaData
-import scala.xml.NodeSeq
-import scala.xml.Null
-import scala.xml.TopScope
-import scala.xml.UnprefixedAttribute
+import com.normation.rudder.domain.policies.SimpleDiff
+import io.scalaland.chimney.Transformer
+import zio.json.DeriveJsonEncoder
+import zio.json.JsonEncoder
+import zio.json.jsonField
 
-object MarshallingUtil {
+// copied from change-validation plugin, we will later need more structures to be able to migrate event logs diffs
+final case class SimpleDiffJson[T](
+    @jsonField("from") oldValue: T,
+    @jsonField("to") newValue:   T
+)
 
-  def createTrimedElem(label: String, fileFormat: String)(children: NodeSeq): Elem = {
-    // scala XML is lying, the contract is to call trim and
-    // returned an Elem, not a Node.
-    // See scala.xml.Utility#trim implementation.
-    scala.xml.Utility.trim(createElem(label, fileFormat)(children)).asInstanceOf[Elem]
-  }
+object SimpleDiffJson {
+  implicit def diffTransformer[T]: Transformer[SimpleDiff[T], SimpleDiffJson[T]] =
+    Transformer.derive[SimpleDiff[T], SimpleDiffJson[T]]
 
-  def createTrimedElem(label: String, fileFormat: String, changeType: String)(children: NodeSeq): Elem = {
-    scala.xml.Utility.trim(createElem(label, fileFormat, changeType)(children)).asInstanceOf[Elem]
-  }
-
-  private def createElem(label: String, fileFormat: String)(children: NodeSeq): Elem = {
-    val attributes = new UnprefixedAttribute("fileFormat", fileFormat, Null)
-    createElem(label, attributes)(children)
-  }
-
-  private def createElem(label: String, fileFormat: String, changeType: String)(children: NodeSeq): Elem = {
-    val attributes =
-      new UnprefixedAttribute("fileFormat", fileFormat, Null).append(new UnprefixedAttribute("changeType", changeType, Null))
-    createElem(label, attributes)(children)
-  }
-
-  private def createElem(label: String, attributes: MetaData)(children: NodeSeq): Elem = {
-    Elem(null, label, attributes, TopScope, minimizeEmpty = false, child = children*)
-  }
+  implicit def simpleDiffEncoder[T: JsonEncoder]: JsonEncoder[SimpleDiffJson[T]] = DeriveJsonEncoder.gen[SimpleDiffJson[T]]
 }
