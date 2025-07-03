@@ -387,10 +387,10 @@ limitations under the License.
     <commons-lang-version>3.17.0</commons-lang-version>
     <commons-text-version>1.13.1</commons-text-version>
     <commons-codec-version>1.18.0</commons-codec-version>
-    <commons-fileupload>2.0.0-M2</commons-fileupload>
+    <commons-fileupload>2.0.0-M4</commons-fileupload>
     <commons-csv-version>1.14.0</commons-csv-version>
     <jgit-version>7.2.1.202505142326-r</jgit-version>
-    <spring-version>6.1.19</spring-version>
+    <spring-version>6.1.21</spring-version>
     <spring-security-version>6.3.9</spring-security-version>
     <cglib-version>3.3.0</cglib-version>
     <asm-version>9.8</asm-version>
