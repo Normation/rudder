@@ -40,8 +40,8 @@ package com.normation.rudder.rest
 import better.files.File
 import com.normation.JsonSpecMatcher
 import com.normation.rudder.campaigns.CampaignEvent
+import com.normation.rudder.campaigns.CampaignEventState.*
 import com.normation.rudder.campaigns.MainCampaignService
-import com.normation.rudder.campaigns.Scheduled
 import com.normation.rudder.rest.RudderJsonResponse.JsonRudderApiResponse
 import com.normation.rudder.rest.RudderJsonResponse.LiftJsonResponse
 import com.normation.utils.DateFormaterService
