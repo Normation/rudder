@@ -76,8 +76,9 @@ bundle agent file_from_template_options(destination, engine, data, template_stri
 
 bundle agent rudder_actual_file_from_template_options(destination, engine, data, template_string, template_path, show_content) {
   vars:
-      "datastate" string => string_mustache("{{%-top-}}"),
-			unless => isvariable($(this.promiser));
+   # "datastate" string => string_mustache("{{%-top-}}"),
+   #			unless => isvariable($(this.promiser));
+   "datastate_path" string => "/var/rudder/tmp/datastate-${this.promiser_pid}.json";
 
   classes:
       "pass3" expression => "pass2";
@@ -85,13 +86,11 @@ bundle agent rudder_actual_file_from_template_options(destination, engine, data,
       "pass1" expression => "any";
 
   files:
-      # We can't use the generic method here because we want to avoid file backups
-      "/tmp/datastate.json"
+      "${datastate_path}"
         template_method => "inline_mustache",
         create          => "true",
-        edit_template_string => "{{%-top-}}",
-        edit_defaults   => no_backup;
-
+        edit_defaults   => no_backup,
+        edit_template_string => "{{%-top-}}";
 
   template:
     pass3::
@@ -102,12 +101,5 @@ bundle agent rudder_actual_file_from_template_options(destination, engine, data,
         node_id                 => "${g.uuid}",
         agent_frequency_minutes => "${g.agent_run_interval}",
         classes                 => classes_generic("${report_data.method_id}"),
-	data                    => parsejson('{
-          "path": "${destination}",
-	  "template_src": "${template_string}",
-	  "template_path": "${template_path}",
-          "engine": "${engine}",
-	  "show_content": ${show_content},
-	  "data": ${datastate}
-        }');
+	data                    => '{ "path": "${destination}", "template_src": "${template_string}", "template_path": "${template_path}", engine: "${engine}", "show_content": ${show_content}, "data": "${data}", "datastate_path": "${datastate_path}" }';
 }
