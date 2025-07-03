@@ -9,9 +9,6 @@ module Editor.MethodConditions exposing (..)
 -- This is not an exact mapping of Rudder language OS conditions but a simplified version
 -- to handle most common cases.
 --
--- For example, Amazon Linux versions are not handled as they are not cleanly mapped to
--- sensible CFEngine classes.
---
 
 
 type OS = AIX     { version : Maybe  Int }
@@ -46,7 +43,7 @@ type LinuxOS = DebianFamily
              | Rocky     { major : Maybe  Int, minor : Maybe Int }
              | Oracle    { major : Maybe  Int, minor : Maybe Int }
              | Fedora    { version : Maybe  Int }
-             | Amazon
+             | Amazon    { version : Maybe  Int }
              | SuseFamily
              | SLES      { version : Maybe  Int, sp : Maybe Int }
              | SLED      { version : Maybe  Int, sp : Maybe Int }
@@ -97,7 +94,7 @@ osName maybeOs =
             Rocky _       -> "Rocky Linux"
             Oracle _      -> "Oracle Linux"
             Fedora _      -> "Fedora"
-            Amazon        -> "Amazon Linux"
+            Amazon _      -> "Amazon Linux"
             SuseFamily    -> "SUSE family"
             SLES _        -> "SLES"
             SLED _        -> "SLED"
@@ -149,15 +146,13 @@ conditionLinux os =
     Debian v      -> majorMinorVersionCondition "debian" v
     Ubuntu v      -> ubuntuCondition "ubuntu" v
     RedhatFamily  -> "redhat"
-    -- redhat_x_y are defined on Oracle Linux too,
-    -- but let's keep things simple here.
-    RHEL v        -> majorMinorVersionCondition "redhat" v
+    RHEL v        -> majorMinorVersionCondition "rhel" v
     Centos v      -> majorMinorVersionCondition "centos" v
     Alma v        -> majorMinorVersionCondition "almalinux" v
     Rocky v       -> majorMinorVersionCondition "rocky" v
     Oracle v      -> majorMinorVersionCondition "oracle" v
     Fedora v      -> Maybe.withDefault "fedora" (Maybe.map (String.fromInt >> (++) "fedora_") v.version)
-    Amazon        -> "amazon_linux"
+    Amazon v      -> Maybe.withDefault "amzn" (Maybe.map (String.fromInt >> (++) "amzn_") v.version)
     SuseFamily    -> "suse"
     SLES v        -> versionSPCondition "sles" v
     SLED v        -> versionSPCondition "sled" v
@@ -202,13 +197,28 @@ parseOs os =
     [ "suse" ]         -> Just (Linux (Just (SuseFamily)))
     [ "redhat" ]       -> Just (Linux (Just (RedhatFamily)))
     [ "debian" ]       -> Just (Linux (Just (DebianFamily)))
-    [ "amazon_linux" ] -> Just (Linux (Just (Amazon)))
+
+    [ "amzn" ] -> Just (Linux (Just (Amazon  { version = Nothing })))
+    [ "amzn", major ] -> case String.toInt major of
+                             Nothing -> Nothing
+                             x       -> Just (Linux (Just (Amazon { version = x })))
 
     [ "fedora" ]        -> Just (Linux (Just (Fedora  { version = Nothing })))
     [ "fedora", major ] -> case String.toInt major of
                              Nothing -> Nothing
                              x       -> Just (Linux (Just (Fedora { version = x })))
 
+    [ "rhel" ]               -> Just (Linux (Just (RHEL { major = Nothing, minor = Nothing })))
+    [ "rhel", major ]        -> case String.toInt major of
+                                    Nothing -> Nothing
+                                    x       -> Just (Linux (Just (RHEL { major = x, minor = Nothing })))
+    [ "rhel", major, minor ] -> case (String.toInt major, String.toInt minor) of
+                                    (Nothing, Nothing) -> Nothing
+                                    (Just _, Nothing)  -> Nothing
+                                    (Nothing, Just _ ) -> Nothing
+                                    (x, y)             -> Just (Linux (Just (RHEL { major = x, minor = y })))
+
+    -- These two are kept for compatibility but should not be used as they are confusing.
     [ "redhat", major ]        -> case String.toInt major of
                                     Nothing -> Nothing
                                     x       -> Just (Linux (Just (RHEL { major = x, minor = Nothing })))
@@ -352,7 +362,7 @@ osList =
   , Just (Linux (Just (Rocky noVersion)))
   , Just (Linux (Just (Oracle noVersion)))
   , Just (Linux (Just (Fedora {version = Nothing})))
-  , Just (Linux (Just (Amazon)))
+  , Just (Linux (Just (Amazon  {version = Nothing})))
   , Just (Linux (Just (SuseFamily)))
   , Just (Linux (Just (SLES {version = Nothing, sp = Nothing})))
   , Just (Linux (Just (SLED {version = Nothing, sp = Nothing})))
@@ -382,6 +392,7 @@ hasVersion: Maybe OS -> Bool
 hasVersion os =
   case os of
     Just (Linux (Just (Fedora _))) -> True
+    Just (Linux (Just (Amazon _))) -> True
     Just (Linux (Just (SLES _))) -> True
     Just (Linux (Just (SLED _))) -> True
     Just (AIX _) -> True
@@ -391,6 +402,7 @@ getVersion: Maybe OS -> Maybe Int
 getVersion os =
   case os of
     Just (Linux (Just (Fedora v))) -> v.version
+    Just (Linux (Just (Amazon v))) -> v.version
     Just (Linux (Just (SLES v))) -> v.version
     Just (Linux (Just (SLED v))) -> v.version
     Just (AIX v) -> v.version
@@ -402,6 +414,7 @@ updateVersion newVersion os =
     Just (Linux (Just (SLES v))) -> Just (Linux (Just (SLES {v | version = newVersion})))
     Just (Linux (Just (SLED v))) -> Just (Linux (Just (SLED {v | version = newVersion})))
     Just (Linux (Just (Fedora v))) -> Just (Linux (Just (Fedora {v | version = newVersion})))
+    Just (Linux (Just (Amazon v))) -> Just (Linux (Just (Amazon {v | version = newVersion})))
     Just (AIX v) -> Just (AIX {v | version = newVersion})
     _ -> os
 
