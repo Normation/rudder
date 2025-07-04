@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name File from template
-# @description Build a file from a template (MiniJinja, Jinja2, mustache)
+# @description Build a file from a template (MiniJinja, Jinja2, Mustache)
 # @documentation Coming soon.
 #
 # @parameter            destination Destination file (absolute path on the target node)
@@ -25,7 +25,7 @@
 # @parameter            engine Template engine (defaults to minijinja)
 # @parameter_constraint engine "allow_empty_string" : true
 # @parameter_constraint engine "select" : [ "", "minijinja", "jinja2", "mustache" ]
-# @parameter            data Data provided to the template
+# @parameter            data Data provided to the template, defaults to the global context if empty
 # @parameter_constraint data "allow_empty_string" : true
 # @parameter            template_string String containing the template to be rendered
 # @parameter_constraint template_string "allow_empty_string" : true
@@ -37,7 +37,7 @@
 #
 # @class_prefix file_from_template_options
 # @class_parameter destination
-# @agent_support = ["cfengine-community"]
+# @agent_support = ["cfengine-community", "dsc"]
 
 promise agent template {
   path => "/opt/rudder/bin/rudder-module-template";
