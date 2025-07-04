@@ -47,10 +47,8 @@ type ActionDisallowedResult
     | UninstalledPluginCannotBeEnabled
     | UninstalledPluginCannotBeDisabled -- --       (InstallStatus ⊗ (ActivationStatus \ InstallStatus))
     | IntegrationPluginCannotBeDisabled -- --       (PluginType ⊗ ActivationStatus)
-    | ExpiredLicensePreventPluginInstallation -- -- (LicenseStatus ⊗ InstallStatus)
-    | MissingLicensePreventPluginInstallation
-    | ExpiredLicensePreventPluginActivation -- --   (LicenseStatus ⊗ ActivationStatus)
-    | MissingLicensePreventPluginActivation
+    | InvalidLicensePreventPluginInstallation -- -- (LicenseStatus ⊗ InstallStatus)
+    | InvalidLicensePreventPluginActivation -- --   (LicenseStatus ⊗ ActivationStatus)
 
 
 
@@ -271,10 +269,8 @@ allSortedActionDisallowedResult =
     , UninstalledPluginCannotBeEnabled
     , UninstalledPluginCannotBeDisabled
     , IntegrationPluginCannotBeDisabled
-    , ExpiredLicensePreventPluginInstallation
-    , MissingLicensePreventPluginInstallation
-    , ExpiredLicensePreventPluginActivation
-    , MissingLicensePreventPluginActivation
+    , InvalidLicensePreventPluginInstallation
+    , InvalidLicensePreventPluginActivation
     ]
 
 
@@ -399,17 +395,11 @@ findPluginsAction action plugins =
 getActionResult : Action -> Plugin -> ActionModel
 getActionResult action { installStatus, pluginType, licenseStatus } =
     case ( action, ( installStatus, pluginType, licenseStatus ) ) of
-        ( ActionInstall, ( _, _, ExpiredLicense _ ) ) ->
-            DisallowedAction ExpiredLicensePreventPluginInstallation
+        ( ActionInstall, ( _, _, InvalidLicense _ ) ) ->
+            DisallowedAction InvalidLicensePreventPluginInstallation
 
-        ( ActionInstall, ( _, _, MissingLicense _ ) ) ->
-            DisallowedAction MissingLicensePreventPluginInstallation
-
-        ( ActionEnable, ( _, _, ExpiredLicense _ ) ) ->
-            DisallowedAction ExpiredLicensePreventPluginActivation
-
-        ( ActionEnable, ( _, _, MissingLicense _ ) ) ->
-            DisallowedAction MissingLicensePreventPluginActivation
+        ( ActionEnable, ( _, _, InvalidLicense _ ) ) ->
+            DisallowedAction InvalidLicensePreventPluginActivation
 
         ( ActionDisable, ( Installed Enabled, Integration, _ ) ) ->
             DisallowedAction IntegrationPluginCannotBeDisabled
@@ -480,14 +470,8 @@ explainDisallowedResult arg =
             IntegrationPluginCannotBeDisabled ->
                 "IntegrationPluginCannotBeDisabled"
 
-            ExpiredLicensePreventPluginInstallation ->
-                "ExpiredLicensePreventPluginInstallation"
+            InvalidLicensePreventPluginActivation ->
+                "InvalidLicensePreventPluginActivation"
 
-            MissingLicensePreventPluginInstallation ->
-                "MissingLicensePreventPluginInstallation"
-
-            ExpiredLicensePreventPluginActivation ->
-                "ExpiredLicensePreventPluginActivation"
-
-            MissingLicensePreventPluginActivation ->
-                "MissingLicensePreventPluginActivation"
+            InvalidLicensePreventPluginInstallation ->
+                "InvalidLicensePreventPluginInstallation"

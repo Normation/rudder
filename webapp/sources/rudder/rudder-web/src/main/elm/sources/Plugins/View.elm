@@ -486,11 +486,11 @@ displayMainLicense license now contextPath =
 
 pluginBadge : Plugin -> List (Html msg)
 pluginBadge p =
-    case ( p.installStatus, p.licenseStatus ) of
+    case ( p.installStatus, p.noLicense ) of
         ( Installed Disabled, _ ) ->
             [ div [ class "position-absolute top-0 start-0" ] [ span [ class "badge float-start" ] [ text "Disabled" ] ] ]
 
-        ( _, MissingLicense _ ) ->
+        ( _, True ) ->
             [ div [ class "position-absolute top-0 start-0" ] [ span [ class "badge float-start text-dark" ] [ i [ class "fa fa-info-circle me-1" ] [], text "No license" ] ] ]
 
         ( Installed Enabled, _ ) ->
@@ -502,8 +502,8 @@ pluginBadge p =
 
 pluginCardBgClass : Plugin -> Maybe String
 pluginCardBgClass p =
-    case ( p.installStatus, p.licenseStatus ) of
-        ( _, MissingLicense _ ) ->
+    case ( p.installStatus, p.noLicense ) of
+        ( _, True ) ->
             Just "plugin-card-missing-license"
 
         ( Installed Disabled, _ ) ->

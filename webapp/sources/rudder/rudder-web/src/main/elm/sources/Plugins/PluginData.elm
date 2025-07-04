@@ -30,6 +30,7 @@ type alias Plugin =
     , description : String
     , version : String
     , licenseStatus : LicenseStatus
+    , noLicense : Bool
     , errors : List PluginCalloutError
     }
 
@@ -55,12 +56,15 @@ type alias PluginLicense =
     }
 
 
+{-| The license determines the view of a plugin, and the logic of action and selection.
+Apart from a valid license, there are many other statuses each displayed differently.
+The case of InvalidLicense leads to plugins not being actionable, when it is expired/invalidated/missing...
+-}
 type LicenseStatus
     = ValidLicense PluginLicense
+    | InvalidLicense String
     | NearExpirationLicense String
-    | ExpiredLicense String
-    | MissingLicense String
-    | NoLicense
+    | WithoutLicense
 
 
 {-| The API representation of the Plugin
@@ -124,21 +128,28 @@ type alias PluginInfoError =
 toPlugin : PluginInfo -> Plugin
 toPlugin { id, name, abiVersion, pluginType, description, status, statusMessage, pluginVersion, errors, license } =
     let
-        licenseStatus =
-            findLicenseStatus (Maybe.map toPluginLicense license) errors
+        installStatus =
+            toInstallStatus status
+
+        -- statusMessage indicates the reason of disabling when the status is disabled
+        statusDisabledReason =
+            statusMessage |> Maybe.Extra.filter (\_ -> installStatus == Installed Disabled)
+
+        ( noLicense, licenseStatus ) =
+            findLicenseStatus statusDisabledReason (Maybe.map toPluginLicense license) errors
     in
     { id = id
     , name = name
     , pluginType = pluginType
-    , installStatus = toInstallStatus status
+    , installStatus = installStatus
     , docLink = docLink { id = id, abiVersion = abiVersion }
     , description = description
     , version = pluginVersion
     , licenseStatus = licenseStatus
+    , noLicense = noLicense
     , errors =
         [ toLicenseStatusCallout licenseStatus
         , findAbiVersionError errors
-        , statusMessage |> Maybe.map CalloutError
         ]
             |> List.filterMap identity
             |> List.sortWith pluginCalloutErrorOrdering
@@ -157,37 +168,41 @@ findAbiVersionError =
         )
 
 
-findLicenseStatus : Maybe PluginLicense -> List PluginInfoError -> LicenseStatus
-findLicenseStatus license errors =
+{-| If there is a status of disabled license, it is an invalid one, superseding other checks.
+Returns the
+-}
+findLicenseStatus : Maybe String -> Maybe PluginLicense -> List PluginInfoError -> ( Bool, LicenseStatus )
+findLicenseStatus statusMessage license errors =
     let
         findErr err =
             errors |> List.Extra.find (\{ error } -> error == err)
     in
-    case ( license, ( findErr "license.needed.error", findErr "license.expired.error", findErr "license.near.expiration.error" ) ) of
-        -- ignore current license as API already handles the message according to license data
-        ( _, ( Just { message }, _, _ ) ) ->
-            MissingLicense message
+    case ( statusMessage, license, ( findErr "license.needed.error", findErr "license.expired.error", findErr "license.near.expiration.error" ) ) of
+        ( Just message, _, _ ) ->
+            ( False, InvalidLicense message )
 
-        ( _, ( _, Just { message }, _ ) ) ->
-            ExpiredLicense message
+        -- missing license : invalid
+        ( Nothing, _, ( Just { message }, _, _ ) ) ->
+            ( True, InvalidLicense message )
 
-        ( _, ( Nothing, _, Just { message } ) ) ->
-            NearExpirationLicense message
+        -- expired license : invalid
+        ( Nothing, _, ( _, Just { message }, _ ) ) ->
+            ( False, InvalidLicense message )
 
-        ( Just l, ( Nothing, Nothing, Nothing ) ) ->
-            ValidLicense l
+        ( Nothing, _, ( Nothing, _, Just { message } ) ) ->
+            ( False, NearExpirationLicense message )
 
-        ( Nothing, ( Nothing, Nothing, Nothing ) ) ->
-            NoLicense
+        ( Nothing, Just l, ( Nothing, Nothing, Nothing ) ) ->
+            ( False, ValidLicense l )
+
+        ( Nothing, Nothing, ( Nothing, Nothing, Nothing ) ) ->
+            ( False, WithoutLicense )
 
 
 toLicenseStatusCallout : LicenseStatus -> Maybe PluginCalloutError
 toLicenseStatusCallout licenseStatus =
     case licenseStatus of
-        ExpiredLicense message ->
-            Just (CalloutError message)
-
-        MissingLicense message ->
+        InvalidLicense message ->
             Just (CalloutError message)
 
         NearExpirationLicense message ->
