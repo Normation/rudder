@@ -25,7 +25,13 @@ pluginFuzz =
         |> andMap string
         |> andMap string
         |> andMap licenseStatusFuzzer
-        |> andMap (maybe string)
+        |> andMap bool
+        |> andMap (list pluginCalloutFuzzer)
+
+
+pluginCalloutFuzzer : Fuzzer PluginCalloutError
+pluginCalloutFuzzer =
+    oneOf [ map CalloutError string, map CalloutWarning string ]
 
 
 licenseStatusFuzzer : Fuzzer LicenseStatus
@@ -33,9 +39,8 @@ licenseStatusFuzzer =
     oneOf
         [ map ValidLicense pluginLicenseFuzzer
         , map NearExpirationLicense string
-        , map ExpiredLicense string
-        , map MissingLicense string
-        , constant NoLicense
+        , map InvalidLicense string
+        , constant WithoutLicense
         ]
 
 
@@ -108,7 +113,7 @@ fuzzSelectValidLicensePlugin msg toAction status license action =
 
 fuzzSelectValidPlugin : String -> (PluginsViewModel -> PluginsAction) -> InstallStatus -> Action -> Test
 fuzzSelectValidPlugin msg toAction status action =
-    fuzzSelectValidLicensePlugin msg toAction status NoLicense action
+    fuzzSelectValidLicensePlugin msg toAction status WithoutLicense action
 
 
 suite =
@@ -138,10 +143,8 @@ suite =
             , fuzzSelectValidPlugin "allow uninstalling disabled plugin" .uninstallAction (Installed Disabled) ActionUninstall
 
             -- license
-            , fuzzSelectValidLicensePlugin "allow disabling plugin with expired license" .disableAction (Installed Enabled) (ExpiredLicense "") ActionDisable
-            , fuzzSelectValidLicensePlugin "allow uninstalling plugin with expired license" .uninstallAction (Installed Disabled) (ExpiredLicense "") ActionUninstall
-            , fuzzSelectValidLicensePlugin "allow disabling plugin with no license" .disableAction (Installed Enabled) (MissingLicense "") ActionDisable
-            , fuzzSelectValidLicensePlugin "allow uninstalling plugin with no license" .uninstallAction (Installed Disabled) (MissingLicense "") ActionUninstall
+            , fuzzSelectValidLicensePlugin "allow disabling plugin with invalid license" .disableAction (Installed Enabled) (InvalidLicense "") ActionDisable
+            , fuzzSelectValidLicensePlugin "allow uninstalling plugin with invalid license" .uninstallAction (Installed Disabled) (InvalidLicense "") ActionUninstall
             ]
         , describe "disallow selection" <| List.map testDisallowedResult allSortedActionDisallowedResult
         ]
@@ -153,33 +156,26 @@ testDisallowedResult : ActionDisallowedResult -> Test
 testDisallowedResult result =
     case result of
         PluginAlreadyUninstalled ->
-            fuzzPlugin "disallow uninstalling already uninstalled plugin" .uninstallAction Uninstalled Webapp NoLicense SelectOne (DisallowedAction PluginAlreadyUninstalled)
+            fuzzPlugin "disallow uninstalling already uninstalled plugin" .uninstallAction Uninstalled Webapp WithoutLicense SelectOne (DisallowedAction PluginAlreadyUninstalled)
 
         PluginAlreadyEnabled ->
-            fuzzPlugin "disallow enabling already enabled plugin" .enableAction (Installed Enabled) Webapp NoLicense SelectOne (DisallowedAction PluginAlreadyEnabled)
+            fuzzPlugin "disallow enabling already enabled plugin" .enableAction (Installed Enabled) Webapp WithoutLicense SelectOne (DisallowedAction PluginAlreadyEnabled)
 
         PluginAlreadyDisabled ->
-            fuzzPlugin "disallow disabling already disabled plugin" .disableAction (Installed Disabled) Webapp NoLicense SelectOne (DisallowedAction PluginAlreadyDisabled)
+            fuzzPlugin "disallow disabling already disabled plugin" .disableAction (Installed Disabled) Webapp WithoutLicense SelectOne (DisallowedAction PluginAlreadyDisabled)
 
         UninstalledPluginCannotBeEnabled ->
-            fuzzPlugin "disallow enabling uninstalled plugin" .enableAction Uninstalled Webapp NoLicense SelectOne (DisallowedAction UninstalledPluginCannotBeEnabled)
+            fuzzPlugin "disallow enabling uninstalled plugin" .enableAction Uninstalled Webapp WithoutLicense SelectOne (DisallowedAction UninstalledPluginCannotBeEnabled)
 
         UninstalledPluginCannotBeDisabled ->
-            fuzzPlugin "disallow disabling uninstalled plugin" .disableAction Uninstalled Webapp NoLicense SelectOne (DisallowedAction UninstalledPluginCannotBeDisabled)
+            fuzzPlugin "disallow disabling uninstalled plugin" .disableAction Uninstalled Webapp WithoutLicense SelectOne (DisallowedAction UninstalledPluginCannotBeDisabled)
 
         IntegrationPluginCannotBeDisabled ->
-            fuzzPlugin "disallow disabling integration plugin" .disableAction (Installed Enabled) Integration NoLicense SelectOne (DisallowedAction IntegrationPluginCannotBeDisabled)
+            fuzzPlugin "disallow disabling integration plugin" .disableAction (Installed Enabled) Integration WithoutLicense SelectOne (DisallowedAction IntegrationPluginCannotBeDisabled)
 
-        ExpiredLicensePreventPluginActivation ->
-            fuzzPlugin "disallow enabling plugin with expired license" .enableAction (Installed Disabled) Webapp (ExpiredLicense "") SelectOne (DisallowedAction ExpiredLicensePreventPluginActivation)
+        InvalidLicensePreventPluginActivation ->
+            fuzzPlugin "disallow enabling plugin with invalid license" .enableAction (Installed Disabled) Webapp (InvalidLicense "") SelectOne (DisallowedAction InvalidLicensePreventPluginActivation)
 
-        MissingLicensePreventPluginActivation ->
-            fuzzPlugin "disallow enabling plugin with no license" .enableAction (Installed Disabled) Webapp (MissingLicense "") SelectOne (DisallowedAction MissingLicensePreventPluginActivation)
-
-        ExpiredLicensePreventPluginInstallation ->
+        InvalidLicensePreventPluginInstallation ->
             -- plugin is non-selectable, selection prevents from selecting it
-            fuzzPluginExpectAction "disallow installing plugin with expired license" .installAction Uninstalled Webapp (ExpiredLicense "") SelectOne (\_ -> Expect.equal initPluginsAction)
-
-        MissingLicensePreventPluginInstallation ->
-            -- plugin is non-selectable, selection prevents from selecting it
-            fuzzPluginExpectAction "disallow installing plugin with no license" .installAction Uninstalled Webapp (MissingLicense "") SelectOne (\_ -> Expect.equal initPluginsAction)
+            fuzzPluginExpectAction "disallow installing plugin with expired license" .installAction Uninstalled Webapp (InvalidLicense "") SelectOne (\_ -> Expect.equal initPluginsAction)

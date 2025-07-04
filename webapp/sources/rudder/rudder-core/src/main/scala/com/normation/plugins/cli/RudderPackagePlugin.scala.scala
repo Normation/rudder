@@ -102,10 +102,11 @@ object RudderPackagePlugin {
     * we can return needed plugin details
     */
   implicit def transformer(implicit
-      rudderFullVersion: String,
-      abiVersion:        AbiVersion,
-      pluginVersion:     PluginVersion,
-      transformLicense:  Transformer[LicenseInfo, PluginLicense]
+      rudderFullVersion:    String,
+      abiVersion:           AbiVersion,
+      pluginVersion:        PluginVersion,
+      statusDisabledReason: StatusDisabledReason,
+      transformLicense:     Transformer[LicenseInfo, PluginLicense]
   ): Transformer[RudderPackagePlugin, Plugin] = {
     val _ = transformLicense // variable is used below
     Transformer
@@ -117,7 +118,8 @@ object RudderPackagePlugin {
           PluginInstallStatus.from(
             if (p.webappPlugin) PluginType.Webapp else PluginType.Integration,
             installed = p.installed,
-            enabled = p.enabled
+            enabled = p.enabled,
+            statusDisabledReason = statusDisabledReason
           )
         }
       )
@@ -125,7 +127,7 @@ object RudderPackagePlugin {
       .withFieldConst(_.abiVersion, abiVersion.value)                       // field is computed upstream
       .withFieldConst(_.pluginVersion, pluginVersion.value)                 // field is computed upstream
       .withFieldComputed(_.pluginType, p => if (p.webappPlugin) PluginType.Webapp else PluginType.Integration)
-      .withFieldConst(_.statusMessage, None)
+      .withFieldConst(_.statusMessage, statusDisabledReason.value)
       .withFieldComputed(
         _.errors,
         PluginError.fromRudderPackagePlugin(_)

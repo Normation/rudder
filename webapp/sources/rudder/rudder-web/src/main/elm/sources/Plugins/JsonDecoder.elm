@@ -55,6 +55,7 @@ decodePluginInfo =
         |> required "pluginType" decodePluginType
         |> required "errors" (list decodePluginError)
         |> required "status" decodePluginStatus
+        |> optional "statusMessage" (maybe string) Nothing
         |> optional "license" (maybe decodeLicenseInfo) Nothing
 
 
