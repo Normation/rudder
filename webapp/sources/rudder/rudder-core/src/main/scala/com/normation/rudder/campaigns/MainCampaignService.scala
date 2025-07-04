@@ -152,7 +152,7 @@ class MainCampaignService(
                         campaign <- campaignRepo.get(event.campaignId).notOptional(s"Campaign with id ${c.value} not found")
                         _        <-
                           ZIO
-                            .foreachDiscard(services)(s => s.delete(main, event)(campaign).unit)
+                            .foreachDiscard(services)(s => s.delete(event)(campaign).unit)
                             .catchAll(_ => {
                               CampaignLogger.warn(
                                 s"An error occured while cleaning campaign event ${event.id.value} during deletion of campaign ${c.value}"
