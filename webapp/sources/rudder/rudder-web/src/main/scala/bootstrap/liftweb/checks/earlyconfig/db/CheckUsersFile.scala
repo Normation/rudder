@@ -66,21 +66,21 @@ class CheckUsersFile(migration: UserFileSecurityLevelMigration) extends Bootstra
       parsedUnsafeHashes = UserFileProcessing.parseXmlUnsafeHashes(xml)
 
       // invalid hash also need to be renamed to modern one
-      securityLevel <- (parsedHash, parsedUnsafeHashes) match {
-                         case (Right(hash), Right(_)) =>
-                           allChecks(SecurityLevel.fromPasswordEncoderType(hash))
+      _ <- (parsedHash, parsedUnsafeHashes) match {
+             case (Right(hash), Right(_)) =>
+               allChecks(SecurityLevel.fromPasswordEncoderType(hash))
 
-                         case (Left(unknownValue), _) =>
-                           BootstrapLogger.warn(
-                             s"Error when reading users file hash in ${migration.file.name}, value '${unknownValue}' is unknown, falling back to secure authentication method"
-                           ) *>
-                           migration.enforceModern(userFile)
-                         case (_, Left(unknownValue)) =>
-                           BootstrapLogger.warn(
-                             s"Error when reading users file unsafe-hashes in ${migration.file.name}, value '${unknownValue}' is unknown, falling back to safe hashes"
-                           ) *>
-                           migration.enforceModern(userFile)
-                       }
+             case (Left(unknownValue), _) =>
+               BootstrapLogger.warn(
+                 s"Error when reading users file hash in ${migration.file.name}, value '${unknownValue}' is unknown, falling back to secure authentication method"
+               ) *>
+               migration.enforceModern(userFile)
+             case (_, Left(unknownValue)) =>
+               BootstrapLogger.warn(
+                 s"Error when reading users file unsafe-hashes in ${migration.file.name}, value '${unknownValue}' is unknown, falling back to safe hashes"
+               ) *>
+               migration.enforceModern(userFile)
+           }
     } yield {})
   }
 

@@ -1,9 +1,8 @@
 module UserManagement.Init exposing (..)
 
-import UserManagement.ApiCalls exposing (getUsersConf)
+import UserManagement.ApiCalls exposing (getUsersConf, getSafeHashes)
 import UserManagement.DataTypes exposing (..)
 import Dict exposing (fromList)
-import Html.Attributes exposing (style)
 import Http
 
 subscriptions : Model -> Sub Msg
@@ -15,11 +14,13 @@ init flags =
     let
         initUi = UI Closed False (TableFilters UserLogin Asc "")
         initUserInfoForm = UserInfoForm "" "" Dict.empty Dict.empty
-        initUserForm = UserForm "" "" True False [] initUserInfoForm [] ValidInputs 
-        initModel = Model flags.contextPath flags.userId "" False (fromList []) (fromList []) [] None initUserForm initUi [] Dict.empty
+        initUserForm = UserForm "" "" True False [] initUserInfoForm [] ValidInputs
+        -- prevent having alerts in the page at start
+        initSafeHashes = True
+        initModel = Model flags.contextPath flags.userId "" initSafeHashes False (fromList []) (fromList []) [] None initUserForm initUi [] Dict.empty
     in
     ( initModel
-    , getUsersConf initModel
+    , Cmd.batch [ getUsersConf initModel, getSafeHashes initModel ]
     )
 
 ------------------------------
