@@ -226,15 +226,19 @@ trait WorkflowService {
   def stepsValue: List[WorkflowNodeId]
 
   def findNextSteps(
-      currentUserRights: Seq[String],
-      currentStep:       WorkflowNodeId,
-      isCreator:         Boolean
+      currentUserRights:       Seq[String],
+      currentStep:             WorkflowNodeId,
+      isCreator:               Boolean,
+      hasValidatorWriteRights: Boolean,
+      hasDeployerWriteRights:  Boolean
   )(implicit qc: QueryContext): WorkflowAction
 
   def findBackSteps(
-      currentUserRights: Seq[String],
-      currentStep:       WorkflowNodeId,
-      isCreator:         Boolean
+      currentUserRights:       Seq[String],
+      currentStep:             WorkflowNodeId,
+      isCreator:               Boolean,
+      hasValidatorWriteRights: Boolean,
+      hasDeployerWriteRights:  Boolean
   ): Seq[(WorkflowNodeId, (ChangeRequestId, EventActor, Option[String]) => IOResult[WorkflowNodeId])]
 
   def findStep(changeRequestId: ChangeRequestId): IOResult[WorkflowNodeId]
@@ -279,15 +283,19 @@ class NoWorkflowServiceImpl(
   val name = "no-changes-validation-workflow"
 
   def findNextSteps(
-      currentUserRights: Seq[String],
-      currentStep:       WorkflowNodeId,
-      isCreator:         Boolean
+      currentUserRights:       Seq[String],
+      currentStep:             WorkflowNodeId,
+      isCreator:               Boolean,
+      hasValidatorWriteRights: Boolean,
+      hasDeployerWriteRights:  Boolean
   )(implicit qc: QueryContext): WorkflowAction = NoWorkflowAction
 
   def findBackSteps(
-      currentUserRights: Seq[String],
-      currentStep:       WorkflowNodeId,
-      isCreator:         Boolean
+      currentUserRights:       Seq[String],
+      currentStep:             WorkflowNodeId,
+      isCreator:               Boolean,
+      hasValidatorWriteRights: Boolean,
+      hasDeployerWriteRights:  Boolean
   ): Seq[(WorkflowNodeId, (ChangeRequestId, EventActor, Option[String]) => IOResult[WorkflowNodeId])] = Seq()
 
   def findStep(changeRequestId: ChangeRequestId): IOResult[WorkflowNodeId] = Inconsistency("No state when no workflow").fail
