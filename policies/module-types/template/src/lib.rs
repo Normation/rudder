@@ -26,7 +26,7 @@ use rudder_module_type::{
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
     backup::Backup, parameters::Parameters, rudder_debug, run_module,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 // Configuration
 
@@ -154,9 +154,9 @@ impl Engine {
     ) -> Result<String> {
         let template =
             match (&template_path, template_src) {
-                (_, Some(ref s)) if !s.is_empty() => mustache::compile_str(s)
-                    .with_context(|| "Failed to compile mustache template")?,
                 (Some(p), _) => mustache::compile_path(p)
+                    .with_context(|| "Failed to compile mustache template")?,
+                (_, Some(ref s)) => mustache::compile_str(s)
                     .with_context(|| "Failed to compile mustache template")?,
                 _ => unreachable!(),
             };
@@ -172,10 +172,16 @@ pub struct TemplateParameters {
     /// Output file path
     path: PathBuf,
     /// Source template path
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_pathbuf"
+    )]
     template_path: Option<PathBuf>,
     /// Inlined source template
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_string"
+    )]
     template_src: Option<String>,
     /// Templating engine
     #[serde(default)]
@@ -184,7 +190,10 @@ pub struct TemplateParameters {
     #[serde(default)]
     data: Value,
     /// Datastate file path
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_pathbuf"
+    )]
     datastate_path: Option<PathBuf>,
     /// Controls output of diffs in the report
     #[serde(default = "default_as_true")]
@@ -193,6 +202,28 @@ pub struct TemplateParameters {
 
 fn default_as_true() -> bool {
     true
+}
+
+fn deserialize_option_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: Option<String> = Option::deserialize(deserializer)?;
+    Ok(value.and_then(|s| if s.is_empty() { None } else { Some(s) }))
+}
+
+fn deserialize_option_pathbuf<'de, D>(deserializer: D) -> Result<Option<PathBuf>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: Option<PathBuf> = Option::deserialize(deserializer)?;
+    Ok(value.and_then(|p| {
+        if p.as_path().to_str().map_or(true, |s| s.is_empty()) {
+            None
+        } else {
+            Some(p)
+        }
+    }))
 }
 
 // Module
@@ -219,8 +250,19 @@ impl ModuleType0 for Template {
         let parameters: TemplateParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))?;
 
-        if let (None, None) = (parameters.template_path, parameters.template_src) {
-            bail!("Need one of 'template_path' and 'template_src'")
+        match (
+            parameters.template_path.is_some(),
+            parameters.template_src.is_some(),
+        ) {
+            (true, true) => bail!(
+                "Only one of 'template_path' and 'template_src' can be provided '{}' and '{}'",
+                parameters.template_src.unwrap(),
+                parameters.template_path.unwrap().display()
+            ),
+            (false, false) => {
+                bail!("Need one of 'template_path' and 'template_src'")
+            }
+            _ => (),
         }
 
         Ok(())
@@ -238,13 +280,13 @@ impl ModuleType0 for Template {
             (Value::Array(a), _) if !a.is_empty() => p.data,
             (Value::Number(_), _) => p.data,
             (_, Some(ref datastate_path)) => {
-                let datastate = read_to_string(datastate_path).with_context(|| {
+                let data = read_to_string(datastate_path).with_context(|| {
                     format!(
                         "Failed to read datastate file: '{}'",
                         datastate_path.to_string_lossy()
                     )
                 })?;
-                serde_json::from_str(&datastate)?
+                serde_json::from_str(&data)?
             }
             _ => bail!("Could not get datastate file"),
         };
