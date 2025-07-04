@@ -36,6 +36,7 @@ pipeline {
                         RUST_LOG = 'debug'
                     }
                     steps {
+                        sh script: './qa-test --methods', label: 'methods tests'
                         dir("policies/lib") {
                             sh script: 'cargo nextest run --retries 2', label: 'methods tests'
                         }
