@@ -77,8 +77,8 @@ bundle agent file_from_template_options(destination, engine, data, template_stri
 bundle agent rudder_actual_file_from_template_options(destination, engine, data, template_string, template_path, show_content) {
   vars:
    # "datastate" string => string_mustache("{{%-top-}}"),
-   #			unless => isvariable($(this.promiser));
-   "datastate_path" string => "/var/rudder/tmp/datastate-${this.promiser_pid}.json";
+   #                    unless => isvariable($(this.promiser));
+   "datastate_file" string => "/var/rudder/tmp/datastate-${this.promiser_pid}.json";
 
   classes:
       "pass3" expression => "pass2";
@@ -86,14 +86,14 @@ bundle agent rudder_actual_file_from_template_options(destination, engine, data,
       "pass1" expression => "any";
 
   files:
-      "${datastate_path}"
+      "${datastate_file}"
         template_method => "inline_mustache",
         create          => "true",
         edit_defaults   => no_backup,
         edit_template_string => "{{%-top-}}";
 
   template:
-    pass3::
+    pass2::
       "module_call"
         rudder_module_protocol  => "0",
         state_dir               => "/var/rudder/tmp/",
@@ -101,5 +101,13 @@ bundle agent rudder_actual_file_from_template_options(destination, engine, data,
         node_id                 => "${g.uuid}",
         agent_frequency_minutes => "${g.agent_run_interval}",
         classes                 => classes_generic("${report_data.method_id}"),
-	data                    => '{ "path": "${destination}", "template_src": "${template_string}", "template_path": "${template_path}", engine: "${engine}", "show_content": ${show_content}, "data": "${data}", "datastate_path": "${datastate_path}" }';
+        data                    => '{ "path": "${destination}", "template_src": "${template_string}", "template_path": "${template_path}", engine: "${engine}", "show_content": ${show_content}, "data": "${data}", "datastate_path": "${datastate_file}" }';
+
+  methods:
+     pass3::
+      # In non audit mode, we need to force enforce mode to remove the temp files.
+      "${report_data.method_id}" usebundle => push_dry_run_mode("false");
+      "${report_data.method_id}" usebundle => call_method("file_absent");
+      "${report_data.method_id}" usebundle => file_absent("${datastate_file}");
+      "${report_data.method_id}" usebundle => call_method_end("file_absent");
 }
