@@ -85,19 +85,16 @@ class MainCampaignService(
   private var inner: Option[CampaignScheduler] = None
 
   def deleteCampaign(c: CampaignId): ZIO[Any, RudderError, Unit] = {
-
     inner match {
       case Some(s) =>
         for {
           _ <- s.deleteCampaign(c)
-          _ <- campaignArchiver.deleteCampaign(c)(ChangeContext.newForRudder())
-          _ <- campaignRepo.delete(c)
         } yield { () }
       case None    => CampaignLogger.debug(s"Campaign system not initialized yet, campaign ${c.value} was not deleted")
     }
   }
 
-  def saveCampaign(c: Campaign):       ZIO[Any, RudderError, Campaign]        = {
+  def saveCampaign(c: Campaign):               ZIO[Any, RudderError, Campaign]        = {
     for {
       _ <- campaignRepo.save(c)
       _ <- campaignArchiver.saveCampaign(c.info.id)(ChangeContext.newForRudder())
@@ -106,16 +103,25 @@ class MainCampaignService(
       c
     }
   }
-  def queueCampaign(c: CampaignEvent): ZIO[Any, Inconsistency, CampaignEvent] = {
+  def queueCampaign(c: CampaignEvent):         ZIO[Any, Inconsistency, CampaignEvent] = {
     inner match {
       case Some(s) => s.queueCampaign(c)
       case None    => Inconsistency("not initialized yet").fail
     }
   }
+  def deleteCampaignEvent(c: CampaignEventId): ZIO[Any, RudderError, Unit]            = {
+    inner match {
+      case Some(s) =>
+        for {
+          _ <- s.deleteCampaignEvent(c)
+        } yield { () }
+      case None    => CampaignLogger.debug(s"Campaign system not initialized yet, campaign event ${c.value} was not deleted")
+    }
+  }
 
   case class CampaignScheduler(main: MainCampaignService, queue: Queue[CampaignEventId]) {
 
-    def deleteCampaign(c: CampaignId):   ZIO[Any, RudderError, Unit]      = {
+    def deleteCampaign(c: CampaignId): ZIO[Any, RudderError, Unit] = {
       for {
         campaign <- campaignRepo.get(c).notOptional(s"Campaign with id ${c.value} not found")
         events   <- repo.getWithCriteria(campaignId = Some(c))
@@ -134,7 +140,29 @@ class MainCampaignService(
         ()
       }
     }
-    def queueCampaign(c: CampaignEvent): ZIO[Any, Nothing, CampaignEvent] = {
+
+    def deleteCampaignEvent(c: CampaignEventId): ZIO[Any, RudderError, Unit]      = {
+      for {
+        eventOpt <- repo.get(c)
+        _        <- ZIO.foreachDiscard(eventOpt) { event =>
+                      for {
+                        campaign <- campaignRepo.get(event.campaignId).notOptional(s"Campaign with id ${c.value} not found")
+                        _        <-
+                          ZIO
+                            .foreachDiscard(services)(s => s.delete(main, event)(campaign).unit)
+                            .catchAll(_ => {
+                              CampaignLogger.warn(
+                                s"An error occured while cleaning campaign event ${event.id.value} during deletion of campaign ${c.value}"
+                              )
+                            })
+                      } yield ()
+                    }
+        _        <- repo.deleteEvent(Some(c))
+      } yield {
+        ()
+      }
+    }
+    def queueCampaign(c: CampaignEvent):         ZIO[Any, Nothing, CampaignEvent] = {
       for {
         _ <- queue.offer(c.id)
       } yield {

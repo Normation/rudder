@@ -115,7 +115,7 @@ class CampaignApi(
     ): LiftResponse = {
       val res = {
         for {
-          campaign <- campaignRepository.delete(CampaignId(resources))
+          campaign <- mainCampaignService.deleteCampaign(CampaignId(resources))
         } yield {
           resources
         }
@@ -185,7 +185,7 @@ class CampaignApi(
     ): LiftResponse = {
       val res = {
         for {
-          campaign <- campaignEventRepository.deleteEvent(id = Some(CampaignEventId(resources)))
+          campaign <- mainCampaignService.deleteCampaignEvent(CampaignEventId(resources))
         } yield {
           resources
         }
