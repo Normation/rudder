@@ -9,11 +9,6 @@ bundle agent Windows_long_param_names {
     "local_index"       int => ${report_data.index},
                            unless => "rudder_increment_guard";
 
-    "args"              slist => {};
-    "report_param"      string => join("_", args);
-    "full_class_prefix" string => canonify("Windows_long_param_names_${report_param}");
-    "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
   classes:
     "rudder_increment_guard" expression => "any";
 
@@ -22,11 +17,11 @@ bundle agent Windows_long_param_names {
     "pass1" expression => "any";
 
   methods:
-    "index_${local_index}_0" usebundle => call_Windows_long_param_names_d86ce2e5_d5b6_45cc_87e8_c11cca71d907("Report if condition", "This should be ReportMessage", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907", @{args}, "${class_prefix}", "This should be ReportMessage", "it_generates_properly"),
+    "index_${local_index}_0" usebundle => call_Windows_long_param_names_d86ce2e5_d5b6_45cc_87e8_c11cca71d907("Report if condition", "This should be ReportMessage", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907", @{args}, "This should be ReportMessage", "it_generates_properly"),
                                     if => "pass3";
 
 }
-bundle agent call_Windows_long_param_names_d86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_key, report_id, args, class_prefix, report_message, condition) {
+bundle agent call_Windows_long_param_names_d86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_key, report_id, args, report_message, condition) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),

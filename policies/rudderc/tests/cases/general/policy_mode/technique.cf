@@ -9,11 +9,6 @@ bundle agent test_audit {
     "local_index"       int => ${report_data.index},
                            unless => "rudder_increment_guard";
 
-    "args"              slist => {};
-    "report_param"      string => join("_", args);
-    "full_class_prefix" string => canonify("test_audit_${report_param}");
-    "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
   classes:
     "rudder_increment_guard" expression => "any";
 
@@ -22,28 +17,28 @@ bundle agent test_audit {
     "pass1" expression => "any";
 
   methods:
-    "index_${local_index}_0" usebundle => call_test_audit_46b8025a_0b06_485c_9127_50e4258ee7e6("In audit mode", "/tmp/1", "46b8025a-0b06-485c-9127-50e4258ee7e6", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
+    "index_${local_index}_0" usebundle => call_test_audit_46b8025a_0b06_485c_9127_50e4258ee7e6("In audit mode", "/tmp/1", "46b8025a-0b06-485c-9127-50e4258ee7e6", @{args}, "/tmp/1", "foobar", "true"),
                                     if => "pass3";
 
-    "index_${local_index}_1" usebundle => call_test_audit_1eedce7b_3441_4251_bdd6_706fda3ec7a8("In omit mode", "/tmp/1", "1eedce7b-3441-4251-bdd6-706fda3ec7a8", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
+    "index_${local_index}_1" usebundle => call_test_audit_1eedce7b_3441_4251_bdd6_706fda3ec7a8("In omit mode", "/tmp/1", "1eedce7b-3441-4251-bdd6-706fda3ec7a8", @{args}, "/tmp/1", "foobar", "true"),
                                     if => "pass3";
 
-    "index_${local_index}_2" usebundle => call_test_audit_dbd5ba50_8dfc_11ee_a57e_84a938c470d4("In enforce mode", "/tmp/1", "dbd5ba50-8dfc-11ee-a57e-84a938c470d4", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
+    "index_${local_index}_2" usebundle => call_test_audit_dbd5ba50_8dfc_11ee_a57e_84a938c470d4("In enforce mode", "/tmp/1", "dbd5ba50-8dfc-11ee-a57e-84a938c470d4", @{args}, "/tmp/1", "foobar", "true"),
                                     if => "pass3";
 
-    "index_${local_index}_3" usebundle => call_test_audit_1d809592_808e_4177_8351_8b7b7769af69("In default mode", "/tmp/1", "1d809592-808e-4177-8351-8b7b7769af69", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
+    "index_${local_index}_3" usebundle => call_test_audit_1d809592_808e_4177_8351_8b7b7769af69("In default mode", "/tmp/1", "1d809592-808e-4177-8351-8b7b7769af69", @{args}, "/tmp/1", "foobar", "true"),
                                     if => "pass3";
 
     "index_${local_index}_4" usebundle => push_dry_run_mode("true"),
                                     if => "pass3";
 
-    "index_${local_index}_5" usebundle => call_test_audit_ea274579_40fc_4545_b384_8d5576a7c69b("Resolve to audit", "/tmp/1", "ea274579-40fc-4545-b384-8d5576a7c69b", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
+    "index_${local_index}_5" usebundle => call_test_audit_ea274579_40fc_4545_b384_8d5576a7c69b("Resolve to audit", "/tmp/1", "ea274579-40fc-4545-b384-8d5576a7c69b", @{args}, "/tmp/1", "foobar", "true"),
                                     if => "pass3";
 
-    "index_${local_index}_6" usebundle => call_test_audit_85659b7e_968c_458c_b566_c90108c50833("Resolve to enforce", "/tmp/1", "85659b7e-968c-458c-b566-c90108c50833", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
+    "index_${local_index}_6" usebundle => call_test_audit_85659b7e_968c_458c_b566_c90108c50833("Resolve to enforce", "/tmp/1", "85659b7e-968c-458c-b566-c90108c50833", @{args}, "/tmp/1", "foobar", "true"),
                                     if => "pass3";
 
-    "index_${local_index}_7" usebundle => call_test_audit_d8def455_cd43_441f_8dba_1ebae3a29389("Resolve to audit", "/tmp/1", "d8def455-cd43-441f-8dba-1ebae3a29389", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
+    "index_${local_index}_7" usebundle => call_test_audit_d8def455_cd43_441f_8dba_1ebae3a29389("Resolve to audit", "/tmp/1", "d8def455-cd43-441f-8dba-1ebae3a29389", @{args}, "/tmp/1", "foobar", "true"),
                                     if => "pass3";
 
     "index_${local_index}_8" usebundle => pop_dry_run_mode(),
@@ -52,13 +47,13 @@ bundle agent test_audit {
     "index_${local_index}_9" usebundle => push_dry_run_mode("false"),
                                     if => "pass3";
 
-    "index_${local_index}_10" usebundle => call_test_audit_f9417d97_3a18_4db6_85c3_72e28618bff1("Resolve to audit", "/tmp/1", "f9417d97-3a18-4db6-85c3-72e28618bff1", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
+    "index_${local_index}_10" usebundle => call_test_audit_f9417d97_3a18_4db6_85c3_72e28618bff1("Resolve to audit", "/tmp/1", "f9417d97-3a18-4db6-85c3-72e28618bff1", @{args}, "/tmp/1", "foobar", "true"),
                                      if => "pass3";
 
-    "index_${local_index}_11" usebundle => call_test_audit_c4b4faa1_85e5_4922_b713_c198bf99226e("Resolve to enforce", "/tmp/1", "c4b4faa1-85e5-4922-b713-c198bf99226e", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
+    "index_${local_index}_11" usebundle => call_test_audit_c4b4faa1_85e5_4922_b713_c198bf99226e("Resolve to enforce", "/tmp/1", "c4b4faa1-85e5-4922-b713-c198bf99226e", @{args}, "/tmp/1", "foobar", "true"),
                                      if => "pass3";
 
-    "index_${local_index}_12" usebundle => call_test_audit_cce62a59_bd17_4858_ba06_6ae41f39b15a("Resolve to enforce", "/tmp/1", "cce62a59-bd17-4858-ba06-6ae41f39b15a", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
+    "index_${local_index}_12" usebundle => call_test_audit_cce62a59_bd17_4858_ba06_6ae41f39b15a("Resolve to enforce", "/tmp/1", "cce62a59-bd17-4858-ba06-6ae41f39b15a", @{args}, "/tmp/1", "foobar", "true"),
                                      if => "pass3";
 
     "index_${local_index}_13" usebundle => pop_dry_run_mode(),
@@ -70,20 +65,20 @@ bundle agent test_audit {
     "index_${local_index}_15" usebundle => push_dry_run_mode("true"),
                                      if => "pass3";
 
-    "index_${local_index}_16" usebundle => call_test_audit_0a4299dd_0902_48b2_85ee_13dfe6fc3af6("Resolve to audit", "/tmp/1", "0a4299dd-0902-48b2-85ee-13dfe6fc3af6", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
+    "index_${local_index}_16" usebundle => call_test_audit_0a4299dd_0902_48b2_85ee_13dfe6fc3af6("Resolve to audit", "/tmp/1", "0a4299dd-0902-48b2-85ee-13dfe6fc3af6", @{args}, "/tmp/1", "foobar", "true"),
                                      if => "pass3";
 
     "index_${local_index}_17" usebundle => pop_dry_run_mode(),
                                      if => "pass3";
 
-    "index_${local_index}_18" usebundle => call_test_audit_3b8352df_1329_4956_a019_bb9c072bc830("Resolve to enforce", "/tmp/1", "3b8352df-1329-4956-a019-bb9c072bc830", @{args}, "${class_prefix}", "/tmp/1", "foobar", "true"),
+    "index_${local_index}_18" usebundle => call_test_audit_3b8352df_1329_4956_a019_bb9c072bc830("Resolve to enforce", "/tmp/1", "3b8352df-1329-4956-a019-bb9c072bc830", @{args}, "/tmp/1", "foobar", "true"),
                                      if => "pass3";
 
     "index_${local_index}_19" usebundle => pop_dry_run_mode(),
                                      if => "pass3";
 
 }
-bundle agent call_test_audit_46b8025a_0b06_485c_9127_50e4258ee7e6(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+bundle agent call_test_audit_46b8025a_0b06_485c_9127_50e4258ee7e6(c_name, c_key, report_id, args, path, lines, enforce) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -101,7 +96,7 @@ bundle agent call_test_audit_46b8025a_0b06_485c_9127_50e4258ee7e6(c_name, c_key,
     "index_${local_index}_3" usebundle => pop_dry_run_mode();
 
 }
-bundle agent call_test_audit_1eedce7b_3441_4251_bdd6_706fda3ec7a8(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+bundle agent call_test_audit_1eedce7b_3441_4251_bdd6_706fda3ec7a8(c_name, c_key, report_id, args, path, lines, enforce) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -117,7 +112,7 @@ bundle agent call_test_audit_1eedce7b_3441_4251_bdd6_706fda3ec7a8(c_name, c_key,
     "index_${local_index}_1" usebundle => file_content("${path}", "${lines}", "${enforce}");
 
 }
-bundle agent call_test_audit_dbd5ba50_8dfc_11ee_a57e_84a938c470d4(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+bundle agent call_test_audit_dbd5ba50_8dfc_11ee_a57e_84a938c470d4(c_name, c_key, report_id, args, path, lines, enforce) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -135,7 +130,7 @@ bundle agent call_test_audit_dbd5ba50_8dfc_11ee_a57e_84a938c470d4(c_name, c_key,
     "index_${local_index}_3" usebundle => pop_dry_run_mode();
 
 }
-bundle agent call_test_audit_1d809592_808e_4177_8351_8b7b7769af69(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+bundle agent call_test_audit_1d809592_808e_4177_8351_8b7b7769af69(c_name, c_key, report_id, args, path, lines, enforce) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -151,7 +146,7 @@ bundle agent call_test_audit_1d809592_808e_4177_8351_8b7b7769af69(c_name, c_key,
     "index_${local_index}_1" usebundle => file_content("${path}", "${lines}", "${enforce}");
 
 }
-bundle agent call_test_audit_ea274579_40fc_4545_b384_8d5576a7c69b(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+bundle agent call_test_audit_ea274579_40fc_4545_b384_8d5576a7c69b(c_name, c_key, report_id, args, path, lines, enforce) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -169,7 +164,7 @@ bundle agent call_test_audit_ea274579_40fc_4545_b384_8d5576a7c69b(c_name, c_key,
     "index_${local_index}_3" usebundle => pop_dry_run_mode();
 
 }
-bundle agent call_test_audit_85659b7e_968c_458c_b566_c90108c50833(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+bundle agent call_test_audit_85659b7e_968c_458c_b566_c90108c50833(c_name, c_key, report_id, args, path, lines, enforce) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -187,7 +182,7 @@ bundle agent call_test_audit_85659b7e_968c_458c_b566_c90108c50833(c_name, c_key,
     "index_${local_index}_3" usebundle => pop_dry_run_mode();
 
 }
-bundle agent call_test_audit_d8def455_cd43_441f_8dba_1ebae3a29389(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+bundle agent call_test_audit_d8def455_cd43_441f_8dba_1ebae3a29389(c_name, c_key, report_id, args, path, lines, enforce) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -203,7 +198,7 @@ bundle agent call_test_audit_d8def455_cd43_441f_8dba_1ebae3a29389(c_name, c_key,
     "index_${local_index}_1" usebundle => file_content("${path}", "${lines}", "${enforce}");
 
 }
-bundle agent call_test_audit_f9417d97_3a18_4db6_85c3_72e28618bff1(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+bundle agent call_test_audit_f9417d97_3a18_4db6_85c3_72e28618bff1(c_name, c_key, report_id, args, path, lines, enforce) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -221,7 +216,7 @@ bundle agent call_test_audit_f9417d97_3a18_4db6_85c3_72e28618bff1(c_name, c_key,
     "index_${local_index}_3" usebundle => pop_dry_run_mode();
 
 }
-bundle agent call_test_audit_c4b4faa1_85e5_4922_b713_c198bf99226e(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+bundle agent call_test_audit_c4b4faa1_85e5_4922_b713_c198bf99226e(c_name, c_key, report_id, args, path, lines, enforce) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -239,7 +234,7 @@ bundle agent call_test_audit_c4b4faa1_85e5_4922_b713_c198bf99226e(c_name, c_key,
     "index_${local_index}_3" usebundle => pop_dry_run_mode();
 
 }
-bundle agent call_test_audit_cce62a59_bd17_4858_ba06_6ae41f39b15a(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+bundle agent call_test_audit_cce62a59_bd17_4858_ba06_6ae41f39b15a(c_name, c_key, report_id, args, path, lines, enforce) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -255,7 +250,7 @@ bundle agent call_test_audit_cce62a59_bd17_4858_ba06_6ae41f39b15a(c_name, c_key,
     "index_${local_index}_1" usebundle => file_content("${path}", "${lines}", "${enforce}");
 
 }
-bundle agent call_test_audit_0a4299dd_0902_48b2_85ee_13dfe6fc3af6(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+bundle agent call_test_audit_0a4299dd_0902_48b2_85ee_13dfe6fc3af6(c_name, c_key, report_id, args, path, lines, enforce) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -271,7 +266,7 @@ bundle agent call_test_audit_0a4299dd_0902_48b2_85ee_13dfe6fc3af6(c_name, c_key,
     "index_${local_index}_1" usebundle => file_content("${path}", "${lines}", "${enforce}");
 
 }
-bundle agent call_test_audit_3b8352df_1329_4956_a019_bb9c072bc830(c_name, c_key, report_id, args, class_prefix, path, lines, enforce) {
+bundle agent call_test_audit_3b8352df_1329_4956_a019_bb9c072bc830(c_name, c_key, report_id, args, path, lines, enforce) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
