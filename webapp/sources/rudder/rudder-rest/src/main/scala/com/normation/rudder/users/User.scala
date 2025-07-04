@@ -64,8 +64,8 @@ import scala.jdk.CollectionConverters.*
  */
 sealed trait RudderAccount
 object RudderAccount {
-  final case class User(login: String, password: String) extends RudderAccount
-  final case class Api(api: ApiAccount)                  extends RudderAccount
+  final case class User(login: String, password: HashedUserPassword) extends RudderAccount
+  final case class Api(api: ApiAccount)                              extends RudderAccount
 }
 
 /**
@@ -122,7 +122,7 @@ case class RudderUserDetail(
   }
 
   override val (getUsername, getPassword, getAuthorities) = account match {
-    case RudderAccount.User(login, password) => (login, password, RudderAuthType.User.grantedAuthorities)
+    case RudderAccount.User(login, password) => (login, password.exposeHash(), RudderAuthType.User.grantedAuthorities)
     case RudderAccount.Api(api)              => (api.name.value, api.token.value, RudderAuthType.Api.grantedAuthorities)
   }
   override val isAccountNonExpired                        = true
@@ -146,12 +146,14 @@ case class RudderUserDetail(
  * will be kept in session (or for API, in the request processing).
  */
 trait AuthenticatedUser {
-  def account: RudderAccount
+  def user:    Option[RudderAccount.User]
+  def account: Option[ApiAccount]
   def checkRights(auth: AuthorizationType): Boolean
   def getApiAuthz: ApiAuthorization
-  final def actor: EventActor = EventActor(account match {
-    case RudderAccount.User(login, _) => login
-    case RudderAccount.Api(api)       => api.name.value
+  final def actor: EventActor = EventActor((user, account) match {
+    case (Some(user), _)    => user.login
+    case (_, Some(account)) => account.name.value
+    case (None, None)       => "unknown"
   })
   def nodePerms:   NodeSecurityContext
 
@@ -180,9 +182,14 @@ object CurrentUser extends RequestVar[Option[RudderUserDetail]](None) with Authe
     case None    => Rights.forAuthzs(AuthorizationType.NoRights)
   }
 
-  def account: RudderAccount = this.get match {
-    case None    => RudderAccount.User("unknown", "")
-    case Some(u) => u.account
+  def account: Option[ApiAccount] = this.get match {
+    case Some(RudderUserDetail(RudderAccount.Api(apiAccount), _, _, _, _)) => Some(apiAccount)
+    case _                                                                 => None
+  }
+
+  def user: Option[RudderAccount.User] = this.get match {
+    case Some(RudderUserDetail(user: RudderAccount.User, _, _, _, _)) => Some(user)
+    case _                                                            => None
   }
 
   def getApiAuthz: ApiAuthorization = {
