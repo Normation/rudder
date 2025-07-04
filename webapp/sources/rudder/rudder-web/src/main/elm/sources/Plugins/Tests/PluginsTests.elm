@@ -25,6 +25,7 @@ pluginFuzz =
         |> andMap string
         |> andMap string
         |> andMap licenseStatusFuzzer
+        |> andMap bool
         |> andMap (list pluginCalloutFuzzer)
 
 
