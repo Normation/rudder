@@ -729,7 +729,7 @@ object UserManagementInternalApi extends Enum[UserManagementInternalApi] with Ap
   final case object SafeHashes extends UserManagementInternalApi with ZeroParam with StartsAtVersion20 {
     val z              = implicitly[Line].value
     val description    = "Get the status of password encoder being used"
-    val (action, path) = GET / "usermanagementinternal" / "safe-hashes"
+    val (action, path) = GET / "usermanagementinternal" / "safeHashes"
 
     override def dataContainer: Option[String] = None
   }
