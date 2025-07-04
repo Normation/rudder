@@ -52,6 +52,7 @@ import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.properties.ModifyGlobalParameterDiff
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.properties.NodePropertiesService
 import com.normation.rudder.repository.*
 import com.normation.rudder.repository.EventLogRepository
 import com.normation.rudder.services.user.PersonIdentService
@@ -113,6 +114,7 @@ class WoLDAPParameterRepository(
     roLDAPParameterRepository: RoLDAPParameterRepository,
     ldap:                      LDAPConnectionProvider[RwLDAPConnection],
     diffMapper:                LDAPDiffMapper,
+    propertiesService:         NodePropertiesService,
     actionLogger:              EventLogRepository,
     gitParameterArchiver:      GitParameterArchiver,
     personIdentService:        PersonIdentService,
@@ -144,6 +146,9 @@ class WoLDAPParameterRepository(
         loggedAction <- actionLogger
                           .saveAddGlobalParameter(modId, principal = actor, addDiff = diff, reason = reason)
                           .chainError("Error when logging modification as an event")
+        _            <- propertiesService
+                          .updateAll()
+                          .chainError(s"Error when updating properties after saving the global parameter '${parameter.name}'")
         autoArchive  <- ZIO.when(autoExportOnModify) {
                           for {
                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
@@ -201,6 +206,9 @@ class WoLDAPParameterRepository(
                               .saveModifyGlobalParameter(modId, principal = actor, modifyDiff = diff, reason = reason)
                               .chainError("Error when logging modification as an event")
                         }
+        _            <- propertiesService
+                          .updateAll()
+                          .chainError(s"Error when updating properties after updating the global parameter '${parameter.name}'")
         autoArchive  <- ZIO.when(autoExportOnModify && optDiff.isDefined) { // only persists if modification are present
                           for {
                             commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
@@ -247,6 +255,9 @@ class WoLDAPParameterRepository(
                            diff          = DeleteGlobalParameterDiff(oldParamEntry)
                            loggedAction <-
                              actionLogger.saveDeleteGlobalParameter(modId, principal = actor, deleteDiff = diff, reason = reason)
+                           _            <- propertiesService
+                                             .updateAll()
+                                             .chainError(s"Error when updating properties after deleting the global parameter '${parameterName}'")
                            autoArchive  <- ZIO.when(autoExportOnModify && deleted.nonEmpty) {
                                              for {
                                                commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
@@ -301,30 +312,38 @@ class WoLDAPParameterRepository(
       existingParams <- getAllGlobalParameters()
       con            <- ldap
       // ok, now that's the dangerous part
-      swapParams     <- (for {
-                          // move old params to archive branch
-                          renamed     <- con.move(rudderDit.PARAMETERS.dn, ou.dn.getParent, Some(ou.dn.getRDN))
-                          // now, create back config param branch and save rules
-                          crOu        <- con.save(rudderDit.PARAMETERS.model)
-                          savedParams <- ZIO.foreach(newParameters)(rule => saveParam(con, rule))
-                        } yield {
-                          id
-                        }).catchAll(e => { // ok, so there, we have a problem
-                          ApplicationLoggerPure.error(
-                            s"Error when importing params, trying to restore old Parameters. Error was: ${e.msg}"
-                          ) *>
-                          restore(con, existingParams).foldZIO(
-                            err =>
-                              Chained(
-                                s"Error when rollbacking corrupted import for parameters, expect other errors. Archive ID: ${id.value}",
-                                e
-                              ).fail,
-                            value => {
-                              ApplicationLoggerPure.info("Rollback parameters: ok") *>
-                              Chained("Rollbacked imported parameters to previous state", e).fail
-                            }
-                          )
-                        })
+      swapParams     <-
+        (for {
+          // move old params to archive branch
+          renamed     <- con.move(rudderDit.PARAMETERS.dn, ou.dn.getParent, Some(ou.dn.getRDN))
+          // now, create back config param branch and save rules
+          crOu        <- con.save(rudderDit.PARAMETERS.model)
+          savedParams <- ZIO.foreach(newParameters)(rule => saveParam(con, rule))
+
+          // update properties because they have likely changed
+          _ <- propertiesService
+                 .updateAll()
+                 .chainError(
+                   s"Error when updating properties after swapping global parameters '${newParameters.map(_.name).mkString(",")}'"
+                 )
+        } yield {
+          id
+        }).catchAll(e => { // ok, so there, we have a problem
+          ApplicationLoggerPure.error(
+            s"Error when importing params, trying to restore old Parameters. Error was: ${e.msg}"
+          ) *>
+          restore(con, existingParams).foldZIO(
+            err =>
+              Chained(
+                s"Error when rollbacking corrupted import for parameters, expect other errors. Archive ID: ${id.value}",
+                e
+              ).fail,
+            value => {
+              ApplicationLoggerPure.info("Rollback parameters: ok") *>
+              Chained("Rollbacked imported parameters to previous state", e).fail
+            }
+          )
+        })
     } yield {
       id
     })
