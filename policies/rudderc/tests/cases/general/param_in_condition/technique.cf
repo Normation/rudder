@@ -9,11 +9,6 @@ bundle agent param_in_condition(file) {
     "local_index"       int => ${report_data.index},
                            unless => "rudder_increment_guard";
 
-    "args"              slist => {"${file}"};
-    "report_param"      string => join("_", args);
-    "full_class_prefix" string => canonify("param_in_condition_${report_param}");
-    "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
   classes:
     "rudder_increment_guard" expression => "any";
 
@@ -22,14 +17,14 @@ bundle agent param_in_condition(file) {
     "pass1" expression => "any";
 
   methods:
-    "index_${local_index}_0" usebundle => call_param_in_condition_9e763779_9f33_44bc_ad73_1c5d5732301c("Check if a file exists", "/tmp/${file}", "9e763779-9f33-44bc-ad73-1c5d5732301c", @{args}, "${class_prefix}", "/tmp/${file}"),
+    "index_${local_index}_0" usebundle => call_param_in_condition_9e763779_9f33_44bc_ad73_1c5d5732301c("Check if a file exists", "/tmp/${file}", "9e763779-9f33-44bc-ad73-1c5d5732301c", @{args}, "/tmp/${file}"),
                                     if => "pass3";
 
-    "index_${local_index}_1" usebundle => call_param_in_condition_e8362340_dc50_4231_9b7f_748b51e9fa07("Execute only if...", "echo \"May be executed or not\"", "e8362340-dc50-4231-9b7f-748b51e9fa07", @{args}, "${class_prefix}", concat("file_check_exists__tmp_",canonify("${file}"),"_kept"), "echo \"May be executed or not\""),
+    "index_${local_index}_1" usebundle => call_param_in_condition_e8362340_dc50_4231_9b7f_748b51e9fa07("Execute only if...", "echo \"May be executed or not\"", "e8362340-dc50-4231-9b7f-748b51e9fa07", @{args}, concat("file_check_exists__tmp_",canonify("${file}"),"_kept"), "echo \"May be executed or not\""),
                                     if => "pass3";
 
 }
-bundle agent call_param_in_condition_9e763779_9f33_44bc_ad73_1c5d5732301c(c_name, c_key, report_id, args, class_prefix, path) {
+bundle agent call_param_in_condition_9e763779_9f33_44bc_ad73_1c5d5732301c(c_name, c_key, report_id, args, path) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -45,7 +40,7 @@ bundle agent call_param_in_condition_9e763779_9f33_44bc_ad73_1c5d5732301c(c_name
     "index_${local_index}_1" usebundle => file_check_exists("${path}");
 
 }
-bundle agent call_param_in_condition_e8362340_dc50_4231_9b7f_748b51e9fa07(c_name, c_key, report_id, args, class_prefix, method_call_condition, command) {
+bundle agent call_param_in_condition_e8362340_dc50_4231_9b7f_748b51e9fa07(c_name, c_key, report_id, args, method_call_condition, command) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -62,7 +57,7 @@ bundle agent call_param_in_condition_e8362340_dc50_4231_9b7f_748b51e9fa07(c_name
                                     if => "${method_call_condition}";
     "index_${local_index}_2" usebundle => _classes_noop(canonify("command_execution_${c_key}")),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'Command execution' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("command_execution_${c_key}"), canonify("command_execution_${c_key}"), @{args}),
+    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'Command execution' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("command_execution_${c_key}"), canonify("e8362340-dc50-4231-9b7f-748b51e9fa07_${report_data.directive_id}_${c_key}"), @{args}),
                                 unless => "${method_call_condition}";
 
 }
