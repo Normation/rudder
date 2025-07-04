@@ -310,8 +310,8 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     reportsDbUser = "rudder",
     reportsDbPassword = "secret",
     configurationRepository = configurationRepositoryRoot.pathAsString,
-    serverVersion = "7.0.0", // denybadclocks is runtime properties
-
+    serverVersion = "7.0.0",                // denybadclocks is runtime properties
+    PolicyServerCertificateConfig(Nil, "", false),
     getDenyBadClocks = () => Full(true),
     getSyncMethod = () => Full(Classic),
     getSyncPromises = () => Full(false),

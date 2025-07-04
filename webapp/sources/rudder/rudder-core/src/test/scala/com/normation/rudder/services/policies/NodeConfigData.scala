@@ -784,8 +784,8 @@ class TestNodeConfiguration(
     reportsDbUser = "rudder",
     reportsDbPassword = "secret",
     configurationRepository = configurationRepositoryRoot.getAbsolutePath,
-    serverVersion = "7.0.0", // denybadclocks is runtime properties
-
+    serverVersion = "7.0.0",                // denybadclocks is runtime properties
+    PolicyServerCertificateConfig("sha256//Pxjkq/Qlp02j8Q3ti3M1khEaUTL7Dxcz8sLOfGcg5rQ=" :: Nil, "", false),
     getDenyBadClocks = () => Full(true),
     getSyncMethod = () => Full(Classic),
     getSyncPromises = () => Full(false),
