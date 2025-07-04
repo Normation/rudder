@@ -56,6 +56,8 @@ import com.normation.rudder.services.policies.PropertyParserTokens.Property
 import com.normation.rudder.services.policies.PropertyParserTokens.RudderEngine
 import com.normation.rudder.services.policies.PropertyParserTokens.Token
 import com.normation.rudder.services.policies.PropertyParserTokens.UnsafeRudderVar
+import enumeratum.Enum
+import enumeratum.EnumEntry
 import java.util.regex.Pattern
 import zio.ZIO
 import zio.json.SnakeCase
