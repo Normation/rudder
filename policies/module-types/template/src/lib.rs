@@ -218,7 +218,7 @@ where
 {
     let value: Option<PathBuf> = Option::deserialize(deserializer)?;
     Ok(value.and_then(|p| {
-        if p.as_path().to_str().map_or(true, |s| s.is_empty()) {
+        if p.as_path().to_str().is_none_or(|s| s.is_empty()) {
             None
         } else {
             Some(p)
