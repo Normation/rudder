@@ -45,6 +45,7 @@ import java.util.Properties
 import javax.sql.DataSource
 import net.liftweb.common.Loggable
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeAfterAll
 import scala.io.Source
@@ -57,7 +58,7 @@ import zio.interop.catz.*
  */
 trait DBCommon extends Specification with Loggable with BeforeAfterAll {
 
-  lazy val now = DateTime.now
+  lazy val now = DateTime.now(DateTimeZone.UTC)
 
   lazy val doDatabaseConnection: Boolean = java.lang.System.getProperty("test.postgres", "").toLowerCase match {
     case "true" | "1" => true

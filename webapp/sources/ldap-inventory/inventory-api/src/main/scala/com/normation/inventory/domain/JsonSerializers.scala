@@ -39,6 +39,7 @@ package com.normation.inventory.domain
 
 import com.normation.utils.DateFormaterService
 import java.net.InetAddress
+import java.time.Instant
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormatter
 import org.joda.time.format.ISODateTimeFormat
@@ -74,9 +75,9 @@ object JsonSerializers {
   }
 
   // the update date is normalized in RFC3339, UTC, no millis
-  def parseSoftwareUpdateDateTime(d: String): Either[String, DateTime] = {
+  def parseSoftwareUpdateInstant(d: String): Either[String, Instant] = {
     try {
-      Right(JsonSerializers.softwareUpdateDateTimeFormat.parseDateTime(d))
+      Right(DateFormaterService.toInstant(JsonSerializers.softwareUpdateDateTimeFormat.parseDateTime(d)))
     } catch {
       case e: IllegalArgumentException =>
         Left(s"Error when parsing date '${d}', we expect an RFC3339, UTC no millis format. Error: ${e.getMessage}")
@@ -111,8 +112,8 @@ private object SoftwareUpdateJsonEncoders {
 private object SoftwareUpdateJsonDecoders {
   // This is a trick to avoid the warning of unused encoder and avoid exposing encoders that should be in private scope
   private object PrivateDecoders {
-    implicit val decoderDateTime: JsonDecoder[DateTime] =
-      JsonDecoder[String].mapOrFail(d => JsonSerializers.parseSoftwareUpdateDateTime(d))
+    implicit val decoderDateTime: JsonDecoder[Instant] =
+      JsonDecoder[String].mapOrFail(d => JsonSerializers.parseSoftwareUpdateInstant(d))
   }
   import PrivateDecoders.*
 

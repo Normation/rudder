@@ -93,9 +93,9 @@ class InventoryHistoryJdbcRepository(
   import com.normation.rudder.facts.nodes.NodeFactSerialisation.*
   import doobie.*
 
-  implicit val nodeAcceptRefuseEventaMeta: Meta[NodeAcceptRefuseEvent] = new Meta(pgDecoderGet, pgEncoderPut)
-  implicit val nodeDeleteEventaMeta:       Meta[NodeDeleteEvent]       = new Meta(pgDecoderGet, pgEncoderPut)
-  implicit val nodeFactMeta:               Meta[NodeFact]              = new Meta(pgDecoderGet, pgEncoderPut)
+  implicit val nodeAcceptRefuseEventMeta: Meta[NodeAcceptRefuseEvent] = new Meta(pgDecoderGet, pgEncoderPut)
+  implicit val nodeDeleteEventMeta:       Meta[NodeDeleteEvent]       = new Meta(pgDecoderGet, pgEncoderPut)
+  implicit val nodeFactMeta:              Meta[NodeFact]              = new Meta(pgDecoderGet, pgEncoderPut)
 
   implicit val lotWrite: Write[FactLog] = {
     Write[(String, NodeAcceptRefuseEvent, NodeFact)].contramap {

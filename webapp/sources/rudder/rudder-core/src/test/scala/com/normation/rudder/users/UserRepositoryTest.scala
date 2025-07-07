@@ -705,7 +705,7 @@ trait UserRepositoryTest extends Specification with Loggable {
         .runNow must containTheSameElementsAs(List("alice", "charlie", "mallory", "bob")) // william is already deleted
 
       repo
-        .purge(Nil, Some(dateInit.plusYears(1)), Nil, EventTrace(actor, DateTime.now()))
+        .purge(Nil, Some(dateInit.plusYears(1)), Nil, EventTrace(actor, DateTime.now(DateTimeZone.UTC)))
         .tap(users => errors.effectUioUnit(logger.debug(s"Users were purged: ${users}")))
         .runNow must containTheSameElementsAs(List("alice", "charlie", "mallory", "bob", "william", "xavier"))
 

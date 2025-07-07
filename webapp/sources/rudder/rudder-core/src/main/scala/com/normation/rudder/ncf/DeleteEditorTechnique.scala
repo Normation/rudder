@@ -59,7 +59,7 @@ import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueArchiver
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowLevelService
-import org.joda.time.DateTime
+import java.time.Instant
 import zio.*
 import zio.syntax.*
 
@@ -144,7 +144,7 @@ class DeleteEditorTechniqueImpl(
                                       ChangeContext(
                                         modId,
                                         committer.actor,
-                                        new DateTime(),
+                                        Instant.now(),
                                         Some(s"Deleting technique '${techniqueId.serialize}'"),
                                         None,
                                         committer.nodePerms

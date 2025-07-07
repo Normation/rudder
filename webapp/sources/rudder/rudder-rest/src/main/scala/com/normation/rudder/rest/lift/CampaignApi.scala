@@ -18,6 +18,7 @@ import net.liftweb.common.Full
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.ZIO
 import zio.syntax.*
 
@@ -131,7 +132,7 @@ class CampaignApi(
       val res = {
         for {
           campaign <- campaignRepository.get(CampaignId(resources)).notOptional(s"Campaign with id ${resources} not found")
-          newEvent <- mainCampaignService.scheduleCampaignEvent(campaign, DateTime.now())
+          newEvent <- mainCampaignService.scheduleCampaignEvent(campaign, DateTime.now(DateTimeZone.UTC))
         } yield {
           newEvent
         }

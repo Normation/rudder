@@ -79,10 +79,12 @@ import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.utils.Control.*
 import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.*
 import zio.syntax.*
 
@@ -449,7 +451,7 @@ class DirectiveApiService14(
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
       actor,
-      new DateTime(),
+      Instant.now(),
       params.reason,
       None,
       qc.nodePerms
@@ -482,7 +484,7 @@ class DirectiveApiService14(
     implicit val cc: ChangeContext = ChangeContext(
       ModificationId(uuidGen.newUuid),
       actor,
-      new DateTime(),
+      Instant.now(),
       params.reason,
       None,
       qc.nodePerms

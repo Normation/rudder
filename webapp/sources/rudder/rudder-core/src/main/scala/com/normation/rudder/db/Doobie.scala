@@ -63,6 +63,7 @@ import java.sql.SQLXML
 import javax.sql.DataSource
 import net.liftweb.common.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.postgresql.util.PGobject
 import scala.xml.Elem
 import scala.xml.XML
@@ -179,7 +180,7 @@ object Doobie {
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   implicit val DateTimeMeta: Meta[DateTime] =
-    Meta[java.sql.Timestamp].imap(ts => new DateTime(ts.getTime()))(dt => new java.sql.Timestamp(dt.getMillis))
+    Meta[java.sql.Timestamp].imap(ts => new DateTime(ts.getTime(), DateTimeZone.UTC))(dt => new java.sql.Timestamp(dt.getMillis))
 
   implicit val ReadRuleId: Get[RuleId] = {
     Get[String].map(r => {

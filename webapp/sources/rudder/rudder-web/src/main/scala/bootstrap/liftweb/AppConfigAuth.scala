@@ -61,6 +61,7 @@ import jakarta.servlet.http.HttpServletResponse
 import java.util.Collection
 import net.liftweb.common.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer
 import org.springframework.context.ApplicationContext
 import org.springframework.context.ApplicationContextAware
@@ -397,7 +398,7 @@ class AppConfigAuth extends ApplicationContextAware {
       _                   <- rootAccountUserRepo.setExistingUsers(
                                "root-account",
                                admins.keys.toList,
-                               EventTrace(com.normation.rudder.domain.eventlog.RudderEventActor, DateTime.now())
+                               EventTrace(com.normation.rudder.domain.eventlog.RudderEventActor, DateTime.now(DateTimeZone.UTC))
                              )
     } yield {
       val provider = new DaoAuthenticationProvider()
@@ -852,8 +853,8 @@ class RestAuthenticationFilter(
                   Some(ApiTokenHash.disabled()),
                   "API Account for un-authenticated API",
                   isEnabled = true,
-                  creationDate = new DateTime(0),
-                  tokenGenerationDate = DateTime.now(),
+                  creationDate = new DateTime(0, DateTimeZone.UTC),
+                  tokenGenerationDate = DateTime.now(DateTimeZone.UTC),
                   tenants = NodeSecurityContext.None
                 )
 
@@ -915,13 +916,13 @@ class RestAuthenticationFilter(
                           )
                         case ApiAccountKind.PublicApi(authz, expirationDate) =>
                           expirationDate match {
-                            case Some(date) if (DateTime.now().isAfter(date)) =>
+                            case Some(date) if (DateTime.now(DateTimeZone.UTC).isAfter(date)) =>
                               failsAuthentication(
                                 httpRequest,
                                 httpResponse,
                                 Inconsistency(s"Account with ID ${principal.id.value} is disabled")
                               )
-                            case _                                            => // no expiration date or expiration date not reached
+                            case _                                                            => // no expiration date or expiration date not reached
                               val user = RudderUserDetail(
                                 RudderAccount.Api(principal),
                                 UserStatus.Active,

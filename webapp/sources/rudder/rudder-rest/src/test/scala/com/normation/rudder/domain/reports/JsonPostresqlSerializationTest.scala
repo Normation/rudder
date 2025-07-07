@@ -46,6 +46,7 @@ import com.normation.rudder.domain.reports.ReportType.*
 import com.normation.rudder.domain.reports.RunAnalysisKind.*
 import com.normation.utils.DateFormaterService
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.*
@@ -166,7 +167,7 @@ class JsonPostresqlSerializationTest extends Specification {
     )
   }
 
-  val date0 = new DateTime(0)
+  val date0 = new DateTime(0, DateTimeZone.UTC)
   val tConfig0Start: Option[DateTime]     = DateFormaterService.parseDate("2024-01-01T01:00:00Z").toOption
   val tConfig0End:   Option[DateTime]     = None
   val lastRun0:      Option[DateTime]     = DateFormaterService.parseDate("2024-01-05T05:05:00Z").toOption

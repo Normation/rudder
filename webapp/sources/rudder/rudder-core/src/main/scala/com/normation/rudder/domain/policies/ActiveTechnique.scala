@@ -40,6 +40,7 @@ package com.normation.rudder.domain.policies
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.ldap.sdk.GeneralizedTime
+import com.normation.utils.DateFormaterService
 import org.joda.time.DateTime
 import zio.json.*
 
@@ -85,9 +86,12 @@ object AcceptationDateTime {
 
   implicit val codecDateTime: JsonCodec[DateTime] = new JsonCodec(
     JsonEncoder.string.contramap(s => GeneralizedTime(s).toString()),
-    JsonDecoder.string.mapOrFail(x =>
-      GeneralizedTime.parse(x).map(_.dateTime).toRight(s"Error when parsing '${x}' as a generalized time'")
-    )
+    JsonDecoder.string.mapOrFail(x => {
+      GeneralizedTime
+        .parse(x)
+        .map(x => DateFormaterService.toDateTime(x.instant))
+        .toRight(s"Error when parsing '${x}' as a generalized time'")
+    })
   )
 
   // we're forced to spell it

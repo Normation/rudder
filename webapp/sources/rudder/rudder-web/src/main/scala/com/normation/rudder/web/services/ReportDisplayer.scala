@@ -65,6 +65,7 @@ import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
 import zio.json.*
@@ -200,8 +201,9 @@ class ReportDisplayer(
                   // very unlikely that it will start to answer.
                   val runIntervalMinutes =
                     nodeSettings.reportingConfiguration.agentRunInterval.map(_.interval).getOrElse(defaultInterval)
-                  val minDate            = info.expectedConfigStart.getOrElse(DateTime.now()).minusMinutes(runIntervalMinutes * 2)
-                  val expiration         = info.expirationDateTime.getOrElse(DateTime.now()).plus(runIntervalMinutes * 2L)
+                  val minDate            =
+                    info.expectedConfigStart.getOrElse(DateTime.now(DateTimeZone.UTC)).minusMinutes(runIntervalMinutes * 2)
+                  val expiration         = info.expirationDateTime.getOrElse(DateTime.now(DateTimeZone.UTC)).plus(runIntervalMinutes * 2L)
 
                   if (date.isBefore(minDate)) { // most likely a disconnected node
                     s"The node was reporting on a previous configuration policy, and didn't send reports since a long time: please" +

@@ -51,6 +51,7 @@ import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
 import com.normation.rudder.web.components.popup.ExpectedPolicyPopup
 import com.normation.utils.DateFormaterService
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
@@ -59,6 +60,7 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.xml.*
 import zio.json.*
 
@@ -130,7 +132,7 @@ class AcceptNode extends DispatchSnippet with Loggable {
         ChangeContext(
           modId,
           CurrentUser.actor,
-          DateTime.now(),
+          Instant.now(),
           None,
           S.request.map(_.remoteAddr).toOption,
           CurrentUser.nodePerms
@@ -172,7 +174,7 @@ class AcceptNode extends DispatchSnippet with Loggable {
           ChangeContext(
             modId,
             CurrentUser.actor,
-            DateTime.now(),
+            Instant.now(),
             None,
             S.request.map(_.remoteAddr).toOption,
             CurrentUser.nodePerms

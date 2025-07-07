@@ -44,6 +44,7 @@ import com.normation.rudder.hooks.HookReturnCode.SystemError
 import com.normation.rudder.hooks.HookReturnCode.Warning
 import java.nio.file.attribute.PosixFilePermissions
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
@@ -60,7 +61,7 @@ import zio.{System as _, *}
 @RunWith(classOf[JUnitRunner])
 class HooksTest() extends Specification with AfterAll {
 
-  val tmp: File = File(s"/tmp/rudder-test-hook/${DateTime.now.toString(ISODateTimeFormat.dateTime())}")
+  val tmp: File = File(s"/tmp/rudder-test-hook/${DateTime.now(DateTimeZone.UTC).toString(ISODateTimeFormat.dateTime())}")
   tmp.createDirectoryIfNotExists(true)
 
   List("error10.sh", "success.sh", "warning50.sh", "echoCODE.sh", "timeout.sh", "timeout_ok.sh").foreach { i =>

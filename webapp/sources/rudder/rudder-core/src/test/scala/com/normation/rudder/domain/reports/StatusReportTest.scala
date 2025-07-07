@@ -50,6 +50,7 @@ import com.normation.rudder.services.policies.NodeConfigData
 import com.normation.rudder.services.reports.NodeStatusReportInternal
 import com.normation.rudder.services.reports.Pending
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -223,7 +224,7 @@ class StatusReportTest extends Specification {
           NodeExpectedReports(
             NodeId("n1"),
             NodeConfigId("plop"),
-            DateTime.now(),
+            DateTime.now(DateTimeZone.UTC),
             None,
             modesConfig,
             Nil,

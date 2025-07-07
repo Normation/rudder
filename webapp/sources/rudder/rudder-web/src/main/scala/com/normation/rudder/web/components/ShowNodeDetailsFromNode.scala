@@ -64,6 +64,7 @@ import com.normation.rudder.web.services.DisplayNode.showDeleteButton
 import com.normation.rudder.web.services.DisplayNodeGroupTree
 import com.normation.rudder.web.snippet.WithNonce
 import com.softwaremill.quicklens.*
+import java.time.Instant
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.S
@@ -73,6 +74,7 @@ import net.liftweb.http.js.JsExp
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.xml.NodeSeq
 
 object ShowNodeDetailsFromNode {
@@ -128,7 +130,7 @@ class ShowNodeDetailsFromNode(
                    .toBox // we can't change the state of a missing node
       newNode  = oldNode.modify(_.rudderSettings.state).setTo(nodeState)
       result  <- nodeFactRepo
-                   .save(newNode)(ChangeContext(modId, qc.actor, DateTime.now(), None, None, qc.nodePerms))
+                   .save(newNode)(ChangeContext(modId, qc.actor, Instant.now(), None, None, qc.nodePerms))
                    .toBox
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
@@ -162,7 +164,7 @@ class ShowNodeDetailsFromNode(
   def saveSchedule(nodeFact: CoreNodeFact)(schedule: AgentRunInterval): Box[Unit] = {
     val newNodeFact = nodeFact.modify(_.rudderSettings.reportingConfiguration.agentRunInterval).setTo(Some(schedule))
     val modId       = ModificationId(uuidGen.newUuid)
-    val cc          = ChangeContext(modId, CurrentUser.actor, DateTime.now(), None, None, CurrentUser.nodePerms)
+    val cc          = ChangeContext(modId, CurrentUser.actor, Instant.now(), None, None, CurrentUser.nodePerms)
 
     (for {
       _ <- nodeFactRepo.save(newNodeFact)(cc)

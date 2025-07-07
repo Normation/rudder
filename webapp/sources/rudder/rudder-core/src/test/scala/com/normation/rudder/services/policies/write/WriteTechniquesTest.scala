@@ -80,6 +80,7 @@ import net.liftweb.common.Loggable
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.io.FileLinesContent
 import org.specs2.matcher.ContentMatchers
@@ -337,7 +338,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
         Map(root.id -> rnc.nodeInfo),
         Map(root.id -> NodeConfigId("root-cfg-id")),
         globalPolicyMode,
-        DateTime.now,
+        DateTime.now(DateTimeZone.UTC),
         parallelism
       )
     }
@@ -451,7 +452,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
           Map(root.id -> getRootNodeConfig(emptyGroupLib).nodeInfo),
           Map(root.id -> NodeConfigId("root-cfg-id")),
           globalPolicyMode,
-          DateTime.now,
+          DateTime.now(DateTimeZone.UTC),
           parallelism
         )
         .openOrThrowException("Can not write template!")
@@ -477,7 +478,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
           Map(root.id -> rnc.nodeInfo),
           Map(root.id -> NodeConfigId("root-cfg-id")),
           globalPolicyMode,
-          DateTime.now,
+          DateTime.now(DateTimeZone.UTC),
           parallelism
         )
         .openOrThrowException("Can not write template!")
@@ -512,7 +513,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
         Map(root.id -> rnc.nodeInfo, cfeNode.id                -> cfeNC.nodeInfo),
         Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id")),
         globalPolicyMode,
-        DateTime.now,
+        DateTime.now(DateTimeZone.UTC),
         parallelism
       )
 
@@ -551,7 +552,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
         Map(root.id -> rnc.nodeInfo, cfeNode.id                -> cfeNC.nodeInfo),
         Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id")),
         globalPolicyMode,
-        DateTime.now,
+        DateTime.now(DateTimeZone.UTC),
         parallelism
       )
 
@@ -604,7 +605,7 @@ class WriteSystemTechniques500Test extends TechniquesTest {
         Map(root.id -> rnc.nodeInfo),
         Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-sys-bool-false-cfg-id")),
         globalPolicyMode,
-        DateTime.now,
+        DateTime.now(DateTimeZone.UTC),
         parallelism
       )
 
@@ -645,7 +646,7 @@ class WriteSystemTechniques500Test extends TechniquesTest {
         Map(root.id -> rnc.nodeInfo, cfeNode.id                -> cfeNC.nodeInfo),
         Map(root.id -> NodeConfigId("root-cfg-id"), cfeNode.id -> NodeConfigId("cfe-node-cfg-id-500")),
         globalPolicyMode,
-        DateTime.now,
+        DateTime.now(DateTimeZone.UTC),
         parallelism
       )
 
@@ -725,7 +726,7 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest {
         Map(root.id -> rnc.nodeInfo),
         Map(root.id -> NodeConfigId("root-cfg-id")),
         globalPolicyMode,
-        DateTime.now,
+        DateTime.now(DateTimeZone.UTC),
         parallelism
       )
     }
