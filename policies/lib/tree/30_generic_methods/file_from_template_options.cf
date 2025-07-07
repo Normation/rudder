@@ -1,0 +1,113 @@
+#####################################################################################
+# Copyright 2025 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File from template
+# @description Build a file from a template (MiniJinja, Jinja2, Mustache)
+# @documentation Coming soon.
+#
+# @parameter            destination Destination file (absolute path on the target node)
+# @parameter_constraint destination "allow_empty_string" : false
+# @parameter            engine Template engine (defaults to minijinja)
+# @parameter_constraint engine "allow_empty_string" : true
+# @parameter_constraint engine "select" : [ "", "minijinja", "jinja2", "mustache" ]
+# @parameter            data Data provided to the template, defaults to the global context if empty
+# @parameter_constraint data "allow_empty_string" : true
+# @parameter            template_string String containing the template to be rendered
+# @parameter_constraint template_string "allow_empty_string" : true
+# @parameter            template_path  Source file containing a template to be rendered (absolute path on the target node)
+# @parameter_constraint template_path "allow_empty_string" : true
+# @parameter            show_content Show the file content in the report (defaults to true)
+# @parameter_constraint show_content "allow_empty_string" : true
+# @parameter_constraint show_content "select" : [ "", "true", "false" ]
+#
+# @class_prefix file_from_template_options
+# @class_parameter destination
+# @agent_support = ["cfengine-community", "dsc"]
+
+promise agent template {
+  path => "/opt/rudder/bin/rudder-module-template";
+}
+
+bundle agent file_from_template_options(destination, engine, data, template_string, template_path, show_content) {
+  vars:
+      "module_file"  string => "/opt/rudder/bin/rudder-module-template";
+      "class_prefix" string => canonify("file_from_template_options_${destination}");
+
+  defaults:
+      "engine" string => "minijinja", if_match_regex => "";
+      "show_content" string => "true", if_match_regex => "";
+
+  classes:
+      "has_module"   expression => fileexists("${module_file}");
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass3.has_module::
+      "${report_data.method_id}" usebundle => call_method("rudder_actual_file_from_template_options");
+      "${report_data.method_id}" usebundle => rudder_actual_file_from_template_options("${destination}", "${engine}", "${data}", "${template_string}", "${template_path}", "${show_content}");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("rudder_actual_file_from_template_options");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${destination}", "Template rendering of ${destination}", "");
+
+    pass3.!has_module::
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${destination}", "Template module is not supported on this agent", "");
+}
+
+bundle agent rudder_actual_file_from_template_options(destination, engine, data, template_string, template_path, show_content) {
+  vars:
+   # "datastate" string => string_mustache("{{%-top-}}"),
+   #                    unless => isvariable($(this.promiser));
+   "datastate_file" string => "/var/rudder/tmp/datastate-${this.promiser_pid}.json";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  files:
+      "${datastate_file}"
+        template_method => "inline_mustache",
+        create          => "true",
+        edit_defaults   => no_backup,
+        edit_template_string => "{{%-top-}}";
+
+  methods:
+     pass3::
+      # In non audit mode, we need to force enforce mode to remove the temp files.
+      "${report_data.method_id}" usebundle => push_dry_run_mode("false");
+      "${report_data.method_id}" usebundle => call_method("file_absent");
+      "${report_data.method_id}" usebundle => file_absent("${datastate_file}");
+      "${report_data.method_id}" usebundle => call_method_end("file_absent");
+
+  template:
+    pass2::
+      "module_call"
+        rudder_module_protocol  => "0",
+        state_dir               => "/var/rudder/tmp/",
+        backup_dir              => "/var/rudder/modified-files/",
+        node_id                 => "${g.uuid}",
+        agent_frequency_minutes => "${g.agent_run_interval}",
+        classes                 => classes_generic("${report_data.method_id}"),
+        data                    => '{ "path": "${destination}", "template_src": "${template_string}", "template_path": "${template_path}", engine: "${engine}", "show_content": ${show_content}, "data": "${data}", "datastate_path": "${datastate_file}" }';
+}

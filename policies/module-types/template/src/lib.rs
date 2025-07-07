@@ -26,7 +26,7 @@ use rudder_module_type::{
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
     backup::Backup, parameters::Parameters, rudder_debug, run_module,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 // Configuration
 
@@ -172,10 +172,16 @@ pub struct TemplateParameters {
     /// Output file path
     path: PathBuf,
     /// Source template path
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_pathbuf"
+    )]
     template_path: Option<PathBuf>,
     /// Inlined source template
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_string"
+    )]
     template_src: Option<String>,
     /// Templating engine
     #[serde(default)]
@@ -183,6 +189,12 @@ pub struct TemplateParameters {
     /// Data to use for templating
     #[serde(default)]
     data: Value,
+    /// Datastate file path
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_pathbuf"
+    )]
+    datastate_path: Option<PathBuf>,
     /// Controls output of diffs in the report
     #[serde(default = "default_as_true")]
     show_content: bool,
@@ -190,6 +202,28 @@ pub struct TemplateParameters {
 
 fn default_as_true() -> bool {
     true
+}
+
+fn deserialize_option_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: Option<String> = Option::deserialize(deserializer)?;
+    Ok(value.and_then(|s| if s.is_empty() { None } else { Some(s) }))
+}
+
+fn deserialize_option_pathbuf<'de, D>(deserializer: D) -> Result<Option<PathBuf>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: Option<PathBuf> = Option::deserialize(deserializer)?;
+    Ok(value.and_then(|p| {
+        if p.as_path().to_str().is_none_or(|s| s.is_empty()) {
+            None
+        } else {
+            Some(p)
+        }
+    }))
 }
 
 // Module
@@ -220,7 +254,11 @@ impl ModuleType0 for Template {
             parameters.template_path.is_some(),
             parameters.template_src.is_some(),
         ) {
-            (true, true) => bail!("Only one of 'template_path' and 'template_src' can be provided"),
+            (true, true) => bail!(
+                "Only one of 'template_path' and 'template_src' can be provided '{}' and '{}'",
+                parameters.template_src.unwrap(),
+                parameters.template_path.unwrap().display()
+            ),
             (false, false) => {
                 bail!("Need one of 'template_path' and 'template_src'")
             }
@@ -236,12 +274,27 @@ impl ModuleType0 for Template {
         let output_file = &p.path;
         let output_file_d = output_file.display();
 
-        let output = match p.engine {
-            Engine::Mustache => {
-                Engine::mustache(p.template_path.as_deref(), p.template_src, p.data)?
+        let data = match p.data.clone() {
+            Value::String(s) if s.is_empty() => {
+                if let Some(datastate_path) = p.datastate_path {
+                    let data = read_to_string(&datastate_path).with_context(|| {
+                        format!(
+                            "Failed to read datastate file: '{}'",
+                            datastate_path.to_string_lossy()
+                        )
+                    })?;
+                    serde_json::from_str(&data)?
+                } else {
+                    bail!("Could not get datastate file")
+                }
             }
+            v => v,
+        };
+
+        let output = match p.engine {
+            Engine::Mustache => Engine::mustache(p.template_path.as_deref(), p.template_src, data)?,
             Engine::Minijinja => {
-                Engine::minijinja(p.template_path.as_deref(), p.template_src, p.data)?
+                Engine::minijinja(p.template_path.as_deref(), p.template_src, data)?
             }
             Engine::Jinja2 => {
                 // Only detect if necessary
@@ -257,7 +310,7 @@ impl ModuleType0 for Template {
                 Engine::jinja2(
                     p.template_path.as_deref(),
                     p.template_src,
-                    p.data,
+                    data,
                     parameters.temporary_dir.as_path(),
                     python_bin,
                 )?
