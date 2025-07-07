@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name File from template
+# @name File from CFEngine template
 # @description Build a file from a legacy CFEngine template
 # @deprecated This method uses CFEngine's templating which is deprecated and not portable across agents.
 # Please use [file_from_template_mustache](#_file_from_template_mustache) or [file_from_template_jinja2](#_file_from_template_jinja2) instead.
