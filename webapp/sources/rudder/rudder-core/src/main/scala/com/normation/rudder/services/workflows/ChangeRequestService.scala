@@ -53,6 +53,7 @@ import com.normation.rudder.domain.properties.ChangeRequestGlobalParameterDiff
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.workflows.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 
 /**
  * A service that handle all the logic about how
@@ -80,7 +81,7 @@ object ChangeRequestService {
     }
     val change        = DirectiveChange(
       initialState = initialState,
-      firstChange = DirectiveChangeItem(actor, DateTime.now, reason, diff),
+      firstChange = DirectiveChangeItem(actor, DateTime.now(DateTimeZone.UTC), reason, diff),
       Seq()
     )
     val changeRequest = ConfigurationChangeRequest(
@@ -107,7 +108,7 @@ object ChangeRequestService {
     val change = RuleChanges(
       RuleChange(
         Some(baseRule),
-        RuleChangeItem(actor, DateTime.now, reason, ModifyToRuleDiff(finalRule)),
+        RuleChangeItem(actor, DateTime.now(DateTimeZone.UTC), reason, ModifyToRuleDiff(finalRule)),
         Seq()
       ),
       Seq()
@@ -136,7 +137,7 @@ object ChangeRequestService {
 
     val change        = DirectiveChange(
       initialState = initialState,
-      firstChange = DirectiveChangeItem(actor, DateTime.now, reason, diff),
+      firstChange = DirectiveChangeItem(actor, DateTime.now(DateTimeZone.UTC), reason, diff),
       Seq()
     )
     val rulesChanges  = (rulesToUpdate zip updatedRules).map(r => rulechange(r._1, r._2, actor, reason)).toMap
@@ -192,7 +193,7 @@ object ChangeRequestService {
   ): ChangeRequest = {
     val change        = RuleChange(
       initialState = originalRule,
-      firstChange = RuleChangeItem(actor, DateTime.now, reason, diff),
+      firstChange = RuleChangeItem(actor, DateTime.now(DateTimeZone.UTC), reason, diff),
       Seq()
     )
     val changeRequest = ConfigurationChangeRequest(
@@ -223,7 +224,7 @@ object ChangeRequestService {
 
     val change        = NodeGroupChange(
       initialState = originalNodeGroup,
-      firstChange = NodeGroupChangeItem(actor, DateTime.now, reason, diff),
+      firstChange = NodeGroupChangeItem(actor, DateTime.now(DateTimeZone.UTC), reason, diff),
       Seq()
     )
     val changeRequest = ConfigurationChangeRequest(
@@ -253,7 +254,7 @@ object ChangeRequestService {
   ): ChangeRequest = {
     val change        = GlobalParameterChange(
       initialState = originalGlobalParam,
-      firstChange = GlobalParameterChangeItem(actor, DateTime.now, reason, diff),
+      firstChange = GlobalParameterChangeItem(actor, DateTime.now(DateTimeZone.UTC), reason, diff),
       Seq()
     )
     val changeRequest = ConfigurationChangeRequest(

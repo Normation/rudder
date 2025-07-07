@@ -51,6 +51,7 @@ import java.util.concurrent.TimeUnit
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.filefilter.TrueFileFilter
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.annotation.unused
 import scala.concurrent.ExecutionContext
 import zio.*
@@ -358,7 +359,7 @@ class CheckExistingInventoryFilesImpl(
 ) extends CheckExistingInventoryFiles {
 
   def processOldFiles(files: List[File]): UIO[Unit] = {
-    val now           = DateTime.now()
+    val now           = DateTime.now(DateTimeZone.UTC)
     val purgeTime     = now.minusMillis(purgeAfter.toMillis.toInt)
     val orphanTime    = now.minusMillis(waitingSignatureTime.toMillis.toInt)
     val filteredFiles = filterFiles(purgeTime, orphanTime, files)
@@ -459,7 +460,7 @@ class CheckExistingInventoryFilesImpl(
     import scala.jdk.CollectionConverters.*
     (for {
       // if that fails, just exit
-      ageLimit <- IOResult.attempt(DateTime.now().minusMillis(d.toMillis.toInt))
+      ageLimit <- IOResult.attempt(DateTime.now(DateTimeZone.UTC).minusMillis(d.toMillis.toInt))
       filter    = (f: File) => {
                     if (
                       f.exists && InventoryProcessingUtils

@@ -23,7 +23,7 @@ package com.normation.eventlog
 import com.normation.rudder.facts.nodes.ChangeContext
 import com.normation.utils.StringUuidGeneratorImpl
 import io.scalaland.chimney.Transformer
-import org.joda.time.DateTime
+import java.time.Instant
 import scala.xml.*
 
 final case class EventActor(name: String) extends AnyVal
@@ -97,7 +97,7 @@ final case class EventLogDetails(
     val id:             Option[Int] = None,
     val modificationId: Option[ModificationId],
     val principal:      EventActor,
-    val creationDate:   DateTime = DateTime.now(),
+    val creationDate:   Instant = Instant.now(),
     val cause:          Option[Int] = None,
     val severity:       Int = 100,
     val reason:         Option[String],
@@ -136,7 +136,7 @@ trait EventLog {
 
   def principal: EventActor = eventDetails.principal
 
-  def creationDate: DateTime = eventDetails.creationDate
+  def creationDate: Instant = eventDetails.creationDate
 
   /**
    * When we create the EventLog, it usually shouldn't have an id, so the cause cannot be set

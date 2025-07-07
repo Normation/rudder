@@ -58,6 +58,7 @@ import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.treewalk.filter.PathFilter
 import org.eclipse.jgit.treewalk.filter.TreeFilter
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import zio.*
 import zio.syntax.*
 
@@ -150,7 +151,7 @@ object GitFindUtils extends NamedZioLogger {
       ZIO.foreach(git.log().addPath(path).call().asScala) { commit =>
         RevisionInfo(
           Revision(commit.getId.getName),
-          new DateTime(commit.getCommitTime.toLong * 1000),
+          new DateTime(commit.getCommitTime.toLong * 1000, DateTimeZone.UTC),
           commit.getAuthorIdent.getName,
           commit.getFullMessage
         ).succeed

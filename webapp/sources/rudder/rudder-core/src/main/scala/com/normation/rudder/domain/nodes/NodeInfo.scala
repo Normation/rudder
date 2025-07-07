@@ -48,12 +48,12 @@ import java.security.KeyFactory
 import java.security.MessageDigest
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.X509EncodedKeySpec
+import java.time.Instant
 import net.liftweb.common.*
 import org.apache.commons.codec.binary.Base64
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
 import org.bouncycastle.util.encoders.Hex
-import org.joda.time.DateTime
 import zio.*
 import zio.syntax.*
 
@@ -94,7 +94,7 @@ final case class NodeInfo(
     machine:                       Option[MachineInfo],
     osDetails:                     OsDetails,
     ips:                           List[String],
-    inventoryDate:                 DateTime,
+    inventoryDate:                 Instant,
     keyStatus:                     KeyStatus,
     agentsName:                    Seq[AgentInfo],
     policyServerId:                NodeId,

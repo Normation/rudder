@@ -287,7 +287,7 @@ class ComputeNodeStatusReportServiceImpl(
       _       <- ReportLoggerPure.Cache.trace(
                    s"Reports to save: ${newReports.map { case (id, r) => s"${id.value}: ${r.runInfo}" }.mkString("\n  ")}"
                  )
-      kept    <- updateKeepCompliance(new DateTime(now), newReports)
+      kept    <- updateKeepCompliance(new DateTime(now, DateTimeZone.UTC), newReports)
       updated <- nsrRepo.saveNodeStatusReports(kept)(ChangeContext.newForRudder())
       // exec hooks
       hooks   <- hooksRef.get
@@ -594,7 +594,7 @@ class FindNewNodeStatusReportsImpl(
       t3                <- currentTimeMillis
       _                 <- TimingDebugLoggerPure.trace(s"Compliance: get Node Config Id Infos: ${t3 - t2}ms")
     } yield {
-      ExecutionBatch.computeNodesRunInfo(runs, currentConfigs, nodeConfigIdInfos, DateTime.now())
+      ExecutionBatch.computeNodesRunInfo(runs, currentConfigs, nodeConfigIdInfos, DateTime.now(DateTimeZone.UTC))
     }
   }
 

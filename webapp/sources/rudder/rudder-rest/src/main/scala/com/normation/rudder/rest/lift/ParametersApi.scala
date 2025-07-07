@@ -60,9 +60,9 @@ import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowLevelService
 import com.normation.utils.StringUuidGenerator
+import java.time.Instant
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import org.joda.time.DateTime
 import zio.syntax.*
 
 class ParameterApi(
@@ -168,7 +168,7 @@ class ParameterApiService14(
       actor:     EventActor
   )(implicit qc: QueryContext): IOResult[JRGlobalParameter] = {
     implicit val cc: ChangeContext =
-      ChangeContext(ModificationId(uuidGen.newUuid), actor, new DateTime(), params.reason, None, qc.nodePerms)
+      ChangeContext(ModificationId(uuidGen.newUuid), actor, Instant.now(), params.reason, None, qc.nodePerms)
     for {
       workflow <- workflowLevelService.getForGlobalParam(actor, change)
       cr        = ChangeRequestService.createChangeRequestFromGlobalParameter(

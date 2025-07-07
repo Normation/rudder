@@ -51,6 +51,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import java.io.IOException
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.filter.OncePerRequestFilter
 import zio.*
@@ -121,7 +122,7 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
                       _ => {
                         userRepository.logCloseSession(
                           user.getUsername,
-                          DateTime.now,
+                          DateTime.now(DateTimeZone.UTC),
                           endSessionReason
                         ) *>
                         ApplicationLoggerPure.info(

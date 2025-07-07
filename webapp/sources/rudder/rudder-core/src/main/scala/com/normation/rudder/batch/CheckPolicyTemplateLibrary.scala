@@ -51,6 +51,7 @@ import net.liftweb.actor.SpecializedLiftActor
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 
 final case class StartLibUpdate(actor: EventActor)
@@ -116,7 +117,7 @@ class CheckTechniqueLibrary(
         policyPackageUpdater.update(
           ModificationId(uuidGen.newUuid),
           actor,
-          Some(s"Automatic batch update at ${DateTime.now.toString(ISODateTimeFormat.basicDateTime())}")
+          Some(s"Automatic batch update at ${DateTime.now(DateTimeZone.UTC).toString(ISODateTimeFormat.basicDateTime())}")
         ) match {
           case Full(t) =>
             logger.trace(s"***** udpate successful for ${t.size} techniques")

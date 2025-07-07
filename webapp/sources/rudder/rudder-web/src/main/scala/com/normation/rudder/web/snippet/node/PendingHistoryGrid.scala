@@ -140,8 +140,8 @@ object PendingHistoryGrid extends Loggable {
       ("tr [jsuuid]" #> jsuuid &
       "tr [serveruuid]" #> details.nodeId.value &
       "tr [kind]" #> status.toLowerCase &
-      "tr [inventory]" #> DateFormaterService.serialize(event.creationDate) &
-      ".date *" #> DateFormaterService.getDisplayDate(event.creationDate) &
+      "tr [inventory]" #> DateFormaterService.serializeInstant(event.creationDate) &
+      ".date *" #> DateFormaterService.getDisplayDate(DateFormaterService.toDateTime(event.creationDate)) &
       ".name *" #> details.hostname &
       ".os *" #> details.fullOsName &
       ".state *" #> status.capitalize &
@@ -245,16 +245,22 @@ object PendingHistoryGrid extends Loggable {
     }
   }
 
+  import com.normation.rudder.domain.logger.ApplicationLoggerPure
+  val result: Either[String, Boolean] = Left("plop")
+  result.left
+    .map(e => ApplicationLoggerPure.Auth.logEffect.warn(s"Error while computing Argon2 hash: ${e}"))
+    .getOrElse(false)
+
   def displayIfDeleted(id: NodeId, lastInventoryDate: DateTime, deletedNodes: Map[NodeId, Seq[EventLog]]): NodeSeq = {
     // only take events that could have delete that inventory, as we set the default value to an empty sequence, there's no null here with the apply on the map
-    val effectiveEvents = deletedNodes(id).filter(_.creationDate.isAfter(lastInventoryDate))
+    val effectiveEvents = deletedNodes(id).filter(_.creationDate.isAfter(DateFormaterService.toInstant(lastInventoryDate)))
     // sort those events by date, to take the closer deletion date from the inventory date (head of the list)
     effectiveEvents.sortWith((ev1, ev2) => ev1.creationDate.isBefore(ev2.creationDate)).headOption match {
       case Some(deleted) =>
         <div style="padding: 10px 15px 0">
           <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"></i>
           <h3> {
-          s"This node was deleted on ${DateFormaterService.getDisplayDate(deleted.creationDate)} by ${deleted.principal.name}"
+          s"This node was deleted on ${DateFormaterService.getDisplayDate(DateFormaterService.toDateTime(deleted.creationDate))} by ${deleted.principal.name}"
         }</h3>
         </div>
       case None          => NodeSeq.Empty

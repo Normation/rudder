@@ -37,6 +37,7 @@
 
 package com.normation.inventory.domain
 
+import java.time.Instant
 import org.joda.time.DateTime
 
 final case class License(
@@ -45,7 +46,7 @@ final case class License(
     productId:      Option[String] = None,
     productKey:     Option[String] = None,
     oem:            Option[String] = None,
-    expirationDate: Option[DateTime] = None
+    expirationDate: Option[Instant] = None
 )
 
 final case class Software(

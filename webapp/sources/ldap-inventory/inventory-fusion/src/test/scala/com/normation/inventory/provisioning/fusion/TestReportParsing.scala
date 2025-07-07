@@ -351,7 +351,7 @@ class TestInventoryParsing extends Specification with Loggable {
             source = Some("security-backport"),
             Some("Local privilege escalation in pkexec due to incorrect handling of argument vector (CVE-2021-4034)"),
             Some(SoftwareUpdateSeverity.Low),
-            JsonSerializers.parseSoftwareUpdateDateTime("2022-01-26T00:00:00Z").toOption,
+            JsonSerializers.parseSoftwareUpdateInstant("2022-01-26T00:00:00Z").toOption,
             Some(List("RHSA-2020-4566", "CVE-2021-4034"))
           )
         )

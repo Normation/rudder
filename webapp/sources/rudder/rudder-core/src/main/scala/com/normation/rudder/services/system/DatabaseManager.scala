@@ -42,6 +42,7 @@ import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.utils.Control
 import net.liftweb.common.*
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import scala.concurrent.duration.Duration
 
 sealed trait DeleteCommand {
@@ -99,7 +100,7 @@ class DatabaseManagerImpl(
   }
 
   override def deleteLogReports(since: Duration): Box[Int] = {
-    val date = DateTime.now().minus(since.toMillis)
+    val date = DateTime.now(DateTimeZone.UTC).minus(since.toMillis)
     reportsRepository.deleteLogReports(date) ?~! "An error occurred while deleting log reports"
   }
 }

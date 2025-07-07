@@ -77,13 +77,14 @@ import com.normation.rudder.reports.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.*
+import com.normation.utils.DateFormaterService
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
 import io.scalaland.chimney.PartialTransformer
 import io.scalaland.chimney.partial
 import io.scalaland.chimney.partial.syntax.*
 import io.scalaland.chimney.syntax.*
-import org.joda.time.DateTime
+import java.time.Instant
 import scala.annotation.nowarn
 import zio.*
 import zio.json.*
@@ -190,7 +191,7 @@ class LDAPEntityMapper(
           },
           e.getAsBoolean(A_IS_SYSTEM).getOrElse(false),
           e.isA(OC_POLICY_SERVER_NODE),
-          date.dateTime,
+          date.instant,
           ReportingConfiguration(
             agentRunInterval,
             heartbeatConf,
@@ -257,7 +258,7 @@ class LDAPEntityMapper(
                     inventoryEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false),
                     isPolicyServer = false, // we don't know anymore if it was a policy server
 
-                    creationDate = new DateTime(0), // we don't know anymore the acceptation date
+                    creationDate = Instant.ofEpochMilli(0), // we don't know anymore the acceptation date
 
                     ReportingConfiguration(None, None, None), // we don't know anymore agent run frequency
 
@@ -341,7 +342,7 @@ class LDAPEntityMapper(
       }
 
       // fetch the inventory datetime of the object
-      val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) map (_.dateTime) getOrElse (DateTime.now)
+      val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE).map(_.instant).getOrElse(Instant.now)
       NodeInfo(
         node.copy(properties = overrideProperties(node.id, node.properties, properties.toList.flatten)),
         inventoryEntry(A_HOSTNAME).getOrElse(""),
@@ -1011,7 +1012,7 @@ class LDAPEntityMapper(
             warnOnIgnoreAuthz()
             ApiAccountKind.User
           case ApiAccountType.PublicApi =>
-            ApiAccountKind.PublicApi(authz, expirationDate.map(_.dateTime))
+            ApiAccountKind.PublicApi(authz, expirationDate.map(x => DateFormaterService.toDateTime(x.instant)))
         }
 
         // as of 8.3, we disable an API account with token version < 2
@@ -1026,8 +1027,8 @@ class LDAPEntityMapper(
           token,
           description,
           isEnabledAndVersionOk,
-          creationDatetime.dateTime,
-          tokenCreationDatetime.dateTime,
+          DateFormaterService.toDateTime(creationDatetime.instant),
+          DateFormaterService.toDateTime(tokenCreationDatetime.instant),
           tenants
         )
       }

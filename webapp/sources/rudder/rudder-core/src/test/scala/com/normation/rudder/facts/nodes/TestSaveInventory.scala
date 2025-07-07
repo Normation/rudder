@@ -75,6 +75,7 @@ import java.security.Security
 import org.apache.commons.io.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.junit.runner.*
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.*
@@ -429,7 +430,7 @@ trait TestSaveInventory extends Specification with BeforeAfterAll {
 
   implicit def stringToNodeId(id: String): NodeId = NodeId(id)
 
-  val basePath: String = s"/tmp/test-rudder-inventory/${DateFormaterService.gitTagFormat.print(DateTime.now())}"
+  val basePath: String = s"/tmp/test-rudder-inventory/${DateFormaterService.gitTagFormat.print(DateTime.now(DateTimeZone.UTC))}"
 
   val INVENTORY_ROOT_DIR:     String = basePath + "/inventories"
   val INVENTORY_DIR_INCOMING: String = INVENTORY_ROOT_DIR + "/incoming"

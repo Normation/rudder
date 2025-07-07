@@ -56,6 +56,7 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.services.user.PersonIdentService
 import com.unboundid.ldif.LDIFChangeRecord
 import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 import org.joda.time.format.ISODateTimeFormat
 import zio.*
 import zio.syntax.*
@@ -293,7 +294,7 @@ class WoLDAPParameterRepository(
 
     ///// actual code for swapRules /////
 
-    val id = ParameterArchiveId((DateTime.now()).toString(ISODateTimeFormat.dateTime))
+    val id = ParameterArchiveId((DateTime.now(DateTimeZone.UTC)).toString(ISODateTimeFormat.dateTime))
     val ou = rudderDit.ARCHIVES.parameterModel(id)
 
     paramMutex.writeLock(for {
