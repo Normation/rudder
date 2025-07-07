@@ -126,6 +126,7 @@ impl OsRelease {
         Ok(OsRelease::from_iter(file.lines().map_while(Result::ok)))
     }
 
+    #[allow(dead_code)]
     pub fn id_like(&self) -> Vec<&str> {
         self.id_like.split_whitespace().collect()
     }

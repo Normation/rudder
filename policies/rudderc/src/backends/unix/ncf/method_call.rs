@@ -98,7 +98,7 @@ pub fn method_call(
     let pop_policy_mode = dry_run_mode::pop_policy_mode(m.policy_mode_override);
     let incall_condition = "${method_call_condition}".to_string();
     let very_unique = &format!("{}_${{report_data.directive_id}}_${{c_key}}", m.id.as_ref());
-    let c_very_unique = format!("canonify(\"{}\")", very_unique);
+    let c_very_unique = format!("canonify(\"{very_unique}\")");
 
     let mut promises = match (&condition, is_supported) {
         (Condition::Expression(_), true) => vec![
