@@ -274,21 +274,21 @@ impl ModuleType0 for Template {
         let output_file = &p.path;
         let output_file_d = output_file.display();
 
-        let data = match (p.data.clone(), p.datastate_path) {
-            (Value::String(s), _) if !s.is_empty() => p.data,
-            (Value::Object(o), _) if !o.is_empty() => p.data,
-            (Value::Array(a), _) if !a.is_empty() => p.data,
-            (Value::Number(_), _) => p.data,
-            (_, Some(ref datastate_path)) => {
-                let data = read_to_string(datastate_path).with_context(|| {
-                    format!(
-                        "Failed to read datastate file: '{}'",
-                        datastate_path.to_string_lossy()
-                    )
-                })?;
-                serde_json::from_str(&data)?
+        let data = match p.data.clone() {
+            Value::String(s) if s.is_empty() => {
+                if let Some(datastate_path) = p.datastate_path {
+                    let data = read_to_string(&datastate_path).with_context(|| {
+                        format!(
+                            "Failed to read datastate file: '{}'",
+                            datastate_path.to_string_lossy()
+                        )
+                    })?;
+                    serde_json::from_str(&data)?
+                } else {
+                    bail!("Could not get datastate file")
+                }
             }
-            _ => bail!("Could not get datastate file"),
+            v => v,
         };
 
         let output = match p.engine {
