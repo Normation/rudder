@@ -160,10 +160,7 @@ findNotSelectablePlugins plugins =
     let
         notSelectable { installStatus, licenseStatus } =
             case ( installStatus, licenseStatus ) of
-                ( Uninstalled, ExpiredLicense _ ) ->
-                    Just NotSelectable
-
-                ( Uninstalled, MissingLicense _ ) ->
+                ( Uninstalled, InvalidLicense _ ) ->
                     Just NotSelectable
 
                 _ ->
