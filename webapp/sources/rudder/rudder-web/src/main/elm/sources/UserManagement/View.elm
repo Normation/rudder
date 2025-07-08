@@ -5,7 +5,7 @@ import UserManagement.ApiCalls exposing (deleteUser)
 import UserManagement.DataTypes exposing (..)
 import Dict exposing (Dict, keys)
 import Html exposing (..)
-import Html.Attributes exposing (attribute, class, disabled, for, href, id, placeholder, required, style, tabindex, type_, value, colspan, checked, title)
+import Html.Attributes exposing (attribute, checked, class, colspan, disabled, for, href, id, placeholder, required, style, tabindex, target, title, type_, value)
 import Html.Events exposing (onClick, onInput, onCheck)
 import List
 import List.Extra
@@ -599,6 +599,7 @@ displayUsersConf model =
                         , lstOfExtProviders
                         ]
                     ]
+                , displaySafeHashesStatus model
                 ]
             ]
             , div [ class "one-col-main" ]
@@ -884,6 +885,27 @@ displayUsersTable model users =
         List.map (\u -> trUser u ) users
       )
     ]
+
+displaySafeHashesStatus : Model -> Html Msg
+displaySafeHashesStatus { safeHashes } =
+    if safeHashes then
+        text ""
+
+    else
+        div [ class "callout-fade callout-danger" ]
+        [ p [] [ i [ class "me-1 fa fa-warning" ] [], text "Your configuration allows unsafe hashes, which will be removed in an upcoming version of Rudder." ]
+        , p []
+          [ text "You should migrate all user passwords and set "
+          , code [] [ text "unsafe-hashes=\"false\""]
+          , text " in the users configuration file."
+          ]
+        , p []
+          [ text "See "
+          , a [ href "/rudder-doc/reference/current/administration/users.html#_passwords", target "_blank" ] []
+          , text "."
+          ]
+        ]
+
 
 thClass : TableFilters -> SortBy -> String
 thClass tableFilters sortBy =
