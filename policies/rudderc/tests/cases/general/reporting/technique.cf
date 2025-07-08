@@ -59,9 +59,9 @@ bundle agent call_reporting_b86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_key, 
     "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => package_present("${name}", "${version}", "${architecture}", "${provider}"),
                                              if => "${method_call_condition}";
-    "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => _classes_noop(canonify("package_present_${c_key}")),
+    "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => _classes_noop(canonify("${class_prefix}_package_present_${c_key}")),
                                          unless => "${method_call_condition}";
-    "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => log_rudder("Skipping method 'Package present' with key parameter 'htop' since condition 'debian' is not reached", "htop", canonify("package_present_${c_key}"), canonify("package_present_${c_key}"), @{args}),
+    "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => log_rudder("Skipping method 'Package present' with key parameter 'htop' since condition 'debian' is not reached", "htop", canonify("${class_prefix}_package_present_${c_key}"), canonify("${class_prefix}_package_present_${c_key}"), @{args}),
                                          unless => "${method_call_condition}";
 
 }
