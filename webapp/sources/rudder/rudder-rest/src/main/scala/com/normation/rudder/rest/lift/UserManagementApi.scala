@@ -73,6 +73,7 @@ import com.normation.rudder.users.JsonUpdatedUserInfo
 import com.normation.rudder.users.JsonUser
 import com.normation.rudder.users.JsonUserFormData
 import com.normation.rudder.users.RudderAccount
+import com.normation.rudder.users.RudderPasswordEncoder.SecurityLevel
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.users.Serialisation.*
 import com.normation.rudder.users.UpdateUserFile
@@ -94,9 +95,7 @@ import zio.ZIO
 import zio.syntax.*
 
 /*
- * This file contains the internal API used to discuss with the JS application.
- *
- * It gives the list of currently configured authentication backends.
+ * This file contains the public API for user management, which also serves for the user management page
  */
 sealed trait UserManagementApi extends EnumEntry with EndpointSchema with GeneralApi with SortIndex
 
@@ -731,4 +730,51 @@ object UserManagementApiImpl {
   // To filter out custom permissions of form "anon[..]" and take the aliased roles of form "alias(role)" (see toDisplayNames)
   private val customPermissionRegex  = """^anon\[(.*)\]$""".r
   private val aliasedPermissionRegex = """^.*\((.*)\)$""".r
+}
+
+/**
+ * The internal API
+ */
+sealed trait UserManagementInternalApi extends EnumEntry with EndpointSchema with InternalApi with SortIndex
+
+object UserManagementInternalApi extends Enum[UserManagementInternalApi] with ApiModuleProvider[UserManagementInternalApi] {
+
+  final case object SafeHashes extends UserManagementInternalApi with ZeroParam with StartsAtVersion20 {
+    val z              = implicitly[Line].value
+    val description    = "Get the status of password encoder being used"
+    val (action, path) = GET / "usermanagementinternal" / "safeHashes"
+
+    override def dataContainer: Option[String] = None
+
+    override def authz: List[AuthorizationType] = AuthorizationType.Administration.Write :: Nil
+  }
+
+  def endpoints = values.toList.sortBy(_.z)
+  def values    = findValues
+
+}
+
+class UserManagementInternalApiImpl(
+    fileUserDetailListProvider: FileUserDetailListProvider
+) extends LiftApiModuleProvider[UserManagementInternalApi] {
+
+  override def schemas: ApiModuleProvider[UserManagementInternalApi] = UserManagementInternalApi
+
+  override def getLiftEndpoints(): List[LiftApiModule] = {
+    UserManagementInternalApi.endpoints.map { case UserManagementInternalApi.SafeHashes => SafeHashes }
+  }
+
+  object SafeHashes extends LiftApiModule0 {
+    override val schema: UserManagementInternalApi.SafeHashes.type = UserManagementInternalApi.SafeHashes
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val prettify: Boolean = params.prettify
+
+      val value = fileUserDetailListProvider.authConfig.encoder.securityLevel match {
+        case SecurityLevel.Modern => true
+        case SecurityLevel.Legacy => false
+      }
+      RudderJsonResponse.generic.success(value)
+    }
+  }
 }

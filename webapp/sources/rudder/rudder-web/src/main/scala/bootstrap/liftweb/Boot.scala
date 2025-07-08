@@ -819,7 +819,7 @@ class Boot extends Loggable {
     def accessMenu = {
       (Menu(MenuUtils.accessMenu, (<i class="fa fa-user"></i><span>Users &amp; access</span>): NodeSeq) /
       "secure" / "access" / "index" >> needPerms(Authz.Administration.Write)).submenus(
-        Menu("810-users", <span>User management</span>) / "secure" / "access" / "userManagement"
+        Menu("810-users", <span>User management</span> ++ <span data-lift="UserManagementInfo.render"></span>) / "secure" / "access" / "userManagement"
           >> needPerms(Authz.Administration.Write),
         Menu("820-api", <span>API accounts</span>) / "secure" / "access" / "apiManagement"
           >> needPerms(Authz.Administration.Write)
