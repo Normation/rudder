@@ -48,7 +48,6 @@ pub fn method_call(
     // WARN: this may be non-evaluated if the resulting string is too long.
     let unique = &format!("{}_${{report_data.directive_id}}", m.id.as_ref());
     let very_unique = &format!("{}_${{report_data.directive_id}}_${{c_key}}", m.id.as_ref());
-    let c_very_unique = format!("canonify(\"{}\")", very_unique);
     let c_id = canonify(id);
 
     let condition = condition.and(&m.condition);
@@ -125,8 +124,8 @@ pub fn method_call(
                     Some(Promise::usebundle("log_rudder", Some(&report_component),  Some(very_unique), vec![
                         quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, condition)),
                         quoted(&report_parameter),
+                        na_condition.clone(),
                         na_condition,
-                        c_very_unique.clone(),
                         "@{args}".to_string()
                     ]).unless_condition(incall_condition))
             ].into_iter().flatten().collect(),
@@ -136,8 +135,8 @@ pub fn method_call(
                 Promise::usebundle("log_rudder", Some(&report_component),  Some(very_unique), vec![
                     quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, condition)),
                     quoted(&report_parameter),
+                    na_condition.clone(),
                     na_condition,
-                    c_very_unique.clone(),
                     "@{args}".to_string()
                 ])
             ],
@@ -181,12 +180,14 @@ pub fn method_call(
         quoted(&report_parameter),
         quoted(id),
         "@{args}".to_string(),
+        quoted("${class_prefix}"),
     ];
     let mut method_parameters = vec![
         "c_name".to_string(),
         "c_key".to_string(),
         "report_id".to_string(),
         "args".to_string(),
+        "class_prefix".to_string(),
     ];
     if let Condition::Expression(_) = condition {
         call_parameters.push(cfengine_canonify_condition(condition.as_ref()));

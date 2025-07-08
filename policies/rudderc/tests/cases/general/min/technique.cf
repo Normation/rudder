@@ -3,17 +3,23 @@
 
 bundle agent min {
 
+  vars:
+    "args"              slist => {};
+    "report_param"      string => join("_", args);
+    "full_class_prefix" string => canonify("min_${report_param}");
+    "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
   classes:
     "pass3" expression => "pass2";
     "pass2" expression => "pass1";
     "pass1" expression => "any";
 
   methods:
-    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => call_min_d86ce2e5_d5b6_45cc_87e8_c11cca71d907("Package present", "htop", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907", @{args}, "htop", "2.3.4", "", ""),
+    "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => call_min_d86ce2e5_d5b6_45cc_87e8_c11cca71d907("Package present", "htop", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907", @{args}, "${class_prefix}", "htop", "2.3.4", "", ""),
                                              if => "pass3";
 
 }
-bundle agent call_min_d86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_key, report_id, args, name, version, architecture, provider) {
+bundle agent call_min_d86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_key, report_id, args, class_prefix, name, version, architecture, provider) {
 
   methods:
     "d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");

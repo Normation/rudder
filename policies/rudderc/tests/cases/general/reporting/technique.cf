@@ -3,51 +3,57 @@
 
 bundle agent reporting {
 
+  vars:
+    "args"              slist => {};
+    "report_param"      string => join("_", args);
+    "full_class_prefix" string => canonify("reporting_${report_param}");
+    "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
   classes:
     "pass3" expression => "pass2";
     "pass2" expression => "pass1";
     "pass1" expression => "any";
 
   methods:
-    "a86ce2e5-d5b6-45cc-87e8-c11cca71d908_${report_data.directive_id}" usebundle => call_reporting_a86ce2e5_d5b6_45cc_87e8_c11cca71d908("No block without condition", "htop", "a86ce2e5-d5b6-45cc-87e8-c11cca71d908", @{args}, "htop", "", "", ""),
+    "a86ce2e5-d5b6-45cc-87e8-c11cca71d908_${report_data.directive_id}" usebundle => call_reporting_a86ce2e5_d5b6_45cc_87e8_c11cca71d908("No block without condition", "htop", "a86ce2e5-d5b6-45cc-87e8-c11cca71d908", @{args}, "${class_prefix}", "htop", "", "", ""),
                                              if => "pass3";
 
-    "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => call_reporting_b86ce2e5_d5b6_45cc_87e8_c11cca71d907("No block with condition", "htop", "b86ce2e5-d5b6-45cc-87e8-c11cca71d907", @{args}, "debian", "htop", "", "", ""),
+    "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}" usebundle => call_reporting_b86ce2e5_d5b6_45cc_87e8_c11cca71d907("No block with condition", "htop", "b86ce2e5-d5b6-45cc-87e8-c11cca71d907", @{args}, "${class_prefix}", "debian", "htop", "", "", ""),
                                              if => "pass3";
 
-    "df06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}" usebundle => call_reporting_df06e919_02b7_41a7_a03f_4239592f3c12("NTP service", "ntp", "df06e919-02b7-41a7-a03f-4239592f3c12", @{args}, "ntp", "", "", ""),
+    "df06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}" usebundle => call_reporting_df06e919_02b7_41a7_a03f_4239592f3c12("NTP service", "ntp", "df06e919-02b7-41a7-a03f-4239592f3c12", @{args}, "${class_prefix}", "ntp", "", "", ""),
                                              if => "pass3";
 
-    "df06e919-02b7-41a7-a03f-4239592f3c45_${report_data.directive_id}" usebundle => call_reporting_df06e919_02b7_41a7_a03f_4239592f3c45("NTP service", "ntp", "df06e919-02b7-41a7-a03f-4239592f3c45", @{args}, "ntp", "", "", ""),
+    "df06e919-02b7-41a7-a03f-4239592f3c45_${report_data.directive_id}" usebundle => call_reporting_df06e919_02b7_41a7_a03f_4239592f3c45("NTP service", "ntp", "df06e919-02b7-41a7-a03f-4239592f3c45", @{args}, "${class_prefix}", "ntp", "", "", ""),
                                              if => "pass3";
 
-    "cf06e919-02b7-41a7-a03f-4239592f3c14_${report_data.directive_id}" usebundle => call_reporting_cf06e919_02b7_41a7_a03f_4239592f3c14("NTP service", "ntp", "cf06e919-02b7-41a7-a03f-4239592f3c14", @{args}, "ntp", "", "", ""),
+    "cf06e919-02b7-41a7-a03f-4239592f3c14_${report_data.directive_id}" usebundle => call_reporting_cf06e919_02b7_41a7_a03f_4239592f3c14("NTP service", "ntp", "cf06e919-02b7-41a7-a03f-4239592f3c14", @{args}, "${class_prefix}", "ntp", "", "", ""),
                                              if => "pass3";
 
-    "cf06e919-02b7-41a7-a03f-4239592f3c13_${report_data.directive_id}" usebundle => call_reporting_cf06e919_02b7_41a7_a03f_4239592f3c13("NTP service", "ntp", "cf06e919-02b7-41a7-a03f-4239592f3c13", @{args}, "ntp", "", "", ""),
+    "cf06e919-02b7-41a7-a03f-4239592f3c13_${report_data.directive_id}" usebundle => call_reporting_cf06e919_02b7_41a7_a03f_4239592f3c13("NTP service", "ntp", "cf06e919-02b7-41a7-a03f-4239592f3c13", @{args}, "${class_prefix}", "ntp", "", "", ""),
                                              if => "pass3";
 
-    "cf06e919-02b7-41a7-a03f-4239592f3c21_${report_data.directive_id}" usebundle => call_reporting_cf06e919_02b7_41a7_a03f_4239592f3c21("Enabled reporting", "ntp", "cf06e919-02b7-41a7-a03f-4239592f3c21", @{args}, "ntp", "", "", ""),
+    "cf06e919-02b7-41a7-a03f-4239592f3c21_${report_data.directive_id}" usebundle => call_reporting_cf06e919_02b7_41a7_a03f_4239592f3c21("Enabled reporting", "ntp", "cf06e919-02b7-41a7-a03f-4239592f3c21", @{args}, "${class_prefix}", "ntp", "", "", ""),
                                              if => "pass3";
 
-    "c76686bb-79ab-4ae5-b45f-108492ab4101_${report_data.directive_id}" usebundle => call_reporting_c76686bb_79ab_4ae5_b45f_108492ab4101("Disabled reporting", "ntp", "c76686bb-79ab-4ae5-b45f-108492ab4101", @{args}, "ntp", "", "", ""),
+    "c76686bb-79ab-4ae5-b45f-108492ab4101_${report_data.directive_id}" usebundle => call_reporting_c76686bb_79ab_4ae5_b45f_108492ab4101("Disabled reporting", "ntp", "c76686bb-79ab-4ae5-b45f-108492ab4101", @{args}, "${class_prefix}", "ntp", "", "", ""),
                                              if => "pass3";
 
-    "df06e919-02b7-41a7-a03f-4239592f3c21_${report_data.directive_id}" usebundle => call_reporting_df06e919_02b7_41a7_a03f_4239592f3c21("Enabled reporting", "ntp", "df06e919-02b7-41a7-a03f-4239592f3c21", @{args}, "ntp", "", "", ""),
+    "df06e919-02b7-41a7-a03f-4239592f3c21_${report_data.directive_id}" usebundle => call_reporting_df06e919_02b7_41a7_a03f_4239592f3c21("Enabled reporting", "ntp", "df06e919-02b7-41a7-a03f-4239592f3c21", @{args}, "${class_prefix}", "ntp", "", "", ""),
                                              if => "pass3";
 
-    "d76686bb-79ab-4ae5-b45f-108492ab4101_${report_data.directive_id}" usebundle => call_reporting_d76686bb_79ab_4ae5_b45f_108492ab4101("Disabled reporting", "ntp", "d76686bb-79ab-4ae5-b45f-108492ab4101", @{args}, "ntp", "", "", ""),
+    "d76686bb-79ab-4ae5-b45f-108492ab4101_${report_data.directive_id}" usebundle => call_reporting_d76686bb_79ab_4ae5_b45f_108492ab4101("Disabled reporting", "ntp", "d76686bb-79ab-4ae5-b45f-108492ab4101", @{args}, "${class_prefix}", "ntp", "", "", ""),
                                              if => "pass3";
 
 }
-bundle agent call_reporting_a86ce2e5_d5b6_45cc_87e8_c11cca71d908(c_name, c_key, report_id, args, name, version, architecture, provider) {
+bundle agent call_reporting_a86ce2e5_d5b6_45cc_87e8_c11cca71d908(c_name, c_key, report_id, args, class_prefix, name, version, architecture, provider) {
 
   methods:
     "a86ce2e5-d5b6-45cc-87e8-c11cca71d908_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "a86ce2e5-d5b6-45cc-87e8-c11cca71d908_${report_data.directive_id}_${c_key}" usebundle => package_present("${name}", "${version}", "${architecture}", "${provider}");
 
 }
-bundle agent call_reporting_b86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_key, report_id, args, method_call_condition, name, version, architecture, provider) {
+bundle agent call_reporting_b86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_key, report_id, args, class_prefix, method_call_condition, name, version, architecture, provider) {
 
   methods:
     "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
@@ -55,46 +61,46 @@ bundle agent call_reporting_b86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_key, 
                                              if => "${method_call_condition}";
     "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => _classes_noop(canonify("package_present_${c_key}")),
                                          unless => "${method_call_condition}";
-    "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => log_rudder("Skipping method 'Package present' with key parameter 'htop' since condition 'debian' is not reached", "htop", canonify("package_present_${c_key}"), canonify("b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}"), @{args}),
+    "b86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}" usebundle => log_rudder("Skipping method 'Package present' with key parameter 'htop' since condition 'debian' is not reached", "htop", canonify("package_present_${c_key}"), canonify("package_present_${c_key}"), @{args}),
                                          unless => "${method_call_condition}";
 
 }
-bundle agent call_reporting_df06e919_02b7_41a7_a03f_4239592f3c12(c_name, c_key, report_id, args, name, version, architecture, provider) {
+bundle agent call_reporting_df06e919_02b7_41a7_a03f_4239592f3c12(c_name, c_key, report_id, args, class_prefix, name, version, architecture, provider) {
 
   methods:
     "df06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "df06e919-02b7-41a7-a03f-4239592f3c12_${report_data.directive_id}_${c_key}" usebundle => package_present("${name}", "${version}", "${architecture}", "${provider}");
 
 }
-bundle agent call_reporting_df06e919_02b7_41a7_a03f_4239592f3c45(c_name, c_key, report_id, args, name, version, architecture, provider) {
+bundle agent call_reporting_df06e919_02b7_41a7_a03f_4239592f3c45(c_name, c_key, report_id, args, class_prefix, name, version, architecture, provider) {
 
   methods:
     "df06e919-02b7-41a7-a03f-4239592f3c45_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "df06e919-02b7-41a7-a03f-4239592f3c45_${report_data.directive_id}_${c_key}" usebundle => package_present("${name}", "${version}", "${architecture}", "${provider}");
 
 }
-bundle agent call_reporting_cf06e919_02b7_41a7_a03f_4239592f3c14(c_name, c_key, report_id, args, name, version, architecture, provider) {
+bundle agent call_reporting_cf06e919_02b7_41a7_a03f_4239592f3c14(c_name, c_key, report_id, args, class_prefix, name, version, architecture, provider) {
 
   methods:
     "cf06e919-02b7-41a7-a03f-4239592f3c14_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "cf06e919-02b7-41a7-a03f-4239592f3c14_${report_data.directive_id}_${c_key}" usebundle => package_present("${name}", "${version}", "${architecture}", "${provider}");
 
 }
-bundle agent call_reporting_cf06e919_02b7_41a7_a03f_4239592f3c13(c_name, c_key, report_id, args, name, version, architecture, provider) {
+bundle agent call_reporting_cf06e919_02b7_41a7_a03f_4239592f3c13(c_name, c_key, report_id, args, class_prefix, name, version, architecture, provider) {
 
   methods:
     "cf06e919-02b7-41a7-a03f-4239592f3c13_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "cf06e919-02b7-41a7-a03f-4239592f3c13_${report_data.directive_id}_${c_key}" usebundle => package_present("${name}", "${version}", "${architecture}", "${provider}");
 
 }
-bundle agent call_reporting_cf06e919_02b7_41a7_a03f_4239592f3c21(c_name, c_key, report_id, args, name, version, architecture, provider) {
+bundle agent call_reporting_cf06e919_02b7_41a7_a03f_4239592f3c21(c_name, c_key, report_id, args, class_prefix, name, version, architecture, provider) {
 
   methods:
     "cf06e919-02b7-41a7-a03f-4239592f3c21_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "cf06e919-02b7-41a7-a03f-4239592f3c21_${report_data.directive_id}_${c_key}" usebundle => package_present("${name}", "${version}", "${architecture}", "${provider}");
 
 }
-bundle agent call_reporting_c76686bb_79ab_4ae5_b45f_108492ab4101(c_name, c_key, report_id, args, name, version, architecture, provider) {
+bundle agent call_reporting_c76686bb_79ab_4ae5_b45f_108492ab4101(c_name, c_key, report_id, args, class_prefix, name, version, architecture, provider) {
 
   methods:
     "c76686bb-79ab-4ae5-b45f-108492ab4101_${report_data.directive_id}_${c_key}" usebundle => disable_reporting();
@@ -103,14 +109,14 @@ bundle agent call_reporting_c76686bb_79ab_4ae5_b45f_108492ab4101(c_name, c_key, 
     "c76686bb-79ab-4ae5-b45f-108492ab4101_${report_data.directive_id}_${c_key}" usebundle => enable_reporting();
 
 }
-bundle agent call_reporting_df06e919_02b7_41a7_a03f_4239592f3c21(c_name, c_key, report_id, args, name, version, architecture, provider) {
+bundle agent call_reporting_df06e919_02b7_41a7_a03f_4239592f3c21(c_name, c_key, report_id, args, class_prefix, name, version, architecture, provider) {
 
   methods:
     "df06e919-02b7-41a7-a03f-4239592f3c21_${report_data.directive_id}_${c_key}" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "df06e919-02b7-41a7-a03f-4239592f3c21_${report_data.directive_id}_${c_key}" usebundle => package_present("${name}", "${version}", "${architecture}", "${provider}");
 
 }
-bundle agent call_reporting_d76686bb_79ab_4ae5_b45f_108492ab4101(c_name, c_key, report_id, args, name, version, architecture, provider) {
+bundle agent call_reporting_d76686bb_79ab_4ae5_b45f_108492ab4101(c_name, c_key, report_id, args, class_prefix, name, version, architecture, provider) {
 
   methods:
     "d76686bb-79ab-4ae5-b45f-108492ab4101_${report_data.directive_id}_${c_key}" usebundle => disable_reporting();
