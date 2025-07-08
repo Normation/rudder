@@ -3558,6 +3558,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "rudder-module-commands"
+version = "0.0.0-dev"
+dependencies = [
+ "anyhow",
+]
+
+[[package]]
 name = "rudder-module-directory"
 version = "0.0.0-dev"
 dependencies = [
