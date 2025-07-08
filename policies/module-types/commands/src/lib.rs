@@ -88,8 +88,8 @@ struct Commands {}
 
 impl Commands {
     fn exec(cmd: String, args: String) {
-        let splitted_args = args.split(" ").collect::<Vec<&str>>();
-        let output = Command::new(cmd).args(splitted_args).output().unwrap();
+        let args = args.split(" ").collect::<Vec<&str>>();
+        let output = Command::new(cmd).args(args).output().unwrap();
         println!("status: {}", output.status);
         io::stdout().write_all(&output.stdout).unwrap();
         io::stderr().write_all(&output.stderr).unwrap();
