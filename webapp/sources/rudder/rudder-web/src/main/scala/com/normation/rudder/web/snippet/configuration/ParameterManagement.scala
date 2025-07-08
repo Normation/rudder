@@ -45,10 +45,10 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.workflows.GlobalParamChangeRequest
 import com.normation.rudder.services.workflows.GlobalParamModAction
+import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.components.popup.CreateOrUpdateGlobalParameterPopup
 import com.normation.rudder.web.snippet.WithNonce
-import com.normation.zio.UnsafeRun
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.SHtml.*
@@ -61,8 +61,7 @@ import scala.xml.*
 
 class ParameterManagement extends DispatchSnippet with Loggable {
 
-  private val roParameterService   = RudderConfig.roParameterService
-  private val workflowLevelService = RudderConfig.workflowLevelService
+  private val roParameterService = RudderConfig.roParameterService
 
   private val gridName      = "globalParametersGrid"
   private val gridContainer = "ParamGrid"
@@ -238,46 +237,45 @@ class ParameterManagement extends DispatchSnippet with Loggable {
       parameter: Option[GlobalParameter]
   )(implicit qc: QueryContext): JsCmd = {
     val change = GlobalParamChangeRequest(action, parameter)
-    val errMsg = "An error occured when trying to find the validation workflow to use for that change."
 
-    workflowLevelService
-      .getForGlobalParam(CurrentUser.actor, change)
-      .chainError(errMsg)
-      .either
-      .runNow match {
-      case Left(err) =>
-        logger.error(err.fullMsg)
-        JsRaw(s"alert('${errMsg}')") // JsRaw ok, const
-
-      case Right(workflowService) =>
-        parameterPopup.set(
-          Full(
-            new CreateOrUpdateGlobalParameterPopup(
-              change,
-              workflowService,
-              cr => workflowCallBack(action, workflowService.needExternalValidation())(cr)
-            )
-          )
+    parameterPopup.set(
+      Full(
+        new CreateOrUpdateGlobalParameterPopup(
+          change,
+          (cr, workflowService, contextPath) => workflowCallBack(action, change, workflowService, contextPath)(cr)
         )
-        val popupHtml = createPopup
-        SetHtml(CreateOrUpdateGlobalParameterPopup.htmlId_popupContainer, popupHtml) &
-        JsRaw(""" initBsModal("%s",300,600) """.format(CreateOrUpdateGlobalParameterPopup.htmlId_popup)) // JsRaw ok, const
-    }
+      )
+    )
+    val popupHtml = createPopup
+    SetHtml(CreateOrUpdateGlobalParameterPopup.htmlId_popupContainer, popupHtml) &
+    JsRaw(""" initBsModal("%s",300,600) """.format(CreateOrUpdateGlobalParameterPopup.htmlId_popup)) // JsRaw ok, const
+
   }
 
-  private def workflowCallBack(action: GlobalParamModAction, workflowEnabled: Boolean)(
-      returns: Either[GlobalParameter, ChangeRequestId]
+  private def workflowCallBack(
+      action:          GlobalParamModAction,
+      change:          GlobalParamChangeRequest,
+      workflowService: WorkflowService,
+      contextPath:     String
+  )(
+      returns:         Either[GlobalParameter, ChangeRequestId]
   )(implicit qc: QueryContext): JsCmd = {
-    if ((!workflowEnabled) & (action == GlobalParamModAction.Delete)) {
+
+    val jsCmd = returns match {
+      case Left(param)            => // ok, we've received a parameter, do as before
+        closePopup() & updateGrid() & successPopup
+      case Right(changeRequestId) => // oh, we have a change request, go to it
+        linkUtil.redirectToChangeRequestLink(changeRequestId, contextPath)
+    }
+
+    println(jsCmd)
+
+    if ((!workflowService.needExternalValidation()) & (action == GlobalParamModAction.Delete)) {
       closePopup() & onSuccessDeleteCallback()
     } else {
-      returns match {
-        case Left(param)            => // ok, we've received a parameter, do as before
-          closePopup() & updateGrid() & successPopup
-        case Right(changeRequestId) => // oh, we have a change request, go to it
-          linkUtil.redirectToChangeRequestLink(changeRequestId)
-      }
+      jsCmd
     }
+
   }
 
   /**

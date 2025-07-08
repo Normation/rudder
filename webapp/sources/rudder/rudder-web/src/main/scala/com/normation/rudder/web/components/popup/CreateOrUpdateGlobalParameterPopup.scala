@@ -40,6 +40,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.GitVersion
 import com.normation.errors.IOResult
 import com.normation.errors.PureResult
+import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
@@ -77,14 +78,16 @@ import zio.syntax.*
 
 class CreateOrUpdateGlobalParameterPopup(
     change:            GlobalParamChangeRequest,
-    workflowService:   WorkflowService,
-    onSuccessCallback: (Either[GlobalParameter, ChangeRequestId]) => JsCmd = { x => Noop },
+    onSuccessCallback: (Either[GlobalParameter, ChangeRequestId], WorkflowService, String) => JsCmd,
     onFailureCallback: () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
-  private val userPropertyService = RudderConfig.userPropertyService
-  private[this] val uuidGen       = RudderConfig.stringUuidGenerator
+  private val workflowLevelService = RudderConfig.workflowLevelService
+  private val userPropertyService  = RudderConfig.userPropertyService
+  private[this] val uuidGen        = RudderConfig.stringUuidGenerator
   implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+  private val actor:       EventActor   = CurrentUser.actor
+  private val contextPath: String       = S.contextPath
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
 
@@ -98,7 +101,7 @@ class CreateOrUpdateGlobalParameterPopup(
     case GlobalParamModAction.Create => "Add a global property"
   }
 
-  private val workflowEnabled = workflowService.needExternalValidation()
+  private val workflowEnabled = workflowLevelService.getWorkflowService().needExternalValidation()
   private val titleWorkflow   = workflowEnabled match {
     case true  =>
       <h4 class="col-xl-12 col-md-12 col-sm-12 audit-title">Change Request</h4>
@@ -142,48 +145,52 @@ class CreateOrUpdateGlobalParameterPopup(
     if (formTracker.hasErrors) {
       onFailure
     } else {
-      val jsonCheck          = parameterFormat.get match {
+      val jsonCheck = parameterFormat.get match {
         case "json" => true
         case _      => false
       }
+
       val savedChangeRequest = {
         for {
-          value <- parseValue(parameterValue.get, jsonCheck).toIO
-          param  = GlobalParameter(
-                     parameterName.get,
-                     GitVersion.DEFAULT_REV,
-                     value,
-                     InheritMode.parseString(parameterInheritMode.get).toOption,
-                     parameterDescription.get,
-                     None,
-                     Visibility.default
-                   )
-          diff  <- globalParamDiffFromAction(param)
-          cr     = ChangeRequestService.createChangeRequestFromGlobalParameter(
-                     changeRequestName.get,
-                     paramReasons.map(_.get).getOrElse(""),
-                     param,
-                     change.previousGlobalParam,
-                     diff,
-                     CurrentUser.actor,
-                     paramReasons.map(_.get)
-                   )
-          id    <- workflowService
-                     .startWorkflow(cr)(
-                       ChangeContext(
-                         ModificationId(uuidGen.newUuid),
-                         qc.actor,
-                         Instant.now(),
-                         paramReasons.map(_.get),
-                         None,
-                         qc.nodePerms
-                       )
-                     )
+          value           <- parseValue(parameterValue.get, jsonCheck).toIO
+          param            = GlobalParameter(
+                               parameterName.get,
+                               GitVersion.DEFAULT_REV,
+                               value,
+                               InheritMode.parseString(parameterInheritMode.get).toOption,
+                               parameterDescription.get,
+                               None,
+                               Visibility.default
+                             )
+          diff            <- globalParamDiffFromAction(param)
+          cr               = ChangeRequestService.createChangeRequestFromGlobalParameter(
+                               changeRequestName.get,
+                               paramReasons.map(_.get).getOrElse(""),
+                               param,
+                               change.previousGlobalParam,
+                               diff,
+                               CurrentUser.actor,
+                               paramReasons.map(_.get)
+                             )
+          workflowService <- workflowLevelService.getForGlobalParam(actor, change)
+          id              <- workflowLevelService
+                               .getWorkflowService()
+                               .startWorkflow(cr)(
+                                 ChangeContext(
+                                   ModificationId(uuidGen.newUuid),
+                                   qc.actor,
+                                   Instant.now(),
+                                   paramReasons.map(_.get),
+                                   None,
+                                   qc.nodePerms
+                                 )
+                               )
+
         } yield {
           if (workflowEnabled) {
-            closePopup() & onSuccessCallback(Right(id))
+            closePopup() & onSuccessCallback(Right(id), workflowService, contextPath)
           } else {
-            closePopup() & onSuccessCallback(Left(param))
+            closePopup() & onSuccessCallback(Left(param), workflowService, contextPath)
           }
         }
       }
