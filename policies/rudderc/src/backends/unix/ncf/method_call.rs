@@ -92,13 +92,14 @@ pub fn method_call(
             .map(|p| expanded(p.as_str()))
             .collect(),
     );
-    let na_condition = format!("canonify(\"{}_${{c_key}}\")", info.bundle_name);
+    let na_condition = format!(
+        "canonify(\"${{class_prefix}}_{}_${{c_key}}\")",
+        info.bundle_name
+    );
 
     let push_policy_mode = dry_run_mode::push_policy_mode(m.policy_mode_override);
     let pop_policy_mode = dry_run_mode::pop_policy_mode(m.policy_mode_override);
     let incall_condition = "${method_call_condition}".to_string();
-    let very_unique = &format!("{}_${{report_data.directive_id}}_${{c_key}}", m.id.as_ref());
-    let c_very_unique = format!("canonify(\"{very_unique}\")");
 
     let mut promises = match (&condition, is_supported) {
         (Condition::Expression(_), true) => vec![
@@ -110,8 +111,8 @@ pub fn method_call(
             Some(Promise::usebundle("log_rudder", Some(&report_component), vec![
                 quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", &method_name, incall_condition)),
                 quoted("${c_key}"),
+                na_condition.clone(),
                 na_condition,
-                c_very_unique,
                 "@{args}".to_string()
             ]).unless_condition(incall_condition))
         ].into_iter().flatten().collect(),
@@ -121,8 +122,8 @@ pub fn method_call(
             Promise::usebundle("log_rudder", Some(&report_component),  vec![
                 quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", &method_name, condition)),
                 quoted("${c_key}"),
+                na_condition.clone(),
                 na_condition,
-                c_very_unique,
                 "@{args}".to_string()
             ])
         ],
@@ -165,12 +166,14 @@ pub fn method_call(
         quoted(&report_parameter),
         quoted(id),
         "@{args}".to_string(),
+        quoted("${class_prefix}"),
     ];
     let mut method_parameters = vec![
         "c_name".to_string(),
         "c_key".to_string(),
         "report_id".to_string(),
         "args".to_string(),
+        "class_prefix".to_string(),
     ];
     // If the item is a result of a foreach loop, we must assume that one of the branch could define
     // a condition, and so, each branch should call the bundle using the method_call_condition
