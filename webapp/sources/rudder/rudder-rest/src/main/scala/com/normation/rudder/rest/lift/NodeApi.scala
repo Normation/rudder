@@ -130,8 +130,6 @@ import net.liftweb.common.Failure
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.OutputStreamResponse
 import net.liftweb.http.Req
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import scala.collection.MapView
 import scalaj.http.Http
 import scalaj.http.HttpOptions

@@ -70,14 +70,6 @@ update msg model =
                 Err err ->
                     processApiError err model
 
-        GetSafeHashes result ->
-            case result of
-                Ok bool ->
-                    ( { model | safeHashes = bool }, Cmd.none )
-
-                Err err ->
-                    processApiError err model
-
         PostReloadUserInfo result ->
             case result of
                 Ok _ ->

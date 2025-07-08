@@ -2307,9 +2307,6 @@ object RudderConfigInit {
             () => authenticationProviders.getProviderProperties().view.mapValues(_.providerRoleExtension).toMap,
             () => authenticationProviders.getConfiguredProviders().map(_.name).toSet
           ),
-          new UserManagementInternalApiImpl(
-            rudderUserListProvider
-          ),
           new ApiAccountApi(
             new ApiAccountApiServiceV1(
               roApiAccountRepository,

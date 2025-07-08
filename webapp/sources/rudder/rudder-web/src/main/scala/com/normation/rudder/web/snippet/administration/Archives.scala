@@ -62,7 +62,6 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.util.Helpers.*
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import scala.xml.Elem
 import scala.xml.NodeSeq
 import scala.xml.Text
