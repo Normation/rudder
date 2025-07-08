@@ -3562,6 +3562,9 @@ name = "rudder-module-commands"
 version = "0.0.0-dev"
 dependencies = [
  "anyhow",
+ "rudder_module_type",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
