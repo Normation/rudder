@@ -130,6 +130,25 @@ impl Backend for Unix {
             Promise::class_expression("pass2", "pass1"),
             Promise::class_expression("pass1", "any"),
         ]);
+        main_bundle.add_promise_group(vec![
+            Promise::slist(
+                "args",
+                technique
+                    .params
+                    .iter()
+                    .map(|p| format!("${{{}}}", &p.name))
+                    .collect(),
+            ),
+            Promise::string_raw("report_param", r#"join("_", args)"#),
+            Promise::string_raw(
+                "full_class_prefix",
+                format!("canonify(\"{}_${{report_param}}\")", technique.id),
+            ),
+            Promise::string_raw(
+                "class_prefix",
+                r#"string_head("${full_class_prefix}", "1000")"#,
+            ),
+        ]);
         for item in technique.items {
             for call in resolve_module(item.clone(), Condition::Defined, &technique.id)? {
                 let (use_bundle, bundle) = call;
