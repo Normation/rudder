@@ -9,6 +9,11 @@ bundle agent form(server_a, server_b, server_c, server_d, server_e, server_f, se
     "local_index"       int => ${report_data.index},
                            unless => "rudder_increment_guard";
 
+    "args"              slist => {"${server_a}", "${server_b}", "${server_c}", "${server_d}", "${server_e}", "${server_f}", "${server_g}", "${server_h}", "${server_i}", "${server_j}", "${server_k}", "${server_l}", "${server_m}", "${server_n}"};
+    "report_param"      string => join("_", args);
+    "full_class_prefix" string => canonify("form_${report_param}");
+    "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
   classes:
     "rudder_increment_guard" expression => "any";
 
@@ -17,11 +22,11 @@ bundle agent form(server_a, server_b, server_c, server_d, server_e, server_f, se
     "pass1" expression => "any";
 
   methods:
-    "index_${local_index}_0" usebundle => call_form_d86ce2e5_d5b6_45cc_87e8_c11cca71d907("Ensure correct ntp configuration", "htop", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907", @{args}, "debian", "htop", "2.3.4", "", ""),
+    "index_${local_index}_0" usebundle => call_form_d86ce2e5_d5b6_45cc_87e8_c11cca71d907("Ensure correct ntp configuration", "htop", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907", @{args}, "${class_prefix}", "debian", "htop", "2.3.4", "", ""),
                                     if => "pass3";
 
 }
-bundle agent call_form_d86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_key, report_id, args, method_call_condition, name, version, architecture, provider) {
+bundle agent call_form_d86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_key, report_id, args, class_prefix, method_call_condition, name, version, architecture, provider) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -36,9 +41,9 @@ bundle agent call_form_d86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_key, repor
     "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "index_${local_index}_1" usebundle => package_present("${name}", "${version}", "${architecture}", "${provider}"),
                                     if => "${method_call_condition}";
-    "index_${local_index}_2" usebundle => _classes_noop(canonify("package_present_${c_key}")),
+    "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_package_present_${c_key}")),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'Package present' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("package_present_${c_key}"), canonify("d86ce2e5-d5b6-45cc-87e8-c11cca71d907_${report_data.directive_id}_${c_key}"), @{args}),
+    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'Package present' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("${class_prefix}_package_present_${c_key}"), canonify("${class_prefix}_package_present_${c_key}"), @{args}),
                                 unless => "${method_call_condition}";
 
 }
