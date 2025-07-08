@@ -1,11 +1,15 @@
-use std::path::PathBuf;
+mod cli;
+use crate::cli::Cli;
+use std::io::Write;
+use std::{io, path::PathBuf, process::Command};
 
-use anyhow::{Result, bail};
+use anyhow::Result;
 use rudder_module_type::{
-    CheckApplyResult, ModuleType0, ModuleTypeMetadata, PolicyMode, ProtocolResult, ValidateResult,
-    cfengine::called_from_agent, parameters::Parameters, run_module,
+    CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ProtocolResult,
+    ValidateResult, cfengine::called_from_agent, parameters::Parameters, run_module,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -82,6 +86,16 @@ fn default_repaired_codes() -> String {
 
 struct Commands {}
 
+impl Commands {
+    fn exec(cmd: String, args: String) {
+        let splitted_args = args.split(" ").collect::<Vec<&str>>();
+        let output = Command::new(cmd).args(splitted_args).output().unwrap();
+        println!("status: {}", output.status);
+        io::stdout().write_all(&output.stdout).unwrap();
+        io::stderr().write_all(&output.stderr).unwrap();
+    }
+}
+
 impl ModuleType0 for Commands {
     fn metadata(&self) -> ModuleTypeMetadata {
         let meta = include_str!("../rudder_module_type.yml");
@@ -96,11 +110,16 @@ impl ModuleType0 for Commands {
     }
 
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
+        let parameters: CommandsParameters =
+            serde_json::from_value(Value::Object(parameters.data.clone()))?;
+
         Ok(())
     }
 
     fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
-        bail!("apply")
+        assert!(self.validate(parameters).is_ok());
+        let p: CommandsParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
+        Ok(Outcome::success())
     }
 }
 
@@ -110,6 +129,6 @@ pub fn entry() -> Result<(), anyhow::Error> {
     if called_from_agent() {
         run_module(promise_type)
     } else {
-        bail!("There is currently no CLI")
+        Cli::run()
     }
 }
