@@ -63,8 +63,6 @@ import net.liftweb.http.js.JsCmds.*
 import net.liftweb.json.*
 import net.liftweb.util.*
 import org.apache.commons.text.StringEscapeUtils
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import scala.xml.*
 
 object Groups {

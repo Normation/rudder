@@ -35,22 +35,8 @@
 *************************************************************************************
 */
 
-$rudder-bg-danger: #F8D7DA;
-
-.rudder-template {
-  & .main-header {
-    & .callout-fade.callout-danger {
-      background-color: $rudder-bg-danger;
-
-      & .fa.fa-warning {
-        color: #58151c;
-      }
-    }
-  }
-
-  & .template-main {
-    flex: auto !important;
-  }
+.rudder-template .template-main {
+  flex: auto !important;
 }
 
 .user-list {
