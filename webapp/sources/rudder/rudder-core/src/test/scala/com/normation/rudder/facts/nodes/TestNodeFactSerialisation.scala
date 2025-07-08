@@ -22,7 +22,6 @@ import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.utils.DateFormaterService
-import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.matcher.Matcher
 import org.specs2.mutable.Specification

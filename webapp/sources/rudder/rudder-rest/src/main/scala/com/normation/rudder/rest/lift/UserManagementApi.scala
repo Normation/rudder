@@ -740,7 +740,7 @@ sealed trait UserManagementInternalApi extends EnumEntry with EndpointSchema wit
 
 object UserManagementInternalApi extends Enum[UserManagementInternalApi] with ApiModuleProvider[UserManagementInternalApi] {
 
-  final case object SafeHashes extends UserManagementInternalApi with ZeroParam with StartsAtVersion20 {
+  case object SafeHashes extends UserManagementInternalApi with ZeroParam with StartsAtVersion20 {
     val z              = implicitly[Line].value
     val description    = "Get the status of password encoder being used"
     val (action, path) = GET / "usermanagementinternal" / "safeHashes"
