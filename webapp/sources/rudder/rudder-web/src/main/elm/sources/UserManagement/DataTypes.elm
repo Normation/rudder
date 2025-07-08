@@ -188,6 +188,7 @@ type alias Model =
     { contextPath : String
     , userId : String
     , digest: String
+    , safeHashes : Bool
     , tenantsEnabled : Bool
     , users: Users
     , roles: Roles
@@ -230,6 +231,7 @@ type alias UI =
 type Msg
     = GetUserInfo (Result Error UsersConf)
     | GetRoleConf (Result Error RoleConf)
+    | GetSafeHashes (Result Error Bool)
     | PostReloadUserInfo (Result Error String) -- also returns the updated list
     | SendReload -- ask for API call to reload user list
     | AddUser (Result Error String)
