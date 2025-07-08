@@ -16,8 +16,6 @@ import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.repository.FullNodeGroupCategory
 import java.time.Instant
 import net.liftweb.common.*
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.*

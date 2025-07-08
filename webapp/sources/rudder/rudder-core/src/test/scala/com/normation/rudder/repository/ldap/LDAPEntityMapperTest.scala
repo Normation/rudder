@@ -44,7 +44,6 @@ import com.normation.rudder.facts.nodes.MockLdapFactStorage
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.utils.DateFormaterService
-import java.time.Instant
 import org.joda.time.DateTime
 import org.junit.runner.*
 import org.specs2.mutable.*
