@@ -258,6 +258,24 @@ final case class RunAnalysis(
     lastRunConfigId:     Option[NodeConfigId],
     lastRunExpiration:   Option[DateTime]
 ) {
+  // used to manage the KeepLastCompliance update
+  def copyLastRunInfo(other: RunAnalysis): RunAnalysis = {
+    this.copy(
+      lastRunDateTime = other.lastRunDateTime,
+      lastRunConfigId = other.lastRunConfigId,
+      lastRunExpiration = other.lastRunExpiration
+    )
+  }
+
+  // Used to compare KeepLastCompliance without taking care of lastRun difference
+  def equalsWithoutLastRun(other: RunAnalysis): Boolean = {
+    this.kind == other.kind &&
+    this.expectedConfigId == other.expectedConfigId &&
+    this.expectedConfigStart == other.expectedConfigStart &&
+    this.expirationDateTime == other.expirationDateTime &&
+    this.expiredSince == other.expiredSince
+  }
+
   def debugString: String = {
     def d(o: Option[DateTime]): String = {
       o.map(_.toString).getOrElse("N/A")

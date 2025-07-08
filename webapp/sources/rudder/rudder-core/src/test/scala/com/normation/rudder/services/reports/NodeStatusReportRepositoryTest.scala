@@ -142,6 +142,8 @@ class NodeStatusReportRepositoryTest extends Specification {
     } yield (s, new NodeStatusReportRepositoryImpl(s, x))).runNow
   }
 
+  sequential
+
   "If we save exactly the same reports, no storage is done at all" >> {
 
     val (counter, repo) = initServices()
@@ -172,6 +174,23 @@ class NodeStatusReportRepositoryTest extends Specification {
     )
   }
 
+  "ComputeCompliance with a new run get in cache with the new run" >> {
+    val (counter, repo) = initServices()
+    implicit val cc     = ChangeContext.newForRudder()
+
+    val okReportInit = counter.get("cc")
+    val newOkReport  = nsr("cc", ComputeCompliance(expiration.plusMinutes(10), expected("cc", None), expiration.plusMinutes(15)))
+
+    repo.saveNodeStatusReports((newOkReport :: Nil).map(x => (x.nodeId, x))).runNow
+
+    // we have one modification because we have a new report
+    counter.getCount("cc") === 1
+    // and it's actually the new report in backend
+    okReportInit must not(beEqualTo(newOkReport))
+    counter.get("cc") must beEqualTo(newOkReport)
+
+  }
+
   "A Pending or a ComputeCompliance which becomes missing is missing when no keep compliance" >> {
 
     // generate a missing but with "keep last" flag set
@@ -189,6 +208,41 @@ class NodeStatusReportRepositoryTest extends Specification {
     counter.getCount("p") === 1
     // but we kept the existing report with some report (vs missing which has no rule status reports)
     counter.get("p").reports must not(beEmpty)
+  }
+
+  // see issue: https://issues.rudder.io/issues/27180 - when a missing node is cleaned up, we need to keep compliance
+  "When the node runs are cleaned-up, if still in keep-compliance windows, then the old run info are kept" >> {
+    val (counter, repo) = initServices()
+    implicit val cc     = ChangeContext.newForRudder()
+
+    val okReport = counter.get("cc")
+
+    // so, currently, the node last run date is set to something
+    counter.get("cc").runInfo.lastRunDateTime must beSome(beEqualTo(expiration))
+
+    // so we have the "compute compliance one", and it becomes missing
+    // We MUST NOT update anything, especially not the last run info saved
+    val x       = expected("cc", None)
+    val missing = nsr("cc", NoReportInInterval(x, expiration)).modify(_.runInfo.kind).setTo(RunAnalysisKind.KeepLastCompliance)
+
+    repo.saveNodeStatusReports((missing :: Nil).map(x => (x.nodeId, x))).runNow
+
+    // we have one modification because we changed kind from pending to "keep"
+    counter.getCount("cc") === 1
+    // but we kept the existing report with some report (vs missing which has no rule status reports)
+    counter.get("cc").reports must equalTo(okReport.reports)
+
+    // and we kept the run compliance - that part was in error because of #27180
+    counter.get("cc").runInfo.lastRunDateTime must beSome(beEqualTo(expiration))
+
+    // moreover, on next missing report, we don't change anything in backend
+    repo.saveNodeStatusReports((missing :: Nil).map(x => (x.nodeId, x))).runNow
+    counter.getCount("cc") === 1
+
+    // and getting a good report stop the keepLastCompliance
+    repo.saveNodeStatusReports((okReport :: Nil).map(x => (x.nodeId, x))).runNow
+    counter.getCount("cc") === 2
+    counter.get("cc") == okReport
   }
 
 }
