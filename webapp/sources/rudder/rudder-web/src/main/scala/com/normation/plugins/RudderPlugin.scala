@@ -386,8 +386,12 @@ class PluginsServiceImpl(
       .get(PluginName("rudder-plugin-" + p.name)) // rudder package name does not have the prefix used in names
       .flatMap(pluginDef => {
         val details = pluginDef.transformInto[JsonPluginDetails]
-        implicit val abiVersion:    AbiVersion    = AbiVersion(pluginDef.version.rudderAbi)
-        implicit val pluginVersion: PluginVersion =
+        implicit val statusDisabledReason: StatusDisabledReason = StatusDisabledReason(pluginDef.status.current match {
+          case RudderPluginLicenseStatus.Disabled(reason, _) => Some(reason)
+          case _                                             => None
+        })
+        implicit val abiVersion:           AbiVersion           = AbiVersion(pluginDef.version.rudderAbi)
+        implicit val pluginVersion:        PluginVersion        =
           PluginVersion(pluginDef.version.pluginVersion)
 
         // plugin listed from rudder package but with no license information :
@@ -407,10 +411,11 @@ class PluginsServiceImpl(
         // we need to attempt to parse versions from latest available version
         val bothVersions   = p.latestVersion.flatMap(RudderPluginVersion.from)
         def defaultVersion = Version(0, PartType.Numeric(0), List.empty)
-        implicit val abiVersion:    AbiVersion    =
+        implicit val abiVersion:           AbiVersion           =
           AbiVersion(bothVersions.map(_.rudderAbi).getOrElse(defaultVersion))
-        implicit val pluginVersion: PluginVersion =
+        implicit val pluginVersion:        PluginVersion        =
           PluginVersion(bothVersions.map(_.pluginVersion).getOrElse(defaultVersion))
+        implicit val statusDisabledReason: StatusDisabledReason = StatusDisabledReason(None)
 
         p.transformInto[Plugin]
       }

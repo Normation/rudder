@@ -90,7 +90,7 @@ displayMainHeader v license now loading contextPath =
         [ h1 []
             [ span [] [ text "Plugins management" ]
             ]
-        , div [class "text-danger"] [settingError]
+        , div [ class "text-danger" ] [ settingError ]
         ]
         :: (if loading then
                 []
@@ -486,11 +486,11 @@ displayMainLicense license now contextPath =
 
 pluginBadge : Plugin -> List (Html msg)
 pluginBadge p =
-    case ( p.installStatus, p.licenseStatus ) of
+    case ( p.installStatus, p.noLicense ) of
         ( Installed Disabled, _ ) ->
             [ div [ class "position-absolute top-0 start-0" ] [ span [ class "badge float-start" ] [ text "Disabled" ] ] ]
 
-        ( _, MissingLicense _ ) ->
+        ( _, True ) ->
             [ div [ class "position-absolute top-0 start-0" ] [ span [ class "badge float-start text-dark" ] [ i [ class "fa fa-info-circle me-1" ] [], text "No license" ] ] ]
 
         ( Installed Enabled, _ ) ->
@@ -502,8 +502,8 @@ pluginBadge p =
 
 pluginCardBgClass : Plugin -> Maybe String
 pluginCardBgClass p =
-    case ( p.installStatus, p.licenseStatus ) of
-        ( _, MissingLicense _ ) ->
+    case ( p.installStatus, p.noLicense ) of
+        ( _, True ) ->
             Just "plugin-card-missing-license"
 
         ( Installed Disabled, _ ) ->
@@ -514,22 +514,17 @@ pluginCardBgClass p =
 
 
 pluginErrorCallouts : Plugin -> List (Html Msg)
-pluginErrorCallouts { licenseStatus, abiVersionError } =
-    case ( licenseStatus, abiVersionError ) of
-        ( ExpiredLicense message, _ ) ->
-            [ div [ class "callout-fade callout-danger" ] [ i [ class "me-1 fa fa-warning" ] [], text message ] ]
+pluginErrorCallouts { errors } =
+    errors
+        |> List.map
+            (\e ->
+                case e of
+                    CalloutError message ->
+                        div [ class "callout-fade callout-danger" ] [ i [ class "me-1 fa fa-warning" ] [], text message ]
 
-        ( MissingLicense message, _ ) ->
-            [ div [ class "callout-fade callout-danger" ] [ i [ class "me-1 fa fa-warning" ] [], text message ] ]
-
-        ( NearExpirationLicense message, _ ) ->
-            [ div [ class "callout-fade callout-warning" ] [ i [ class "me-1 fa fa-warning" ] [], text message ] ]
-
-        ( _, Just message ) ->
-            [ div [ class "callout-fade callout-warning" ] [ i [ class "me-1 fa fa-warning" ] [], text message ] ]
-
-        _ ->
-            []
+                    CalloutWarning message ->
+                        div [ class "callout-fade callout-warning" ] [ i [ class "me-1 fa fa-warning" ] [], text message ]
+            )
 
 
 pluginInputCheck : { a | id : PluginId } -> Selected -> List (Html Msg)
