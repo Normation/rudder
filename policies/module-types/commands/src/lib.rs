@@ -1,9 +1,13 @@
 mod cli;
 use crate::cli::Cli;
-use std::io::Write;
-use std::{io, path::PathBuf, process::Command};
+use std::{
+    fs,
+    io::Write,
+    path::PathBuf,
+    process::{Command, Stdio},
+};
 
-use anyhow::Result;
+use anyhow::{Ok, Result};
 use rudder_module_type::{
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ProtocolResult,
     ValidateResult, cfengine::called_from_agent, parameters::Parameters, run_module,
@@ -68,11 +72,11 @@ pub struct CommandsParameters {
     show_content: bool,
 }
 
-fn default_shell_path() -> String {
+pub fn default_shell_path() -> String {
     "/bin/sh".to_string()
 }
 
-fn default_timeout() -> String {
+pub fn default_timeout() -> String {
     "30".to_string()
 }
 
@@ -80,19 +84,64 @@ fn default_as_true() -> bool {
     true
 }
 
-fn default_repaired_codes() -> String {
+pub fn default_repaired_codes() -> String {
     "0".to_string()
 }
 
 struct Commands {}
 
 impl Commands {
-    fn exec(cmd: String, args: String) {
-        let args = args.split(" ").collect::<Vec<&str>>();
-        let output = Command::new(cmd).args(args).output().unwrap();
-        println!("status: {}", output.status);
-        io::stdout().write_all(&output.stdout).unwrap();
-        io::stderr().write_all(&output.stderr).unwrap();
+    fn run(p: &CommandsParameters) -> Result<()> {
+        if p.run_in_audit_mode {
+            // dry-run
+            println!(
+                "dry-run: {} {}",
+                p.command,
+                p.args.clone().unwrap_or("".to_string())
+            );
+        } else {
+            let mut command = Command::new(if p.in_shell {
+                &p.shell_path
+            } else {
+                &p.command
+            });
+
+            if p.in_shell {
+                command.arg("-c");
+                command.arg(&p.command);
+            }
+
+            if let Some(args) = &p.args
+                && !args.is_empty()
+            {
+                command.args(args.split_whitespace());
+            }
+
+            if let Some(chdir) = &p.chdir
+                && !chdir.is_empty()
+                && fs::exists(chdir)?
+            {
+                command.current_dir(chdir);
+            }
+
+            // TODO: Timeout
+
+            command.stdout(Stdio::piped());
+            command.stderr(Stdio::piped());
+            command.stdin(Stdio::piped());
+            let mut child = command.spawn()?;
+            if let Some(stdin) = &p.stdin {
+                let mut child_stdin = child.stdin.take().expect("failed to get child stdin");
+                // TODO: test && refactor
+                write!(child_stdin, "{stdin}")?;
+                if p.stdin_add_newline {
+                    writeln!(child_stdin)?;
+                }
+            }
+            let output = child.wait_with_output().expect("failed to wait on child");
+            dbg!(output);
+        }
+        Ok(())
     }
 }
 
@@ -110,15 +159,16 @@ impl ModuleType0 for Commands {
     }
 
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
-        let parameters: CommandsParameters =
+        let _parameters: CommandsParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))?;
 
         Ok(())
     }
 
-    fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
+    fn check_apply(&mut self, _mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
         assert!(self.validate(parameters).is_ok());
-        let p: CommandsParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
+        let _p: CommandsParameters =
+            serde_json::from_value(Value::Object(parameters.data.clone()))?;
         Ok(Outcome::success())
     }
 }
