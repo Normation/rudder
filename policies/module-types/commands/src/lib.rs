@@ -1,19 +1,21 @@
 mod cli;
 use crate::cli::Cli;
 use std::{
-    fs,
+    fs::{self, File},
     io::Write,
+    os::unix::process::CommandExt,
     path::PathBuf,
     process::{Command, Stdio},
+    str::from_utf8,
 };
 
-use anyhow::{Ok, Result};
+use anyhow::{Context, Ok, Result};
 use rudder_module_type::{
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ProtocolResult,
     ValidateResult, cfengine::called_from_agent, parameters::Parameters, run_module,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Value, json};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -80,7 +82,7 @@ pub fn default_timeout() -> String {
     "30".to_string()
 }
 
-fn default_as_true() -> bool {
+pub fn default_as_true() -> bool {
     true
 }
 
@@ -126,19 +128,46 @@ impl Commands {
 
             // TODO: Timeout
 
+            if let Some(uid) = &p.uid {
+                let uid = uid
+                    .parse::<u32>()
+                    .with_context(|| format!("'{uid}' is not a valid uid"))?;
+
+                command.uid(uid);
+            }
+
+            if let Some(gid) = &p.gid {
+                let gid = gid
+                    .parse::<u32>()
+                    .with_context(|| format!("'{gid}' is not a valid gid"))?;
+
+                command.gid(gid);
+            }
+
             command.stdout(Stdio::piped());
             command.stderr(Stdio::piped());
             command.stdin(Stdio::piped());
             let mut child = command.spawn()?;
             if let Some(stdin) = &p.stdin {
                 let mut child_stdin = child.stdin.take().expect("failed to get child stdin");
-                // TODO: test && refactor
-                write!(child_stdin, "{stdin}")?;
                 if p.stdin_add_newline {
-                    writeln!(child_stdin)?;
+                    writeln!(child_stdin, "{stdin}")?;
+                } else {
+                    write!(child_stdin, "{stdin}")?;
                 }
             }
             let output = child.wait_with_output().expect("failed to wait on child");
+            if let Some(output_file) = &p.output_to_file {
+                let mut f = File::create(output_file).with_context(|| {
+                    format!("Could not create file '{}'", output_file.display())
+                })?;
+                let report = json!({
+                    "exit_code": output.status.code(),
+                    "stdout": from_utf8(&output.stdout)?,
+                    "stderr": from_utf8(&output.stderr)?,
+                });
+                write!(f, "{}", report)?;
+            }
             dbg!(output);
         }
         Ok(())

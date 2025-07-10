@@ -33,13 +33,7 @@ pub struct Cli {
     stdin: Option<String>,
     /// Controls the appending of a newline to the stdin input
     #[arg(long)]
-    stdin_add_newline: bool,
-    /// Compliant codes
-    #[arg(long)]
-    compliant_codes: Option<String>,
-    /// Repaired codes
-    #[arg(long)]
-    repaired_codes: Option<String>, // Default to "0"
+    stdin_no_newline: bool,
     /// File to store the output of the command
     #[arg(long)]
     output_to_file: Option<PathBuf>,
@@ -58,9 +52,6 @@ pub struct Cli {
     /// Environment variables used by the executed command
     #[arg(long)]
     env_vars: Option<String>,
-    /// Controls output of diffs in the report
-    #[arg(long)]
-    show_content: bool,
 }
 
 impl Cli {
@@ -87,16 +78,16 @@ impl Cli {
             chdir: cli.chdir,
             timeout: cli.timeout.unwrap_or_else(default_timeout),
             stdin: cli.stdin,
-            stdin_add_newline: cli.stdin_add_newline,
-            compliant_codes: cli.compliant_codes.unwrap_or("".to_string()),
-            repaired_codes: cli.repaired_codes.unwrap_or_else(default_repaired_codes),
+            stdin_add_newline: !cli.stdin_no_newline,
+            compliant_codes: "".to_string(),
+            repaired_codes: default_repaired_codes(),
             output_to_file: cli.output_to_file,
-            strip_output: cli.strip_output,
+            strip_output: cli.strip_output, // TODO
             uid: cli.uid,
             gid: cli.gid,
             umask: cli.umask,
             env_vars: cli.env_vars,
-            show_content: cli.show_content,
+            show_content: true,
         }
     }
 }
