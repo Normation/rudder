@@ -11,47 +11,65 @@ use std::path::PathBuf;
 pub struct Cli {
     /// Command to be executed
     command: String,
+
+    /// Audit mode
+    #[arg(short, long)]
+    audit: bool,
+
     /// Arguments to the command
     args: Option<Vec<String>>,
+
     /// Controls the running mode of the command
     #[arg(long)]
-    run_in_audit_mode: bool,
+    dry_run: bool,
+
     /// Controls if the command is executed inside a shell
     #[arg(long, group = "shell")]
     in_shell: bool,
+
     /// Shell path (used only in shell mode)
     #[arg(long, requires = "shell")]
     shell_path: Option<String>,
+
     /// Directory from where to execute the command
     #[arg(long)]
     chdir: Option<String>,
+
     /// Timeout for command execution
     #[arg(long)]
-    timeout: Option<String>, // Default to 30 seconds
+    timeout: Option<String>, // Default to 30 seconds // TODO
+
     /// Input passed to the stdin of the executed command
     #[arg(long)]
     stdin: Option<String>,
+
     /// Controls the appending of a newline to the stdin input
     #[arg(long)]
     stdin_no_newline: bool,
+
     /// File to store the output of the command
     #[arg(long)]
     output_to_file: Option<PathBuf>,
+
     // Controls the strip of the content inside the output file
     #[arg(long)]
-    strip_output: bool,
+    strip_output: bool, // TODO
+
     /// UID used by the executed command
     #[arg(long)]
     uid: Option<String>,
+
     /// GID used by the executed command
     #[arg(long)]
     gid: Option<String>,
+
     /// Umask used by the executed command
     #[arg(long)]
-    umask: Option<String>,
+    umask: Option<String>, // TODO
+
     /// Environment variables used by the executed command
     #[arg(long)]
-    env_vars: Option<String>,
+    env_vars: Option<String>, // TODO
 }
 
 impl Cli {
@@ -71,8 +89,9 @@ impl Cli {
         };
         CommandsParameters {
             command: cli.command,
+            audit: cli.audit, // TODO
             args,
-            run_in_audit_mode: cli.run_in_audit_mode,
+            run_in_audit_mode: cli.dry_run,
             in_shell: cli.in_shell,
             shell_path: cli.shell_path.unwrap_or_else(default_shell_path),
             chdir: cli.chdir,

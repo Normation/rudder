@@ -22,53 +22,74 @@ use serde_json::{Value, json};
 pub struct CommandsParameters {
     /// Command to be executed
     command: String,
+
+    /// Audit mode
+    #[serde(default)] // Default to false
+    audit: bool,
+
     /// Arguments to the command
     #[serde(skip_serializing_if = "Option::is_none")]
     args: Option<String>,
+
     /// Controls the running mode of the command
     #[serde(default)] // Default to false
     run_in_audit_mode: bool,
+
     /// Controls if the command is executed inside a shell
     #[serde(default)] // Default to false
     in_shell: bool,
+
     /// Shell path (used only in shell mode)
     #[serde(default = "default_shell_path")]
     shell_path: String,
+
     /// Directory from where to execute the command
     #[serde(skip_serializing_if = "Option::is_none")]
     chdir: Option<String>,
+
     /// Timeout for command execution
     #[serde(default = "default_timeout")]
     timeout: String, // Default to 30 seconds
+
     /// Input passed to the stdin of the executed command
     #[serde(skip_serializing_if = "Option::is_none")]
     stdin: Option<String>,
+
     /// Controls the appending of a newline to the stdin input
     #[serde(default = "default_as_true")]
     stdin_add_newline: bool,
+
     /// Compliant codes
     #[serde(default)] // Default to ""
     compliant_codes: String,
+
     /// Repaired codes
     #[serde(default = "default_repaired_codes")]
     repaired_codes: String, // Default to "0"
+
     /// File to store the output of the command
     output_to_file: Option<PathBuf>,
+
     // Controls the strip of the content inside the output file
     #[serde(default)] // Default to false
     strip_output: bool,
+
     /// UID used by the executed command
     #[serde(skip_serializing_if = "Option::is_none")]
     uid: Option<String>,
+
     /// GID used by the executed command
     #[serde(skip_serializing_if = "Option::is_none")]
     gid: Option<String>,
+
     /// Umask used by the executed command
     #[serde(skip_serializing_if = "Option::is_none")]
     umask: Option<String>,
+
     /// Environment variables used by the executed command
     #[serde(skip_serializing_if = "Option::is_none")]
     env_vars: Option<String>,
+
     /// Controls output of diffs in the report
     #[serde(default = "default_as_true")]
     show_content: bool,
@@ -126,8 +147,6 @@ impl Commands {
                 command.current_dir(chdir);
             }
 
-            // TODO: Timeout
-
             if let Some(uid) = &p.uid {
                 let uid = uid
                     .parse::<u32>()
@@ -149,14 +168,14 @@ impl Commands {
             command.stdin(Stdio::piped());
             let mut child = command.spawn()?;
             if let Some(stdin) = &p.stdin {
-                let mut child_stdin = child.stdin.take().expect("failed to get child stdin");
+                let mut child_stdin = child.stdin.take().expect("Failed to get child stdin");
                 if p.stdin_add_newline {
                     writeln!(child_stdin, "{stdin}")?;
                 } else {
                     write!(child_stdin, "{stdin}")?;
                 }
             }
-            let output = child.wait_with_output().expect("failed to wait on child");
+            let output = child.wait_with_output().expect("Failed to wait on child");
             if let Some(output_file) = &p.output_to_file {
                 let mut f = File::create(output_file).with_context(|| {
                     format!("Could not create file '{}'", output_file.display())
@@ -165,6 +184,8 @@ impl Commands {
                     "exit_code": output.status.code(),
                     "stdout": from_utf8(&output.stdout)?,
                     "stderr": from_utf8(&output.stderr)?,
+                    "status": "todo",
+                    "execution_time": "toto",
                 });
                 write!(f, "{}", report)?;
             }
