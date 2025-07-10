@@ -766,7 +766,7 @@ displayProviders model user =
         else
           div[]
           (List.map providerEl user.providers)
-    
+
 displayTenants : User -> Html Msg
 displayTenants user =
     case user.tenants of
@@ -901,8 +901,8 @@ displaySafeHashesStatus { safeHashes } =
           ]
         , p []
           [ text "See "
-          , a [ href "/rudder-doc/reference/current/administration/users.html#_passwords", target "_blank" ] []
-          , text "."
+          , a [ href "/rudder-doc/reference/current/administration/users.html#_passwords", target "_blank" ] [ text "the documentation"]
+          , text " for instructions."
           ]
         ]
 
