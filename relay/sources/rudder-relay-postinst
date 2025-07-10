@@ -122,6 +122,12 @@ rm -f /opt/rudder/etc/rudder-pkg/trustdb.gpg
 rm -rf /opt/rudder/etc/rudder-pkg/private-keys-v1.d
 chmod -x /opt/rudder/etc/rudder-pkg/rudder-pkg.conf
 
+# initialize policy_server.pem if it doesn't exist
+if [ ! -f /var/rudder/lib/ssl/policy_server.pem ];
+then
+  cp /opt/rudder/etc/ssl/agent.cert /var/rudder/lib/ssl/policy_server.pem
+fi
+
 # Apply SELinux config before starting the services
 if [ "${SELINUX}" = "true" ]; then
   # Check "sestatus" presence, if not there there is not SELinux
@@ -157,12 +163,6 @@ if [ "${SELINUX}" = "true" ]; then
     # Allow apache to write to files shared with relayd
     setsebool -P allow_httpd_anon_write 1
   fi
-fi
-
-# initialize policy_server.pem if it doesn't exist
-if [ ! -f /var/rudder/lib/ssl/policy_server.pem ];
-then
-  cp /opt/rudder/etc/ssl/agent.cert /var/rudder/lib/ssl/policy_server.pem
 fi
 
 systemctl start rudder-relayd.service rudder-package.timer >> ${LOG_FILE}
