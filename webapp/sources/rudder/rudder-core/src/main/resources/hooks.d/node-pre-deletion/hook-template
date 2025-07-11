@@ -11,8 +11,8 @@
 # - RUDDER_NODE_HOSTNAME: the node fully qualified hostname
 # - RUDDER_NODE_POLICY_SERVER_ID: the node policy server id
 # - RUDDER_AGENT_TYPE: agent type ("cfengine-community" or "dsc")
-# - RUDDER_POLICIES_DIRECTORY_CURRENT: the full path of the base directory containing policies for that node
-# - RUDDER_POLICIES_DIRECTORY_NEW: the full path of the base directory containing next policies for that node (during a generation)
+# - RUDDER_POLICIES_DIRECTORY_CURRENT: the full path of the base directory containing policies for that node (for ex for nodes under root: /var/rudder/share/$RUDDER_NODE_ID/rules/$RUDDER_AGENT_TYPE)
+# - RUDDER_POLICIES_DIRECTORY_NEW    : the full path of the base directory containing next policies for that node (during a generation) (/var/rudder/share/$RUDDER_NODE_ID/rules.new/$RUDDER_AGENT_TYPE)
 # - RUDDER_POLICIES_DIRECTORY_ARCHIVE: the full path of the base directory containing previous policies for that node
 # - RUDDER_NODE_KIND: node kind: root, relay or node
 
