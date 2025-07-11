@@ -2,6 +2,7 @@
 
 # Hooks parameter are passed by environment variable:
 #
+# RUDDER_INVENTORY_PATH: the full path for failed inventory
 
 
 # Errors code on hooks are interpreted as follow:
