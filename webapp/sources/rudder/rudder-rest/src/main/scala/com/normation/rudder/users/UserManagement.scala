@@ -71,7 +71,7 @@ object UserPassword {
   }
 
   case class HashedUserPassword private[UserPassword] (private val value: String) extends StorableUserPassword {
-    // FIXME: maybe display first chars, to know at least the hash algo ?
+    // if we apply strict check on hash format, maybe we should the display first chars, to know at least the hash algo ?
     override def toString: String = "[REDACTED HashedUserPassword]"
 
     override def exposeValue(): String = value
@@ -90,6 +90,7 @@ object UserPassword {
    * For cases when user cannot have a password e.g. with remote authentication, it should never match
    */
   case class UnknownPassword(value: String) extends StorableUserPassword {
+    override def toString:      String = "[REDACTED UnknownPassorwd]"
     override def exposeValue(): String = value
   }
 
