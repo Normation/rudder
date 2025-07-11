@@ -160,7 +160,7 @@ mod tests {
         unix::test(
             Path::new(BIN),
             &format!(
-                r#"{{"path": "{}", "engine": "{}", "template_src": "{{{{ path|basename }}}}", "data": {{ "path": "/tmp/dir/file" }} }}"#,
+                r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_src": "{{{{ path|basename }}}}", "data": {{ "path": "/tmp/dir/file" }} }}"#,
                 test_path.display(),
                 "minijinja"
             ),
@@ -193,7 +193,7 @@ mod tests {
         unix::test(
             Path::new(BIN),
             &format!(
-                r#"{{"path": "{}", "engine": "{}", "template_src": "{{{{ path|dirname }}}}", "data": {{ "path": "/tmp/dir/file" }} }}"#,
+                r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_src": "{{{{ path|dirname }}}}", "data": {{ "path": "/tmp/dir/file" }} }}"#,
                 test_path.display(),
                 "minijinja"
             ),
@@ -222,7 +222,7 @@ mod tests {
         unix::test(
             Path::new(BIN),
             &format!(
-                r#"{{"path": "{}", "engine": "{}", "template_src": "{{{{ encoded_data|b64decode }}}}", "data": {{ "encoded_data": "SGVsbG8sIEZlcnJpcyE=" }} }}"#,
+                r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_src": "{{{{ encoded_data|b64decode }}}}", "data": {{ "encoded_data": "SGVsbG8sIEZlcnJpcyE=" }} }}"#,
                 test_path.display(),
                 "minijinja"
             ),
@@ -251,7 +251,7 @@ mod tests {
         unix::test(
             Path::new(BIN),
             &format!(
-                r#"{{"path": "{}", "engine": "{}", "template_src": "{{{{ plain_data|b64encode }}}}", "data": {{ "plain_data": "Hello, Ferris!" }} }}"#,
+                r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_src": "{{{{ plain_data|b64encode }}}}", "data": {{ "plain_data": "Hello, Ferris!" }} }}"#,
                 test_path.display(),
                 "minijinja"
             ),
@@ -280,7 +280,7 @@ mod tests {
         unix::test(
             Path::new(BIN),
             &format!(
-                r#"{{"path": "{}", "engine": "{}", "template_src": "{{{{ encoded_data|urldecode }}}}", "data": {{ "encoded_data": "Hello%2C%20Ferris%21" }} }}"#,
+                r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_src": "{{{{ encoded_data|urldecode }}}}", "data": {{ "encoded_data": "Hello%2C%20Ferris%21" }} }}"#,
                 test_path.display(),
                 "minijinja"
             ),
@@ -326,7 +326,7 @@ mod tests {
         unix::test(
             Path::new(BIN),
             &format!(
-                r#"{{"path": "{}", "engine": "{}", "template_src": "{{{{ data|hash }}}}", "data": {{ "data": "Hello, Ferris!" }} }}"#,
+                r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "",  "template_src": "{{{{ data|hash }}}}", "data": {{ "data": "Hello, Ferris!" }} }}"#,
                 test_path.display(),
                 "minijinja"
             ),
@@ -348,7 +348,7 @@ mod tests {
         unix::test(
             Path::new(BIN),
             &format!(
-                r#"{{"path": "{}", "engine": "{}", "template_src": "{{{{ data|hash('sha-1') }}}}", "data": {{ "data": "Hello, Ferris!" }} }}"#,
+                r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_src": "{{{{ data|hash('sha-1') }}}}", "data": {{ "data": "Hello, Ferris!" }} }}"#,
                 test_path.display(),
                 "minijinja"
             ),
@@ -370,7 +370,7 @@ mod tests {
         unix::test(
             Path::new(BIN),
             &format!(
-                r#"{{"path": "{}", "engine": "{}", "template_src": "{{{{ data|hash('sha-256') }}}}", "data": {{ "data": "Hello, Ferris!" }} }}"#,
+                r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_src": "{{{{ data|hash('sha-256') }}}}", "data": {{ "data": "Hello, Ferris!" }} }}"#,
                 test_path.display(),
                 "minijinja"
             ),
@@ -392,7 +392,7 @@ mod tests {
         unix::test(
             Path::new(BIN),
             &format!(
-                r#"{{"path": "{}", "engine": "{}", "template_src": "{{{{ data|hash('sha-512') }}}}", "data": {{ "data": "Hello, Ferris!" }} }}"#,
+                r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_src": "{{{{ data|hash('sha-512') }}}}", "data": {{ "data": "Hello, Ferris!" }} }}"#,
                 test_path.display(),
                 "minijinja"
             ),
@@ -423,7 +423,7 @@ mod tests {
         unix::test(
             Path::new(BIN),
             &format!(
-                r#"{{"path": "{}", "engine": "{}", "template_src": "{{{{ data|quote }}}}", "data": {{ "data": "A string to quote" }} }}"#,
+                r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_src": "{{{{ data|quote }}}}", "data": {{ "data": "A string to quote" }} }}"#,
                 test_path.display(),
                 "minijinja"
             ),
@@ -453,7 +453,7 @@ mod tests {
         unix::test(
             Path::new(BIN),
             &format!(
-                r#"{{"path": "{}", "engine": "{}", "template_src": "{{{{ data|regex_escape }}}}", "data": {{ "data": "^f.*o(.*)$" }} }}"#,
+                r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_src": "{{{{ data|regex_escape }}}}", "data": {{ "data": "^f.*o(.*)$" }} }}"#,
                 test_path.display(),
                 "minijinja"
             ),
@@ -500,7 +500,7 @@ mod tests {
         unix::test(
             Path::new(BIN),
             &format!(
-                r#"{{"path": "{}", "engine": "{}", "template_src": "{{{{ data|regex_replace('{}', '{}') }}}}", "data": {{ "data": "ansible" }} }}"#,
+                r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_src": "{{{{ data|regex_replace('{}', '{}') }}}}", "data": {{ "data": "ansible" }} }}"#,
                 test_path.display(),
                 "minijinja",
                 "^a.*i(.*)$",
@@ -524,7 +524,7 @@ mod tests {
         unix::test(
             Path::new(BIN),
             &format!(
-                r#"{{"path": "{}", "engine": "{}", "template_src": "{{{{ data|regex_replace('{}', '{}', 1) }}}}", "data": {{ "data": "ansible" }} }}"#,
+                r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_src": "{{{{ data|regex_replace('{}', '{}', 1) }}}}", "data": {{ "data": "ansible" }} }}"#,
                 test_path.display(),
                 "minijinja",
                 "^a.*i(.*)$",
