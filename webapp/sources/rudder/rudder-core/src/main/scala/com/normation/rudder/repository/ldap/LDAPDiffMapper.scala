@@ -432,7 +432,7 @@ class LDAPDiffMapper(
                             case A_JSON_PROPERTY    =>
                               for {
                                 d    <- diff
-                                // ignore invalide properties, don't make group unusable
+                                // ignore invalid properties, don't make group unusable
                                 props = mod
                                           .getAttribute()
                                           .getValues
