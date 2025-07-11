@@ -94,6 +94,10 @@ object UserPassword {
     override def exposeValue(): String = value
   }
 
+  case class RandomHexaPassword private[UserPassword] (randomValue: String) extends StorableUserPassword {
+    override def exposeValue(): String = randomValue
+  }
+
   implicit def transformSecretToHashed(using PasswordEncoder): Transformer[SecretUserPassword, HashedUserPassword] =
     _.toHashed
 
@@ -129,7 +133,7 @@ object UserPassword {
   // If the attribute is defined several times, use the first occurrence.
   // see https://stackoverflow.com/a/44227131
   // produce a random hexa string of 32 chars
-  def randomHexa32: UnknownPassword = {
+  def randomHexa32: RandomHexaPassword = {
     // here, we can be unlucky with the chosen token which convert to an int starting with one or more 0.
     // In that case, just complete the string
     def randInternal: String = {
@@ -142,7 +146,7 @@ object UserPassword {
     while (s.length < 32) { // we can be very unlucky and keep drawing 000s
       s = s + randInternal.substring(0, 32 - s.length)
     }
-    UnknownPassword(s)
+    RandomHexaPassword(s)
   }
 
   def fromSecret(s: String): SecretUserPassword = SecretUserPassword(s)

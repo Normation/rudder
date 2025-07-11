@@ -46,6 +46,7 @@ import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.UserPassword.HashedUserPassword
+import com.normation.rudder.users.UserPassword.RandomHexaPassword
 import java.util.Collection
 import net.liftweb.http.RequestVar
 import org.springframework.security.core.GrantedAuthority
@@ -124,6 +125,7 @@ case class RudderUserDetail(
 
   override val (getUsername, getPassword, getAuthorities) = account match {
     case RudderAccount.User(login, h: HashedUserPassword) => (login, h.exposeValue(), RudderAuthType.User.grantedAuthorities)
+    case RudderAccount.User(login, r: RandomHexaPassword) => (login, r.randomValue, RudderAuthType.User.grantedAuthorities)
     case RudderAccount.User(login, _)                     => (login, "", RudderAuthType.User.grantedAuthorities)
     // We can default to "" as this value is ot used for authentication.
     case RudderAccount.Api(api)                           =>

@@ -51,7 +51,7 @@ import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.users.*
 import com.normation.rudder.users.UserManagementIO.getUserFilePath
-import com.normation.rudder.users.UserPassword.HashedUserPassword
+import com.normation.rudder.users.UserPassword.StorableUserPassword
 import com.normation.rudder.users.UserPassword.UnknownPassword
 import com.normation.zio.*
 import io.scalaland.chimney.dsl.*
@@ -333,8 +333,8 @@ class UserManagementService(
                      }
                      val newUsername = if (fileUser.username.isEmpty) id else fileUser.username
                      val newPassword = fileUser.password match {
-                       case _: UnknownPassword    => UserPassword.UnknownPassword((user \ "@password").text)
-                       case h: HashedUserPassword => h
+                       case _: UnknownPassword      => UserPassword.UnknownPassword((user \ "@password").text)
+                       case s: StorableUserPassword => s
                      }
                      val tenants     = (user \ "@tenants").text
                      User.make(newUsername, newPassword, newRoles, tenants).toNode
