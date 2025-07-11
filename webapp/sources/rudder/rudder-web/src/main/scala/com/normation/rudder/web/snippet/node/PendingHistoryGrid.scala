@@ -116,7 +116,8 @@ object PendingHistoryGrid extends Loggable {
             },
             "aaSorting": [[ 0, "desc" ]],
             "sPaginationType": "full_numbers",
-            "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>'
+            "sDom": '<"dataTables_wrapper_top d-flex" f <"d-flex ms-auto my-auto" B>>rt<"dataTables_wrapper_bottom"lip>',
+            "buttons" : [ csvButtonConfig("pending_nodes_history") ]
           });
           $('.dataTables_filter input').attr("placeholder", "Filter");
           """.replaceAll("#table_var#", jsVarNameForId())) & initJsCallBack(entries) // JsRaw ok, const

@@ -58,7 +58,8 @@ const equalsCheck = (a, b) =>
 
 // Renaming table ids to specific CSV file name, also later enforce snake_case if necessary
 const csvRenameFilename = (filename) => (({
-  "serverGrid": "nodes_search_result"
+  "serverGrid": "nodes_search_result",
+  "acceptNodeGrid": "pending_nodes"
 })[filename] ?? filename)
 
 // Shared config for DataTables Button CSV

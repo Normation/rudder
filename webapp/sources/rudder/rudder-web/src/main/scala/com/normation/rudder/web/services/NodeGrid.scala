@@ -153,7 +153,8 @@ final class NodeGrid(
             ],
             "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
             "pageLength": 25 ,
-            "sDom": '<"dataTables_wrapper_top"f>rt<"dataTables_wrapper_bottom"lip>'
+            "sDom": '<"dataTables_wrapper_top d-flex" f <"d-flex ms-auto my-auto" B>>rt<"dataTables_wrapper_bottom"lip>',
+            "buttons" : [ csvButtonConfig("${tableId}") ]
           });
             """) &   // JsRaw ok, escaped
       initJsCallBack(jsTableId)
