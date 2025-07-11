@@ -372,7 +372,8 @@ filtersView model =
               , attribute "title" (buildTooltipContent "Global compliance" "This mode will show the compliance of all rules that apply directives to a node within this group.")
               , onClick (LoadCompliance GlobalCompliance)
             ]
-            [text "Global"]
+            [ text "Global"
+            ]
           , label 
             [ class ("btn btn-default" ++ if isGlobalMode then "" else " active")
               , attribute "data-bs-toggle" "tooltip"
@@ -381,16 +382,9 @@ filtersView model =
               , attribute "title" (buildTooltipContent "Targeted compliance" "This mode will show only the compliance of rules that explicitly include this group in their target.")
               , onClick (LoadCompliance TargetedCompliance)
             ]
-            [text "Targeted"]
-          ]
-          , span 
-            [ class "mx-3 d-flex flex-nowrap align-items-baseline"
-              , attribute "data-bs-toggle" "tooltip"
-              , attribute "data-bs-placement" "right"
-              , attribute "data-bs-html" "true"
-              , attribute "title" (buildTooltipContent "Global/Targeted compliance" "<b>Global</b> compliance will show the compliance of all rules that apply directives to a node within this group.<br/><b>Targeted</b> compliance will show only the compliance of rules that explicitly include this group in their target.")
+            [ text "Targeted"
             ]
-            [span [][text "Compliance"], span [class "fa fa-info-circle icon-info"][]]
+          ]
         ]
       , div [class "main-filters"]
         [ input [type_ "text", placeholder "Filter", class "input-sm form-control", value filters.filter
