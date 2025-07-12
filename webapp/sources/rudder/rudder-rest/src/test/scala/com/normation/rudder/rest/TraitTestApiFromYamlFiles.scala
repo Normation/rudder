@@ -41,6 +41,7 @@ import better.files.*
 import com.normation.box.IOManaged
 import com.normation.errors.*
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.ApplicationLogger
@@ -107,7 +108,8 @@ object TraitTestApiFromYamlFiles {
       case None    =>
         new UserService {
           val user = new AuthenticatedUser {
-            val account: RudderAccount = RudderAccount.User("test-user", "pass")
+            val user:    Option[RudderAccount.User] = Some(RudderAccount.User("test-user", UserPassword.unsafeHashed("pass")))
+            val account: Option[ApiAccount]         = None
             def checkRights(auth: AuthorizationType) = true
             def getApiAuthz: ApiAuthorization    = ApiAuthorization.allAuthz
             def nodePerms:   NodeSecurityContext = NodeSecurityContext.All
