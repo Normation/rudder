@@ -1,0 +1,40 @@
+#!/bin/sh
+
+# Hooks parameter are passed by environment variable:
+#
+# - RUDDER_GENERATION_DATETIME: generation datetime: ISO-8601 YYYY-MM-ddTHH:mm:ss.sssZ date/time that identify that policy generation start
+# - RUDDER_NODEID             : the nodeId
+# - RUDDER_POLICIES_DIRECTORY : policies directory (for ex for nodes under root: /var/rudder/share/$RUDDER_NODEID/rules/$AGENT_NAME)
+# - RUDDER_AGENT_TYPE         : agent type ("cfengine-nova" or "cfengine-community")
+
+ARCHIVE_NAME=rudder.tar.bz2
+# archive is directly under "rules" directory
+ARCHIVE_PATH="${RUDDER_POLICIES_DIRECTORY}/.."
+
+if [ -z "${RUDDER_POLICIES_DIRECTORY}" ]; then
+  #bad rules.new directory
+  echo "The directory for node ${RUDDER_NODEID} new policies is empty"
+  exit 1;
+else
+  case "${RUDDER_AGENT_TYPE}" in
+    "cfengine-community")
+      # Go to the folder to prevent storing the full path
+      cd  ${ARCHIVE_PATH}
+
+      # Create the archive first in a part file, then move it to avoid partial archives to be downloaded.
+      # The archive is created in /var/rudder/${RUDDER_NODEID}/rules/${ARCHIVE_NAME} directly. It must
+      # be in `/rules/`, because it's what ensure Rudder that the archive content is synchronized with the files under
+      # `../rules/cfengine-community/`
+      /usr/bin/tar -cjf ${ARCHIVE_PATH}/${ARCHIVE_NAME}.part --transform "s|^cfengine-community|policies_next|" cfengine-community
+      mv ${ARCHIVE_PATH}/${ARCHIVE_NAME}.part ${ARCHIVE_PATH}/${ARCHIVE_NAME}
+
+      # enforce permissions
+      chown root:rudder-policy-reader ${ARCHIVE_PATH}/${ARCHIVE_NAME} || true
+      ;;
+
+    *)
+      #do nothing for other agent type
+      exit 0
+    ;;
+  esac
+fi
