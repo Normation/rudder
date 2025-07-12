@@ -61,7 +61,9 @@ class PropertiesRepositoryTest extends Specification {
     // node2 has some properties
     val resolvedNode2 = SuccessNodePropertyHierarchy(
       Chunk.from(
-        MockNodes.node2Node.properties.map(NodePropertyHierarchy(_, List.empty))
+        MockNodes.node2Node.properties.map(n =>
+          NodePropertyHierarchy(MockNodes.node2.id, ParentProperty.Node(MockNodes.node2.hostname, MockNodes.node2.id, n, None))
+        )
       )
     )
     val initialProps  = Map(
@@ -83,7 +85,10 @@ class PropertiesRepositoryTest extends Specification {
     "get node properties on several nodes for a property with resolution errors" in {
       // if node2 has failed resolution of properties
       val props = initialProps
-        .updated(MockNodes.node2.id, FailedNodePropertyHierarchy(Chunk.empty, NodePropertyError.DAGError("A DAGError")))
+        .updated(
+          MockNodes.node2.id,
+          FailedNodePropertyHierarchy(Chunk.empty, PropertyHierarchyError.DAGHierarchyError("A DAGError"))
+        )
       (repo.saveNodeProps(props) *> repo.getNodesProp(
         Set(MockNodes.node1.id, MockNodes.node2.id),
         "simpleString"

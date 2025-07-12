@@ -1083,15 +1083,32 @@ response:
           "stringParam" : {
             "name" : "stringParam",
             "value" : "stringsome string",
+            "description" : "a simple string param",
             "inheritMode" : "map",
             "provider" : "inherited",
-            "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>&quot;some string&quot;</pre></p><p>from <b>Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
+            "hierarchy" : "<p>from <b>Global parameter </b>:<pre>&quot;some string&quot;</pre></p><p>from <b>Group Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
+            "hierarchyStatus" : {
+              "hasChildTypeConflicts" : false,
+              "fullHierarchy" : {
+                "kind" : "group",
+                "name" : "Real nodes",
+                "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                "valueType" : "String",
+                "parent" : {
+                  "kind" : "global",
+                  "valueType" : "String"
+                }
+              }
+            },
             "origval" : "string"
           }
         },
         "score" : {
           "score" : "X",
-          "details" : {"compliance" : "X", "system-updates" : "X"}
+          "details" : {
+            "compliance" : "X",
+            "system-updates" : "X"
+          }
         }
       }
     ]
@@ -1124,9 +1141,36 @@ response:
                 },
                 "string" : "a string"
               },
+              "description" : "a simple string param",
               "provider" : "inherited",
-              "hierarchy" : [
-                {
+              "hierarchy" : {
+                "kind" : "group",
+                "name" : "Real nodes",
+                "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                "value" : {
+                  "array" : [
+                    5,
+                    6
+                  ],
+                  "group" : "string",
+                  "json" : {
+                    "g1" : "g1"
+                  }
+                },
+                "resolvedValue" : {
+                  "array" : [
+                    5,
+                    6
+                  ],
+                  "group" : "string",
+                  "json" : {
+                    "g1" : "g1",
+                    "var1" : "val1",
+                    "var2" : "val2"
+                  },
+                  "string" : "a string"
+                },
+                "parent" : {
                   "kind" : "global",
                   "value" : {
                     "array" : [
@@ -1140,37 +1184,20 @@ response:
                     },
                     "string" : "a string"
                   }
-                },
-                {
+                }
+              },
+             "hierarchyStatus" : {
+               "hasChildTypeConflicts" : false,
+               "fullHierarchy" : {
                   "kind" : "group",
                   "name" : "Real nodes",
                   "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                  "value" : {
-                    "array" : [
-                      5,
-                      6
-                    ],
-                    "group" : "string",
-                    "json" : {
-                      "g1" : "g1"
-                    }
-                  }
-                }
-              ],
-              "hierarchyStatus" : {
-                "hasChildTypeConflicts" : false,
-                "fullHierarchy" : [
-                  {
+                 "valueType" : "Object",
+                 "parent" : {
                     "kind" : "global",
                     "valueType" : "Object"
-                  },
-                  {
-                    "kind" : "group",
-                    "name" : "Real nodes",
-                    "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                    "valueType" : "Object"
                   }
-                ]
+               }
               },
               "origval" : {
                 "array" : [
@@ -1186,22 +1213,19 @@ response:
             {
               "name" : "modeParam",
               "value" : "some string",
+              "description" : "a simple string param",
               "inheritMode" : "opa",
               "provider" : "inherited",
-              "hierarchy" : [
-                {
-                  "kind" : "global",
-                  "value" : "some string"
-                }
-              ],
+              "hierarchy" : {
+                "kind" : "global",
+                "value" : "some string"
+              },
               "hierarchyStatus" : {
                 "hasChildTypeConflicts" : false,
-                "fullHierarchy" : [
-                  {
-                    "kind" : "global",
-                    "valueType" : "String"
-                  }
-                ]
+                "fullHierarchy" : {
+                  "kind" : "global",
+                  "valueType" : "String"
+                }
               },
               "origval" : "some string"
             },
@@ -1212,25 +1236,22 @@ response:
                   "mode" : "expire_immediately"
                 }
               },
+              "description" : "rudder system config",
               "provider" : "inherited",
-              "hierarchy" : [
-                {
-                  "kind" : "global",
-                  "value" : {
-                    "compliance_expiration_policy" : {
-                      "mode" : "expire_immediately"
-                    }
+              "hierarchy" : {
+                "kind" : "global",
+                "value" : {
+                  "compliance_expiration_policy" : {
+                    "mode" : "expire_immediately"
                   }
                 }
-              ],
+              },
               "hierarchyStatus" : {
                 "hasChildTypeConflicts" : false,
-                "fullHierarchy" : [
-                  {
-                    "kind" : "global",
-                    "valueType" : "Object"
-                  }
-                ]
+                "fullHierarchy" : {
+                  "kind" : "global",
+                  "valueType" : "Object"
+                }
               },
               "origval" : {
                 "compliance_expiration_policy" : {
@@ -1241,55 +1262,50 @@ response:
             {
               "name" : "stringParam",
               "value" : "stringsome string",
+              "description" : "a simple string param",
               "inheritMode" : "map",
               "provider" : "inherited",
-              "hierarchy" : [
-                {
+              "hierarchy" : {
+                "kind" : "group",
+                "name" : "Real nodes",
+                "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                "value" : "string",
+                "resolvedValue" : "stringsome string",
+                "parent" : {
                   "kind" : "global",
                   "value" : "some string"
-                },
-                {
+               }
+              },
+              "hierarchyStatus" : {
+                "hasChildTypeConflicts" : false,
+                "fullHierarchy" : {
                   "kind" : "group",
                   "name" : "Real nodes",
                   "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                  "value" : "string"
-                }
-              ],
-              "hierarchyStatus" : {
-                "hasChildTypeConflicts" : false,
-                "fullHierarchy" : [
-                  {
+                  "valueType" : "String",
+                  "parent" : {
                     "kind" : "global",
                     "valueType" : "String"
-                  },
-                  {
-                    "kind" : "group",
-                    "name" : "Real nodes",
-                    "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                    "valueType" : "String"
                   }
-                ]
+                }
               },
               "origval" : "string"
             },
             {
               "name" : "systemParam",
               "value" : "some string",
+              "description" : "a simple string param",
               "provider" : "inherited",
-              "hierarchy" : [
-                {
-                  "kind" : "global",
-                  "value" : "some string"
-                }
-              ],
+              "hierarchy" : {
+                "kind" : "global",
+                "value" : "some string"
+              },
               "hierarchyStatus" : {
                 "hasChildTypeConflicts" : false,
-                "fullHierarchy" : [
-                  {
-                    "kind" : "global",
-                    "valueType" : "String"
-                  }
-                ]
+                "fullHierarchy" : {
+                  "kind" : "global",
+                  "valueType" : "String"
+                }
               },
               "origval" : "some string"
             }
@@ -1314,53 +1330,127 @@ response:
       "node1-pending" : {
         "name" : "stringParam",
         "value" : "some string",
+        "description" : "a simple string param",
         "provider" : "inherited",
-        "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>&quot;some string&quot;</pre></p>",
+        "hierarchy" : "<p>from <b>Global parameter </b>:<pre>&quot;some string&quot;</pre></p>",
+        "hierarchyStatus" : {
+          "hasChildTypeConflicts" : false,
+          "fullHierarchy" : {
+            "kind" : "global",
+            "valueType" : "String"
+          }
+        },
         "origval" : "some string"
       },
       "node-dsc" : {
         "name" : "stringParam",
         "value" : "some string",
+        "description" : "a simple string param",
         "provider" : "inherited",
-        "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>&quot;some string&quot;</pre></p>",
+        "hierarchy" : "<p>from <b>Global parameter </b>:<pre>&quot;some string&quot;</pre></p>",
+        "hierarchyStatus" : {
+          "hasChildTypeConflicts" : false,
+          "fullHierarchy" : {
+            "kind" : "global",
+            "valueType" : "String"
+          }
+        },
         "origval" : "some string"
       },
       "node2" : {
         "name" : "stringParam",
         "value" : "stringsome string",
+        "description" : "a simple string param",
         "inheritMode" : "map",
         "provider" : "inherited",
-        "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>&quot;some string&quot;</pre></p><p>from <b>Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
+        "hierarchy" : "<p>from <b>Global parameter </b>:<pre>&quot;some string&quot;</pre></p><p>from <b>Group Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
+        "hierarchyStatus" : {
+          "hasChildTypeConflicts" : false,
+          "fullHierarchy" : {
+            "kind" : "group",
+            "name" : "Real nodes",
+            "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "valueType" : "String",
+            "parent" : {
+              "kind" : "global",
+              "valueType" : "String"
+            }
+          }
+        },
         "origval" : "string"
       },
       "node1" : {
         "name" : "stringParam",
         "value" : "stringsome string",
+        "description" : "a simple string param",
         "inheritMode" : "map",
         "provider" : "inherited",
-        "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>&quot;some string&quot;</pre></p><p>from <b>Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
+        "hierarchy" : "<p>from <b>Global parameter </b>:<pre>&quot;some string&quot;</pre></p><p>from <b>Group Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
+        "hierarchyStatus" : {
+          "hasChildTypeConflicts" : false,
+          "fullHierarchy" : {
+            "kind" : "group",
+            "name" : "Real nodes",
+            "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "valueType" : "String",
+            "parent" : {
+              "kind" : "global",
+              "valueType" : "String"
+            }
+          }
+        },
         "origval" : "string"
       },
       "root" : {
         "name" : "stringParam",
         "value" : "stringsome string",
+        "description" : "a simple string param",
         "inheritMode" : "map",
         "provider" : "inherited",
-        "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>&quot;some string&quot;</pre></p><p>from <b>Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
+        "hierarchy" : "<p>from <b>Global parameter </b>:<pre>&quot;some string&quot;</pre></p><p>from <b>Group Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>&quot;string&quot;</pre></p>",
+        "hierarchyStatus" : {
+          "hasChildTypeConflicts" : false,
+          "fullHierarchy" : {
+            "kind" : "group",
+            "name" : "Real nodes",
+            "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "valueType" : "String",
+            "parent" : {
+              "kind" : "global",
+              "valueType" : "String"
+            }
+          }
+        },
         "origval" : "string"
       },
       "378740d3-c4a9-4474-8485-478e7e52db53" : {
         "name" : "stringParam",
         "value" : "some string",
+        "description" : "a simple string param",
         "provider" : "inherited",
-        "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>&quot;some string&quot;</pre></p>",
+        "hierarchy" : "<p>from <b>Global parameter </b>:<pre>&quot;some string&quot;</pre></p>",
+        "hierarchyStatus" : {
+          "hasChildTypeConflicts" : false,
+          "fullHierarchy" : {
+            "kind" : "global",
+            "valueType" : "String"
+          }
+        },
         "origval" : "some string"
       },
       "378740d3-c4a9-4474-8485-478e7e52db52" : {
         "name" : "stringParam",
         "value" : "some string",
+        "description" : "a simple string param",
         "provider" : "inherited",
-        "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>&quot;some string&quot;</pre></p>",
+        "hierarchy" : "<p>from <b>Global parameter </b>:<pre>&quot;some string&quot;</pre></p>",
+        "hierarchyStatus" : {
+          "hasChildTypeConflicts" : false,
+          "fullHierarchy" : {
+            "kind" : "global",
+            "valueType" : "String"
+          }
+        },
         "origval" : "some string"
       }
     }

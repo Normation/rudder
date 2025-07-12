@@ -40,7 +40,7 @@ package com.normation.rudder.properties
 import com.normation.errors.IOResult
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.properties.NodePropertyHierarchy
+import com.normation.rudder.domain.properties.PropertyHierarchy
 import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.facts.nodes.NodeFactRepository
@@ -68,7 +68,7 @@ trait PropertiesRepository {
    */
   def getNodesProp(nodeIds: Set[NodeId], propName: String)(implicit
       qc: QueryContext
-  ): IOResult[Map[NodeId, NodePropertyHierarchy]]
+  ): IOResult[Map[NodeId, PropertyHierarchy]]
 
   /*
    * Save updated properties for nodes.
@@ -90,7 +90,7 @@ trait PropertiesRepository {
   /*
    * Get a given property for a given node
    */
-  def getGroupProp(groupId: NodeGroupId, propName: String): IOResult[Option[NodePropertyHierarchy]]
+  def getGroupProp(groupId: NodeGroupId, propName: String): IOResult[Option[PropertyHierarchy]]
 
   /*
    * Save updated properties for nodes.
@@ -149,7 +149,7 @@ class InMemoryPropertiesRepository(
   // This API inherently swallows known errors, it does only return success node property in the collection
   override def getNodesProp(nodeIds: Set[NodeId], propName: String)(implicit
       qc: QueryContext
-  ): IOResult[Map[NodeId, NodePropertyHierarchy]] = {
+  ): IOResult[Map[NodeId, PropertyHierarchy]] = {
     for {
       // needed to check access to node
       ids   <- nodeFactRepository.getAll().map(_.keySet)
@@ -177,7 +177,7 @@ class InMemoryPropertiesRepository(
     )
   }
 
-  override def getGroupProp(groupId: NodeGroupId, propName: String): IOResult[Option[NodePropertyHierarchy]] = {
+  override def getGroupProp(groupId: NodeGroupId, propName: String): IOResult[Option[PropertyHierarchy]] = {
     groupProps.get.map(
       _.get(groupId).flatMap(_.resolved.find(_.prop.name == propName))
     )
