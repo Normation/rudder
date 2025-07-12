@@ -48,6 +48,8 @@ import org.joda.time.DateTime
 import zio.interop.catz.*
 
 trait CampaignEventRepository {
+
+
   def get(campaignEventId:                 CampaignEventId): IOResult[Option[CampaignEvent]]
   def saveCampaignEvent(c:                 CampaignEvent):   IOResult[CampaignEvent]
   def numberOfEventsByCampaign(campaignId: CampaignId):      IOResult[Int]
