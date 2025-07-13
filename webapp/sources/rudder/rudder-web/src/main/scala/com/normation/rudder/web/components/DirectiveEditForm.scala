@@ -272,7 +272,7 @@ class DirectiveEditForm(
       }) andThen
       ClearClearable &
       // activation button: show disactivate if activated
-      "#directiveTitle *" #> <span>{directive.name} {
+      "#directiveTitle" #> <span>{directive.name} {
         if (activeTechnique.isEnabled) NodeSeq.Empty else <span class="badge-disabled"></span>
       }</span> &
       "#shortDescription" #> (if (directive.shortDescription.isEmpty) NodeSeq.Empty
