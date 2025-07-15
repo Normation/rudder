@@ -81,13 +81,13 @@ impl Cli {
         let cmd = get_used_cmd(&p);
 
         if mode {
-            println!("dry-run: {}", cmd);
+            println!("dry-run: {cmd}");
         } else {
             let output =
-                Commands::run(&p).with_context(|| format!("Failed to run command '{}'", cmd))?;
+                Commands::run(&p).with_context(|| format!("Failed to run command '{cmd}'"))?;
             let output = serde_json::to_string_pretty(&output)?;
 
-            println!("Command '{}':\n{}", cmd, output);
+            println!("Command '{cmd}':\n{output}");
         }
 
         Ok(())
