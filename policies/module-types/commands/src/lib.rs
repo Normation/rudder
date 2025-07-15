@@ -23,10 +23,6 @@ pub struct CommandsParameters {
     /// Command to be executed
     command: String,
 
-    /// Audit mode
-    #[serde(default)] // Default to false
-    audit: bool,
-
     /// Arguments to the command
     #[serde(skip_serializing_if = "Option::is_none")]
     args: Option<String>,
@@ -114,84 +110,79 @@ pub fn default_repaired_codes() -> String {
 struct Commands {}
 
 impl Commands {
-    fn run(p: &CommandsParameters) -> Result<()> {
-        if p.run_in_audit_mode {
-            // dry-run
-            println!(
-                "dry-run: {} {}",
-                p.command,
-                p.args.clone().unwrap_or("".to_string())
-            );
+    fn run(p: &CommandsParameters) -> Result<Value> {
+        let mut command = Command::new(if p.in_shell {
+            &p.shell_path
         } else {
-            let mut command = Command::new(if p.in_shell {
-                &p.shell_path
-            } else {
-                &p.command
-            });
+            &p.command
+        });
 
-            if p.in_shell {
-                command.arg("-c");
-                command.arg(&p.command);
-            }
-
-            if let Some(args) = &p.args
-                && !args.is_empty()
-            {
-                command.args(args.split_whitespace());
-            }
-
-            if let Some(chdir) = &p.chdir
-                && !chdir.is_empty()
-                && fs::exists(chdir)?
-            {
-                command.current_dir(chdir);
-            }
-
-            if let Some(uid) = &p.uid {
-                let uid = uid
-                    .parse::<u32>()
-                    .with_context(|| format!("'{uid}' is not a valid uid"))?;
-
-                command.uid(uid);
-            }
-
-            if let Some(gid) = &p.gid {
-                let gid = gid
-                    .parse::<u32>()
-                    .with_context(|| format!("'{gid}' is not a valid gid"))?;
-
-                command.gid(gid);
-            }
-
-            command.stdout(Stdio::piped());
-            command.stderr(Stdio::piped());
-            command.stdin(Stdio::piped());
-            let mut child = command.spawn()?;
-            if let Some(stdin) = &p.stdin {
-                let mut child_stdin = child.stdin.take().expect("Failed to get child stdin");
-                if p.stdin_add_newline {
-                    writeln!(child_stdin, "{stdin}")?;
-                } else {
-                    write!(child_stdin, "{stdin}")?;
-                }
-            }
-            let output = child.wait_with_output().expect("Failed to wait on child");
-            if let Some(output_file) = &p.output_to_file {
-                let mut f = File::create(output_file).with_context(|| {
-                    format!("Could not create file '{}'", output_file.display())
-                })?;
-                let report = json!({
-                    "exit_code": output.status.code(),
-                    "stdout": from_utf8(&output.stdout)?,
-                    "stderr": from_utf8(&output.stderr)?,
-                    "status": "todo",
-                    "execution_time": "toto",
-                });
-                write!(f, "{}", report)?;
-            }
-            dbg!(output);
+        if p.in_shell {
+            command.arg("-c");
+            command.arg(&p.command);
         }
-        Ok(())
+
+        if let Some(args) = &p.args
+            && !args.is_empty()
+        {
+            command.args(args.split_whitespace());
+        }
+
+        if let Some(chdir) = &p.chdir
+            && !chdir.is_empty()
+            && fs::exists(chdir)?
+        {
+            command.current_dir(chdir);
+        }
+
+        if let Some(uid) = &p.uid {
+            let uid = uid
+                .parse::<u32>()
+                .with_context(|| format!("'{uid}' is not a valid uid"))?;
+
+            command.uid(uid);
+        }
+
+        if let Some(gid) = &p.gid {
+            let gid = gid
+                .parse::<u32>()
+                .with_context(|| format!("'{gid}' is not a valid gid"))?;
+
+            command.gid(gid);
+        }
+
+        command.stdout(Stdio::piped());
+        command.stderr(Stdio::piped());
+        command.stdin(Stdio::piped());
+        let mut child = command.spawn()?;
+        if let Some(stdin) = &p.stdin {
+            let mut child_stdin = child.stdin.take().expect("Failed to get child stdin");
+            if p.stdin_add_newline {
+                writeln!(child_stdin, "{stdin}")?;
+            } else {
+                write!(child_stdin, "{stdin}")?;
+            }
+        }
+        let output = child
+            .wait_with_output()
+            .context("Failed to wait on child")?;
+
+        let stdout = from_utf8(&output.stdout)?;
+        let stderr = from_utf8(&output.stderr)?;
+        let report = json!({
+            "exit_code": output.status.code(),
+            "stdout": stdout,
+            "stderr": stderr,
+            "running_time": 0,
+        });
+
+        if let Some(output_file) = &p.output_to_file {
+            let mut f = File::create(output_file).with_context(|| {
+                format!("Could not create output file '{}'", output_file.display())
+            })?;
+            write!(f, "{report}")?;
+        }
+        Ok(report)
     }
 }
 
@@ -209,17 +200,22 @@ impl ModuleType0 for Commands {
     }
 
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
-        let _parameters: CommandsParameters =
+        let _p: CommandsParameters =
             serde_json::from_value(Value::Object(parameters.data.clone()))?;
 
         Ok(())
     }
 
-    fn check_apply(&mut self, _mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
+    fn check_apply(&mut self, mode: PolicyMode, parameters: &Parameters) -> CheckApplyResult {
         assert!(self.validate(parameters).is_ok());
-        let _p: CommandsParameters =
-            serde_json::from_value(Value::Object(parameters.data.clone()))?;
-        Ok(Outcome::success())
+        let p: CommandsParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
+
+        let output = match mode {
+            PolicyMode::Enforce => Commands::run(&p)?,
+            PolicyMode::Audit => todo!(),
+        };
+
+        Ok(Outcome::success_with(output.to_string()))
     }
 }
 
@@ -231,4 +227,19 @@ pub fn entry() -> Result<(), anyhow::Error> {
     } else {
         Cli::run()
     }
+}
+
+pub fn get_used_cmd(p: &CommandsParameters) -> String {
+    let command = p.command.clone();
+    let cmd_args = if p.args.is_some() {
+        command + " " + &p.args.clone().unwrap()
+    } else {
+        command
+    };
+    let shell = if p.in_shell {
+        "".to_string() + &p.shell_path + " -c "
+    } else {
+        "".to_string()
+    };
+    shell + &cmd_args
 }
