@@ -239,6 +239,9 @@ trait WorkflowService {
 
   def findStep(changeRequestId: ChangeRequestId): IOResult[WorkflowNodeId]
 
+  def findBackStatus(currentStep: WorkflowNodeId): Option[WorkflowNodeId]
+  def findNextStatus(currentStep: WorkflowNodeId): Option[WorkflowNodeId]
+
   /**
    * Get workflow step of each ChangeRequest
    */
@@ -313,4 +316,8 @@ class NoWorkflowServiceImpl(
   def isPending(currentStep: WorkflowNodeId): Boolean = false
 
   override def needExternalValidation(): Boolean = false
+
+  override def findBackStatus(currentStep: WorkflowNodeId): Option[WorkflowNodeId] = None
+
+  override def findNextStatus(currentStep: WorkflowNodeId): Option[WorkflowNodeId] = None
 }
