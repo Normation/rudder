@@ -40,6 +40,7 @@ package com.normation.rudder.score
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.Doobie
+import com.normation.rudder.db.Doobie.*
 import com.normation.zio.*
 import doobie.Fragments
 import doobie.Meta
