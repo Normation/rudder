@@ -19,7 +19,7 @@ limitations under the License.
   <parent>
     <groupId>com.normation</groupId>
     <artifactId>parent-pom</artifactId>
-    <version>8.2.8</version>
+    <version>8.2.9-SNAPSHOT</version>
   </parent>
 
   <artifactId>scala-ldap</artifactId>
