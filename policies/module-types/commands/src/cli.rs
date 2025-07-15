@@ -1,5 +1,6 @@
 use crate::{
     Commands, CommandsParameters, default_repaired_codes, default_shell_path, default_timeout,
+    get_used_cmd,
 };
 use anyhow::{Context, Result};
 use clap::Parser;
@@ -53,7 +54,7 @@ pub struct Cli {
 
     // Controls the strip of the content inside the output file
     #[arg(long)]
-    strip_output: bool, // TODO
+    strip_output: bool, // Default to false // TODO
 
     /// UID used by the executed command
     #[arg(long)]
@@ -74,14 +75,25 @@ pub struct Cli {
 
 impl Cli {
     pub fn run() -> Result<()> {
-        let p = Cli::get_parameters();
-        Commands::run(&p).with_context(|| format!("Failed to run command '{}'", p.command))?;
-        // TODO: Make this error message more exhaustive.
+        let cli = Cli::parse();
+        let mode = cli.audit;
+        let p = Cli::get_parameters(cli);
+        let cmd = get_used_cmd(&p);
+
+        if mode {
+            println!("dry-run: {}", cmd);
+        } else {
+            let output =
+                Commands::run(&p).with_context(|| format!("Failed to run command '{}'", cmd))?;
+            let output = serde_json::to_string_pretty(&output)?;
+
+            println!("Command '{}':\n{}", cmd, output);
+        }
+
         Ok(())
     }
 
-    fn get_parameters() -> CommandsParameters {
-        let cli = Cli::parse();
+    fn get_parameters(cli: Cli) -> CommandsParameters {
         let args = if let Some(args) = &cli.args {
             Some(args.join(" "))
         } else {
@@ -89,7 +101,6 @@ impl Cli {
         };
         CommandsParameters {
             command: cli.command,
-            audit: cli.audit, // TODO
             args,
             run_in_audit_mode: cli.dry_run,
             in_shell: cli.in_shell,
@@ -101,7 +112,7 @@ impl Cli {
             compliant_codes: "".to_string(),
             repaired_codes: default_repaired_codes(),
             output_to_file: cli.output_to_file,
-            strip_output: cli.strip_output, // TODO
+            strip_output: cli.strip_output,
             uid: cli.uid,
             gid: cli.gid,
             umask: cli.umask,
