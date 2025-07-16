@@ -170,9 +170,10 @@ class TestSystemData {
   def getSystemVars(
       nodeInfo:     CoreNodeFact,
       allNodeInfos: MapView[NodeId, CoreNodeFact],
-      allGroups:    FullNodeGroupCategory
+      allGroups:    FullNodeGroupCategory,
+      altConfig:    Boolean = false
   ): Map[String, Variable] = {
-    systemVariableService
+    (if (altConfig) systemVariableServiceAltConfig else systemVariableService)
       .getSystemVariables(
         nodeInfo,
         allNodeInfos,
@@ -499,7 +500,7 @@ class WriteSystemTechniquesTest extends TechniquesTest {
     val cfeNC = cfeNodeConfig.copy(
       nodeInfo = factCfe,
       policies = p,
-      nodeContext = getSystemVars(factCfe, allNodeFacts_cfeNode, groupLib),
+      nodeContext = getSystemVars(factCfe, allNodeFacts_cfeNode, groupLib, altConfig = true),
       runHooks = MergePolicyService.mergeRunHooks(p.filter(!_.technique.policyTypes.isSystem), None, globalPolicyMode)
     )
 

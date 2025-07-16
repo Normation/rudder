@@ -798,6 +798,33 @@ class TestNodeConfiguration(
     getReportProtocolDefault = () => Full(AgentReportingHTTPS)
   )
 
+  // another system variable to test other variable configs
+  val systemVariableServiceAltConfig = new SystemVariableServiceImpl(
+    systemVariableServiceSpec,
+    policyServerManagement,
+    instanceIdService,
+    toolsFolder = "tools_folder",
+    policyDistribCfenginePort = 5309,
+    policyDistribHttpsPort = 443,
+    sharedFilesFolder = "/var/rudder/configuration-repository/shared-files",
+    webdavUser = "rudder",
+    webdavPassword = "rudder",
+    reportsDbUri = "jdbc:postgresql://localhost:5432/rudder",
+    reportsDbUser = "rudder",
+    reportsDbPassword = "secret",
+    configurationRepository = configurationRepositoryRoot.getAbsolutePath,
+    serverVersion = "7.0.0",                // denybadclocks is runtime properties
+    PolicyServerCertificateConfig(Nil, "", false),
+    getDenyBadClocks = () => Full(true),
+    getSyncMethod = () => Full(Classic),
+    getSyncPromises = () => Full(false),
+    getSyncSharedFiles = () => Full(false), // TTLs are runtime properties too
+
+    getModifiedFilesTtl = () => Full(30),
+    getCfengineOutputsTtl = () => Full(7),
+    getReportProtocolDefault = () => Full(AgentReportingHTTPS)
+  )
+
   val t8: Long = System.currentTimeMillis()
   NodeConfigData.logger.trace(s"System variable Service: ${t8 - t7} ms")
 
