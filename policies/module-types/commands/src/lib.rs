@@ -15,6 +15,7 @@ use rudder_module_type::{
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ProtocolResult,
     ValidateResult, cfengine::called_from_agent, parameters::Parameters, run_module,
 };
+use rustix::{fs::Mode, process::umask};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use wait_timeout::ChildExt;
@@ -153,6 +154,12 @@ impl Commands {
             command.gid(gid);
         }
 
+        if let Some(mask_str) = &p.umask {
+            let mask = u32::from_str_radix(mask_str, 8)
+                .with_context(|| format!("Invalid umask '{mask_str}'"))?;
+            umask(Mode::from(mask));
+        }
+
         command.stdout(Stdio::piped());
         command.stderr(Stdio::piped());
         command.stdin(Stdio::piped());
@@ -178,7 +185,7 @@ impl Commands {
         if child.wait_timeout(timeout)?.is_none() {
             child.kill().context("Failed to kill child")?;
             let cmd = get_used_cmd(p);
-            bail!("Command '{}' exceeded the {}s timeout", cmd, sec);
+            bail!("Command '{cmd}' exceeded the {sec}s timeout");
         }
 
         let output = child

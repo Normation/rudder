@@ -3564,6 +3564,7 @@ dependencies = [
  "anyhow",
  "clap",
  "rudder_module_type",
+ "rustix 1.0.8",
  "serde",
  "serde_json",
  "wait-timeout",
@@ -3913,6 +3914,15 @@ dependencies = [
  "libc",
  "linux-raw-sys 0.9.4",
  "windows-sys 0.60.2",
+]
+
+[[package]]
+name = "rustls-pemfile"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c74cae0a4cf6ccbbf5f359f08efdf8ee7e1dc532573bf0db71968cb56b1448c"
+dependencies = [
+ "base64 0.21.7",
 ]
 
 [[package]]
