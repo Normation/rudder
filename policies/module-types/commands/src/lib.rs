@@ -7,7 +7,7 @@ use std::{
     path::PathBuf,
     process::{Command, Stdio},
     str::from_utf8,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use anyhow::{Context, Ok, Result, bail};
@@ -156,6 +156,9 @@ impl Commands {
         command.stdout(Stdio::piped());
         command.stderr(Stdio::piped());
         command.stdin(Stdio::piped());
+
+        let start_time = Instant::now();
+
         let mut child = command.spawn()?;
         if let Some(stdin) = &p.stdin {
             let mut child_stdin = child.stdin.take().expect("Failed to get child stdin");
@@ -188,7 +191,7 @@ impl Commands {
             "exit_code": output.status.code(),
             "stdout": stdout,
             "stderr": stderr,
-            "running_time": 0,
+            "running_time": start_time.elapsed().as_secs(),
         });
 
         if let Some(output_file) = &p.output_to_file {

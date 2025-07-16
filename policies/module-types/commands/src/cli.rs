@@ -38,7 +38,7 @@ pub struct Cli {
 
     /// Timeout for command execution
     #[arg(long)]
-    timeout: Option<String>, // Default to 30 seconds // TODO
+    timeout: Option<String>, // Default to 30 seconds
 
     /// Input passed to the stdin of the executed command
     #[arg(long)]
@@ -52,7 +52,7 @@ pub struct Cli {
     #[arg(long)]
     output_to_file: Option<PathBuf>,
 
-    // Controls the strip of the content inside the output file
+    /// Controls the strip of the content inside the output file
     #[arg(long)]
     strip_output: bool, // Default to false // TODO
 
