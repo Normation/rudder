@@ -7,15 +7,17 @@ use std::{
     path::PathBuf,
     process::{Command, Stdio},
     str::from_utf8,
+    time::Duration,
 };
 
-use anyhow::{Context, Ok, Result};
+use anyhow::{Context, Ok, Result, bail};
 use rudder_module_type::{
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ProtocolResult,
     ValidateResult, cfengine::called_from_agent, parameters::Parameters, run_module,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use wait_timeout::ChildExt;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -163,6 +165,19 @@ impl Commands {
                 write!(child_stdin, "{stdin}")?;
             }
         }
+
+        let sec = p
+            .timeout
+            .parse::<u64>()
+            .with_context(|| format!("Invalid timeout '{}'", p.timeout))?;
+
+        let timeout = Duration::from_secs(sec);
+        if child.wait_timeout(timeout)?.is_none() {
+            child.kill().context("Failed to kill child")?;
+            let cmd = get_used_cmd(p);
+            bail!("Command '{}' exceeded the {}s timeout", cmd, sec);
+        }
+
         let output = child
             .wait_with_output()
             .context("Failed to wait on child")?;
