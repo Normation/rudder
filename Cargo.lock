@@ -3566,6 +3566,7 @@ dependencies = [
  "rudder_module_type",
  "serde",
  "serde_json",
+ "wait-timeout",
 ]
 
 [[package]]
