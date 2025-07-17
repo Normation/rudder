@@ -396,8 +396,12 @@ final case class JsonAddedUserData(
     otherInfo:   Option[Json.Obj]
 )
 object JsonAddedUserData {
-  implicit val transformer: Transformer[JsonUserFormData, JsonAddedUserData] =
-    Transformer.derive[JsonUserFormData, JsonAddedUserData]
+  implicit val transformer: Transformer[JsonUserFormData, JsonAddedUserData] = {
+    Transformer
+      .define[JsonUserFormData, JsonAddedUserData]
+      .withFieldComputed(_.permissions, _.permissions.getOrElse(List.empty))
+      .buildTransformer
+  }
 }
 
 final case class JsonInternalUserData(
@@ -453,7 +457,7 @@ final case class JsonStatus(
 final case class JsonUserFormData(
     username:    String,
     password:    String,
-    permissions: List[String],
+    permissions: Option[List[String]],
     isPreHashed: Boolean,
     name:        Option[String],
     email:       Option[String],
@@ -461,10 +465,19 @@ final case class JsonUserFormData(
 )
 
 object JsonUserFormData {
-  implicit val transformer:           Transformer[JsonUserFormData, User]           =
-    Transformer.define[JsonUserFormData, User].enableOptionDefaultsToNone.buildTransformer
-  implicit val transformerUpdateUser: Transformer[JsonUserFormData, UpdateUserFile] =
-    Transformer.derive[JsonUserFormData, UpdateUserFile]
+  implicit val transformer:           Transformer[JsonUserFormData, User]           = {
+    Transformer
+      .define[JsonUserFormData, User]
+      .enableOptionDefaultsToNone
+      .withFieldComputed(_.permissions, _.permissions.getOrElse(Nil).toSet)
+      .buildTransformer
+  }
+  implicit val transformerUpdateUser: Transformer[JsonUserFormData, UpdateUserFile] = {
+    Transformer
+      .define[JsonUserFormData, UpdateUserFile]
+      .withFieldComputed(_.permissions, _.permissions.getOrElse(Nil).toSet)
+      .buildTransformer
+  }
 }
 
 final case class JsonCoverage(
