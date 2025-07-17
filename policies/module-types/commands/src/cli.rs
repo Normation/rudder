@@ -76,16 +76,16 @@ pub struct Cli {
 impl Cli {
     pub fn run() -> Result<()> {
         let cli = Cli::parse();
-        let audit_mode = cli.audit;
+        let audit = cli.audit;
 
         let p = Cli::get_parameters(cli);
         let cmd = get_used_cmd(&p);
 
-        if audit_mode && !p.run_in_audit_mode {
+        if audit && !p.run_in_audit_mode {
             println!("dry-run: {cmd}");
         } else {
-            let output =
-                Commands::run(&p).with_context(|| format!("Failed to run command '{cmd}'"))?;
+            let output = Commands::run(&p, audit)
+                .with_context(|| format!("Failed to run command '{cmd}'"))?;
             let output = serde_json::to_string_pretty(&output)?;
 
             println!("Command '{cmd}':\n{output}");
