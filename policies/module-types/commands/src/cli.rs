@@ -66,7 +66,7 @@ pub struct Cli {
 
     /// Umask used by the executed command
     #[arg(long)]
-    umask: Option<String>, // TODO
+    umask: Option<String>,
 
     /// Environment variables used by the executed command
     #[arg(long)]
@@ -76,11 +76,12 @@ pub struct Cli {
 impl Cli {
     pub fn run() -> Result<()> {
         let cli = Cli::parse();
-        let mode = cli.audit;
+        let audit_mode = cli.audit;
+
         let p = Cli::get_parameters(cli);
         let cmd = get_used_cmd(&p);
 
-        if mode {
+        if audit_mode && !p.run_in_audit_mode {
             println!("dry-run: {cmd}");
         } else {
             let output =
@@ -102,7 +103,7 @@ impl Cli {
         CommandsParameters {
             command: cli.command,
             args,
-            run_in_audit_mode: cli.dry_run,
+            run_in_audit_mode: !cli.dry_run,
             in_shell: cli.in_shell,
             shell_path: cli.shell_path.unwrap_or_else(default_shell_path),
             chdir: cli.chdir,

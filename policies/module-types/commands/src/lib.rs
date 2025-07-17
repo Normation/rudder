@@ -3,7 +3,7 @@ use crate::cli::Cli;
 use std::{
     fs::{self, File},
     io::Write,
-    os::unix::process::CommandExt,
+    os::unix::{fs::PermissionsExt, process::CommandExt},
     path::PathBuf,
     process::{Command, Stdio},
     str::from_utf8,
@@ -205,6 +205,9 @@ impl Commands {
             let mut f = File::create(output_file).with_context(|| {
                 format!("Could not create output file '{}'", output_file.display())
             })?;
+            let mut perm = f.metadata()?.permissions();
+            perm.set_mode(0o600);
+            f.set_permissions(perm)?;
             write!(f, "{report}")?;
         }
         Ok(report)
@@ -255,16 +258,16 @@ pub fn entry() -> Result<(), anyhow::Error> {
 }
 
 pub fn get_used_cmd(p: &CommandsParameters) -> String {
-    let command = p.command.clone();
-    let cmd_args = if p.args.is_some() {
-        command + " " + &p.args.clone().unwrap()
-    } else {
-        command
+    let command = &p.command;
+    let cmd_args = match &p.args {
+        Some(args) => format!("{command} {args}"),
+        None => command.clone(),
     };
+
     let shell = if p.in_shell {
-        "".to_string() + &p.shell_path + " -c "
+        format!("{} -c ", p.shell_path)
     } else {
-        "".to_string()
+        String::new()
     };
-    shell + &cmd_args
+    format!("{shell}{cmd_args}")
 }
