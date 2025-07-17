@@ -511,7 +511,10 @@ class SystemVariableServiceImpl(
         Seq(
           "sha256//" + allNodeInfos(
             nodeInfo.rudderSettings.policyServerId
-          ).keyHashBase64Sha256 ++ policyServerCertificate.additionalKeyHash.mkString(";", ";", "")
+          ).keyHashBase64Sha256 ++ (policyServerCertificate.additionalKeyHash match {
+            case Nil => ""
+            case nel => nel.mkString(";", ";", "")
+          })
         )
       )
 
