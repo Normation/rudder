@@ -283,7 +283,7 @@ class TestMigrateTableCampaignEvents extends DBCommon {
       val sql1 = sql"""SELECT state FROM CampaignEvents WHERE eventid = '7cca021a'"""
       doobie.transactRunEither(sql1.query[String].option.transact(_)) must beRight(
         beSome(
-          CampaignEventStateType.Failure.entryName
+          CampaignEventStateType.TFailure.entryName
         )
       )
 
@@ -291,7 +291,7 @@ class TestMigrateTableCampaignEvents extends DBCommon {
       doobie.transactRunEither(sql2.query[(String, Json)].option.transact(_)) must beRight(
         beSome(
           (
-            CampaignEventStateType.Failure.entryName,
+            CampaignEventStateType.TFailure.entryName,
             Json.Obj(
               "cause"   -> Json.Str("An error occurred when processing event"),
               "message" -> Json.Str("An error occurred when processing event: inconsistency in migration")
@@ -323,7 +323,7 @@ class TestMigrateTableCampaignEvents extends DBCommon {
     "be able to do by criteria search" in {
       repo
         .getWithCriteria(
-          CampaignEventStateType.Finished :: CampaignEventStateType.Failure :: Nil,
+          CampaignEventStateType.TFinished :: CampaignEventStateType.TFailure :: Nil,
           CampaignType("system-update") :: Nil,
           None,
           Some(5),
