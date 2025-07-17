@@ -113,7 +113,7 @@ pub fn default_repaired_codes() -> String {
 struct Commands {}
 
 impl Commands {
-    fn run(p: &CommandsParameters) -> Result<Value> {
+    fn run(p: &CommandsParameters, _audit: bool) -> Result<Value> {
         let mut command = Command::new(if p.in_shell {
             &p.shell_path
         } else {
@@ -239,11 +239,23 @@ impl ModuleType0 for Commands {
         let p: CommandsParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
 
         let output = match mode {
-            PolicyMode::Enforce => Commands::run(&p)?,
-            PolicyMode::Audit => todo!(),
+            PolicyMode::Enforce => Commands::run(&p, false)?,
+            PolicyMode::Audit if p.run_in_audit_mode => Commands::run(&p, true)?,
+            PolicyMode::Audit => {
+                let cmd = get_used_cmd(&p);
+                println!("dry-run: {cmd}");
+                return Ok(Outcome::success());
+            }
         };
 
-        Ok(Outcome::success_with(output.to_string()))
+        let exit_code = output.get("exit_code").unwrap().to_string();
+        let res = match exit_code {
+            code if code == p.compliant_codes => Outcome::success_with(output.to_string()),
+            code if code == p.repaired_codes => Outcome::repaired(output.to_string()),
+            _ => bail!("error: {}", output.to_string()),
+        };
+
+        Ok(res)
     }
 }
 
