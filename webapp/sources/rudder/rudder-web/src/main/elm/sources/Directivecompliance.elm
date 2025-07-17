@@ -89,7 +89,7 @@ update msg model =
           NodesView -> { ui | nodeFilters = newFilters}
         newModel = { model | ui = newUi }
       in
-        (newModel, Cmd.none)
+        (newModel, initTooltips "")
 
     ToggleRowSort rowId sortId order ->
       let
@@ -103,13 +103,13 @@ update msg model =
           NodesView -> { ui | nodeFilters = newFilters}
         newModel = { model | ui = newUi }
       in
-        (newModel, Cmd.none)
+        (newModel, initTooltips "")
 
     GetPolicyModeResult res ->
       case res of
         Ok p ->
             ( { model | policyMode = p }
-              , Cmd.none
+              , initTooltips ""
             )
         Err err ->
           processApiError "Getting Policy Mode" err model
@@ -122,7 +122,7 @@ update msg model =
         case res of
           Ok compliance ->
             ( { newModel | directiveCompliance = Just compliance }
-              , Cmd.none
+              , initTooltips ""
             )
           Err err ->
             processApiError "Getting directive compliance" err newModel
