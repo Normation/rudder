@@ -133,15 +133,17 @@ object Boot {
       * Returns default headers with all other initial CSP directive, using current request nonce unless CSP are disabled
       */
     private def addCspHeaders(allHeaders: List[(String, String)]): List[(String, String)] = {
-      if (WithDisabledCSP.isDisabled) {
-        allHeaders // no headers to override
+      if (WithDisabledCSP.isDisabled) { // no headers to override
+        allHeaders
       } else {
-        val nonce = WithNonce.getCurrentNonce
+        val nonce = WithNonce.getRequestNonce
 
         val cspHeader     = compileCSPHeader(
           cspDirectives
             .pipe(
-              replaceCSPRestrictionDirectives("script-src", s"'nonce-${nonce}' 'strict-dynamic'")(_)
+              replaceCSPRestrictionDirectives("script-src", nonce.map(n => s"'nonce-${n}' 'strict-dynamic'").getOrElse("'none'"))(
+                _
+              )
             )
             .pipe(
               replaceCSPRestrictionDirectives("object-src", "'none'")(_)

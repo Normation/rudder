@@ -27,8 +27,8 @@ object WithNonce extends StatefulSnippet {
   }
 
   def scriptWithNonce(base: Node): Node = {
-    nonce.setIfUnset(generateNonce)
-    val attributes = MetaData.update(base.attributes, base.scope, new UnprefixedAttribute("nonce", getCurrentNonce, Null))
+    val currentNonce = nonce.setIfUnset(generateNonce)
+    val attributes   = MetaData.update(base.attributes, base.scope, new UnprefixedAttribute("nonce", currentNonce, Null))
 
     base match {
       case e: Elem => e.copy(attributes = attributes)
@@ -44,11 +44,13 @@ object WithNonce extends StatefulSnippet {
 
   /**
     * Get the nonce value defined within the lifetime of the current request, and used in all html tags.
-    *
-    * @return
+    * @return None if the nonce has not been generated in the current request (it means that no script has been set with a nonce in the page)
     */
-  def getCurrentNonce: String = {
-    nonce.get
+  def getRequestNonce: Option[String] = {
+    nonce.get match {
+      case `defaultValue` => None
+      case value          => Some(value)
+    }
   }
 
 }
