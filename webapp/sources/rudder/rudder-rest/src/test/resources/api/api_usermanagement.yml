@@ -613,7 +613,7 @@ response:
           }
         ],
         "tenantsEnabled" : false,
-        "digest" : "BCRYPT"
+        "digest" : "ARGON2ID"
         }
       }
     }
@@ -778,7 +778,7 @@ response:
           }
         ],
         "tenantsEnabled" : false,
-        "digest" : "BCRYPT"
+        "digest" : "ARGON2ID"
         }
       }
     }
