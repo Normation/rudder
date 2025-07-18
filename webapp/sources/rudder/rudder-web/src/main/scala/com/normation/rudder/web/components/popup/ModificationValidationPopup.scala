@@ -110,8 +110,8 @@ object ModificationValidationPopup extends Loggable {
    * Expects "Directive" or "Group" as argument
    */
   private def titles(item: String, name: String, action: DGModAction) = action match {
-    case DGModAction.Enable            => s"Enable Directive '${name}'"
-    case DGModAction.Disable           => s"Disable Directive '${name}'"
+    case DGModAction.Enable            => s"Enable ${item} '${name}'"
+    case DGModAction.Disable           => s"Disable ${item} '${name}'"
     case DGModAction.Delete            => s"Delete ${item} '${name}'"
     case DGModAction.Update            => s"Update ${item} '${name}'"
     case DGModAction.CreateSolo        => s"Create a ${item}"
@@ -513,10 +513,12 @@ class ModificationValidationPopup(
         }
       case Some(d) =>
         action match {
-          case DGModAction.Delete                                                          => Right(DeleteNodeGroupDiff(group))
-          case DGModAction.Update | DGModAction.CreateSolo | DGModAction.CreateAndModRules => Right(ModifyToNodeGroupDiff(group))
-          case _                                                                           =>
-            Left(Inconsistency(s"Action ${action} is not possible on a existing directive"))
+          case DGModAction.Delete => Right(DeleteNodeGroupDiff(group))
+          case DGModAction.Update | DGModAction.CreateSolo | DGModAction.CreateAndModRules | DGModAction.Enable |
+              DGModAction.Disable =>
+            Right(ModifyToNodeGroupDiff(group))
+          case _                  =>
+            Left(Inconsistency(s"Action ${action} is not possible on a existing group"))
         }
     }
   }

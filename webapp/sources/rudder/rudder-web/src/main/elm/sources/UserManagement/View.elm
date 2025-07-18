@@ -657,7 +657,7 @@ displayAddRole model user providerInfo readonly hideAddedRoles =
                 (\x ->
                     span [ class "role" ]
                         (text x
-                            :: (if not readonly then
+                            :: (if not readonly && x /= "no_rights" then
                                     [ div
                                         ([ id "remove-role", class "fa fa-times" ]
                                             ++ (if not readonly then
