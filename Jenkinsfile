@@ -393,8 +393,8 @@ pipeline {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             dir('policies/rudderc') {
                                 dir('target/repos') {
-                                    dir('ncf') {
-                                        git url: 'https://github.com/normation/ncf.git'
+                                    dir('rudder') {
+                                        git url: 'https://github.com/normation/rudder.git'
                                     }
                                     dir('dsc') {
                                         git url: 'https://github.com/normation/rudder-agent-windows.git',
