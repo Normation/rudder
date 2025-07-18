@@ -289,7 +289,10 @@ class NodeGroupForm(
       case eb: EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
     })
     (
-      "#group-name" #> groupNameString
+      "#group-title [class]" #> (if (nodeGroup.isEnabled) "" else "item-disabled")
+      & "#group-name *" #> {
+        Text(groupNameString) ++ (if (nodeGroup.isEnabled) NodeSeq.Empty else <span class="badge-disabled"></span>)
+      }
       & "group-pendingchangerequest" #> PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml, nodeGroup.id)
       & "group-name" #> groupName.toForm_!
       & "group-rudderid" #> <div class="form-group">
@@ -327,10 +330,38 @@ class NodeGroupForm(
       </button>
       & "group-clone" #> {
         if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
-          SHtml.ajaxButton(
-            <span>Clone <i class="fa fa-clone"></i></span>,
-            () => showCloneGroupPopup()
-          ) % ("id" -> "groupCloneButtonId") % ("class" -> " btn btn-default btn-icon")
+          <li>
+            {
+            SHtml.ajaxButton(
+              <span>
+              <i class="fa fa-clone"></i>
+              Clone
+            </span>,
+              () => showCloneGroupPopup()
+            ) % ("class" -> "dropdown-item")
+          }
+          </li>
+        } else NodeSeq.Empty
+      }
+      & "group-disable" #> {
+        if (CurrentUser.checkRights(AuthorizationType.Group.Write)) {
+          val btnText   = if (nodeGroup.isEnabled) { "Disable" }
+          else { "Enable" }
+          val btnIcon   = if (nodeGroup.isEnabled) { "fa fa-ban" }
+          else { "fa fa-check-circle" }
+          val btnAction = if (nodeGroup.isEnabled) { DGModAction.Disable }
+          else { DGModAction.Enable }
+          <li>
+            {
+            SHtml.ajaxButton(
+              <span>
+                  <i class={btnIcon}></i>
+                  {btnText}
+                </span>,
+              () => onSubmitDisable(btnAction)
+            ) % ("id" -> "groupDisableButtonId") % ("class" -> "dropdown-item")
+          }
+          </li>
         } else NodeSeq.Empty
       }
       & "group-save" #> {
@@ -347,13 +378,19 @@ class NodeGroupForm(
                     </span>
         } else NodeSeq.Empty
       }
-      & "group-delete" #> SHtml.ajaxButton(
-        <span>Delete
-          <i class="fa fa-trash"></i>
-        </span>,
-        () => onSubmitDelete(),
-        ("class" -> " btn btn-danger btn-icon")
-      )
+      & "group-delete" #>
+      <li>
+          {
+        SHtml.ajaxButton(
+          <span>
+              <i class="fa fa-times-circle"></i>
+              Delete
+            </span>,
+          () => onSubmitDelete(),
+          ("class" -> "dropdown-item action-danger")
+        )
+      }
+        </li>
       & "group-notifications" #> updateAndDisplayNotifications()
       & "#groupPropertiesTabContent" #> showGroupProperties(nodeGroup)
       & "#group-shownodestable *" #> (searchNodeComponent.get match {
@@ -752,6 +789,52 @@ class NodeGroupForm(
     }
   }
 
+  private def onSubmitDisable(action: DGModAction): JsCmd = {
+    // submit can be done only for node group, not system one
+    nodeGroup match {
+      case Left(target) => Noop
+      case Right(ng)    =>
+        // properties can have been modifier since the page was displayed, but we don't know it.
+        // so we look back for them. We also check that other props weren't modified in parallel
+        val savedGroup = roNodeGroupRepository.getNodeGroup(ng.id).either.runNow match {
+          case Right(g)  => g._1
+          case Left(err) =>
+            formTracker.addFormError(Text("Error when saving group"))
+            logger.error(s"Error when looking for group with id '${ng.id.serialize}': ${err.fullMsg}")
+            ng
+        }
+        if (ng.copy(properties = savedGroup.properties, serverList = savedGroup.serverList) != savedGroup) {
+          formTracker.addFormError(Text("Error: group was updated while you were modifying it. Please reload the page. "))
+        }
+
+        val optContainer = {
+          val c = NodeGroupCategoryId(groupContainer.get)
+          if (c == parentCategoryId) None
+          else Some(c)
+        }
+
+        // submit can be done only for node group, not system one
+        val newGroup = savedGroup.copy(
+          name = groupName.get,
+          description = groupDescription.get, // , container = container
+
+          isDynamic = groupStatic.get match {
+            case "dynamic" => true;
+            case _         => false
+          },
+          query = query,
+          _isEnabled = action match {
+            case DGModAction.Enable if !savedGroup.isSystem  => true
+            case DGModAction.Disable if !savedGroup.isSystem => false
+            case _                                           => savedGroup._isEnabled
+          },
+          serverList = srvList.getOrElse(Set.empty[NodeInfo]).map(_.id).toSet
+        )
+
+        displayConfirmationPopup(action, newGroup, optContainer, None)
+    }
+  }
+
   private def onSubmitDelete(): JsCmd = {
     nodeGroup match {
       case Left(_)   => Noop
@@ -780,7 +863,7 @@ class NodeGroupForm(
 
     val optOriginal = nodeGroup.toOption
     val change      = NodeGroupChangeRequest(action, newGroup, newCategory, optOriginal)
-    val errMsg      = s"Error when getting the validation workflow for changes in directive '${change.newGroup.name}'"
+    val errMsg      = s"Error when getting the validation workflow for changes in group '${change.newGroup.name}'"
 
     workflowLevelService
       .getForNodeGroup(CurrentUser.actor, change)
