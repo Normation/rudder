@@ -23,8 +23,6 @@ import com.normation.rudder.repository.xml.XmlArchiverUtils
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
-import java.nio.charset.StandardCharsets
-import java.nio.file.StandardOpenOption
 import java.time.Instant
 import zio.Ref
 import zio.ZIO
@@ -165,15 +163,9 @@ class EditorTechniqueReaderImpl(
                    }
       // write file
       _         <- IOResult.attempt {
-                     implicit val charset     = StandardCharsets.UTF_8
-                     implicit val openOptions = Seq(
-                       StandardOpenOption.WRITE,
-                       StandardOpenOption.TRUNCATE_EXISTING,
-                       StandardOpenOption.CREATE,
-                       StandardOpenOption.SYNC
-                     ) // for https://issues.rudder.io/issues/26926
                      methodsFile.parent.createDirectories()
                      methodsFile.parent.setGroup(groupOwner)
+                     println(s"******debug****** in-memory generic_methods.json:\n${res.stdout}")
                      methodsFile.writeText(res.stdout)
                      methodsFile.setGroup(groupOwner)
                    }
