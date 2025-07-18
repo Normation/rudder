@@ -81,7 +81,7 @@ update msg model =
         newUi = { ui | tableFilters = newFilters}
         newModel = { model | ui = newUi }
       in
-        (newModel, Cmd.none)
+        (newModel, initTooltips "")
 
     ToggleRowSort rowId sortId order ->
       let
@@ -91,7 +91,7 @@ update msg model =
         newUi = { ui | tableFilters = newFilters}
         newModel = { model | ui = newUi }
       in
-        (newModel, Cmd.none)
+        (newModel, initTooltips "")
 
     GetPolicyModeResult res ->
       case res of
