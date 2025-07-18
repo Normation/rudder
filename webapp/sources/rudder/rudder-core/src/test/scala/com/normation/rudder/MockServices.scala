@@ -3299,23 +3299,39 @@ class MockCampaign() {
   }
 
   object dumbCampaignEventRepository extends CampaignEventRepository {
-    val items: Ref[Map[CampaignEventId, CampaignEvent]] = Ref.make(Map[CampaignEventId, CampaignEvent]((e0.id -> e0))).runNow
+    val items: Ref[Map[CampaignEventId, (CampaignEvent, List[CampaignEventHistory])]] = {
+      val h = CampaignEventHistory(
+        e0.id,
+        e0.state,
+        DateFormaterService.toInstant(e0.start),
+        Some(DateFormaterService.toInstant(e0.end))
+      )
+      Ref.make(Map((e0.id -> (e0, h :: Nil)))).runNow
+    }
 
     def isActive(e: CampaignEvent): Boolean = {
-      e.state == CampaignEventState.Scheduled || e.state == CampaignEventState.Running
+      e.state == CampaignEventStateType.Scheduled || e.state == CampaignEventStateType.Running
     }
 
-    def get(id: CampaignEventId):            IOResult[Option[CampaignEvent]] = {
-      items.get.map(_.get(id))
-    }
-    def saveCampaignEvent(c: CampaignEvent): IOResult[CampaignEvent]         = {
-      for {
-        _ <- items.update(map => map + ((c.id, c)))
-      } yield c
+    override def get(id: CampaignEventId): IOResult[Option[CampaignEvent]] = {
+      items.get.map(_.get(id).map(_._1))
     }
 
-    def getWithCriteria(
-        states:       List[CampaignEventState],
+    override def saveCampaignEvent(event: CampaignEvent): IOResult[Unit] = {
+      items.update { map =>
+        val history = map.get(event.id).map(_._2).getOrElse(Nil)
+        val h       = CampaignEventHistory(
+          event.id,
+          event.state,
+          DateFormaterService.toInstant(event.start),
+          Some(DateFormaterService.toInstant(event.end))
+        )
+        map + ((event.id, (event, h :: history)))
+      }
+    }
+
+    override def getWithCriteria(
+        states:       List[CampaignEventStateType],
         campaignType: List[CampaignType],
         campaignId:   Option[CampaignId],
         limit:        Option[Int],
@@ -3326,27 +3342,31 @@ class MockCampaign() {
         asc:          Option[CampaignSortDirection]
     ): IOResult[List[CampaignEvent]] = {
 
-      val allEvents            = items.get.map(_.values.toList)
-      val campaignIdFiltered   = campaignId match {
+      val allEvents = items.get.map(_.values.toList)
+
+      val campaignIdFiltered = campaignId match {
         case None     => allEvents
-        case Some(id) => allEvents.map(_.filter(_.campaignId == id))
-      }
-      val campaignTypeFiltered = campaignType match {
-        case Nil => campaignIdFiltered
-        case l   => campaignIdFiltered.map(_.filter(c => l.contains(c.campaignType)))
-      }
-      val stateFiltered        = states match {
-        case Nil => campaignTypeFiltered
-        case s   => campaignTypeFiltered.map(_.filter(ev => s.contains(ev.state)))
+        case Some(id) => allEvents.map(_.filter(_._1.campaignId == id))
       }
 
-      val afterDateFiltered  = afterDate match {
-        case None     => stateFiltered
-        case Some(id) => stateFiltered.map(_.filter(_.end.isAfter(id)))
+      val campaignTypeFiltered = campaignType match {
+        case Nil => campaignIdFiltered
+        case l   => campaignIdFiltered.map(_.filter(c => l.contains(c._1.campaignType)))
       }
+
+      val stateFiltered = states match {
+        case Nil => campaignTypeFiltered
+        case s   => campaignTypeFiltered.map(_.filter(ev => s.contains(ev._1.state)))
+      }
+
+      val afterDateFiltered = afterDate match {
+        case None     => stateFiltered
+        case Some(id) => stateFiltered.map(_.filter(_._1.end.isAfter(id)))
+      }
+
       val beforeDateFiltered = beforeDate match {
         case None     => afterDateFiltered
-        case Some(id) => afterDateFiltered.map(_.filter(_.start.isBefore(id)))
+        case Some(id) => afterDateFiltered.map(_.filter(_._1.start.isBefore(id)))
       }
 
       val ordered = order match {
@@ -3354,8 +3374,8 @@ class MockCampaign() {
           beforeDateFiltered.map(
             _.sortWith((a, b) => {
               asc match {
-                case Some(CampaignSortDirection.Asc) => a.end.isBefore(b.end)
-                case _                               => a.end.isAfter(b.end)
+                case Some(CampaignSortDirection.Asc) => a._1.end.isBefore(b._1.end)
+                case _                               => a._1.end.isAfter(b._1.end)
               }
             })
           )
@@ -3363,13 +3383,14 @@ class MockCampaign() {
           beforeDateFiltered.map(
             _.sortWith((a, b) => {
               asc match {
-                case Some(CampaignSortDirection.Asc) => a.start.isBefore(b.start)
-                case _                               => a.start.isAfter(b.start)
+                case Some(CampaignSortDirection.Asc) => a._1.start.isBefore(b._1.start)
+                case _                               => a._1.start.isAfter(b._1.start)
               }
             })
           )
       }
-      (offset, limit) match {
+
+      ((offset, limit) match {
         case (Some(offset), Some(limit)) =>
           ordered.map(_.drop(offset).take(limit))
         case (None, Some(limit))         =>
@@ -3378,14 +3399,14 @@ class MockCampaign() {
           ordered.map(_.drop(offset))
         case (None, None)                =>
           ordered
-      }
+      }).map(_.map(_._1))
     }
 
-    def numberOfEventsByCampaign(campaignId: CampaignId): IOResult[Int] = items.get.map(_.size)
+    override def numberOfEventsByCampaign(campaignId: CampaignId): IOResult[Int] = items.get.map(_.size)
 
-    def deleteEvent(
+    override def deleteEvent(
         id:           Option[CampaignEventId],
-        states:       List[CampaignEventState],
+        states:       List[CampaignEventStateType],
         campaignType: Option[CampaignType],
         campaignId:   Option[CampaignId],
         afterDate:    Option[DateTime],
@@ -3412,18 +3433,20 @@ class MockCampaign() {
         case s   => ev => campaignTypeFiltered(ev) && !s.contains(ev.state)
       }
 
-      val afterDateFiltered:  CampaignEvent => Boolean = afterDate match {
+      val afterDateFiltered: CampaignEvent => Boolean = afterDate match {
         case None      => stateFiltered
         case Some(id_) => ev => stateFiltered(ev) && ev.end.isAfter(id_)
       }
+
       val beforeDateFiltered: CampaignEvent => Boolean = beforeDate match {
         case None      => afterDateFiltered
         case Some(id_) => ev => afterDateFiltered(ev) && ev.start.isBefore(id_)
       }
+
       for {
-        i      <- items.get.map(_.values)
-        newList = i.filter(beforeDateFiltered)
-        _      <- items.set(newList.map(ce => (ce.id, ce)).toMap)
+        i      <- items.get
+        newList = i.collect { case (id, (e, h)) if (beforeDateFiltered(e)) => (id, (e, h)) }
+        _      <- items.set(newList.toMap)
       } yield {
         ()
       }

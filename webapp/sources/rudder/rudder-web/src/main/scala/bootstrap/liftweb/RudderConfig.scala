@@ -3281,7 +3281,8 @@ object RudderConfigInit {
         new MigrateEventLogEnforceSchema(doobie),
         new MigrateChangeValidationEnforceSchema(doobie),
         new CheckTableReportsExecutionTz(doobie),
-        new DeleteArchiveTables(doobie)
+        new DeleteArchiveTables(doobie),
+        new MigrateTableCampaignEvents(doobie)
       )
 
       earlyDbChecks.checks()

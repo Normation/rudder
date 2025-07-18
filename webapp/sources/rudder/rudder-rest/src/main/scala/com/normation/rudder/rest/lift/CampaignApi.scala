@@ -4,7 +4,6 @@ import com.normation.errors.Unexpected
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.campaigns.*
-import com.normation.rudder.campaigns.CampaignSerializer.*
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
@@ -221,7 +220,7 @@ class CampaignApi(
     val schema: API.GetCampaignEvents.type = API.GetCampaignEvents
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      val states       = req.params.getOrElse("state", Nil).flatMap(s => CampaignEventState.parse(s).toOption)
+      val states       = req.params.getOrElse("state", Nil).flatMap(s => CampaignEventStateType.withNameInsensitiveOption(s))
       val campaignType = req.params.getOrElse("campaignType", Nil).map(campaignSerializer.campaignType)
       val campaignId   = req.params.get("campaignId").flatMap(_.headOption).map(i => CampaignId(i))
       val limit        = req.params.get("limit").flatMap(_.headOption).flatMap(i => i.toIntOption)
@@ -263,7 +262,7 @@ class CampaignApi(
         params:     DefaultParams,
         authzToken: AuthzToken
     ): LiftResponse = {
-      val states       = req.params.getOrElse("state", Nil).flatMap(s => CampaignEventState.parse(s).toOption)
+      val states       = req.params.getOrElse("state", Nil).flatMap(s => CampaignEventStateType.withNameInsensitiveOption(s))
       val campaignType = req.params.getOrElse("campaignType", Nil).map(campaignSerializer.campaignType)
       val limit        = req.params.get("limit").flatMap(_.headOption).flatMap(i => i.toIntOption)
       val offset       = req.params.get("offset").flatMap(_.headOption).flatMap(i => i.toIntOption)

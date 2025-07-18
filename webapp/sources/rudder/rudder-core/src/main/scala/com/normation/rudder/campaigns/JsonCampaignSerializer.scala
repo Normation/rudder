@@ -166,15 +166,6 @@ object CampaignSerializer {
   implicit val campaignTypeDecoder: JsonDecoder[CampaignType]     = JsonDecoder[String].map(CampaignType.apply)
   implicit val campaignInfoDecoder: JsonDecoder[CampaignInfo]     = DeriveJsonDecoder.gen
 
-  implicit val campaignEventIdDecoder:    JsonDecoder[CampaignEventId]    = JsonDecoder[String].map(CampaignEventId.apply)
-  implicit val campaignEventStateDecoder: JsonDecoder[CampaignEventState] = DeriveJsonDecoder.gen
-  implicit val campaignEventDecoder:      JsonDecoder[CampaignEvent]      = DeriveJsonDecoder.gen
-
-  implicit val campaignTypeEncoder:       JsonEncoder[CampaignType]       = JsonEncoder[String].contramap(_.value)
-  implicit val campaignEventIdEncoder:    JsonEncoder[CampaignEventId]    = JsonEncoder[String].contramap(_.value)
-  implicit val campaignEventStateEncoder: JsonEncoder[CampaignEventState] = DeriveJsonEncoder.gen
-  implicit val campaignEventEncoder:      JsonEncoder[CampaignEvent]      = DeriveJsonEncoder.gen
-
   implicit val parsingInfoDecoder: JsonDecoder[CampaignParsingInfo] = DeriveJsonDecoder.gen
   implicit val parsingInfoEncoder: JsonEncoder[CampaignParsingInfo] = DeriveJsonEncoder.gen
 

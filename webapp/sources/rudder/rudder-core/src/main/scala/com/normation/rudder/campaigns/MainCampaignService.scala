@@ -204,18 +204,21 @@ class MainCampaignService(
                   campaignRepo.get(event.campaignId).notOptional(s"Campaign with id ${event.campaignId.value} not found")
                 _        <- CampaignLogger.debug(s"Got Campaign ${event.campaignId.value} for event ${event.id.value}")
 
-                _ <- CampaignLogger.debug(s"Start handling campaign event '${event.id.value}' state is ${event.state.value}")
+                _ <- CampaignLogger.debug(
+                       s"Start handling campaign event '${event.id.value}' state is ${event.state.value.entryName}"
+                     )
                 _ <-
                   event.state match {
-                    case Finished | Skipped(_) =>
+                    case Finished | Skipped(_) | Deleted(_) | Failure(_, _) =>
                       ().succeed
-                    case Scheduled             =>
+                    case Scheduled                                          =>
                       campaign.info.status match {
-                        case Disabled(reason)       =>
+                        case Disabled(reason) =>
                           val reasonMessage = if (reason.isEmpty) "" else s"Reason is '${reason}''"
                           repo.saveCampaignEvent(
                             event.copy(state = Skipped(s"Event was cancelled because campaign is disabled. ${reasonMessage}"))
                           )
+
                         case Archived(reason, date) =>
                           val reasonMessage = if (reason.isEmpty) "" else s"Reason is '${reason}''"
                           repo.saveCampaignEvent(
@@ -240,7 +243,7 @@ class MainCampaignService(
                             )
                           }
                       }
-                    case Running               =>
+                    case Running                                            =>
                       val effectiveStart = event.start.minusHours(startDelay)
                       val effectiveEnd   = event.end.plusHours(endDelay)
                       if (effectiveStart.isAfter(now)) {
@@ -284,7 +287,7 @@ class MainCampaignService(
                 _ <- repo.get(event.id).flatMap {
                        case None               =>
                          CampaignLogger.warn(
-                           s"Campaign event ${event.name} (id '${event.id.value}') was deleted while it was waiting to be treated, it state was ${event.state.value}, it should have run between ${DateFormaterService
+                           s"Campaign event ${event.name} (id '${event.id.value}') was deleted while it was waiting to be treated, it state was '${event.state.value.entryName}', it should have run between ${DateFormaterService
                                .getDisplayDate(event.start)} and ${DateFormaterService.getDisplayDate(event.end)}, we will ignore this event and do nothing with it"
                          )
                        case Some(updatedEvent) =>
@@ -292,7 +295,7 @@ class MainCampaignService(
                            updatedCampaign <- campaignRepo
                                                 .get(event.campaignId)
                                                 .notOptional(s"Campaign with id ${event.campaignId.value} not found")
-                           _               <- CampaignLogger.debug(s"Got Updated campaign and event for event ${event.id.value}")
+                           _               <- CampaignLogger.debug(s"Got updated campaign and event for event '${event.id.value}'")
 
                            handle       = {
                              services.map(_.handle(updatedEvent)).foldLeft(base(updatedEvent)) {
@@ -303,12 +306,12 @@ class MainCampaignService(
 
                            _    <-
                              CampaignLogger.debug(
-                               s"Campaign event ${newCampaign.id.value} update, previous state was ${event.state.value} new state${newCampaign.state.value}"
+                               s"Campaign event '${newCampaign.id.value}' update. Previous state: '${event.state.value.entryName}', new state: '${newCampaign.state.value.entryName}'"
                              )
-                           save <- repo.saveCampaignEvent(newCampaign)
+                           _    <- repo.saveCampaignEvent(newCampaign)
                            post <-
                              newCampaign.state match {
-                               case Finished | Skipped(_) =>
+                               case Finished | Skipped(_) | Deleted(_) | Failure(_, _) =>
                                  for {
                                    campaign <- campaignRepo
                                                  .get(event.campaignId)
@@ -317,7 +320,7 @@ class MainCampaignService(
                                  } yield {
                                    up
                                  }
-                               case Scheduled | Running   =>
+                               case Scheduled | Running                                =>
                                  for {
                                    _ <- queueCampaign(newCampaign)
                                  } yield {
@@ -340,7 +343,11 @@ class MainCampaignService(
               CampaignLogger.error(
                 s"An error occurred while treating campaign event ${eventId.value}, skipping that event. Error details : ${err.fullMsg}"
               ) *>
-              repo.saveCampaignEvent(event.copy(state = Skipped(s"An error occurred when processing event: ${err.fullMsg}"))).unit
+              repo
+                .saveCampaignEvent(
+                  event.copy(state = CampaignEventState.Failure(s"An error occurred when processing event", err.fullMsg))
+                )
+                .unit
             }
         }
         .catchAll(failingLog) // this catch all is when event the previous level does not work. It should not create loop
@@ -364,8 +371,18 @@ class MainCampaignService(
       case Enabled                      =>
         for {
           nbOfEvents <- repo.numberOfEventsByCampaign(campaign.info.id)
-          events     <- repo.getWithCriteria(Running :: Nil, Nil, Some(campaign.info.id), None, None, None, None, None, None)
-          _          <- repo.deleteEvent(None, Scheduled :: Nil, None, Some(campaign.info.id), None, None)
+          events     <- repo.getWithCriteria(
+                          CampaignEventStateType.Running :: Nil,
+                          Nil,
+                          Some(campaign.info.id),
+                          None,
+                          None,
+                          None,
+                          None,
+                          None,
+                          None
+                        )
+          _          <- repo.deleteEvent(None, CampaignEventStateType.Scheduled :: Nil, None, Some(campaign.info.id), None, None)
 
           lastEventDate = events match {
                             case Nil => date
@@ -408,7 +425,17 @@ class MainCampaignService(
       case Some(s) =>
         for {
           alreadyScheduled <-
-            repo.getWithCriteria(Running :: Scheduled :: Nil, Nil, None, None, None, None, None, None, None)
+            repo.getWithCriteria(
+              CampaignEventStateType.Running :: CampaignEventStateType.Scheduled :: Nil,
+              Nil,
+              None,
+              None,
+              None,
+              None,
+              None,
+              None,
+              None
+            )
           _                <- CampaignLogger.debug("Got events, queue them")
           _                <- s.queue.takeAll // empty queue, we will enqueue all existing events again
           _                <- ZIO.foreach(alreadyScheduled)(ev => s.queueCampaign(ev))

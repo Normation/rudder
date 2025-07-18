@@ -41,12 +41,12 @@ import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.NamedZioLogger
 import enumeratum.*
+import io.scalaland.chimney.*
+import java.time.Instant
 import java.time.ZoneId
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
-import zio.json.jsonDiscriminator
-import zio.json.jsonField
-import zio.json.jsonHint
+import zio.json.*
 
 case class CampaignParsingInfo(
     campaignType: CampaignType,
@@ -93,14 +93,18 @@ case class CampaignId(value: String, rev: Revision = GitVersion.DEFAULT_REV) {
 
   def withDefaultRev: CampaignId = this.copy(rev = GitVersion.DEFAULT_REV)
 }
-object CampaignId                                                            {
-  // parse a directiveId which was serialize by "id.serialize"
+
+object CampaignId {
+
+  // parse an id which was serialized by "id.serialize"
   def parse(s: String): Either[String, CampaignId] = {
     GitVersion.parseUidRev(s).map {
       case (id, rev) =>
         CampaignId(id, rev)
     }
   }
+
+  implicit val codecCampaignId: JsonCodec[CampaignId] = JsonCodec.string.transformOrFail(CampaignId.parse, _.serialize)
 }
 
 sealed trait CampaignStatusValue extends EnumEntry {
@@ -253,6 +257,38 @@ trait CampaignDetails
 
 case class CampaignType(value: String)
 
+object CampaignType {
+  implicit val campaignTypeEncoder: JsonEncoder[CampaignType] = JsonEncoder[String].contramap(_.value)
+  implicit val decoderCampaignType: JsonDecoder[CampaignType] = JsonDecoder.string.map(CampaignType.apply)
+}
+
+case class CampaignEventId(value: String)
+
+object CampaignEventId {
+  implicit val campaignEventIdDecoder: JsonDecoder[CampaignEventId] = JsonDecoder[String].map(CampaignEventId.apply)
+  implicit val campaignEventIdEncoder: JsonEncoder[CampaignEventId] = JsonEncoder[String].contramap(_.value)
+}
+
+/*
+ * Our different kind of states and their stable names (need compat between rudder version).
+ */
+sealed abstract class CampaignEventStateType(override val entryName: String) extends EnumEntry
+
+object CampaignEventStateType extends Enum[CampaignEventStateType] {
+  case object Scheduled extends CampaignEventStateType("scheduled")
+  case object Running   extends CampaignEventStateType("running")
+  case object Finished  extends CampaignEventStateType("finished")
+  case object Skipped   extends CampaignEventStateType("skipped")
+  case object Deleted   extends CampaignEventStateType("deleted")
+  case object Failure   extends CampaignEventStateType("failure")
+
+  override def values: IndexedSeq[CampaignEventStateType] = findValues
+
+  implicit val encoder: JsonEncoder[CampaignEventStateType] = JsonEncoder[String].contramap(_.entryName)
+  implicit val decoder: JsonDecoder[CampaignEventStateType] =
+    JsonDecoder[String].mapOrFail(withNameInsensitiveEither(_).left.map(_.getMessage))
+}
+
 case class CampaignEvent(
     id:           CampaignEventId,
     campaignId:   CampaignId,
@@ -262,21 +298,65 @@ case class CampaignEvent(
     end:          DateTime,
     campaignType: CampaignType
 )
-case class CampaignEventId(value: String)
+
+object CampaignEvent {
+  import com.normation.utils.DateFormaterService.json.*
+  implicit val campaignEventDecoder: JsonDecoder[CampaignEvent] = DeriveJsonDecoder.gen
+  implicit val campaignEventEncoder: JsonEncoder[CampaignEvent] = DeriveJsonEncoder.gen
+
+  implicit val transformCampaignEvent: Transformer[CampaignEvent, CampaignEventHistory] = {
+    Transformer
+      .define[CampaignEvent, CampaignEventHistory]
+      .buildTransformer
+  }
+
+}
+
+/*
+ * Campaign event can have details stored in history
+ */
+@jsonDiscriminator("value")
+sealed trait CampaignEventState(val value: CampaignEventStateType) derives JsonCodec
+object CampaignEventState {
+  import CampaignEventStateType as CEST
+  @jsonHint(CEST.Scheduled.entryName) case object Scheduled            extends CampaignEventState(CampaignEventStateType.Scheduled)
+  @jsonHint(CEST.Running.entryName) case object Running                extends CampaignEventState(CampaignEventStateType.Running)
+  @jsonHint(CEST.Finished.entryName) case object Finished              extends CampaignEventState(CampaignEventStateType.Finished)
+  @jsonHint(CEST.Skipped.entryName) case class Skipped(reason: String) extends CampaignEventState(CampaignEventStateType.Skipped)
+  @jsonHint(CEST.Deleted.entryName) case class Deleted(reason: String) extends CampaignEventState(CampaignEventStateType.Deleted)
+  @jsonHint(CEST.Failure.entryName) case class Failure(cause: String, message: String)
+      extends CampaignEventState(CampaignEventStateType.Failure)
+
+  def getDefault(s: CampaignEventStateType): CampaignEventState = {
+    s match {
+      case CampaignEventStateType.Scheduled => Scheduled
+      case CampaignEventStateType.Running   => Running
+      case CampaignEventStateType.Finished  => Finished
+      case CampaignEventStateType.Skipped   => Skipped("")
+      case CampaignEventStateType.Deleted   => Deleted("")
+      case CampaignEventStateType.Failure   => Failure("unknown reason", "")
+    }
+  }
+}
+
+case class CampaignEventHistory(id: CampaignEventId, state: CampaignEventState, start: Instant, end: Option[Instant])
 
 sealed abstract class CampaignSortDirection(override val entryName: String) extends EnumEntry
 
 object CampaignSortDirection extends Enum[CampaignSortDirection] {
-  case object Asc  extends CampaignSortDirection("asc")
+  case object Asc extends CampaignSortDirection("asc")
+
   case object Desc extends CampaignSortDirection("desc")
 
   override def values: IndexedSeq[CampaignSortDirection] = findValues
 }
 
 sealed abstract class CampaignSortOrder(override val entryName: String) extends EnumEntry
-object CampaignSortOrder                                                extends Enum[CampaignSortOrder] {
+
+object CampaignSortOrder extends Enum[CampaignSortOrder] {
   case object StartDate extends CampaignSortOrder("startDate")
-  case object EndDate   extends CampaignSortOrder("endDate")
+
+  case object EndDate extends CampaignSortOrder("endDate")
 
   override def extraNamesToValuesMap: Map[String, CampaignSortOrder] = {
     Map(
@@ -288,33 +368,68 @@ object CampaignSortOrder                                                extends 
   override def values: IndexedSeq[CampaignSortOrder] = findValues
 }
 
-// can't be an enumeration because skipped is a class, the msg should be out of it
-@jsonDiscriminator("value")
-sealed trait CampaignEventState {
-  def value: String
-}
+object CompatV21 {
+  @jsonDiscriminator("value")
+  sealed trait CampaignEventState {
+    def value: String
+  }
 
-object CampaignEventState {
-  @jsonHint(Scheduled.value)
-  case object Scheduled                    extends CampaignEventState { val value = "scheduled" }
-  @jsonHint(Running.value)
-  case object Running                      extends CampaignEventState { val value = "running"   }
-  @jsonHint(Finished.value)
-  case object Finished                     extends CampaignEventState { val value = "finished"  }
-  @jsonHint(Skipped("").value)
-  final case class Skipped(reason: String) extends CampaignEventState { val value = "skipped"   }
+  object CampaignEventState {
 
-  def parse(s: String): Either[String, CampaignEventState] = {
-    s.toLowerCase.trim match {
-      case Scheduled.value => Right(Scheduled)
-      case Running.value   => Right(Running)
-      case Finished.value  => Right(Finished)
-      case "skipped"       => Right(Skipped(""))
-      case x               => Left(s"Error when parsing CampaignEventState: unrecognized case '${s}'")
+    @jsonHint(Scheduled.value)
+    case object Scheduled extends CampaignEventState {
+      val value = "scheduled"
     }
+
+    @jsonHint(Running.value)
+    case object Running extends CampaignEventState {
+      val value = "running"
+    }
+
+    @jsonHint(Finished.value)
+    case object Finished extends CampaignEventState {
+      val value = "finished"
+    }
+
+    @jsonHint(Skipped("").value)
+    final case class Skipped(reason: String) extends CampaignEventState {
+      val value = "skipped"
+    }
+
+    implicit val codecCampaignEventState: JsonCodec[CampaignEventState] = DeriveJsonCodec.gen
+
+    def parse(s: String): Either[String, CampaignEventState] = {
+      s.toLowerCase.trim match {
+        case Scheduled.value => Right(Scheduled)
+        case Running.value   => Right(Running)
+        case Finished.value  => Right(Finished)
+        case "skipped"       => Right(Skipped(""))
+        case x               => Left(s"Error when parsing CampaignEventState: unrecognized case '${s}'")
+      }
+    }
+  }
+
+  case class CampaignEvent(
+      id:           CampaignEventId,
+      campaignId:   CampaignId,
+      name:         String,
+      state:        CampaignEventState,
+      start:        DateTime,
+      end:          DateTime,
+      campaignType: CampaignType
+  )
+
+  object CampaignEvent {
+    import com.normation.utils.DateFormaterService.json.*
+    implicit val codecCampaignEvent: JsonCodec[CampaignEvent] = DeriveJsonCodec.gen
   }
 }
 
+/*
+ * Type used in plugin to specify their result.
+ * A plugin can have several result type, like SystemUpdateCampaignResultSimple
+ * and SystemUpdateCampaignResultFull.
+ */
 trait CampaignResult {
   def id: CampaignEventId
 }
