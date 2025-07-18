@@ -69,6 +69,7 @@ const csvButtonConfig = (filename, additionalCls) => ({
   filename: 'rudder_' + csvRenameFilename(filename) + '_' + getDateString(),
   text: 'Export',
   exportOptions: {
+    orthogonal: 'exportCsv',
     customizeData: function (data) {
       // export compliance percent
       const complianceColumnIdx = data.header.findIndex(s => s.toLowerCase() === "compliance")

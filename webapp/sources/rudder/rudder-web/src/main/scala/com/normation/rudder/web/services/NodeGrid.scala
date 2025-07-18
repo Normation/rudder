@@ -149,7 +149,7 @@ final class NodeGrid(
             "aoColumns": [
               { "sWidth": "30%" },
               { "sWidth": "27%" },
-              { "sWidth": "20%" } ${aoColumns}
+              { "sWidth": "20%", "render": (data, type) => ( type !== "exportCsv" ? data : $$(data).find(".ip").map(function() {return this.innerHTML;}).get().join() )  } ${aoColumns}
             ],
             "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
             "pageLength": 25 ,
@@ -223,7 +223,7 @@ final class NodeGrid(
         (if (isEmpty(server.hostname)) "(Missing host name) " + server.id.value else escapeHTML(server.hostname))
       } &
       ".fullos *" #> escapeHTML(server.osFullName) &
-      ".ips *" #> ((server.ips.flatMap(ip => <div class="ip">{escapeHTML(ip)}</div>)):         NodeSeq) & // TODO : enhance this
+      ".ips *" #> ((server.ips.flatMap(ip => <li class="ip">{escapeHTML(ip)}</li>)):           NodeSeq) &
       ".other" #> ((columns flatMap { c => <td style="overflow:hidden">{c._2(server)}</td> }): NodeSeq) &
       ".nodetr [jsuuid]" #> { server.id.value.replaceAll("-", "") } &
       ".nodetr [nodeid]" #> { server.id.value } &
@@ -240,7 +240,7 @@ final class NodeGrid(
     <tr class="nodetr curspoint" jsuuid="id" nodeid="nodeid" nodestatus="status">
       <td class="curspoint"><span class="hostname listopen"></span></td>
       <td class="fullos curspoint"></td>
-      <td class="ips curspoint"></td>
+      <td class="curspoint"><ul class="ips"></ul></td>
       <td class="other"></td>
     </tr>
   }
