@@ -76,7 +76,6 @@ import com.normation.rudder.users.RudderAccount
 import com.normation.rudder.users.RudderPasswordEncoder.SecurityLevel
 import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.users.Serialisation.*
-import com.normation.rudder.users.UpdateUserFile
 import com.normation.rudder.users.UpdateUserInfo
 import com.normation.rudder.users.User
 import com.normation.rudder.users.UserInfo
@@ -447,15 +446,16 @@ class UserManagementApiImpl(
         authzToken: AuthzToken
     ): LiftResponse = {
       (for {
-        u        <- ZioJsonExtractor.parseJson[JsonUserFormData](req).toIO // We ignore the "user info" part of the request
-        user      = u.copy(permissions = u.permissions.filter(_ != AuthorizationType.NoRights.id))
-        allRoles <- RudderRoles.getAllRoles
-        _        <-
-          userManagementService.update(id, user.transformInto[UpdateUserFile], user.isPreHashed)(
+        u          <- ZioJsonExtractor.parseJson[JsonUserFormData](req).toIO
+        permissions = u.permissions.map(_.filter(_ != AuthorizationType.NoRights.id))
+        allRoles   <- RudderRoles.getAllRoles
+        // We ignore the "user info" part of the request when updating
+        _          <-
+          userManagementService.update(id, u.username, u.password, permissions, u.isPreHashed)(
             allRoles
           )
       } yield {
-        user.transformInto[User].transformInto[JsonUpdatedUser]
+        u.copy(permissions = permissions).transformInto[User].transformInto[JsonUpdatedUser]
       }).chainError(s"Could not update user '${id}'").toLiftResponseOne(params, schema, _ => None)
     }
   }

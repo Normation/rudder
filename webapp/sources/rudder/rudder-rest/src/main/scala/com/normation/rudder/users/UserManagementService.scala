@@ -49,10 +49,8 @@ import com.normation.rudder.Role.Custom
 import com.normation.rudder.RudderRoles
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
-import com.normation.rudder.users.*
 import com.normation.rudder.users.UserManagementIO.getUserFilePath
 import com.normation.zio.*
-import io.scalaland.chimney.dsl.*
 import java.util.concurrent.TimeUnit
 import org.springframework.core.io.ClassPathResource as CPResource
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -286,42 +284,43 @@ class UserManagementService(
    * - the providers list for the user and their ability to extend roles from user file
    * - the password definition and hashing
    */
-  def update(id: String, updateUser: UpdateUserFile, isPreHashed: Boolean)(
+  def update(id: String, username: String, password: String, permissions: Option[List[String]], isPreHashed: Boolean)(
       allRoles: Map[String, Role]
   ): IOResult[Unit] = {
     implicit val currentRoles: Set[Role] = allRoles.values.toSet
 
     // Unknown permissions are trusted and put in file
-    val (roles, authz, unknown) = UserManagementService.parsePermissions(updateUser.permissions.toSet)
+    val optNewPermissions: Option[Set[String]] = permissions
+      .map(p => {
+        UserManagementService.parsePermissions(p.toSet) match {
+          case (roles, authz, unknown) => roles.map(_.name) ++ authz.map(_.id) ++ unknown
+        }
+      })
 
-    val newFileUserPermissions = roles.map(_.name) ++ authz.map(_.id) ++ unknown
     for {
       userInfo <- userRepository
                     .get(id)
                     .notOptional(s"User '${id}' does not exist therefore cannot be updated")
 
-      // the user to update in the file with the resolved permissions
-      fileUser  = updateUser.transformInto[User].copy(permissions = newFileUserPermissions)
-
       // we may have users that where added by other providers, and still want to add them in file
       // This block initializes the user in the file, for permissions and password to be updated below
-      _ <- ZIO.when(!(userService.authConfig.users.keySet.contains(id))) {
-             for {
-               // Apparently we need to do the whole thing to get the file and add it, before doing it again to update
-               file       <- getUserResourceFile.map(getUserFilePath(_))
-               parsedFile <- IOResult.attempt(ConstructingParser.fromFile(file.toJava, preserveWS = true))
-               userXML    <- IOResult.attempt(parsedFile.document().children)
-               toUpdate    = (userXML \\ "authentication").head
+      _        <- ZIO.when(!(userService.authConfig.users.keySet.contains(id))) {
+                    for {
+                      // Apparently we need to do the whole thing to get the file and add it, before doing it again to update
+                      file       <- getUserResourceFile.map(getUserFilePath(_))
+                      parsedFile <- IOResult.attempt(ConstructingParser.fromFile(file.toJava, preserveWS = true))
+                      userXML    <- IOResult.attempt(parsedFile.document().children)
+                      toUpdate    = (userXML \\ "authentication").head
 
-               _ <- (userXML \\ "authentication").head match {
-                      case e: Elem =>
-                        val newXml = e.copy(child = e.child ++ User.make(id, "", Set.empty, "").toNode)
-                        UserManagementIO.replaceXml(userXML, newXml, file)
-                      case _ =>
-                        Unexpected(s"Wrong formatting : ${file.path}").fail
-                    }
-             } yield ()
-           }
+                      _ <- (userXML \\ "authentication").head match {
+                             case e: Elem =>
+                               val newXml = e.copy(child = e.child ++ User.make(id, "", Set.empty, "").toNode)
+                               UserManagementIO.replaceXml(userXML, newXml, file)
+                             case _ =>
+                               Unexpected(s"Wrong formatting : ${file.path}").fail
+                           }
+                    } yield ()
+                  }
 
       file       <- getUserResourceFile.map(getUserFilePath(_))
       parsedFile <- IOResult.attempt(ConstructingParser.fromFile(file.toJava, preserveWS = true))
@@ -332,20 +331,22 @@ class UserManagementService(
                  override def transform(n: Node): NodeSeq = n match {
                    case user: Elem if (user \ "@name").text == id =>
                      // for each user's parameters, if a new user's parameter is empty we decide to keep the original one
-                     val newRoles    = {
-                       if (fileUser.permissions.isEmpty) ((user \ "@role") ++ (user \ "@permissions")).text.split(",").toSet
-                       else fileUser.permissions
-                     }
-                     val newUsername = if (fileUser.username.isEmpty) id else fileUser.username
-                     val newPassword = if (fileUser.password.isEmpty) {
+                     val newUsername = if (username.isEmpty) id else username
+                     val newPassword = if (password.isEmpty) {
                        (user \ "@password").text
                      } else {
-                       if (isPreHashed) fileUser.password
-                       else getHashEncoderOrDefault((userXML \\ "authentication" \ "@hash").text).encode(fileUser.password)
+                       if (isPreHashed) password
+                       else getHashEncoderOrDefault((userXML \\ "authentication" \ "@hash").text).encode(password)
                      }
-                     val tenants     = (user \ "@tenants").text
-                     User.make(newUsername, newPassword, newRoles, tenants).toNode
-
+                     // return the user to update in the file with the resolved permissions
+                     User
+                       .make(
+                         newUsername,
+                         newPassword,
+                         optNewPermissions.getOrElse(((user \ "@role") ++ (user \ "@permissions")).text.split(",").toSet),
+                         (user \ "@tenants").text
+                       )
+                       .toNode
                    case other => other
                  }
                }).transform(toUpdate).head

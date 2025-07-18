@@ -397,6 +397,419 @@ response:
       "errorDetails" : "Could not add user; cause was: Inconsistency: User 'user1' already exists"
     }
 ---
+description: Not update user1 permissions
+method: POST
+url: /api/latest/usermanagement/update/user1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "username" : "user1",
+    "password" : "",
+    "isPreHashed" : true
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "updateUser",
+      "result" : "success",
+      "data" : {
+        "updatedUser" : {
+          "username" : "user1",
+          "password" : "",
+          "permissions" : []
+        }
+      }
+    }
+---
+description: Get users after not updating permissions of user1
+method: GET
+url: /api/latest/usermanagement/users
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getUserInfo",
+      "result" : "success",
+      "data" : {
+        "roleListOverride" : "override",
+        "authenticationBackends" : [
+          "file"
+        ],
+        "providerProperties" : {
+          "file" : {
+            "roleListOverride" : "override"
+          }
+        },
+        "users" : [
+          {
+            "login" : "user1",
+            "otherInfo" : {},
+            "status" : "active",
+            "authz" : [
+              "configuration_edit",
+              "configuration_read",
+              "configuration_write",
+              "directive_edit",
+              "directive_read",
+              "directive_write",
+              "group_edit",
+              "group_read",
+              "group_write",
+              "node_edit",
+              "node_read",
+              "node_write",
+              "parameter_edit",
+              "parameter_read",
+              "parameter_write",
+              "rule_edit",
+              "rule_read",
+              "rule_write",
+              "technique_edit",
+              "technique_read",
+              "technique_write",
+              "userAccount_edit",
+              "userAccount_read",
+              "userAccount_write"
+            ],
+            "permissions" : [
+              "user"
+            ],
+            "rolesCoverage" : [
+              "inventory",
+              "configuration",
+              "rule_only",
+              "user"
+            ],
+            "customRights" : [],
+            "providers" : [
+              "file"
+            ],
+            "providersInfo" : {
+              "file" : {
+                "provider" : "file",
+                "authz" : [
+                  "configuration_edit",
+                  "configuration_read",
+                  "configuration_write",
+                  "directive_edit",
+                  "directive_read",
+                  "directive_write",
+                  "group_edit",
+                  "group_read",
+                  "group_write",
+                  "node_edit",
+                  "node_read",
+                  "node_write",
+                  "parameter_edit",
+                  "parameter_read",
+                  "parameter_write",
+                  "rule_edit",
+                  "rule_read",
+                  "rule_write",
+                  "technique_edit",
+                  "technique_read",
+                  "technique_write",
+                  "userAccount_edit",
+                  "userAccount_read",
+                  "userAccount_write"
+                ],
+                "roles" : [
+                  "user"
+                ],
+                "customRights" : []
+              }
+            },
+            "tenants" : "zoneA"
+          },
+          {
+            "login" : "user2",
+            "otherInfo" : {},
+            "status" : "active",
+            "authz" : [
+              "administration_read",
+              "compliance_read",
+              "configuration_read",
+              "deployer_read",
+              "deployment_read",
+              "directive_read",
+              "group_read",
+              "node_read",
+              "parameter_read",
+              "rule_read",
+              "technique_read",
+              "userAccount_edit",
+              "userAccount_read",
+              "userAccount_write",
+              "validator_read"
+            ],
+            "permissions" : [
+              "read_only"
+            ],
+            "rolesCoverage" : [
+              "inventory",
+              "read_only",
+              "rule_only"
+            ],
+            "customRights" : [],
+            "providers" : [
+              "file"
+            ],
+            "providersInfo" : {
+              "file" : {
+                "provider" : "file",
+                "authz" : [
+                  "administration_read",
+                  "compliance_read",
+                  "configuration_read",
+                  "deployer_read",
+                  "deployment_read",
+                  "directive_read",
+                  "group_read",
+                  "node_read",
+                  "parameter_read",
+                  "rule_read",
+                  "technique_read",
+                  "userAccount_edit",
+                  "userAccount_read",
+                  "userAccount_write",
+                  "validator_read"
+                ],
+                "roles" : [
+                  "read_only"
+                ],
+                "customRights" : []
+              }
+            },
+            "tenants" : "all",
+            "lastLogin" : "2024-02-29T00:00:00Z",
+            "previousLogin" : "2024-02-28T12:34:00Z"
+          },
+          {
+            "login" : "user3",
+            "name" : "User 3",
+            "email" : "user3@example.com",
+            "otherInfo" : {
+              "some" : "value"
+            },
+            "status" : "disabled",
+            "authz" : [],
+            "permissions" : [],
+            "rolesCoverage" : [],
+            "customRights" : [],
+            "providers" : [
+              "manager"
+            ],
+            "providersInfo" : {
+              "manager" : {
+                "provider" : "manager",
+                "authz" : [],
+                "roles" : [],
+                "customRights" : []
+              }
+            },
+            "tenants" : "none"
+          }
+        ],
+        "tenantsEnabled" : false,
+        "digest" : "BCRYPT"
+        }
+      }
+    }
+---
+description: Update a user with no_rights
+method: POST
+url: /api/latest/usermanagement/update/user1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "username" : "user1",
+    "password" : "",
+    "permissions" : [],
+    "isPreHashed" : true
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "updateUser",
+      "result" : "success",
+      "data" : {
+        "updatedUser" : {
+          "username" : "user1",
+          "password" : "",
+          "permissions" : []
+        }
+      }
+    }
+---
+description: Get users after resetting a user permission
+method: GET
+url: /api/latest/usermanagement/users
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "getUserInfo",
+      "result" : "success",
+      "data" : {
+        "roleListOverride" : "override",
+        "authenticationBackends" : [
+          "file"
+        ],
+        "providerProperties" : {
+          "file" : {
+            "roleListOverride" : "override"
+          }
+        },
+        "users" : [
+          {
+            "login" : "user1",
+            "otherInfo" : {},
+            "status" : "active",
+            "authz" : [],
+            "permissions" : [],
+            "rolesCoverage" : [],
+            "customRights" : [],
+            "providers" : [
+              "file"
+            ],
+            "providersInfo" : {
+              "file" : {
+                "provider" : "file",
+                "authz" : [],
+                "roles" : [
+                  "no_rights"
+                ],
+                "customRights" : []
+              }
+            },
+            "tenants" : "zoneA"
+          },
+          {
+            "login" : "user2",
+            "otherInfo" : {},
+            "status" : "active",
+            "authz" : [
+              "administration_read",
+              "compliance_read",
+              "configuration_read",
+              "deployer_read",
+              "deployment_read",
+              "directive_read",
+              "group_read",
+              "node_read",
+              "parameter_read",
+              "rule_read",
+              "technique_read",
+              "userAccount_edit",
+              "userAccount_read",
+              "userAccount_write",
+              "validator_read"
+            ],
+            "permissions" : [
+              "read_only"
+            ],
+            "rolesCoverage" : [
+              "inventory",
+              "read_only",
+              "rule_only"
+            ],
+            "customRights" : [],
+            "providers" : [
+              "file"
+            ],
+            "providersInfo" : {
+              "file" : {
+                "provider" : "file",
+                "authz" : [
+                  "administration_read",
+                  "compliance_read",
+                  "configuration_read",
+                  "deployer_read",
+                  "deployment_read",
+                  "directive_read",
+                  "group_read",
+                  "node_read",
+                  "parameter_read",
+                  "rule_read",
+                  "technique_read",
+                  "userAccount_edit",
+                  "userAccount_read",
+                  "userAccount_write",
+                  "validator_read"
+                ],
+                "roles" : [
+                  "read_only"
+                ],
+                "customRights" : []
+              }
+            },
+            "tenants" : "all",
+            "lastLogin" : "2024-02-29T00:00:00Z",
+            "previousLogin" : "2024-02-28T12:34:00Z"
+          },
+          {
+            "login" : "user3",
+            "name" : "User 3",
+            "email" : "user3@example.com",
+            "otherInfo" : {
+              "some" : "value"
+            },
+            "status" : "disabled",
+            "authz" : [],
+            "permissions" : [],
+            "rolesCoverage" : [],
+            "customRights" : [],
+            "providers" : [
+              "manager"
+            ],
+            "providersInfo" : {
+              "manager" : {
+                "provider" : "manager",
+                "authz" : [],
+                "roles" : [],
+                "customRights" : []
+              }
+            },
+            "tenants" : "none"
+          }
+        ],
+        "tenantsEnabled" : false,
+        "digest" : "BCRYPT"
+        }
+      }
+    }
+---
+description: Update a user with no_rights
+method: POST
+url: /api/latest/usermanagement/update/user1
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "username" : "user1",
+    "password" : "",
+    "permissions" : [],
+    "isPreHashed" : true
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action" : "updateUser",
+      "result" : "success",
+      "data" : {
+        "updatedUser" : {
+          "username" : "user1",
+          "password" : "",
+          "permissions" : []
+        }
+      }
+    }
+---
 description: Delete a user from the system
 method: DELETE
 url: /api/latest/usermanagement/test_user
