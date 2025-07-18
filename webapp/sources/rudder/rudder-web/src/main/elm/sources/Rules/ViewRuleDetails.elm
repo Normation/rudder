@@ -62,7 +62,6 @@ editionTemplate model details =
                   , text txtDisabled
                   ]
                 ]
-              , li [class "divider"][]
               , li []
                 [ a [ class "dropdown-item action-danger", onClick (OpenDeletionPopup rule)]
                   [ i [ class "fa fa-times-circle"] []
