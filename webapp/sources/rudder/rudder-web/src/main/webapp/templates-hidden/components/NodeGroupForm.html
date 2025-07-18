@@ -32,17 +32,26 @@
 <div class="main-container">
   <div class="main-header">
     <div class="header-title">
-      <h1>
+      <h1 id="group-title">
         <i class="title-icon fa fa-sitemap"></i>
         <span id="group-name"></span>
       </h1>
       <div class="header-buttons">
         <group-close></group-close>
+        <lift:authz role="group_write">
+          <div class="btn-group">
+            <button class="btn btn-default dropdown-toggle" data-bs-toggle="dropdown">Actions <i class="caret"></i></button>
+            <ul class="dropdown-menu">
+              <group-clone></group-clone>
+              <group-disable></group-disable>
+              <group-delete></group-delete>
+            </ul>
+          </div>
+        </lift:authz>
         <lift:authz role="group_edit">
-          <lift:authz role="group_write"><group-delete></group-delete></lift:authz>
-          <lift:authz role="group_write"><group-clone></group-clone></lift:authz>
           <group-save></group-save>
         </lift:authz>
+
       </div>
     </div>
   </div>
