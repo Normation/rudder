@@ -6,22 +6,39 @@ import cats.data.Ior
 import cats.syntax.semigroup.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.properties.ParentProperty.NodeParentProperty
+import com.normation.rudder.domain.properties.ParentProperty.VertexParentProperty
 import com.normation.rudder.properties.GroupProp
 import com.typesafe.config.ConfigRenderOptions
+import enumeratum.Enum
+import enumeratum.EnumEntry
 import org.apache.commons.text.StringEscapeUtils
-import zio.Chunk
-import zio.NonEmptyChunk
+import zio.*
+import zio.json.*
 
 /*
- * A node property with all its inheritance context.
+ * Kind of properties in the hierarchy
+ */
+sealed trait ParentPropertyKind(override val entryName: String) extends EnumEntry
+object ParentPropertyKind                                       extends Enum[ParentPropertyKind] {
+  case object Node   extends ParentPropertyKind("node")
+  case object Group  extends ParentPropertyKind("group")
+  case object Global extends ParentPropertyKind("global")
+
+  override def values: IndexedSeq[ParentPropertyKind] = findValues
+
+  implicit val codecParentPropertyKind: JsonCodec[ParentPropertyKind] =
+    JsonCodec.string.transformOrFail(ParentPropertyKind.withNameInsensitiveEither(_).left.map(_.getMessage), _.entryName)
+}
+
+/*
+ * A property with its inheritance context as a parent of some other property:
  * - key / provider
  * - resulting value on node
  * - list of diff:
  *   - name of the diff provider: group/target name, global parameter
  */
 sealed trait ParentProperty[P <: GenericProperty[?]] {
-  def kind:          String
+  def kind:          ParentPropertyKind
   // def displayName: String // human-readable information about the parent providing prop
   def id:            String
   def name:          String
@@ -30,34 +47,49 @@ sealed trait ParentProperty[P <: GenericProperty[?]] {
 }
 
 object ParentProperty {
-  final case class Node(name: String, nodeId: NodeId, value: NodeProperty, parentProperty: Option[NodeParentProperty[?]])
-      extends ParentProperty[NodeProperty] {
-    override def kind: String = "node"
-    override def id:   String = nodeId.value
-    override val resolvedValue = parentProperty match {
+
+  // node is a leaf of a hierarchy - which can be confusing. Keeping node/group/global naming scheme semantic here.
+  final case class Node(
+      override val name:  String,
+      nodeId:             NodeId,
+      override val value: NodeProperty,
+      parentProperty:     Option[VertexParentProperty[?]]
+  ) extends ParentProperty[NodeProperty] {
+    override val kind:          ParentPropertyKind            = ParentPropertyKind.Node
+    override def id:            String                        = nodeId.value
+    override val resolvedValue: GenericProperty[NodeProperty] = parentProperty match {
       case None    => value
       case Some(v) => NodeProperty(GenericProperty.mergeConfig(v.resolvedValue.config, value.config)(v.resolvedValue.inheritMode))
     }
 
   }
 
-  sealed trait NodeParentProperty[P <: GenericProperty[?]] extends ParentProperty[P]
-  final case class Group(name: String, groupId: NodeGroupId, value: GroupProperty, parentProperty: Option[NodeParentProperty[?]])
-      extends NodeParentProperty[GroupProperty] {
-    override def kind: String = "group"
-    override def id:   String = groupId.serialize
-    override val resolvedValue = parentProperty match {
+  // A node and group can't have a node parent property, only group or global.
+  // Not using "node" (as in "not a leaf of the tree") but vertex, to avoid confusion.
+  sealed trait VertexParentProperty[P <: GenericProperty[?]] extends ParentProperty[P]
+
+  // a group can have groups or global parents
+  final case class Group(
+      override val name:  String,
+      groupId:            NodeGroupId,
+      override val value: GroupProperty,
+      parentProperty:     Option[VertexParentProperty[?]]
+  ) extends VertexParentProperty[GroupProperty] {
+    override val kind:          ParentPropertyKind             = ParentPropertyKind.Group
+    override def id:            String                         = groupId.serialize
+    override val resolvedValue: GenericProperty[GroupProperty] = parentProperty match {
       case None    => value
       case Some(v) =>
         GroupProperty(GenericProperty.mergeConfig(v.resolvedValue.config, value.config)(v.resolvedValue.inheritMode))
     }
   }
+
   // a global parameter has the same name as property so no need to be specific for name
-  final case class Global(value: GlobalParameter)          extends NodeParentProperty[GlobalParameter] {
-    override val name = "Global Parameter"
-    override def id:   String = ""
-    override def kind: String = "global"
-    override val resolvedValue = value
+  final case class Global(override val value: GlobalParameter) extends VertexParentProperty[GlobalParameter] {
+    override val name:          String                           = value.name
+    override def id:            String                           = value.name
+    override val kind:          ParentPropertyKind               = ParentPropertyKind.Global
+    override val resolvedValue: GenericProperty[GlobalParameter] = value
   }
 }
 
@@ -70,8 +102,8 @@ sealed trait PropertyHierarchy {
   def prop:      GenericProperty[?]
 }
 
-case class NodePropertyHierarchy(id: NodeId, hierarchy: ParentProperty[?])           extends PropertyHierarchy {
-  lazy val prop: GenericProperty[?] = hierarchy match {
+case class NodePropertyHierarchy(id: NodeId, override val hierarchy: ParentProperty[?])             extends PropertyHierarchy {
+  override lazy val prop: GenericProperty[?] = hierarchy match {
     case n: ParentProperty.Node =>
       val prop = NodeProperty(hierarchy.resolvedValue.config)
       if (n.parentProperty.isEmpty) prop else prop.withProvider(GroupProp.OVERRIDE_PROVIDER)
@@ -81,8 +113,8 @@ case class NodePropertyHierarchy(id: NodeId, hierarchy: ParentProperty[?])      
         .withVisibility(hierarchy.resolvedValue.visibility)
   }
 }
-case class GroupPropertyHierarchy(id: NodeGroupId, hierarchy: NodeParentProperty[?]) extends PropertyHierarchy {
-  lazy val prop: GenericProperty[?] = hierarchy match {
+case class GroupPropertyHierarchy(id: NodeGroupId, override val hierarchy: VertexParentProperty[?]) extends PropertyHierarchy {
+  override lazy val prop: GenericProperty[?] = hierarchy match {
     case g: ParentProperty.Group if g.groupId == id =>
       val prop = GroupProperty(hierarchy.resolvedValue.config)
       if (g.parentProperty.isEmpty) prop else prop.withProvider(GroupProp.OVERRIDE_PROVIDER)
@@ -117,9 +149,10 @@ sealed trait PropertyHierarchySpecificError extends PropertyHierarchyError {
 
 object PropertyHierarchyError {
   case class MissingParentGroup(groupId: NodeGroupId, groupName: String, parentGroupId: String) extends PropertyHierarchyError {
-    def message: String = s"parent group with id '${parentGroupId}' is missing for group '${groupName}'(${groupId.serialize})"
+    override def message: String =
+      s"parent group with id '${parentGroupId}' is missing for group '${groupName}'(${groupId.serialize})"
 
-    def debugString: String =
+    override def debugString: String =
       s"MissingParentGroup(groupId=${groupId.serialize},groupName=${groupName},parentGroupId=${parentGroupId})"
   }
 
@@ -130,16 +163,16 @@ object PropertyHierarchyError {
 
   // The message can be very broad or specific here, it is known from the DAG resolution
   case class DAGHierarchyError(override val message: String) extends PropertyHierarchyError {
-    def debugString: String = "DAGError"
+    override def debugString: String = "DAGError"
   }
 
   // There are conflicts by node property
   case class PropertyHierarchySpecificInheritanceConflicts(
-      conflicts: Map[GenericProperty[?], NonEmptyChunk[NodeParentProperty[?]]]
+      conflicts: Map[GenericProperty[?], NonEmptyChunk[VertexParentProperty[?]]]
   ) extends PropertyHierarchySpecificError {
     override def toString(): String = debugString
 
-    def message: String = {
+    override def message: String = {
       conflicts.toList.map {
         case (k, hierarchies) =>
           val error = conflictMessage(k, hierarchies)
@@ -147,7 +180,7 @@ object PropertyHierarchyError {
       }.mkString("\n")
     }
 
-    def debugString: String = {
+    override def debugString: String = {
       s"""PropertyInheritanceConflicts([${conflicts.map {
           case (prop, c) =>
             prop.name + "->" + c
@@ -207,7 +240,7 @@ object PropertyHierarchyError {
      */
     def one(
         prop:    GenericProperty[?],
-        parents: NonEmptyChunk[NodeParentProperty[?]]
+        parents: NonEmptyChunk[VertexParentProperty[?]]
     ): PropertyHierarchySpecificInheritanceConflicts = {
       PropertyHierarchySpecificInheritanceConflicts(
         Map(prop -> parents)
@@ -359,21 +392,15 @@ object JsonPropertyHierarchySerialisation {
       p match {
         case ParentProperty.Global(value) =>
           (
-            ("kind"            -> "global")
-            ~ ("value"         -> GenericProperty.toJsonValue(value.value))
-            ~ ("resolvedValue" -> GenericProperty.toJsonValue(p.resolvedValue.value))
-          )
-        case p: ParentProperty.Group =>
-          (
-            ("kind"            -> "group")
+            ("kind"            -> p.kind.entryName)
             ~ ("name"          -> p.name)
-            ~ ("id"            -> p.id)
             ~ ("value"         -> GenericProperty.toJsonValue(p.value.value))
             ~ ("resolvedValue" -> GenericProperty.toJsonValue(p.resolvedValue.value))
           )
-        case p: ParentProperty.Node =>
+
+        case _ =>
           (
-            ("kind"            -> "node")
+            ("kind"            -> p.kind.entryName)
             ~ ("name"          -> p.name)
             ~ ("id"            -> p.id)
             ~ ("value"         -> GenericProperty.toJsonValue(p.value.value))
@@ -405,7 +432,10 @@ object JsonPropertyHierarchySerialisation {
           case n: ParentProperty.Node   => n.parentProperty.map(displayElem)
           case g: ParentProperty.Group  => g.parentProperty.map(displayElem)
         }).getOrElse("") +
-        s"<p>from <b>${p.name}${if (p.id.isEmpty) {
+        s"<p>from ${p.kind match {
+            case ParentPropertyKind.Global => p.kind.entryName + " property"
+            case _                         => p.kind.entryName
+          }} <b>${p.name}${if (p.id.isEmpty) {
             ""
           } else s" (${p.id})"}</b>:<pre>${StringEscapeUtils
             .escapeHtml4(p.value.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>"

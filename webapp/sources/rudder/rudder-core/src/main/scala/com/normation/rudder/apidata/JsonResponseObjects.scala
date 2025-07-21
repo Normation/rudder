@@ -1297,7 +1297,7 @@ object JsonResponseObjects {
         case e: ErrorInheritedPropertyStatus   =>
           JRProperty(
             propertyId,
-            origval, // .getOrElse("### error ###".toConfigValue), // comment should be safe for display only
+            origval,
             e.nonEmptyDescription,
             e.inheritMode,
             e.provider,

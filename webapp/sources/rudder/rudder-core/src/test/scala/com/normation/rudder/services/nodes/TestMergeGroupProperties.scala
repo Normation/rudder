@@ -55,7 +55,7 @@ import com.normation.rudder.domain.properties.JsonPropertyHierarchySerialisation
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.ParentProperty
-import com.normation.rudder.domain.properties.ParentProperty.NodeParentProperty
+import com.normation.rudder.domain.properties.ParentProperty.VertexParentProperty
 import com.normation.rudder.domain.properties.PropertyHierarchy
 import com.normation.rudder.domain.properties.PropertyHierarchyError
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
@@ -117,7 +117,7 @@ class TestMergeGroupProperties extends Specification {
 
     def toH3(id: Either[NodeGroupId, NodeId], name: String, globalParam: GlobalParameter): PropertyHierarchy = {
 
-      def recAppendParent(prop: NodeParentProperty[?]): NodeParentProperty[?] = {
+      def recAppendParent(prop: VertexParentProperty[?]): VertexParentProperty[?] = {
         prop match {
           case global: ParentProperty.Global => global
           case group:  ParentProperty.Group  =>
@@ -127,7 +127,7 @@ class TestMergeGroupProperties extends Specification {
             }
         }
       }
-      def recAppend(prop: ParentProperty[?]):           ParentProperty[?]     = {
+      def recAppend(prop: ParentProperty[?]):             ParentProperty[?]       = {
         prop match {
           case global: ParentProperty.Global => global
           case group:  ParentProperty.Group  =>
@@ -761,19 +761,19 @@ class TestMergeGroupProperties extends Specification {
           ~ ("provider"    -> "overridden")
           ~ ("inheritMode" -> JNothing) // I don't understand why I need to add it
           ~ ("hierarchy"   ->
-          """<p>from <b>Global Parameter</b>:<pre>{
+          """<p>from global property <b>foo (foo)</b>:<pre>{
             |    &quot;global&quot; : &quot;global value&quot;,
             |    &quot;override&quot; : &quot;global&quot;
             |}
-            |</pre></p><p>from <b>parent1 (parent1)</b>:<pre>{
+            |</pre></p><p>from group <b>parent1 (parent1)</b>:<pre>{
             |    &quot;override&quot; : &quot;parent&quot;,
             |    &quot;parent&quot; : &quot;parent value&quot;
             |}
-            |</pre></p><p>from <b>child (child)</b>:<pre>{
+            |</pre></p><p>from group <b>child (child)</b>:<pre>{
             |    &quot;child&quot; : &quot;child value&quot;,
             |    &quot;override&quot; : &quot;child&quot;
             |}
-            |</pre></p><p>from <b>node1.localhost (node1)</b>:<pre>{
+            |</pre></p><p>from node <b>node1.localhost (node1)</b>:<pre>{
             |    &quot;node&quot; : &quot;node value&quot;,
             |    &quot;override&quot; : &quot;node&quot;
             |}

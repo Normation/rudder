@@ -47,7 +47,7 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.properties.*
-import com.normation.rudder.domain.properties.ParentProperty.NodeParentProperty
+import com.normation.rudder.domain.properties.ParentProperty.VertexParentProperty
 import com.normation.rudder.domain.properties.PropertyHierarchyError.*
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
@@ -115,7 +115,7 @@ object GroupProp {
   implicit class ToNodePropertyHierarchy(g: GroupProp) {
     def toNodePropHierarchy(implicit
         globalParameters: Map[String, GlobalParameter]
-    ): Map[String, (NodeParentProperty[?], Option[InheritMode])] = {
+    ): Map[String, (VertexParentProperty[?], Option[InheritMode])] = {
       g.properties.map { p =>
         val globalInheritMode = globalParameters.get(p.name).flatMap(g => GenericProperty.getMode(g.config))
         (
@@ -245,7 +245,7 @@ object MergeNodeProperties {
     // so we need to mark those as resolved, with the most prioritized parent (see https://issues.rudder.io/issues/26325)
     def checkMergeGroupParent(
         otherProps: Map[NodeGroupId, GroupProp]
-    ): Ior[PropertyHierarchyError, List[NodeParentProperty[?]]] = {
+    ): Ior[PropertyHierarchyError, List[VertexParentProperty[?]]] = {
 
       def findLastMatchingGroup(p: ParentProperty[?]): Option[ParentProperty.Group] = {
         p match {
@@ -342,7 +342,7 @@ object MergeNodeProperties {
   def mergeDefaultNode(
       node:       CoreNodeFact,
       properties: Map[String, NodeProperty],
-      parents:    Map[String, NodeParentProperty[?]]
+      parents:    Map[String, VertexParentProperty[?]]
   ): Map[String, PropertyHierarchy] = {
     val allKeys = parents.keySet ++ properties.keySet
     allKeys.map { k =>
@@ -359,7 +359,7 @@ object MergeNodeProperties {
   def mergeDefaultGroup(
       group:      NodeGroup,
       properties: Map[String, GroupProperty],
-      parents:    Map[String, NodeParentProperty[?]]
+      parents:    Map[String, VertexParentProperty[?]]
   ): Map[String, PropertyHierarchy] = {
     val allKeys = parents.keySet ++ properties.keySet
     allKeys.map { k =>
@@ -389,7 +389,7 @@ object MergeNodeProperties {
   def checkPropertyMerge(
       props:        Map[NodeGroupId, GroupProp],
       globalParams: Map[String, GlobalParameter]
-  ): Ior[PropertyHierarchyError, List[NodeParentProperty[?]]] = {
+  ): Ior[PropertyHierarchyError, List[VertexParentProperty[?]]] = {
     /*
      * General strategy:
      * - build all disjoint hierarchies of groups that contains that node
@@ -411,14 +411,14 @@ object MergeNodeProperties {
      * - if both overriding/overridden are array, then overriding values are appended to overridden array
      * - if both overriding/overridden are object, then each key is overridden recursively as explained,
      *   and new keys are added.
-     * See https://github.com/lift/lift/tree/master/framework/lift-oldProp/lift-json/#merging--diffing
+     * See https://github.com/lift/lift/tree/master/framework/lift-base/lift-json/#merging--diffing
      * for more information.
      * The most prioritary is the last in the list
      */
     def overrideValues(
-        overriding: List[Map[String, (NodeParentProperty[?], Option[InheritMode])]]
-    ): Map[String, NodeParentProperty[?]] = {
-      overriding.foldLeft(Map[String, NodeParentProperty[?]]()) {
+        overriding: List[Map[String, (VertexParentProperty[?], Option[InheritMode])]]
+    ): Map[String, VertexParentProperty[?]] = {
+      overriding.foldLeft(Map[String, VertexParentProperty[?]]()) {
         case (old, newer) =>
           // for each newer value, we look if an older exists. If so, we keep the old value in the list of parents,
           // and merge its value for the next iteration.
@@ -428,7 +428,7 @@ object MergeNodeProperties {
                 case None          => // ok, no merge needed
                   (k, v)
                 case Some(oldProp) => // merge prop and add old to parents
-                  def recAppend(prop: NodeParentProperty[?]): NodeParentProperty[?] = {
+                  def recAppend(prop: VertexParentProperty[?]): VertexParentProperty[?] = {
                     prop match {
                       case _:     ParentProperty.Global => oldProp
                       case group: ParentProperty.Group  =>
@@ -450,8 +450,8 @@ object MergeNodeProperties {
      * If it's the case, report error, else return all properties.
      */
     def mergeAll(
-        propByTrees: List[NodeParentProperty[?]]
-    ): Ior[PropertyHierarchyError.PropertyHierarchySpecificInheritanceConflicts, List[NodeParentProperty[?]]] = {
+        propByTrees: List[VertexParentProperty[?]]
+    ): Ior[PropertyHierarchyError.PropertyHierarchySpecificInheritanceConflicts, List[VertexParentProperty[?]]] = {
       // work on non empty chain for repeated append operations on the resulting hierarchy (due to cumulating both error and success)
       val grouped = propByTrees.groupByNec(_.value.name)
 
@@ -472,8 +472,11 @@ object MergeNodeProperties {
       }
 
       // This is guaranteed to be at least a Both, since we start with a right one and we just add potential errors
-      val initialValue =
-        Ior.right[PropertyHierarchyError.PropertyHierarchySpecificInheritanceConflicts, Chain[NodeParentProperty[?]]](Chain.empty)
+      val initialValue = {
+        Ior.right[PropertyHierarchyError.PropertyHierarchySpecificInheritanceConflicts, Chain[VertexParentProperty[?]]](
+          Chain.empty
+        )
+      }
       // The right combinator that allows to use the semigroup structure of the error is the Ior data type
       validatedProps
         .foldLeft(initialValue) {

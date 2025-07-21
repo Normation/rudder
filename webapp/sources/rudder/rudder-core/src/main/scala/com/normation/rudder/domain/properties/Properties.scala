@@ -102,7 +102,7 @@ object InheritMode {
     case object Override extends ObjectMode { override val value = 'o' }
     case object Merge    extends ObjectMode { override val value = 'm' }
 
-    val values: IndexedSeq[ObjectMode] = findValues
+    override val values: IndexedSeq[ObjectMode] = findValues
 
     def parse(c: Char): Option[ObjectMode] = values.find(c == _.value)
   }
@@ -116,7 +116,7 @@ object InheritMode {
     case object Append   extends ArrayMode { override val value = 'a' }
     case object Prepend  extends ArrayMode { override val value = 'p' }
 
-    val values: IndexedSeq[ArrayMode] = findValues
+    override val values: IndexedSeq[ArrayMode] = findValues
 
     def parse(c: Char): Option[ArrayMode] = values.find(c == _.value)
   }
@@ -130,7 +130,7 @@ object InheritMode {
     case object Append   extends StringMode { override val value = 'a' }
     case object Prepend  extends StringMode { override val value = 'p' }
 
-    val values: IndexedSeq[StringMode] = findValues
+    override val values: IndexedSeq[StringMode] = findValues
 
     def parse(c: Char): Option[StringMode] = values.find(c == _.value)
   }
@@ -195,7 +195,7 @@ final case class PatchProperty(
  * This trait provides update methods for generic processing (since we don't have case class compiler support).
  */
 sealed trait GenericProperty[P <: GenericProperty[?]] {
-  import GenericProperty.*
+  import com.normation.rudder.domain.properties.GenericProperty.*
 
   def config: Config
   def fromConfig(v: Config): P
@@ -246,7 +246,7 @@ sealed trait GenericProperty[P <: GenericProperty[?]] {
     fromConfig(patchVisibility(config, Some(v)))
   }
 
-  final def patch(p: PatchProperty): P      = {
+  final def patch(p: PatchProperty): P = {
     def patchOne[A](key: String, update: Option[A], toValue: A => ConfigValue)(c: Config): Config = {
       update match {
         case None    => c
@@ -265,7 +265,8 @@ sealed trait GenericProperty[P <: GenericProperty[?]] {
       ).foldLeft(config) { case (c, patchStep) => patchStep(c) }
     )
   }
-  override def toString:             String =
+
+  override def toString: String =
     this.getClass.getSimpleName + "(" + this.config.root.render(ConfigRenderOptions.defaults()) + ")"
 }
 
@@ -360,7 +361,7 @@ object GenericProperty {
    */
   def mergeValues(oldValue: ConfigValue, newValue: ConfigValue, mode: InheritMode): ConfigValue = {
     import ConfigValueType.*
-    import InheritMode.*
+    import com.normation.rudder.domain.properties.InheritMode.*
 
     import java.util.List as juList
     import java.util.Map as juMap
@@ -454,7 +455,7 @@ object GenericProperty {
     else {
       if (trim.startsWith("#") || trim.startsWith("//")) {
         firstNonCommentChar(trim.dropWhile(_ != '\n'))
-      } else { // trim is non empty
+      } else { // trim is non-empty
         Some(trim.charAt(0))
       }
     }
@@ -467,7 +468,7 @@ object GenericProperty {
     PureResult.attempt(s"Error: value is not parsable as a property: ${value}") {
       ConfigFactory
         .parseString(
-          // it's necessary to put it on its own line to avoid pb with comments/multilines
+          // it's necessary to put it on its own line to avoid pb with comments/multi-lines
           s"""{"x":
             ${value}
             }"""
