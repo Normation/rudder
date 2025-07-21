@@ -135,35 +135,34 @@ response:
                 "value" : {
                   "now" : "a json"
                 },
-                "provider" : "overridden",
-                "hierarchy" : [
-                  {
+                "description" : "a string at first",
+                "hierarchy" : {
+                  "kind" : "group",
+                  "name" : "Real nodes",
+                  "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                  "value" : {
+                    "now" : "a json"
+                  },
+                  "resolvedValue" : {
+                    "now" : "a json"
+                  },
+                  "parent" : {
                     "kind" : "global",
                     "value" : "a string"
-                  },
-                  {
+                  }
+                },
+                "hierarchyStatus" : {
+                  "hasChildTypeConflicts" : true,
+                  "fullHierarchy" : {
                     "kind" : "group",
                     "name" : "Real nodes",
                     "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                    "value" : {
-                      "now" : "a json"
-                    }
-                  }
-                ],
-                "hierarchyStatus" : {
-                  "hasChildTypeConflicts" : true,
-                  "fullHierarchy" : [
-                    {
-                      "kind" : "global",
+                    "valueType" : "Object",
+                    "parent" : {
+                      "kind"     : "global",
                       "valueType" : "String"
-                    },
-                    {
-                      "kind" : "group",
-                      "name" : "Real nodes",
-                      "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                      "valueType" : "Object"
                     }
-                  ],
+                  },
                   "errorMessage" : "Conflicting types in inherited node properties"
                 },
                 "origval" : {
@@ -178,151 +177,99 @@ response:
                   "json":{"g1":"g1","var1":"val1","var2":"val2"},
                   "string":"a string"
                 },
+                "description":"a simple string param",
                 "provider":"overridden",
-                "hierarchy":[
-                  {
-                    "kind":"global",
-                    "value":{"array":[1,3,2],"json":{"var1":"val1","var2":"val2"},"string":"a string"}
+                "hierarchy":{
+                  "kind":"group",
+                  "name":"Real nodes",
+                  "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                  "value":{ "array":[5,6],"group":"string","json":{"g1":"g1"} },
+                  "resolvedValue":{
+                    "array":[5,6],
+                    "group":"string",
+                    "json":{"g1":"g1","var1":"val1","var2":"val2"},
+                    "string":"a string"
                   },
-                  {
-                    "kind":"group",
-                    "name":"this group",
-                    "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                    "value":{
-                      "array":[5,6],
-                      "group":"string",
-                      "json":{"g1":"g1"}
-                    }
+                  "parent":{
+                    "kind":"global",
+                    "value":{ "array":[1,3,2],"json":{"var1":"val1","var2":"val2"},"string":"a string" }
                   }
-                ],
+                },
                 "hierarchyStatus":{
                   "hasChildTypeConflicts":false,
-                  "fullHierarchy":[
-                    {
-                      "kind":"global",
-                      "valueType":"Object"
-                    },
-                    {
-                      "kind":"group",
-                      "name":"Real nodes",
-                      "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                      "valueType":"Object"
-                    }
-                  ]
+                  "fullHierarchy":{
+                    "kind":"group",
+                    "name":"Real nodes",
+                    "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                    "valueType":"Object",
+                    "parent":{"kind":"global","valueType":"Object"}
+                  }
                 },
-                "origval":{
-                  "array":[5,6],
-                  "group":"string",
-                  "json":{"g1":"g1"}
-                }
+                "origval":{ "array":[5,6],"group":"string","json":{"g1":"g1"} }
               },
               {
                 "name":"modeParam",
                 "value":"some string",
+                "description":"a simple string param",
                 "inheritMode":"opa",
                 "provider":"inherited",
-                "hierarchy":[
-                  {
-                    "kind":"global",
-                    "value":"some string"
-                  }
-                ],
+                "hierarchy":{"kind":"global","value":"some string"},
                 "hierarchyStatus":{
                   "hasChildTypeConflicts":false,
-                  "fullHierarchy":[
-                    {
-                      "kind":"global",
-                      "valueType":"String"
-                    }
-                  ]
+                  "fullHierarchy":{"kind":"global","valueType":"String"}
                 },
                 "origval":"some string"
               },
               {
-                "name" : "rudder",
-                "value" : {
-                  "compliance_expiration_policy" : {
-                    "mode" : "expire_immediately"
-                  }
+                "name":"rudder",
+                "value":{ "compliance_expiration_policy":{"mode":"expire_immediately"} },
+                "description":"rudder system config",
+                "provider":"inherited",
+                "hierarchy":{
+                  "kind":"global",
+                  "value":{ "compliance_expiration_policy":{"mode":"expire_immediately"} }
                 },
-                "provider" : "inherited",
-                "hierarchy" : [
-                  {
-                    "kind" : "global",
-                    "value" : {
-                      "compliance_expiration_policy" : {
-                        "mode" : "expire_immediately"
-                      }
-                    }
-                  }
-                ],
-                "hierarchyStatus" : {
-                  "hasChildTypeConflicts" : false,
-                  "fullHierarchy" : [
-                    {
-                      "kind" : "global",
-                      "valueType" : "Object"
-                    }
-                  ]
+                "hierarchyStatus":{
+                  "hasChildTypeConflicts":false,
+                  "fullHierarchy":{"kind":"global","valueType":"Object"}
                 },
-                "origval" : {
-                  "compliance_expiration_policy" : {
-                    "mode" : "expire_immediately"
-                  }
-                }
+                "origval":{ "compliance_expiration_policy":{"mode":"expire_immediately"} }
               },
               {
                 "name":"stringParam",
                 "value":"stringsome string",
+                "description":"a simple string param",
                 "inheritMode":"map",
                 "provider":"overridden",
-                "hierarchy":[
-                  {
-                    "kind":"global",
-                    "value":"some string"
-                  },
-                  {
-                    "kind":"group",
-                    "name":"this group",
-                    "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                    "value":"string"
-                  }
-                ],
+                "hierarchy":{
+                  "kind":"group",
+                  "name":"Real nodes",
+                  "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                  "value":"string",
+                  "resolvedValue":"stringsome string",
+                  "parent":{"kind":"global","value":"some string"}
+                },
                 "hierarchyStatus":{
                   "hasChildTypeConflicts":false,
-                  "fullHierarchy":[
-                    {
-                      "kind":"global",
-                      "valueType":"String"
-                    },
-                    {
-                      "kind":"group",
-                      "name":"Real nodes",
-                      "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                      "valueType":"String"
-                    }
-                  ]
+                  "fullHierarchy":{
+                    "kind":"group",
+                    "name":"Real nodes",
+                    "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                    "valueType":"String",
+                    "parent":{"kind":"global","valueType":"String"}
+                  }
                 },
                 "origval":"string"
               },
               {
                 "name":"systemParam",
                 "value":"some string",
+                "description":"a simple string param",
                 "provider":"inherited",
-                "hierarchy":[
-                  {
-                    "kind":"global",
-                    "value":"some string"
-                  }
-                ],
+                "hierarchy":{"kind":"global","value":"some string"},
                 "hierarchyStatus":{
                   "hasChildTypeConflicts":false,
-                  "fullHierarchy":[
-                    {
-                      "kind":"global",
-                      "valueType":"String"
-                    }
-                  ]
+                  "fullHierarchy":{"kind":"global","valueType":"String"}
                 },
                 "origval":"some string"
               }
@@ -331,6 +278,7 @@ response:
         ]
       }
     }
+
 ---
 description: Get a group inherited properties in HTML
 method: GET
@@ -342,146 +290,151 @@ response:
       "action":"groupDisplayInheritedProperties",
       "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
       "result":"success",
-      "data": {
-        "groups": [
+      "data" : {
+        "groups" : [
           {
             "groupId":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-            "properties":[
+            "properties" : [
               {
-                "name" : "badOverrideType",
+                "name":"badOverrideType",
                 "value" : {
-                  "now" : "a json"
+                  "now":"a json"
                 },
-                "provider" : "overridden",
-                "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>\"a string\"</pre></p><p>from <b>Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>{\n    \"now\" : \"a json\"\n}\n</pre></p>",
+               "description":"a string at first",
+               "hierarchy":"<p>from <b>Global parameter </b>:<pre>\"a string\"</pre></p><p>from <b>Group Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>{\n    \"now\" : \"a json\"\n}\n</pre></p>",
                 "hierarchyStatus" : {
                   "hasChildTypeConflicts" : true,
-                  "fullHierarchy" : [
-                    {
-                      "kind" : "global",
-                      "valueType" : "String"
-                    },
-                    {
-                      "kind" : "group",
-                      "name" : "Real nodes",
-                      "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                      "valueType" : "Object"
+                 "fullHierarchy" : {
+                   "kind":"group",
+                   "name":"Real nodes",
+                   "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                   "valueType":"Object",
+                   "parent" : {
+                      "kind":"global",
+                      "valueType":"String"
                     }
-                  ],
-                  "errorMessage" : "Conflicting types in inherited node properties"
+                 },
+                  "errorMessage":"Conflicting types in inherited node properties"
                 },
                 "origval" : {
-                  "now" : "a json"
+                  "now":"a json"
                 }
               },
               {
                 "name":"jsonParam",
-                "value":{
-                  "array":[5,6],
+                "value" : {
+                  "array" : [
+                    5,
+                    6
+                  ],
                   "group":"string",
-                  "json":{"g1":"g1","var1":"val1","var2":"val2"},
+                  "json" : {
+                    "g1":"g1",
+                    "var1":"val1",
+                    "var2":"val2"
+                  },
                   "string":"a string"
                 },
-                "provider":"overridden",
-                "hierarchy":"<p>from <b>Global Parameter</b>:<pre>{\n    \"array\" : [\n        1,\n        3,\n        2\n    ],\n    \"json\" : {\n        \"var1\" : \"val1\",\n        \"var2\" : \"val2\"\n    },\n    \"string\" : \"a string\"\n}\n</pre></p><p>from <b>this group (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>{\n    \"array\" : [\n        5,\n        6\n    ],\n    \"group\" : \"string\",\n    \"json\" : {\n        \"g1\" : \"g1\"\n    }\n}\n</pre></p>",
-                "hierarchyStatus":{
-                  "hasChildTypeConflicts":false,
-                  "fullHierarchy":[
-                    {
+               "description":"a simple string param",
+               "provider" : "overridden",
+               "hierarchy":"<p>from <b>Global parameter </b>:<pre>{\n    \"array\" : [\n        1,\n        3,\n        2\n    ],\n    \"json\" : {\n        \"var1\" : \"val1\",\n        \"var2\" : \"val2\"\n    },\n    \"string\" : \"a string\"\n}\n</pre></p><p>from <b>Group Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>{\n    \"array\" : [\n        5,\n        6\n    ],\n    \"group\" : \"string\",\n    \"json\" : {\n        \"g1\" : \"g1\"\n    }\n}\n</pre></p>",
+                "hierarchyStatus" : {
+                  "hasChildTypeConflicts" : false,
+                 "fullHierarchy" : {
+                   "kind":"group",
+                   "name":"Real nodes",
+                   "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                   "valueType":"Object",
+                   "parent" : {
                       "kind":"global",
                       "valueType":"Object"
-                    },
-                    {
-                      "kind":"group",
-                      "name":"Real nodes",
-                      "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                      "valueType":"Object"
                     }
-                  ]
+                 }
                 },
-                "origval":{
-                  "array":[5,6],
+                "origval" : {
+                  "array" : [
+                    5,
+                    6
+                  ],
                   "group":"string",
-                  "json":{"g1":"g1"}
+                  "json" : {
+                    "g1":"g1"
+                  }
                 }
               },
               {
                 "name":"modeParam",
                 "value":"some string",
+               "description":"a simple string param",
                 "inheritMode":"opa",
                 "provider":"inherited",
-                "hierarchy":"<p>from <b>Global Parameter</b>:<pre>\"some string\"</pre></p>",
-                "hierarchyStatus":{
-                  "hasChildTypeConflicts":false,
-                  "fullHierarchy":[
-                    {
-                      "kind":"global",
-                      "valueType":"String"
-                    }
-                  ]
+               "hierarchy":"<p>from <b>Global parameter </b>:<pre>\"some string\"</pre></p>",
+                "hierarchyStatus" : {
+                  "hasChildTypeConflicts" : false,
+                 "fullHierarchy" : {
+                   "kind":"global",
+                   "valueType":"String"
+                 }
                 },
                 "origval":"some string"
               },
               {
-                "name" : "rudder",
+                "name":"rudder",
                 "value" : {
                   "compliance_expiration_policy" : {
-                    "mode" : "expire_immediately"
+                    "mode":"expire_immediately"
                   }
                 },
-                "provider" : "inherited",
-                "hierarchy" : "<p>from <b>Global Parameter</b>:<pre>{\n    \"compliance_expiration_policy\" : {\n        \"mode\" : \"expire_immediately\"\n    }\n}\n</pre></p>",
+               "description":"rudder system config",
+                "provider":"inherited",
+               "hierarchy":"<p>from <b>Global parameter </b>:<pre>{\n    \"compliance_expiration_policy\" : {\n        \"mode\" : \"expire_immediately\"\n    }\n}\n</pre></p>",
                 "hierarchyStatus" : {
                   "hasChildTypeConflicts" : false,
-                  "fullHierarchy" : [
-                    {
-                      "kind" : "global",
-                      "valueType" : "Object"
-                    }
-                  ]
+                 "fullHierarchy" : {
+                   "kind":"global",
+                   "valueType":"Object"
+                 }
                 },
                 "origval" : {
                   "compliance_expiration_policy" : {
-                    "mode" : "expire_immediately"
+                    "mode":"expire_immediately"
                   }
                 }
               },
               {
                 "name":"stringParam",
                 "value":"stringsome string",
-                "inheritMode":"map",
-                "provider":"overridden",
-                "hierarchy":"<p>from <b>Global Parameter</b>:<pre>\"some string\"</pre></p><p>from <b>this group (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>\"string\"</pre></p>",
-                "hierarchyStatus":{
-                  "hasChildTypeConflicts":false,
-                  "fullHierarchy":[
-                    {
+               "description":"a simple string param",
+               "inheritMode":"map",
+               "provider" : "overridden",
+               "hierarchy":"<p>from <b>Global parameter </b>:<pre>\"some string\"</pre></p><p>from <b>Group Real nodes (0000f5d3-8c61-4d20-88a7-bb947705ba8a)</b>:<pre>\"string\"</pre></p>",
+                "hierarchyStatus" : {
+                  "hasChildTypeConflicts" : false,
+                 "fullHierarchy" : {
+                   "kind":"group",
+                   "name":"Real nodes",
+                   "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+                   "valueType":"String",
+                   "parent" : {
                       "kind":"global",
                       "valueType":"String"
-                    },
-                    {
-                      "kind":"group",
-                      "name":"Real nodes",
-                      "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                      "valueType":"String"
                     }
-                  ]
+                 }
                 },
                 "origval":"string"
               },
               {
                 "name":"systemParam",
                 "value":"some string",
+               "description":"a simple string param",
                 "provider":"inherited",
-                "hierarchy":"<p>from <b>Global Parameter</b>:<pre>\"some string\"</pre></p>",
-                "hierarchyStatus":{
-                  "hasChildTypeConflicts":false,
-                  "fullHierarchy":[
-                    {
-                      "kind":"global",
-                      "valueType":"String"
-                    }
-                  ]
+               "hierarchy":"<p>from <b>Global parameter </b>:<pre>\"some string\"</pre></p>",
+                "hierarchyStatus" : {
+                  "hasChildTypeConflicts" : false,
+                 "fullHierarchy" : {
+                   "kind":"global",
+                   "valueType":"String"
+                 }
                 },
                 "origval":"some string"
               }
@@ -699,107 +652,129 @@ response:
     {
       "action":"nodeInheritedProperties",
       "result":"success",
-      "data":[
+      "data" : [
         {
           "nodeId":"node1",
-          "properties":[
+          "properties" : [
             {
               "name":"badOverrideType",
-              "value":{
+              "value" : {
                 "now":"a json"
               },
-              "provider":"inherited",
-              "hierarchy":[
-                {
+             "description":"a string at first",
+             "hierarchy" : {
+               "kind":"group",
+               "name":"Real nodes",
+               "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+               "value" : {
+                 "now":"a json"
+               },
+               "resolvedValue" : {
+                 "now":"a json"
+               },
+               "parent" : {
                   "kind":"global",
                   "value":"a string"
-                },
-                {
+               }
+             },
+             "hierarchyStatus" : {
+               "hasChildTypeConflicts" : true,
+               "fullHierarchy" : {
                   "kind":"group",
                   "name":"Real nodes",
                   "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                  "value":{
-                    "now":"a json"
-                  }
-                }
-              ],
-              "hierarchyStatus":{
-                "hasChildTypeConflicts":true,
-                "fullHierarchy":[
-                  {
+                 "valueType":"Object",
+                 "parent" : {
                     "kind":"global",
                     "valueType":"String"
-                  },
-                  {
-                    "kind":"group",
-                    "name":"Real nodes",
-                    "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                    "valueType":"Object"
                   }
-                ],
-                "errorMessage" : "Conflicting types in inherited node properties"
+               },
+                "errorMessage":"Conflicting types in inherited node properties"
               },
-              "origval":{
+              "origval" : {
                 "now":"a json"
               }
             },
             {
               "name":"jsonParam",
-              "value":{
-                "array":[5, 6],
+              "value" : {
+                "array" : [
+                  5,
+                  6
+                ],
                 "group":"string",
-                "json":{
+                "json" : {
                   "g1":"g1",
                   "var1":"val1",
                   "var2":"val2"
                 },
                 "string":"a string"
               },
+             "description":"a simple string param",
               "provider":"inherited",
-              "hierarchy":[
-                {
+             "hierarchy" : {
+               "kind":"group",
+               "name":"Real nodes",
+               "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+               "value" : {
+                 "array" : [
+                   5,
+                   6
+                 ],
+                 "group":"string",
+                 "json" : {
+                   "g1":"g1"
+                 }
+               },
+               "resolvedValue" : {
+                 "array" : [
+                   5,
+                   6
+                 ],
+                 "group":"string",
+                 "json" : {
+                   "g1":"g1",
+                   "var1":"val1",
+                   "var2":"val2"
+                 },
+                 "string":"a string"
+               },
+               "parent" : {
                   "kind":"global",
-                  "value":{
-                    "array":[1,3,2],
-                    "json":{
+                  "value" : {
+                    "array" : [
+                      1,
+                      3,
+                      2
+                    ],
+                    "json" : {
                       "var1":"val1",
                       "var2":"val2"
                     },
                     "string":"a string"
                   }
-                },
-                {
+               }
+             },
+             "hierarchyStatus" : {
+               "hasChildTypeConflicts" : false,
+               "fullHierarchy" : {
                   "kind":"group",
                   "name":"Real nodes",
                   "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                  "value":{
-                    "array":[5,6],
-                    "group":"string",
-                    "json":{
-                      "g1":"g1"
-                    }
-                  }
-                }
-              ],
-              "hierarchyStatus":{
-                "hasChildTypeConflicts":false,
-                "fullHierarchy":[
-                  {
+                 "valueType":"Object",
+                 "parent" : {
                     "kind":"global",
                     "valueType":"Object"
-                  },
-                  {
-                    "kind":"group",
-                    "name":"Real nodes",
-                    "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                    "valueType":"Object"
                   }
-                ]
+               }
               },
-              "origval":{
-                "array":[5,6],
+              "origval" : {
+                "array" : [
+                  5,
+                  6
+                ],
                 "group":"string",
-                "json":{
+                "json" : {
                   "g1":"g1"
                 }
               }
@@ -807,110 +782,99 @@ response:
             {
               "name":"modeParam",
               "value":"some string",
+             "description":"a simple string param",
               "inheritMode":"opa",
               "provider":"inherited",
-              "hierarchy":[
-                {
+             "hierarchy" : {
+               "kind":"global",
+               "value":"some string"
+             },
+             "hierarchyStatus" : {
+               "hasChildTypeConflicts" : false,
+               "fullHierarchy" : {
                   "kind":"global",
-                  "value":"some string"
+                 "valueType":"String"
                 }
-              ],
-              "hierarchyStatus":{
-                "hasChildTypeConflicts":false,
-                "fullHierarchy":[
-                  {
-                    "kind":"global",
-                    "valueType":"String"
-                  }
-                ]
               },
               "origval":"some string"
             },
             {
-              "name" : "rudder",
+              "name":"rudder",
               "value" : {
                 "compliance_expiration_policy" : {
-                  "mode" : "expire_immediately"
-                 }
+                  "mode":"expire_immediately"
+                }
               },
-              "provider" : "inherited",
-              "hierarchy" : [
-                {
-                  "kind" : "global",
-                  "value" : {
-                    "compliance_expiration_policy" : {
-                      "mode" : "expire_immediately"
-                    }
+             "description":"rudder system config",
+              "provider":"inherited",
+             "hierarchy" : {
+               "kind":"global",
+               "value" : {
+                 "compliance_expiration_policy" : {
+                   "mode":"expire_immediately"
                   }
                 }
-              ],
+             },
               "hierarchyStatus" : {
                 "hasChildTypeConflicts" : false,
-                "fullHierarchy" : [
-                  {
-                    "kind" : "global",
-                    "valueType" : "Object"
-                  }
-                ]
+               "fullHierarchy" : {
+                 "kind":"global",
+                 "valueType":"Object"
+               }
               },
               "origval" : {
                 "compliance_expiration_policy" : {
-                  "mode" : "expire_immediately"
+                  "mode":"expire_immediately"
                 }
               }
             },
             {
               "name":"stringParam",
               "value":"stringsome string",
+             "description":"a simple string param",
               "inheritMode":"map",
               "provider":"inherited",
-              "hierarchy":[
-                {
+             "hierarchy" : {
+               "kind":"group",
+               "name":"Real nodes",
+               "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+               "value":"string",
+               "resolvedValue":"stringsome string",
+               "parent" : {
                   "kind":"global",
                   "value":"some string"
-                },
-                {
+               }
+             },
+             "hierarchyStatus" : {
+               "hasChildTypeConflicts" : false,
+               "fullHierarchy" : {
                   "kind":"group",
                   "name":"Real nodes",
                   "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                  "value":"string"
-                }
-              ],
-              "hierarchyStatus":{
-                "hasChildTypeConflicts":false,
-                "fullHierarchy":[
-                  {
+                 "valueType":"String",
+                 "parent" : {
                     "kind":"global",
                     "valueType":"String"
-                  },
-                  {
-                    "kind":"group",
-                    "name":"Real nodes",
-                    "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
-                    "valueType":"String"
                   }
-                ]
+               }
               },
               "origval":"string"
             },
             {
               "name":"systemParam",
               "value":"some string",
+             "description":"a simple string param",
               "provider":"inherited",
-              "hierarchy":[
-                {
+             "hierarchy" : {
+               "kind":"global",
+               "value":"some string"
+             },
+             "hierarchyStatus" : {
+               "hasChildTypeConflicts" : false,
+               "fullHierarchy" : {
                   "kind":"global",
-                  "value":"some string"
+                 "valueType":"String"
                 }
-              ],
-              "hierarchyStatus":{
-                "hasChildTypeConflicts":false,
-                "fullHierarchy":[
-                  {
-                    "kind":"global",
-                    "valueType":"String"
-                  }
-                ]
               },
               "origval":"some string"
             }
