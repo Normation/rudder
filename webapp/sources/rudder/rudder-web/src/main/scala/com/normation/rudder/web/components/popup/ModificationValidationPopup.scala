@@ -517,8 +517,6 @@ class ModificationValidationPopup(
           case DGModAction.Update | DGModAction.CreateSolo | DGModAction.CreateAndModRules | DGModAction.Enable |
               DGModAction.Disable =>
             Right(ModifyToNodeGroupDiff(group))
-          case _                  =>
-            Left(Inconsistency(s"Action ${action} is not possible on a existing group"))
         }
     }
   }
