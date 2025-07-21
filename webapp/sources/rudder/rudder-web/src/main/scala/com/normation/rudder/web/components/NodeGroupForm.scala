@@ -828,7 +828,7 @@ class NodeGroupForm(
             case DGModAction.Disable if !savedGroup.isSystem => false
             case _                                           => savedGroup._isEnabled
           },
-          serverList = srvList.getOrElse(Set.empty[NodeInfo]).map(_.id).toSet
+          serverList = srvList.getOrElse(Set.empty[CoreNodeFact]).map(_.id).toSet
         )
 
         displayConfirmationPopup(action, newGroup, optContainer, None)
