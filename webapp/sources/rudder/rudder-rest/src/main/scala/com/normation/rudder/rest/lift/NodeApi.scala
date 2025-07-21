@@ -67,9 +67,11 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.properties.CompareProperties
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.NodeProperty
-import com.normation.rudder.domain.properties.NodePropertyError
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
-import com.normation.rudder.domain.properties.NodePropertySpecificError
+import com.normation.rudder.domain.properties.ParentProperty
+import com.normation.rudder.domain.properties.PropertyHierarchy
+import com.normation.rudder.domain.properties.PropertyHierarchyError
+import com.normation.rudder.domain.properties.PropertyHierarchySpecificError
 import com.normation.rudder.domain.properties.Visibility.Displayed
 import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.queries.Query
@@ -744,10 +746,12 @@ class NodeApiInheritedProperties(
         val error   = properties match {
           case f: FailedNodePropertyHierarchy =>
             f.error match {
-              case propsErrors: NodePropertySpecificError =>
+              case propsErrors: PropertyHierarchySpecificError =>
                 // these are individual errors by property that can be resolved and rendered individually
-                Chunk.from(propsErrors.propertiesErrors.values.map((ErrorInheritedPropertyStatus.from _).tupled))
-              case _:           NodePropertyError         =>
+                Chunk.from(propsErrors.propertiesErrors.values.flatMap {
+                  case (_, v, p) => v.map(ErrorInheritedPropertyStatus.from(_, p))
+                })
+              case _:           PropertyHierarchyError         =>
                 // we don't know the errored props, it may be all of them and there may be a global status error
                 Chunk(GlobalPropertyStatus.fromResolvedNodeProperty(f))
             }
@@ -948,7 +952,7 @@ class NodeApiService(
   def getNodesPropertiesTree(
       nodeInfos:  MapView[NodeId, CoreNodeFact],
       properties: List[String]
-  )(implicit qc: QueryContext): IOResult[Map[NodeId, Chunk[NodePropertyHierarchy]]] = {
+  )(implicit qc: QueryContext): IOResult[Map[NodeId, Chunk[PropertyHierarchy]]] = {
     for {
       properties <-
         ZIO.foreach(nodeInfos.values) { fact =>
@@ -958,7 +962,10 @@ class NodeApiService(
               err =>
                 (
                   fact.id,
-                  fact.properties.collect { case p if properties.contains(p.name) => NodePropertyHierarchy(p, Nil) }
+                  fact.properties.collect {
+                    case p if properties.contains(p.name) =>
+                      NodePropertyHierarchy(fact.id, ParentProperty.Node(fact.fqdn, fact.id, p, None))
+                  }
                 ),
               optHierarchy => {
                 // here we can have the whole parent hierarchy like in node properties details with p.toApiJsonRenderParents but it needs
@@ -1013,7 +1020,7 @@ class NodeApiService(
                             })(_ ++ _)
 
                             if (inheritedProp.isEmpty) {
-                              (Map.empty[NodeId, List[NodePropertyHierarchy]], propMap).succeed
+                              (Map.empty[NodeId, List[PropertyHierarchy]], propMap).succeed
                             } else {
                               for {
                                 inheritedProp <- getNodesPropertiesTree(nodes, inheritedProp.map(_.value))
@@ -1031,7 +1038,7 @@ class NodeApiService(
             implicit val globalPolicyMode:       GlobalPolicyMode               = globalMode
             implicit val agentRunWithNodeConfig: Option[AgentRunWithNodeConfig] = runs.get(n.id).flatten
             implicit val properties:             Chunk[NodeProperty]            = Chunk.fromIterable(nonInheritedProp.get(n.id).getOrElse(Nil))
-            implicit val inheritedProperties:    Chunk[NodePropertyHierarchy]   =
+            implicit val inheritedProperties:    Chunk[PropertyHierarchy]       =
               Chunk.fromIterable(inheritedProp.get(n.id).getOrElse(Nil))
             implicit val softwares:              Chunk[Software]                = Chunk.fromIterable(softs.get(n.id).getOrElse(Nil))
             implicit val nodeCompliance:         Option[JRNodeCompliance]       =

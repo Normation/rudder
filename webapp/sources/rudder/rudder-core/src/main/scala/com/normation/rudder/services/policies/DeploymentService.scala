@@ -1110,11 +1110,11 @@ trait PromiseGeneration_BuildNodeContext {
                                        value  = GenericProperty.fromJsonValue(x.\("value"))
                                        result = NodeProperty(p.prop.config.getString("name"), value, None, None)
                                      } yield {
-                                       p.copy(prop = result)
+                                       result
                                      }
                                    }
                                    .toBox
-            nodeInfo           = info.modify(_.properties).setTo(Chunk.fromIterable(propsCompiled.map(_.prop)))
+            nodeInfo           = info.modify(_.properties).setTo(Chunk.fromIterable(propsCompiled))
             nodeContext       <- systemVarService.getSystemVariables(
                                    nodeInfo,
                                    nodeFacts,
