@@ -1,7 +1,4 @@
-use crate::{
-    Commands, CommandsParameters, default_repaired_codes, default_shell_path, default_timeout,
-    get_used_cmd,
-};
+use crate::{Commands, CommandsParameters, get_used_cmd};
 use anyhow::{Context, Result};
 use clap::Parser;
 
@@ -105,13 +102,13 @@ impl Cli {
             args,
             run_in_audit_mode: !cli.dry_run,
             in_shell: cli.in_shell,
-            shell_path: cli.shell_path.unwrap_or_else(default_shell_path),
+            shell_path: cli.shell_path.unwrap_or_else(Commands::default_shell_path),
             chdir: cli.chdir,
-            timeout: cli.timeout.unwrap_or_else(default_timeout),
+            timeout: cli.timeout.unwrap_or_else(Commands::default_timeout),
             stdin: cli.stdin,
             stdin_add_newline: !cli.stdin_no_newline,
             compliant_codes: "".to_string(),
-            repaired_codes: default_repaired_codes(),
+            repaired_codes: Commands::default_repaired_codes(),
             output_to_file: cli.output_to_file,
             strip_output: cli.strip_output,
             uid: cli.uid,
