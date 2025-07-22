@@ -29,7 +29,7 @@ pub struct CommandsParameters {
     /// Arguments to the command
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "deserialize_option_string"
+        deserialize_with = "Commands::deserialize_option_string"
     )]
     args: Option<String>,
 
@@ -42,29 +42,29 @@ pub struct CommandsParameters {
     in_shell: bool,
 
     /// Shell path (used only in shell mode)
-    #[serde(default = "default_shell_path")]
+    #[serde(default = "Commands::default_shell_path")]
     shell_path: String,
 
     /// Directory from where to execute the command
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "deserialize_option_string"
+        deserialize_with = "Commands::deserialize_option_string"
     )]
     chdir: Option<String>,
 
     /// Timeout for command execution
-    #[serde(default = "default_timeout")]
+    #[serde(default = "Commands::default_timeout")]
     timeout: String, // Default to 30 seconds
 
     /// Input passed to the stdin of the executed command
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "deserialize_option_string"
+        deserialize_with = "Commands::deserialize_option_string"
     )]
     stdin: Option<String>,
 
     /// Controls the appending of a newline to the stdin input
-    #[serde(default = "default_as_true")]
+    #[serde(default = "Commands::default_as_true")]
     stdin_add_newline: bool,
 
     /// Compliant codes
@@ -72,13 +72,13 @@ pub struct CommandsParameters {
     compliant_codes: String,
 
     /// Repaired codes
-    #[serde(default = "default_repaired_codes")]
+    #[serde(default = "Commands::default_repaired_codes")]
     repaired_codes: String, // Default to "0"
 
     /// File to store the output of the command
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "deserialize_option_pathbuf"
+        deserialize_with = "Commands::deserialize_option_pathbuf"
     )]
     output_to_file: Option<PathBuf>,
 
@@ -89,77 +89,77 @@ pub struct CommandsParameters {
     /// UID used by the executed command
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "deserialize_option_string"
+        deserialize_with = "Commands::deserialize_option_string"
     )]
     uid: Option<String>,
 
     /// GID used by the executed command
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "deserialize_option_string"
+        deserialize_with = "Commands::deserialize_option_string"
     )]
     gid: Option<String>,
 
     /// Umask used by the executed command
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "deserialize_option_string"
+        deserialize_with = "Commands::deserialize_option_string"
     )]
     umask: Option<String>,
 
     /// Environment variables used by the executed command
     #[serde(
         skip_serializing_if = "Option::is_none",
-        deserialize_with = "deserialize_option_string"
+        deserialize_with = "Commands::deserialize_option_string"
     )]
     env_vars: Option<String>,
 
     /// Controls output of diffs in the report
-    #[serde(default = "default_as_true")]
+    #[serde(default = "Commands::default_as_true")]
     show_content: bool,
-}
-
-fn deserialize_option_pathbuf<'de, D>(deserializer: D) -> Result<Option<PathBuf>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let value: Option<PathBuf> = Option::deserialize(deserializer)?;
-    Ok(value.and_then(|p| {
-        if p.as_path().to_str().is_none_or(|s| s.is_empty()) {
-            None
-        } else {
-            Some(p)
-        }
-    }))
-}
-
-fn deserialize_option_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let value: Option<String> = Option::deserialize(deserializer)?;
-    Ok(value.and_then(|s| if s.is_empty() { None } else { Some(s) }))
-}
-
-pub fn default_shell_path() -> String {
-    "/bin/sh".to_string()
-}
-
-pub fn default_timeout() -> String {
-    "30".to_string()
-}
-
-pub fn default_as_true() -> bool {
-    true
-}
-
-pub fn default_repaired_codes() -> String {
-    "0".to_string()
 }
 
 struct Commands {}
 
 impl Commands {
+    fn deserialize_option_pathbuf<'de, D>(deserializer: D) -> Result<Option<PathBuf>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value: Option<PathBuf> = Option::deserialize(deserializer)?;
+        Ok(value.and_then(|p| {
+            if p.as_path().to_str().is_none_or(|s| s.is_empty()) {
+                None
+            } else {
+                Some(p)
+            }
+        }))
+    }
+
+    fn deserialize_option_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value: Option<String> = Option::deserialize(deserializer)?;
+        Ok(value.and_then(|s| if s.is_empty() { None } else { Some(s) }))
+    }
+
+    pub fn default_shell_path() -> String {
+        "/bin/sh".to_string()
+    }
+
+    pub fn default_timeout() -> String {
+        "30".to_string()
+    }
+
+    pub fn default_as_true() -> bool {
+        true
+    }
+
+    pub fn default_repaired_codes() -> String {
+        "0".to_string()
+    }
+
     fn run(p: &CommandsParameters, _audit: bool) -> Result<Value> {
         let mut command = Command::new(if p.in_shell {
             &p.shell_path
