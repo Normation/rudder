@@ -54,10 +54,10 @@ import com.normation.rudder.domain.properties.InheritMode
 import com.normation.rudder.domain.properties.JsonPropertyHierarchySerialisation.*
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
-import com.normation.rudder.domain.properties.ParentProperty
-import com.normation.rudder.domain.properties.ParentProperty.VertexParentProperty
 import com.normation.rudder.domain.properties.PropertyHierarchy
 import com.normation.rudder.domain.properties.PropertyHierarchyError
+import com.normation.rudder.domain.properties.PropertyVertex
+import com.normation.rudder.domain.properties.PropertyVertex.ParentProperty
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.domain.queries.*
@@ -96,9 +96,9 @@ class TestMergeGroupProperties extends Specification {
   }
 
   implicit class ToPropertyHierarchy(groups: List[NodeGroup]) {
-    def toParents(name: String):                                   ParentProperty.Group = {
+    def toParents(name: String):                                   PropertyVertex.Group = {
       groups.reverse
-        .flatMap(g => g.properties.find(_.name == name).map(p => ParentProperty.Group(g.name, g.id, p, None)))
+        .flatMap(g => g.properties.find(_.name == name).map(p => PropertyVertex.Group(g.name, g.id, p, None)))
         .reduce((old, newer) => newer.copy(parentProperty = Some(old)))
     }
     // use first parent to build a fully inherited prop
@@ -117,28 +117,28 @@ class TestMergeGroupProperties extends Specification {
 
     def toH3(id: Either[NodeGroupId, NodeId], name: String, globalParam: GlobalParameter): PropertyHierarchy = {
 
-      def recAppendParent(prop: VertexParentProperty[?]): VertexParentProperty[?] = {
+      def recAppendParent(prop: ParentProperty[?]): ParentProperty[?] = {
         prop match {
-          case global: ParentProperty.Global => global
-          case group:  ParentProperty.Group  =>
+          case global: PropertyVertex.Global => global
+          case group:  PropertyVertex.Group  =>
             group.parentProperty match {
-              case None        => group.copy(parentProperty = Some(ParentProperty.Global(globalParam)))
+              case None        => group.copy(parentProperty = Some(PropertyVertex.Global(globalParam)))
               case Some(value) => group.copy(parentProperty = Some(recAppendParent(value)))
             }
         }
       }
-      def recAppend(prop: ParentProperty[?]):             ParentProperty[?]       = {
+      def recAppend(prop: PropertyVertex[?]):       PropertyVertex[?] = {
         prop match {
-          case global: ParentProperty.Global => global
-          case group:  ParentProperty.Group  =>
+          case global: PropertyVertex.Global => global
+          case group:  PropertyVertex.Group  =>
             group.parentProperty match {
-              case None        => group.copy(parentProperty = Some(ParentProperty.Global(globalParam)))
+              case None        => group.copy(parentProperty = Some(PropertyVertex.Global(globalParam)))
               case Some(value) => group.copy(parentProperty = Some(recAppendParent(value)))
             }
 
-          case node: ParentProperty.Node =>
+          case node: PropertyVertex.Node =>
             node.parentProperty match {
-              case None        => node.copy(parentProperty = Some(ParentProperty.Global(globalParam)))
+              case None        => node.copy(parentProperty = Some(PropertyVertex.Global(globalParam)))
               case Some(value) => node.copy(parentProperty = Some(recAppendParent(value)))
             }
         }
@@ -153,7 +153,7 @@ class TestMergeGroupProperties extends Specification {
     def toG(name: String, mode: Option[InheritMode], nodeId: NodeId): PropertyHierarchy = {
       NodePropertyHierarchy(
         nodeId,
-        ParentProperty.Global(GlobalParameter(name, GitVersion.DEFAULT_REV, global, mode, "", None, Visibility.default))
+        PropertyVertex.Global(GlobalParameter(name, GitVersion.DEFAULT_REV, global, mode, "", None, Visibility.default))
       )
     }
     def toGP(name: String, mode: Option[InheritMode]):                GlobalParameter   = {

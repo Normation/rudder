@@ -47,8 +47,8 @@ import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.FullGroupTarget
 import com.normation.rudder.domain.properties.*
-import com.normation.rudder.domain.properties.ParentProperty.VertexParentProperty
 import com.normation.rudder.domain.properties.PropertyHierarchyError.*
+import com.normation.rudder.domain.properties.PropertyVertex.ParentProperty
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.properties.GroupProp.*
@@ -115,12 +115,12 @@ object GroupProp {
   implicit class ToNodePropertyHierarchy(g: GroupProp) {
     def toNodePropHierarchy(implicit
         globalParameters: Map[String, GlobalParameter]
-    ): Map[String, (VertexParentProperty[?], Option[InheritMode])] = {
+    ): Map[String, (ParentProperty[?], Option[InheritMode])] = {
       g.properties.map { p =>
         val globalInheritMode = globalParameters.get(p.name).flatMap(g => GenericProperty.getMode(g.config))
         (
           p.name,
-          ParentProperty.Group(g.groupName, g.groupId, p, None) -> globalInheritMode
+          PropertyVertex.Group(g.groupName, g.groupId, p, None) -> globalInheritMode
         )
       }.toMap
     }
@@ -245,18 +245,18 @@ object MergeNodeProperties {
     // so we need to mark those as resolved, with the most prioritized parent (see https://issues.rudder.io/issues/26325)
     def checkMergeGroupParent(
         otherProps: Map[NodeGroupId, GroupProp]
-    ): Ior[PropertyHierarchyError, List[VertexParentProperty[?]]] = {
+    ): Ior[PropertyHierarchyError, List[ParentProperty[?]]] = {
 
-      def findLastMatchingGroup(p: ParentProperty[?]): Option[ParentProperty.Group] = {
+      def findLastMatchingGroup(p: PropertyVertex[?]): Option[PropertyVertex.Group] = {
         p match {
-          case n: ParentProperty.Node   => n.parentProperty.flatMap(findLastMatchingGroup)
-          case g: ParentProperty.Group  =>
+          case n: PropertyVertex.Node   => n.parentProperty.flatMap(findLastMatchingGroup)
+          case g: PropertyVertex.Group  =>
             g.parentProperty match {
               case None                           => Some(g)
-              case Some(_: ParentProperty.Global) => Some(g)
+              case Some(_: PropertyVertex.Global) => Some(g)
               case Some(parent)                   => findLastMatchingGroup(parent)
             }
-          case _: ParentProperty.Global => None
+          case _: PropertyVertex.Global => None
         }
       }
 
@@ -267,7 +267,7 @@ object MergeNodeProperties {
             case Some(err: PropertyHierarchyError.PropertyHierarchySpecificInheritanceConflicts) =>
               // we need to remove resolved conflicting properties and transfer them to the success part
               val resolved  = err.conflicts.toList.flatMap {
-                case (nodeProp, parentProps: NonEmptyChunk[ParentProperty[?]]) =>
+                case (nodeProp, parentProps: NonEmptyChunk[PropertyVertex[?]]) =>
                   for {
                     // reverse to get the parent which has the highest priority
                     firstParent     <- groupProp.parentGroups.reverse.headOption
@@ -342,14 +342,14 @@ object MergeNodeProperties {
   def mergeDefaultNode(
       node:       CoreNodeFact,
       properties: Map[String, NodeProperty],
-      parents:    Map[String, VertexParentProperty[?]]
+      parents:    Map[String, ParentProperty[?]]
   ): Map[String, PropertyHierarchy] = {
     val allKeys = parents.keySet ++ properties.keySet
     allKeys.map { k =>
       val p   = properties.get(k)
       val d   = parents.get(k)
       val obj = p match {
-        case Some(x: NodeProperty) => ParentProperty.Node(node.fqdn, node.id, x, d)
+        case Some(x: NodeProperty) => PropertyVertex.Node(node.fqdn, node.id, x, d)
         case None                  => d.get
       }
       (k, NodePropertyHierarchy(node.id, obj))
@@ -359,14 +359,14 @@ object MergeNodeProperties {
   def mergeDefaultGroup(
       group:      NodeGroup,
       properties: Map[String, GroupProperty],
-      parents:    Map[String, VertexParentProperty[?]]
+      parents:    Map[String, ParentProperty[?]]
   ): Map[String, PropertyHierarchy] = {
     val allKeys = parents.keySet ++ properties.keySet
     allKeys.map { k =>
       val p   = properties.get(k)
       val d   = parents.get(k)
       val obj = p match {
-        case Some(x: GroupProperty) => ParentProperty.Group(group.name, group.id, x, d)
+        case Some(x: GroupProperty) => PropertyVertex.Group(group.name, group.id, x, d)
         case None                   => d.get
       }
       (k, GroupPropertyHierarchy(group.id, obj))
@@ -389,7 +389,7 @@ object MergeNodeProperties {
   def checkPropertyMerge(
       props:        Map[NodeGroupId, GroupProp],
       globalParams: Map[String, GlobalParameter]
-  ): Ior[PropertyHierarchyError, List[VertexParentProperty[?]]] = {
+  ): Ior[PropertyHierarchyError, List[ParentProperty[?]]] = {
     /*
      * General strategy:
      * - build all disjoint hierarchies of groups that contains that node
@@ -416,9 +416,9 @@ object MergeNodeProperties {
      * The most prioritary is the last in the list
      */
     def overrideValues(
-        overriding: List[Map[String, (VertexParentProperty[?], Option[InheritMode])]]
-    ): Map[String, VertexParentProperty[?]] = {
-      overriding.foldLeft(Map[String, VertexParentProperty[?]]()) {
+        overriding: List[Map[String, (ParentProperty[?], Option[InheritMode])]]
+    ): Map[String, ParentProperty[?]] = {
+      overriding.foldLeft(Map[String, ParentProperty[?]]()) {
         case (old, newer) =>
           // for each newer value, we look if an older exists. If so, we keep the old value in the list of parents,
           // and merge its value for the next iteration.
@@ -428,10 +428,10 @@ object MergeNodeProperties {
                 case None          => // ok, no merge needed
                   (k, v)
                 case Some(oldProp) => // merge prop and add old to parents
-                  def recAppend(prop: VertexParentProperty[?]): VertexParentProperty[?] = {
+                  def recAppend(prop: ParentProperty[?]): ParentProperty[?] = {
                     prop match {
-                      case _:     ParentProperty.Global => oldProp
-                      case group: ParentProperty.Group  =>
+                      case _:     PropertyVertex.Global => oldProp
+                      case group: PropertyVertex.Group  =>
                         group.parentProperty match {
                           case None    => group.copy(parentProperty = Some(oldProp))
                           case Some(g) => group.copy(parentProperty = Some(recAppend(g)))
@@ -450,8 +450,8 @@ object MergeNodeProperties {
      * If it's the case, report error, else return all properties.
      */
     def mergeAll(
-        propByTrees: List[VertexParentProperty[?]]
-    ): Ior[PropertyHierarchyError.PropertyHierarchySpecificInheritanceConflicts, List[VertexParentProperty[?]]] = {
+        propByTrees: List[ParentProperty[?]]
+    ): Ior[PropertyHierarchyError.PropertyHierarchySpecificInheritanceConflicts, List[ParentProperty[?]]] = {
       // work on non empty chain for repeated append operations on the resulting hierarchy (due to cumulating both error and success)
       val grouped = propByTrees.groupByNec(_.value.name)
 
@@ -473,7 +473,7 @@ object MergeNodeProperties {
 
       // This is guaranteed to be at least a Both, since we start with a right one and we just add potential errors
       val initialValue = {
-        Ior.right[PropertyHierarchyError.PropertyHierarchySpecificInheritanceConflicts, Chain[VertexParentProperty[?]]](
+        Ior.right[PropertyHierarchyError.PropertyHierarchySpecificInheritanceConflicts, Chain[ParentProperty[?]]](
           Chain.empty
         )
       }
@@ -501,7 +501,7 @@ object MergeNodeProperties {
       merged    <- mergeAll(flatten)
       globals    = globalParams.toList.map {
                      case (n, v) =>
-                       (n, ParentProperty.Global(v) -> v.inheritMode)
+                       (n, PropertyVertex.Global(v) -> v.inheritMode)
                    }
     } yield {
       // here, we add global parameters as a first default
@@ -638,27 +638,27 @@ object MergeNodeProperties {
     * - inheriting groups that override the property
     * - nodes that override the property
     */
-  def checkValueTypes(properties: ParentProperty[?]): PureResult[Unit] = {
-    def message(parentProperty: ParentProperty[?]):                           List[String] = {
+  def checkValueTypes(properties: PropertyVertex[?]): PureResult[Unit] = {
+    def message(parentProperty: PropertyVertex[?]):                           List[String] = {
       parentProperty match {
-        case g:    ParentProperty.Group  =>
+        case g:    PropertyVertex.Group  =>
           s"Group '${g.name}' (${g.id}) with value '${g.value.value.render(ConfigRenderOptions.concise())}'" :: g.parentProperty.toList
             .flatMap(message)
-        case n:    ParentProperty.Node   =>
+        case n:    PropertyVertex.Node   =>
           s"Node '${n.name}' (${n.id}) with value '${n.value.value.render(ConfigRenderOptions.concise())}'" :: n.parentProperty.toList
             .flatMap(message)
-        case glob: ParentProperty.Global =>
+        case glob: PropertyVertex.Global =>
           s"Global property with value '${glob.value.value.render(ConfigRenderOptions.concise())}'" :: Nil
       }
     }
-    def check(parentProperty: ParentProperty[?], valueType: ConfigValueType): Boolean      = {
+    def check(parentProperty: PropertyVertex[?], valueType: ConfigValueType): Boolean      = {
       parentProperty.value.value.valueType() == valueType &&
       (parentProperty match {
-        case g:    ParentProperty.Group  =>
+        case g:    PropertyVertex.Group  =>
           g.parentProperty.map(check(_, valueType)).getOrElse(true)
-        case n:    ParentProperty.Node   =>
+        case n:    PropertyVertex.Node   =>
           n.parentProperty.map(check(_, valueType)).getOrElse(true)
-        case glob: ParentProperty.Global =>
+        case glob: PropertyVertex.Global =>
           true
       })
     }
