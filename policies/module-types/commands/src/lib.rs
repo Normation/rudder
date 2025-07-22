@@ -10,13 +10,13 @@ use std::{
     time::{Duration, Instant},
 };
 
-use anyhow::{Context, Ok, Result, bail};
+use anyhow::{Context, Result, bail};
 use rudder_module_type::{
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ProtocolResult,
     ValidateResult, cfengine::called_from_agent, parameters::Parameters, run_module,
 };
 use rustix::{fs::Mode, process::umask};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Value, json};
 use wait_timeout::ChildExt;
 
@@ -27,7 +27,10 @@ pub struct CommandsParameters {
     command: String,
 
     /// Arguments to the command
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_string"
+    )]
     args: Option<String>,
 
     /// Controls the running mode of the command
@@ -43,7 +46,10 @@ pub struct CommandsParameters {
     shell_path: String,
 
     /// Directory from where to execute the command
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_string"
+    )]
     chdir: Option<String>,
 
     /// Timeout for command execution
@@ -51,7 +57,10 @@ pub struct CommandsParameters {
     timeout: String, // Default to 30 seconds
 
     /// Input passed to the stdin of the executed command
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_string"
+    )]
     stdin: Option<String>,
 
     /// Controls the appending of a newline to the stdin input
@@ -67,6 +76,10 @@ pub struct CommandsParameters {
     repaired_codes: String, // Default to "0"
 
     /// File to store the output of the command
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_pathbuf"
+    )]
     output_to_file: Option<PathBuf>,
 
     // Controls the strip of the content inside the output file
@@ -74,24 +87,58 @@ pub struct CommandsParameters {
     strip_output: bool,
 
     /// UID used by the executed command
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_string"
+    )]
     uid: Option<String>,
 
     /// GID used by the executed command
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_string"
+    )]
     gid: Option<String>,
 
     /// Umask used by the executed command
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_string"
+    )]
     umask: Option<String>,
 
     /// Environment variables used by the executed command
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "deserialize_option_string"
+    )]
     env_vars: Option<String>,
 
     /// Controls output of diffs in the report
     #[serde(default = "default_as_true")]
     show_content: bool,
+}
+
+fn deserialize_option_pathbuf<'de, D>(deserializer: D) -> Result<Option<PathBuf>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: Option<PathBuf> = Option::deserialize(deserializer)?;
+    Ok(value.and_then(|p| {
+        if p.as_path().to_str().is_none_or(|s| s.is_empty()) {
+            None
+        } else {
+            Some(p)
+        }
+    }))
+}
+
+fn deserialize_option_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value: Option<String> = Option::deserialize(deserializer)?;
+    Ok(value.and_then(|s| if s.is_empty() { None } else { Some(s) }))
 }
 
 pub fn default_shell_path() -> String {
@@ -252,7 +299,7 @@ impl ModuleType0 for Commands {
         let res = match exit_code {
             code if code == p.compliant_codes => Outcome::success_with(output.to_string()),
             code if code == p.repaired_codes => Outcome::repaired(output.to_string()),
-            _ => bail!("error: {}", output.to_string()),
+            _ => bail!("{}", output.to_string()),
         };
 
         Ok(res)
