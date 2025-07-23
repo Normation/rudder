@@ -354,17 +354,15 @@ class SystemVariableServiceImpl(
       val children = childrenByPolicyServer.getOrElse(nodeInfo.id, Nil).sortBy(_.id.value)
 
       // Sort these children by agent
-      val childerNodesList = children.map(node => (node.rudderAgent -> node))
+      val childrenNodesList = children.map(node => (node.rudderAgent -> node))
 
       // we need to split nodes based on the way they get their policies. If they use cf-serverd,
       // we need to set some system variable to managed authentication.
       // The distribution is chosen based on agent type.
-      val (nodesAgentWithCfserverDistrib, nodesAgentWithHttpDistrib) = childerNodesList.partition(x => {
-        x._1.agentType match {
-          case AgentType.CfeCommunity => true
-          case _                      => false
-        }
-      })
+      val nodesAgentWithCfserverDistrib = childrenNodesList.filter(_._1.agentType == AgentType.CfeCommunity)
+
+      // In Rudder 9.0, we allow Linux nodes to authenticate with HTTPS / certificate too.
+      val nodesAgentWithHttpDistrib = childrenNodesList
 
       // IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
       // we want also to avoid nodes with bad cfkey (empty string) to avoid possible security vuln taking advantage of that.
