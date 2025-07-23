@@ -51,7 +51,7 @@ pub struct Cli {
 
     /// Controls the strip of the content inside the output file
     #[arg(long)]
-    strip_output: bool, // Default to false // TODO
+    strip_output: bool, // Default to false
 
     /// UID used by the executed command
     #[arg(long)]

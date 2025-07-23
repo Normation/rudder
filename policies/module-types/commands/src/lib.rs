@@ -241,6 +241,16 @@ impl Commands {
 
         let stdout = from_utf8(&output.stdout)?;
         let stderr = from_utf8(&output.stderr)?;
+
+        let (stdout, stderr) = if p.strip_output {
+            (
+                strip_trailing_newline(stdout),
+                strip_trailing_newline(stderr),
+            )
+        } else {
+            (stdout, stderr)
+        };
+
         let report = json!({
             "exit_code": output.status.code(),
             "stdout": stdout,
@@ -329,4 +339,11 @@ pub fn get_used_cmd(p: &CommandsParameters) -> String {
         String::new()
     };
     format!("{shell}{cmd_args}")
+}
+
+fn strip_trailing_newline(input: &str) -> &str {
+    input
+        .strip_suffix("\r\n")
+        .or(input.strip_suffix("\n"))
+        .unwrap_or(input)
 }
