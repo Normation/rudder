@@ -44,8 +44,8 @@ object PropertyVertexKind                                       extends Enum[Pro
  */
 sealed trait PropertyVertex[P <: GenericProperty[?]] {
   def kind:           PropertyVertexKind
-  def id:             String // property id, ie name in GenericProperty
-  def name:           String // property name, ie description in GenericProperty
+  def id:             String // entity (node, group, global) id
+  def name:           String // entity name
   def value:          P
   def parentProperty: Option[ParentProperty[?]]
 
