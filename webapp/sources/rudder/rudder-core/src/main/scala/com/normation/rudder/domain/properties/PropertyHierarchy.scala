@@ -34,15 +34,18 @@ object PropertyVertexKind                                       extends Enum[Pro
 /*
  * A property with its inheritance context as the result of the linearization of the semi-lattice
  * it belongs to:
- * - `value` is the original, non overridden generic property
+ * - `selfValue` is the original, non overridden generic property
  * - `resolvedValue` is the overridden value after linearization
  * - `parentProperty` is the (optional) parent in hierarchy
+ *
+ * TODO: we want to be able to represent vertex of the lattice which don't have a selfValue, like a property of a node
+ * which is only inherited.
+ * So in place of (selfValue, parentValue), we want a tri-state for Value: inherited (parent), overridden (self, parent), selfDefined (self)
  */
 sealed trait PropertyVertex[P <: GenericProperty[?]] {
   def kind:           PropertyVertexKind
-  // def displayName: String // human-readable information about the parent providing prop
-  def id:             String
-  def name:           String
+  def id:             String // property id, ie name in GenericProperty
+  def name:           String // property name, ie description in GenericProperty
   def value:          P
   def parentProperty: Option[ParentProperty[?]]
 
@@ -52,8 +55,6 @@ sealed trait PropertyVertex[P <: GenericProperty[?]] {
       val r = GenericProperty.mergeConfig(p.resolvedValue.config, value.config)(p.resolvedValue.inheritMode)
       value
         .fromConfig(r)
-        .withProvider(GroupProp.INHERITANCE_PROVIDER)
-        .withVisibility(p.resolvedValue.visibility)
         // well. fromConfig ensure that it's ok given our sealed hierarchy, but it would be could to get scalac proves it
         .asInstanceOf[P]
   }
@@ -102,11 +103,31 @@ object PropertyVertex {
 
 sealed trait PropertyHierarchy {
   def hierarchy: PropertyVertex[?]
-  def prop:      GenericProperty[?] = hierarchy.value
+  def prop:      GenericProperty[?]
 }
 
-case class NodePropertyHierarchy(id: NodeId, override val hierarchy: PropertyVertex[?])       extends PropertyHierarchy
-case class GroupPropertyHierarchy(id: NodeGroupId, override val hierarchy: ParentProperty[?]) extends PropertyHierarchy
+case class NodePropertyHierarchy(id: NodeId, override val hierarchy: PropertyVertex[?])       extends PropertyHierarchy {
+  override lazy val prop: GenericProperty[?] = hierarchy match {
+    case n: PropertyVertex.Node =>
+      val prop = NodeProperty(hierarchy.resolvedValue.config)
+      if (n.parentProperty.isEmpty) prop else prop.withProvider(GroupProp.OVERRIDE_PROVIDER)
+    case _ =>
+      NodeProperty(hierarchy.resolvedValue.config)
+        .withProvider(GroupProp.INHERITANCE_PROVIDER)
+        .withVisibility(hierarchy.resolvedValue.visibility)
+  }
+}
+case class GroupPropertyHierarchy(id: NodeGroupId, override val hierarchy: ParentProperty[?]) extends PropertyHierarchy {
+  override lazy val prop: GenericProperty[?] = hierarchy match {
+    case g: PropertyVertex.Group if g.groupId == id =>
+      val prop = GroupProperty(hierarchy.resolvedValue.config)
+      if (g.parentProperty.isEmpty) prop else prop.withProvider(GroupProp.OVERRIDE_PROVIDER)
+    case _ =>
+      GroupProperty(hierarchy.resolvedValue.config)
+        .withProvider(GroupProp.INHERITANCE_PROVIDER)
+        .withVisibility(hierarchy.resolvedValue.visibility)
+  }
+}
 
 /**
  * Error ADT that consists of specific errors on a property, or a
