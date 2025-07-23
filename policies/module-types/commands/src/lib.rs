@@ -347,3 +347,227 @@ fn strip_trailing_newline(input: &str) -> &str {
         .or(input.strip_suffix("\n"))
         .unwrap_or(input)
 }
+
+mod tests {
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_get_used_cmd_echo_ok() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "echo".to_string(),
+            args: Some("OK".to_string()),
+            run_in_audit_mode: false,
+            in_shell: false,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: "".to_string(),
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: false,
+            uid: None,
+            gid: None,
+            umask: None,
+            env_vars: None,
+            show_content: true,
+        };
+
+        let cmd_string = get_used_cmd(&cmd);
+        assert_eq!(cmd_string, "echo OK");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_get_used_cmd_in_default_shell() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "echo".to_string(),
+            args: Some("OK".to_string()),
+            run_in_audit_mode: false,
+            in_shell: true,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: "".to_string(),
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: false,
+            uid: None,
+            gid: None,
+            umask: None,
+            env_vars: None,
+            show_content: true,
+        };
+
+        let cmd_string = get_used_cmd(&cmd);
+        assert_eq!(cmd_string, "/bin/sh -c echo OK");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_strip_trailing_newline_r_n() {
+        use super::*;
+
+        let s = strip_trailing_newline("A string\r\n");
+        assert_eq!(s, "A string");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_strip_trailing_newline_n() {
+        use super::*;
+
+        let s = strip_trailing_newline("A string\n");
+        assert_eq!(s, "A string");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_run_cd_in_shell() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "cd /tmp && pwd".to_string(),
+            args: None,
+            run_in_audit_mode: false,
+            in_shell: true,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: "".to_string(),
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: true,
+            uid: None,
+            gid: None,
+            umask: None,
+            env_vars: None,
+            show_content: true,
+        };
+
+        let s = Commands::run(&cmd, false);
+        assert!(s.is_ok());
+
+        let out = s.unwrap();
+
+        let exit_code = out.get("exit_code").unwrap().to_string();
+        assert_eq!(exit_code, "0");
+
+        let stdout = out.get("stdout").unwrap().to_string();
+        assert_eq!(stdout, "\"/tmp\"");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_run_ls_on_root() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "ls".to_string(),
+            args: Some("/".to_string()),
+            run_in_audit_mode: false,
+            in_shell: false,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: "".to_string(),
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: true,
+            uid: None,
+            gid: None,
+            umask: None,
+            env_vars: None,
+            show_content: true,
+        };
+
+        let s = Commands::run(&cmd, false);
+        assert!(s.is_ok());
+
+        let out = s.unwrap();
+
+        let exit_code = out.get("exit_code").unwrap().to_string();
+        assert_eq!(exit_code, "0");
+
+        let stderr = out.get("stderr").unwrap().to_string();
+        assert_eq!(stderr, "\"\"");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_run_timeout_30_and_sleep_3_in_shell() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "sleep 3".to_string(),
+            args: None,
+            run_in_audit_mode: false,
+            in_shell: true,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: "".to_string(),
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: true,
+            uid: None,
+            gid: None,
+            umask: None,
+            env_vars: None,
+            show_content: true,
+        };
+
+        let s = Commands::run(&cmd, false);
+        assert!(s.is_ok());
+
+        let out = s.unwrap();
+
+        let exit_code = out.get("exit_code").unwrap().to_string();
+        assert_eq!(exit_code, "0");
+
+        let stderr = out.get("stderr").unwrap().to_string();
+        assert_eq!(stderr, "\"\"");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_run_timeout_2_and_sleep_3_in_shell() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "sleep 3".to_string(),
+            args: None,
+            run_in_audit_mode: false,
+            in_shell: true,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "2".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: "".to_string(),
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: true,
+            uid: None,
+            gid: None,
+            umask: None,
+            env_vars: None,
+            show_content: true,
+        };
+
+        let s = Commands::run(&cmd, false);
+        assert!(s.is_err());
+    }
+}
