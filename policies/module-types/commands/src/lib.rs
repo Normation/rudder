@@ -1,6 +1,8 @@
 mod cli;
 use crate::cli::Cli;
 use std::{
+    collections::HashMap,
+    env,
     fs::{self, File},
     io::Write,
     os::unix::{fs::PermissionsExt, process::CommandExt},
@@ -108,11 +110,8 @@ pub struct CommandsParameters {
     umask: Option<String>,
 
     /// Environment variables used by the executed command
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "Commands::deserialize_option_string"
-    )]
-    env_vars: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    env_vars: Option<HashMap<String, String>>,
 
     /// Controls output of diffs in the report
     #[serde(default = "Commands::default_as_true")]
@@ -205,6 +204,12 @@ impl Commands {
             let mask = u32::from_str_radix(mask_str, 8)
                 .with_context(|| format!("Invalid umask '{mask_str}'"))?;
             umask(Mode::from(mask));
+        }
+
+        if let Some(env) = &p.env_vars
+            && !env.is_empty()
+        {
+            command.envs(env);
         }
 
         command.stdout(Stdio::piped());
@@ -569,5 +574,81 @@ mod tests {
 
         let s = Commands::run(&cmd, false);
         assert!(s.is_err());
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_run_stdin() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "cat".to_string(),
+            args: Some("--".to_string()),
+            run_in_audit_mode: false,
+            in_shell: false,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: Some("OK".to_string()),
+            stdin_add_newline: true,
+            compliant_codes: "".to_string(),
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: true,
+            uid: None,
+            gid: None,
+            umask: None,
+            env_vars: None,
+            show_content: true,
+        };
+
+        let s = Commands::run(&cmd, false);
+        assert!(s.is_ok());
+
+        let out = s.unwrap();
+
+        let exit_code = out.get("exit_code").unwrap().to_string();
+        assert_eq!(exit_code, "0");
+
+        let stdout = out.get("stdout").unwrap().to_string();
+        assert_eq!(stdout, "\"OK\"");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_run_chdir_pwd() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "pwd".to_string(),
+            args: None,
+            run_in_audit_mode: false,
+            in_shell: false,
+            shell_path: "/bin/sh".to_string(),
+            chdir: Some("/tmp".to_string()),
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: "".to_string(),
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: true,
+            uid: None,
+            gid: None,
+            umask: None,
+            env_vars: None,
+            show_content: true,
+        };
+
+        let s = Commands::run(&cmd, false);
+        assert!(s.is_ok());
+
+        let out = s.unwrap();
+
+        let exit_code = out.get("exit_code").unwrap().to_string();
+        assert_eq!(exit_code, "0");
+
+        let stdout = out.get("stdout").unwrap().to_string();
+        assert_eq!(stdout, "\"/tmp\"");
     }
 }
