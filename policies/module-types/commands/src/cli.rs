@@ -2,7 +2,7 @@ use crate::{Commands, CommandsParameters, get_used_cmd};
 use anyhow::{Context, Result};
 use clap::Parser;
 
-use std::path::PathBuf;
+use std::{collections::HashMap, env, path::PathBuf};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -65,9 +65,9 @@ pub struct Cli {
     #[arg(long)]
     umask: Option<String>,
 
-    /// Environment variables used by the executed command
+    /// Controls the sharing of env
     #[arg(long)]
-    env_vars: Option<String>, // TODO
+    share_env: bool, // Default to false
 }
 
 impl Cli {
@@ -97,6 +97,11 @@ impl Cli {
         } else {
             None
         };
+        let env = if cli.share_env {
+            Some(env::vars().collect::<HashMap<String, String>>())
+        } else {
+            None
+        };
         CommandsParameters {
             command: cli.command,
             args,
@@ -114,7 +119,7 @@ impl Cli {
             uid: cli.uid,
             gid: cli.gid,
             umask: cli.umask,
-            env_vars: cli.env_vars,
+            env_vars: env,
             show_content: true,
         }
     }
