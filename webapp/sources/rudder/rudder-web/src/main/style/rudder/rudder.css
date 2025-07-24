@@ -1009,8 +1009,9 @@ fieldset {
  */
 
 .rollbackFieldSet {
-  min-width : 520px;
+  max-width : 520px;
   text-align : center;
+  flex: 1;
 }
 /**
  * Pending change request
