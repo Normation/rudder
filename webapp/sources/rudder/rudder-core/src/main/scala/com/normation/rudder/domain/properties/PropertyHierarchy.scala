@@ -14,20 +14,19 @@ import enumeratum.EnumEntry
 import org.apache.commons.text.StringEscapeUtils
 import zio.*
 import zio.json.*
+import zio.json.enumeratum.*
 
 /*
  * Kind of properties in the hierarchy
  */
 sealed trait ParentPropertyKind(override val entryName: String) extends EnumEntry
-object ParentPropertyKind                                       extends Enum[ParentPropertyKind] {
+
+object ParentPropertyKind extends Enum[ParentPropertyKind] with EnumCodec[ParentPropertyKind] {
   case object Node   extends ParentPropertyKind("node")
   case object Group  extends ParentPropertyKind("group")
   case object Global extends ParentPropertyKind("global")
 
   override def values: IndexedSeq[ParentPropertyKind] = findValues
-
-  implicit val codecParentPropertyKind: JsonCodec[ParentPropertyKind] =
-    JsonCodec.string.transformOrFail(ParentPropertyKind.withNameInsensitiveEither(_).left.map(_.getMessage), _.entryName)
 }
 
 /*
