@@ -68,10 +68,10 @@ import com.normation.rudder.domain.properties.CompareProperties
 import com.normation.rudder.domain.properties.FailedNodePropertyHierarchy
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.NodePropertyHierarchy
-import com.normation.rudder.domain.properties.ParentProperty
 import com.normation.rudder.domain.properties.PropertyHierarchy
 import com.normation.rudder.domain.properties.PropertyHierarchyError
 import com.normation.rudder.domain.properties.PropertyHierarchySpecificError
+import com.normation.rudder.domain.properties.PropertyVertex
 import com.normation.rudder.domain.properties.Visibility.Displayed
 import com.normation.rudder.domain.properties.Visibility.Hidden
 import com.normation.rudder.domain.queries.Query
@@ -964,7 +964,7 @@ class NodeApiService(
                   fact.id,
                   fact.properties.collect {
                     case p if properties.contains(p.name) =>
-                      NodePropertyHierarchy(fact.id, ParentProperty.Node(fact.fqdn, fact.id, p, None))
+                      NodePropertyHierarchy(fact.id, PropertyVertex.Node(fact.fqdn, fact.id, p, None))
                   }
                 ),
               optHierarchy => {

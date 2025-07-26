@@ -1183,7 +1183,7 @@ object JsonResponseObjects {
     }
     def fromParentProperties(
         hasChildTypeConflicts: Boolean,
-        parentProperties:      ParentProperty[?]
+        parentProperties:      PropertyVertex[?]
     ): JRPropertyHierarchyStatus = {
 
       JRPropertyHierarchyStatus(
@@ -1219,14 +1219,14 @@ object JsonResponseObjects {
         parent:    Option[JRParentPropertyDetails]
     ) extends JRParentPropertyDetails
 
-    def fromParentProperty(p: ParentProperty[?]): JRParentPropertyDetails = {
+    def fromParentProperty(p: PropertyVertex[?]): JRParentPropertyDetails = {
       def serializeValueType(v: ConfigValue): String = v.valueType.name().toLowerCase().capitalize
       p match {
-        case g: ParentProperty.Group =>
+        case g: PropertyVertex.Group =>
           JRParentGroupDetails(g.name, g.id, serializeValueType(g.value.value), g.parentProperty.map(fromParentProperty))
-        case n: ParentProperty.Node  =>
+        case n: PropertyVertex.Node  =>
           JRParentNodeDetails(n.name, n.id, serializeValueType(n.value.value), n.parentProperty.map(fromParentProperty))
-        case ParentProperty.Global(value) =>
+        case PropertyVertex.Global(value) =>
           JRParentGlobalDetails(serializeValueType(value.value))
       }
     }
@@ -1348,27 +1348,27 @@ object JsonResponseObjects {
      * - global params
      */
     private def transformParentProperties(
-        hierarchy:    ParentProperty[?],
+        hierarchy:    PropertyVertex[?],
         renderInHtml: RenderInheritedProperties,
         escapeHtml:   Boolean
     ): Option[JRPropertyHierarchy] = {
-      def renderHtml(nodeParentProperty: ParentProperty[?]): List[String] = {
+      def renderHtml(nodeParentProperty: PropertyVertex[?]): List[String] = {
         nodeParentProperty match {
-          case n: ParentProperty.Node  =>
+          case n: PropertyVertex.Node  =>
             n.parentProperty
               .map(renderHtml)
               .getOrElse(Nil) :::
             (s"<p>from <b>Node ${n.name} (${n.id})</b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String)
                                                                else identity[String])
                 .apply(n.value.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>" :: Nil)
-          case g: ParentProperty.Group =>
+          case g: PropertyVertex.Group =>
             g.parentProperty
               .map(renderHtml)
               .getOrElse(Nil) :::
             (s"<p>from <b>Group ${g.name} (${g.id})</b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String)
                                                                 else identity[String])
                 .apply(g.value.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>" :: Nil)
-          case ParentProperty.Global(v) =>
+          case PropertyVertex.Global(v) =>
             s"<p>from <b>Global parameter </b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String) else identity[String])
                 .apply(v.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>" :: Nil
         }
@@ -1386,7 +1386,7 @@ object JsonResponseObjects {
     /**
      * The first element of the hierarchy in the original order is the original value
      */
-    private def getHierarchyOriginalValue(hierarchy: ParentProperty[?]): ConfigValue =
+    private def getHierarchyOriginalValue(hierarchy: PropertyVertex[?]): ConfigValue =
       hierarchy.value.value
   }
 
@@ -1414,11 +1414,11 @@ object JsonResponseObjects {
         resolvedValue: ConfigValue,
         parent:        Option[JRParentProperty]
     ) extends JRParentProperty
-    def fromParentProperty(p: ParentProperty[?]): JRParentProperty = {
+    def fromParentProperty(p: PropertyVertex[?]): JRParentProperty = {
       p match {
-        case n: ParentProperty.Node  =>
+        case n: PropertyVertex.Node  =>
           JRParentNode(n.name, n.id, n.value.value, n.resolvedValue.value, n.parentProperty.map(fromParentProperty))
-        case g: ParentProperty.Group =>
+        case g: PropertyVertex.Group =>
           JRParentGroup(g.name, g.id, g.value.value, g.resolvedValue.value, g.parentProperty.map(fromParentProperty))
         case _ =>
           JRParentGlobal(p.value.value)
@@ -1547,7 +1547,7 @@ object JsonResponseObjects {
    * as a subtype.
    */
   sealed trait InheritedPropertyStatus extends PropertyStatus {
-    def property:   ParentProperty[?]
+    def property:   PropertyVertex[?]
     def propertyId: JRPropertyId = property.resolvedValue.name.transformInto[JRPropertyId]
 
     def inheritMode: Option[InheritMode] = property.resolvedValue.inheritMode
@@ -1570,18 +1570,18 @@ object JsonResponseObjects {
     /**
      * The hierarchy of the main property, not the one as seen by the descendants (parentsInheritedProps)
      */
-    def property: ParentProperty[?] = prop.hierarchy
+    def property: PropertyVertex[?] = prop.hierarchy
   }
 
   // This describes a property that is in error, subtypes can be seen as this generic error
   sealed abstract class ErrorInheritedPropertyStatus(
-      override val property:              ParentProperty[?],
+      override val property:              PropertyVertex[?],
       override val errorMessage:          Some[String],
       override val hasChildTypeConflicts: Boolean = false
   ) extends InheritedPropertyStatus {}
   object ErrorInheritedPropertyStatus {
     def from(
-        prop:         ParentProperty[?],
+        prop:         PropertyVertex[?],
         errorMessage: String
     ): ErrorInheritedPropertyStatus = {
       new ErrorInheritedPropertyStatus(
@@ -1617,7 +1617,7 @@ object JsonResponseObjects {
      * Validate by doing checks against children :
      * are there conflicting types in the children hierarchy (or current one of parent) ?
      */
-    def fromChildren(parent: PropertyHierarchy, children: Option[ParentProperty[?]]): InheritedPropertyStatus = {
+    def fromChildren(parent: PropertyHierarchy, children: Option[PropertyVertex[?]]): InheritedPropertyStatus = {
       children match {
         case None                 =>
           SuccessInheritedPropertyStatus(parent)
