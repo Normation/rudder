@@ -3,6 +3,7 @@ bundle agent rudder_reporting_context_v4(a, b, c, d, e, f) {}
 bundle agent _method_reporting_context_v4(d, e, f) {}
 bundle agent _classes_noop(a) {}
 bundle agent log_rudder(message, class_parameter, old_class_prefix, class_prefix, args) {}
+bundle agent log_rudder_v4(parameter_value, message, details) {}
 
 bundle agent set_dry_run_mode(mode)
 {
