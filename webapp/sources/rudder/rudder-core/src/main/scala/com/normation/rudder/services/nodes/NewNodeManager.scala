@@ -146,6 +146,8 @@ class PostNodeAcceptanceHookScripts(
     import scala.jdk.CollectionConverters.*
 
     HooksLogger.debug(s"Executing node-post-acceptance hooks for node with id '${nodeId.value}'")
+    val name = "node-post-acceptance"
+
     (for {
       systemEnv      <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq*))
       nodeFact       <- nodeFactRepository
@@ -160,13 +162,13 @@ class PostNodeAcceptanceHookScripts(
                           ("RUDDER_NODE_POLICY_SERVER_ID", nodeFact.rudderSettings.policyServerId.value),
                           ("RUDDER_AGENT_TYPE", nodeFact.rudderAgent.agentType.id)
                         )
-      postHooks      <- RunHooks.getHooksPure(HOOKS_D + "/node-post-acceptance", HOOKS_IGNORE_SUFFIXES)
+      postHooks      <- RunHooks.getHooksPure(HOOKS_D + "/" + name, HOOKS_IGNORE_SUFFIXES)
       postHooksTime0 <- currentTimeMillis
-      runPostHook    <- RunHooks.asyncRun(postHooks, hookEnv, systemEnv, 1.minutes)
+      runPostHook    <- RunHooks.asyncRun(name, postHooks, hookEnv, systemEnv, 1.minutes)
       postHooksTime1 <- currentTimeMillis
       timePostHooks   = (postHooksTime1 - postHooksTime0)
-      _              <- PureHooksLogger.trace(s"node-post-acceptance scripts hooks ran in $timePostHooks ms")
-    } yield ()).catchAll(err => PureHooksLogger.error(err.fullMsg))
+      _              <- PureHooksLogger.For(name).trace(s"node-post-acceptance scripts hooks ran in $timePostHooks ms")
+    } yield ()).catchAll(err => PureHooksLogger.For(name).error(err.fullMsg))
   }
 }
 

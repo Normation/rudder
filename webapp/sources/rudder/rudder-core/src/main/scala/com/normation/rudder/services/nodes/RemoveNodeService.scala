@@ -379,7 +379,7 @@ class RemoveNodeServiceImpl(
     for {
       start <- currentTimeMillis
       hooks <- RunHooks.getHooksPure(HOOKS_D + "/" + name, HOOKS_IGNORE_SUFFIXES)
-      res   <- RunHooks.asyncRun(hooks, env._1, env._2)
+      res   <- RunHooks.asyncRun(name, hooks, env._1, env._2)
       end   <- currentTimeMillis
       _     <- NodeLoggerPure.Delete.debug(s"    ${name} scripts hooks ran in ${end - start} ms")
     } yield {
