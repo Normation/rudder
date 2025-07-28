@@ -964,7 +964,7 @@ class NodeApiService(
                   fact.id,
                   fact.properties.collect {
                     case p if properties.contains(p.name) =>
-                      NodePropertyHierarchy(fact.id, PropertyVertex.Node(fact.fqdn, fact.id, p, None))
+                      NodePropertyHierarchy.forNode(PropertyVertex.Node(fact.fqdn, fact.id, p, None))
                   }
                 ),
               optHierarchy => {

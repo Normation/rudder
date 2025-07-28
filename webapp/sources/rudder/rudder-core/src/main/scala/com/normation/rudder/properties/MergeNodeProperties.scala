@@ -130,7 +130,7 @@ object GroupProp {
     def toGroupProp: GroupProp = {
       group.query match {
         case None    =>
-          // if group doesn't has a query: not sure. Error ? Default ?
+          // if group doesn't have a query: not sure. Error ? Default ?
           GroupProp(
             group.properties,
             group.id,
@@ -345,14 +345,12 @@ object MergeNodeProperties {
       parents:    Map[String, ParentProperty[?]]
   ): Map[String, PropertyHierarchy] = {
     val allKeys = parents.keySet ++ properties.keySet
-    allKeys.map { k =>
-      val p   = properties.get(k)
-      val d   = parents.get(k)
-      val obj = p match {
-        case Some(x: NodeProperty) => PropertyVertex.Node(node.fqdn, node.id, x, d)
-        case None                  => d.get
+    allKeys.flatMap { k =>
+      (properties.get(k), parents.get(k)) match {
+        case (None, None)    => None
+        case (Some(x), d)    => Some((k, NodePropertyHierarchy.forNode(PropertyVertex.Node(node.fqdn, node.id, x, d))))
+        case (None, Some(d)) => Some((k, NodePropertyHierarchy.forInheritedNode(node.fqdn, node.id, d)))
       }
-      (k, NodePropertyHierarchy(node.id, obj))
     }.toMap
   }
 
@@ -362,14 +360,13 @@ object MergeNodeProperties {
       parents:    Map[String, ParentProperty[?]]
   ): Map[String, PropertyHierarchy] = {
     val allKeys = parents.keySet ++ properties.keySet
-    allKeys.map { k =>
-      val p   = properties.get(k)
-      val d   = parents.get(k)
-      val obj = p match {
-        case Some(x: GroupProperty) => PropertyVertex.Group(group.name, group.id, x, d)
-        case None                   => d.get
+    allKeys.flatMap { k =>
+      (properties.get(k), parents.get(k)) match {
+        case (None, None)                => None
+        case (Some(x: GroupProperty), d) =>
+          Some((k, GroupPropertyHierarchy.forGroup(PropertyVertex.Group(group.name, group.id, x, d))))
+        case (None, Some(d))             => Some((k, GroupPropertyHierarchy.forInheritedGroup(group.name, group.id, d)))
       }
-      (k, GroupPropertyHierarchy(group.id, obj))
     }.toMap
   }
 

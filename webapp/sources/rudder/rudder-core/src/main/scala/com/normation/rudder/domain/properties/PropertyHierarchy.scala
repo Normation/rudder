@@ -8,6 +8,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.properties.PropertyVertex.ParentProperty
 import com.normation.rudder.properties.GroupProp
+import com.softwaremill.quicklens.*
 import com.typesafe.config
 import com.typesafe.config.ConfigRenderOptions
 import enumeratum.Enum
@@ -31,22 +32,27 @@ object PropertyVertexKind                                       extends Enum[Pro
     JsonCodec.string.transformOrFail(PropertyVertexKind.withNameInsensitiveEither(_).left.map(_.getMessage), _.entryName)
 }
 
+
+sealed trait PropertyValueKind[P <: GenericProperty[?]]
+object PropertyValueKind {
+  case class Inherited[P <: GenericProperty[?]](value: P) extends PropertyValueKind[P]
+  case class SelfValue[P <: GenericProperty[?]](value: P) extends PropertyValueKind[P]
+  case class Overridden[P <: GenericProperty[?]](value: P) extends PropertyValueKind[P]
+}
+
+
 /*
  * A property with its inheritance context as the result of the linearization of the semi-lattice
  * it belongs to:
- * - `selfValue` is the original, non overridden generic property
+ * - `value` is the original, non overridden generic property
  * - `resolvedValue` is the overridden value after linearization
  * - `parentProperty` is the (optional) parent in hierarchy
- *
- * TODO: we want to be able to represent vertex of the lattice which don't have a selfValue, like a property of a node
- * which is only inherited.
- * So in place of (selfValue, parentValue), we want a tri-state for Value: inherited (parent), overridden (self, parent), selfDefined (self)
  */
 sealed trait PropertyVertex[P <: GenericProperty[?]] {
   def kind:           PropertyVertexKind
   def id:             String // entity (node, group, global) id
   def name:           String // entity name
-  def value:          P
+  def value:          Option[P]
   def parentProperty: Option[ParentProperty[?]]
 
   def resolvedValue: P = parentProperty match {
@@ -66,7 +72,7 @@ object PropertyVertex {
   final case class Node(
       override val name:           String,
       nodeId:                      NodeId,
-      override val value:          NodeProperty,
+      override val value:          Option[NodeProperty],
       override val parentProperty: Option[ParentProperty[?]]
   ) extends PropertyVertex[NodeProperty] {
     override val kind: PropertyVertexKind = PropertyVertexKind.Node
@@ -81,7 +87,7 @@ object PropertyVertex {
   final case class Group(
       override val name:           String,
       groupId:                     NodeGroupId,
-      override val value:          GroupProperty,
+      override val value:          Option[GroupProperty],
       override val parentProperty: Option[ParentProperty[?]]
   ) extends ParentProperty[GroupProperty] {
     override val kind: PropertyVertexKind = PropertyVertexKind.Group
@@ -98,34 +104,85 @@ object PropertyVertex {
 }
 
 /**
- * A node property with its inheritance/overriding context.
+ * A property with its inheritance/overriding context.
+ * The first vertex of the hierarchy can be purely inherited when the corresponding group or
+ * node does not override given property.
  */
-
 sealed trait PropertyHierarchy {
   def hierarchy: PropertyVertex[?]
-  def prop:      GenericProperty[?]
+  def prop:      GenericProperty[?] = hierarchy.resolvedValue
 }
 
-case class NodePropertyHierarchy(id: NodeId, override val hierarchy: PropertyVertex[?])       extends PropertyHierarchy {
-  override lazy val prop: GenericProperty[?] = hierarchy match {
-    case n: PropertyVertex.Node =>
-      val prop = NodeProperty(hierarchy.resolvedValue.config)
-      if (n.parentProperty.isEmpty) prop else prop.withProvider(GroupProp.OVERRIDE_PROVIDER)
-    case _ =>
-      NodeProperty(hierarchy.resolvedValue.config)
-        .withProvider(GroupProp.INHERITANCE_PROVIDER)
-        .withVisibility(hierarchy.resolvedValue.visibility)
+object PropertyHierarchy {
+
+  // if you have a Node vertex and want a node hierarchy
+  def forNode(node: PropertyVertex.Node): NodePropertyHierarchy = NodePropertyHierarchy.forNode(node)
+
+  // if you have a group/global vertex and want a node hierarchy
+  def forInheritedNode(nodeName: String, nodeId: NodeId, parent: ParentProperty[?]): NodePropertyHierarchy =
+    NodePropertyHierarchy.forInheritedNode(nodeName, nodeId, parent)
+
+  // if you have a Group vertex and want a node hierarchy for that group
+  def forGroup(group: PropertyVertex.Group): GroupPropertyHierarchy = GroupPropertyHierarchy.forGroup(group)
+
+  // if you have a group/global vertex which is the parent of the group you want
+  def forInheritedGroup(groupName: String, groupId: NodeGroupId, parent: ParentProperty[?]): GroupPropertyHierarchy =
+    GroupPropertyHierarchy.forInheritedGroup(groupName, groupId, parent)
+}
+
+/*
+ * Hierarchy for a node.
+ */
+case class NodePropertyHierarchy protected (id: NodeId, override val hierarchy: PropertyVertex[?]) extends PropertyHierarchy
+object NodePropertyHierarchy {
+  // if you have a Node vertex and want a node hierarchy
+  def forNode(node: PropertyVertex.Node): NodePropertyHierarchy = {
+    // in that case, we need to check that the override flag is correct
+    val n = {
+      if (node.parentProperty.isEmpty) node
+      else node.modify(_.value).using(_.withProvider(GroupProp.OVERRIDE_PROVIDER))
+    }
+
+    NodePropertyHierarchy(n.nodeId, n)
+  }
+
+  // if you have a group/global vertex and want a node hierarchy
+  def forInheritedNode(nodeName: String, nodeId: NodeId, parent: ParentProperty[?]): NodePropertyHierarchy = {
+    // in that case, we create a purely inherited node vertex
+
+    val prop = NodeProperty(parent.resolvedValue.config)
+      .withProvider(GroupProp.INHERITANCE_PROVIDER)
+      .withVisibility(parent.resolvedValue.visibility)
+
+    val n = PropertyVertex.Node(nodeName, nodeId, prop, Some(parent))
+
+    NodePropertyHierarchy(nodeId, n)
   }
 }
-case class GroupPropertyHierarchy(id: NodeGroupId, override val hierarchy: ParentProperty[?]) extends PropertyHierarchy {
-  override lazy val prop: GenericProperty[?] = hierarchy match {
-    case g: PropertyVertex.Group if g.groupId == id =>
-      val prop = GroupProperty(hierarchy.resolvedValue.config)
-      if (g.parentProperty.isEmpty) prop else prop.withProvider(GroupProp.OVERRIDE_PROVIDER)
-    case _ =>
-      GroupProperty(hierarchy.resolvedValue.config)
-        .withProvider(GroupProp.INHERITANCE_PROVIDER)
-        .withVisibility(hierarchy.resolvedValue.visibility)
+
+case class GroupPropertyHierarchy protected (id: NodeGroupId, override val hierarchy: ParentProperty[?]) extends PropertyHierarchy
+object GroupPropertyHierarchy {
+  // if you have a Group vertex and want a node hierarchy for that group
+  def forGroup(group: PropertyVertex.Group): GroupPropertyHierarchy = {
+    // in that case, we need to check that the override flag is correct
+    val g = {
+      if (group.parentProperty.isEmpty) group
+      else group.modify(_.value).using(_.withProvider(GroupProp.OVERRIDE_PROVIDER))
+    }
+
+    GroupPropertyHierarchy(g.groupId, g)
+  }
+
+  // if you have a group/global vertex which is the parent of the group you want
+  def forInheritedGroup(groupName: String, groupId: NodeGroupId, parent: ParentProperty[?]): GroupPropertyHierarchy = {
+    // in that case, we create a purely inherited group vertex
+    val prop = GroupProperty(parent.resolvedValue.config)
+      .withProvider(GroupProp.INHERITANCE_PROVIDER)
+      .withVisibility(parent.resolvedValue.visibility)
+
+    val g = PropertyVertex.Group(groupName, groupId, prop, Some(parent))
+
+    GroupPropertyHierarchy(groupId, g)
   }
 }
 

@@ -1124,7 +1124,7 @@ trait PromiseGeneration_BuildNodeContext {
                                    globalComplianceMode: ComplianceMode
                                  )
             // now we set defaults global parameters to all nodes
-            withDefautls      <- CompareProperties
+            withDefaults      <- CompareProperties
                                    .updateProperties(
                                      nodeParam.toList.map { case (k, v) => NodeProperty(k, v.value, v.inheritMode, None) },
                                      Some(nodeInfo.properties.toList)
@@ -1135,7 +1135,7 @@ trait PromiseGeneration_BuildNodeContext {
             (
               nodeId,
               InterpolationContext(
-                withDefautls,
+                withDefaults,
                 policyServer,
                 globalPolicyMode,
                 nodeContext,
