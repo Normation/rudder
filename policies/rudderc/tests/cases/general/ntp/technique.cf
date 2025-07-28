@@ -44,8 +44,8 @@ bundle agent call_ntp_technique_d86ce2e5_d5b6_45cc_87e8_c11cca71d907(c_name, c_k
 
   methods:
     "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
-    "index_${local_index}_1" usebundle => _classes_noop(canonify("${class_prefix}_package_present_${c_key}"));
-    "index_${local_index}_2" usebundle => log_rudder("Skipping method 'Package present' with key parameter '${c_key}' since condition 'false' is not reached", "${c_key}", canonify("${class_prefix}_package_present_${c_key}"), canonify("${class_prefix}_package_present_${c_key}"), @{args});
+    "index_${local_index}_1" usebundle => _classes_noop("${report_data.method_id}");
+    "index_${local_index}_2" usebundle => log_rudder_v4("htop", "Skipping method 'Package present' with key parameter '${c_key}' since condition 'false' is not reached", "");
 
 }
 bundle agent call_ntp_technique_cf06e919_02b7_41a7_a03f_4239592f3c12(c_name, c_key, report_id, args, class_prefix, method_call_condition, name) {
@@ -63,9 +63,9 @@ bundle agent call_ntp_technique_cf06e919_02b7_41a7_a03f_4239592f3c12(c_name, c_k
     "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "index_${local_index}_1" usebundle => package_install("${name}"),
                                     if => "${method_call_condition}";
-    "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_package_install_${c_key}")),
+    "index_${local_index}_2" usebundle => _classes_noop("${report_data.method_id}"),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'Package install' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("${class_prefix}_package_install_${c_key}"), canonify("${class_prefix}_package_install_${c_key}"), @{args}),
+    "index_${local_index}_3" usebundle => log_rudder_v4("/bin/true \"# ${node.inventory[os][fullName]}\"", "Skipping method 'Package install' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
                                 unless => "${method_call_condition}";
 
 }

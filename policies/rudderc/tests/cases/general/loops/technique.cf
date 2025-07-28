@@ -66,8 +66,8 @@ bundle agent call_technique_with_loops_d86ce2e5_d5b6_45cc_87e8_c11cca71d907_0(c_
 
   methods:
     "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
-    "index_${local_index}_1" usebundle => _classes_noop(canonify("${class_prefix}_package_present_${c_key}"));
-    "index_${local_index}_2" usebundle => log_rudder("Skipping method 'Package present' with key parameter '${c_key}' since condition 'false' is not reached", "${c_key}", canonify("${class_prefix}_package_present_${c_key}"), canonify("${class_prefix}_package_present_${c_key}"), @{args});
+    "index_${local_index}_1" usebundle => _classes_noop("${report_data.method_id}");
+    "index_${local_index}_2" usebundle => log_rudder_v4("vim", "Skipping method 'Package present' with key parameter '${c_key}' since condition 'false' is not reached", "");
 
 }
 bundle agent call_technique_with_loops_d86ce2e5_d5b6_45cc_87e8_c11cca71d907_1(c_name, c_key, report_id, args, class_prefix, name, version, architecture, provider) {
@@ -101,9 +101,9 @@ bundle agent call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_0_0(
     "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "index_${local_index}_1" usebundle => user_group("${login}", "${group_name}"),
                                     if => "${method_call_condition}";
-    "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_user_group_${c_key}")),
+    "index_${local_index}_2" usebundle => _classes_noop("${report_data.method_id}"),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'User group' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("${class_prefix}_user_group_${c_key}"), canonify("${class_prefix}_user_group_${c_key}"), @{args}),
+    "index_${local_index}_3" usebundle => log_rudder_v4("bob", "Skipping method 'User group' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
                                 unless => "${method_call_condition}";
 
 }
@@ -122,9 +122,9 @@ bundle agent call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_0_1(
     "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "index_${local_index}_1" usebundle => user_group("${login}", "${group_name}"),
                                     if => "${method_call_condition}";
-    "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_user_group_${c_key}")),
+    "index_${local_index}_2" usebundle => _classes_noop("${report_data.method_id}"),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'User group' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("${class_prefix}_user_group_${c_key}"), canonify("${class_prefix}_user_group_${c_key}"), @{args}),
+    "index_${local_index}_3" usebundle => log_rudder_v4("bob", "Skipping method 'User group' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
                                 unless => "${method_call_condition}";
 
 }
@@ -143,9 +143,9 @@ bundle agent call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_0_0(
     "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "index_${local_index}_1" usebundle => file_from_shared_folder("${source}", "${path}", "${hash_type}"),
                                     if => "${method_call_condition}";
-    "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_file_from_shared_folder_${c_key}")),
+    "index_${local_index}_2" usebundle => _classes_noop("${report_data.method_id}"),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("${class_prefix}_file_from_shared_folder_${c_key}"), canonify("${class_prefix}_file_from_shared_folder_${c_key}"), @{args}),
+    "index_${local_index}_3" usebundle => log_rudder_v4("/home/bob/.vimrc", "Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
                                 unless => "${method_call_condition}";
 
 }
@@ -164,9 +164,9 @@ bundle agent call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_0_1(
     "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "index_${local_index}_1" usebundle => file_from_shared_folder("${source}", "${path}", "${hash_type}"),
                                     if => "${method_call_condition}";
-    "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_file_from_shared_folder_${c_key}")),
+    "index_${local_index}_2" usebundle => _classes_noop("${report_data.method_id}"),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("${class_prefix}_file_from_shared_folder_${c_key}"), canonify("${class_prefix}_file_from_shared_folder_${c_key}"), @{args}),
+    "index_${local_index}_3" usebundle => log_rudder_v4("/home/bob/.bashrc", "Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
                                 unless => "${method_call_condition}";
 
 }
@@ -185,9 +185,9 @@ bundle agent call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_1_0(
     "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "index_${local_index}_1" usebundle => user_group("${login}", "${group_name}"),
                                     if => "${method_call_condition}";
-    "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_user_group_${c_key}")),
+    "index_${local_index}_2" usebundle => _classes_noop("${report_data.method_id}"),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'User group' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("${class_prefix}_user_group_${c_key}"), canonify("${class_prefix}_user_group_${c_key}"), @{args}),
+    "index_${local_index}_3" usebundle => log_rudder_v4("alice", "Skipping method 'User group' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
                                 unless => "${method_call_condition}";
 
 }
@@ -206,9 +206,9 @@ bundle agent call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_1_1(
     "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "index_${local_index}_1" usebundle => user_group("${login}", "${group_name}"),
                                     if => "${method_call_condition}";
-    "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_user_group_${c_key}")),
+    "index_${local_index}_2" usebundle => _classes_noop("${report_data.method_id}"),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'User group' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("${class_prefix}_user_group_${c_key}"), canonify("${class_prefix}_user_group_${c_key}"), @{args}),
+    "index_${local_index}_3" usebundle => log_rudder_v4("alice", "Skipping method 'User group' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
                                 unless => "${method_call_condition}";
 
 }
@@ -227,9 +227,9 @@ bundle agent call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_1_0(
     "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "index_${local_index}_1" usebundle => file_from_shared_folder("${source}", "${path}", "${hash_type}"),
                                     if => "${method_call_condition}";
-    "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_file_from_shared_folder_${c_key}")),
+    "index_${local_index}_2" usebundle => _classes_noop("${report_data.method_id}"),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("${class_prefix}_file_from_shared_folder_${c_key}"), canonify("${class_prefix}_file_from_shared_folder_${c_key}"), @{args}),
+    "index_${local_index}_3" usebundle => log_rudder_v4("/home/alice/.vimrc", "Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
                                 unless => "${method_call_condition}";
 
 }
@@ -248,9 +248,9 @@ bundle agent call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_1_1(
     "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
     "index_${local_index}_1" usebundle => file_from_shared_folder("${source}", "${path}", "${hash_type}"),
                                     if => "${method_call_condition}";
-    "index_${local_index}_2" usebundle => _classes_noop(canonify("${class_prefix}_file_from_shared_folder_${c_key}")),
+    "index_${local_index}_2" usebundle => _classes_noop("${report_data.method_id}"),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder("Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", "${c_key}", canonify("${class_prefix}_file_from_shared_folder_${c_key}"), canonify("${class_prefix}_file_from_shared_folder_${c_key}"), @{args}),
+    "index_${local_index}_3" usebundle => log_rudder_v4("/home/alice/.bashrc", "Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
                                 unless => "${method_call_condition}";
 
 }
