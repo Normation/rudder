@@ -110,7 +110,7 @@ pub fn method_call(
             pop_policy_mode,
             Some(define_noop.unless_condition(incall_condition.clone())),
             Some(Promise::usebundle("log_rudder_v4", Some(&report_component), vec![
-                quoted(&report_parameter),
+                quoted("${c_key}"),
                 quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", &method_name, incall_condition)),
                 quoted(""),
             ]).unless_condition(incall_condition))
@@ -119,7 +119,7 @@ pub fn method_call(
             reporting_context,
             define_noop,
             Promise::usebundle("log_rudder_v4", Some(&report_component),  vec![
-                quoted(&report_parameter),
+                quoted("${c_key}"),
                 quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", &method_name, condition)),
                 quoted("")
             ])
@@ -134,7 +134,7 @@ pub fn method_call(
             reporting_context,
             define_noop,
             Promise::usebundle("log_rudder_v4", Some(&report_component),  vec![
-                quoted(&report_parameter),
+                quoted("${c_key}"),
                 quoted(&format!(
                     "'{}' method is not available on classic Rudder agent, skip",
                     m.name,
