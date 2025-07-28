@@ -46,7 +46,7 @@ bundle agent call_technique_with_loops_with_main_branch_without_condition_845f73
                                     if => "${method_call_condition}";
     "index_${local_index}_2" usebundle => _classes_noop("${report_data.method_id}"),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder_v4("/home/bob/.vimrc", "Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
+    "index_${local_index}_3" usebundle => log_rudder_v4("${c_key}", "Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
                                 unless => "${method_call_condition}";
 
 }
@@ -67,7 +67,7 @@ bundle agent call_technique_with_loops_with_main_branch_without_condition_845f73
                                     if => "${method_call_condition}";
     "index_${local_index}_2" usebundle => _classes_noop("${report_data.method_id}"),
                                 unless => "${method_call_condition}";
-    "index_${local_index}_3" usebundle => log_rudder_v4("/home/bob/.bashrc", "Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
+    "index_${local_index}_3" usebundle => log_rudder_v4("${c_key}", "Skipping method 'File copy from Rudder shared folder' with key parameter '${c_key}' since condition '${method_call_condition}' is not reached", ""),
                                 unless => "${method_call_condition}";
 
 }
