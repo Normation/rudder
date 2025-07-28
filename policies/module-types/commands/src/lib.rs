@@ -2,7 +2,6 @@ mod cli;
 use crate::cli::Cli;
 use std::{
     collections::HashMap,
-    env,
     fs::{self, File},
     io::Write,
     os::unix::{fs::PermissionsExt, process::CommandExt},
