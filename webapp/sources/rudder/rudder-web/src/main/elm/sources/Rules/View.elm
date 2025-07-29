@@ -196,7 +196,7 @@ view model =
           ]
       DeactivationValidation rule crSettings ->
         let
-          txtDisable = if rule.enabled then "Disable" else "Enable"
+          (txtDisabled, iconDisabled) = if rule.enabled then ("Disable", "fa fa-ban") else ("Enable", "fa fa-check-circle")
           (auditForm, btnDisabled) = case crSettings of
             Just s  ->
               ( changeAuditForm s
@@ -213,11 +213,11 @@ view model =
           , div [ class "modal-dialog" ] [
               div [ class "modal-content" ]  [
                 div [ class "modal-header" ] [
-                  h5[ class "modal-title" ] [ text (txtDisable ++" Rule")]
+                  h5[ class "modal-title" ] [ text (txtDisabled ++" Rule")]
                 , button [type_ "button", class "btn-close", onClick (ClosePopup Ignore), attribute "aria-label" "Close"][]
                 ]
               , div [ class "modal-body" ]
-                [ h4 [class "text-center"][text ("Are you sure you want to "++ String.toLower txtDisable ++" rule '"++ rule.name ++"'?")]
+                [ h4 [class "text-center"][text ("Are you sure you want to "++ String.toLower txtDisabled ++" rule '"++ rule.name ++"'?")]
                 , auditForm
                 ]
               , div [ class "modal-footer" ] [
@@ -225,8 +225,8 @@ view model =
                   [ text "Cancel "
                   ]
                 , button [ class "btn btn-primary", onClick (ClosePopup DisableRule), disabled btnDisabled ]
-                  [ text (txtDisable ++ " ")
-                  , i [ class "fa fa-ban" ] []
+                  [ text (txtDisabled ++ " ")
+                  , i [ class iconDisabled ] []
                   ]
                 ]
               ]

@@ -335,6 +335,12 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                  * with registered acceptation date time.
                  * Also sort by version, reverse
                  */
+                def showPopup(nextStatus: NextStatus)(implicit qc: QueryContext): JsCmd = {
+                  SetHtml(
+                    "showTechniqueValidationPopup",
+                    showTechniquePopup("showTechniqueValidationPopup", fullActiveTechnique, nextStatus)
+                  )
+                }
 
                 val validTechniqueVersions = fullActiveTechnique.techniques.map {
                   case (v, t) =>
@@ -363,11 +369,29 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                   currentDirectiveSettingForm.get.map(piForm => (".directive *" #> piForm.directive.name))
                 } &
                 "#techniqueName" #> <span>
-                    {technique.name}{
-                  if (fullActiveTechnique.isEnabled) NodeSeq.Empty
-                  else <span class="badge-disabled"></span>
-                }
+                    {technique.name}
                   </span> &
+                ".header-buttons *" #> {
+                  if (!fullActiveTechnique.isEnabled) {
+                    SHtml.ajaxButton(
+                      <span>
+                      Enable
+                      <i class="fa fa-check-circle"></i>
+                    </span>,
+                      () => showPopup(NextStatus.Enabled),
+                      ("class", "btn btn-default")
+                    )
+                  } else {
+                    SHtml.ajaxButton(
+                      <span>
+                      Disable
+                      <i class="fa fa-ban"></i>
+                    </span>,
+                      () => showPopup(NextStatus.Disabled),
+                      ("class", "btn btn-default")
+                    )
+                  }
+                } &
                 "#techniqueID *" #> technique.id.name.value &
                 "#techniqueDocumentation [class]" #> (if (technique.longDescription.isEmpty) "d-none" else "") &
                 "#techniqueLongDescription *" #> Script(
@@ -378,29 +402,23 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                 "#techniqueDescription" #> technique.description &
                 "#isSingle *" #> showIsSingle(technique) &
                 "#isDisabled" #> {
-                  def showPopup(nextStatus: NextStatus)(implicit qc: QueryContext): JsCmd = {
-                    SetHtml(
-                      "showTechniqueValidationPopup",
-                      showTechniquePopup("showTechniqueValidationPopup", fullActiveTechnique, nextStatus)
-                    )
-                  }
-
                   if (!fullActiveTechnique.isEnabled) {
                     <div class="main-alert alert alert-warning">
                         <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
                         This Technique is disabled.
                         {
-                      SHtml.ajaxButton("Enable", () => showPopup(NextStatus.Enabled), ("class", "btn btn-sm btn-default mx-2"))
+                      SHtml.ajaxButton(
+                        <span>
+                        Enable
+                        <i class="fa fa-check-circle ms-2"></i>
+                      </span>,
+                        () => showPopup(NextStatus.Enabled),
+                        ("class", "btn btn-sm btn-default ms-2")
+                      )
                     }
                     </div>
                   } else {
-                    <div class="main-alert alert alert-success">
-                        <i class="fa fa-check" aria-hidden="true"></i>
-                        This Technique is enabled.
-                        {
-                      SHtml.ajaxButton("Disable", () => showPopup(NextStatus.Disabled), ("class", "btn btn-sm btn-default mx-2"))
-                    }
-                    </div>
+                    NodeSeq.Empty
                   }
                 } &
                 "#techniqueversion-app *+" #> showVersions(fullActiveTechnique, validTechniqueVersions)
