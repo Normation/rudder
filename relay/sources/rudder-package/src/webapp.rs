@@ -1,14 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
-use std::{
-    collections::HashSet,
-    env, fs,
-    io::{Cursor, Write},
-    path::PathBuf,
-    process::Command,
-};
-
 use anyhow::{Context, Result};
 use quick_xml::{
     events::{BytesEnd, BytesStart, BytesText, Event},
@@ -16,9 +8,42 @@ use quick_xml::{
     Writer,
 };
 use spinners::{Spinner, Spinners};
-use tracing::debug;
+use std::io::IsTerminal;
+use std::{
+    collections::HashSet,
+    env, fs,
+    io::{Cursor, Write},
+    path::PathBuf,
+    process::Command,
+};
+use tracing::{debug, enabled, info, Level};
 
 use crate::{cmd::CmdOutput, versions::RudderVersion, DONT_RESTART_ENV_VAR};
+
+enum SpinnerOption {
+    Show(Spinner),
+    Hidden,
+}
+
+/// A spinner that is shown only if the output is a terminal and logging is enabled with `INFO` level or higher.
+/// This is useful to avoid showing spinners in non-interactive environments.
+impl SpinnerOption {
+    fn new(message: String) -> Self {
+        if std::io::stdout().is_terminal() && enabled!(Level::INFO) {
+            SpinnerOption::Show(Spinner::new(Spinners::Dots, message))
+        } else {
+            info!(message);
+            SpinnerOption::Hidden
+        }
+    }
+
+    fn stop_with_success(self) {
+        match self {
+            SpinnerOption::Show(mut spinner) => spinner.stop_with_symbol("🗸"),
+            SpinnerOption::Hidden => {}
+        }
+    }
+}
 
 /// We want to write the file after each plugin to avoid half-installs
 pub struct Webapp {
@@ -194,10 +219,8 @@ impl Webapp {
                 return Ok(());
             }
 
-            let mut sp = Spinner::new(
-                Spinners::Dots,
-                "Restarting the Web application to apply changes".into(),
-            );
+            let spinner =
+                SpinnerOption::new("Restarting the Web application to apply changes".into());
             let mut systemctl = Command::new("systemctl");
             systemctl
                 .arg("--no-ask-password")
@@ -205,7 +228,7 @@ impl Webapp {
                 .arg("rudder-jetty");
             let _ = CmdOutput::new(&mut systemctl)
                 .context("Restarting the rudder-jetty service with systemctl")?;
-            sp.stop_with_symbol("🗸");
+            spinner.stop_with_success();
             self.pending_changes = false;
         } else {
             debug!("No need to restart the Web application");
