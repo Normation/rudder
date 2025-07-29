@@ -50,7 +50,6 @@ import com.normation.rudder.domain.logger.ApiLogger
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.AuthenticatedUser
 import com.normation.rudder.users.CurrentUser
-import com.normation.rudder.users.RudderAccount
 import com.normation.rudder.users.UserService
 import net.liftweb.common.*
 import net.liftweb.http.LiftResponse
@@ -135,7 +134,7 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
                * - an user API account is disabled.
                */
                 // without plugin, api account linked to user are disabled
-                case (false, _, RudderAccount.Api(ApiAccount(_, ApiAccountKind.User, _, _, _, _, _, _, _))) =>
+                case (false, _, Some(ApiAccount(_, ApiAccountKind.User, _, _, _, _, _, _, _))) =>
                   logger.warn(
                     s"API account linked to a user account '${user.actor.name}' is disabled because the API Authorization plugin is disabled."
                   )
@@ -146,7 +145,7 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
                 case (
                       false,
                       ApiAuthz.ACL(acl),
-                      RudderAccount.Api(ApiAccount(_, _: ApiAccountKind.PublicApi, _, _, _, _, _, _, _))
+                      Some(ApiAccount(_, _: ApiAccountKind.PublicApi, _, _, _, _, _, _, _))
                     ) =>
                   logger.info(
                     s"API account '${user.actor.name}' has ACL authorization but no plugin allows to interpret them. Removing all rights for that token."
@@ -154,7 +153,7 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
                   None
 
                 // in other cases, we interpret rights are they are reported (system user has ACL or RW independently of plugin status)
-                case (_, ApiAuthz.None, _)                                                                  =>
+                case (_, ApiAuthz.None, _)                                                     =>
                   logger.debug(s"Account '${user.actor.name}' does not have any authorizations.")
                   None
 

@@ -369,7 +369,7 @@ class AppConfigAuth extends ApplicationContextAware {
           login -> RudderUserDetail(
             RudderAccount.User(
               login,
-              password
+              UserPassword.unsafeHashed(password)
             ),
             UserStatus.Active,
             Set(Role.Administrator),
@@ -532,7 +532,7 @@ class RudderInMemoryUserDetailsService(val authConfigProvider: UserDetailListPro
               // when the user is not found, we return a default "no roles" user.
               // It will be the responsibility of other backend to provided the correct set of rights.
               RudderUserDetail(
-                RudderAccount.User(user.id, ""),
+                RudderAccount.User(user.id, UserPassword.unknown),
                 user.status,
                 Set(),
                 ApiAuthorization.None,
