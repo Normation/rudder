@@ -1,22 +1,47 @@
 ---
-name: Directory
-description: Ensure the state of a directory
+name: Template
+description: Template rendering (supports MiniJinja, Mustache, and Jinja2)
 version: "0.0.1"
 supported_targets: ["unix", "windows"]
 parameters:
-  path:
-    description: "Directory to manage"
+  destination:
+    description: "Destination file (absolute path on the target node)"
     constraints:
       allow_empty: false
       allow_whitespace_string: false
     p_type: Path
-  state:
-    description: "Expected state"
+  engine:
+    description: "Template engine (defaults to minijinja)"
     constraints:
       allow_empty: true
       allow_whitespace_string: false
       select:
-        - "present"
-        - "absent"
-      default: "present"
-    p_type: Bool
+        - "minijinja"
+        - "jinja2"
+        - "mustache"
+      default: "minijinja"
+    p_type: String
+  data:
+    description: "Data provided to the template"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: false
+    p_type: String
+  template_string:
+    description: "String containing the template to be rendered"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: false
+    p_type: String
+  template_path:
+    description: "Source file containing a template to be rendered (absolute path on the target node)"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: false
+    p_type: String
+  show_content:
+    description: "Show the file content in the report (defaults to true)"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: false
+    p_type: bool
