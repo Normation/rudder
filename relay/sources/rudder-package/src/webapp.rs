@@ -16,7 +16,7 @@ use std::{
     path::PathBuf,
     process::Command,
 };
-use tracing::{debug, enabled, info, Level};
+use tracing::{Level, debug, enabled, info};
 
 use crate::{DONT_RESTART_ENV_VAR, cmd::CmdOutput, versions::RudderVersion};
 

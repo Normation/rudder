@@ -93,7 +93,7 @@ impl PackageFileFilter {
         true
     }
 
-    pub(crate) fn is_in_allowed_origin(
+    pub(crate) fn is_in_allowed_origins(
         ver: &Version,
         allowed_origins: &[PackageFileFilter],
     ) -> bool {
@@ -146,17 +146,17 @@ impl Distribution {
                 // "${distro_id}:${distro_codename}-security"
                 PackageFileFilter::ubuntu(
                     "Ubuntu".to_string(),
-                    format!("${distro_codename}-security"),
+                    format!("{distro_codename}-security"),
                 ),
                 // "${distro_id}ESMApps:${distro_codename}-apps-security"
                 PackageFileFilter::ubuntu(
                     "UbuntuESMApps".to_string(),
-                    format!("${distro_codename}-apps-security"),
+                    format!("{distro_codename}-apps-security"),
                 ),
                 // "${distro_id}ESM:${distro_codename}-infra-security"
                 PackageFileFilter::ubuntu(
                     "UbuntuESM".to_string(),
-                    format!("${distro_codename}-infra-security"),
+                    format!("{distro_codename}-infra-security"),
                 ),
             ]),
             Distribution::Debian(distro_codename) => Ok(vec![
@@ -175,7 +175,7 @@ impl Distribution {
                 // "origin=Debian,codename=${distro_codename}-security,label=Debian-Security"
                 PackageFileFilter::debian(
                     "Debian".to_string(),
-                    format!("${distro_codename}-security"),
+                    format!("{distro_codename}-security"),
                     "Debian-Security".to_string(),
                 ),
             ]),
@@ -221,5 +221,22 @@ mod tests {
         };
         assert!(!filter.matches(&debian_info));
         assert!(filter.matches(&ubuntu_info));
+    }
+
+    #[test]
+    fn matches_security_origins() {
+        let distribution = Distribution::Debian("bookworm".to_string());
+        let security_origins = distribution.security_origins().unwrap();
+
+        // Checking: libblockdev-part2 ([<Origin component:'main' archive:'stable-security' origin:'Debian' label:'Debian-Security' site:'deb.debian.org' isTrusted:True>])
+        let package_info = PackageVersionInfo {
+            origin: Some("Debian"),
+            codename: Some("bookworm"),
+            archive: Some("stable-security"),
+            label: Some("Debian-Security"),
+            component: Some("main"),
+            site: Some("deb.debian.org"),
+        };
+        assert!(security_origins.iter().any(|o| o.matches(&package_info)));
     }
 }
