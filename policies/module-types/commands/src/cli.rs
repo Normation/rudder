@@ -22,7 +22,7 @@ pub struct Cli {
     #[arg(short, long)]
     dry_run: bool,
 
-    /// Specify whether the command should be executed within a shell.
+    /// Specify whether the command should be executed within a shell
     #[arg(long, group = "shell")]
     in_shell: bool,
 
@@ -38,7 +38,7 @@ pub struct Cli {
     #[arg(long)]
     timeout: Option<String>, // Default to 30 seconds
 
-    /// Provide input to the standard input (stdin) of the executed command.
+    /// Provide input to the standard input (stdin) of the executed command
     #[arg(long)]
     stdin: Option<String>,
 
@@ -50,7 +50,7 @@ pub struct Cli {
     #[arg(long)]
     output_to_file: Option<PathBuf>,
 
-    /// Controls if the EOL is strip from the output.
+    /// Controls if the EOL is strip from the output
     #[arg(long)]
     strip_output: bool, // Default to false
 
