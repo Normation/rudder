@@ -99,7 +99,7 @@ impl Cli {
             None
         };
         let env = if cli.share_env {
-            let serialized_env = env::vars().map(|(k, v)| format!("{}={}", k, v)).join("\n");
+            let serialized_env = env::vars().map(|(k, v)| format!("{k}={v}")).join("\n");
 
             Some(serialized_env)
         } else {
