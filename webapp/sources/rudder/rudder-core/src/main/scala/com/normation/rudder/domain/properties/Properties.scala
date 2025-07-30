@@ -427,18 +427,21 @@ object GenericProperty {
    * You should have checked before that "name" and "provider" are OK.
    */
   def mergeConfig(oldProp: Config, newProp: Config)(implicit defaultInheritMode: Option[InheritMode]): Config = {
-    val mode           = ((GenericProperty.getMode(oldProp), GenericProperty.getMode(newProp)) match {
+    val mode = ((GenericProperty.getMode(oldProp), GenericProperty.getMode(newProp)) match {
       case (mode, None) => mode
       case (_, mode)    => mode
     }).orElse(defaultInheritMode)
+
     val otherThanValue = newProp
       .withValue(VALUE, ConfigValueFactory.fromAnyRef(""))
       .withFallback(oldProp.withValue(VALUE, ConfigValueFactory.fromAnyRef("")))
     // set value
-    val withValue      = otherThanValue.withValue(
+
+    val withValue = otherThanValue.withValue(
       VALUE,
       mergeValues(oldProp.getValue(VALUE), newProp.getValue(VALUE), mode.getOrElse(InheritMode.Default))
     )
+
     // set mode
     GenericProperty.setMode(withValue, mode)
   }

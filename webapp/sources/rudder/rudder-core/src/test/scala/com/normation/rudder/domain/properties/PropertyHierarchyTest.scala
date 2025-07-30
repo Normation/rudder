@@ -1,6 +1,6 @@
 /*
  *************************************************************************************
- * Copyright 2023 Normation SAS
+ * Copyright 2025 Normation SAS
  *************************************************************************************
  *
  * This file is part of Rudder.
@@ -37,52 +37,95 @@
 
 package com.normation.rudder.domain.properties
 
-import net.liftweb.common.*
+import com.normation.GitVersion
+import com.normation.inventory.domain.*
+import com.normation.rudder.domain.nodes.*
+import com.normation.rudder.domain.properties.InheritMode.*
+import com.typesafe.config.*
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.*
 
 /*
- * Our internal representation of node properties must correctly serialize/unserialise to JSON
+ * Simple tests on hierarchies
  */
 
 @RunWith(classOf[JUnitRunner])
-class PropertyHierarchyTest extends Specification with Loggable {
-
-  implicit class ForceGet[A, E](a: Either[E, A]) {
-    def forceGet: A = a match {
-      case Left(x)  => throw new IllegalArgumentException(s"I got a left in test: ${x}")
-      case Right(x) => x
-    }
+class PropertyHierarchyTest extends Specification {
+  implicit class ToConfigValue(s: String) {
+    def toConfigValue: ConfigValue = ConfigValueFactory.fromAnyRef(s)
+    def toArray:       ConfigValue = ConfigValueFactory.fromIterable(java.util.Arrays.asList(s))
   }
 
-  val p1:    NodeProperty       = NodeProperty.parse("jsonArray", """[ "one", 2, true]  """, None, None).forceGet
-  val p2:    NodeProperty       = NodeProperty.parse("jsonProp", """{"jsonObject":"ok"}""", None, None).forceGet
-  val p3:    NodeProperty       = NodeProperty.parse("stringArray", """[array]""", None, None).forceGet
-  val p4:    NodeProperty       = NodeProperty.parse("stringSimple", "simple string", None, None).forceGet
-  val props: List[NodeProperty] = List(p1, p2, p3, p4)
+  implicit class StringToGroupId(s: String) {
+    def toGroupId = NodeGroupId(NodeGroupUid(s))
+  }
 
-  // used to generate nodeproperties.d content
-  "Node property set toDataJson correctly be rendered" >> {
+  private val opt = ConfigRenderOptions.concise()
 
-    val expected = {
-      """{
-        |  "jsonArray":[
-        |    "one",
-        |    2,
-        |    true
-        |  ],
-        |  "jsonProp":{
-        |    "jsonObject":"ok"
-        |  },
-        |  "stringArray":[
-        |    "array"
-        |  ],
-        |  "stringSimple":"simple string"
-        |}""".stripMargin
-    }
-    val json     = net.liftweb.json.prettyRender(props.toDataJson)
+  "Simple strings is correctly overridden" >> {
+    val nn  = "node 1"
+    val nid = NodeId("node1")
+    val np  = NodeProperty("foo", "barNode1".toConfigValue, None, None)
+    val npv = PropertyValueKind.SelfValue(np)
 
-    json === expected
+    val gn1  = "group 1"
+    val gid1 = "group1".toGroupId
+    val gp1  = GroupProperty("foo", GitVersion.DEFAULT_REV, "barGroup1".toConfigValue, None, None)
+    val gp1v = PropertyValueKind.SelfValue(gp1)
+    val g1   = PropertyVertex.Group(gn1, gid1, gp1v)
+
+    val pp1  = GlobalParameter("foo", GitVersion.DEFAULT_REV, "barGlob1".toConfigValue, None, "", None, Visibility.default)
+    val pp1v = PropertyValueKind.SelfValue(pp1)
+    val p1   = PropertyVertex.Global(pp1v)
+
+    val n1 = PropertyVertex.Node(nn, nid, npv)
+    n1.value.resolvedValue.value.render(opt) === "\"barNode1\""
+
+    val n2 = PropertyVertex.Node(nn, nid, PropertyValueKind.Inherited(p1)(NodeProperty.apply))
+    n2.value.resolvedValue.value.render(opt) === "\"barGlob1\""
+
+    val n3 = PropertyVertex.Node(nn, nid, PropertyValueKind.Overridden(np, p1))
+    n3.value.resolvedValue.value.render(opt) === "\"barNode1\""
+
+    val n4 = PropertyVertex.appendAsRoot(n3, g1)
+    n4.value.resolvedValue.value.render(opt) === "\"barNode1\""
+  }
+
+  "Array append is correctly appended" >> {
+
+    val mode = Some(InheritMode(ObjectMode.Merge, ArrayMode.Append, StringMode.Override))
+
+    val nn  = "node 1"
+    val nid = NodeId("node1")
+    val np  = NodeProperty("foo", "barNode1".toArray, None, None)
+    val npv = PropertyValueKind.SelfValue(np)
+
+    val gn1  = "group 1"
+    val gid1 = "group1".toGroupId
+    val gp1  = GroupProperty("foo", GitVersion.DEFAULT_REV, "barGroup1".toArray, mode, None)
+    val gp1v = PropertyValueKind.SelfValue(gp1)
+    val g1   = PropertyVertex.Group(gn1, gid1, gp1v)
+    val g2   = PropertyVertex.Group(gn1, gid1, PropertyValueKind.SelfValue(gp1.withValue("barGroup2".toArray)))
+
+    val pp1  = GlobalParameter("foo", GitVersion.DEFAULT_REV, "barGlob1".toArray, mode, "", None, Visibility.default)
+    val pp1v = PropertyValueKind.SelfValue(pp1)
+    val p1   = PropertyVertex.Global(pp1v)
+
+    val n1 = PropertyVertex.Node(nn, nid, npv)
+    n1.value.resolvedValue.value.render(opt) === """["barNode1"]"""
+
+    val n2 = PropertyVertex.Node(nn, nid, PropertyValueKind.Inherited(p1)(NodeProperty.apply))
+    n2.value.resolvedValue.value.render(opt) === """["barGlob1"]"""
+
+    val n3 = PropertyVertex.Node(nn, nid, PropertyValueKind.Overridden(np, p1))
+    n3.value.resolvedValue.value.render(opt) === """["barGlob1","barNode1"]"""
+
+    val n4 = PropertyVertex.appendAsRoot(n3, g1)
+    n4.value.resolvedValue.value.render(opt) === """["barGlob1","barGroup1","barNode1"]"""
+
+    // check repetitive adds, some part of the algo trigger only with parents
+    val n5 = PropertyVertex.appendAsRoot(n4, g2)
+    n5.value.resolvedValue.value.render(opt) === """["barGlob1","barGroup2","barGroup1","barNode1"]"""
   }
 }

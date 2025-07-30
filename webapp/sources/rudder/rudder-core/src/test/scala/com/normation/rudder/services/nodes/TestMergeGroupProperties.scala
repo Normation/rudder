@@ -57,6 +57,7 @@ import com.normation.rudder.domain.properties.NodePropertyHierarchy
 import com.normation.rudder.domain.properties.PropertyHierarchy
 import com.normation.rudder.domain.properties.PropertyHierarchyError
 import com.normation.rudder.domain.properties.PropertyProvider
+import com.normation.rudder.domain.properties.PropertyValueKind
 import com.normation.rudder.domain.properties.PropertyVertex
 import com.normation.rudder.domain.properties.PropertyVertex.ParentProperty
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
@@ -97,42 +98,33 @@ class TestMergeGroupProperties extends Specification {
   }
 
   implicit class ToPropertyHierarchy(groups: List[NodeGroup]) {
-    def toParents(name: String):                                     PropertyVertex.Group = {
-      groups.reverse
-        .flatMap(g => g.properties.find(_.name == name).map(p => PropertyVertex.Group(g.name, g.id, p, None)))
-        .reduce((old, newer) => newer.copy(parentProperty = Some(old)))
+    def toParents(name: String): PropertyVertex.Group = {
+      groups.reverse.collect {
+        case g if (g.properties.exists(_.name == name)) => (g, g.properties.find(_.name == name).get)
+      } match {
+        case Nil            => throw new IllegalArgumentException(s"Error in test: empty list of parent groups for property '${name}'")
+        case (g, p) :: tail =>
+          tail.foldLeft(PropertyVertex.Group(g.name, g.id, PropertyValueKind.SelfValue(p))) {
+            case (pvg, (ng, np)) =>
+              PropertyVertex.Group(ng.name, ng.id, PropertyValueKind.Overridden(np, pvg))
+          }
+      }
     }
+
     // use first parent to build a fully inherited prop
-    def toH1(id: Either[NodeGroupId, NodeId], name: String):         PropertyHierarchy    = {
+    def toH1(id: Either[NodeGroupId, NodeId], name: String):         PropertyHierarchy = {
       toH1(id, toParents(name))
     }
-    def toH1(id: Either[NodeGroupId, NodeId], p: ParentProperty[?]): PropertyHierarchy    = {
+    def toH1(id: Either[NodeGroupId, NodeId], p: ParentProperty[?]): PropertyHierarchy = {
       id match {
         case Left(gid)  => GroupPropertyHierarchy.forInheritedGroup(gid.serialize, gid, p)
         case Right(nid) => NodePropertyHierarchy.forInheritedNode(nid.value, nid, p)
       }
     }
-    def toH2(id: Either[NodeGroupId, NodeId], prop: NodeProperty):   PropertyHierarchy    = {
-      id match {
-        case Left(gid)  => GroupPropertyHierarchy.forInheritedGroup(gid.serialize, gid, toParents(prop.name))
-        case Right(nid) => NodePropertyHierarchy.forInheritedNode(nid.value, nid, toParents(prop.name))
-      }
-    }
 
     // add globalParameter as root of the hierarchy
     def toH3(id: Either[NodeGroupId, NodeId], name: String, globalParam: GlobalParameter): PropertyHierarchy = {
-
-      def recAppendParent(prop: ParentProperty[?]): ParentProperty[?] = {
-        prop match {
-          case global: PropertyVertex.Global => global
-          case group:  PropertyVertex.Group  =>
-            group.parentProperty match {
-              case None        => group.copy(parentProperty = Some(PropertyVertex.Global(globalParam)))
-              case Some(value) => group.copy(parentProperty = Some(recAppendParent(value)))
-            }
-        }
-      }
-      toH1(id, recAppendParent(toParents(name)))
+      toH1(id, PropertyVertex.appendAsRoot(toParents(name), PropertyVertex.Global(PropertyValueKind.SelfValue(globalParam))))
     }
   }
   implicit class ToNodeProp(global: ConfigValue)              {
@@ -140,7 +132,9 @@ class TestMergeGroupProperties extends Specification {
       NodePropertyHierarchy.forInheritedNode(
         nodeId.value,
         nodeId,
-        PropertyVertex.Global(GlobalParameter(name, GitVersion.DEFAULT_REV, global, mode, "", None, Visibility.default))
+        PropertyVertex.Global(
+          PropertyValueKind.SelfValue(GlobalParameter(name, GitVersion.DEFAULT_REV, global, mode, "", None, Visibility.default))
+        )
       )
     }
     def toGP(name: String, mode: Option[InheritMode]):                GlobalParameter   = {
@@ -219,7 +213,7 @@ class TestMergeGroupProperties extends Specification {
     merged must beBoth(
       PropertyHierarchyError.PropertyHierarchySpecificInheritanceConflicts(
         Map(
-          expectedHierarchy.resolvedValue ->
+          expectedHierarchy.value.resolvedValue ->
           NonEmptyChunk(expectedHierarchy, List(parent2).toParents("foo"))
         )
       ),
@@ -238,7 +232,7 @@ class TestMergeGroupProperties extends Specification {
     val expectedProp = List(parent1).toParents("foo")
     merged must beBoth(
       PropertyHierarchyError.PropertyHierarchySpecificInheritanceConflicts(
-        Map(expectedProp.resolvedValue -> NonEmptyChunk(expectedProp, List(ct2).toParents("foo")))
+        Map(expectedProp.value.resolvedValue -> NonEmptyChunk(expectedProp, List(ct2).toParents("foo")))
       ),
       List.empty
     )
@@ -328,7 +322,7 @@ class TestMergeGroupProperties extends Specification {
       merged must beBoth(
         PropertyHierarchyError.PropertyHierarchySpecificInheritanceConflicts(
           Map(
-            expectedProp.resolvedValue ->
+            expectedProp.value.resolvedValue ->
             NonEmptyChunk(expectedProp, List(parent2).toParents("dns"))
           )
         ),
@@ -519,6 +513,16 @@ class TestMergeGroupProperties extends Specification {
     merged must beRight(expected)
   }
 
+  /*
+   *  Hierarchy:
+   *    global ["glob"]
+   *      |
+   *   parent1 ["p1"]
+   *      |
+   *   parent2 ["p2"]
+   *      |
+   *    child  ["node"]
+   */
   "global parameter are inherited and inherit mode is used at any level of merge" >> {
     val globalProperty           = """["glob"]""".toConfigValue
     val parent1Properties        = List(GroupProperty.parse("foo", GitVersion.DEFAULT_REV, """["p1"]""", None, None).forceGet)
@@ -540,15 +544,28 @@ class TestMergeGroupProperties extends Specification {
     val mpaInheritMode = Some(InheritMode.parseString("mpa").forceGet)
 
     // global property is not yet supposed to be merged now, but added in mergeDefault instead. However it is added to hierarchy if it exists
-    def beMerged(configValue: ConfigValue, mode: Option[InheritMode], globalProperty: Option[ConfigValue]) = {
-      (haveLength[List[PropertyHierarchy]](1)) and
+    def beMerged(
+        configValue:    ConfigValue,
+        mode:           Option[InheritMode],
+        globalProperty: Option[ConfigValue],
+        desc:           Option[String],
+        visibility:     Option[Visibility]
+    ) = {
+      (haveLength[List[PropertyHierarchy]](1))
+
       (beEqualTo(
         GenericProperty
           .toConfig("foo", GitVersion.DEFAULT_REV, configValue, mode, Some(PropertyProvider("inherited")), None, None)
-      ) ^^ { (l: List[NodePropertyHierarchy]) => l.head.prop.config }) and
+      ) ^^ { (l: List[NodePropertyHierarchy]) => l.head.prop.config })
+
       (beEqualTo(globalProperty match {
-        case Some(prop) => List(c, p2, p1).toH3(Right(nodeId1), "foo", prop.toGP("foo", mode)).hierarchy
-        case None       => List(c, p2, p1).toH1(Right(nodeId1), "foo").hierarchy
+        case Some(prop) =>
+          val gp  = prop.toGP("foo", mode)
+          val gp1 = desc.fold(gp)(gp.withDescription)
+          val gp2 = visibility.fold(gp1)(gp1.withVisibility)
+          List(c, p2, p1).toH3(Right(nodeId1), "foo", gp2).hierarchy
+        case None       =>
+          List(c, p2, p1).toH1(Right(nodeId1), "foo").hierarchy
       }) ^^ { (l: List[PropertyHierarchy]) => l.head.hierarchy })
     }
 
@@ -562,9 +579,9 @@ class TestMergeGroupProperties extends Specification {
               GitVersion.DEFAULT_REV,
               globalProperty,
               maaInheritMode,
-              "",
+              "globDesc",       // ensure that description is forwarded, even is hidden
               None,
-              Visibility.default
+              Visibility.Hidden // ensure that visibility is kept
             )
           )
         )
@@ -574,7 +591,9 @@ class TestMergeGroupProperties extends Specification {
         beMerged(
           ConfigValueFactory.fromIterable(java.util.Arrays.asList("p1", "p2", "node")),
           maaInheritMode,
-          Some(globalProperty)
+          Some(globalProperty),
+          Some("globDesc"),
+          Some(Visibility.Hidden)
         )
       ))
     }
@@ -596,11 +615,14 @@ class TestMergeGroupProperties extends Specification {
         )
         .map(_.map(n => NodePropertyHierarchy.forInheritedNode(nodeId1.value, nodeId1, n)))
         .toEither
+
       (merged must beRight(
         beMerged(
           ConfigValueFactory.fromIterable(java.util.Arrays.asList("node", "p2", "p1")),
           mpaInheritMode,
-          Some(globalProperty)
+          Some(globalProperty),
+          Some(""),
+          None
         )
       ))
     }
@@ -614,7 +636,7 @@ class TestMergeGroupProperties extends Specification {
         .map(_.map(n => NodePropertyHierarchy.forInheritedNode(nodeId1.value, nodeId1, n)))
         .toEither
       (merged must beRight(
-        beMerged(ConfigValueFactory.fromIterable(java.util.Arrays.asList("node")), None, None)
+        beMerged(ConfigValueFactory.fromIterable(java.util.Arrays.asList("node")), None, None, None, None)
       ))
     }
   }
@@ -623,7 +645,8 @@ class TestMergeGroupProperties extends Specification {
     def getOverrides(groups: List[NodeGroup]): Map[String, String] = {
       MergeNodeProperties.checkPropertyMerge(groups.map(el => el.id -> el.toGroupProp).toMap, Map()).toEither match {
         case Left(e)  => throw new IllegalArgumentException(s"Error when overriding properties: ${e.message}")
-        case Right(v) => v.map(p => (p.value.name, GenericProperty.serializeToHocon(p.resolvedValue.value))).toMap
+        case Right(v) =>
+          v.map(p => (p.value.resolvedValue.name, GenericProperty.serializeToHocon(p.value.resolvedValue.value))).toMap
       }
     }
     def getGroups(parentProps: Map[String, String], childProps: Map[String, String], inheritModes: Map[String, String]) = {

@@ -6,11 +6,13 @@ import cats.data.Ior
 import cats.syntax.semigroup.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.properties.GenericProperty.StringToConfigValue
 import com.normation.rudder.domain.properties.PropertyVertex.ParentProperty
 import com.normation.rudder.properties.GroupProp
-import com.softwaremill.quicklens.*
 import com.typesafe.config
 import com.typesafe.config.ConfigRenderOptions
+import com.typesafe.config.ConfigValue
+import com.typesafe.config.ConfigValueFactory
 import enumeratum.Enum
 import enumeratum.EnumEntry
 import org.apache.commons.text.StringEscapeUtils
@@ -32,14 +34,41 @@ object PropertyVertexKind                                       extends Enum[Pro
     JsonCodec.string.transformOrFail(PropertyVertexKind.withNameInsensitiveEither(_).left.map(_.getMessage), _.entryName)
 }
 
+// resolved value must be a def so that it's actually actualized if the hierarchy change
+sealed trait PropertyValueKind[P <: GenericProperty[?]](val resolvedValue: P)
 
-sealed trait PropertyValueKind[P <: GenericProperty[?]]
 object PropertyValueKind {
-  case class Inherited[P <: GenericProperty[?]](value: P) extends PropertyValueKind[P]
-  case class SelfValue[P <: GenericProperty[?]](value: P) extends PropertyValueKind[P]
-  case class Overridden[P <: GenericProperty[?]](value: P) extends PropertyValueKind[P]
-}
+  // the case where the value is only defined in the item and there is no parent
+  case class SelfValue[P <: GenericProperty[?]](value: P) extends PropertyValueKind[P](value)
 
+  // the case where the value is purely inherited (there is no self value)
+  case class Inherited[P <: GenericProperty[?]](parentProperty: ParentProperty[?])(builder: com.typesafe.config.Config => P)
+      extends PropertyValueKind[P](
+        builder(parentProperty.value.resolvedValue.config)
+          .withProvider(GroupProp.INHERITANCE_PROVIDER)
+          .asInstanceOf[P] // humpf
+      )
+
+  // the case where the value is defined both in the item and in its parent
+  case class Overridden[P <: GenericProperty[?]](value: P, parentProperty: ParentProperty[?])
+      extends PropertyValueKind[P](buildOverride(value, parentProperty)) {
+    assert(
+      value.name == parentProperty.value.resolvedValue.name,
+      s"You can only create an overridden PropertyValueKind for the same property name. Here, child: '${value.name}' and parent: '${parentProperty.value.resolvedValue.name}'"
+    )
+  }
+
+  def buildOverride[P <: GenericProperty[?]](value: P, parent: ParentProperty[?]): P = {
+    val r = GenericProperty
+      .mergeConfig(
+        parent.value.resolvedValue.config,
+        value.config
+      )(parent.value.resolvedValue.inheritMode)
+
+    // well. fromConfig ensure that it's ok given our sealed hierarchy, but it would be could to get scalac proves it
+    value.fromConfig(r).withProvider(GroupProp.OVERRIDE_PROVIDER).asInstanceOf[P]
+  }
+}
 
 /*
  * A property with its inheritance context as the result of the linearization of the semi-lattice
@@ -49,31 +78,19 @@ object PropertyValueKind {
  * - `parentProperty` is the (optional) parent in hierarchy
  */
 sealed trait PropertyVertex[P <: GenericProperty[?]] {
-  def kind:           PropertyVertexKind
-  def id:             String // entity (node, group, global) id
-  def name:           String // entity name
-  def value:          Option[P]
-  def parentProperty: Option[ParentProperty[?]]
-
-  def resolvedValue: P = parentProperty match {
-    case None    => value
-    case Some(p) =>
-      val r = GenericProperty.mergeConfig(p.resolvedValue.config, value.config)(p.resolvedValue.inheritMode)
-      value
-        .fromConfig(r)
-        // well. fromConfig ensure that it's ok given our sealed hierarchy, but it would be could to get scalac proves it
-        .asInstanceOf[P]
-  }
+  def kind:  PropertyVertexKind
+  def id:    String // entity (node, group, global) id
+  def name:  String // entity name
+  def value: PropertyValueKind[P]
 }
 
 object PropertyVertex {
 
   // node is a leaf of a hierarchy - which can be confusing. Keeping node/group/global naming scheme semantic here.
   final case class Node(
-      override val name:           String,
-      nodeId:                      NodeId,
-      override val value:          Option[NodeProperty],
-      override val parentProperty: Option[ParentProperty[?]]
+      override val name:  String,
+      nodeId:             NodeId,
+      override val value: PropertyValueKind[NodeProperty]
   ) extends PropertyVertex[NodeProperty] {
     override val kind: PropertyVertexKind = PropertyVertexKind.Node
     override def id:   String             = nodeId.value
@@ -85,22 +102,91 @@ object PropertyVertex {
 
   // a group can have groups or global parents
   final case class Group(
-      override val name:           String,
-      groupId:                     NodeGroupId,
-      override val value:          Option[GroupProperty],
-      override val parentProperty: Option[ParentProperty[?]]
+      override val name:  String,
+      groupId:            NodeGroupId,
+      override val value: PropertyValueKind[GroupProperty]
   ) extends ParentProperty[GroupProperty] {
     override val kind: PropertyVertexKind = PropertyVertexKind.Group
     override def id:   String             = groupId.serialize
   }
 
   // a global parameter has the same name as property so no need to be specific for name
-  final case class Global(override val value: GlobalParameter) extends ParentProperty[GlobalParameter] {
-    override val name:           String                    = value.name
-    override def id:             String                    = value.name
-    override val kind:           PropertyVertexKind        = PropertyVertexKind.Global
-    override def parentProperty: Option[ParentProperty[?]] = None
+  final case class Global(override val value: PropertyValueKind.SelfValue[GlobalParameter])
+      extends ParentProperty[GlobalParameter] {
+    override val name: String             = value.resolvedValue.name
+    override def id:   String             = value.resolvedValue.name
+    override val kind: PropertyVertexKind = PropertyVertexKind.Global
   }
+
+  /*
+   * Add given parent property as a new outermost parent of that hierarchy.
+   * If the current root is a global property, insert it below that root if
+   * it's a group, else ignore (keep existing global property)
+   */
+  def appendAsRoot(g: PropertyVertex.Group, root: ParentProperty[?]): PropertyVertex.Group = {
+    g.value match {
+      case PropertyValueKind.SelfValue(value)                  =>
+        PropertyVertex.Group(g.name, g.groupId, PropertyValueKind.Overridden(value, root))
+
+      // recurse up
+      case PropertyValueKind.Inherited(parentProperty)         =>
+        val vk = parentProperty match {
+          case p: Group  => appendAsRoot(p, root)
+          case p: Global =>
+            root match {
+              case r: Group  => appendAsRoot(r, p) // insert between
+              case _: Global => p                  // keep old
+            }
+        }
+        PropertyVertex.Group(g.name, g.groupId, PropertyValueKind.Inherited(vk)(GroupProperty.apply))
+
+      // recurse up
+      case PropertyValueKind.Overridden(value, parentProperty) =>
+        val vk = parentProperty match {
+          case p: Group  => appendAsRoot(p, root)
+          case p: Global =>
+            root match {
+              case r: Group  => appendAsRoot(r, p) // insert between
+              case _: Global => p                  // keep old
+            }
+        }
+
+        PropertyVertex.Group(g.name, g.groupId, PropertyValueKind.Overridden(value, vk))
+    }
+  }
+
+  def appendAsRoot(n: PropertyVertex.Node, root: ParentProperty[?]): PropertyVertex.Node = {
+    n.value match {
+      case PropertyValueKind.SelfValue(value)                  =>
+        PropertyVertex.Node(n.name, n.nodeId, PropertyValueKind.Overridden(value, root))
+
+      // recurse up
+      case PropertyValueKind.Inherited(parentProperty)         =>
+        val vk = parentProperty match {
+          case p: Group  => appendAsRoot(p, root)
+          case p: Global =>
+            root match {
+              case r: Group  => appendAsRoot(r, p) // insert between
+              case _: Global => p                  // keep old
+            }
+        }
+        PropertyVertex.Node(n.name, n.nodeId, PropertyValueKind.Inherited(vk)(NodeProperty.apply))
+
+      // recurse up
+      case PropertyValueKind.Overridden(value, parentProperty) =>
+        val vk = parentProperty match {
+          case p: Group  => appendAsRoot(p, root)
+          case p: Global =>
+            root match {
+              case r: Group  => appendAsRoot(r, p) // insert between
+              case _: Global => p                  // keep old
+            }
+        }
+
+        PropertyVertex.Node(n.name, n.nodeId, PropertyValueKind.Overridden(value, vk))
+    }
+  }
+
 }
 
 /**
@@ -110,24 +196,7 @@ object PropertyVertex {
  */
 sealed trait PropertyHierarchy {
   def hierarchy: PropertyVertex[?]
-  def prop:      GenericProperty[?] = hierarchy.resolvedValue
-}
-
-object PropertyHierarchy {
-
-  // if you have a Node vertex and want a node hierarchy
-  def forNode(node: PropertyVertex.Node): NodePropertyHierarchy = NodePropertyHierarchy.forNode(node)
-
-  // if you have a group/global vertex and want a node hierarchy
-  def forInheritedNode(nodeName: String, nodeId: NodeId, parent: ParentProperty[?]): NodePropertyHierarchy =
-    NodePropertyHierarchy.forInheritedNode(nodeName, nodeId, parent)
-
-  // if you have a Group vertex and want a node hierarchy for that group
-  def forGroup(group: PropertyVertex.Group): GroupPropertyHierarchy = GroupPropertyHierarchy.forGroup(group)
-
-  // if you have a group/global vertex which is the parent of the group you want
-  def forInheritedGroup(groupName: String, groupId: NodeGroupId, parent: ParentProperty[?]): GroupPropertyHierarchy =
-    GroupPropertyHierarchy.forInheritedGroup(groupName, groupId, parent)
+  def prop:      GenericProperty[?] = hierarchy.value.resolvedValue
 }
 
 /*
@@ -135,53 +204,52 @@ object PropertyHierarchy {
  */
 case class NodePropertyHierarchy protected (id: NodeId, override val hierarchy: PropertyVertex[?]) extends PropertyHierarchy
 object NodePropertyHierarchy {
-  // if you have a Node vertex and want a node hierarchy
-  def forNode(node: PropertyVertex.Node): NodePropertyHierarchy = {
-    // in that case, we need to check that the override flag is correct
-    val n = {
-      if (node.parentProperty.isEmpty) node
-      else node.modify(_.value).using(_.withProvider(GroupProp.OVERRIDE_PROVIDER))
-    }
 
-    NodePropertyHierarchy(n.nodeId, n)
+  // if you have a group/global vertex and want a node hierarchy
+  def forNodeWithValue(
+      nodeName:  String,
+      nodeId:    NodeId,
+      selfValue: NodeProperty,
+      parent:    Option[ParentProperty[?]]
+  ): NodePropertyHierarchy = {
+    // in that case, we create a purely inherited node vertex
+    val v = parent match {
+      case Some(p) => PropertyValueKind.Overridden(selfValue, p)
+      case None    => PropertyValueKind.SelfValue(selfValue)
+    }
+    NodePropertyHierarchy(nodeId, PropertyVertex.Node(nodeName, nodeId, v))
   }
 
   // if you have a group/global vertex and want a node hierarchy
   def forInheritedNode(nodeName: String, nodeId: NodeId, parent: ParentProperty[?]): NodePropertyHierarchy = {
     // in that case, we create a purely inherited node vertex
-
-    val prop = NodeProperty(parent.resolvedValue.config)
-      .withProvider(GroupProp.INHERITANCE_PROVIDER)
-      .withVisibility(parent.resolvedValue.visibility)
-
-    val n = PropertyVertex.Node(nodeName, nodeId, prop, Some(parent))
-
+    val n = PropertyVertex.Node(nodeName, nodeId, PropertyValueKind.Inherited(parent)(NodeProperty.apply))
     NodePropertyHierarchy(nodeId, n)
   }
 }
 
 case class GroupPropertyHierarchy protected (id: NodeGroupId, override val hierarchy: ParentProperty[?]) extends PropertyHierarchy
 object GroupPropertyHierarchy {
-  // if you have a Group vertex and want a node hierarchy for that group
-  def forGroup(group: PropertyVertex.Group): GroupPropertyHierarchy = {
-    // in that case, we need to check that the override flag is correct
-    val g = {
-      if (group.parentProperty.isEmpty) group
-      else group.modify(_.value).using(_.withProvider(GroupProp.OVERRIDE_PROVIDER))
-    }
 
-    GroupPropertyHierarchy(g.groupId, g)
+  // if you have a group/global vertex and want a node hierarchy
+  def forGroupWithValue(
+      groupName: String,
+      groupId:   NodeGroupId,
+      selfValue: GroupProperty,
+      parent:    Option[ParentProperty[?]]
+  ): GroupPropertyHierarchy = {
+    // in that case, we create a purely inherited node vertex
+    val v = parent match {
+      case Some(p) => PropertyValueKind.Overridden(selfValue, p)
+      case None    => PropertyValueKind.SelfValue(selfValue)
+    }
+    GroupPropertyHierarchy(groupId, PropertyVertex.Group(groupName, groupId, v))
   }
 
   // if you have a group/global vertex which is the parent of the group you want
   def forInheritedGroup(groupName: String, groupId: NodeGroupId, parent: ParentProperty[?]): GroupPropertyHierarchy = {
     // in that case, we create a purely inherited group vertex
-    val prop = GroupProperty(parent.resolvedValue.config)
-      .withProvider(GroupProp.INHERITANCE_PROVIDER)
-      .withVisibility(parent.resolvedValue.visibility)
-
-    val g = PropertyVertex.Group(groupName, groupId, prop, Some(parent))
-
+    val g = PropertyVertex.Group(groupName, groupId, PropertyValueKind.Inherited(parent)(GroupProperty.apply))
     GroupPropertyHierarchy(groupId, g)
   }
 }
@@ -276,9 +344,10 @@ object PropertyHierarchyError {
       def inheritanceName(p: PropertyVertex[?]): String = {
         p match {
           case n: PropertyVertex.Node =>
-            n.parentProperty match {
-              case None         => n.name
-              case Some(parent) => s"${n.name} <- ${inheritanceName(parent)} "
+            n.value match {
+              case PropertyValueKind.SelfValue(value)      => n.name
+              case PropertyValueKind.Inherited(parent)     => s"${n.name} <- ${inheritanceName(parent)} "
+              case PropertyValueKind.Overridden(_, parent) => s"${n.name} <- ${inheritanceName(parent)} "
             }
           case _ => ""
         }
@@ -455,8 +524,8 @@ object JsonPropertyHierarchySerialisation {
           (
             ("kind"            -> p.kind.entryName)
             ~ ("name"          -> p.name)
-            ~ ("value"         -> GenericProperty.toJsonValue(p.value.value))
-            ~ ("resolvedValue" -> GenericProperty.toJsonValue(p.resolvedValue.value))
+            ~ ("value"         -> GenericProperty.toJsonValue(p.value.resolvedValue.value))
+            ~ ("resolvedValue" -> GenericProperty.toJsonValue(p.value.resolvedValue.value))
           )
 
         case _ =>
@@ -464,8 +533,12 @@ object JsonPropertyHierarchySerialisation {
             ("kind"            -> p.kind.entryName)
             ~ ("name"          -> p.name)
             ~ ("id"            -> p.id)
-            ~ ("value"         -> GenericProperty.toJsonValue(p.value.value))
-            ~ ("resolvedValue" -> GenericProperty.toJsonValue(p.resolvedValue.value))
+            ~ ("value"         -> GenericProperty.toJsonValue(p.value match {
+              case PropertyValueKind.SelfValue(value)     => value.value
+              case PropertyValueKind.Inherited(_)         => ConfigValueFactory.fromAnyRef("")
+              case PropertyValueKind.Overridden(value, _) => value.value
+            }))
+            ~ ("resolvedValue" -> GenericProperty.toJsonValue(p.value.resolvedValue.value))
           )
       }
     }
@@ -477,7 +550,11 @@ object JsonPropertyHierarchySerialisation {
     private def buildHierarchy(displayParents: PropertyVertex[?] => JValue): JObject = {
 
       prop.prop.toJsonObj ~ ("hierarchy" -> displayParents(prop.hierarchy)) ~ ("origval" -> GenericProperty.toJsonValue(
-        prop.hierarchy.value.value
+        prop.hierarchy.value match {
+          case PropertyValueKind.SelfValue(value)     => value.value
+          case PropertyValueKind.Inherited(_)         => "".toConfigValue
+          case PropertyValueKind.Overridden(value, _) => value.value
+        }
       ))
 
     }
@@ -487,11 +564,12 @@ object JsonPropertyHierarchySerialisation {
     }
 
     def toApiJsonRenderParents: JObject = {
+      def render(v: ConfigValue) = v.render(ConfigRenderOptions.defaults().setOriginComments(false))
       def displayElem(p: PropertyVertex[?]): String = {
-        (p match {
-          case _: PropertyVertex.Global => None
-          case n: PropertyVertex.Node   => n.parentProperty.map(displayElem)
-          case g: PropertyVertex.Group  => g.parentProperty.map(displayElem)
+        (p.value match {
+          case PropertyValueKind.SelfValue(_)     => None
+          case PropertyValueKind.Inherited(p)     => Some(displayElem(p))
+          case PropertyValueKind.Overridden(_, p) => Some(displayElem(p))
         }).getOrElse("") +
         s"<p>from ${p.kind match {
             case PropertyVertexKind.Global => p.kind.entryName + " property"
@@ -499,7 +577,11 @@ object JsonPropertyHierarchySerialisation {
           }} <b>${p.name}${if (p.id.isEmpty) {
             ""
           } else s" (${p.id})"}</b>:<pre>${StringEscapeUtils
-            .escapeHtml4(p.value.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>"
+            .escapeHtml4(p.value match {
+              case PropertyValueKind.SelfValue(value)     => render(value.value)
+              case PropertyValueKind.Inherited(_)         => ""
+              case PropertyValueKind.Overridden(value, _) => render(value.value)
+            })}</pre></p>"
       }
 
       buildHierarchy(displayElem.andThen(JString))

@@ -1221,13 +1221,28 @@ object JsonResponseObjects {
 
     def fromParentProperty(p: PropertyVertex[?]): JRParentPropertyDetails = {
       def serializeValueType(v: ConfigValue): String = v.valueType.name().toLowerCase().capitalize
+      val (selfValue, parent) = p.value match {
+        case PropertyValueKind.SelfValue(value)                  => (value.value, None)
+        case PropertyValueKind.Inherited(parentProperty)         => (p.value.resolvedValue.value, Some(parentProperty))
+        case PropertyValueKind.Overridden(value, parentProperty) => (value.value, Some(parentProperty))
+      }
       p match {
         case g: PropertyVertex.Group =>
-          JRParentGroupDetails(g.name, g.id, serializeValueType(g.value.value), g.parentProperty.map(fromParentProperty))
+          JRParentGroupDetails(
+            g.name,
+            g.id,
+            serializeValueType(selfValue),
+            parent.map(fromParentProperty)
+          )
         case n: PropertyVertex.Node  =>
-          JRParentNodeDetails(n.name, n.id, serializeValueType(n.value.value), n.parentProperty.map(fromParentProperty))
+          JRParentNodeDetails(
+            n.name,
+            n.id,
+            serializeValueType(selfValue),
+            parent.map(fromParentProperty)
+          )
         case PropertyVertex.Global(value) =>
-          JRParentGlobalDetails(serializeValueType(value.value))
+          JRParentGlobalDetails(serializeValueType(value.resolvedValue.value))
       }
     }
   }
@@ -1286,7 +1301,7 @@ object JsonResponseObjects {
         case e: ChildTypeConflictStatus        =>
           JRProperty(
             propertyId,
-            e.property.resolvedValue.value,
+            e.property.value.resolvedValue.value,
             e.nonEmptyDescription,
             e.inheritMode,
             e.provider,
@@ -1341,7 +1356,7 @@ object JsonResponseObjects {
     }
 
     /**
-     * Transform proprety hierarchy into HTML or JSON
+     * Transform property hierarchy into HTML or JSON
      * Provided hierarchy should be sorted from original order of parent properties :
      * - nodes
      * - groups
@@ -1353,26 +1368,42 @@ object JsonResponseObjects {
         escapeHtml:   Boolean
     ): Option[JRPropertyHierarchy] = {
       def renderHtml(nodeParentProperty: PropertyVertex[?]): List[String] = {
-        nodeParentProperty match {
-          case n: PropertyVertex.Node  =>
-            n.parentProperty
-              .map(renderHtml)
-              .getOrElse(Nil) :::
-            (s"<p>from <b>Node ${n.name} (${n.id})</b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String)
-                                                               else identity[String])
-                .apply(n.value.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>" :: Nil)
-          case g: PropertyVertex.Group =>
-            g.parentProperty
-              .map(renderHtml)
-              .getOrElse(Nil) :::
-            (s"<p>from <b>Group ${g.name} (${g.id})</b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String)
-                                                                else identity[String])
-                .apply(g.value.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>" :: Nil)
-          case PropertyVertex.Global(v) =>
-            s"<p>from <b>Global parameter </b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String) else identity[String])
-                .apply(v.value.render(ConfigRenderOptions.defaults().setOriginComments(false)))}</pre></p>" :: Nil
+        def renderItem(property: PropertyVertex[?]): String => String = {
+          property match {
+            case n: PropertyVertex.Node =>
+              (value: String) => {
+                (s"<p>from <b>Node ${n.name} (${n.id})</b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String)
+                                                                   else identity[String])
+                    .apply(value)}</pre></p>")
+              }
+
+            case g: PropertyVertex.Group =>
+              (value: String) => {
+                s"<p>from <b>Group ${g.name} (${g.id})</b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String)
+                                                                   else identity[String])
+                    .apply(value)}</pre></p>"
+              }
+
+            case PropertyVertex.Global(v) =>
+              (value: String) => {
+                s"<p>from <b>Global parameter </b>:<pre>${(if (escapeHtml) xml.Utility.escape(_: String) else identity[String])
+                    .apply(value)}</pre></p>"
+              }
+          }
+        }
+
+        nodeParentProperty.value match {
+          case PropertyValueKind.SelfValue(value)                  =>
+            renderItem(nodeParentProperty)(value.value.render(ConfigRenderOptions.defaults().setOriginComments(false))) :: Nil
+          case PropertyValueKind.Inherited(parentProperty)         =>
+            renderHtml(parentProperty)
+          case PropertyValueKind.Overridden(value, parentProperty) =>
+            renderHtml(parentProperty) ::: renderItem(nodeParentProperty)(
+              value.value.render(ConfigRenderOptions.defaults().setOriginComments(false))
+            ) :: Nil
         }
       }
+
       val parents = renderInHtml match {
         case RenderInheritedProperties.HTML =>
           JRPropertyHierarchyHtml(renderHtml(hierarchy).mkString(""))
@@ -1386,8 +1417,13 @@ object JsonResponseObjects {
     /**
      * The first element of the hierarchy in the original order is the original value
      */
-    private def getHierarchyOriginalValue(hierarchy: PropertyVertex[?]): ConfigValue =
-      hierarchy.value.value
+    private def getHierarchyOriginalValue(hierarchy: PropertyVertex[?]): ConfigValue = {
+      hierarchy.value match {
+        case PropertyValueKind.SelfValue(value)          => value.value
+        case PropertyValueKind.Inherited(parentProperty) => getHierarchyOriginalValue(parentProperty)
+        case PropertyValueKind.Overridden(value, _)      => value.value
+      }
+    }
   }
 
   @jsonDiscriminator("kind") sealed trait JRParentProperty { def value: ConfigValue }
@@ -1414,14 +1450,20 @@ object JsonResponseObjects {
         resolvedValue: ConfigValue,
         parent:        Option[JRParentProperty]
     ) extends JRParentProperty
+
     def fromParentProperty(p: PropertyVertex[?]): JRParentProperty = {
+      val (value, parent) = p.value match {
+        case PropertyValueKind.SelfValue(value)                  => (value.value, None)
+        case PropertyValueKind.Inherited(parentProperty)         => (p.value.resolvedValue.value, Some(parentProperty))
+        case PropertyValueKind.Overridden(value, parentProperty) => (value.value, Some(parentProperty))
+      }
       p match {
         case n: PropertyVertex.Node  =>
-          JRParentNode(n.name, n.id, n.value.value, n.resolvedValue.value, n.parentProperty.map(fromParentProperty))
+          JRParentNode(n.name, n.id, value, p.value.resolvedValue.value, parent.map(fromParentProperty))
         case g: PropertyVertex.Group =>
-          JRParentGroup(g.name, g.id, g.value.value, g.resolvedValue.value, g.parentProperty.map(fromParentProperty))
+          JRParentGroup(g.name, g.id, value, p.value.resolvedValue.value, parent.map(fromParentProperty))
         case _ =>
-          JRParentGlobal(p.value.value)
+          JRParentGlobal(value)
       }
     }
   }
@@ -1548,12 +1590,12 @@ object JsonResponseObjects {
    */
   sealed trait InheritedPropertyStatus extends PropertyStatus {
     def property:   PropertyVertex[?]
-    def propertyId: JRPropertyId = property.resolvedValue.name.transformInto[JRPropertyId]
+    def propertyId: JRPropertyId = property.value.resolvedValue.name.transformInto[JRPropertyId]
 
-    def inheritMode: Option[InheritMode] = property.resolvedValue.inheritMode
+    def inheritMode: Option[InheritMode] = property.value.resolvedValue.inheritMode
 
-    def description:           String                   = property.resolvedValue.description
-    def provider:              Option[PropertyProvider] = property.resolvedValue.provider
+    def description:           String                   = property.value.resolvedValue.description
+    def provider:              Option[PropertyProvider] = property.value.resolvedValue.provider
     def hasChildTypeConflicts: Boolean
 
     def nonEmptyDescription: Option[String] = Some(description).filter(_.nonEmpty)
