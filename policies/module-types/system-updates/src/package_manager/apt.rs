@@ -18,6 +18,7 @@ use crate::{
 };
 use anyhow::{Context, Result, anyhow};
 use gag::Gag;
+use log::debug;
 use memfile::MemFile;
 use regex::Regex;
 #[cfg(not(debug_assertions))]
@@ -150,8 +151,10 @@ impl AptPackageManager {
         for p in cache.packages(&Self::all_installed()) {
             if p.is_upgradable() {
                 for v in p.versions() {
-                    if PackageFileFilter::is_in_allowed_origin(&v, &security_origins) {
+                    debug!("Considering version: {:?}", &v);
+                    if PackageFileFilter::is_in_allowed_origins(&v, &security_origins) {
                         if v > p.installed().unwrap() {
+                            debug!("Marking version for upgrade");
                             v.set_candidate();
                             p.mark_install(true, !p.is_auto_installed());
                             break;
@@ -274,6 +277,7 @@ impl LinuxPackageManager for AptPackageManager {
                         // Fail loudly if not supported
                         Err(e) => return ResultOutput::new(Err(e)),
                     };
+                    debug!("Allowed origins: {:?}", security_origins);
                     self.mark_security_upgrades(&mut c, &security_origins)
                 }
                 FullCampaignType::SoftwareUpdate(p) => self.mark_package_upgrades(p, &mut c),
