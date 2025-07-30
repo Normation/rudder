@@ -273,7 +273,7 @@ impl Commands {
 
         let compliant_code = p.compliant_codes.as_ref().and_then(|c| {
             c.parse::<i32>()
-                .with_context(|| format!("Invalid compliant codes '{}'", c))
+                .with_context(|| format!("Invalid compliant codes '{c}'"))
                 .ok()
         });
 
@@ -340,6 +340,7 @@ impl ModuleType0 for Commands {
         };
 
         let status = output.get("status").unwrap().to_string();
+        dbg!(status.as_str());
         let res = match status.as_str() {
             "compliant" => Outcome::success_with(output.to_string()),
             "repaired" => Outcome::repaired(output.to_string()),
@@ -370,7 +371,7 @@ pub fn get_used_cmd(p: &CommandsParameters) -> String {
     if p.in_shell {
         format!("{} -c '{}'", p.shell_path, cmd_args)
     } else {
-        format!("{cmd_args}")
+        cmd_args
     }
 }
 
