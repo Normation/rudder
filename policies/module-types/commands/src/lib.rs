@@ -69,8 +69,11 @@ pub struct CommandsParameters {
     stdin_add_newline: bool,
 
     /// Compliant codes
-    #[serde(default)] // Default to ""
-    compliant_codes: String,
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "Commands::deserialize_option_string"
+    )]
+    compliant_codes: Option<String>,
 
     /// Repaired codes
     #[serde(default = "Commands::default_repaired_codes")]
@@ -158,7 +161,7 @@ impl Commands {
         "0".to_string()
     }
 
-    fn run(p: &CommandsParameters, _audit: bool) -> Result<Value> {
+    fn run(p: &CommandsParameters, audit: bool) -> Result<Value> {
         let mut command = Command::new(if p.in_shell {
             &p.shell_path
         } else {
@@ -255,8 +258,35 @@ impl Commands {
             (stdout, stderr)
         };
 
+        let exit_code = match output.status.code() {
+            Some(code) => code,
+            None => {
+                println!("Process terminated by signal");
+                128
+            }
+        };
+
+        let repaired_code = p
+            .repaired_codes
+            .parse::<i32>()
+            .with_context(|| format!("Invalid repaired codes '{}'", p.repaired_codes))?;
+
+        let compliant_code = p.compliant_codes.as_ref().and_then(|c| {
+            c.parse::<i32>()
+                .with_context(|| format!("Invalid compliant codes '{}'", c))
+                .ok()
+        });
+
+        let status = match (audit, exit_code, repaired_code, compliant_code) {
+            (false, e, r, _) if e == r => "repaired",
+            (true, e, _, Some(c)) if e == c => "compliant",
+            (true, _, _, None) => "compliant",
+            _ => "failed",
+        };
+
         let report = json!({
-            "exit_code": output.status.code(),
+            "exit_code": exit_code,
+            "status": status,
             "stdout": stdout,
             "stderr": stderr,
             "running_time": start_time.elapsed().as_secs(),
@@ -309,10 +339,10 @@ impl ModuleType0 for Commands {
             }
         };
 
-        let exit_code = output.get("exit_code").unwrap().to_string();
-        let res = match exit_code {
-            code if code == p.compliant_codes => Outcome::success_with(output.to_string()),
-            code if code == p.repaired_codes => Outcome::repaired(output.to_string()),
+        let status = output.get("status").unwrap().to_string();
+        let res = match status.as_str() {
+            "compliant" => Outcome::success_with(output.to_string()),
+            "repaired" => Outcome::repaired(output.to_string()),
             _ => bail!("{}", output.to_string()),
         };
 
@@ -367,7 +397,7 @@ mod tests {
             timeout: "30".to_string(),
             stdin: None,
             stdin_add_newline: true,
-            compliant_codes: "".to_string(),
+            compliant_codes: None,
             repaired_codes: "0".to_string(),
             output_to_file: None,
             strip_output: false,
@@ -397,7 +427,7 @@ mod tests {
             timeout: "30".to_string(),
             stdin: None,
             stdin_add_newline: true,
-            compliant_codes: "".to_string(),
+            compliant_codes: None,
             repaired_codes: "0".to_string(),
             output_to_file: None,
             strip_output: false,
@@ -427,7 +457,7 @@ mod tests {
             timeout: "30".to_string(),
             stdin: None,
             stdin_add_newline: true,
-            compliant_codes: "".to_string(),
+            compliant_codes: None,
             repaired_codes: "0".to_string(),
             output_to_file: None,
             strip_output: false,
@@ -462,7 +492,7 @@ mod tests {
             timeout: "30".to_string(),
             stdin: None,
             stdin_add_newline: true,
-            compliant_codes: "".to_string(),
+            compliant_codes: None,
             repaired_codes: "0".to_string(),
             output_to_file: None,
             strip_output: false,
@@ -510,7 +540,7 @@ mod tests {
             timeout: "30".to_string(),
             stdin: None,
             stdin_add_newline: true,
-            compliant_codes: "".to_string(),
+            compliant_codes: None,
             repaired_codes: "0".to_string(),
             output_to_file: None,
             strip_output: true,
@@ -548,7 +578,7 @@ mod tests {
             timeout: "30".to_string(),
             stdin: None,
             stdin_add_newline: true,
-            compliant_codes: "".to_string(),
+            compliant_codes: None,
             repaired_codes: "0".to_string(),
             output_to_file: None,
             strip_output: true,
@@ -586,7 +616,7 @@ mod tests {
             timeout: "30".to_string(),
             stdin: None,
             stdin_add_newline: true,
-            compliant_codes: "".to_string(),
+            compliant_codes: None,
             repaired_codes: "0".to_string(),
             output_to_file: None,
             strip_output: true,
@@ -624,7 +654,7 @@ mod tests {
             timeout: "2".to_string(),
             stdin: None,
             stdin_add_newline: true,
-            compliant_codes: "".to_string(),
+            compliant_codes: None,
             repaired_codes: "0".to_string(),
             output_to_file: None,
             strip_output: true,
@@ -654,7 +684,7 @@ mod tests {
             timeout: "30".to_string(),
             stdin: Some("OK".to_string()),
             stdin_add_newline: true,
-            compliant_codes: "".to_string(),
+            compliant_codes: None,
             repaired_codes: "0".to_string(),
             output_to_file: None,
             strip_output: true,
@@ -692,7 +722,7 @@ mod tests {
             timeout: "30".to_string(),
             stdin: None,
             stdin_add_newline: true,
-            compliant_codes: "".to_string(),
+            compliant_codes: None,
             repaired_codes: "0".to_string(),
             output_to_file: None,
             strip_output: true,
@@ -730,7 +760,7 @@ mod tests {
             timeout: "30".to_string(),
             stdin: None,
             stdin_add_newline: true,
-            compliant_codes: "".to_string(),
+            compliant_codes: None,
             repaired_codes: "0".to_string(),
             output_to_file: None,
             strip_output: false,
@@ -751,5 +781,43 @@ mod tests {
 
         let stdout = out.get("stdout").unwrap().to_string();
         assert_eq!(stdout, "\"OK\\n\"");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_repaired_codes() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "echo".to_string(),
+            args: Some("OK".to_string()),
+            run_in_audit_mode: false,
+            in_shell: false,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: None,
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: false,
+            uid: None,
+            gid: None,
+            umask: None,
+            env_vars: None,
+            show_content: true,
+        };
+
+        let s = Commands::run(&cmd, false);
+        assert!(s.is_ok());
+
+        let out = s.unwrap();
+
+        let exit_code = out.get("exit_code").unwrap().to_string();
+        assert_eq!(exit_code, "0");
+
+        let stdout = out.get("status").unwrap().to_string();
+        assert_eq!(stdout, "\"repaired\"");
     }
 }
