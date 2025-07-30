@@ -70,7 +70,7 @@ opaque type Argon2Variant = Int
 object Argon2Variant {
   def apply(v: Int): Argon2Variant = v
 
-  extension(v: Argon2Variant) {
+  extension (v: Argon2Variant) {
     def toInt: Int = v
   }
 }
@@ -80,7 +80,7 @@ opaque type Argon2Version = Int
 object Argon2Version {
   def apply(v: Int): Argon2Version = v
 
-  extension(v: Argon2Version) {
+  extension (v: Argon2Version) {
     def toInt: Int = v
   }
 }
@@ -90,7 +90,7 @@ opaque type Argon2Memory = Int
 object Argon2Memory {
   def apply(v: Int): Argon2Memory = v
 
-  extension(v: Argon2Memory) {
+  extension (v: Argon2Memory) {
     def toInt: Int = v
   }
 }
@@ -100,7 +100,7 @@ opaque type Argon2Parallelism = Int
 object Argon2Parallelism {
   def apply(v: Int): Argon2Parallelism = v
 
-  extension(v: Argon2Parallelism) {
+  extension (v: Argon2Parallelism) {
     def toInt: Int = v
   }
 }
@@ -110,7 +110,7 @@ opaque type Argon2Iterations = Int
 object Argon2Iterations {
   def apply(v: Int): Argon2Iterations = v
 
-  extension(v: Argon2Iterations) {
+  extension (v: Argon2Iterations) {
     def toInt: Int = v
   }
 }
@@ -120,7 +120,7 @@ opaque type Argon2HashSize = Int
 object Argon2HashSize {
   def apply(v: Int): Argon2HashSize = v
 
-  extension(v: Argon2HashSize) {
+  extension (v: Argon2HashSize) {
     def toInt: Int = v
   }
 }
@@ -130,7 +130,7 @@ opaque type Argon2SaltSize = Int
 object Argon2SaltSize {
   def apply(v: Int): Argon2SaltSize = v
 
-  extension(v: Argon2SaltSize) {
+  extension (v: Argon2SaltSize) {
     def toInt: Int = v
   }
 }

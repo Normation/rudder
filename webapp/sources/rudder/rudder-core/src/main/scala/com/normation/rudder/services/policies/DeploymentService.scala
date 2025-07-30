@@ -1971,10 +1971,16 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
    * Pre generation hooks
    */
   override def runPreHooks(generationTime: DateTime, systemEnv: HookEnvPairs):     Box[Unit] = {
+    val name = "policy-generation-pre-start"
     (for {
-      preHooks <- RunHooks.getHooksPure(HOOKS_D + "/policy-generation-pre-start", HOOKS_IGNORE_SUFFIXES)
+      preHooks <- RunHooks.getHooksPure(HOOKS_D + "/" + name, HOOKS_IGNORE_SUFFIXES)
       res      <-
-        RunHooks.syncRun(preHooks, HookEnvPairs.build(("RUDDER_GENERATION_DATETIME", generationTime.toString)), systemEnv) match {
+        RunHooks.syncRun(
+          name,
+          preHooks,
+          HookEnvPairs.build(("RUDDER_GENERATION_DATETIME", generationTime.toString)),
+          systemEnv
+        ) match {
           case _: HookReturnCode.Success => ().succeed
           case x: HookReturnCode.Error   =>
             Inconsistency(
@@ -1989,10 +1995,12 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
    * Pre generation hooks
    */
   override def runStartedHooks(generationTime: DateTime, systemEnv: HookEnvPairs): Box[Unit] = {
+    val name = "policy-generation-started"
     (for {
       // fetch all
-      preHooks <- RunHooks.getHooksPure(HOOKS_D + "/policy-generation-started", HOOKS_IGNORE_SUFFIXES)
-      _        <- RunHooks.asyncRun(preHooks, HookEnvPairs.build(("RUDDER_GENERATION_DATETIME", generationTime.toString)), systemEnv)
+      preHooks <- RunHooks.getHooksPure(HOOKS_D + "/" + name, HOOKS_IGNORE_SUFFIXES)
+      _        <-
+        RunHooks.asyncRun(name, preHooks, HookEnvPairs.build(("RUDDER_GENERATION_DATETIME", generationTime.toString)), systemEnv)
     } yield ()).toBox
   }
 
@@ -2134,9 +2142,10 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
       nodeIdsPath:      String
   ): Box[Unit] = {
     val sortedNodeIds = getSortedNodeIds(updatedNodeInfos)
+    val name          = "policy-generation-finished"
     for {
       written         <- writeNodeIdsForHook(nodeIdsPath, sortedNodeIds, generationTime, endTime)
-      postHooks       <- RunHooks.getHooksPure(HOOKS_D + "/policy-generation-finished", HOOKS_IGNORE_SUFFIXES)
+      postHooks       <- RunHooks.getHooksPure(HOOKS_D + "/" + name, HOOKS_IGNORE_SUFFIXES)
       // we want to sort node with root first, then relay, then other nodes for hooks
       updatedNodeIds   = updatedNodeInfos.toList.map {
                            case (k, v) =>
@@ -2156,6 +2165,7 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
                            case Some(p) => p :: defaultEnvParams
                          }
       _               <- RunHooks.asyncRun(
+                           name,
                            postHooks,
                            HookEnvPairs.build(envParams*),
                            systemEnv
@@ -2211,15 +2221,17 @@ trait PromiseGeneration_Hooks extends PromiseGenerationService with PromiseGener
       errorMessage:     String,
       errorMessagePath: String
   ): Box[Unit] = {
+    val name = "policy-generation-failed"
     for {
       written      <- writeErrorMessageForHook(errorMessagePath, errorMessage, generationTime, endTime)
-      failureHooks <- RunHooks.getHooksPure(HOOKS_D + "/policy-generation-failed", HOOKS_IGNORE_SUFFIXES)
+      failureHooks <- RunHooks.getHooksPure(HOOKS_D + "/" + name, HOOKS_IGNORE_SUFFIXES)
       // we want to sort node with root first, then relay, then other nodes for hooks
       envParams     = (("RUDDER_GENERATION_DATETIME", generationTime.toString())
                         :: ("RUDDER_END_GENERATION_DATETIME", endTime.toString) // what is the most alike a end time
                         :: ("RUDDER_ERROR_MESSAGE_PATH", errorMessagePath)
                         :: Nil)
       _            <- RunHooks.asyncRun(
+                        name,
                         failureHooks,
                         HookEnvPairs.build(envParams*),
                         systemEnv

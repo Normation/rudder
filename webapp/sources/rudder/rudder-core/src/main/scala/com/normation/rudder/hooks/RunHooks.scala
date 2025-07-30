@@ -38,6 +38,7 @@
 package com.normation.rudder.hooks
 
 import com.normation.NamedZioLogger
+import com.normation.RudderLogger
 import com.normation.box.*
 import com.normation.errors.*
 import com.normation.zio.*
@@ -104,7 +105,7 @@ object HookEnvPairs {
 }
 
 /**
- * Loggger for hooks
+ * Logger for hooks
  */
 object HooksLogger extends Logger {
   override protected def _logger: slf4j.Logger = LoggerFactory.getLogger("hooks")
@@ -119,6 +120,13 @@ object PureHooksLogger extends NamedZioLogger {
 
   object LongExecLogger extends NamedZioLogger {
     override def loggerName = "hooks.longexecution"
+  }
+
+  // name space for per-kind of hook
+  object For {
+    // get the logger for the named subkey. The subkey must not start with a ".",
+    // and should follow dot-name spacing convention.
+    def apply(subkey: String): RudderLogger = RudderLogger("hooks." + subkey)
   }
 }
 
@@ -194,6 +202,7 @@ object RunHooks {
    *
    */
   def asyncRun(
+      logIdentifier:   String, // the subs-name space path that will hold that log
       hooks:           Hooks,
       hookParameters:  HookEnvPairs,
       envVariables:    HookEnvPairs,
@@ -207,15 +216,15 @@ object RunHooks {
     def logReturnCode(result: HookReturnCode): IOResult[Unit] = {
       for {
         _ <- ZIO.when(PureHooksLogger.logEffect.isTraceEnabled()) {
-               PureHooksLogger.trace(s"  -> results: ${result.msg}") *>
-               PureHooksLogger.trace(s"  -> stdout : ${result.stdout}") *>
-               PureHooksLogger.trace(s"  -> stderr : ${result.stderr}")
+               PureHooksLogger.For(logIdentifier).trace(s"  -> results: ${result.msg}") *>
+               PureHooksLogger.For(logIdentifier).trace(s"  -> stdout : ${result.stdout}") *>
+               PureHooksLogger.For(logIdentifier).trace(s"  -> stderr : ${result.stderr}")
              }
         _ <- ZIO.when(result.code >= 32 && result.code <= 64) { // warning
                for {
-                 _ <- PureHooksLogger.warn(result.msg)
-                 _ <- ZIO.when(result.stdout.size > 0)(PureHooksLogger.warn(s"  -> stdout : ${result.stdout}"))
-                 _ <- ZIO.when(result.stderr.size > 0)(PureHooksLogger.warn(s"  -> stderr : ${result.stderr}"))
+                 _ <- PureHooksLogger.For(logIdentifier).warn(result.msg)
+                 _ <- ZIO.when(result.stdout.nonEmpty)(PureHooksLogger.For(logIdentifier).warn(s"  -> stdout : ${result.stdout}"))
+                 _ <- ZIO.when(result.stderr.nonEmpty)(PureHooksLogger.For(logIdentifier).warn(s"  -> stderr : ${result.stderr}"))
                } yield ()
              }
       } yield ()
@@ -264,8 +273,8 @@ object RunHooks {
             val cmdInfo = s"'${path}' with environment parameters: [${hookParameters.debugString}]"
 
             for {
-              _ <- PureHooksLogger.debug(s"Run hook: ${cmdInfo}")
-              _ <- PureHooksLogger.trace(s"System environment variables: ${envVariables.debugString}")
+              _ <- PureHooksLogger.For(logIdentifier).debug(s"Run hook: ${cmdInfo}")
+              _ <- PureHooksLogger.For(logIdentifier).trace(s"System environment variables: ${envVariables.debugString}")
               f <- PureHooksLogger.LongExecLogger
                      .warn(s"Hook is taking more than ${warnTimeout.render} to finish: ${cmdInfo}")
                      .delay(warnTimeout)
@@ -290,8 +299,8 @@ object RunHooks {
     val cmdInfo = s"'${hooks.basePath}' with environment parameters: [${hookParameters.debugString}]"
     (for {
       // cmdInfo is just for comments/log. We use "*" to synthesize
-      _       <- PureHooksLogger.debug(s"Run hooks: ${cmdInfo}")
-      _       <- PureHooksLogger.trace(s"Hook environment variables: ${envVariables.debugString}")
+      _       <- PureHooksLogger.For(logIdentifier).debug(s"Run hooks: ${cmdInfo}")
+      _       <- PureHooksLogger.For(logIdentifier).trace(s"Hook environment variables: ${envVariables.debugString}")
       time_0  <- currentTimeNanos
       f       <-
         PureHooksLogger.LongExecLogger
@@ -309,9 +318,10 @@ object RunHooks {
                      s"Executing all hooks in directory ${cmdInfo} took: ${duration / 1_000_000} ms (warn after ${globalWarnAfter.toMillis} ms)"
                    )
                  }
-      _       <- PureHooksLogger.debug(
-                   s"Done in ${duration / 1000} us: ${cmdInfo}"
-                 ) // keep that one in all cases if people want to do stats
+      _       <- PureHooksLogger
+                   .For(logIdentifier)
+                   // keep that one in all cases if people want to do stats
+                   .debug(s"Done in ${duration / 1000} us: ${cmdInfo}")
     } yield {
       (res, duration)
     }).chainError(s"Error when executing hooks in directory '${hooks.basePath}'.")
@@ -338,6 +348,7 @@ object RunHooks {
    * `unitKillAfter` is an individual timeout, ie the kill will happen if ONE hook takes more time than that value.
    */
   def syncRun(
+      logIdentifier:   String, // the subs-name space path that will hold that log
       hooks:           Hooks,
       hookParameters:  HookEnvPairs,
       envVariables:    HookEnvPairs,
@@ -345,7 +356,15 @@ object RunHooks {
       unitWarnAfter:   Duration = 30.seconds,
       unitKillAfter:   Duration = 5.minutes
   ): HookReturnCode = {
-    asyncRun(hooks, hookParameters, envVariables, globalWarnAfter, unitWarnAfter, unitKillAfter).either.runNow match {
+    asyncRun(
+      logIdentifier,
+      hooks,
+      hookParameters,
+      envVariables,
+      globalWarnAfter,
+      unitWarnAfter,
+      unitKillAfter
+    ).either.runNow match {
       case Right(x)  => x._1
       case Left(err) =>
         HookReturnCode.SystemError(

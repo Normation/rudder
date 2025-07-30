@@ -72,6 +72,7 @@ class HooksTest() extends Specification with AfterAll {
 
   def runHooks(hooks: List[String], params: List[HookEnvPair]): HookReturnCode = {
     RunHooks.syncRun(
+      "test.hooks",
       Hooks(tmp.pathAsString, hooks.map(f => (f, HookTimeout(None, None)))),
       HookEnvPairs(params),
       HookEnvPairs(Nil),
@@ -127,6 +128,7 @@ class HooksTest() extends Specification with AfterAll {
     val name    = "timeout_ok.sh"
     val timeout = RunHooks.effectfulGetHookTimeout(File(tmp.pathAsString, name).toJava)
     val res     = RunHooks.syncRun(
+      "test.hooks",
       Hooks(tmp.pathAsString, List((name, timeout))),
       HookEnvPairs(HookEnvPair("CODE", "0") :: Nil),
       HookEnvPairs(Nil),

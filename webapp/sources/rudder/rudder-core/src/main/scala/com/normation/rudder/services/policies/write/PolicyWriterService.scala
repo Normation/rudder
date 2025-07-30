@@ -625,11 +625,11 @@ class PolicyWriterServiceImpl(
       parametersWrittenTime <- currentTimeMillis
       _                     <- timingLogger.debug(s"Parameters written in ${parametersWrittenTime - propertiesWrittenTime} ms")
 
-      _ <- IOResult.attempt(fillTemplates.clearCache())
+      _              <- IOResult.attempt(fillTemplates.clearCache())
       /// perhaps that should be a post-hook somehow ?
       // and perhaps we should have an AgentSpecific global pre/post write
-
-      nodePreMvHooks <- RunHooks.getHooksPure(HOOKS_D + "/policy-generation-node-ready", HOOKS_IGNORE_SUFFIXES)
+      preMvHooksName  = "policy-generation-node-ready"
+      nodePreMvHooks <- RunHooks.getHooksPure(HOOKS_D + "/" + preMvHooksName, HOOKS_IGNORE_SUFFIXES)
       preMvHooks     <- parallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
                           val nodeId       = agentNodeConfig.config.nodeInfo.id.value
                           val hostname     = agentNodeConfig.config.nodeInfo.fqdn
@@ -637,6 +637,7 @@ class PolicyWriterServiceImpl(
                           for {
                             timeHooks0 <- currentTimeMillis
                             res        <- RunHooks.asyncRun(
+                                            preMvHooksName,
                                             nodePreMvHooks,
                                             HookEnvPairs.build(
                                               ("RUDDER_GENERATION_DATETIME", generationTime.toString),
@@ -673,7 +674,8 @@ class PolicyWriterServiceImpl(
       movedPromisesTime2 <- currentTimeMillis
       _                  <- timingLogger.debug(s"Policies moved to their final position in ${movedPromisesTime2 - movedPromisesTime1} ms")
 
-      nodePostMvHooks  <- RunHooks.getHooksPure(HOOKS_D + "/policy-generation-node-finished", HOOKS_IGNORE_SUFFIXES)
+      postMvHooksName   = "policy-generation-node-finished"
+      nodePostMvHooks  <- RunHooks.getHooksPure(HOOKS_D + "/" + postMvHooksName, HOOKS_IGNORE_SUFFIXES)
       postMvHooks      <- parallelSequenceNodeHook(configAndPaths) { agentNodeConfig =>
                             val nodeId       = agentNodeConfig.config.nodeInfo.id.value
                             val hostname     = agentNodeConfig.config.nodeInfo.fqdn
@@ -681,6 +683,7 @@ class PolicyWriterServiceImpl(
                             for {
                               timeHooks0 <- currentTimeMillis
                               res        <- RunHooks.asyncRun(
+                                              postMvHooksName,
                                               nodePostMvHooks,
                                               HookEnvPairs.build(
                                                 ("RUDDER_GENERATION_DATETIME", generationTime.toString),

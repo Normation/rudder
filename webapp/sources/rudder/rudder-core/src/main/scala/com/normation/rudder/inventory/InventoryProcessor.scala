@@ -343,12 +343,15 @@ class InventoryFailedHook(
   import scala.jdk.CollectionConverters.*
 
   def runHooks(file: File): UIO[Unit] = {
+    val name = "node-inventory-received-failed"
+
     (for {
       systemEnv <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq*))
-      hooks     <- RunHooks.getHooksPure(HOOKS_D + "/node-inventory-received-failed", HOOKS_IGNORE_SUFFIXES)
+      hooks     <- RunHooks.getHooksPure(HOOKS_D + "/" + name, HOOKS_IGNORE_SUFFIXES)
       _         <- for {
                      timeHooks0 <- currentTimeMillis
                      res        <- RunHooks.asyncRun(
+                                     name,
                                      hooks,
                                      HookEnvPairs.build(
                                        ("RUDDER_INVENTORY_PATH", file.pathAsString)
@@ -357,9 +360,9 @@ class InventoryFailedHook(
                                      1.minutes // warn if a hook took more than a minute
                                    )
                      timeHooks1 <- currentTimeMillis
-                     _          <- PureHooksLogger.trace(s"Inventory failed hooks ran in ${timeHooks1 - timeHooks0} ms")
+                     _          <- PureHooksLogger.For(name).trace(s"Inventory failed hooks ran in ${timeHooks1 - timeHooks0} ms")
                    } yield ()
-    } yield ()).catchAll(err => PureHooksLogger.error(err.fullMsg))
+    } yield ()).catchAll(err => PureHooksLogger.For(name).error(err.fullMsg))
   }
 }
 
