@@ -112,7 +112,7 @@ impl Cli {
             timeout: cli.timeout.unwrap_or_else(Commands::default_timeout),
             stdin: cli.stdin,
             stdin_add_newline: !cli.stdin_no_newline,
-            compliant_codes: "".to_string(),
+            compliant_codes: None,
             repaired_codes: Commands::default_repaired_codes(),
             output_to_file: cli.output_to_file,
             strip_output: cli.strip_output,
