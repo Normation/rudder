@@ -113,7 +113,7 @@ pub struct CommandsParameters {
 
     /// Environment variables used by the executed command
     #[serde(skip_serializing_if = "Option::is_none")]
-    env_vars: Option<HashMap<String, String>>,
+    env_vars: Option<String>,
 
     /// Controls output of diffs in the report
     #[serde(default = "Commands::default_as_true")]
@@ -211,7 +211,21 @@ impl Commands {
         if let Some(env) = &p.env_vars
             && !env.is_empty()
         {
-            command.envs(env);
+            let env_map: HashMap<String, String> = env
+                .lines()
+                .filter_map(|line| {
+                    let mut tokens = line.splitn(2, '=');
+                    match (tokens.next(), tokens.next()) {
+                        (Some(key), Some(value)) => Some((key.to_string(), value.to_string())),
+                        _ => {
+                            println!("Invalid env variable: '{line}'");
+                            None
+                        }
+                    }
+                })
+                .collect();
+
+            command.envs(env_map);
         }
 
         command.stdout(Stdio::piped());
@@ -340,10 +354,9 @@ impl ModuleType0 for Commands {
         };
 
         let status = output.get("status").unwrap().to_string();
-        dbg!(status.as_str());
         let res = match status.as_str() {
-            "compliant" => Outcome::success_with(output.to_string()),
-            "repaired" => Outcome::repaired(output.to_string()),
+            "\"compliant\"" => Outcome::success_with(output.to_string()),
+            "\"repaired\"" => Outcome::repaired(output.to_string()),
             _ => bail!("{}", output.to_string()),
         };
 

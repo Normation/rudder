@@ -3563,6 +3563,7 @@ version = "0.0.0-dev"
 dependencies = [
  "anyhow",
  "clap",
+ "itertools 0.14.0",
  "rudder_module_type",
  "rustix 1.0.8",
  "serde",
