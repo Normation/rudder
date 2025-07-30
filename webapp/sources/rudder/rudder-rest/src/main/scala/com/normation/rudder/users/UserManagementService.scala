@@ -53,6 +53,7 @@ import com.normation.rudder.users.UserManagementIO.getUserFilePath
 import com.normation.rudder.users.UserPassword.HashedUserPassword
 import com.normation.rudder.users.UserPassword.UnknownPassword
 import com.normation.zio.*
+import io.scalaland.chimney.syntax.*
 import java.util.concurrent.TimeUnit
 import org.springframework.core.io.ClassPathResource as CPResource
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -276,13 +277,13 @@ class UserManagementService(
    * - the providers list for the user and their ability to extend roles from user file
    * - the password definition and hashing
    */
-  def update(id: String, username: String, password: String, permissions: Option[List[String]], isPreHashed: Boolean)(
+  def update(id: String, updateUser: JsonUserFormData)(
       allRoles: Map[String, Role]
   ): IOResult[Unit] = {
     implicit val currentRoles: Set[Role] = allRoles.values.toSet
 
     // Unknown permissions are trusted and put in file
-    val optNewPermissions: Option[Set[String]] = permissions
+    val optNewPermissions: Option[Set[String]] = updateUser.permissions
       .map(p => {
         UserManagementService.parsePermissions(p.toSet) match {
           case (roles, authz, unknown) => roles.map(_.name) ++ authz.map(_.id) ++ unknown
@@ -306,7 +307,7 @@ class UserManagementService(
 
                       _ <- (userXML \\ "authentication").head match {
                              case e: Elem =>
-                               val newXml = e.copy(child = e.child ++ User.make(id, "", Set.empty, "").toNode)
+                               val newXml = e.copy(child = e.child ++ User.make(id, UserPassword.unknown, Set.empty, "").toNode)
                                UserManagementIO.replaceXml(userXML, newXml, file)
                              case _ =>
                                Unexpected(s"Wrong formatting : ${file.path}").fail
@@ -323,9 +324,9 @@ class UserManagementService(
                  override def transform(n: Node): NodeSeq = n match {
                    case user: Elem if (user \ "@name").text == id =>
                      implicit val encoder: PasswordEncoder = getPasswordEncoderFromHash(userXML)
-                     val fileUser    = update.transformInto[User]
+                     val fileUser    = updateUser.transformInto[User]
                      // for each user's parameters, if a new user's parameter is empty we decide to keep the original one
-                     val newUsername = if (username.isEmpty) id else username
+                     val newUsername = if (fileUser.username.isEmpty) id else fileUser.username
                      val newPassword = fileUser.password match {
                        case _: UnknownPassword    => UserPassword.UnknownPassword((user \ "@password").text)
                        case h: HashedUserPassword => h

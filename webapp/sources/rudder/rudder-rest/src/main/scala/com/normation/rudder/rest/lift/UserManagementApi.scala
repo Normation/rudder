@@ -446,14 +446,15 @@ class UserManagementApiImpl(
       (for {
         u          <- ZioJsonExtractor.parseJson[JsonUserFormData](req).toIO
         permissions = u.permissions.map(_.filter(_ != AuthorizationType.NoRights.id))
+        user        = u.copy(permissions = permissions)
         allRoles   <- RudderRoles.getAllRoles
         // We ignore the "user info" part of the request when updating
         _          <-
-          userManagementService.update(id, u.username, u.password, permissions, u.isPreHashed)(
+          userManagementService.update(id, user)(
             allRoles
           )
       } yield {
-        u.copy(permissions = permissions).transformInto[User].transformInto[JsonUpdatedUser]
+        user.transformInto[JsonUpdatedUser]
       }).chainError(s"Could not update user '${id}'").toLiftResponseOne(params, schema, _ => None)
     }
   }

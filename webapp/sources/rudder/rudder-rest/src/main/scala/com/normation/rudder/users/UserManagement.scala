@@ -83,7 +83,7 @@ object UserPassword {
   case class SecretUserPassword private[UserPassword] (private val secret: String) extends UserPassword {
     override def toString: String = "[REDACTED SecretUserPassword]"
 
-    def toHashed(implicit encoder: PasswordEncoder): HashedUserPassword = HashedUserPassword(encoder.encode(secret))
+    def toHashed(using encoder: PasswordEncoder): HashedUserPassword = HashedUserPassword(encoder.encode(secret))
   }
 
   /**
@@ -179,13 +179,8 @@ object UserManagementLogger extends Logger {
 final case class UpdateUserFile(
     username:    String,
     password:    UserPassword,
-    permissions: Set[String]
+    permissions: Option[Set[String]]
 )
-
-object UpdateUserFile {
-  implicit def transformer(using PasswordEncoder): Transformer[UpdateUserFile, User] =
-    Transformer.define[UpdateUserFile, User].enableOptionDefaultsToNone.buildTransformer
-}
 
 final case class UpdateUserInfo(
     name:      Option[String],
@@ -505,8 +500,12 @@ final case class JsonInternalUserData(
 object JsonInternalUserData {
   import UserPassword.UnsafeInstances.*
   implicit val transformer:             Transformer[User, JsonInternalUserData]             = Transformer.derive[User, JsonInternalUserData]
-  implicit val transformerUserFormData: Transformer[JsonUserFormData, JsonInternalUserData] =
-    Transformer.derive[JsonUserFormData, JsonInternalUserData]
+  implicit val transformerUserFormData: Transformer[JsonUserFormData, JsonInternalUserData] = {
+    Transformer
+      .define[JsonUserFormData, JsonInternalUserData]
+      .withFieldComputed(_.permissions, _.permissions.getOrElse(Nil))
+      .buildTransformer
+  }
 }
 
 final case class JsonAddedUser(
@@ -582,7 +581,6 @@ object JsonUserFormData {
         _.password,
         json => if (json.isPreHashed) UserPassword.unsafeHashed(json.password) else UserPassword.fromSecret(json.password)
       )
-      .withFieldComputed(_.permissions, _.permissions.getOrElse(Nil).toSet)
       .buildTransformer
   }
 }
