@@ -50,7 +50,7 @@ import com.normation.rudder.RudderRoles
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.users.UserManagementIO.getUserFilePath
-import com.normation.rudder.users.UserPassword.HashedUserPassword
+import com.normation.rudder.users.UserPassword.StorableUserPassword
 import com.normation.rudder.users.UserPassword.UnknownPassword
 import com.normation.zio.*
 import io.scalaland.chimney.syntax.*
@@ -328,8 +328,8 @@ class UserManagementService(
                      // for each user's parameters, if a new user's parameter is empty we decide to keep the original one
                      val newUsername = if (fileUser.username.isEmpty) id else fileUser.username
                      val newPassword = fileUser.password match {
-                       case _: UnknownPassword    => UserPassword.UnknownPassword((user \ "@password").text)
-                       case h: HashedUserPassword => h
+                       case _: UnknownPassword      => UserPassword.UnknownPassword((user \ "@password").text)
+                       case s: StorableUserPassword => s
                      }
                      // return the user to update in the file with the resolved permissions
                      User

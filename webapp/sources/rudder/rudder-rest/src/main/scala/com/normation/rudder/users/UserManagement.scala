@@ -71,7 +71,7 @@ object UserPassword {
   }
 
   case class HashedUserPassword private[UserPassword] (private val value: String) extends StorableUserPassword {
-    // FIXME: maybe display first chars, to know at least the hash algo ?
+    // if we apply strict check on hash format, maybe we should the display first chars, to know at least the hash algo ?
     override def toString: String = "[REDACTED HashedUserPassword]"
 
     override def exposeValue(): String = value
@@ -90,7 +90,12 @@ object UserPassword {
    * For cases when user cannot have a password e.g. with remote authentication, it should never match
    */
   case class UnknownPassword(value: String) extends StorableUserPassword {
+    override def toString:      String = "[REDACTED UnknownPassorwd]"
     override def exposeValue(): String = value
+  }
+
+  case class RandomHexaPassword private[UserPassword] (randomValue: String) extends StorableUserPassword {
+    override def exposeValue(): String = randomValue
   }
 
   implicit def transformSecretToHashed(using PasswordEncoder): Transformer[SecretUserPassword, HashedUserPassword] =
@@ -128,7 +133,7 @@ object UserPassword {
   // If the attribute is defined several times, use the first occurrence.
   // see https://stackoverflow.com/a/44227131
   // produce a random hexa string of 32 chars
-  def randomHexa32: UnknownPassword = {
+  def randomHexa32: RandomHexaPassword = {
     // here, we can be unlucky with the chosen token which convert to an int starting with one or more 0.
     // In that case, just complete the string
     def randInternal: String = {
@@ -141,7 +146,7 @@ object UserPassword {
     while (s.length < 32) { // we can be very unlucky and keep drawing 000s
       s = s + randInternal.substring(0, 32 - s.length)
     }
-    UnknownPassword(s)
+    RandomHexaPassword(s)
   }
 
   def fromSecret(s: String): SecretUserPassword = SecretUserPassword(s)
