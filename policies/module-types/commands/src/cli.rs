@@ -2,7 +2,8 @@ use crate::{Commands, CommandsParameters, get_used_cmd};
 use anyhow::{Context, Result};
 use clap::Parser;
 
-use std::{collections::HashMap, env, path::PathBuf};
+use itertools::Itertools;
+use std::{env, path::PathBuf};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -98,7 +99,9 @@ impl Cli {
             None
         };
         let env = if cli.share_env {
-            Some(env::vars().collect::<HashMap<String, String>>())
+            let serialized_env = env::vars().map(|(k, v)| format!("{}={}", k, v)).join("\n");
+
+            Some(serialized_env)
         } else {
             None
         };
