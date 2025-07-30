@@ -1995,13 +1995,13 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                     $('#showParameters' + id).off('click').on('click', function() { showParameters(event, id) });
                     $("#restoreBtn" + id).click(function(event){
                       const rollback = "#rollback" + id
-                      $(rollback).hide();
+                      $(rollback).removeClass("d-flex").addClass("d-none");
                       const confirm = "#confirm" + id.toString();
                       const radios = $(".radio-btn");
                       const action = getRadioChecked(radios, value => (value === "before" || value === "after") ? value : null);
                       if (action !== null) {
-                        const confirmHtml = "<div class='d-flex text-start align-items-center'><i class='fa fa-exclamation-triangle fs-2 me-3' aria-hidden='true'></i>Are you sure you want to restore configuration policy " + action + " this</div><span><button class='btn btn-default rollback-action'>Cancel</button></span>&nbsp;&nbsp;<button class='btn btn-danger rollback-action'>Confirm</button></span>";
-                        $(confirm).append(confirmHtml).addClass("alert alert-warning d-flex align-items-center");
+                        const confirmHtml = "<div class='d-flex text-start column-gap-2'><div class='py-2'><i class='fa fa-exclamation-triangle fs-2' aria-hidden='true'></i></div><div><div>Are you sure you want to restore configuration policy " + action + " this change? </div><div class='mt-2'><button class='btn btn-default rollback-action'>Cancel</button><button class='btn btn-danger rollback-action ms-2'>Confirm</button></div></div>";
+                        $(confirm).append(confirmHtml).addClass("alert alert-warning d-flex flex-column");
                         $('#confirm' + id + ' .rollback-action.btn-danger').off('click').on('click', '', function() { confirmRollback(id, action) });
                         $('#confirm' + id + ' .rollback-action.btn-default').off('click').on('click', '', function() { cancelRollback(id) });
                       }
@@ -2083,7 +2083,7 @@ function confirmRollback(id, action) {
 
 function cancelRollback(id) {
   $('#confirm'+id).empty().removeClass();
-  $('#rollback'+id).show();
+  $('#rollback'+id).removeClass("d-none").addClass("d-flex");
 }
 function computeCompliancePercentFromString(complianceString) {
   var complianceArray = complianceString.split(",").map(Number);

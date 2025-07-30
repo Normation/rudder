@@ -81,8 +81,9 @@ pre.technical-details{
   box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgb(208, 208, 208);
 }
 .rollbackFieldSet {
-  min-width : 520px;
+  max-width : 520px;
   text-align : center;
+  flex: 1;
 }
 .evlogviewpad {
   padding:5px;
