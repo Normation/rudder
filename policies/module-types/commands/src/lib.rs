@@ -337,12 +337,11 @@ pub fn get_used_cmd(p: &CommandsParameters) -> String {
         None => command.clone(),
     };
 
-    let shell = if p.in_shell {
-        format!("{} -c ", p.shell_path)
+    if p.in_shell {
+        format!("{} -c '{}'", p.shell_path, cmd_args)
     } else {
-        String::new()
-    };
-    format!("{shell}{cmd_args}")
+        format!("{cmd_args}")
+    }
 }
 
 fn strip_trailing_newline(input: &str) -> &str {
@@ -385,6 +384,71 @@ mod tests {
 
     #[test]
     #[cfg(target_family = "unix")]
+    fn test_wrong_cmd() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "/bin/eho".to_string(),
+            args: Some("OK".to_string()),
+            run_in_audit_mode: false,
+            in_shell: false,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: "".to_string(),
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: false,
+            uid: None,
+            gid: None,
+            umask: None,
+            env_vars: None,
+            show_content: true,
+        };
+
+        let s = Commands::run(&cmd, false);
+        assert!(s.is_err());
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_wrong_cmd_in_shell() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "eho".to_string(),
+            args: Some("OK".to_string()),
+            run_in_audit_mode: false,
+            in_shell: true,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: "".to_string(),
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: false,
+            uid: None,
+            gid: None,
+            umask: None,
+            env_vars: None,
+            show_content: true,
+        };
+
+        let s = Commands::run(&cmd, false);
+        assert!(s.is_ok());
+
+        let out = s.unwrap();
+
+        let exit_code = out.get("exit_code").unwrap().to_string();
+        assert_eq!(exit_code, "127");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
     fn test_get_used_cmd_in_default_shell() {
         use super::*;
 
@@ -410,7 +474,7 @@ mod tests {
         };
 
         let cmd_string = get_used_cmd(&cmd);
-        assert_eq!(cmd_string, "/bin/sh -c echo OK");
+        assert_eq!(cmd_string, "/bin/sh -c 'echo OK'");
     }
 
     #[test]
@@ -649,5 +713,43 @@ mod tests {
 
         let stdout = out.get("stdout").unwrap().to_string();
         assert_eq!(stdout, "\"/tmp\"");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_run_strip_output_false() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "echo".to_string(),
+            args: Some("OK".to_string()),
+            run_in_audit_mode: false,
+            in_shell: false,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: "".to_string(),
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: false,
+            uid: None,
+            gid: None,
+            umask: None,
+            env_vars: None,
+            show_content: true,
+        };
+
+        let s = Commands::run(&cmd, false);
+        assert!(s.is_ok());
+
+        let out = s.unwrap();
+
+        let exit_code = out.get("exit_code").unwrap().to_string();
+        assert_eq!(exit_code, "0");
+
+        let stdout = out.get("stdout").unwrap().to_string();
+        assert_eq!(stdout, "\"OK\\n\"");
     }
 }
