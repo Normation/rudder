@@ -831,7 +831,88 @@ mod tests {
         let exit_code = out.get("exit_code").unwrap().to_string();
         assert_eq!(exit_code, "0");
 
-        let stdout = out.get("status").unwrap().to_string();
-        assert_eq!(stdout, "\"repaired\"");
+        let status = out.get("status").unwrap().to_string();
+        assert_eq!(status, "\"repaired\"");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_env() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "env".to_string(),
+            args: None,
+            run_in_audit_mode: false,
+            in_shell: false,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: None,
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: false,
+            uid: None,
+            gid: None,
+            umask: None,
+            env_vars: Some("SUPER_ENV_TEST=MY_VAR\nMY_SECOND_VAR=MY_SECOND_VALUE".to_string()),
+            show_content: true,
+        };
+
+        let s = Commands::run(&cmd, false);
+        assert!(s.is_ok());
+
+        let out = s.unwrap();
+
+        let exit_code = out.get("exit_code").unwrap().to_string();
+        assert_eq!(exit_code, "0");
+
+        let stdout = out.get("stdout").unwrap().to_string();
+        assert!(stdout.contains("SUPER_ENV_TEST=MY_VAR"));
+        assert!(stdout.contains("MY_SECOND_VAR=MY_SECOND_VALUE"));
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
+    fn test_env_in_shell() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "env".to_string(),
+            args: None,
+            run_in_audit_mode: false,
+            in_shell: true,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: None,
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: false,
+            uid: None,
+            gid: None,
+            umask: None,
+            env_vars: Some(
+                "SUPER_ENV_TEST=MY_VAR\nMY_SECOND_VAR=MY_SECOND_VALUE\nBOUM3=PAF3".to_string(),
+            ),
+            show_content: true,
+        };
+
+        let s = Commands::run(&cmd, false);
+        assert!(s.is_ok());
+
+        let out = s.unwrap();
+
+        let exit_code = out.get("exit_code").unwrap().to_string();
+        assert_eq!(exit_code, "0");
+
+        let stdout = out.get("stdout").unwrap().to_string();
+        assert!(stdout.contains("SUPER_ENV_TEST=MY_VAR"));
+        assert!(stdout.contains("MY_SECOND_VAR=MY_SECOND_VALUE"));
+        assert!(stdout.contains("BOUM3=PAF3"));
     }
 }
