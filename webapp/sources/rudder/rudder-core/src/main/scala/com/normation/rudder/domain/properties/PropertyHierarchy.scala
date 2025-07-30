@@ -196,7 +196,14 @@ object PropertyVertex {
  */
 sealed trait PropertyHierarchy {
   def hierarchy: PropertyVertex[?]
-  def prop:      GenericProperty[?] = hierarchy.value.resolvedValue
+
+  def parents: PropertyVertex[?] = hierarchy.value match {
+    case PropertyValueKind.SelfValue(_)                  => hierarchy // return self if no parents
+    case PropertyValueKind.Inherited(parentProperty)     => parentProperty
+    case PropertyValueKind.Overridden(_, parentProperty) => parentProperty
+  }
+
+  def prop: GenericProperty[?] = hierarchy.value.resolvedValue
 }
 
 /*

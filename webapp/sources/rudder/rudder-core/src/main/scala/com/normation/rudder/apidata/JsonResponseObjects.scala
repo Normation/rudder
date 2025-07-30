@@ -1174,9 +1174,10 @@ object JsonResponseObjects {
     ): JRPropertyHierarchyStatus = {
       val parentProperties = inheritedPropertyStatus.property
 
+      val a = JRParentPropertyDetails.fromParentProperty(parentProperties)
       JRPropertyHierarchyStatus(
         inheritedPropertyStatus.hasChildTypeConflicts,
-        JRParentPropertyDetails.fromParentProperty(parentProperties),
+        a,
         inheritedPropertyStatus.errorMessage
       )
 
@@ -1268,6 +1269,7 @@ object JsonResponseObjects {
       val desc = if (p.description.trim.isEmpty) None else Some(p.description)
       JRProperty(p.name, p.value, desc, p.inheritMode, p.provider, None, None, None)
     }
+
     def fromInheritedPropertyStatus(
         inheritedPropertyStatus: InheritedPropertyStatus,
         renderInHtml:            RenderInheritedProperties,
@@ -1341,7 +1343,7 @@ object JsonResponseObjects {
         renderInHtml:          RenderInheritedProperties,
         escapeHtml:            Boolean = false
     ): JRProperty = {
-      val hierarchyStatus = JRPropertyHierarchyStatus.fromParentProperties(hasChildTypeConflicts, prop.hierarchy)
+      val hierarchyStatus = JRPropertyHierarchyStatus.fromParentProperties(hasChildTypeConflicts, prop.parents)
       val desc            = if (prop.prop.description.trim.isEmpty) None else Some(prop.prop.description)
       JRProperty(
         prop.prop.name,
@@ -1349,9 +1351,9 @@ object JsonResponseObjects {
         desc,
         prop.prop.inheritMode,
         prop.prop.provider,
-        transformParentProperties(prop.hierarchy, renderInHtml, escapeHtml),
+        transformParentProperties(prop.parents, renderInHtml, escapeHtml),
         Some(hierarchyStatus),
-        Some(getHierarchyOriginalValue(prop.hierarchy))
+        Some(getHierarchyOriginalValue(prop.parents))
       )
     }
 
@@ -1612,7 +1614,7 @@ object JsonResponseObjects {
     /**
      * The hierarchy of the main property, not the one as seen by the descendants (parentsInheritedProps)
      */
-    def property: PropertyVertex[?] = prop.hierarchy
+    def property: PropertyVertex[?] = prop.parents
   }
 
   // This describes a property that is in error, subtypes can be seen as this generic error
@@ -1638,7 +1640,7 @@ object JsonResponseObjects {
   final case class ChildTypeConflictStatus(
       val prop: PropertyHierarchy
   ) extends ErrorInheritedPropertyStatus(
-        prop.hierarchy,
+        prop.parents,
         Some("Conflicting types in inherited node properties"),
         hasChildTypeConflicts = true
       ) {}
@@ -1651,7 +1653,7 @@ object JsonResponseObjects {
     def from(parent: PropertyHierarchy): InheritedPropertyStatus = {
       fromChildren(
         parent,
-        Some(parent.hierarchy)
+        Some(parent.parents)
       )
     }
 
