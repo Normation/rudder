@@ -61,9 +61,9 @@ class PropertiesRepositoryTest extends Specification {
     // node2 has some properties
     val resolvedNode2 = SuccessNodePropertyHierarchy(
       Chunk.from(
-        MockNodes.node2Node.properties.map(n =>
-          NodePropertyHierarchy(MockNodes.node2.id, ParentProperty.Node(MockNodes.node2.hostname, MockNodes.node2.id, n, None))
-        )
+        MockNodes.node2Node.properties.map { n =>
+          NodePropertyHierarchy.forNodeWithValue(MockNodes.node2.hostname, MockNodes.node2.id, n, None)
+        }
       )
     )
     val initialProps  = Map(
@@ -75,7 +75,7 @@ class PropertiesRepositoryTest extends Specification {
     }
 
     "get node properties on several nodes for a property" in {
-      // node1 without the property is ommited from the result
+      // node1 without the property is omitted from the result
       val expected = resolvedNode2.resolved.filter(_.prop.name == "simpleString").map(MockNodes.node2.id -> _)
       repo.getNodesProp(Set(MockNodes.node1.id, MockNodes.node2.id), "simpleString").runNow must containTheSameElementsAs(
         expected
