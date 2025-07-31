@@ -136,7 +136,7 @@ impl From<Parameter> for SelectOne {
         };
 
         Self {
-            name: p.name.clone(),
+            name: p.id.to_string(),
             variable_name: p.name.clone(),
             description: p.description.unwrap_or(p.name),
             long_description: p.documentation,
