@@ -461,8 +461,25 @@ object JsonQueryObjects {
     }
   }
 
+  /*
+   * we want to directly decode:
+   * "agentKey": {
+   *   "value": "-----BEGIN CERTIFICATE-----...",
+   *    "status": "certified"
+   * }
+   * ie no duplicate { "value": { "value": ... see https://issues.rudder.io/issues/27369
+   */
+  final case class JQSecurityToken(sk: SecurityToken)
+  object JQSecurityToken {
+    implicit val decoderJQSecurityToken: JsonDecoder[JQSecurityToken] = JsonDecoder.string.mapOrFail { s =>
+      SecurityToken.parseValidate(s) match {
+        case Right(sk) => Right(JQSecurityToken(sk))
+        case Left(err) => Left(err.fullMsg)
+      }
+    }
+  }
   final case class JQAgentKey(
-      value:  Option[SecurityToken],
+      value:  Option[JQSecurityToken],
       status: Option[KeyStatus]
   ) {
     // if agentKeyValue is present, we set both it and key status.
@@ -470,9 +487,9 @@ object JsonQueryObjects {
     val toKeyInfo: (Option[SecurityToken], Option[KeyStatus]) = {
       (value, status) match {
         case (None, None)       => (None, None)
-        case (Some(k), None)    => (Some(k), Some(CertifiedKey))
+        case (Some(k), None)    => (Some(k.sk), Some(CertifiedKey))
         case (None, Some(s))    => (None, Some(s))
-        case (Some(k), Some(s)) => (Some(k), Some(s))
+        case (Some(k), Some(s)) => (Some(k.sk), Some(s))
       }
     }
   }
