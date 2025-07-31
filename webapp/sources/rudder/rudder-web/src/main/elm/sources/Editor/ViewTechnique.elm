@@ -331,13 +331,44 @@ showTechnique model technique origin ui editInfo =
                   elem :: base
              ) technique.elems
            )
-    btnSave : Bool -> Bool -> Msg -> Html Msg
-    btnSave saving disable action =
+
+    checkList : List (Bool, String)
+    checkList =
+      [ (isUnchanged, "There are no modifications to save")
+      , (not (isValid technique ui), "Technique is invalid")
+      , (String.isEmpty technique.name, "Technique name cannot be empty")
+      , (isMethodListEmpty, "Technique must contain at least one method")
+      , (not areErrorOnMethodParameters, "There are errors on method parameters")
+      , (not areErrorOnMethodCondition, "There are errors on method conditions")
+      , (not areBlockOnError, "There are errors on blocks")
+      , (isEnumListIsEmpty, "Enum type parameters should contain at least one element")
+      , (isEnumWithEmptyName, "The display name of Enum type parameter values cannot be empty")
+      , (isEnumWithEmptyValue, "The value of Enum type parameter values cannot be empty")
+      ]
+
+    btnSave : Bool -> List (Bool, String) -> Msg -> Html Msg
+    btnSave saving disableChecks action =
       let
-        icon = if saving then i [ class "fa fa-spinner fa-pulse"] [] else i [ class "fa fa-download"] []
+        disable = disableChecks |> List.any (\(check, _) -> check == True)
+        btnTitle =
+          if disable then
+            String.append
+              ( disableChecks
+                |> List.filter (\(check, _) -> check == True )
+                |> List.map (\(_, txt) -> txt )
+                |> String.join ".\n"
+              ) "."
+          else
+            ""
+        icon = if saving then "fa-spinner fa-pulse" else if disable then "fa-ban" else "fa-download"
       in
-        button [class ("btn btn-success btn-save" ++ (if saving then " saving" else "")), type_ "button", disabled (saving || disable), onClick action]
-        [ icon ]
+        button
+        [ class ("btn btn-success btn-save" ++ (if saving then " saving" else ""))
+        , type_ "button"
+        , Html.Attributes.title btnTitle
+        , disabled (saving || disable)
+        , onClick action
+        ] [ i [ class ("fa " ++ icon)][] ]
   in
     div [ class "main-container" ] [
       div [ class "main-header" ] [
@@ -360,16 +391,7 @@ showTechnique model technique origin ui editInfo =
               text (if (editInfo.open) then "Visual editor " else "YAML editor")
             , i [ class "fa fa-pen"] []
             ]
-          , btnSave ui.saving (isUnchanged ||
-                               not (isValid technique ui) ||
-                               String.isEmpty technique.name ||
-                               isMethodListEmpty ||
-                               not areErrorOnMethodParameters ||
-                               not areErrorOnMethodCondition ||
-                               not areBlockOnError ||
-                               isEnumListIsEmpty ||
-                               isEnumWithEmptyName ||
-                               isEnumWithEmptyValue) StartSaving
+          , btnSave ui.saving checkList StartSaving
           ]
         ]
       ]
