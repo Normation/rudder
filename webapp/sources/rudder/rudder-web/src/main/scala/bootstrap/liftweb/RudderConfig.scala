@@ -1230,9 +1230,9 @@ object RudderParsedProperties {
     case Right(opt) => opt
   }
   val RUDDER_USERS_CLEAN_LAST_LOGIN_DISABLE: Duration         =
-    parseDuration("rudder.users.cleanup.account.disableAfterLastLogin", 90.days)
+    parseDuration("rudder.users.cleanup.account.disableAfterLastLogin", 180.days)
   val RUDDER_USERS_CLEAN_LAST_LOGIN_DELETE:  Duration         =
-    parseDuration("rudder.users.cleanup.account.deleteAfterLastLogin", 120.days)
+    parseDuration("rudder.users.cleanup.account.deleteAfterLastLogin", Duration.Infinity)
   val RUDDER_USERS_CLEAN_DELETED_PURGE:      Duration         = parseDuration("rudder.users.cleanup.purgeDeletedAfter", 30.days)
   val RUDDER_USERS_CLEAN_SESSIONS_PURGE:     Duration         = parseDuration("rudder.users.cleanup.sessions.purgeAfter", 30.days)
 
@@ -1245,6 +1245,7 @@ object RudderParsedProperties {
       }
     } catch {
       case ex: ConfigException       => // default
+        ApplicationLogger.info(s"Key '${propName}' is absent, defaulting to: ${default}")
         default
       case ex: NumberFormatException =>
         ApplicationLogger.error(

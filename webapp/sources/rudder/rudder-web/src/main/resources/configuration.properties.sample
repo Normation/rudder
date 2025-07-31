@@ -640,8 +640,8 @@ rudder.users.cleanup.cron=0 17 1 * * ?
 # For users:
 # - when a user have not logged in for a certain period of time, its account can be marked as disabled.
 # - when the user account is already disabled and the user did not log in for some time, the account can marked as deleted.
-rudder.users.cleanup.account.disableAfterLastLogin=90 days
-rudder.users.cleanup.account.deleteAfterLastLogin=120 days
+rudder.users.cleanup.account.disableAfterLastLogin=180 days
+rudder.users.cleanup.account.deleteAfterLastLogin=never
 
 # - when an user is deleted (for example removed from `rudder-user.xml` file), then the user information,
 #   like status changes, are not purged immediately (typically to be able to do post-deletion accountability).
