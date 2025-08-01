@@ -240,13 +240,17 @@ var complianceHoverColors =
   , "#DA291C" : "#ed1809ff"
   }
 
-function doughnutChart (id,data,colors,hoverColors) {
+async function doughnutChart(id, data, colors, hoverColors) {
 
-  var context = $("#"+id)
-  var count = data.values.length < 1 ? 0 : data.values.reduce((a, b) => a + b, 0);
+  const existingChart = Chart.getChart(id)
+  if (!!existingChart) existingChart.destroy()
 
-  var borderW = data.values.length > 1 ? 3 : 0;
-  var chartData = {
+  await waitForElement(`#${id}`)
+  const ctx = document.getElementById(id)
+  const count = data.values.length < 1 ? 0 : data.values.reduce((a, b) => a + b, 0);
+
+  const borderW = data.values.length > 1 ? 3 : 0;
+  const chartData = {
     labels  :  data.labels,
     datasets:
       [ { data           : data.values
@@ -256,7 +260,7 @@ function doughnutChart (id,data,colors,hoverColors) {
       } ]
   };
 
-  var chartOptions = {
+  const chartOptions = {
       type: 'doughnut'
     , data: chartData
     , options: {
@@ -353,7 +357,7 @@ function doughnutChart (id,data,colors,hoverColors) {
       }
     , plugins: [htmlLegendPlugin],
     }
-  var chart = new Chart(context, chartOptions);
+  const chart = new Chart(ctx, chartOptions);
   window[id] = chart;
 }
 
