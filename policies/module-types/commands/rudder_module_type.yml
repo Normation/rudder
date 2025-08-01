@@ -1,0 +1,118 @@
+---
+name: Commands
+description: Execute commands
+version: "0.0.1"
+supported_targets: ["unix"]
+parameters:
+  command:
+    description: "Command to be executed"
+    constraints:
+      allow_empty: false
+      allow_whitespace_string: false
+    p_type: String
+  args:
+    description: "Arguments to the command"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: true
+    p_type: String
+  run_in_audit_mode:
+    description: "Controls the running mode of the command"
+    constraints:
+      allow_empty: true
+      default: false
+    p_type: bool
+  in_shell:
+    description: "Controls if the command is executed inside a shell"
+    constraints:
+      allow_empty: true
+      default: false
+    p_type: bool
+  shell_path:
+    description: "Shell path"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: false
+      default: "/bin/sh"
+    p_type: String
+  chdir:
+    description: "Directory from where to execute the command"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: false
+    p_type: String
+  timeout:
+    description: "Timeout for command execution"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: false
+      default: "30"
+    p_type: String
+  stdin:
+    description: "Input passed to the stdin of the executed command"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: true
+    p_type: String
+  stdin_add_newline:
+    description: "Controls the appending of a newline to the stdin input"
+    constraints:
+      allow_empty: true
+      default: true
+    p_type: bool
+  compliant_codes:
+    description: "Compliant codes"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: true
+      default: ""
+    p_type: String
+  repaired_codes:
+    description: "Repaired codes"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: true
+      default: "0"
+    p_type: String
+  output_to_file:
+    description: "File to store the output of the command"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: false
+    p_type: String
+  strip_output:
+    description: "Controls the strip of the content inside the output file"
+    constraints:
+      allow_empty: true
+      default: false
+    p_type: bool
+  uid:
+    description: "UID used by the executed command"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: false
+    p_type: String
+  gid:
+    description: "GID used by the executed command"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: false
+    p_type: String
+  umask:
+    description: "Umask used by the executed command"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: false
+    p_type: String
+  env_vars:
+    description: "Environment variables used by the executed command"
+    constraints:
+      allow_empty: true
+      allow_whitespace_string: false
+    p_type: String
+  show_content:
+    description: "Controls output of diffs in the report"
+    constraints:
+      allow_empty: true
+      default: true
+    p_type: bool
