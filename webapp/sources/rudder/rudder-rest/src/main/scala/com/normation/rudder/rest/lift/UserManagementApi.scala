@@ -39,10 +39,10 @@ package com.normation.rudder.rest.lift
 
 import com.normation.errors.*
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.Rights
 import com.normation.rudder.Role
 import com.normation.rudder.Role.Custom
 import com.normation.rudder.RudderRoles
-import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction.DELETE
 import com.normation.rudder.api.HttpAction.GET
@@ -72,8 +72,6 @@ import com.normation.rudder.users.JsonUpdatedUser
 import com.normation.rudder.users.JsonUpdatedUserInfo
 import com.normation.rudder.users.JsonUser
 import com.normation.rudder.users.JsonUserFormData
-import com.normation.rudder.users.RudderAccount
-import com.normation.rudder.users.RudderUserDetail
 import com.normation.rudder.users.Serialisation.*
 import com.normation.rudder.users.UpdateUserInfo
 import com.normation.rudder.users.User
@@ -276,19 +274,13 @@ class UserManagementApiImpl(
                     // depending on provider property configuration, we should merge or override roles
                     val mainProviderRoleExtension = getProviderRoleExtensions().get(u.managedBy)
 
-                    val defaultUser            = {
-                      RudderUserDetail(
-                        RudderAccount.User(u.id, ""),
-                        u.status,
-                        Set(),
-                        ApiAuthorization.None,
-                        NodeSecurityContext.None
-                      )
-                    }
                     val userWithoutPermissions = transformUser(
-                      defaultUser,
+                      u.id,
+                      u.status,
+                      NodeSecurityContext.None,
+                      Rights(),
                       u,
-                      Map(u.managedBy -> JsonProviderInfo.fromUser(defaultUser, u.managedBy)),
+                      Map(u.managedBy -> JsonProviderInfo.from(Set.empty, Rights(), u.managedBy)),
                       lastSession.map(_.creationDate)
                     )
 
@@ -310,11 +302,14 @@ class UserManagementApiImpl(
                         val currentUserDetails = x.copy(status = u.status)
 
                         // since file definition does not depend on session use the file user as base for file-managed users
-                        val fileProviderInfo = JsonProviderInfo.fromUser(x, "file")
+                        val fileProviderInfo = JsonProviderInfo.from(x.roles, x.authz, "file")
 
                         if (u.managedBy == "file") {
                           transformUser(
-                            currentUserDetails,
+                            currentUserDetails.getUsername,
+                            currentUserDetails.status,
+                            currentUserDetails.nodePerms,
+                            currentUserDetails.authz,
                             u,
                             Map(fileProviderInfo.provider -> fileProviderInfo),
                             lastSession.map(_.creationDate)
@@ -337,7 +332,10 @@ class UserManagementApiImpl(
                             case None                                     =>
                               // Provider no longer known, fallback to file provider
                               transformUser(
-                                currentUserDetails,
+                                currentUserDetails.getUsername,
+                                currentUserDetails.status,
+                                currentUserDetails.nodePerms,
+                                currentUserDetails.authz,
                                 u,
                                 Map(fileProviderInfo.provider -> fileProviderInfo),
                                 lastSession.map(_.creationDate)
@@ -406,9 +404,7 @@ class UserManagementApiImpl(
         _    <- ZIO.when(userService.authConfig.users.keySet contains user.username) {
                   Inconsistency(s"User '${user.username}' already exists").fail
                 }
-        _    <-
-          userManagementService
-            .add(user.transformInto[User], user.isPreHashed)
+        _    <- userManagementService.add(user)
         _    <- userManagementService.updateInfo(user.username, user.transformInto[UpdateUserInfo])
       } yield {
         user.transformInto[JsonAddedUser]
@@ -450,14 +446,15 @@ class UserManagementApiImpl(
       (for {
         u          <- ZioJsonExtractor.parseJson[JsonUserFormData](req).toIO
         permissions = u.permissions.map(_.filter(_ != AuthorizationType.NoRights.id))
+        user        = u.copy(permissions = permissions)
         allRoles   <- RudderRoles.getAllRoles
         // We ignore the "user info" part of the request when updating
         _          <-
-          userManagementService.update(id, u.username, u.password, permissions, u.isPreHashed)(
+          userManagementService.update(id, user)(
             allRoles
           )
       } yield {
-        u.copy(permissions = permissions).transformInto[User].transformInto[JsonUpdatedUser]
+        user.transformInto[JsonUpdatedUser]
       }).chainError(s"Could not update user '${id}'").toLiftResponseOne(params, schema, _ => None)
     }
   }
@@ -590,45 +587,48 @@ class UserManagementApiImpl(
   }
 
   private def transformUser(
-      u:             RudderUserDetail,
+      username:      String,
+      status:        UserStatus,
+      nodePerms:     NodeSecurityContext,
+      authz:         Rights,
       info:          UserInfo,
       providersInfo: Map[String, JsonProviderInfo],
       lastLogin:     Option[DateTime]
   )(implicit previousLogin: Option[DateTime]): JsonUser = {
     // NoRights and AnyRights directly map to known user permissions. AnyRights takes precedence over NoRights.
-    if (u.authz.authorizationTypes.contains(AuthorizationType.AnyRights)) {
+    if (authz.authorizationTypes.contains(AuthorizationType.AnyRights)) {
       JsonUser.anyRights(
-        u.getUsername,
+        username,
         info.name,
         info.email,
         info.otherInfo,
-        u.status,
+        status,
         providersInfo,
-        getDisplayTenants(u),
+        getDisplayTenants(nodePerms),
         lastLogin = lastLogin,
         previousLogin = previousLogin
       )
-    } else if (u.authz.authorizationTypes.isEmpty || u.authz.authorizationTypes.contains(AuthorizationType.NoRights)) {
+    } else if (authz.authorizationTypes.isEmpty || authz.authorizationTypes.contains(AuthorizationType.NoRights)) {
       JsonUser.noRights(
-        u.getUsername,
+        username,
         info.name,
         info.email,
         info.otherInfo,
-        u.status,
+        status,
         providersInfo,
-        getDisplayTenants(u),
+        getDisplayTenants(nodePerms),
         lastLogin = lastLogin,
         previousLogin = previousLogin
       )
     } else {
       JsonUser(
-        u.getUsername,
+        username,
         info.name,
         info.email,
         info.otherInfo,
-        u.status,
+        status,
         providersInfo,
-        getDisplayTenants(u),
+        getDisplayTenants(nodePerms),
         lastLogin = lastLogin,
         previousLogin = previousLogin
       )
@@ -692,19 +692,13 @@ class UserManagementApiImpl(
   ): JsonUser = {
     lastSession match {
       case None              => {
-        val defaultUser = {
-          RudderUserDetail(
-            RudderAccount.User(userInfo.id, ""),
-            userInfo.status,
-            Set(),
-            ApiAuthorization.None,
-            NodeSecurityContext.None
-          )
-        }
         transformUser(
-          defaultUser,
+          userInfo.id,
+          userInfo.status,
+          NodeSecurityContext.None,
+          Rights(),
           userInfo,
-          Map(userInfo.managedBy -> JsonProviderInfo.fromUser(defaultUser, userInfo.managedBy)),
+          Map(userInfo.managedBy -> JsonProviderInfo.from(Set.empty, Rights(), userInfo.managedBy)),
           lastSession.map(_.creationDate)
         )
       }
@@ -716,9 +710,6 @@ class UserManagementApiImpl(
     }
   }
 
-  private def getDisplayTenants(user: RudderUserDetail):         String = {
-    getDisplayTenants(user.nodePerms)
-  }
   private def getDisplayTenants(nodePerms: NodeSecurityContext): String = {
     nodePerms match {
       case NodeSecurityContext.All                => "all"

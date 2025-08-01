@@ -244,7 +244,8 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   implicit val userService: TestUserService = new TestUserService
   class TestUserService extends UserService {
     val user:           AuthenticatedUser = new AuthenticatedUser {
-      val account: RudderAccount = RudderAccount.User("test-user", "pass")
+      val user:    Option[RudderAccount.User] = Some(RudderAccount.User("test-user", UserPassword.unsafeHashed("pass")))
+      val account: Option[ApiAccount]         = None
       def checkRights(auth: AuthorizationType) = true
       def getApiAuthz: ApiAuthz            = ApiAuthz.allAuthz
       def nodePerms:   NodeSecurityContext = NodeSecurityContext.All
