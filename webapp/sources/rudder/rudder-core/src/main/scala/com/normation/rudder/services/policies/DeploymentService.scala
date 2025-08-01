@@ -94,6 +94,7 @@ import com.normation.rudder.services.policies.write.RuleValGeneratedHookService
 import com.normation.rudder.services.reports.CachedNodeConfigurationService
 import com.normation.rudder.services.reports.CacheExpectedReportAction
 import com.normation.rudder.services.reports.FindNewNodeStatusReports
+import com.normation.rudder.services.servers.PolicyServerConfigurationObjects
 import com.normation.rudder.utils.ParseMaxParallelism
 import com.normation.utils.Control.*
 import com.softwaremill.quicklens.*
@@ -149,8 +150,8 @@ trait PromiseGenerationService {
   def ruleValGeneratedHookService: RuleValGeneratedHookService
 
   /**
-   * All mighy method that take all modified rules, find their
-   * dependencies, proccess ${vars}, build the list of node to update,
+   * All mighty method that take all modified rules, find their
+   * dependencies, process ${vars}, build the list of node to update,
    * update nodes.
    *
    * Return the list of node IDs actually updated.
@@ -172,7 +173,7 @@ trait PromiseGenerationService {
      * The computation of dynamic group is a workaround inconsistencies after importing definition
      * from LDAP, see: https://issues.rudder.io/issues/14758
      * But that computation may lead to a huge delay in generation (tens of minutes). We want to be
-     * able to unset their computation in some case through an environement variable.
+     * able to unset their computation in some case through an environment variable.
      *
      * To disable it, set environment variable "rudder.generation.computeDynGroup" to "disabled"
      */
@@ -186,7 +187,7 @@ trait PromiseGenerationService {
     )
 
     val jsTimeout = {
-      // by default 5s but can be overrided
+      // by default 5s but can be overridden
       val t = getJsTimeout().getOrElse(5)
       FiniteDuration(
         try {
@@ -245,7 +246,7 @@ trait PromiseGenerationService {
 
       // Objects need to be created in separate for {} yield to be garbage collectable,
       // otherwise they remain in the scope and are not freed.
-      // We need to do that as many time as necessary to free memory during policy generation
+      // We need to do that as many times as necessary to free memory during policy generation
 
       fetch0Time       = System.currentTimeMillis
       (
@@ -289,23 +290,16 @@ trait PromiseGenerationService {
                                                             allRules             <- findDependantRules() ?~! "Could not find dependant rules"
                                                             fetch1Time            = System.currentTimeMillis
                                                             _                     = PolicyGenerationLogger.timing.trace(s"Fetched rules in ${fetch1Time - fetch0Time} ms")
-                                                            nodeFacts            <-
-                                                              getNodeFacts().map(_.filter {
-                                                                case (_, n) =>
-                                                                  if (n.rudderSettings.state == NodeState.Ignored) {
-                                                                    PolicyGenerationLogger.debug(
-                                                                      s"Skipping node '${n.id.value}' because the node is in state '${n.rudderSettings.state.name}'"
-                                                                    )
-                                                                    false
-                                                                  } else true
-                                                              }) ?~! "Could not get Node Infos" // disabled node don't get new policies
+                                                            nf                   <- getNodeFacts() ?~! "Could not get Node Infos" // disabled node don't get new policies
                                                             fetch2Time            = System.currentTimeMillis
                                                             _                     = PolicyGenerationLogger.timing.trace(s"Fetched node infos in ${fetch2Time - fetch1Time} ms")
                                                             directiveLib         <-
                                                               getDirectiveLibrary(allRules.flatMap(_.directiveIds).toSet) ?~! "Could not get the directive library"
                                                             fetch3Time            = System.currentTimeMillis
                                                             _                     = PolicyGenerationLogger.timing.trace(s"Fetched directives in ${fetch3Time - fetch2Time} ms")
-                                                            groupLib             <- getGroupLibrary() ?~! "Could not get the group library"
+                                                            gl                   <- getGroupLibrary() ?~! "Could not get the group library"
+                                                            tmp                  <- GetConsistentNodesAndGroups(nf, gl).toBox
+                                                            (nodeFacts, groupLib) = tmp
                                                             fetch4Time            = System.currentTimeMillis
                                                             _                     = PolicyGenerationLogger.timing.trace(s"Fetched groups in ${fetch4Time - fetch3Time} ms")
                                                             allParameters        <- getAllGlobalParameters ?~! "Could not get global parameters"
@@ -343,7 +337,7 @@ trait PromiseGenerationService {
                                                             ///// - number of rules: any rule without target or with only target with no node can be skipped
 
                                                             ruleValTime                               = System.currentTimeMillis
-                                                            arePolicyServers                          = nodeFacts.mapValues(_.rudderSettings.isPolicyServer)
+                                                            arePolicyServers                          = nodeFacts.view.mapValues(_.rudderSettings.isPolicyServer).toMap
                                                             activeRuleIds                             = getAppliedRuleIds(allRules, groupLib, directiveLib, arePolicyServers)
                                                             ruleVals                                 <- buildRuleVals(
                                                                                                           activeRuleIds,
@@ -408,7 +402,7 @@ trait PromiseGenerationService {
                                                             jsTimeout,
                                                             generationContinueOnError
                                                           ) ?~! "Cannot build target configuration node"
-                                  /// only keep successfull node config. We will keep the failed one to fail the whole process in the end if needed
+                                  /// only keep successfully node config. We will keep the failed one to fail the whole process in the end if needed
                                   allNodeConfigurations = configsAndErrors.ok.map(c => (c.nodeInfo.id, c)).toMap
                                   allErrors             = configsAndErrors.errors.map(_.fullMsg) ++ errors.values
                                   errorNodes            = activeNodeIds -- allNodeConfigurations.keySet
@@ -590,13 +584,13 @@ trait PromiseGenerationService {
   def getMaxParallelism:            () => Box[String]
   def getJsTimeout:                 () => Box[Int]
   def getGenerationContinueOnError: () => Box[Boolean]
-  def writeCertificatesPem(nodeFacts: MapView[NodeId, CoreNodeFact]): Unit
+  def writeCertificatesPem(nodeFacts: Map[NodeId, CoreNodeFact]): Unit
 
   /**
    * This method logs interesting metrics that can be use to assess performance problem.
    */
   def logMetrics(
-      nodeFacts:        MapView[NodeId, CoreNodeFact],
+      nodeFacts:        Map[NodeId, CoreNodeFact],
       allRules:         Seq[Rule],
       directiveLib:     FullActiveTechniqueCategory,
       groupLib:         FullNodeGroupCategory,
@@ -645,7 +639,7 @@ trait PromiseGenerationService {
    * From global configuration and node modes, build node modes
    */
   def buildNodeModes(
-      nodes:                MapView[NodeId, CoreNodeFact],
+      nodes:                Map[NodeId, CoreNodeFact],
       globalComplianceMode: GlobalComplianceMode,
       globalAgentRun:       AgentRunInterval,
       globalPolicyMode:     GlobalPolicyMode
@@ -673,7 +667,7 @@ trait PromiseGenerationService {
       rules:            Seq[Rule],
       groupLib:         FullNodeGroupCategory,
       directiveLib:     FullActiveTechniqueCategory,
-      arePolicyServers: MapView[NodeId, Boolean]
+      arePolicyServers: Map[NodeId, Boolean]
   ): Set[RuleId]
 
   /**
@@ -691,12 +685,12 @@ trait PromiseGenerationService {
       rules:            Seq[Rule],
       directiveLib:     FullActiveTechniqueCategory,
       groupLib:         FullNodeGroupCategory,
-      arePolicyServers: MapView[NodeId, Boolean]
+      arePolicyServers: Map[NodeId, Boolean]
   ): Box[Seq[RuleVal]]
 
   def getNodeContexts(
       nodeIds:              Set[NodeId],
-      nodeFacts:            MapView[NodeId, CoreNodeFact],
+      nodeFacts:            Map[NodeId, CoreNodeFact],
       inheritedProps:       Map[NodeId, ResolvedNodePropertyHierarchy],
       allGroups:            FullNodeGroupCategory,
       globalParameters:     List[GlobalParameter],
@@ -824,6 +818,89 @@ trait PromiseGenerationService {
 //  Implémentation
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// here, we need to make a double consistency check:
+// - in a policy server group, we want the real list of node from node facts that have that policy server. Other nodes
+//   (in addition or missing in the group list, for ex because there wasn't a dyn group update yet) are unwanted.
+// - in groups, we only want nodes that are in all nodes. That can happen for a deleted node, before dyn group
+//   are computed back.
+// We also filter out node that are not in a state that should not lead to policy generation
+// Return a filtered list of valid node facts and corresponding group Lib.
+object GetConsistentNodesAndGroups {
+  def apply(
+      nodeFacts: MapView[NodeId, CoreNodeFact],
+      groupLib:  FullNodeGroupCategory
+  ): IOResult[(Map[NodeId, CoreNodeFact], FullNodeGroupCategory)] = {
+    // when we have a node group, only keep existing nodes in it.
+    // We pass both the realized keyIds (to avoid recomputing the set several time, it's costly) and the mapView (for
+    // the collect case)
+    def cleanFullRuleTarget(nodeFacts: Map[NodeId, CoreNodeFact], ignoredNodes: Set[NodeId])(
+        frti: FullRuleTargetInfo
+    ): IOResult[FullRuleTargetInfo] = {
+      frti.target match {
+        case FullGroupTarget(target, nodeGroup) =>
+          // get the list for the node group. There is a special case for the "hasPolicyServer-" system group
+          val nodeIds = if (nodeGroup.isSystem) {
+            PolicyServerConfigurationObjects.extractPolicyServerIdFromHasGroupName(nodeGroup.id) match {
+              // retrieve from the list of NodeFact
+              case Some(policyServerId) =>
+                nodeFacts.collect { case (id, nf) if (nf.rudderSettings.policyServerId == policyServerId) => id }.toSet
+              case None                 =>
+                nodeGroup.serverList
+            }
+          } else nodeGroup.serverList
+
+          // restrict result to known node IDs
+          val nodes = nodeIds.intersect(nodeFacts.keySet)
+
+          // now, check if the group node was consistent, else update and warn user
+          val enabledNodes = nodeGroup.serverList -- ignoredNodes
+          if (nodes != enabledNodes) {
+            PolicyGenerationLoggerPure.warn(
+              s"Group '${nodeGroup.name}' [${nodeGroup.id.serialize}]}' had inconsistent list of nodes compared to current known list of nodes"
+            ) *> ZIO.when(PolicyGenerationLoggerPure.logEffect.isDebugEnabled) {
+              PolicyGenerationLoggerPure.debug(
+                s"  - added nodes: [${(nodes -- enabledNodes).map(_.value).mkString(",")}]"
+              ) *>
+              PolicyGenerationLoggerPure.debug(
+                s"  - removed nodes: [${(enabledNodes -- nodes).map(_.value).mkString(",")}]"
+              )
+            } *> frti.modify(_.target).setTo(FullGroupTarget(target, nodeGroup.modify(_.serverList).setTo(nodes))).succeed
+          } else frti.succeed
+
+        case other => frti.succeed
+      }
+    }
+
+    // recursively clean all group from the lib
+    def recFilterOut(nodeFacts: Map[NodeId, CoreNodeFact], ignoredNodes: Set[NodeId])(
+        groupRoot: FullNodeGroupCategory
+    ): IOResult[FullNodeGroupCategory] = {
+      for {
+        targetInfos   <- ZIO.foreach(groupRoot.targetInfos)(cleanFullRuleTarget(nodeFacts, ignoredNodes))
+        subCategories <- ZIO.foreach(groupRoot.subCategories)(recFilterOut(nodeFacts, ignoredNodes))
+      } yield {
+        groupRoot
+          .modify(_.targetInfos)
+          .setTo(targetInfos)
+          .modify(_.subCategories)
+          .setTo(subCategories)
+      }
+    }
+
+    // now, filter out all nodes in groups that are not in the accepted list of nodes
+    val (okNodes, others) = nodeFacts.toMap.partition { case (_, n) => n.rudderSettings.state != NodeState.Ignored }
+
+    for {
+      _   <- ZIO.foreachDiscard(others.values) { n =>
+               PolicyGenerationLoggerPure.debug(
+                 s"Skipping node '${n.id.value}' because the node is in state '${n.rudderSettings.state.name}'"
+               )
+             }
+      res <- recFilterOut(okNodes, others.keySet)(groupLib)
+    } yield (okNodes, res)
+  }
+}
+
 class PromiseGenerationServiceImpl(
     override val roRuleRepo:                        RoRuleRepository,
     override val woRuleRepo:                        WoRuleRepository,
@@ -872,11 +949,14 @@ class PromiseGenerationServiceImpl(
   }
 
   override def triggerNodeGroupUpdate(): Box[Unit] = {
-    dynamicsGroupsUpdate.map(groupUpdate(_)).getOrElse(Failure("Dynamic group update is not registered, this is an error"))
-
+    dynamicsGroupsUpdate match {
+      case Some(service) => groupUpdate(service)
+      case None          => Failure("Dynamic group update is not registered, this is an error")
+    }
   }
+
   private def groupUpdate(updateDynamicGroups: UpdateDynamicGroups): Box[Unit] = {
-    // Trigger a manual update if one is not pending (otherwise it goes in infinit loop)
+    // Trigger a manual update if one is not pending (otherwise it goes in infinite loop)
     // It doesn't expose anything about its ending, so we need to wait for the update to be idle
     if (updateDynamicGroups.isIdle()) {
       updateDynamicGroups.startManualUpdate
@@ -943,7 +1023,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
       rules:            Seq[Rule],
       groupLib:         FullNodeGroupCategory,
       directiveLib:     FullActiveTechniqueCategory,
-      arePolicyServers: MapView[NodeId, Boolean]
+      arePolicyServers: Map[NodeId, Boolean]
   ): Set[RuleId] = {
     rules
       .filter(r => {
@@ -1001,7 +1081,7 @@ trait PromiseGeneration_BuildNodeContext {
    */
   def getNodeContexts(
       nodeIds:              Set[NodeId],
-      nodeFacts:            MapView[NodeId, CoreNodeFact],
+      nodeFacts:            Map[NodeId, CoreNodeFact],
       inheritedProps:       Map[NodeId, ResolvedNodePropertyHierarchy],
       allGroups:            FullNodeGroupCategory,
       globalParameters:     List[GlobalParameter],
@@ -1165,7 +1245,7 @@ trait PromiseGeneration_buildRuleVals extends PromiseGenerationService {
       rules:            Seq[Rule],
       directiveLib:     FullActiveTechniqueCategory,
       allGroups:        FullNodeGroupCategory,
-      arePolicyServers: MapView[NodeId, Boolean]
+      arePolicyServers: Map[NodeId, Boolean]
   ): Box[Seq[RuleVal]] = {
 
     val appliedRules = rules.filter(r => activeRuleIds.contains(r.id))
@@ -2222,7 +2302,7 @@ trait PromiseGeneration_NodeCertificates extends PromiseGenerationService {
   def allNodeCertificatesPemFile: File
   def writeNodeCertificatesPem:   WriteNodeCertificatesPem
 
-  override def writeCertificatesPem(nodeFacts: MapView[NodeId, CoreNodeFact]): Unit = {
+  override def writeCertificatesPem(nodeFacts: Map[NodeId, CoreNodeFact]): Unit = {
     writeNodeCertificatesPem.writeCerticatesAsync(allNodeCertificatesPemFile, nodeFacts.toMap)
   }
 }

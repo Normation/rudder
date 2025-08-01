@@ -84,6 +84,11 @@ trait DynGroupUpdaterService {
 
   def updateAll(modId: ModificationId)(implicit cc: ChangeContext): Box[Seq[DynGroupDiff]]
 
+  /*
+   * Compute dynamic group but limit to nodes given in argument. The limit can be because of
+   * a visibility limit given by changeContext or to be sure to not add nodes in the middle
+   * of several group update to ensure consistency.
+   */
   def computeDynGroup(group: NodeGroup)(implicit qc: QueryContext): Box[NodeGroup]
 }
 
@@ -104,7 +109,7 @@ class DynGroupUpdaterServiceImpl(
           val timePreCompute = System.currentTimeMillis
           for {
             newMembers      <-
-              queryProcessor.processOnlyId(
+              queryProcessor.process(
                 query
               ) ?~! s"Error when processing request for updating dynamic group '${group.name}' (${group.id.serialize})"
             timeGroupCompute = (System.currentTimeMillis - timePreCompute)

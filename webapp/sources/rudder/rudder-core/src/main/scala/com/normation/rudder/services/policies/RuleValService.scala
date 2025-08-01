@@ -48,7 +48,6 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.utils.Control.bestEffort
 import net.liftweb.common.*
 import org.joda.time.DateTime
-import scala.collection.MapView
 import zio.syntax.*
 
 trait RuleValService {
@@ -56,7 +55,7 @@ trait RuleValService {
       rule:             Rule,
       directiveLib:     FullActiveTechniqueCategory,
       groupLib:         FullNodeGroupCategory,
-      arePolicyServers: MapView[NodeId, Boolean]
+      arePolicyServers: Map[NodeId, Boolean]
   ): Box[RuleVal]
 
   def lookupNodeParameterization(
@@ -206,7 +205,7 @@ class RuleValServiceImpl(
     }
   }
 
-  def getTargetedNodes(rule: Rule, groupLib: FullNodeGroupCategory, arePolicyServers: MapView[NodeId, Boolean]): Set[NodeId] = {
+  def getTargetedNodes(rule: Rule, groupLib: FullNodeGroupCategory, arePolicyServers: Map[NodeId, Boolean]): Set[NodeId] = {
     val wantedNodeIds = groupLib.getNodeIds(rule.targets, arePolicyServers)
     val nodeIds       = wantedNodeIds.intersect(arePolicyServers.keySet)
     if (nodeIds.size != wantedNodeIds.size) {
@@ -224,7 +223,7 @@ class RuleValServiceImpl(
       rule:             Rule,
       directiveLib:     FullActiveTechniqueCategory,
       groupLib:         FullNodeGroupCategory,
-      arePolicyServers: MapView[NodeId, Boolean]
+      arePolicyServers: Map[NodeId, Boolean]
   ): Box[RuleVal] = {
     val nodeIds = getTargetedNodes(rule, groupLib, arePolicyServers)
 
