@@ -359,6 +359,7 @@ async function doughnutChart(id, data, colors, hoverColors) {
     }
   const chart = new Chart(ctx, chartOptions);
   window[id] = chart;
+  return chart;
 }
 
 
