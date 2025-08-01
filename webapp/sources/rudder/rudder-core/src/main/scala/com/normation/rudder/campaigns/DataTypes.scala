@@ -47,6 +47,7 @@ import java.time.ZoneId
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import zio.json.*
+import zio.json.enumeratum.*
 
 case class CampaignParsingInfo(
     campaignType: CampaignType,
@@ -274,7 +275,7 @@ object CampaignEventId {
  */
 sealed abstract class CampaignEventStateType(override val entryName: String) extends EnumEntry
 
-object CampaignEventStateType extends Enum[CampaignEventStateType] {
+object CampaignEventStateType extends Enum[CampaignEventStateType] with EnumCodec[CampaignEventStateType] {
   case object Scheduled extends CampaignEventStateType("scheduled")
   case object Running   extends CampaignEventStateType("running")
   case object Finished  extends CampaignEventStateType("finished")
@@ -283,10 +284,6 @@ object CampaignEventStateType extends Enum[CampaignEventStateType] {
   case object Failure   extends CampaignEventStateType("failure")
 
   override def values: IndexedSeq[CampaignEventStateType] = findValues
-
-  implicit val encoder: JsonEncoder[CampaignEventStateType] = JsonEncoder[String].contramap(_.entryName)
-  implicit val decoder: JsonDecoder[CampaignEventStateType] =
-    JsonDecoder[String].mapOrFail(withNameInsensitiveEither(_).left.map(_.getMessage))
 }
 
 case class CampaignEvent(

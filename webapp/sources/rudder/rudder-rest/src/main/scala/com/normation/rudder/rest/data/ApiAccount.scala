@@ -65,6 +65,7 @@ import java.time.ZonedDateTime
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import zio.json.*
+import zio.json.enumeratum.*
 import zio.json.internal.Write
 import zio.syntax.*
 
@@ -79,49 +80,31 @@ import zio.syntax.*
  * Account status: enabled or not
  */
 sealed trait ApiAccountStatus extends EnumEntry with EnumEntry.Lowercase
-object ApiAccountStatus       extends Enum[ApiAccountStatus] {
+object ApiAccountStatus       extends Enum[ApiAccountStatus] with EnumCodec[ApiAccountStatus] {
   case object Enabled  extends ApiAccountStatus
   case object Disabled extends ApiAccountStatus
 
   override def values: IndexedSeq[ApiAccountStatus] = findValues
-
-  implicit val codecApiAccountStatus: JsonCodec[ApiAccountStatus] = new JsonCodec[ApiAccountStatus](
-    JsonEncoder.string.contramap(_.entryName),
-    JsonDecoder.string.mapOrFail(withNameInsensitiveEither(_).left.map(_.getMessage()))
-  )
 }
 
 /**
  * Token state: undef, generated
  */
 sealed trait ApiTokenState extends EnumEntry with EnumEntry.Lowercase
-object ApiTokenState       extends Enum[ApiTokenState] {
+object ApiTokenState       extends Enum[ApiTokenState] with EnumCodec[ApiTokenState] {
   case object Undef       extends ApiTokenState
   case object GeneratedV1 extends ApiTokenState
   case object GeneratedV2 extends ApiTokenState
 
   override def values: IndexedSeq[ApiTokenState] = findValues
-
-  implicit val codecApiTokenState: JsonCodec[ApiTokenState] = new JsonCodec[ApiTokenState](
-    JsonEncoder.string.contramap(_.entryName),
-    JsonDecoder.string.mapOrFail(withNameInsensitiveEither(_).left.map(_.getMessage()))
-  )
 }
 
-sealed trait ApiAccountExpirationPolicy extends EnumEntry with EnumEntry.Lowercase
-object ApiAccountExpirationPolicy       extends Enum[ApiAccountExpirationPolicy] {
-
-  case object Never      extends ApiAccountExpirationPolicy
-  case object AtDateTime extends ApiAccountExpirationPolicy {
-    override def entryName: String = "datetime"
-  }
+sealed trait ApiAccountExpirationPolicy(override val entryName: String) extends EnumEntry
+object ApiAccountExpirationPolicy                                       extends Enum[ApiAccountExpirationPolicy] with EnumCodec[ApiAccountExpirationPolicy] {
+  case object Never      extends ApiAccountExpirationPolicy("never")
+  case object AtDateTime extends ApiAccountExpirationPolicy("datetime")
 
   override def values: IndexedSeq[ApiAccountExpirationPolicy] = findValues
-
-  implicit val codecApiTokenExpirationPolicy: JsonCodec[ApiAccountExpirationPolicy] = new JsonCodec[ApiAccountExpirationPolicy](
-    JsonEncoder.string.contramap(_.entryName),
-    JsonDecoder.string.mapOrFail(withNameInsensitiveEither(_).left.map(_.getMessage()))
-  )
 }
 
 // encapsulate Option[JsonAcl] into a type so that it's easier to map to business object
