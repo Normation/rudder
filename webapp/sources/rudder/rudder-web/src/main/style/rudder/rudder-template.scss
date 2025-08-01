@@ -1874,12 +1874,16 @@ ul.applied-list > .add-target > .fa{
 /* === BTN SAVE === */
 .btn.btn-save{
   min-width: 86px;
-}
-.btn.btn-save:before{
-  content: "Save";
-}
-.btn.btn-save.btn-settings:before{
-  content: "Save changes";
+  &:disabled[title]{
+    pointer-events: auto;
+    cursor: help;
+  }
+  &:before{
+    content: "Save";
+  }
+  &.btn-settings:before{
+    content: "Save changes";
+  }
 }
 .btn.btn-cr:before{
   content: "Create change request";
