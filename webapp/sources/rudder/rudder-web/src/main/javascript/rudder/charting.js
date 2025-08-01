@@ -171,13 +171,17 @@ const scoreHoverColors =
 
 const defaultClickFunction = (e, active, currentChart, id, data ) => {};
 
-const doughnutChart = (id,data,colors,hoverColors,onClickFunction = defaultClickFunction) => {
+const doughnutChart = async (id, data, colors, hoverColors , onClickFunction = defaultClickFunction) => {
 
-  var context = $("#"+id)
-  var count = data.values.length < 1 ? 0 : data.values.reduce((a, b) => a + b, 0);
+  const existingChart = Chart.getChart(id)
+  if (!!existingChart) existingChart.destroy()
 
-  var borderW = data.values.length > 1 ? 3 : 0;
-  var chartData = {
+  await waitForElement(`#${id}`)
+  const ctx = document.getElementById(id)
+  const count = data.values.length < 1 ? 0 : data.values.reduce((a, b) => a + b, 0);
+
+  const borderW = data.values.length > 1 ? 3 : 0;
+  const chartData = {
     labels  :  data.labels,
     datasets:
       [ { data           : data.values
@@ -187,7 +191,7 @@ const doughnutChart = (id,data,colors,hoverColors,onClickFunction = defaultClick
       } ]
   };
 
-  var chartOptions = {
+  const chartOptions = {
       type: 'doughnut'
     , data: chartData
     , options: {
@@ -219,7 +223,7 @@ const doughnutChart = (id,data,colors,hoverColors,onClickFunction = defaultClick
       }
     , plugins: [htmlLegendPlugin],
     }
-  var chart = new Chart(context, chartOptions);
+  const chart = new Chart(ctx, chartOptions);
   window[id] = chart;
 }
 
