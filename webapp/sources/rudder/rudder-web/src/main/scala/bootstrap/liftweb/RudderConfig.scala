@@ -3456,7 +3456,7 @@ object RudderConfigInit {
       .runOrDie(err => new RuntimeException(s"Error during initialization of campaign repository: " + err.fullMsg))
 
     lazy val mainCampaignService =
-      new MainCampaignService(campaignEventRepo, campaignRepo, campaignHooksService, stringUuidGenerator, 1, 1)
+      MainCampaignService.make(campaignEventRepo, campaignRepo, campaignHooksService, stringUuidGenerator, 1, 1).runNow
     lazy val jsonReportsAnalyzer = JSONReportsAnalyser(reportsRepository, propertyRepository)
 
     lazy val instanceUuidPath    = root / "opt" / "rudder" / "etc" / "instance-id"

@@ -40,6 +40,7 @@ package com.normation.rudder.campaigns
 import better.files.File
 import com.normation.errors.*
 import com.normation.rudder.hooks.*
+import com.normation.utils.FileUtils
 import com.normation.zio.*
 import scala.jdk.CollectionConverters.*
 import zio.*
@@ -107,22 +108,24 @@ object NoopCampaignHooksRepository extends CampaignHooksRepository {
 class FsCampaignHooksRepository(HOOKS_D: String) extends CampaignHooksRepository {
   val campaignRootHooksDir: File = File(HOOKS_D) / FsCampaignHooksRepository.CampaignDirName
 
-  private def getDir(cid: CampaignId): File = {
+  private def getDir(cid: CampaignId): IOResult[File] = {
     // perhaps we will want per-revision hook directory some day?
-    campaignRootHooksDir / cid.serialize
+    FileUtils.sanitizePath(campaignRootHooksDir, cid.serialize)
   }
 
   override def initHooks(cid: CampaignId): IOResult[Unit] = {
-    IOResult.attempt(s"Error when initializing hook directories for campaign '${cid.serialize}'") {
-      val campaignHooksDir = getDir(cid)
-      CampaignHookTypes.values.foreach(t => (campaignHooksDir / t.entryName).createDirectoryIfNotExists(createParents = true))
+    getDir(cid).flatMap { campaignHooksDir =>
+      IOResult.attempt(s"Error when initializing hook directories for campaign '${cid.serialize}'") {
+        CampaignHookTypes.values.foreach(t => (campaignHooksDir / t.entryName).createDirectoryIfNotExists(createParents = true))
+      }
     }
   }
 
   override def deleteHooks(cid: CampaignId): IOResult[Unit] = {
-    val campaignHooksDir = getDir(cid)
-    IOResult.attempt(s"Error when deleting hook directory for campaign '${cid.serialize}'") {
-      campaignHooksDir.delete()
+    getDir(cid).flatMap { campaignHooksDir =>
+      IOResult.attempt(s"Error when deleting hook directory for campaign '${cid.serialize}'") {
+        campaignHooksDir.delete()
+      }
     }
   }
 }
@@ -138,12 +141,12 @@ class FsCampaignHooksService(
     HOOKS_IGNORE_SUFFIXES: List[String]
 ) extends CampaignHooksService {
 
-  def runPreHooks(c: Campaign, e: CampaignEvent): IOResult[HookResults] = {
-    runHooks("pre-hooks", HOOKS_D, HOOKS_IGNORE_SUFFIXES, c, e, CampaignHookTypes.CampaignPreHooks)
+  override def runPreHooks(c: Campaign, e: CampaignEvent): IOResult[HookResults] = {
+    runHooks(HOOKS_D, HOOKS_IGNORE_SUFFIXES, c, e, CampaignHookTypes.CampaignPreHooks)
   }
 
-  def runPostHooks(c: Campaign, e: CampaignEvent): IOResult[HookResults] = {
-    runHooks("post-hooks", HOOKS_D, HOOKS_IGNORE_SUFFIXES, c, e, CampaignHookTypes.CampaignPostHooks)
+  override def runPostHooks(c: Campaign, e: CampaignEvent): IOResult[HookResults] = {
+    runHooks(HOOKS_D, HOOKS_IGNORE_SUFFIXES, c, e, CampaignHookTypes.CampaignPostHooks)
   }
 
   /*
@@ -154,18 +157,18 @@ class FsCampaignHooksService(
    */
   private def runHooks(
       rootDir:        String,
-      name:           String,
       ignoreSuffixes: List[String],
       c:              Campaign,
       e:              CampaignEvent,
       hookType:       CampaignHookTypes // pre or post
   ): IOResult[HookResults] = {
 
-    val loggerName = name + "." + hookType.entryName
-    val dir        = rootDir + "/" + name + "/" + hookType.entryName
+    val loggerName = FsCampaignHooksRepository.CampaignDirName + "." + c.info.id.serialize + "." + hookType.entryName
+    val dir        = rootDir + "/" + FsCampaignHooksRepository.CampaignDirName + "/" + c.info.id.serialize + "/" + hookType.entryName
 
     (
       for {
+        -         <- PureHooksLogger.For(loggerName).debug(s"Running ${hookType.entryName} for campaign '${c.info.id.serialize}'")
         systemEnv <- IOResult.attempt(java.lang.System.getenv.asScala.toSeq).map(seq => HookEnvPairs.build(seq*))
         hooks     <- RunHooks.getHooksPure(dir, HOOKS_IGNORE_SUFFIXES)
         res       <- for {
@@ -186,7 +189,7 @@ class FsCampaignHooksService(
                                      )
                        timeHooks1 <- currentTimeMillis
                        _          <-
-                         PureHooksLogger.For(loggerName).trace(s"Inventory received hooks ran in ${timeHooks1 - timeHooks0} ms")
+                         PureHooksLogger.For(loggerName).trace(s"Campaign pre-hooks ran in ${timeHooks1 - timeHooks0} ms")
                      } yield res
       } yield HookResults((res._1 :: res._2).map(HookResult.fromCode))
     ).catchAll { err =>

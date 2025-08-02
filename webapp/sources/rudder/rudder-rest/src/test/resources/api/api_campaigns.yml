@@ -10,7 +10,7 @@ response:
       "data" : {
         "campaigns" : [
           {
-            "campaignType" : "dumb-campaign",
+            "campaignType" : "test-campaign",
             "info" : {
               "id" : "c0",
               "name" : "first campaign",
@@ -62,7 +62,7 @@ response:
             },
             "start" : "1970-01-01T00:00:00Z",
             "end" : "1970-01-01T00:00:00Z",
-            "campaignType" : "dumb-campaign"
+            "campaignType" : "test-campaign"
           }
         ]
       }
@@ -82,7 +82,7 @@ body: >-
     "state" : { "value" : "skipped", "reason":"user did it"},
     "start" : "2025-03-09T09:00:00Z",
     "end" : "2025-03-10T10:00:00Z",
-    "campaignType" : "dumb-campaign"
+    "campaignType" : "test-campaign"
   }
 response:
   code: 200
@@ -99,7 +99,7 @@ response:
             "state" : { "value" : "skipped", "reason":"user did it"},
             "start" : "2025-03-09T09:00:00Z",
             "end" : "2025-03-10T10:00:00Z",
-            "campaignType" : "dumb-campaign"
+            "campaignType" : "test-campaign"
           }
         ]
       }

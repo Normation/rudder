@@ -37,7 +37,9 @@
 
 package com.normation.rudder.campaigns
 
+import _root_.cats.implicits.*
 import com.normation.errors.*
+import com.normation.rudder.campaigns.CampaignEventStateType.ScheduledType
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.json.implicits.*
 import com.normation.utils.DateFormaterService
@@ -65,6 +67,12 @@ trait CampaignEventRepository {
   def saveCampaignEvent(event: CampaignEvent): IOResult[Unit]
 
   def numberOfEventsByCampaign(campaignId: CampaignId): IOResult[Int]
+
+  /*
+   * A function that delete events based on the query parameters. I
+   * Implementation should check that the semantic for all parameter being empty
+   * is nothing is deleted.
+   */
   def deleteEvent(
       id:           Option[CampaignEventId] = None,
       states:       List[CampaignEventStateType] = Nil,
@@ -134,7 +142,7 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
   // Note: it test sequentially each decoder, which is inefficient, so perhaps we
   // should keep the type as a member after all.
   implicit private val decoderDATA: JsonDecoder[DATA] =
-    JsonDecoder[ReasonData].widen[DATA] <> JsonDecoder[FailureData].widen[DATA]
+    JsonDecoder[ReasonData].widen[DATA] <> JsonDecoder[HooksData].widen[DATA] <> JsonDecoder[FailureData].widen[DATA]
 
   implicit private val putDATA: Put[DATA] = pgEncoderPut
   implicit private val getDATA: Get[DATA] = pgDecoderGet
@@ -144,34 +152,21 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
    */
   private def getState(s: CampaignEventStateType, data: Option[DATA]): Either[String, CampaignEventState] = {
     import com.normation.rudder.campaigns.CampaignEventStateType.*
-    // when we don't have data for a state that could/should
-    def getDefault(s: CampaignEventStateType): CampaignEventState = {
-      s match {
-        case TScheduled => CampaignEventState.Scheduled
-        case TPreHooks  => CampaignEventState.PreHooks(HookResults(Nil))
-        case TRunning   => CampaignEventState.Running
-        case TPostHooks => CampaignEventState.PostHooks(HookResults(Nil))
-        case TFinished  => CampaignEventState.Finished
-        case TSkipped   => CampaignEventState.Skipped("")
-        case TDeleted   => CampaignEventState.Deleted("")
-        case TFailure   => CampaignEventState.Failure("unknown reason", "")
-      }
-    }
 
     data match {
-      case None                 => Right(getDefault(s))
+      case None                 => Right(CampaignEventState.getDefault(s))
       case Some(x: ReasonData)  =>
         s match {
-          case TSkipped => Right(x.toSkipped)
-          case TDeleted => Right(x.toDeleted)
-          case r        => Left(s"Error: data of type 'reason' is incompatible with state '${r.entryName}'")
+          case SkippedType => Right(x.toSkipped)
+          case DeletedType => Right(x.toDeleted)
+          case r           => Left(s"Error: data of type 'reason' is incompatible with state '${r.entryName}'")
         }
       case Some(x: FailureData) => Right(x.toFailure)
       case Some(x: HooksData)   =>
         s match {
-          case TPreHooks  => Right(x.toPreHooks)
-          case TPostHooks => Right(x.toPostHooks)
-          case r          => Left(s"Error: data of type 'hooks' is incompatible with state '${r.entryName}'")
+          case PreHooksType  => Right(x.toPreHooks)
+          case PostHooksType => Right(x.toPostHooks)
+          case r             => Left(s"Error: data of type 'hooks' is incompatible with state '${r.entryName}'")
         }
     }
   }
@@ -336,6 +331,11 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     transactIOResult(s"error when getting campaign events")(xa => q.query[Int].unique.transact(xa))
   }
 
+  /*
+   * Save a campaign state, ensuring internal consistency.
+   * In particular, if the event is "scheduled", we delete other scheduled even for that campaign, since we want to
+   * have only one event at a time for a given campaign.
+   */
   override def saveCampaignEvent(c: CampaignEvent): IOResult[Unit] = {
     import doobie.*
     // on insert, we want to update current state (CampaignEvents table) and history table.
@@ -349,18 +349,44 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
 
     // on conflict with an existing history event, we only update endtime
     val query2 = {
+      val sqlData = CampaignEventHistoryInsert.from(c)
       sql"""INSERT INTO CampaignEventsStateHistory (eventId, state, startDate, endDate, data)
-           |VALUES (${CampaignEventHistoryInsert.from(c)})
+           |VALUES (${sqlData})
            |ON CONFLICT (eventId, state) DO UPDATE
-           |SET endDate = ${c.end};""".stripMargin
+           |SET endDate = ${sqlData.end}, data = ${sqlData.data};""".stripMargin
     }
 
-    transactIOResult(s"error when inserting event with id ${c.id.value}")(xa => {
+    transactIOResult(s"error when inserting event with id ${c.id.value}") { xa =>
       (for {
+        _ <- if (c.state.value == ScheduledType) {
+               internalDelete(None, ScheduledType :: Nil, None, Some(c.campaignId), None, None)
+             } else ().pure[ConnectionIO]
         _ <- query1.update.run
         _ <- query2.update.run
       } yield ()).transact(xa)
-    }).unit
+    }.unit
+  }
+
+  private def internalDelete(
+      id:           Option[CampaignEventId] = None,
+      states:       List[CampaignEventStateType] = Nil,
+      campaignType: Option[CampaignType] = None,
+      campaignId:   Option[CampaignId] = None,
+      afterDate:    Option[DateTime] = None,
+      beforeDate:   Option[DateTime] = None
+  ): ConnectionIO[RuntimeFlags] = {
+
+    import _root_.cats.syntax.list.*
+    val eventIdQuery      = id.map(c => fr"eventId = ${c.value}")
+    val campaignIdQuery   = campaignId.map(c => fr"campaignId = ${c.value}")
+    val campaignTypeQuery = campaignType.map(c => fr"campaignType = ${c.value}")
+    val stateQuery        = states.toNel.map(s => Fragments.in(fr"state", s))
+    val afterQuery        = afterDate.map(d => fr"endDate >= ${new java.sql.Timestamp(d.getMillis)}")
+    val beforeQuery       = beforeDate.map(d => fr"startDate <= ${new java.sql.Timestamp(d.getMillis)}")
+    val where             = Fragments.whereAndOpt(eventIdQuery, campaignIdQuery, campaignTypeQuery, stateQuery, afterQuery, beforeQuery)
+    val query             = sql"""delete from campaignEvents """ ++ where
+
+    query.update.run
   }
 
   override def deleteEvent(
@@ -371,17 +397,10 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
       afterDate:    Option[DateTime] = None,
       beforeDate:   Option[DateTime] = None
   ): IOResult[Unit] = {
-
-    import _root_.cats.syntax.list.*
-    val eventIdQuery      = id.map(c => fr"eventId = ${c.value}")
-    val campaignIdQuery   = campaignId.map(c => fr"campaignId = ${c.value}")
-    val campaignTypeQuery = campaignType.map(c => fr"campaignType = ${c.value}")
-    val stateQuery        = states.toNel.map(s => Fragments.in(fr"e.state", s))
-    val afterQuery        = afterDate.map(d => fr"endDate >= ${new java.sql.Timestamp(d.getMillis)}")
-    val beforeQuery       = beforeDate.map(d => fr"startDate <= ${new java.sql.Timestamp(d.getMillis)}")
-    val where             = Fragments.whereAndOpt(eventIdQuery, campaignIdQuery, campaignTypeQuery, stateQuery, afterQuery, beforeQuery)
-    val query             = sql"""delete from campaignEvents """ ++ where
-
-    transactIOResult(s"error when deleting campaign event")(xa => query.update.run.transact(xa).unit)
+    if (List[Iterable[Any]](id, states, campaignType, campaignId, afterDate, beforeDate).exists(_.nonEmpty)) {
+      transactIOResult(s"error when deleting campaign event")(xa =>
+        internalDelete(id, states, campaignType, campaignId, afterDate, beforeDate).transact(xa).unit
+      )
+    } else ZIO.unit
   }
 }

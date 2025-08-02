@@ -286,17 +286,17 @@ object CampaignEventId {
 /*
  * Our different kind of states and their stable names (need compat between rudder version).
  */
-sealed abstract class CampaignEventStateType(override val entryName: String) extends EnumEntry
+sealed trait CampaignEventStateType(override val entryName: String) extends EnumEntry
 
 object CampaignEventStateType extends Enum[CampaignEventStateType] with EnumCodec[CampaignEventStateType] {
-  case object TScheduled extends CampaignEventStateType("scheduled")
-  case object TPreHooks  extends CampaignEventStateType("pre-hooks")
-  case object TRunning   extends CampaignEventStateType("running")
-  case object TPostHooks extends CampaignEventStateType("post-hooks")
-  case object TFinished  extends CampaignEventStateType("finished")
-  case object TSkipped   extends CampaignEventStateType("skipped")
-  case object TDeleted   extends CampaignEventStateType("deleted")
-  case object TFailure   extends CampaignEventStateType("failure")
+  case object ScheduledType extends CampaignEventStateType("scheduled")
+  case object PreHooksType  extends CampaignEventStateType("pre-hooks")
+  case object RunningType   extends CampaignEventStateType("running")
+  case object PostHooksType extends CampaignEventStateType("post-hooks")
+  case object FinishedType  extends CampaignEventStateType("finished")
+  case object SkippedType   extends CampaignEventStateType("skipped")
+  case object DeletedType   extends CampaignEventStateType("deleted")
+  case object FailureType   extends CampaignEventStateType("failure")
 
   override def values: IndexedSeq[CampaignEventStateType] = findValues
 }
@@ -340,14 +340,28 @@ case class HookResults(results: Seq[HookResult]) derives JsonCodec
 sealed trait CampaignEventState(val value: CampaignEventStateType) derives JsonCodec
 object CampaignEventState {
   import com.normation.rudder.campaigns.CampaignEventStateType.*
-  @jsonHint(TScheduled.entryName) case object Scheduled                            extends CampaignEventState(TScheduled)
-  @jsonHint(TPreHooks.entryName) case class PreHooks(hookResults: HookResults)     extends CampaignEventState(TPreHooks)
-  @jsonHint(TRunning.entryName) case object Running                                extends CampaignEventState(TRunning)
-  @jsonHint(TPostHooks.entryName) case class PostHooks(hookResults: HookResults)   extends CampaignEventState(TPostHooks)
-  @jsonHint(TFinished.entryName) case object Finished                              extends CampaignEventState(TFinished)
-  @jsonHint(TSkipped.entryName) case class Skipped(reason: String)                 extends CampaignEventState(TSkipped)
-  @jsonHint(TDeleted.entryName) case class Deleted(reason: String)                 extends CampaignEventState(TDeleted)
-  @jsonHint(TFailure.entryName) case class Failure(cause: String, message: String) extends CampaignEventState(TFailure)
+  @jsonHint(ScheduledType.entryName) case object Scheduled                            extends CampaignEventState(ScheduledType)
+  @jsonHint(PreHooksType.entryName) case class PreHooks(hookResults: HookResults)     extends CampaignEventState(PreHooksType)
+  @jsonHint(RunningType.entryName) case object Running                                extends CampaignEventState(RunningType)
+  @jsonHint(PostHooksType.entryName) case class PostHooks(hookResults: HookResults)   extends CampaignEventState(PostHooksType)
+  @jsonHint(FinishedType.entryName) case object Finished                              extends CampaignEventState(FinishedType)
+  @jsonHint(SkippedType.entryName) case class Skipped(reason: String)                 extends CampaignEventState(SkippedType)
+  @jsonHint(DeletedType.entryName) case class Deleted(reason: String)                 extends CampaignEventState(DeletedType)
+  @jsonHint(FailureType.entryName) case class Failure(cause: String, message: String) extends CampaignEventState(FailureType)
+
+  // when we don't have data for a state that could/should
+  def getDefault(s: CampaignEventStateType): CampaignEventState = {
+    s match {
+      case ScheduledType => CampaignEventState.Scheduled
+      case PreHooksType  => CampaignEventState.PreHooks(HookResults(Nil))
+      case RunningType   => CampaignEventState.Running
+      case PostHooksType => CampaignEventState.PostHooks(HookResults(Nil))
+      case FinishedType  => CampaignEventState.Finished
+      case SkippedType   => CampaignEventState.Skipped("")
+      case DeletedType   => CampaignEventState.Deleted("")
+      case FailureType   => CampaignEventState.Failure("unknown reason", "")
+    }
+  }
 }
 
 case class CampaignEventHistory(id: CampaignEventId, state: CampaignEventState, start: Instant, end: Option[Instant])
@@ -447,4 +461,9 @@ trait CampaignResult {
 
 object CampaignLogger extends NamedZioLogger {
   override def loggerName: String = "campaign"
+
+  // chatty part about Json report processing
+  object Reports extends NamedZioLogger {
+    override def loggerName: String = "campaign.reports"
+  }
 }

@@ -356,12 +356,8 @@ object RunHooks {
             } yield {
               history match {
                 case HookExecutionHistory.DoNotKeep => (c, Nil)
-                case HookExecutionHistory.Keep      =>
-                  val logs = historyList match {
-                    case Noop :: Nil => x :: Nil
-                    case l           => x :: l
-                  }
-                  (c, logs)
+                // Noop are not real hook execution, just filter them out from the result
+                case HookExecutionHistory.Keep      => (c, (x :: historyList).filterNot(_ == Noop))
               }
             }
         }
