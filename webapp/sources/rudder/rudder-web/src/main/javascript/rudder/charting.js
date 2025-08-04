@@ -225,6 +225,7 @@ const doughnutChart = async (id, data, colors, hoverColors , onClickFunction = d
     }
   const chart = new Chart(ctx, chartOptions);
   window[id] = chart;
+  return chart;
 }
 
 
