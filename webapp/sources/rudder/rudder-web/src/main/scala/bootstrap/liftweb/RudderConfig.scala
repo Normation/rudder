@@ -2899,7 +2899,6 @@ object RudderConfigInit {
       rwLdap,
       ldapDiffMapper,
       propertiesService,
-      stringUuidGenerator,
       logRepository,
       gitNodeGroupArchiver,
       personIdentServiceImpl,

@@ -648,7 +648,6 @@ class WoLDAPNodeGroupRepository(
     ldap:               LDAPConnectionProvider[RwLDAPConnection],
     diffMapper:         LDAPDiffMapper,
     propertiesService:  NodePropertiesService,
-    uuidGen:            StringUuidGenerator,
     actionlogEffect:    EventLogRepository,
     gitArchiver:        GitNodeGroupArchiver,
     personIdentService: PersonIdentService,
