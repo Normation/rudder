@@ -63,6 +63,12 @@ class FileUtilsTest extends Specification {
   val symlink1: File = tmp / "symlink1"
   symlink1.symbolicLinkTo(File("/etc"))
 
+  // we want to allow when both jail dir is a symlinked dir and target actually remains in it
+  val folder2: File = tmp / "folder2"
+  folder2.symbolicLinkTo(folder1)
+  val file3:   File = folder2 / "file3"
+  file3.createFile()
+
   "sanitize valid path" >> {
     val tail = "/file2"
     val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail).either)
@@ -99,10 +105,21 @@ class FileUtilsTest extends Specification {
     (res must beLeft(beAnInstanceOf[SecurityError])) and (res must beLeft(OutsideBaseDir(None, root)))
   }
 
-  "sanitize does not follow symlinks" >> {
+  "sanitize does not follow symlinks in the target" >> {
     val tail = "/symlink1"
     val res  = ZioRuntime.unsafeRun(sanitizePath(tmp, tail).either)
     (res must beLeft(beAnInstanceOf[SecurityError])) and (res must beLeft(OutsideBaseDir(Some("symlink1"), root / "etc")))
   }
 
+  "sanitize resolve jail dir and correctly check existing real path" >> {
+    val tail = "/file1"
+    val res  = ZioRuntime.unsafeRun(sanitizePath(folder2, tail).either)
+    res.map(_.pathAsString) must beRight(beEqualTo(tmp.toString + "/folder1/file1"))
+  }
+
+  "sanitize resolve jail dir and correctly allow a file in created in it" >> {
+    val tail = "/file3"
+    val res  = ZioRuntime.unsafeRun(sanitizePath(folder2, tail).either)
+    res.map(_.pathAsString) must beRight(beEqualTo(tmp.toString + "/folder1/file3"))
+  }
 }
