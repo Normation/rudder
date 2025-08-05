@@ -2,12 +2,14 @@
 
 This module implements command execution on Linux systems.
 
+## Usage
+
 The module takes the following arguments:
 
 | Name | Description | Possible values |
 | ---- | ----------- | --------------- |
-| `command` | Command to be executed | A path on the filesystem |
-| `args` | Arguments to the command | A list of strings |
+| `command` | Command to be executed | A path on the filesystem or a complete command (if `in_shell` is set to `true`) |
+| `args` | Arguments to the command | A list of strings or empty (if `in_shell` is set to `true`)  |
 | `run_in_audit_mode` | Controls the running mode of the command | `true`/`false` (default: `false`) |
 | `in_shell` | Controls if the command is executed inside a shell | `true`/`false` (default: `false`) |
 | `shell_path` | Shell path (used only in shell mode) | A path to a shell binary (example `/bin/sh`, `/bin/bash`) |
