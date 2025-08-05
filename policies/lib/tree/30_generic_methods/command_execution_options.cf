@@ -58,7 +58,7 @@
 # @parameter_constraint umask "allow_empty_string" : true
 # @parameter            env_vars The variables to pass to the environment of the executed command
 # @parameter_constraint env_vars "allow_empty_string" : true
-# @parameter            show_content Controls output of diffs in the report
+# @parameter            show_content Controls output of the report
 # @parameter_constraint show_content "allow_empty_string" : true
 # @parameter_constraint show_content "select" : [ "", "true", "false" ]
 #
