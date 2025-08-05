@@ -16,17 +16,20 @@ lazy_static! {
     static ref USER_AGENT: String = format!("{}/{}", CRATE_NAME, CRATE_VERSION);
 }
 
-type PemCertificate = Vec<u8>;
+pub type PemCertificate = Vec<u8>;
 
 #[derive(Clone, Debug)]
 pub enum HttpClient {
-    /// Keep the associated certificates to be able to compare afterwards
+    /// Keep the associated certificates to be able to compare afterwards.
     ///
     /// We can't currently compare reqwest::Certificate or openssl::X509Ref,
     /// so we'll compare pem exports.
     Pinned(Client, Vec<PemCertificate>),
-    /// For compatibility for 6.X
+    /// Check certificates against the system's root certificates
     System(Client),
+    /// Check certificates against a custom certificate authority
+    CustomCertificateAuthority(Client, Vec<PemCertificate>),
+    /// No certificate verification at all
     NoVerify(Client),
 }
 
@@ -71,6 +74,15 @@ impl HttpClientBuilder {
         Ok(HttpClient::Pinned(client.build()?, certs))
     }
 
+    pub fn custom_ca(self, ca: Vec<PemCertificate>) -> Result<HttpClient, Error> {
+        debug!("Creating HTTP client with custom CA certificates");
+        let mut client = self.builder.tls_built_in_root_certs(false);
+        for cert in &ca {
+            client = client.add_root_certificate(Certificate::from_pem(cert)?);
+        }
+        Ok(HttpClient::CustomCertificateAuthority(client.build()?, ca))
+    }
+
     pub fn system(self) -> Result<HttpClient, Error> {
         debug!("Creating HTTP client with system root certificates");
         Ok(HttpClient::System(self.builder.build()?))
@@ -101,12 +113,13 @@ impl HttpClient {
         match *self {
             Self::Pinned(ref c, _) => c,
             Self::System(ref c) => c,
+            Self::CustomCertificateAuthority(ref c, _) => c,
             Self::NoVerify(ref c) => c,
         }
     }
 
-    /// If order is not good, reload
-    /// We have only one certificate anyway
+    /// If order is not good, reload.
+    /// We have only one certificate anyway.
     pub fn outdated(&self, certs: &[PemCertificate]) -> bool {
         match *self {
             Self::Pinned(_, ref current) => current.as_slice() != certs,

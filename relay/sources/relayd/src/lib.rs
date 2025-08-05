@@ -214,6 +214,14 @@ fn signal_handlers(job_config: Arc<JobConfig>) {
     });
 }
 
+pub enum HttpClients {
+    /// Upstream client for the parent policy server
+    /// and downstream clients for sub-relays.
+    Pinned(HttpClient, HashMap<NodeId, HttpClient>),
+    // A unique client in case of CA-based certificate validation.
+    Validated(HttpClient),
+}
+
 pub struct JobConfig {
     /// Does not reload, by definition
     pub cli_cfg: CliConfiguration,
@@ -281,6 +289,10 @@ impl JobConfig {
             PeerAuthentication::SystemRootCerts => {
                 HttpClient::builder(cfg.general.https_idle_timeout).system()
             }
+            PeerAuthentication::CustomCaCert => {
+                let ca = fs::read(&cfg.general.ca_path.clone().unwrap())?;
+                HttpClient::builder(cfg.general.https_idle_timeout).custom_ca(vec![ca])
+            }
             PeerAuthentication::DangerousNone => {
                 HttpClient::builder(cfg.general.https_idle_timeout).no_verify()
             }
@@ -304,6 +316,10 @@ impl JobConfig {
                 }
                 PeerAuthentication::SystemRootCerts => {
                     HttpClient::builder(cfg.general.https_idle_timeout).system()
+                }
+                PeerAuthentication::CustomCaCert => {
+                    let ca = fs::read(&cfg.general.ca_path.unwrap())?;
+                    HttpClient::builder(cfg.general.https_idle_timeout).custom_ca(vec![ca])
                 }
                 PeerAuthentication::DangerousNone => {
                     HttpClient::builder(cfg.general.https_idle_timeout).no_verify()
