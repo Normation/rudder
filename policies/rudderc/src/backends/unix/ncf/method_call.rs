@@ -160,15 +160,11 @@ pub fn method_call(
         quoted(&report_component),
         quoted(&report_parameter),
         quoted(id),
-        "@{args}".to_string(),
-        quoted("${class_prefix}"),
     ];
     let mut method_parameters = vec![
         "c_name".to_string(),
         "c_key".to_string(),
         "report_id".to_string(),
-        "args".to_string(),
-        "class_prefix".to_string(),
     ];
     if let Condition::Expression(_) = condition {
         call_parameters.push(cfengine_canonify_condition(condition.as_ref()));

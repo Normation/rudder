@@ -9,11 +9,6 @@ bundle agent technique_with_loops {
     "local_index"       int => ${report_data.index},
                            unless => "rudder_increment_guard";
 
-    "args"              slist => {};
-    "report_param"      string => join("_", args);
-    "full_class_prefix" string => canonify("technique_with_loops_${report_param}");
-    "class_prefix"      string => string_head("${full_class_prefix}", "1000");
-
   classes:
     "rudder_increment_guard" expression => "any";
 
@@ -22,38 +17,38 @@ bundle agent technique_with_loops {
     "pass1" expression => "any";
 
   methods:
-    "index_${local_index}_0" usebundle => call_technique_with_loops_d86ce2e5_d5b6_45cc_87e8_c11cca71d907_0("Install a package", "vim", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907-0", @{args}, "${class_prefix}", "vim", "latest", "", ""),
+    "index_${local_index}_0" usebundle => call_technique_with_loops_d86ce2e5_d5b6_45cc_87e8_c11cca71d907_0("Install a package", "vim", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907-0", "vim", "latest", "", ""),
                                     if => "pass3";
 
-    "index_${local_index}_1" usebundle => call_technique_with_loops_d86ce2e5_d5b6_45cc_87e8_c11cca71d907_1("Install a package", "htop", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907-1", @{args}, "${class_prefix}", "htop", "2.3.4", "", ""),
+    "index_${local_index}_1" usebundle => call_technique_with_loops_d86ce2e5_d5b6_45cc_87e8_c11cca71d907_1("Install a package", "htop", "d86ce2e5-d5b6-45cc-87e8-c11cca71d907-1", "htop", "2.3.4", "", ""),
                                     if => "pass3";
 
-    "index_${local_index}_2" usebundle => call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_0_0("Create home", "bob", "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-0", @{args}, "${class_prefix}", "bob", "bob", "wheel"),
+    "index_${local_index}_2" usebundle => call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_0_0("Create home", "bob", "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-0", "bob", "bob", "wheel"),
                                     if => "pass3";
 
-    "index_${local_index}_3" usebundle => call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_0_1("Create home", "bob", "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-1", @{args}, "${class_prefix}", "bob", "bob", "docker"),
+    "index_${local_index}_3" usebundle => call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_0_1("Create home", "bob", "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-0-1", "bob", "bob", "docker"),
                                     if => "pass3";
 
-    "index_${local_index}_4" usebundle => call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_0_0("Deploy file ~/.vimrc", "/home/bob/.vimrc", "20676b22-2de2-4029-a4e2-e0be2453e78e-0-0", @{args}, "${class_prefix}", "bob", ".vimrc", "/home/bob/.vimrc", "sha256"),
+    "index_${local_index}_4" usebundle => call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_0_0("Deploy file ~/.vimrc", "/home/bob/.vimrc", "20676b22-2de2-4029-a4e2-e0be2453e78e-0-0", "bob", ".vimrc", "/home/bob/.vimrc", "sha256"),
                                     if => "pass3";
 
-    "index_${local_index}_5" usebundle => call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_0_1("Deploy file ~/.bashrc", "/home/bob/.bashrc", "20676b22-2de2-4029-a4e2-e0be2453e78e-0-1", @{args}, "${class_prefix}", "bob", ".bashrc", "/home/bob/.bashrc", "sha256"),
+    "index_${local_index}_5" usebundle => call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_0_1("Deploy file ~/.bashrc", "/home/bob/.bashrc", "20676b22-2de2-4029-a4e2-e0be2453e78e-0-1", "bob", ".bashrc", "/home/bob/.bashrc", "sha256"),
                                     if => "pass3";
 
-    "index_${local_index}_6" usebundle => call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_1_0("Create home", "alice", "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-0", @{args}, "${class_prefix}", "alice", "alice", "wheel"),
+    "index_${local_index}_6" usebundle => call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_1_0("Create home", "alice", "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-0", "alice", "alice", "wheel"),
                                     if => "pass3";
 
-    "index_${local_index}_7" usebundle => call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_1_1("Create home", "alice", "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-1", @{args}, "${class_prefix}", "alice", "alice", "docker"),
+    "index_${local_index}_7" usebundle => call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_1_1("Create home", "alice", "b461df26-f0b8-44ec-b3b9-6bb278e0f3a5-1-1", "alice", "alice", "docker"),
                                     if => "pass3";
 
-    "index_${local_index}_8" usebundle => call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_1_0("Deploy file ~/.vimrc", "/home/alice/.vimrc", "20676b22-2de2-4029-a4e2-e0be2453e78e-1-0", @{args}, "${class_prefix}", "alice", ".vimrc", "/home/alice/.vimrc", "sha256"),
+    "index_${local_index}_8" usebundle => call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_1_0("Deploy file ~/.vimrc", "/home/alice/.vimrc", "20676b22-2de2-4029-a4e2-e0be2453e78e-1-0", "alice", ".vimrc", "/home/alice/.vimrc", "sha256"),
                                     if => "pass3";
 
-    "index_${local_index}_9" usebundle => call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_1_1("Deploy file ~/.bashrc", "/home/alice/.bashrc", "20676b22-2de2-4029-a4e2-e0be2453e78e-1-1", @{args}, "${class_prefix}", "alice", ".bashrc", "/home/alice/.bashrc", "sha256"),
+    "index_${local_index}_9" usebundle => call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_1_1("Deploy file ~/.bashrc", "/home/alice/.bashrc", "20676b22-2de2-4029-a4e2-e0be2453e78e-1-1", "alice", ".bashrc", "/home/alice/.bashrc", "sha256"),
                                     if => "pass3";
 
 }
-bundle agent call_technique_with_loops_d86ce2e5_d5b6_45cc_87e8_c11cca71d907_0(c_name, c_key, report_id, args, class_prefix, name, version, architecture, provider) {
+bundle agent call_technique_with_loops_d86ce2e5_d5b6_45cc_87e8_c11cca71d907_0(c_name, c_key, report_id, name, version, architecture, provider) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -70,7 +65,7 @@ bundle agent call_technique_with_loops_d86ce2e5_d5b6_45cc_87e8_c11cca71d907_0(c_
     "index_${local_index}_2" usebundle => log_rudder_v4("${c_key}", "Skipping method 'Package present' with key parameter '${c_key}' since condition 'false' is not reached", "");
 
 }
-bundle agent call_technique_with_loops_d86ce2e5_d5b6_45cc_87e8_c11cca71d907_1(c_name, c_key, report_id, args, class_prefix, name, version, architecture, provider) {
+bundle agent call_technique_with_loops_d86ce2e5_d5b6_45cc_87e8_c11cca71d907_1(c_name, c_key, report_id, name, version, architecture, provider) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -86,7 +81,7 @@ bundle agent call_technique_with_loops_d86ce2e5_d5b6_45cc_87e8_c11cca71d907_1(c_
     "index_${local_index}_1" usebundle => package_present("${name}", "${version}", "${architecture}", "${provider}");
 
 }
-bundle agent call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_0_0(c_name, c_key, report_id, args, class_prefix, method_call_condition, login, group_name) {
+bundle agent call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_0_0(c_name, c_key, report_id, method_call_condition, login, group_name) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -107,7 +102,7 @@ bundle agent call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_0_0(
                                 unless => "${method_call_condition}";
 
 }
-bundle agent call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_0_1(c_name, c_key, report_id, args, class_prefix, method_call_condition, login, group_name) {
+bundle agent call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_0_1(c_name, c_key, report_id, method_call_condition, login, group_name) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -128,7 +123,7 @@ bundle agent call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_0_1(
                                 unless => "${method_call_condition}";
 
 }
-bundle agent call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_0_0(c_name, c_key, report_id, args, class_prefix, method_call_condition, source, path, hash_type) {
+bundle agent call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_0_0(c_name, c_key, report_id, method_call_condition, source, path, hash_type) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -149,7 +144,7 @@ bundle agent call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_0_0(
                                 unless => "${method_call_condition}";
 
 }
-bundle agent call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_0_1(c_name, c_key, report_id, args, class_prefix, method_call_condition, source, path, hash_type) {
+bundle agent call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_0_1(c_name, c_key, report_id, method_call_condition, source, path, hash_type) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -170,7 +165,7 @@ bundle agent call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_0_1(
                                 unless => "${method_call_condition}";
 
 }
-bundle agent call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_1_0(c_name, c_key, report_id, args, class_prefix, method_call_condition, login, group_name) {
+bundle agent call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_1_0(c_name, c_key, report_id, method_call_condition, login, group_name) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -191,7 +186,7 @@ bundle agent call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_1_0(
                                 unless => "${method_call_condition}";
 
 }
-bundle agent call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_1_1(c_name, c_key, report_id, args, class_prefix, method_call_condition, login, group_name) {
+bundle agent call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_1_1(c_name, c_key, report_id, method_call_condition, login, group_name) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -212,7 +207,7 @@ bundle agent call_technique_with_loops_b461df26_f0b8_44ec_b3b9_6bb278e0f3a5_1_1(
                                 unless => "${method_call_condition}";
 
 }
-bundle agent call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_1_0(c_name, c_key, report_id, args, class_prefix, method_call_condition, source, path, hash_type) {
+bundle agent call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_1_0(c_name, c_key, report_id, method_call_condition, source, path, hash_type) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
@@ -233,7 +228,7 @@ bundle agent call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_1_0(
                                 unless => "${method_call_condition}";
 
 }
-bundle agent call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_1_1(c_name, c_key, report_id, args, class_prefix, method_call_condition, source, path, hash_type) {
+bundle agent call_technique_with_loops_20676b22_2de2_4029_a4e2_e0be2453e78e_1_1(c_name, c_key, report_id, method_call_condition, source, path, hash_type) {
 
   vars:
     "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
