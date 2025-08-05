@@ -126,7 +126,7 @@ pub async fn run(job_config: Arc<JobConfig>) -> Result<(), ()> {
     })?;
     // Use first resolved address for now
     let socket = addresses.next().unwrap();
-    warp::serve(routes).bind(socket).await;
+    warp::serve(routes).run(socket).await;
     Ok(())
 }
 

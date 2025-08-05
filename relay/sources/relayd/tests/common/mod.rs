@@ -22,7 +22,7 @@ pub fn start_api(port: u16) -> Result<(), ()> {
             "http://localhost:{port}/rudder/relay-api/1/system/status"
         ));
 
-        if resp.is_ok() {
+        if dbg!(resp).is_ok() {
             return Ok(());
         }
     }

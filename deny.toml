@@ -8,6 +8,7 @@ unknown-git = "deny"
 allow-git = [
     "https://github.com/fennewald/format_serde_error",
     "https://github.com/JamesGuthrie/test-generator",
+    "https://github.com/amousset/warp?branch=body-stream"
 ]
 
 [sources.allow-org]

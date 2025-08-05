@@ -253,24 +253,24 @@ impl MethodConstraints {
                 bail!("value '{}' does match forbidden regex '{}'", value, r.value)
             }
         }
-        if let Some(s) = &self.select {
-            if !s.iter().any(|x| x.value == value) {
-                bail!(
-                    "value '{}' not included in allowed set {:?}",
-                    value,
-                    s.iter().map(|s| s.value.clone()).collect::<Vec<String>>()
-                )
-            }
+        if let Some(s) = &self.select
+            && !s.iter().any(|x| x.value == value)
+        {
+            bail!(
+                "value '{}' not included in allowed set {:?}",
+                value,
+                s.iter().map(|s| s.value.clone()).collect::<Vec<String>>()
+            )
         }
-        if let Some(f) = &self.valid_format {
-            if let Err(e) = f.validate(value) {
-                bail!(
-                    "value '{}' does match the expected format '{}': {:?}",
-                    value,
-                    f,
-                    e
-                )
-            }
+        if let Some(f) = &self.valid_format
+            && let Err(e) = f.validate(value)
+        {
+            bail!(
+                "value '{}' does match the expected format '{}': {:?}",
+                value,
+                f,
+                e
+            )
         }
         Ok(())
     }
