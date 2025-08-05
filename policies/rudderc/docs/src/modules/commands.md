@@ -1,25 +1,27 @@
 # Commands module
 
+This module implements command execution on Linux systems.
+
 The module takes the following arguments:
 
 | Name | Description | Possible values |
 | ---- | ----------- | --------------- |
 | `command` | Command to be executed | A path on the filesystem |
-| `args` | Arguments to the command | A path on the filesystem that points to a template to be rendered |
-| `run_in_audit_mode` | Controls the running mode of the command | A template in the form of a string (for example: `{{%-top-}}`) |
-| `in_shell` | Controls if the command is executed inside a shell | `mustache`, `minijinja`, `jinja2` (default: `minijinja`) |
-| `shell_path` | Shell path (used only in shell mode) | A path to a shell binary (example /bin/sh, /bin/bash) |
+| `args` | Arguments to the command | A list of strings |
+| `run_in_audit_mode` | Controls the running mode of the command | `true`/`false` (default: `false`) |
+| `in_shell` | Controls if the command is executed inside a shell | `true`/`false` (default: `false`) |
+| `shell_path` | Shell path (used only in shell mode) | A path to a shell binary (example `/bin/sh`, `/bin/bash`) |
 | `chdir` | Directory from where to execute the command | A path to a directory |
-| `timeout` | Timeout for command execution | A timeout in seconds (default: 30) |
+| `timeout` | Timeout for command execution | A timeout in seconds (default: `30`) |
 | `stdin` | Input passed to the stdin of the executed command | A string |
 | `stdin_add_newline` | Controls the appending of a newline to the stdin input | `true`/`false` (default: `true`) |
-| `compliant_codes` | Compliant codes | Compliant codes (example: "", 0, 1) |
-| `repaired_codes` | Repaired codes |  Repaired codes (example: 0, 1) |
+| `compliant_codes` | Compliant codes | Compliant codes (example: `""`, `0`, `1`) |
+| `repaired_codes` | Repaired codes |  Repaired codes (example: `0`, `1`) |
 | `output_to_file` | File to store the output of the command | A valid file path |
 | `strip_output` | Controls the strip of the content inside the output file | `true`/`false` (default: `true`) |
-| `uid` | UID used by the executed command | A valid UID (example: 0) |
-| `gid` | GID used by the executed command | A valid GID (example: 0) |
-| `umask` | Umask used by the executed command | A valid umask (example: 0022) |
+| `uid` | UID used by the executed command | A valid UID (example: `0`) |
+| `gid` | GID used by the executed command | A valid GID (example: `0`) |
+| `umask` | Umask used by the executed command | A valid umask (example: `0022`) |
 | `env_vars` | Environment variables used by the executed command | A list of variables separated by a new line: `MY_VAR_1=VALUE1` |
 | `show_content` | Controls output of diffs in the report | `true`/`false` (default: `true`) |
 
