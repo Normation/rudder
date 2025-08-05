@@ -25,7 +25,7 @@ The module takes the following arguments:
 | `gid` | GID used by the executed command | A valid GID (example: `0`) |
 | `umask` | Umask used by the executed command | A valid umask (example: `0022`) |
 | `env_vars` | Environment variables used by the executed command | A list of variables separated by a new line: `MY_VAR_1=VALUE1` |
-| `show_content` | Controls output of diffs in the report | `true`/`false` (default: `true`) |
+| `show_content` | Controls output in the report | `true`/`false` (default: `true`) |
 
 ## CLI
 

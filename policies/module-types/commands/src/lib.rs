@@ -354,10 +354,16 @@ impl ModuleType0 for Commands {
         };
 
         let status = output.get("status").unwrap().to_string();
+        let report_data = if p.show_content {
+            output.to_string()
+        } else {
+            "Report data is not available (show_content is disabled)".to_string()
+        };
+
         let res = match status.as_str() {
-            "\"compliant\"" => Outcome::success_with(output.to_string()),
-            "\"repaired\"" => Outcome::repaired(output.to_string()),
-            _ => bail!("{}", output.to_string()),
+            "\"compliant\"" => Outcome::success_with(report_data),
+            "\"repaired\"" => Outcome::repaired(report_data),
+            _ => bail!("{}", report_data),
         };
 
         Ok(res)
