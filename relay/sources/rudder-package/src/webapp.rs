@@ -85,7 +85,12 @@ impl Webapp {
                 }
                 Event::Text(e) => {
                     if in_extra_classpath {
-                        return Ok(e.unescape()?.split(',').map(|s| s.to_string()).collect());
+                        return Ok(e
+                            .decode()?
+                            .as_ref()
+                            .split(',')
+                            .map(|s| s.to_string())
+                            .collect());
                     }
                 }
                 _ => (),
@@ -120,7 +125,7 @@ impl Webapp {
                     // there are existing jars
                     if in_extra_classpath {
                         in_extra_classpath = false;
-                        let jars_t = e.unescape()?;
+                        let jars_t = e.decode()?;
                         let mut jars: HashSet<&str> = HashSet::from_iter(jars_t.split(','));
                         // Trigger a restart if something changes
                         for p in present {

@@ -18,7 +18,7 @@ clap = { version = "4.5.11", features = ["derive"] }
 clap_complete = "4.5.10"
 chrono = { version = "0.4.31", default-features = false, features = ["clock", "std", "serde"] }
 lzma-rs = "0.3.0"
-quick-xml = "0.37.0"
+quick-xml = "0.38.0"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "native-tls"] }
 regex = "1.10.2"
 secrecy = { version = "0.10.3", features = ["serde"] }
@@ -43,7 +43,7 @@ clap = { version = "4.5.11", features = ["derive"] }
 clap_complete = "4.5.10"
 
 [dev-dependencies]
-rstest = "0.25.0"
+rstest = "0.26.0"
 assert-json-diff = "2.0.2"
 dir-diff = "0.3.2"
 pretty_assertions = "1.4.0"
