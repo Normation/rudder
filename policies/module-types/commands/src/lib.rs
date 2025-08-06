@@ -333,8 +333,10 @@ impl ModuleType0 for Commands {
     }
 
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
-        let _p: CommandsParameters =
-            serde_json::from_value(Value::Object(parameters.data.clone()))?;
+        let p: CommandsParameters = serde_json::from_value(Value::Object(parameters.data.clone()))?;
+        if p.command.is_empty() {
+            bail!("the command provided is empty!");
+        }
 
         Ok(())
     }
