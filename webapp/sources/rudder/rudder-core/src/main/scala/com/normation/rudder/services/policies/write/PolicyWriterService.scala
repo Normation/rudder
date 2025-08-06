@@ -375,9 +375,9 @@ class PolicyWriterServiceImpl(
       }
       val msg                 = errorCode match {
         // we need to limit sdtout/sdterr length
-        case HookReturnCode.ScriptError(code, stdout, stderr, msg) =>
+        case HookReturnCode.ScriptError(_, code, stdout, stderr, msg) =>
           s"${msg} [stdout:${limitOut(stdout)}][stderr:${limitOut(stderr)}]"
-        case x                                                     => x.msg
+        case x                                                        => x.msg
       }
     }
 

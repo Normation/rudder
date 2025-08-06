@@ -314,7 +314,7 @@ ALTER TABLE statusupdate set (autovacuum_vacuum_threshold = 0);
  *************************************************************************************
  */
 
-CREATE TYPE campaignEventState AS enum ('scheduled', 'prehooks', 'running', 'posthooks', 'finished', 'skipped', 'deleted', 'failure');
+CREATE TYPE campaignEventState AS enum ('scheduled', 'pre-hooks', 'running', 'post-hooks', 'finished', 'skipped', 'deleted', 'failure');
 
 CREATE TABLE CampaignEvents (
   campaignId   text

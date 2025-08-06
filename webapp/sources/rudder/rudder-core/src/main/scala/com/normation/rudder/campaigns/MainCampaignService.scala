@@ -40,15 +40,13 @@ package com.normation.rudder.campaigns
 import cats.implicits.*
 import com.normation.errors.*
 import com.normation.rudder.campaigns.CampaignEventState.*
-import com.normation.rudder.facts.nodes.ChangeContext
+import com.normation.rudder.campaigns.CampaignEventStateType.*
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import scala.annotation.nowarn
-import zio.Duration
-import zio.Queue
-import zio.ZIO
+import zio.*
 import zio.syntax.*
 
 trait CampaignHandler {
@@ -65,61 +63,63 @@ object MainCampaignService {
   }
 }
 
+/**
+ * This service contains the main scheduling and persisting logic for campaigns:
+ *   - it loads campaigns from repository
+ *   - it manages events for campaign and persist their states
+ *   - it runs server-side hooks for campaign events
+ */
 class MainCampaignService(
-    repo:             CampaignEventRepository,
-    campaignRepo:     CampaignRepository,
-    campaignArchiver: CampaignArchiver,
-    uuidGen:          StringUuidGenerator,
-    startDelay:       Int,
-    endDelay:         Int
+    repo:         CampaignEventRepository,
+    campaignRepo: CampaignRepository,
+    hooksService: CampaignHooksService,
+    uuidGen:      StringUuidGenerator,
+    startDelay:   Int,
+    endDelay:     Int
 ) {
 
-  private var services:                    List[CampaignHandler]       = Nil
+  private var services: List[CampaignHandler]     = Nil
+  private var inner:    Option[CampaignScheduler] = None
+
   def registerService(s: CampaignHandler): ZIO[Any, RudderError, Unit] = {
     services = s :: services
     init()
   }
 
-  private var inner: Option[CampaignScheduler] = None
-
-  def deleteCampaign(c: CampaignId): ZIO[Any, RudderError, Unit] = {
+  def deleteCampaign(c: CampaignId): IOResult[Unit] = {
     inner match {
-      case Some(s) =>
-        for {
-          _ <- s.deleteCampaign(c)
-        } yield { () }
+      case Some(s) => s.deleteCampaign(c)
       case None    => CampaignLogger.debug(s"Campaign system not initialized yet, campaign ${c.value} was not deleted")
     }
   }
 
-  def saveCampaign(c: Campaign):               ZIO[Any, RudderError, Campaign]        = {
+  def saveCampaign(c: Campaign): IOResult[Unit] = {
     for {
       _ <- campaignRepo.save(c)
-      _ <- campaignArchiver.saveCampaign(c.info.id)(ChangeContext.newForRudder())
       _ <- scheduleCampaignEvent(c, DateTime.now(DateTimeZone.UTC))
-    } yield {
-      c
-    }
+    } yield ()
   }
-  def queueCampaign(c: CampaignEvent):         ZIO[Any, Inconsistency, CampaignEvent] = {
+
+  def queueCampaignEvent(e: CampaignEvent): IOResult[Unit] = {
     inner match {
-      case Some(s) => s.queueCampaign(c)
+      case Some(s) => s.queueCampaign(e)
       case None    => Inconsistency("not initialized yet").fail
     }
   }
-  def deleteCampaignEvent(c: CampaignEventId): ZIO[Any, RudderError, Unit]            = {
+
+  def deleteCampaignEvent(id: CampaignEventId): IOResult[Unit] = {
     inner match {
-      case Some(s) =>
-        for {
-          _ <- s.deleteCampaignEvent(c)
-        } yield { () }
-      case None    => CampaignLogger.debug(s"Campaign system not initialized yet, campaign event ${c.value} was not deleted")
+      case Some(s) => s.deleteCampaignEvent(id)
+      case None    => CampaignLogger.debug(s"Campaign system not initialized yet, campaign event ${id.value} was not deleted")
     }
   }
 
   /*
    * Campaign scheduler.
    * The strategy is to have one fiber for each handle(eventId).
+   *
+   * The main scheduler doesn't handle state progression, this is managed by each plugin
+   * campaign manager. Here, we only correct bad states or manage error case.
    */
   case class CampaignScheduler(main: MainCampaignService, queue: Queue[CampaignEventId]) {
 
@@ -130,20 +130,20 @@ class MainCampaignService(
         _        <- ZIO.foreachDiscard(events) { event =>
                       ZIO
                         .foreachDiscard(services)(s => s.delete(event)(campaign).unit)
-                        .catchAll(_ => {
+                        .catchAll { _ =>
                           CampaignLogger.warn(
-                            s"An error occured while cleaning campaign event ${event.id.value} during deletion of campaign ${c.value}"
+                            s"An error occurred while cleaning campaign event ${event.id.value} during deletion of campaign ${c.value}"
                           )
-                        })
+                        }
                     }
         _        <- repo.deleteEvent(campaignId = Some(c))
-        _        <- campaignArchiver.deleteCampaign(c)(ChangeContext.newForRudder())
+        _        <- campaignRepo.delete(c)
       } yield {
         ()
       }
     }
 
-    def deleteCampaignEvent(c: CampaignEventId): ZIO[Any, RudderError, Unit]      = {
+    def deleteCampaignEvent(c: CampaignEventId): IOResult[Unit] = {
       for {
         eventOpt <- repo.get(c)
         _        <- ZIO.foreachDiscard(eventOpt) { event =>
@@ -154,7 +154,7 @@ class MainCampaignService(
                             .foreachDiscard(services)(s => s.delete(event)(campaign).unit)
                             .catchAll(_ => {
                               CampaignLogger.warn(
-                                s"An error occured while cleaning campaign event ${event.id.value} during deletion of campaign ${c.value}"
+                                s"An error occurred while cleaning campaign event ${event.id.value} during deletion of campaign ${c.value}"
                               )
                             })
                       } yield ()
@@ -164,22 +164,21 @@ class MainCampaignService(
         ()
       }
     }
-    def queueCampaign(c: CampaignEvent):         ZIO[Any, Nothing, CampaignEvent] = {
+
+    def queueCampaign(c: CampaignEvent): UIO[Unit] = {
       for {
         _ <- queue.offer(c.id)
-      } yield {
-        c
-      }
+      } yield ()
     }
 
-    def handle(eventId: CampaignEventId, now: DateTime): ZIO[Any, RudderError, Any] = {
+    def handle(eventId: CampaignEventId, now: DateTime): IOResult[Unit] = {
 
       def base(event: CampaignEvent): PartialFunction[Campaign, IOResult[CampaignEvent]] = { case _ => event.succeed }
 
       val now = DateTime.now(DateTimeZone.UTC)
 
       @nowarn
-      def failingLog(err: RudderError) = {
+      def failingLog(err: RudderError): IOResult[Unit] = {
         for {
           _ <- CampaignLogger.error(
                  s"An error occurred while treating campaign event ${eventId.value}, error details : ${err.fullMsg} "
@@ -208,10 +207,12 @@ class MainCampaignService(
                        s"Start handling campaign event '${event.id.value}' state is ${event.state.value.entryName}"
                      )
                 _ <-
-                  event.state match {
-                    case Finished | Skipped(_) | Deleted(_) | Failure(_, _) =>
+                  event.state.value match {
+
+                    case TFinished | TSkipped | TDeleted | TFailure =>
                       ().succeed
-                    case Scheduled                                          =>
+
+                    case TScheduled =>
                       campaign.info.status match {
                         case Disabled(reason) =>
                           val reasonMessage = if (reason.isEmpty) "" else s"Reason is '${reason}''"
@@ -243,7 +244,11 @@ class MainCampaignService(
                             )
                           }
                       }
-                    case Running                                            =>
+
+                    case TPreHooks =>
+                      hooksService.runPreHooks(campaign, event)
+
+                    case TRunning =>
                       val effectiveStart = event.start.minusHours(startDelay)
                       val effectiveEnd   = event.end.plusHours(endDelay)
                       if (effectiveStart.isAfter(now)) {
@@ -281,6 +286,9 @@ class MainCampaignService(
                           s"${event.id.value} should be treated by ${event.campaignType.value} handler for Running state"
                         )
                       }
+
+                    case TPostHooks =>
+                      hooksService.runPostHooks(campaign, event)
                   }
 
                 // Get updated event and campaign, state of the event could have changed, campaign parameter also
@@ -310,8 +318,8 @@ class MainCampaignService(
                              )
                            _    <- repo.saveCampaignEvent(newCampaign)
                            post <-
-                             newCampaign.state match {
-                               case Finished | Skipped(_) | Deleted(_) | Failure(_, _) =>
+                             newCampaign.state.value match {
+                               case TFinished | TSkipped | TDeleted | TFailure     =>
                                  for {
                                    campaign <- campaignRepo
                                                  .get(event.campaignId)
@@ -320,7 +328,7 @@ class MainCampaignService(
                                  } yield {
                                    up
                                  }
-                               case Scheduled | Running                                =>
+                               case TScheduled | TPreHooks | TRunning | TPostHooks =>
                                  for {
                                    _ <- queueCampaign(newCampaign)
                                  } yield {
@@ -345,7 +353,7 @@ class MainCampaignService(
               ) *>
               repo
                 .saveCampaignEvent(
-                  event.copy(state = CampaignEventState.Failure(s"An error occurred when processing event", err.fullMsg))
+                  event.copy(state = Failure(s"An error occurred when processing event", err.fullMsg))
                 )
                 .unit
             }
@@ -353,7 +361,7 @@ class MainCampaignService(
         .catchAll(failingLog) // this catch all is when event the previous level does not work. It should not create loop
     }
 
-    def loop(): ZIO[Any, Nothing, Unit] = {
+    def loop(): UIO[Unit] = {
       for {
         c <- queue.take
         _ <- handle(c, DateTime.now(DateTimeZone.UTC)).forkDaemon
@@ -372,7 +380,7 @@ class MainCampaignService(
         for {
           nbOfEvents <- repo.numberOfEventsByCampaign(campaign.info.id)
           events     <- repo.getWithCriteria(
-                          CampaignEventStateType.Running :: Nil,
+                          TRunning :: Nil,
                           Nil,
                           Some(campaign.info.id),
                           None,
@@ -382,7 +390,7 @@ class MainCampaignService(
                           None,
                           None
                         )
-          _          <- repo.deleteEvent(None, CampaignEventStateType.Scheduled :: Nil, None, Some(campaign.info.id), None, None)
+          _          <- repo.deleteEvent(None, TScheduled :: Nil, None, Some(campaign.info.id), None, None)
 
           lastEventDate = events match {
                             case Nil => date
@@ -405,7 +413,7 @@ class MainCampaignService(
                               )
                               for {
                                 _ <- repo.saveCampaignEvent(ev)
-                                _ <- queueCampaign(ev)
+                                _ <- queueCampaignEvent(ev)
                               } yield {
                                 Some(ev)
                               }
@@ -419,14 +427,14 @@ class MainCampaignService(
     }
   }
 
-  def init(): ZIO[Any, RudderError, Unit] = {
+  def init(): IOResult[Unit] = {
     inner match {
       case None    => Inconsistency("Campaign queue not initialized. campaign service was not started accordingly").fail
       case Some(s) =>
         for {
           alreadyScheduled <-
             repo.getWithCriteria(
-              CampaignEventStateType.Running :: CampaignEventStateType.Scheduled :: Nil,
+              TRunning :: TScheduled :: Nil,
               Nil,
               None,
               None,
@@ -441,7 +449,6 @@ class MainCampaignService(
           _                <- ZIO.foreach(alreadyScheduled)(ev => s.queueCampaign(ev))
           _                <- CampaignLogger.debug("queued events, check campaigns")
           campaigns        <- campaignRepo.getAll(Nil, CampaignStatusValue.Enabled :: Nil)
-          _                <- campaignArchiver.init(ChangeContext.newForRudder())
           _                <- CampaignLogger.debug(s"Got ${campaigns.size} campaigns, check all started")
           toStart           = campaigns.filterNot(c => alreadyScheduled.exists(_.campaignId == c.info.id))
           optNewEvents     <- ZIO.foreach(toStart)(c => scheduleCampaignEvent(c, DateTime.now(DateTimeZone.UTC)))
@@ -455,7 +462,7 @@ class MainCampaignService(
     }
   }
 
-  def start(initQueue: Queue[CampaignEventId]): ZIO[Any, RudderError, Unit] = {
+  def start(initQueue: Queue[CampaignEventId]): IOResult[Unit] = {
     val s = CampaignScheduler(this, initQueue)
     inner = Some(s)
     for {
