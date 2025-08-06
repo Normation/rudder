@@ -114,14 +114,19 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
   private case class FailureData(cause: String, message: String) derives JsonCodec {
     def toFailure = CampaignEventState.Failure(cause, message)
   }
+  private case class HooksData(hooks: Seq[HookResult]) derives JsonCodec           {
+    def toPreHooks  = CampaignEventState.PreHooks(HookResults(hooks))
+    def toPostHooks = CampaignEventState.PostHooks(HookResults(hooks))
+  }
 
-  private type DATA = ReasonData | FailureData
+  private type DATA = ReasonData | FailureData | HooksData
 
   // some boilerplate for the union encoder, because not supported automatically.
   implicit private val encoderDATA: JsonEncoder[DATA] = (a: DATA, indent: Option[RuntimeFlags], out: Write) => {
     a match {
       case x: ReasonData  => JsonEncoder[ReasonData].unsafeEncode(x, indent, out)
       case x: FailureData => JsonEncoder[FailureData].unsafeEncode(x, indent, out)
+      case x: HooksData   => JsonEncoder[HooksData].unsafeEncode(x, indent, out)
     }
   }
 
@@ -138,15 +143,36 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
    * Recompose a state object from the state type and additional data
    */
   private def getState(s: CampaignEventStateType, data: Option[DATA]): Either[String, CampaignEventState] = {
+    import com.normation.rudder.campaigns.CampaignEventStateType.*
+    // when we don't have data for a state that could/should
+    def getDefault(s: CampaignEventStateType): CampaignEventState = {
+      s match {
+        case TScheduled => CampaignEventState.Scheduled
+        case TPreHooks  => CampaignEventState.PreHooks(HookResults(Nil))
+        case TRunning   => CampaignEventState.Running
+        case TPostHooks => CampaignEventState.PostHooks(HookResults(Nil))
+        case TFinished  => CampaignEventState.Finished
+        case TSkipped   => CampaignEventState.Skipped("")
+        case TDeleted   => CampaignEventState.Deleted("")
+        case TFailure   => CampaignEventState.Failure("unknown reason", "")
+      }
+    }
+
     data match {
-      case None                 => Right(CampaignEventState.getDefault(s))
+      case None                 => Right(getDefault(s))
       case Some(x: ReasonData)  =>
         s match {
-          case CampaignEventStateType.Skipped => Right(x.toSkipped)
-          case CampaignEventStateType.Deleted => Right(x.toDeleted)
-          case x                              => Left(s"Error: data of type 'reason' is incompatible with state '${x.entryName}'")
+          case TSkipped => Right(x.toSkipped)
+          case TDeleted => Right(x.toDeleted)
+          case r        => Left(s"Error: data of type 'reason' is incompatible with state '${r.entryName}'")
         }
       case Some(x: FailureData) => Right(x.toFailure)
+      case Some(x: HooksData)   =>
+        s match {
+          case TPreHooks  => Right(x.toPreHooks)
+          case TPostHooks => Right(x.toPostHooks)
+          case r          => Left(s"Error: data of type 'hooks' is incompatible with state '${r.entryName}'")
+        }
     }
   }
 
@@ -217,12 +243,15 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
         .define[CampaignEvent, CampaignEventHistoryInsert]
         .withFieldComputed(_.start, x => DateFormaterService.toInstant(x.start))
         .withFieldComputed(_.end, x => Some(DateFormaterService.toInstant(x.end)))
+        .withFieldComputed(_.state, _.state.value)
         .withFieldComputed(
           _.data,
           _.state match {
             case Scheduled | Running | Finished => None
             case Skipped(reason)                => Some(ReasonData(reason))
             case Deleted(reason)                => Some(ReasonData(reason))
+            case PreHooks(hooks)                => Some(HooksData(hooks.results))
+            case PostHooks(hooks)               => Some(HooksData(hooks.results))
             case Failure(cause, message)        => Some(FailureData(cause, message))
           }
         )

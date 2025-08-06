@@ -3447,15 +3447,16 @@ object RudderConfigInit {
     lazy val healthcheckNotificationService = new HealthcheckNotificationService(healthcheckService, RUDDER_HEALTHCHECK_PERIOD)
     lazy val campaignSerializer             = new CampaignSerializer()
     lazy val campaignEventRepo              = new CampaignEventRepositoryImpl(doobie, campaignSerializer)
-
-    lazy val campaignArchiver = new CampaignArchiverImpl(gitConfigRepo, "campaigns", personIdentService)
+    lazy val campaignHooksRepository        = new FsCampaignHooksRepository(HOOKS_D)
+    lazy val campaignHooksService           = new FsCampaignHooksService(HOOKS_D, HOOKS_IGNORE_SUFFIXES)
+    lazy val campaignArchiver               = new CampaignArchiverImpl(gitConfigRepo, "campaigns", personIdentService)
 
     lazy val campaignRepo = CampaignRepositoryImpl
-      .make(campaignSerializer, campaignArchiver.campaignPath, campaignEventRepo)
+      .make(campaignArchiver.campaignPath, campaignArchiver, campaignSerializer, campaignHooksRepository)
       .runOrDie(err => new RuntimeException(s"Error during initialization of campaign repository: " + err.fullMsg))
 
     lazy val mainCampaignService =
-      new MainCampaignService(campaignEventRepo, campaignRepo, campaignArchiver, stringUuidGenerator, 1, 1)
+      new MainCampaignService(campaignEventRepo, campaignRepo, campaignHooksService, stringUuidGenerator, 1, 1)
     lazy val jsonReportsAnalyzer = JSONReportsAnalyser(reportsRepository, propertyRepository)
 
     lazy val instanceUuidPath    = root / "opt" / "rudder" / "etc" / "instance-id"

@@ -160,7 +160,7 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
               .getOrElse(throw new IllegalArgumentException(s"Missing test value"))
             // it's in the future
             (next.start.getMillis must be_>(System.currentTimeMillis())) and
-            (next.state.value must beEqualTo(Scheduled)) and
+            (next.state.value must beEqualTo(TScheduled)) and
             (next.campaignId must beEqualTo(ce0.campaignId))
           }
 

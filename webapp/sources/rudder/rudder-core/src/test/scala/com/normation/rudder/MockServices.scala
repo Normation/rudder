@@ -3257,17 +3257,17 @@ class MockCampaign() {
       }
     }
 
-    override def get(id: CampaignId): IOResult[Option[Campaign]] =
-      items.get.map(_.get(id))
-    override def save(c: Campaign):   IOResult[Campaign]         = {
+    override def get(id: CampaignId): IOResult[Option[Campaign]] = items.get.map(_.get(id))
+
+    override def save(c: Campaign): IOResult[Campaign] = {
       c match {
         case x: DumbCampaignTrait => items.update(_ + (x.info.id -> x)) *> c.succeed
         case _ => Inconsistency("Unknown campaign type").fail
       }
     }
 
-    def delete(id: CampaignId): IOResult[CampaignId] = {
-      items.update(_ - id) *> id.succeed
+    override def delete(id: CampaignId): IOResult[Unit] = {
+      items.update(_ - id)
     }
   }
 
@@ -3310,7 +3310,7 @@ class MockCampaign() {
     }
 
     def isActive(e: CampaignEvent): Boolean = {
-      e.state == CampaignEventStateType.Scheduled || e.state == CampaignEventStateType.Running
+      e.state == CampaignEventStateType.TScheduled || e.state == CampaignEventStateType.TRunning
     }
 
     override def get(id: CampaignEventId): IOResult[Option[CampaignEvent]] = {
@@ -3453,7 +3453,15 @@ class MockCampaign() {
     }
   }
 
-  val mainCampaignService =
-    new MainCampaignService(dumbCampaignEventRepository, repo, campaignArchive, new StringUuidGeneratorImpl(), 0, 0)
+  val mainCampaignService = {
+    new MainCampaignService(
+      dumbCampaignEventRepository,
+      repo,
+      NoopCampaignHooksService,
+      new StringUuidGeneratorImpl(),
+      0,
+      0
+    )
+  }
 
 }

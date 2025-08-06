@@ -40,6 +40,7 @@ package com.normation.rudder.campaigns
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
 import com.normation.NamedZioLogger
+import com.normation.rudder.hooks.HookReturnCode
 import enumeratum.*
 import io.scalaland.chimney.*
 import java.time.Instant
@@ -132,6 +133,18 @@ object CampaignStatusValue extends Enum[CampaignStatusValue] {
     case None    => Left(s"${s} is not valid status value, accepted values are ${values.map(_.value).mkString(", ")}")
     case Some(v) => Right(v)
   }
+}
+
+// type of server side hooks for a campaign
+sealed trait CampaignHookTypes(override val entryName: String) extends EnumEntry
+object CampaignHookTypes                                       extends Enum[CampaignHookTypes] with EnumCodec[CampaignHookTypes] {
+  // global to all events of a campaign
+  // entry name is used both for JSON serialisation and to find the name of the
+  // directory in the file system
+  case object CampaignPreHooks  extends CampaignHookTypes("pre-hooks")
+  case object CampaignPostHooks extends CampaignHookTypes("post-hooks")
+
+  override def values: IndexedSeq[CampaignHookTypes] = findValues
 }
 
 @jsonHint("enabled")
@@ -276,12 +289,14 @@ object CampaignEventId {
 sealed abstract class CampaignEventStateType(override val entryName: String) extends EnumEntry
 
 object CampaignEventStateType extends Enum[CampaignEventStateType] with EnumCodec[CampaignEventStateType] {
-  case object Scheduled extends CampaignEventStateType("scheduled")
-  case object Running   extends CampaignEventStateType("running")
-  case object Finished  extends CampaignEventStateType("finished")
-  case object Skipped   extends CampaignEventStateType("skipped")
-  case object Deleted   extends CampaignEventStateType("deleted")
-  case object Failure   extends CampaignEventStateType("failure")
+  case object TScheduled extends CampaignEventStateType("scheduled")
+  case object TPreHooks  extends CampaignEventStateType("pre-hooks")
+  case object TRunning   extends CampaignEventStateType("running")
+  case object TPostHooks extends CampaignEventStateType("post-hooks")
+  case object TFinished  extends CampaignEventStateType("finished")
+  case object TSkipped   extends CampaignEventStateType("skipped")
+  case object TDeleted   extends CampaignEventStateType("deleted")
+  case object TFailure   extends CampaignEventStateType("failure")
 
   override def values: IndexedSeq[CampaignEventStateType] = findValues
 }
@@ -309,31 +324,30 @@ object CampaignEvent {
 
 }
 
+// this is just a json compatible version of HookResultCode
+case class HookResult(cmd: String, code: Int, stdout: String, stderr: String, msg: String) derives JsonCodec
+
+object HookResult {
+  def fromCode(c: HookReturnCode): HookResult = HookResult(c.cmd, c.code, c.stdout, c.stderr, c.msg)
+}
+
+case class HookResults(results: Seq[HookResult]) derives JsonCodec
+
 /*
  * Campaign event can have details stored in history
  */
 @jsonDiscriminator("value")
 sealed trait CampaignEventState(val value: CampaignEventStateType) derives JsonCodec
 object CampaignEventState {
-  import CampaignEventStateType as CEST
-  @jsonHint(CEST.Scheduled.entryName) case object Scheduled            extends CampaignEventState(CampaignEventStateType.Scheduled)
-  @jsonHint(CEST.Running.entryName) case object Running                extends CampaignEventState(CampaignEventStateType.Running)
-  @jsonHint(CEST.Finished.entryName) case object Finished              extends CampaignEventState(CampaignEventStateType.Finished)
-  @jsonHint(CEST.Skipped.entryName) case class Skipped(reason: String) extends CampaignEventState(CampaignEventStateType.Skipped)
-  @jsonHint(CEST.Deleted.entryName) case class Deleted(reason: String) extends CampaignEventState(CampaignEventStateType.Deleted)
-  @jsonHint(CEST.Failure.entryName) case class Failure(cause: String, message: String)
-      extends CampaignEventState(CampaignEventStateType.Failure)
-
-  def getDefault(s: CampaignEventStateType): CampaignEventState = {
-    s match {
-      case CampaignEventStateType.Scheduled => Scheduled
-      case CampaignEventStateType.Running   => Running
-      case CampaignEventStateType.Finished  => Finished
-      case CampaignEventStateType.Skipped   => Skipped("")
-      case CampaignEventStateType.Deleted   => Deleted("")
-      case CampaignEventStateType.Failure   => Failure("unknown reason", "")
-    }
-  }
+  import com.normation.rudder.campaigns.CampaignEventStateType.*
+  @jsonHint(TScheduled.entryName) case object Scheduled                            extends CampaignEventState(TScheduled)
+  @jsonHint(TPreHooks.entryName) case class PreHooks(hookResults: HookResults)     extends CampaignEventState(TPreHooks)
+  @jsonHint(TRunning.entryName) case object Running                                extends CampaignEventState(TRunning)
+  @jsonHint(TPostHooks.entryName) case class PostHooks(hookResults: HookResults)   extends CampaignEventState(TPostHooks)
+  @jsonHint(TFinished.entryName) case object Finished                              extends CampaignEventState(TFinished)
+  @jsonHint(TSkipped.entryName) case class Skipped(reason: String)                 extends CampaignEventState(TSkipped)
+  @jsonHint(TDeleted.entryName) case class Deleted(reason: String)                 extends CampaignEventState(TDeleted)
+  @jsonHint(TFailure.entryName) case class Failure(cause: String, message: String) extends CampaignEventState(TFailure)
 }
 
 case class CampaignEventHistory(id: CampaignEventId, state: CampaignEventState, start: Instant, end: Option[Instant])
