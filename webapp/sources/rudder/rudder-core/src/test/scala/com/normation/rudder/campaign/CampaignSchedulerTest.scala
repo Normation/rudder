@@ -57,7 +57,7 @@ class CampaignSchedulerTest extends Specification {
 
     // With bug, it was 2023/01/05 12:00 and end on 2023/01/09 18:00 instead of both date on 02/01/2023
     "Give a correct date in january for first occurrence" in {
-      val s = MainCampaignScheduler
+      val s = CampaignDateScheduler
         .nextCampaignDate(
           MonthlySchedule(First, DayTime(Monday, 9, 27), DayTime(Monday, 13, 37), Some(ScheduleTimeZone("UTC"))),
           now.withYear(2022).withMonthOfYear(12).withDayOfMonth(7)
@@ -85,7 +85,7 @@ class CampaignSchedulerTest extends Specification {
     }
 
     "Give a correct date in january for Second occurrence" in {
-      val s = MainCampaignScheduler
+      val s = CampaignDateScheduler
         .nextCampaignDate(
           MonthlySchedule(Second, DayTime(Monday, 9, 27), DayTime(Monday, 13, 37), Some(ScheduleTimeZone("UTC"))),
           now.withYear(2022).withMonthOfYear(12).withDayOfMonth(14)
@@ -112,7 +112,7 @@ class CampaignSchedulerTest extends Specification {
     }
 
     "Give a correct date in january for third occurrence" in {
-      val s = MainCampaignScheduler
+      val s = CampaignDateScheduler
         .nextCampaignDate(
           MonthlySchedule(Third, DayTime(Monday, 9, 27), DayTime(Monday, 13, 37), Some(ScheduleTimeZone("UTC"))),
           now.withYear(2022).withMonthOfYear(12).withDayOfMonth(21)
@@ -140,7 +140,7 @@ class CampaignSchedulerTest extends Specification {
 
     // With bug, it was 01/01/23 instead of 25/12
     "Give a correct date in December for last occurrence" in {
-      val s = MainCampaignScheduler
+      val s = CampaignDateScheduler
         .nextCampaignDate(
           MonthlySchedule(Last, DayTime(Sunday, 9, 27), DayTime(Sunday, 13, 37), Some(ScheduleTimeZone("UTC"))),
           now.withYear(2022).withMonthOfYear(12).withDayOfMonth(7)
@@ -168,7 +168,7 @@ class CampaignSchedulerTest extends Specification {
 
     // With bug, it was 25/12/22 instead of 18/12
     "Give a correct date in December for second last occurrence" in {
-      val s = MainCampaignScheduler
+      val s = CampaignDateScheduler
         .nextCampaignDate(
           MonthlySchedule(SecondLast, DayTime(Sunday, 9, 27), DayTime(Sunday, 13, 37), Some(ScheduleTimeZone("UTC"))),
           now.withYear(2022).withMonthOfYear(12).withDayOfMonth(7)
@@ -200,7 +200,7 @@ class CampaignSchedulerTest extends Specification {
       val start = now.plusDays(1)
       val end   = now.plusDays(2)
 
-      val res = MainCampaignScheduler.nextCampaignDate(OneShot(start, end), now)
+      val res = CampaignDateScheduler.nextCampaignDate(OneShot(start, end), now)
 
       res must haveSchedule(start, end)
     }
@@ -209,7 +209,7 @@ class CampaignSchedulerTest extends Specification {
       val start = now.minusDays(2)
       val end   = now.minusDays(1)
 
-      val res = MainCampaignScheduler.nextCampaignDate(OneShot(start, end), now)
+      val res = CampaignDateScheduler.nextCampaignDate(OneShot(start, end), now)
 
       res must haveNoSchedule
     }
@@ -218,8 +218,8 @@ class CampaignSchedulerTest extends Specification {
       val start = now.plusDays(2)
       val end   = now.plusDays(1)
 
-      val res      = MainCampaignScheduler.nextCampaignDate(OneShot(start, end), now)
-      val sameDate = MainCampaignScheduler.nextCampaignDate(OneShot(start, start), now)
+      val res      = CampaignDateScheduler.nextCampaignDate(OneShot(start, end), now)
+      val sameDate = CampaignDateScheduler.nextCampaignDate(OneShot(start, start), now)
 
       val beError = beLeft[RudderError].like {
         case Inconsistency(msg) => msg must startWith(s"Cannot schedule a one shot event")
@@ -232,7 +232,7 @@ class CampaignSchedulerTest extends Specification {
       val start = now.plusDays(1).withZone(zone)
       val end   = now.plusDays(2).withZone(zone)
 
-      val res = MainCampaignScheduler.nextCampaignDate(OneShot(start, end), now)
+      val res = CampaignDateScheduler.nextCampaignDate(OneShot(start, end), now)
 
       res must haveSchedule(start, end)
     }
@@ -244,7 +244,7 @@ class CampaignSchedulerTest extends Specification {
       val end   = now.plusHours(6).withZoneRetainFields(zone) // 1h before now
 
       val res =
-        MainCampaignScheduler.nextCampaignDate(OneShot(start, end), now)
+        CampaignDateScheduler.nextCampaignDate(OneShot(start, end), now)
 
       res must haveNoSchedule
     }
@@ -259,7 +259,7 @@ class CampaignSchedulerTest extends Specification {
         val start = Time(16, 30)
         val end   = Time(20, 30)
 
-        val res = MainCampaignScheduler.nextCampaignDate(Daily(start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(Daily(start, end, tz = None), currentDate)
 
         val nextDate = currentDate.withHourOfDay(start.hour).withMinuteOfHour(start.minute).withZoneRetainFields(defaultTz)
         res must haveSchedule(nextDate, nextDate.plusHours(4))
@@ -269,7 +269,7 @@ class CampaignSchedulerTest extends Specification {
         val start = Time(10, 30)
         val end   = Time(14, 30)
 
-        val res = MainCampaignScheduler.nextCampaignDate(Daily(start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(Daily(start, end, tz = None), currentDate)
 
         val nextDay =
           currentDate.plusDays(1).withHourOfDay(start.hour).withMinuteOfHour(start.minute).withZoneRetainFields(defaultTz)
@@ -280,7 +280,7 @@ class CampaignSchedulerTest extends Specification {
         val start = Time(12, 30)
         val end   = Time(16, 30)
 
-        val res = MainCampaignScheduler.nextCampaignDate(Daily(start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(Daily(start, end, tz = None), currentDate)
 
         val nextDay =
           currentDate.plusDays(1).withHourOfDay(start.hour).withMinuteOfHour(start.minute).withZoneRetainFields(defaultTz)
@@ -293,7 +293,7 @@ class CampaignSchedulerTest extends Specification {
         val end      = Time(10, 30)
         val schedule = Daily(start, end, tz = None)
 
-        val res = MainCampaignScheduler.nextCampaignDate(
+        val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
           currentDate
         )
@@ -314,7 +314,7 @@ class CampaignSchedulerTest extends Specification {
         // 19h30 at +06:00 is 13h30 UTC so it's scheduled on same day
         val schedule         = Daily(start, end, Some(ScheduleTimeZone(scheduleTimeZone.getID)))
 
-        val res = MainCampaignScheduler.nextCampaignDate(
+        val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
           currentDate
         )
@@ -336,7 +336,7 @@ class CampaignSchedulerTest extends Specification {
         val end              = Time(14, 30)
         val schedule         = Daily(start, end, Some(ScheduleTimeZone(scheduleTimeZone.getID)))
 
-        val res = MainCampaignScheduler.nextCampaignDate(
+        val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
           currentDate
         )
@@ -359,7 +359,7 @@ class CampaignSchedulerTest extends Specification {
         val end              = Time(20, 30)
         val schedule         = Daily(start, end, Some(ScheduleTimeZone(scheduleTimeZone.getID)))
 
-        val res = MainCampaignScheduler.nextCampaignDate(
+        val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
           currentDate
         )
@@ -385,7 +385,7 @@ class CampaignSchedulerTest extends Specification {
         val start = DayTime(Friday, 16, 0)
         val end   = DayTime(Saturday, 16, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(WeeklySchedule(start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(WeeklySchedule(start, end, tz = None), currentDate)
 
         val nextDate = currentDate.withHourOfDay(start.hour).withMinuteOfHour(start.minute).withZoneRetainFields(defaultTz)
         res must haveSchedule(nextDate, nextDate.plusDays(1))
@@ -395,7 +395,7 @@ class CampaignSchedulerTest extends Specification {
         val start = DayTime(Monday, 16, 0)
         val end   = DayTime(Tuesday, 16, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(WeeklySchedule(start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(WeeklySchedule(start, end, tz = None), currentDate)
 
         val nextWeek = currentDate
           .plusDays(3)
@@ -409,7 +409,7 @@ class CampaignSchedulerTest extends Specification {
         val start = DayTime(Monday, 12, 0)
         val end   = DayTime(Tuesday, 12, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(WeeklySchedule(start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(WeeklySchedule(start, end, tz = None), currentDate)
 
         val nextWeek = currentDate
           .plusDays(3)
@@ -424,7 +424,7 @@ class CampaignSchedulerTest extends Specification {
         val start = DayTime(Sunday, 12, 0)
         val end   = DayTime(Monday, 12, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(WeeklySchedule(start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(WeeklySchedule(start, end, tz = None), currentDate)
 
         val nextWeek = currentDate
           .plusDays(2)
@@ -441,7 +441,7 @@ class CampaignSchedulerTest extends Specification {
         // 16h00 at +03:00 is 13h00 UTC so it's scheduled on same week (in fact on same day)
         val schedule         = WeeklySchedule(start, end, Some(ScheduleTimeZone(scheduleTimeZone.getID)))
 
-        val res = MainCampaignScheduler.nextCampaignDate(
+        val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
           currentDate
         )
@@ -462,7 +462,7 @@ class CampaignSchedulerTest extends Specification {
         val end              = DayTime(Saturday, 16, 0)
         val schedule         = WeeklySchedule(start, end, Some(ScheduleTimeZone(scheduleTimeZone.getID)))
 
-        val res = MainCampaignScheduler.nextCampaignDate(
+        val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
           currentDate
         )
@@ -484,7 +484,7 @@ class CampaignSchedulerTest extends Specification {
         val end              = DayTime(Monday, 20, 0)
         val schedule         = WeeklySchedule(start, end, Some(ScheduleTimeZone(scheduleTimeZone.getID)))
 
-        val res = MainCampaignScheduler.nextCampaignDate(
+        val res = CampaignDateScheduler.nextCampaignDate(
           schedule,
           currentDate
         )
@@ -510,7 +510,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Monday, 16, 0)
         val end         = DayTime(Wednesday, 16, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(MonthlySchedule(First, start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(First, start, end, tz = None), currentDate)
 
         val nextDate = {
           currentDate
@@ -527,7 +527,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Monday, 10, 0)
         val end         = DayTime(Wednesday, 10, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(MonthlySchedule(First, start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(First, start, end, tz = None), currentDate)
 
         val nextDate = {
           currentDate
@@ -547,7 +547,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Wednesday, 16, 0)
         val end         = DayTime(Friday, 16, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(MonthlySchedule(First, start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(First, start, end, tz = None), currentDate)
 
         val nextDate =
           currentDate.plusDays(1).withHourOfDay(start.hour).withMinuteOfHour(start.minute).withZoneRetainFields(defaultTz)
@@ -562,7 +562,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Monday, 16, 0)
         val end         = DayTime(Wednesday, 16, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(MonthlySchedule(Second, start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Second, start, end, tz = None), currentDate)
 
         val nextDate = {
           currentDate
@@ -579,7 +579,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Monday, 10, 0)
         val end         = DayTime(Wednesday, 10, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(MonthlySchedule(Second, start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Second, start, end, tz = None), currentDate)
 
         val nextDate = {
           currentDate
@@ -598,7 +598,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Wednesday, 16, 0)
         val end         = DayTime(Friday, 16, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(MonthlySchedule(Second, start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Second, start, end, tz = None), currentDate)
 
         val nextDate =
           currentDate.plusDays(8).withHourOfDay(start.hour).withMinuteOfHour(start.minute).withZoneRetainFields(defaultTz)
@@ -613,7 +613,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Monday, 16, 0)
         val end         = DayTime(Wednesday, 16, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(MonthlySchedule(Third, start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Third, start, end, tz = None), currentDate)
 
         val nextDate = {
           currentDate
@@ -630,7 +630,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Monday, 10, 0)
         val end         = DayTime(Wednesday, 10, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(MonthlySchedule(Third, start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Third, start, end, tz = None), currentDate)
 
         val nextDate = {
           currentDate
@@ -649,7 +649,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Wednesday, 16, 0)
         val end         = DayTime(Friday, 16, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(MonthlySchedule(Third, start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Third, start, end, tz = None), currentDate)
 
         val nextDate =
           currentDate.plusDays(15).withHourOfDay(start.hour).withMinuteOfHour(start.minute).withZoneRetainFields(defaultTz)
@@ -664,7 +664,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Monday, 16, 0)
         val end         = DayTime(Wednesday, 16, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(MonthlySchedule(SecondLast, start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(SecondLast, start, end, tz = None), currentDate)
 
         val nextDate = {
           currentDate
@@ -682,7 +682,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Monday, 10, 0)
         val end         = DayTime(Wednesday, 10, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(MonthlySchedule(SecondLast, start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(SecondLast, start, end, tz = None), currentDate)
 
         val nextDate = {
           currentDate
@@ -703,7 +703,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Wednesday, 16, 0)
         val end         = DayTime(Friday, 16, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(MonthlySchedule(SecondLast, start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(SecondLast, start, end, tz = None), currentDate)
 
         val nextDate =
           currentDate.plusDays(22).withHourOfDay(start.hour).withMinuteOfHour(start.minute).withZoneRetainFields(defaultTz)
@@ -718,7 +718,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Monday, 16, 0)
         val end         = DayTime(Wednesday, 16, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(MonthlySchedule(Last, start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Last, start, end, tz = None), currentDate)
 
         val nextDate = {
           currentDate
@@ -736,7 +736,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Monday, 10, 0)
         val end         = DayTime(Wednesday, 10, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(MonthlySchedule(Last, start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Last, start, end, tz = None), currentDate)
 
         val nextDate = {
           currentDate
@@ -757,7 +757,7 @@ class CampaignSchedulerTest extends Specification {
         val start       = DayTime(Wednesday, 16, 0)
         val end         = DayTime(Friday, 16, 0)
 
-        val res = MainCampaignScheduler.nextCampaignDate(MonthlySchedule(Last, start, end, tz = None), currentDate)
+        val res = CampaignDateScheduler.nextCampaignDate(MonthlySchedule(Last, start, end, tz = None), currentDate)
 
         val nextDate =
           currentDate.plusDays(29).withHourOfDay(start.hour).withMinuteOfHour(start.minute).withZoneRetainFields(defaultTz)
