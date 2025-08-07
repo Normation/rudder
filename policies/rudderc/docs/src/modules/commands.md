@@ -12,7 +12,7 @@ The module takes the following arguments:
 | `args` | Arguments to the command | A list of strings or empty (if `in_shell` is set to `true`)  | No |
 | `run_in_audit_mode` | Controls the running mode of the command | `true`/`false` (default: `false`) | No
 | `in_shell` | Controls if the command is executed inside a shell | `true`/`false` (default: `false`) | No |
-| `shell_path` | Shell path (used only in shell mode) | A path to a shell binary (example `/bin/sh`, `/bin/bash`) | No |
+| `shell_path` | Shell path (used only in shell mode) | A path to a shell binary (default: `/bin/sh`) | No |
 | `chdir` | Directory from where to execute the command | A path to a directory | No |
 | `timeout` | Timeout for command execution | A timeout in seconds (default: `30`) | No |
 | `stdin` | Input passed to the stdin of the executed command | A string | No |
