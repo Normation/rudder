@@ -253,7 +253,7 @@ class ComputeNodeStatusReportServiceImpl(
                                  Inconsistency(s"Error: found an action of incorrect type in a 'delete' for cache: ${x}").fail
                              }
                          }
-              _       <- nsrRepo.deleteNodeStatusReports(deletes)(ChangeContext.newForRudder())
+              _       <- nsrRepo.deleteNodeStatusReports(deletes)(using ChangeContext.newForRudder())
             } yield ()
 
           // need to compute compliance
@@ -268,7 +268,7 @@ class ComputeNodeStatusReportServiceImpl(
                                     s"Nodes asked to recompute compliance: ${updatedNodes.map(_.value).mkString(", ")}"
                                   )
                        updated <- findNewNodeStatusReports
-                                    .findRuleNodeStatusReports(updatedNodes.toSet)(QueryContext.systemQC)
+                                    .findRuleNodeStatusReports(updatedNodes.toSet)(using QueryContext.systemQC)
                        _       <- saveUpdatedCompliance(updated)
                      } yield ()
                    }
@@ -288,7 +288,7 @@ class ComputeNodeStatusReportServiceImpl(
                    s"Reports to save: ${newReports.map { case (id, r) => s"${id.value}: ${r.runInfo}" }.mkString("\n  ")}"
                  )
       kept    <- updateKeepCompliance(new DateTime(now, DateTimeZone.UTC), newReports)
-      updated <- nsrRepo.saveNodeStatusReports(kept)(ChangeContext.newForRudder())
+      updated <- nsrRepo.saveNodeStatusReports(kept)(using ChangeContext.newForRudder())
       // exec hooks
       hooks   <- hooksRef.get
       _       <- ZIO.foreachDiscard(hooks)(_.onUpdate(updated))
@@ -418,7 +418,7 @@ class ComputeNodeStatusReportServiceImpl(
    */
   override def outDatedCompliance(now: DateTime, ignoreNodes: Set[NodeId]): IOResult[Unit] = {
     import com.normation.rudder.domain.reports.RunAnalysisKind.*
-    nsrRepo.getAll()(QueryContext.systemQC).flatMap { cache =>
+    nsrRepo.getAll()(using QueryContext.systemQC).flatMap { cache =>
       val nodeWithOutdatedCompliance = cache.filter {
         case (id, compliance) =>
           if (ignoreNodes.contains(id)) false

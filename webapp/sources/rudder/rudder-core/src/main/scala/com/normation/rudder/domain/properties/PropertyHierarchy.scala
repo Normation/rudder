@@ -13,7 +13,6 @@ import enumeratum.Enum
 import enumeratum.EnumEntry
 import org.apache.commons.text.StringEscapeUtils
 import zio.*
-import zio.json.*
 import zio.json.enumeratum.*
 
 /*
@@ -58,7 +57,8 @@ object ParentProperty {
     override def id:            String                        = nodeId.value
     override val resolvedValue: GenericProperty[NodeProperty] = parentProperty match {
       case None    => value
-      case Some(v) => NodeProperty(GenericProperty.mergeConfig(v.resolvedValue.config, value.config)(v.resolvedValue.inheritMode))
+      case Some(v) =>
+        NodeProperty(GenericProperty.mergeConfig(v.resolvedValue.config, value.config)(using v.resolvedValue.inheritMode))
     }
 
   }
@@ -79,7 +79,7 @@ object ParentProperty {
     override val resolvedValue: GenericProperty[GroupProperty] = parentProperty match {
       case None    => value
       case Some(v) =>
-        GroupProperty(GenericProperty.mergeConfig(v.resolvedValue.config, value.config)(v.resolvedValue.inheritMode))
+        GroupProperty(GenericProperty.mergeConfig(v.resolvedValue.config, value.config)(using v.resolvedValue.inheritMode))
     }
   }
 

@@ -209,7 +209,7 @@ object PendingHistoryGrid extends Loggable {
                   } );
                 })
           """
-        .format(SHtml.ajaxCall(JsVar("ajaxParam"), displayPastInventory(deletedNodes) _)._2.toJsCmd)
+        .format(SHtml.ajaxCall(JsVar("ajaxParam"), displayPastInventory(deletedNodes))._2.toJsCmd)
         .replaceAll("#table_var#", jsVarNameForId()) // JsRaw ok, escaped
     )
   }

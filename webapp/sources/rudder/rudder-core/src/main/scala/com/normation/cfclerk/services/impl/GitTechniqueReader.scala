@@ -805,7 +805,7 @@ class GitTechniqueReader(
   )
 
   private def processTechnique(
-      is:              ZIO[Any with Scope, RudderError, InputStream],
+      is:              ZIO[Any & Scope, RudderError, InputStream],
       filePath:        String,
       techniquesInfo:  Ref[InternalTechniquesInfo],
       parseDescriptor: Boolean, // that option is a success optimization for the case diff between old/new commit
@@ -906,7 +906,7 @@ class GitTechniqueReader(
 
     ZIO.attempt {
       if (descriptor.exists()) {
-        val yaml = descriptor.contentAsString(StandardCharsets.UTF_8)
+        val yaml = descriptor.contentAsString(using StandardCharsets.UTF_8)
         yaml.fromYaml[YamlTechnique] match {
           // in the case where the descriptor is invalid but we have an xml metadata file, things are strange.
           // We raise an error so that the technique is ignored. The user can delete the bad yaml file if he
@@ -985,7 +985,7 @@ class GitTechniqueReader(
    * Load a descriptor document.
    */
   private def loadDescriptorFile(
-      managedStream: ZIO[Any with Scope, RudderError, InputStream],
+      managedStream: ZIO[Any & Scope, RudderError, InputStream],
       filePath:      String
   ): IOResult[Elem] = {
     ZIO.scoped(

@@ -229,7 +229,7 @@ object ApiAccountDetails extends ApiAccountCodecs {
     case _                                                          => ApiAccountExpirationPolicy.Never
   }
 
-  implicit val transformApiAclElement: Transformer[List[ApiAclElement], JsonApiAcl] = JsonApiAcl.from _
+  implicit val transformApiAclElement: Transformer[List[ApiAclElement], JsonApiAcl] = JsonApiAcl.from
 
   // authorization name is only defined for public API
   implicit val transformApiAccountKindAuthz: Transformer[ApiAccountKind, Option[ApiAuthorizationKind]] = {

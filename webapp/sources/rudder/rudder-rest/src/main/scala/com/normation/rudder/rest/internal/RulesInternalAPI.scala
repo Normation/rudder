@@ -114,7 +114,7 @@ class RulesInternalApi(
           _.flatMap(seq => seq.split(',').map(_.strip()))
             .flatMap(RuleId.parse(_).toOption)
         )
-      val getMissingCategory = ruleApiService.getMissingCategories _
+      val getMissingCategory = ruleApiService.getMissingCategories
       (for {
         r <- ruleInternalApiService
                .getGroupRelatedRules(ruleIdsFilter, getMissingCategory, ruleApiService.MISSING_RULE_CAT_ID)

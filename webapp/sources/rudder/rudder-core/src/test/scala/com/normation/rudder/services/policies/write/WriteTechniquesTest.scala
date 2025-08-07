@@ -250,7 +250,7 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
    * put regex for line you don't want to be compared for difference
    */
   def ignoreSomeLinesMatcher(regex: List[String]): LinesPairComparisonMatcher[File, File] = {
-    LinesPairComparisonMatcher[File, File]()(RegexFileContent(regex), RegexFileContent(regex))
+    LinesPairComparisonMatcher[File, File]()(using RegexFileContent(regex), RegexFileContent(regex))
   }
 
   //////////// set-up auto test cleaning ////////////
@@ -280,7 +280,7 @@ trait TechniquesTest extends Specification with Loggable with BoxSpecMatcher wit
      * of the (temp) directory where we wrote them
      */
     path must haveSameFilesAs(EXPECTED_SHARE / expectedPath)
-      .withFilter(filterGeneratedFile _)
+      .withFilter(filterGeneratedFile)
       .withMatcher(
         ignoreSomeLinesMatcher(
           """.*rudder_node_config_id" string => .*"""
@@ -707,7 +707,7 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest {
     def updateTemplate(rootPath: File): Unit = {
       val clockTemplate =
         new File(rootPath, "configuration-repository/techniques/systemSettings/misc/clockConfiguration/3.0/clockConfiguration.st")
-      better.files.File(clockTemplate.getAbsolutePath).append(APPENED_TEXT)(StandardCharsets.UTF_8)
+      better.files.File(clockTemplate.getAbsolutePath).append(APPENED_TEXT)(using StandardCharsets.UTF_8)
       // commit
       repo.git.commit().setAll(true).setMessage("Update template file").call()
     }

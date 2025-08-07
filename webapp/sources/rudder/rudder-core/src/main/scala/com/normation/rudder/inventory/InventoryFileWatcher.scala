@@ -207,8 +207,8 @@ final class Watchers(incoming: FileMonitor, updates: FileMonitor) {
   def start(): IOResult[Unit] = {
     IOResult.attempt {
       // Execution context is not used here - binding to scala default global to satisfy scalac
-      incoming.start()(scala.concurrent.ExecutionContext.global)
-      updates.start()(scala.concurrent.ExecutionContext.global)
+      incoming.start()(using scala.concurrent.ExecutionContext.global)
+      updates.start()(using scala.concurrent.ExecutionContext.global)
       Right(())
     }
   }

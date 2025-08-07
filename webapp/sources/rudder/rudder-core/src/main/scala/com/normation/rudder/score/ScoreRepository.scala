@@ -69,7 +69,7 @@ trait ScoreRepository {
  * A score repository that does nothing, for tests
  */
 class InMemoryScoreRepository extends ScoreRepository {
-  private[this] val cache:                                                Ref[Map[NodeId, List[Score]]]      = Ref.make(Map[NodeId, List[Score]]()).runNow
+  private val cache:                                                      Ref[Map[NodeId, List[Score]]]      = Ref.make(Map[NodeId, List[Score]]()).runNow
   override def getAll():                                                  IOResult[Map[NodeId, List[Score]]] = cache.get
   override def getAllOneScore(scoreId: String):                           IOResult[Map[NodeId, Score]]       = {
     for {

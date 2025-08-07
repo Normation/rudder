@@ -114,7 +114,7 @@ class ReadPluginPackageInfo(val index: File) {
 
   def readIndex(): IOResult[String] = {
     IOResult.attempt {
-      index.contentAsString(StandardCharsets.UTF_8)
+      index.contentAsString(using StandardCharsets.UTF_8)
     }
   }
 

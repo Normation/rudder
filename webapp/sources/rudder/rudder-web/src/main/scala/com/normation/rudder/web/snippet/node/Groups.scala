@@ -81,7 +81,7 @@ object Groups {
 class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with Loggable {
   import Groups.*
 
-  private val getFullGroupLibrary   = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
+  private val getFullGroupLibrary   = () => RudderConfig.roNodeGroupRepository.getFullGroupLibrary()
   private val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
   private val uuidGen               = RudderConfig.stringUuidGenerator
   private val linkUtil              = RudderConfig.linkUtil
@@ -92,7 +92,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
 
     Map(
-      "head"           -> head _,
+      "head"           -> head,
       "detailsPopup"   -> { (_: NodeSeq) => NodeGroupForm.staticBody },
       "initRightPanel" -> { (_: NodeSeq) => initRightPanel() },
       "groupHierarchy" -> groupHierarchy(boxGroupLib)
@@ -292,10 +292,10 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
           targetName = null;
         }
         if( groupId != null && groupId.length > 0) {
-          ${SHtml.ajaxCall(JsVar("groupId"), displayDetailsGroup _)._2.toJsCmd};
+          ${SHtml.ajaxCall(JsVar("groupId"), displayDetailsGroup)._2.toJsCmd};
           hasGroupToDisplay = true;
         } else if( targetName != null && targetName.length > 0) {
-          ${SHtml.ajaxCall(JsVar("targetName"), displayDetailsTarget _)._2.toJsCmd};
+          ${SHtml.ajaxCall(JsVar("targetName"), displayDetailsTarget)._2.toJsCmd};
           hasGroupToDisplay = true;
         }
     """) // JsRaw ok, escaped
@@ -425,10 +425,10 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
           if( destCatId ) {
             if(sourceGroupId) {
               var arg = JSON.stringify({ 'sourceGroupId' : sourceGroupId, 'destCatId' : destCatId });
-              ${SHtml.ajaxCall(JsVar("arg"), moveGroup(lib) _)._2.toJsCmd};
+              ${SHtml.ajaxCall(JsVar("arg"), moveGroup(lib))._2.toJsCmd};
             } else if(  sourceCatId ) {
               var arg = JSON.stringify({ 'sourceCatId' : sourceCatId, 'destCatId' : destCatId });
-              ${SHtml.ajaxCall(JsVar("arg"), moveCategory(lib) _)._2.toJsCmd};
+              ${SHtml.ajaxCall(JsVar("arg"), moveCategory(lib))._2.toJsCmd};
             } else {
               alert("Can not move that kind of object");
               $$.jstree.rollback(data.rlbk);
@@ -473,7 +473,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
                 .move(
                   NodeGroupId(NodeGroupUid(sourceGroupId)),
                   NodeGroupCategoryId(destCatId)
-                )(
+                )(using
                   ChangeContext(
                     ModificationId(uuidGen.newUuid),
                     qc.actor,
@@ -610,7 +610,7 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
     showGroupProperties(g, parentCategoryId)
   }
 
-  private[this] def showGroupProperties(g: Either[NonGroupRuleTarget, NodeGroup], parentCategoryId: NodeGroupCategoryId) = {
+  private def showGroupProperties(g: Either[NonGroupRuleTarget, NodeGroup], parentCategoryId: NodeGroupCategoryId) = {
     val value = StringEscapeUtils.escapeEcmaScript(g.fold(_.target, _.id.serialize))
     val js    = g match {
       case Left(_)  => s"'target':'${value}'"

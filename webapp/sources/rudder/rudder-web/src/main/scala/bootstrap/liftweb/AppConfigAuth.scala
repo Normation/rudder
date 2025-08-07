@@ -703,7 +703,7 @@ class AuthBackendProvidersManager() extends DynamicRudderProviderManager {
   private var springProviders = Map[String, AuthenticationProvider]()
 
   // a map of properties registered for each backend
-  private[this] var backendProperties = Map[String, AuthBackendProviderProperties]()
+  private var backendProperties = Map[String, AuthBackendProviderProperties]()
 
   // add default providers into mutable variables
   initializeDefaultProviders()

@@ -321,7 +321,7 @@ class UpdateDynamicGroups(
               initialTime                  <- currentTimeMillis
               results                      <- dynGroupIds.accumulateParN(maxParallelism) { dynGroupId =>
                                                 dynGroupUpdaterService
-                                                  .update(dynGroupId)(
+                                                  .update(dynGroupId)(using
                                                     ChangeContext(
                                                       modId,
                                                       RudderEventActor,
@@ -343,7 +343,7 @@ class UpdateDynamicGroups(
               preComputeDependantGroups    <- currentTimeMillis
               results2                     <- dynGroupsWithDependencyIds.accumulateParN(1) { dynGroupId =>
                                                 dynGroupUpdaterService
-                                                  .update(dynGroupId)(
+                                                  .update(dynGroupId)(using
                                                     ChangeContext(
                                                       modId,
                                                       RudderEventActor,
@@ -363,7 +363,7 @@ class UpdateDynamicGroups(
                 )
               // sync properties status
               _                            <- propertiesSyncService
-                                                .syncProperties()(QueryContext.systemQC)
+                                                .syncProperties()(using QueryContext.systemQC)
                                                 .chainError("Properties cannot be updated when computing new dynamic groups")
             } yield {
               results ++ results2

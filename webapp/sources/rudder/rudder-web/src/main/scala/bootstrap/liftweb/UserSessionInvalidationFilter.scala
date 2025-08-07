@@ -229,7 +229,7 @@ private[liftweb] object UserSessionInvalidationFilter {
 
   // special case of user that is not logged-in : hashed with known values
   // admin check needs to be the first one because it is more important than status check
-  private[this] def hashRudderUserDetail(user: RudderUserDetail, status: UserStatus): Int = {
+  private def hashRudderUserDetail(user: RudderUserDetail, status: UserStatus): Int = {
     if (user.isAdmin) {
       HASH_USER_ADMIN
     } else if (status.isInvalid) {
@@ -240,7 +240,7 @@ private[liftweb] object UserSessionInvalidationFilter {
   }
 
   // used on a user that has no known password and roles, not a RudderUserDetail
-  private[this] def hashUser(username: String, status: UserStatus): Int = {
+  private def hashUser(username: String, status: UserStatus): Int = {
     if (status.isInvalid) {
       HASH_USER_INVALID_STATUS
     } else {

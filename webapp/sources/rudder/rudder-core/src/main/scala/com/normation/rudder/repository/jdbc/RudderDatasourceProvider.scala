@@ -75,7 +75,7 @@ class RudderDatasourceProvider(
   // since we use JDBC4 driver, we MUST NOT set `setConnectionTestQuery("SELECT 1")`
   // more over, it causes problems, see: https://issues.rudder.io/issues/14789
 
-  lazy val datasource: DataSource with Closeable = {
+  lazy val datasource: DataSource & Closeable = {
     try {
 
       val pool = new HikariDataSource(config)

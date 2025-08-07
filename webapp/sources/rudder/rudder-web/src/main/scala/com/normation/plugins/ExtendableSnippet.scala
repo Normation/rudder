@@ -82,7 +82,7 @@ trait PluginExtensionPoint[T] extends SnippetExtensionPoint[T] {
 
   // protect all compose method with the guard. The check is done each time to allow runtime
   // switch on plugin status
-  final def compose(snippet: T): Map[String, NodeSeq => NodeSeq] = pluginCompose(snippet).view.mapValues(guard _).toMap
+  final def compose(snippet: T): Map[String, NodeSeq => NodeSeq] = pluginCompose(snippet).view.mapValues(guard).toMap
 
   def pluginCompose(snippet: T): Map[String, NodeSeq => NodeSeq]
 }
@@ -158,7 +158,7 @@ trait ExtendableSnippet[T] extends DispatchSnippet {
 object ExtendableSnippet {
   type DispatchIt = PartialFunction[String, NodeSeq => NodeSeq]
 
-  private val cache = scala.collection.mutable.Map.empty[SnippetExtensionKey, _ => DispatchIt]
+  private val cache = scala.collection.mutable.Map.empty[SnippetExtensionKey, ? => DispatchIt]
 
   def chached[T](forSnippet: SnippetExtensionKey, withDefault: => T => DispatchIt): T => DispatchIt = {
     if (true) withDefault

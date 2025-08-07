@@ -82,7 +82,7 @@ class CreateOrUpdateGlobalParameterPopup(
 
   private val workflowLevelService = RudderConfig.workflowLevelService
   private val userPropertyService  = RudderConfig.userPropertyService
-  private[this] val uuidGen        = RudderConfig.stringUuidGenerator
+  private val uuidGen              = RudderConfig.stringUuidGenerator
   implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
   private val actor:       EventActor   = CurrentUser.actor
   private val contextPath: String       = S.contextPath
@@ -173,7 +173,7 @@ class CreateOrUpdateGlobalParameterPopup(
           workflowService <- workflowLevelService.getForGlobalParam(actor, change)
           id              <- workflowLevelService
                                .getWorkflowService()
-                               .startWorkflow(cr)(
+                               .startWorkflow(cr)(using
                                  ChangeContext(
                                    ModificationId(uuidGen.newUuid),
                                    qc.actor,
@@ -238,14 +238,14 @@ class CreateOrUpdateGlobalParameterPopup(
   ////////////////////////// fields for form ////////////////////////
 
   private val parameterName = new WBTextField("Name", change.previousGlobalParam.map(_.name).getOrElse("")) {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     = (change.previousGlobalParam match {
       case Some(entry) => super.inputField % ("disabled" -> "true")
       case None        => super.inputField
     }) % ("onkeydown" -> "return processKey(event , 'createParameterSaveButton')") % ("tabindex" -> "1")
     override def validations    = {
-      valMinLen(1, "The name must not be empty") _ :: Nil
+      valMinLen(1, "The name must not be empty") :: Nil
     }
   }
 
@@ -272,7 +272,7 @@ class CreateOrUpdateGlobalParameterPopup(
         case _        => NodeSeq.Empty
       }
     ) {
-      override def setFilter = notNull _ :: trim _ :: Nil
+      override def setFilter = notNull :: trim :: Nil
       override def className = "checkbox-group"
     }
   }
@@ -280,7 +280,7 @@ class CreateOrUpdateGlobalParameterPopup(
   // The value may be empty
   private val parameterValue = {
     new WBTextAreaField("Value", change.previousGlobalParam.map(p => p.valueAsString).getOrElse("")) {
-      override def setFilter      = trim _ :: Nil
+      override def setFilter      = trim :: Nil
       override def inputField     = (change.action match {
         case GlobalParamModAction.Delete => super.inputField % ("disabled" -> "true")
         case _                           => super.inputField
@@ -292,7 +292,7 @@ class CreateOrUpdateGlobalParameterPopup(
 
   private val parameterDescription = {
     new WBTextAreaField("Description", change.previousGlobalParam.map(_.description).getOrElse("")) {
-      override def setFilter      = notNull _ :: trim _ :: Nil
+      override def setFilter      = notNull :: trim :: Nil
       override def inputField     = (change.action match {
         case GlobalParamModAction.Delete => super.inputField % ("disabled" -> "true")
         case _                           => super.inputField
@@ -305,7 +305,7 @@ class CreateOrUpdateGlobalParameterPopup(
   private val parameterInheritMode = {
     new WBTextField("Inherit Mode", change.previousGlobalParam.flatMap(_.inheritMode.map(_.value)).getOrElse("")) {
       override val maxLen         = 3
-      override def setFilter      = trim _ :: Nil
+      override def setFilter      = trim :: Nil
       override def inputField     = ((change.action match {
         case GlobalParamModAction.Delete => super.inputField % ("disabled" -> "true")
         case _                           => super.inputField
@@ -328,12 +328,12 @@ class CreateOrUpdateGlobalParameterPopup(
   private val defaultRequestName =
     s"${change.action.name.capitalize} Global Parameter " + change.previousGlobalParam.map(_.name).getOrElse("")
   private val changeRequestName  = new WBTextField("Change request title", defaultRequestName) {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex" -> "5")
     override def validations =
-      valMinLen(1, "Name must not be empty") _ :: Nil
+      valMinLen(1, "Name must not be empty") :: Nil
   }
 
   val parameterOverridable = true
@@ -349,13 +349,13 @@ class CreateOrUpdateGlobalParameterPopup(
 
   def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
-      override def setFilter  = notNull _ :: trim _ :: Nil
+      override def setFilter  = notNull :: trim :: Nil
       override def inputField = super.inputField %
         ("style" -> "height:5em;") % ("tabindex" -> "6") % ("placeholder" -> { userPropertyService.reasonsFieldExplanation })
       override def errorClassName = "col-xl-12 errors-container"
       override def validations    = {
         if (mandatory) {
-          valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
+          valMinLen(5, "The reason must have at least 5 characters.") :: Nil
         } else {
           Nil
         }
@@ -420,7 +420,7 @@ class CreateOrUpdateGlobalParameterPopup(
       "#cancel" #> (SHtml.ajaxButton("Cancel", () => closePopup()) % ("tabindex" -> "7")                         % ("class"    -> "btn btn-default")) &
       "#save" #> (SHtml.ajaxSubmit(
         buttonName,
-        onSubmit _
+        onSubmit
       )                                                            % ("id"       -> "createParameterSaveButton") % ("tabindex" -> "8") % ("class" -> s"btn ${classForButton}")) andThen
       ".notifications *" #> { updateAndDisplayNotifications(formTracker) }
     ).apply(formXml())

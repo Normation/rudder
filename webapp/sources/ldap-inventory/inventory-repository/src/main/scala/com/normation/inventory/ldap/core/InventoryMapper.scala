@@ -623,7 +623,7 @@ class InventoryMapper(
     // mutable, yep
     def setSeqAddress(e: LDAPEntry, attr: String, list: Seq[InetAddress]): Unit = {
       if (list.isEmpty) {
-        e deleteAttribute attr
+        e.deleteAttribute(attr)
       } else {
         e.resetValuesTo(attr, list.map(_.getHostAddress)*)
       }

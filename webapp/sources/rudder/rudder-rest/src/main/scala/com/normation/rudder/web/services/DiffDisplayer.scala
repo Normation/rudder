@@ -183,7 +183,7 @@ class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
               Seq(Unchanged(newIncluded))
             case _                                                                                 =>
               (Seq(Deleted(oldIncluded), Added(newIncluded)))
-          }).flatMap(_.display(displayKind))
+          }).flatMap(_.display(using displayKind))
         }
         val excludedKind    = {
           ((newExcluded, oldExcluded) match {
@@ -191,7 +191,7 @@ class DiffDisplayer(linkUtil: LinkUtil) extends Loggable {
               Seq(Unchanged(newExcluded))
             case _                                                                                 =>
               (Seq(Deleted(oldExcluded), Added(newExcluded)))
-          }).flatMap(_.display(displayKind))
+          }).flatMap(_.display(using displayKind))
         }
         val includedTargets = displayRuleTargets(newIncluded.targets.toSeq, oldIncluded.targets.toSeq, groupLib)
         val excludedTargets = displayRuleTargets(newExcluded.targets.toSeq, oldExcluded.targets.toSeq, groupLib)

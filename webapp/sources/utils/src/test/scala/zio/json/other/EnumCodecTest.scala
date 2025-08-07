@@ -37,7 +37,6 @@
 package zio.json.other
 
 import enumeratum.*
-import org.junit.*
 import org.junit.runner.RunWith
 import zio.*
 import zio.json.*

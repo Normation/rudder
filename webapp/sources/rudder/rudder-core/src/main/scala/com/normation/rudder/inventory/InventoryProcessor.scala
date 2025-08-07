@@ -459,16 +459,16 @@ class InventoryMover(
         // move to received dir
         safeMove(
           signature,
-          signature.moveTo(received / InventoryMover.normalizeReceivedName(signature))(File.CopyOptions(overwrite = true))
+          signature.moveTo(received / InventoryMover.normalizeReceivedName(signature))(using File.CopyOptions(overwrite = true))
         ) *>
         safeMove(
           inventory,
-          inventory.moveTo(received / InventoryMover.normalizeReceivedName(inventory))(File.CopyOptions(overwrite = true))
+          inventory.moveTo(received / InventoryMover.normalizeReceivedName(inventory))(using File.CopyOptions(overwrite = true))
         )
       case _: InventoryProcessStatus.SignatureInvalid | _: InventoryProcessStatus.SaveError =>
         val failedName = failed / inventory.name
-        safeMove(signature, signature.moveTo(failed / signature.name)(File.CopyOptions(overwrite = true))) *>
-        safeMove(inventory, inventory.moveTo(failedName)(File.CopyOptions(overwrite = true))) *>
+        safeMove(signature, signature.moveTo(failed / signature.name)(using File.CopyOptions(overwrite = true))) *>
+        safeMove(inventory, inventory.moveTo(failedName)(using File.CopyOptions(overwrite = true))) *>
         writeErrorLogFile(failedName, result) *>
         failedHook.runHooks(failed / inventory.name)
     }

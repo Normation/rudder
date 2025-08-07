@@ -917,7 +917,7 @@ class EventLogDetailsServiceImpl(
                                ((s \ "acl").toList.traverse { x =>
                                  for {
                                    path    <- AclPath.parse((x \ "@path").head.text)
-                                   actions <- (x \ "@actions").head.text.split(",").toList.traverse(HttpAction.parse _)
+                                   actions <- (x \ "@actions").head.text.split(",").toList.traverse(HttpAction.parse)
                                  } yield {
                                    ApiAclElement(path, actions.toSet)
                                  }

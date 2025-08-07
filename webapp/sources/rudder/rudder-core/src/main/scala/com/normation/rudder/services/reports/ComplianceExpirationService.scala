@@ -86,7 +86,7 @@ class NodePropertyBasedComplianceExpirationService(
   override def getExpirationPolicy(nodeIds: Iterable[NodeId]): IOResult[Map[NodeId, NodeComplianceExpiration]] = {
     val ids = nodeIds.toSet
     for {
-      propMap <- propRepository.getNodesProp(ids, propertyKey)(QueryContext.systemQC)
+      propMap <- propRepository.getNodesProp(ids, propertyKey)(using QueryContext.systemQC)
       res      = nodeIds.map { id =>
                    (
                      id,

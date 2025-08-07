@@ -73,7 +73,7 @@ class ScoreServiceImpl(
 
   def init(): IOResult[Unit] = {
     for {
-      nodeIds      <- nodeFactRepo.getAll()(QueryContext.systemQC).map(_.keySet)
+      nodeIds      <- nodeFactRepo.getAll()(using QueryContext.systemQC).map(_.keySet)
       globalScores <- globalScoreRepository.getAll()
       _            <- cache.set(globalScores.filter(n => nodeIds.contains(n._1)))
       scores       <- scoreRepository.getAll()
@@ -88,7 +88,7 @@ class ScoreServiceImpl(
       idsToClean     = existingScore.toList.distinct.diff(available)
       _             <- ZIO.when(idsToClean.nonEmpty)(ScoreLoggerPure.info(s"Scores to clean ${idsToClean.mkString(", ")}"))
       _             <- ZIO.foreach(idsToClean)(id => {
-                         cleanScore(id)(QueryContext.systemQC).catchAll(err =>
+                         cleanScore(id)(using QueryContext.systemQC).catchAll(err =>
                            ScoreLoggerPure.error(s"Error when cleaning score ${id}: ${err.fullMsg} ")
                          )
                        })
@@ -237,7 +237,7 @@ class ScoreServiceManager(readScore: ScoreService) {
     handlers.update(handler :: _) *>
     (for {
       s <- readScore
-             .getAll()(QueryContext.systemQC)
+             .getAll()(using QueryContext.systemQC)
              .map(_.exists(g => handler.initForScore(g._2)))
              .catchAll(err => ScoreLoggerPure.error(s"Error when getting available scores for initialization") *> false.succeed)
       _ <- handler.initEvents.flatMap(ZIO.foreach(_)(handleEvent(_))).unit
@@ -256,7 +256,7 @@ class ScoreServiceManager(readScore: ScoreService) {
       newScore = handled.flatMap(_.groupMapReduce(_._1)(_._2)(_ ++ _)).toMap
       _       <- ScoreLoggerPure.debug(s"${newScore.size} score for event")
       _       <- ScoreLoggerPure.ifTraceEnabled(ZIO.foreach(newScore.toList)(s => ScoreLoggerPure.trace(s"${s}")))
-      _       <- readScore.update(newScore)(QueryContext.systemQC)
+      _       <- readScore.update(newScore)(using QueryContext.systemQC)
     } yield {}).catchAll(err =>
       ScoreLoggerPure.error(s"An error occurred while treating score event of type '${scoreEvent.getClass}': ${err.fullMsg}")
     )

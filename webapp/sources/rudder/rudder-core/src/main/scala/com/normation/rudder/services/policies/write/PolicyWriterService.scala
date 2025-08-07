@@ -147,7 +147,7 @@ object PolicyWriterServiceImpl {
     createParentsIfNotExist(dest, optPerms, optGroupOwner)
     // must use FileUtils on different fs, see: https://issues.rudder.io/issues/19218
     mvOptions match {
-      case Some(opts) => src.moveTo(dest)(opts)
+      case Some(opts) => src.moveTo(dest)(using opts)
       case None       => FileUtils.moveDirectory(src.toJava, dest.toJava)
     }
     // optGroupOwner.foreach(dest.setGroup(_))
@@ -278,14 +278,14 @@ class PolicyWriterServiceImpl(
     def createParentsAndWrite(text: String, isRootServer: Boolean): IO[SystemError, Unit]                                                = IOResult.attempt {
       val (optGroupOwner, filePerms, dirPerms) = getPerms(isRootServer)
       createParentsIfNotExist(file, Some(dirPerms), optGroupOwner)
-      file.writeText(text)(Seq(WRITE, TRUNCATE_EXISTING, CREATE), charset).setPermissions(filePerms)
+      file.writeText(text)(using Seq(WRITE, TRUNCATE_EXISTING, CREATE), charset).setPermissions(filePerms)
       optGroupOwner.foreach(file.setGroup)
     }
 
     def createParentsAndWrite(content: Array[Byte], isRootServer: Boolean): IO[SystemError, Unit] = IOResult.attempt {
       val (optGroupOwner, filePerms, dirPerms) = getPerms(isRootServer)
       createParentsIfNotExist(file, Some(dirPerms), optGroupOwner)
-      file.writeByteArray(content)(Seq(WRITE, TRUNCATE_EXISTING, CREATE)).setPermissions(filePerms)
+      file.writeByteArray(content)(using Seq(WRITE, TRUNCATE_EXISTING, CREATE)).setPermissions(filePerms)
       optGroupOwner.foreach(file.setGroup)
     }
   }
@@ -1232,7 +1232,7 @@ class PolicyWriterServiceImpl(
         if (file.parent.path == destDir.path) file // same directory is ok
         else {
           destDir.createDirectoryIfNotExists(true)
-          file.moveTo(destDir / file.name)(atomically)
+          file.moveTo(destDir / file.name)(using atomically)
         }
         File(destDir, file.name).delete(false)
       }.catchAll(ex => ZIO.attempt(file.delete(true)) *> ex.fail)

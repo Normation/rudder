@@ -108,7 +108,7 @@ class RuleModificationValidationPopup(
   import RuleModificationValidationPopup.*
 
   private val userPropertyService = RudderConfig.userPropertyService
-  private[this] val uuidGen       = RudderConfig.stringUuidGenerator
+  private val uuidGen             = RudderConfig.stringUuidGenerator
 
   val validationNeeded: Boolean = workflowService.needExternalValidation()
 
@@ -181,14 +181,14 @@ class RuleModificationValidationPopup(
 
   def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
-      override def setFilter   = notNull _ :: trim _ :: Nil
+      override def setFilter   = notNull :: trim :: Nil
       override def inputField  = super.inputField % ("style" -> "height:8em;") % ("tabindex" -> "2") % ("placeholder" -> {
         userPropertyService.reasonsFieldExplanation
       })
       // override def subContainerClassName = containerClass
       override def validations = {
         if (mandatory) {
-          valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
+          valMinLen(5, "The reason must have at least 5 characters.") :: Nil
         } else {
           Nil
         }
@@ -199,12 +199,12 @@ class RuleModificationValidationPopup(
   private val defaultRequestName = s"${changeRequest.action.name.capitalize} Rule ${changeRequest.newRule.name}"
 
   private val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex" -> "1")
     override def validations =
-      valMinLen(1, "Name must not be empty") _ :: Nil
+      valMinLen(1, "Name must not be empty") :: Nil
   }
 
   // The formtracker needs to check everything only if there is workflow
@@ -268,7 +268,7 @@ class RuleModificationValidationPopup(
                     crReasons.map(_.get)
                   )
           id   <- workflowService
-                    .startWorkflow(cr)(
+                    .startWorkflow(cr)(using
                       ChangeContext(
                         ModificationId(uuidGen.newUuid),
                         CurrentUser.actor,

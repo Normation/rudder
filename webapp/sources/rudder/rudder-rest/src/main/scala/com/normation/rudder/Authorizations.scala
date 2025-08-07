@@ -463,7 +463,7 @@ object RudderRoles {
   // our database of roles. Everything is case insensitive, so role name are mapped "to lower string"
 
   // role names are case insensitive
-  implicit val roleOrdering: Ordering[String] = Ordering.comparatorToOrdering(String.CASE_INSENSITIVE_ORDER)
+  implicit val roleOrdering: Ordering[String] = Ordering.comparatorToOrdering(using String.CASE_INSENSITIVE_ORDER)
 
   private val logger = ApplicationLoggerPure.Auth
 

@@ -106,7 +106,7 @@ class TestNodeFactQueryProcessor {
 //  val nodes = File(Resource.getUrl("node-facts").getPath).children.toList.flatMap { f =>
 //    if (f.extension != Some(".json")) None
 //    else {
-//      f.contentAsString(StandardCharsets.UTF_8).fromJson[NodeFact] match {
+//      f.contentAsString(using StandardCharsets.UTF_8).fromJson[NodeFact] match {
 //        case Left(err) => throw new IllegalArgumentException(s"Unable to read node from file '${f.pathAsString}': ${err}")
 //        case Right(n)  => Some(n)
 //      }

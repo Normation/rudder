@@ -100,8 +100,8 @@ class MigrateChangeValidationEnforceSchema(
   }
 
   val migrateAsync: URIO[Any, Fiber.Runtime[RudderError, Unit]] = {
-    transactIOResult(s"Error with 'EventLog' table migration")(
-      migrationEffect(_)
+    transactIOResult(s"Error with 'EventLog' table migration") { t =>
+      migrationEffect(using t)
         .foldZIO(
           err =>
             BootstrapLogger.Early.DB.error(
@@ -111,7 +111,7 @@ class MigrateChangeValidationEnforceSchema(
             ),
           _ => BootstrapLogger.Early.DB.info(s"Migrated ${msg}")
         )
-    ).forkDaemon
+    }.forkDaemon
   }
 
   override def checks(): Unit = {

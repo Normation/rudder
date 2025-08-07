@@ -52,9 +52,9 @@ class RemoveDefaultRootDescription(nodeFactRepository: NodeFactRepository) exten
 
   override def checks(): Unit = {
     (for {
-      root <- nodeFactRepository.get(NodeId("root"))(QueryContext.systemQC).notOptional("no root node in inventory")
+      root <- nodeFactRepository.get(NodeId("root"))(using QueryContext.systemQC).notOptional("no root node in inventory")
       _    <- if (root.documentation == Some("the policy server")) {
-                nodeFactRepository.save(root.copy(documentation = None))(
+                nodeFactRepository.save(root.copy(documentation = None))(using
                   ChangeContext.newForRudder(Some("Removing default not documentation"))
                 )
               } else {

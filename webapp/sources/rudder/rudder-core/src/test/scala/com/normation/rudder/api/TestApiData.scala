@@ -70,7 +70,7 @@ class TestApiData extends Specification {
         Nil
       }
 
-      apis.map(AclPath.parse(_).get).sorted(AclPath.orderingaAclPath) must beEqualTo(expected.map(AclPath.parse(_).get))
+      apis.map(AclPath.parse(_).get).sorted(using AclPath.orderingaAclPath) must beEqualTo(expected.map(AclPath.parse(_).get))
     }
     "correctly sort path of same size" in {
 
@@ -90,7 +90,7 @@ class TestApiData extends Specification {
         Nil
       }
 
-      apis.map(AclPath.parse(_).get).sorted(AclPath.orderingaAclPath) must beEqualTo(expected.map(AclPath.parse(_).get))
+      apis.map(AclPath.parse(_).get).sorted(using AclPath.orderingaAclPath) must beEqualTo(expected.map(AclPath.parse(_).get))
     }
   }
 

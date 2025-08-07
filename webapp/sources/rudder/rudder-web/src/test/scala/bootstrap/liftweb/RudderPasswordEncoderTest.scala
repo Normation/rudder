@@ -38,7 +38,6 @@
 package bootstrap.liftweb
 
 import com.normation.rudder.users.*
-import org.junit.*
 import org.junit.runner.RunWith
 import zio.*
 import zio.test.*

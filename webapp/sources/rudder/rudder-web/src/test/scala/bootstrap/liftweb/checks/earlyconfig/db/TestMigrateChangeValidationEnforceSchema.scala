@@ -159,7 +159,7 @@ object TestMigrateChangeValidationEnforceSchema {
     override def changeRequestTableName:                         String     = tempCRTableName
     override def workflowTableName:                              String     = tempWorkflowTableName
     override def migrationEffect(implicit xa: Transactor[Task]): Task[Unit] = {
-      val default = super.migrationEffect(xa)
+      val default = super.migrationEffect
       overrideEffect.getOrElse(default)
     }
   }

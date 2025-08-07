@@ -368,7 +368,7 @@ limitations under the License.
     <rudder-version>9.1.0~alpha1-SNAPSHOT</rudder-version>
 
     <servlet-version>5.0.0</servlet-version>
-    <scala-version>3.3.6</scala-version>
+    <scala-version>3.7.2</scala-version>
     <scala2-version>2.13.16</scala2-version>
     <scala-binary-version>3</scala-binary-version>
     <!-- lift force us to remain with 1.3.0 because of

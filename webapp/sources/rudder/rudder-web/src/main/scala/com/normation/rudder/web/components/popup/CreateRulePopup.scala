@@ -122,7 +122,7 @@ class CreateOrCloneRulePopup(
         & "item-cancel" #> (SHtml.ajaxButton("Cancel", () => closePopup()) % ("tabindex" -> "5")                  % ("class"    -> "btn btn-default"))
         & "item-save" #> (SHtml.ajaxSubmit(
           if (clonedRule.isDefined) "Clone" else "Create",
-          onSubmit _
+          onSubmit
         )                                                                  % ("id"       -> "createCRSaveButton") % ("tabindex" -> "4") % ("class" -> "btn btn-success"))
         andThen
         "item-notifications" #> updateAndDisplayNotifications()
@@ -143,14 +143,14 @@ class CreateOrCloneRulePopup(
 
   def buildReasonField(mandatory: Boolean, containerClass: String = "twoCol"): WBTextAreaField = {
     new WBTextAreaField("Change audit message", "") {
-      override def setFilter      = notNull _ :: trim _ :: Nil
+      override def setFilter      = notNull :: trim :: Nil
       override def inputField     = super.inputField % ("style" -> "height:5em;") % ("tabindex" -> "3") % ("placeholder" -> {
         userPropertyService.reasonsFieldExplanation
       })
       override def errorClassName = "col-xl-12 errors-container"
       override def validations    = {
         if (mandatory) {
-          valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
+          valMinLen(5, "The reason must have at least 5 characters.") :: Nil
         } else {
           Nil
         }
@@ -159,16 +159,16 @@ class CreateOrCloneRulePopup(
   }
 
   private val ruleName = new WBTextField("Name", clonedRule.map(r => "Copy of <%s>".format(r.name)).getOrElse("")) {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def errorClassName = "col-xl-12 errors-container"
     override def inputField     =
       super.inputField % ("onkeydown" -> "return processKey(event , 'createCRSaveButton')") % ("tabindex" -> "1")
     override def validations =
-      valMinLen(1, "Name must not be empty") _ :: Nil
+      valMinLen(1, "Name must not be empty") :: Nil
   }
 
   private val ruleShortDescription = new WBTextAreaField("Description", clonedRule.map(_.shortDescription).getOrElse("")) {
-    override def setFilter      = notNull _ :: trim _ :: Nil
+    override def setFilter      = notNull :: trim :: Nil
     override def inputField     = super.inputField % ("style" -> "height:7em") % ("tabindex" -> "2")
     override def errorClassName = "col-xl-12 errors-container"
     override def validations: List[String => List[FieldError]] = Nil
@@ -183,7 +183,7 @@ class CreateOrCloneRulePopup(
     ) {
       override def className   = "form-select col-xl-12 col-md-12 col-sm-12"
       override def validations =
-        valMinLen(1, "Please select a category") _ :: Nil
+        valMinLen(1, "Please select a category") :: Nil
     }
   }
 

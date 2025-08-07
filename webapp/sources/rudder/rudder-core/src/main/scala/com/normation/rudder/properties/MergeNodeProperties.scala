@@ -39,7 +39,6 @@ package com.normation.rudder.properties
 
 import cats.data.Chain
 import cats.data.Ior
-import cats.syntax.functor.*
 import cats.syntax.list.*
 import cats.syntax.traverse.*
 import com.normation.errors.*
@@ -495,7 +494,7 @@ object MergeNodeProperties {
                      List.empty[List[GroupProp]]
                    }
       // add global values as the most default NodePropertyHierarchy
-      overridden = sorted.map(groups => overrideValues(groups.map(_.toNodePropHierarchy(globalParams))))
+      overridden = sorted.map(groups => overrideValues(groups.map(_.toNodePropHierarchy(using globalParams))))
       // now flatten properties from all groups so that we can check for duplicates
       flatten    = overridden.map(_.values).flatten
       merged    <- mergeAll(flatten)

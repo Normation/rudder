@@ -86,7 +86,7 @@ class DiffServiceImpl extends DiffService {
   ): ModifyDirectiveDiff = {
     import com.normation.rudder.domain.policies.SectionVal.*
 
-    def toDirectiveDiff[T]: (Directive => T) => Option[SimpleDiff[T]] = toDiff[Directive, T](reference, newItem) _
+    def toDirectiveDiff[T]: (Directive => T) => Option[SimpleDiff[T]] = toDiff[Directive, T](reference, newItem)
     val refSectionVal        = refRootSection.map(directiveValToSectionVal(_, reference.parameters))
     val newSectionVal        = newRootSection.map(directiveValToSectionVal(_, newItem.parameters))
     val diffParameters       = {

@@ -40,7 +40,6 @@ package com.normation.inventory.domain
 import com.normation.utils.DateFormaterService
 import java.net.InetAddress
 import java.time.Instant
-import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormatter
 import org.joda.time.format.ISODateTimeFormat
 import zio.json.*
@@ -68,10 +67,10 @@ object JsonSerializers {
 
   // We need another JSON data tree for older versions where some JSON are serialized in humanized form
   object implicits {
-    export InventoryJsonDecoders.*
-    export InventoryJsonEncoders.*
-    export SoftwareUpdateJsonDecoders.*
-    export SoftwareUpdateJsonEncoders.*
+    export com.normation.inventory.domain.InventoryJsonDecoders.*
+    export com.normation.inventory.domain.InventoryJsonEncoders.*
+    export com.normation.inventory.domain.SoftwareUpdateJsonDecoders.*
+    export com.normation.inventory.domain.SoftwareUpdateJsonEncoders.*
   }
 
   // the update date is normalized in RFC3339, UTC, no millis
@@ -87,23 +86,13 @@ object JsonSerializers {
 }
 
 private object SoftwareUpdateJsonEncoders {
-  private object PrivateEncoders {
-    implicit val encoderDateTime: JsonEncoder[DateTime] =
-      JsonEncoder[String].contramap[DateTime](d => d.toString(JsonSerializers.softwareUpdateDateTimeFormat))
+  implicit val encoderSoftwareUpdateKind:     JsonEncoder[SoftwareUpdateKind]     = JsonEncoder[String].contramap {
+    case SoftwareUpdateKind.Other(v) => v
+    case kind                        => kind.name
   }
-  import PrivateEncoders.*
-
-  implicit val encoderSoftwareUpdateKind:     JsonEncoder[SoftwareUpdateKind]     = JsonEncoder[String].contramap { k =>
-    k match {
-      case SoftwareUpdateKind.Other(v) => v
-      case kind                        => kind.name
-    }
-  }
-  implicit val encoderSoftwareUpdateSeverity: JsonEncoder[SoftwareUpdateSeverity] = JsonEncoder[String].contramap { k =>
-    k match {
-      case SoftwareUpdateSeverity.Other(v) => v
-      case kind                            => kind.name
-    }
+  implicit val encoderSoftwareUpdateSeverity: JsonEncoder[SoftwareUpdateSeverity] = JsonEncoder[String].contramap {
+    case SoftwareUpdateSeverity.Other(v) => v
+    case kind                            => kind.name
   }
 
   implicit val encoderSoftwareUpdate: JsonEncoder[SoftwareUpdate] = DeriveJsonEncoder.gen
@@ -161,8 +150,6 @@ private object InventoryCommonJsonDecoders {
 // encoder from object to json string
 private object InventoryJsonEncoders {
   export InventoryCommonJsonEncoders.*
-  import com.normation.utils.DateFormaterService.json.*
-
   implicit val encoderMemorySize: JsonEncoder[MemorySize] = JsonEncoder[Long].contramap(_.size)
   implicit val encoderFileSystem: JsonEncoder[FileSystem] = DeriveJsonEncoder.gen
   implicit val encoderMemorySlot: JsonEncoder[MemorySlot] = DeriveJsonEncoder.gen
@@ -174,7 +161,6 @@ private object InventoryJsonEncoders {
 
 private object InventoryJsonDecoders {
   export InventoryCommonJsonDecoders.*
-  import com.normation.utils.DateFormaterService.json.*
   implicit val decoderController:     JsonDecoder[Controller]     = DeriveJsonDecoder.gen
   implicit val decoderFileSystem:     JsonDecoder[FileSystem]     = DeriveJsonDecoder.gen
   implicit val decoderMemorySlot:     JsonDecoder[MemorySlot]     = DeriveJsonDecoder.gen

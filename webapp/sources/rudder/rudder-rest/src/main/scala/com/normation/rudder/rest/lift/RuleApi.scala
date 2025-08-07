@@ -332,7 +332,7 @@ class RuleApiService14(
                         params.reason
                       )
       id           <- workflow
-                        .startWorkflow(cr)(
+                        .startWorkflow(cr)(using
                           ChangeContext(
                             ModificationId(uuidGen.newUuid),
                             actor,

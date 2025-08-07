@@ -595,7 +595,7 @@ final case class JsonCoverage(
 )
 object JsonCoverage     {
   implicit val transformer: Transformer[(Set[Role], Set[Custom]), JsonCoverage] = (x: (Set[Role], Set[Custom])) =>
-    x.transformInto[JsonRoleCoverage].transformInto[JsonCoverage](coverage => JsonCoverage(coverage))
+    x.transformInto[JsonRoleCoverage].transformInto[JsonCoverage](using coverage => JsonCoverage(coverage))
 }
 
 final case class JsonRoleCoverage(

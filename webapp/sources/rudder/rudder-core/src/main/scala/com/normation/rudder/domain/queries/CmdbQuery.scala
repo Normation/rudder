@@ -409,7 +409,7 @@ final case class NodePropertyComparator(ldapAttr: String) extends NodeCriterionT
         new NodeInfoMatcher {
           val kv                   = NodePropertyMatcherUtils.splitInput(value, ":")
           val path                 = JsonSelect.compilePath(kv.value).toPureResult
-          val matcher              = NodePropertyMatcherUtils.matchJsonPath(kv.key, path) _
+          val matcher              = NodePropertyMatcherUtils.matchJsonPath(kv.key, path)
           override val debugString = s"Prop json select '${value}'"
           override def matches(node: NodeInfo): Boolean = node.properties.exists(matcher)
         }

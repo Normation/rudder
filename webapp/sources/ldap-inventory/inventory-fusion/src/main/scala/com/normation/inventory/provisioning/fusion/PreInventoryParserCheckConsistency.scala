@@ -71,13 +71,13 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
 
     // hostname is now only check in FusionInventoryParser
     val checks = {
-      checkId(rudderTagContent) _ ::
-      checkRoot(agentTagContent) _ ::
-      checkPolicyServer(agentTagContent) _ ::
-      checkOS _ ::
-      checkKernelVersion _ ::
-      checkAgentType(agentTagContent) _ ::
-      checkSecurityToken(agentTagContent) _ ::
+      checkId(rudderTagContent) ::
+      checkRoot(agentTagContent) ::
+      checkPolicyServer(agentTagContent) ::
+      checkOS ::
+      checkKernelVersion ::
+      checkAgentType(agentTagContent) ::
+      checkSecurityToken(agentTagContent) ::
       Nil
     }
 
@@ -240,7 +240,7 @@ class PreInventoryParserCheckConsistency extends PreInventoryParser {
   private class AddChildrenTo(label: String, newChild: scala.xml.Node) extends scala.xml.transform.RewriteRule {
     override def transform(n: scala.xml.Node): scala.collection.Seq[Node] = n match {
       case Elem(prefix, "OPERATINGSYSTEM", attribs, scope, child*) =>
-        Elem(prefix, label, attribs, scope, minimizeEmpty = false, child ++ newChild: _*)
+        Elem(prefix, label, attribs, scope, minimizeEmpty = false, child ++ newChild*)
       case other                                                   => other
     }
   }

@@ -133,7 +133,7 @@ class JGitRepositoryTest extends Specification with Loggable with AfterAll {
   // for test, we use as a group owner whatever git root directory has
   val currentUserName: String = repo.rootDirectory.groupName
 
-  val archive: GitConfigItemRepository with XmlArchiverUtils = new GitConfigItemRepository with XmlArchiverUtils {
+  val archive: GitConfigItemRepository & XmlArchiverUtils = new GitConfigItemRepository with XmlArchiverUtils {
     override val gitRepo:      GitRepositoryProvider = repo
     override def relativePath: String                = ""
     override def xmlPrettyPrinter = prettyPrinter

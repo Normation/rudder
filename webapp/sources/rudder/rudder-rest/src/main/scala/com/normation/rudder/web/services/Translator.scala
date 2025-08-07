@@ -120,7 +120,7 @@ class Translators {
    * @param m
    */
   def add[T](t: Translator[T])(implicit m: ClassTag[T]): Unit = {
-    get(m) match {
+    get(using m) match {
       case None           => reg += (m -> t)
       case Some(existing) => {
         t.to.iterator foreach { existing.to.add(_) }

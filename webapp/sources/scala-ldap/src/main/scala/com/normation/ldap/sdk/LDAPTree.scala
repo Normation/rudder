@@ -99,14 +99,14 @@ trait LDAPTree extends Tree[LDAPEntry] with ToLDIFRecords with ToLDIFString {
 }
 
 object LDAPTree {
-  // loggin
+  // log
   val logger: Logger = org.slf4j.LoggerFactory.getLogger(classOf[LDAPTree])
 
   def apply(r: LDAPEntry, c: Iterable[(RDN, LDAPTree)]): LDAPTree = new LDAPTree {
     require(null != r, "root of a tree can't be null")
     require(null != c, "children map of a tree can't be null")
 
-    val root = r
+    override val root: LDAPEntry = r
     c foreach { x => _children += x }
   }
 

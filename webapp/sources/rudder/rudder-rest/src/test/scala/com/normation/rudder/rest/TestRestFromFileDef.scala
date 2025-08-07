@@ -79,12 +79,12 @@ class TestRestFromFileDef extends ZIOSpecDefault {
   val yamlDestTmpDirectory: File   = tmpApiTemplate
 
   val transformations: Map[String, String => String] = Map(
-    ("api_revisions.yml" -> copyTransformApiRevision(restTestSetUp) _)
+    ("api_revisions.yml" -> copyTransformApiRevision(restTestSetUp))
   )
 
   tmpApiTemplate.createDirectories()
 
-  override def spec: Spec[TestEnvironment with Scope, Any] = {
+  override def spec: Spec[TestEnvironment & Scope, Any] = {
     suite("All REST tests defined in files") {
 
       for {

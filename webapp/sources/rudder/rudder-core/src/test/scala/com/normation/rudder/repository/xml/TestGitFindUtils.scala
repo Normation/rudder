@@ -156,7 +156,7 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
     }
 
     "return both files under 'a' and 'b'" in {
-      list(List("a", "b"), Nil) must contain(exactly(allDirA ++ allDirB: _*))
+      list(List("a", "b"), Nil) must contain(exactly(allDirA ++ allDirB*))
     }
 
     "return all .txt" in {
@@ -164,7 +164,7 @@ class TestGitFindUtils extends Specification with Loggable with AfterAll with Co
     }
 
     "return all .txt and .pdf" in {
-      list(Nil, List(".txt", "pdf")) must contain(exactly(allTxt ++ allPdf: _*))
+      list(Nil, List(".txt", "pdf")) must contain(exactly(allTxt ++ allPdf*))
     }
 
     "return x/f.txt/f.txt" in {

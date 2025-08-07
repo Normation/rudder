@@ -609,7 +609,7 @@ class SystemApiService13(
         RestUtils.toJsonResponse(None, JArray(json))
       case eb: EmptyBox =>
         val message = (eb ?~ s"Error when trying to run healthcheck").messageChain
-        RestUtils.toJsonError(None, message)(action, prettify = true)
+        RestUtils.toJsonError(None, message)(using action, prettify = true)
     }
   }
 
@@ -1010,7 +1010,7 @@ class SystemApiService11(
     implicit val action   = "archiveGroups"
     implicit val prettify = params.prettify
 
-    archive(req, itemArchiveManager.exportGroupLibrary _, "groups") match {
+    archive(req, itemArchiveManager.exportGroupLibrary, "groups") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -1029,7 +1029,7 @@ class SystemApiService11(
     implicit val action   = "archiveRules"
     implicit val prettify = params.prettify
 
-    archive(req, itemArchiveManager.exportRules _, "rules") match {
+    archive(req, itemArchiveManager.exportRules, "rules") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }
@@ -1038,7 +1038,7 @@ class SystemApiService11(
     implicit val action   = "archiveParameters"
     implicit val prettify = params.prettify
 
-    archive(req, itemArchiveManager.exportParameters _, "parameters") match {
+    archive(req, itemArchiveManager.exportParameters, "parameters") match {
       case Left(error)  => toJsonError(None, error)
       case Right(field) => toJsonResponse(None, JObject(field))
     }

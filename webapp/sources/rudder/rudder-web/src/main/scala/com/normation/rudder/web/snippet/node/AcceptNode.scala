@@ -168,7 +168,7 @@ class AcceptNode extends DispatchSnippet with Loggable {
     val modId = ModificationId(uuidGen.newUuid)
     listNode.foreach { id =>
       newNodeManager
-        .refuse(id)(
+        .refuse(id)(using
           ChangeContext(
             modId,
             CurrentUser.actor,
@@ -245,7 +245,7 @@ class AcceptNode extends DispatchSnippet with Loggable {
     }
 
     nodeFactRepository
-      .getAll()(CurrentUser.queryContext, SelectNodeStatus.Pending)
+      .getAll()(using CurrentUser.queryContext, SelectNodeStatus.Pending)
       .map(_.collect { case (id, n) if listNode.contains(id) => n })
       .toBox match {
       case Full(servers) =>
