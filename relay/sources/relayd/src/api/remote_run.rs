@@ -6,13 +6,14 @@ use std::{collections::HashMap, process::Stdio, str::FromStr, sync::Arc};
 use anyhow::Error;
 use bytes::Bytes;
 use futures::{stream::select, Stream, StreamExt, TryStreamExt};
-use hyper::Body;
+use http_body_util::{Empty, StreamBody};
 use regex::Regex;
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
     process::{Child, Command},
 };
 use tokio_stream::wrappers::LinesStream;
+use tokio_stream::Empty;
 use tracing::{debug, error, instrument, trace, warn};
 use warp::{
     body,
@@ -174,7 +175,7 @@ impl RemoteRun {
                     streams.push(stream);
                 }
 
-                Ok(warp::reply::html(Body::wrap_stream(select(
+                Ok(warp::reply::html(StreamBody::new(select(
                     self.run_parameters
                         .remote_run(
                             &job_config.cfg.remote_run,
@@ -202,7 +203,7 @@ impl RemoteRun {
                         )
                         .await,
                 ));
-                Ok(warp::reply::html(Body::empty()))
+                Ok(warp::reply::html(http_body_util::Empty::new()))
             }
             // Sync and no output -> wait until the send and return empty output
             (false, false) => {
@@ -214,7 +215,7 @@ impl RemoteRun {
                     streams.push(stream);
                 }
 
-                Ok(warp::reply::html(Body::wrap_stream(select(
+                Ok(warp::reply::html(StreamBody::new(select(
                     self.run_parameters
                         .remote_run(
                             &job_config.cfg.remote_run,
@@ -236,7 +237,7 @@ impl RemoteRun {
                     streams.push(stream);
                 }
 
-                Ok(warp::reply::html(Body::wrap_stream(select(
+                Ok(warp::reply::html(StreamBody::new(select(
                     self.run_parameters
                         .remote_run(
                             &job_config.cfg.remote_run,

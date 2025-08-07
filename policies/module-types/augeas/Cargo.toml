@@ -23,7 +23,7 @@ similar = "2.6.0"
 regex = "1.11.1"
 rudder_module_type = { path = "../../rudder-module-type" }
 raugeas = "1.0"
-rustyline = "16"
+rustyline = "17"
 secrecy = "0.10"
 zxcvbn = "3"
 pest = "2.7.15"
