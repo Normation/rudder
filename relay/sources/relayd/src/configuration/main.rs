@@ -140,6 +140,12 @@ impl Configuration {
             bail!("missing database password configuration");
         }
 
+        if self.general.peer_authentication == PeerAuthentication::CustomCaCert
+            && self.general.ca_path.is_none()
+        {
+            bail!("missing ca_path configuration for custom CA certificate verification");
+        }
+
         Ok(self)
     }
 
@@ -173,15 +179,7 @@ impl Configuration {
     }
 
     pub fn peer_authentication(&self) -> PeerAuthentication {
-        // compute actual model
-        if !self.output.upstream.verify_certificates {
-            warn!(
-                "output.upstream.verify_certificates parameter is deprecated, use general.peer_authentication instead"
-            );
-            PeerAuthentication::DangerousNone
-        } else {
-            self.general.peer_authentication
-        }
+        self.general.peer_authentication.clone()
     }
 
     /// Gives current url of the upstream relay API
@@ -251,7 +249,8 @@ pub struct GeneralConfig {
     pub https_idle_timeout: Duration,
     /// Which certificate validation model to use
     #[serde_inline_default(PeerAuthentication::SystemRootCerts)]
-    peer_authentication: PeerAuthentication,
+    pub peer_authentication: PeerAuthentication,
+    pub ca_path: Option<PathBuf>,
 }
 
 impl Default for GeneralConfig {
@@ -265,6 +264,7 @@ impl Default for GeneralConfig {
 pub enum PeerAuthentication {
     CertPinning,
     SystemRootCerts,
+    CustomCaCert,
     DangerousNone,
 }
 
@@ -502,14 +502,6 @@ pub struct UpstreamConfig {
     /// Default password, to be used for new inventories
     #[serde_inline_default(SecretString::new("rudder".into()))]
     pub default_password: SecretString,
-    /// Allows to completely disable certificate validation.
-    ///
-    /// If true, https is required for all connections
-    ///
-    /// This preserves compatibility with 6.X configs
-    /// DEPRECATED: replaced by certificate_verification_mode = DangerousNone
-    #[serde_inline_default(true)]
-    pub verify_certificates: bool,
     /// Allows specifying the root certificate path
     /// Used for our Rudder PKI
     /// Not used if the verification model is not `Rudder`.
@@ -523,7 +515,6 @@ impl PartialEq for UpstreamConfig {
         self.url == other.url
             && self.host == other.host
             && self.user == other.user
-            && self.verify_certificates == other.verify_certificates
             && self.server_certificate_file == other.server_certificate_file
     }
 }
