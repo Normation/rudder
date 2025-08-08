@@ -418,7 +418,9 @@ response:
         "updatedUser" : {
           "username" : "user1",
           "password" : "",
-          "permissions" : []
+          "permissions" : [
+            "user"
+          ]
         }
       }
     }
