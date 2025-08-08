@@ -412,9 +412,15 @@ final case class JsonInternalUserData(
 )
 
 object JsonInternalUserData {
-  implicit val transformer:           Transformer[User, JsonInternalUserData]       = Transformer.derive[User, JsonInternalUserData]
-  implicit val transformerParsedUser: Transformer[ParsedUser, JsonInternalUserData] =
-    Transformer.define[ParsedUser, JsonInternalUserData].withFieldRenamed(_.name, _.username).buildTransformer
+  // safe transformation by default does not copy the password to avoid exposing it
+  // to expose the password in the JSON, create an unsafe transformer or copy it
+  implicit val transformerParsedUser: Transformer[ParsedUser, JsonInternalUserData] = {
+    Transformer
+      .define[ParsedUser, JsonInternalUserData]
+      .withFieldRenamed(_.name, _.username)
+      .withFieldConst(_.password, "")
+      .buildTransformer
+  }
 }
 
 final case class JsonAddedUser(
@@ -427,12 +433,10 @@ object JsonAddedUser        {
 
 final case class JsonUpdatedUser(
     updatedUser: JsonInternalUserData
-) extends AnyVal
+) extends AnyVal {
+  def withPassword(password: String): JsonUpdatedUser = JsonUpdatedUser(updatedUser.copy(password = password))
+}
 object JsonUpdatedUser      {
-  implicit val transformer: Transformer[User, JsonUpdatedUser] = (u: User) =>
-    JsonUpdatedUser(u.transformInto[JsonInternalUserData])
-
-  //TODO: it seems we need to know if passwords are updated or not, we can't just return the password at every update
   implicit val transformerParsedUser: Transformer[ParsedUser, JsonUpdatedUser] = (u: ParsedUser) =>
     JsonUpdatedUser(u.transformInto[JsonInternalUserData])
 }

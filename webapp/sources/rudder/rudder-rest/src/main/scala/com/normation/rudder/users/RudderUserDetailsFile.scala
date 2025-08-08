@@ -275,7 +275,7 @@ object UserDetailFileConfiguration {
 }
 
 /**
- * List of known users
+ * List of managed users in Rudder, and configuration on the management of the users.
  */
 sealed abstract class UserList(
     val encoder:         RudderPasswordEncoder,
@@ -283,11 +283,14 @@ sealed abstract class UserList(
     val users:           Map[String, RudderUserDetail]
 )
 
+/**
+ * One-sized list for a known managed user, when there is an implementation for only a single user (e.g. super-admin)
+ */
 final case class SingleUserList(override val encoder: RudderPasswordEncoder, user: Option[RudderUserDetail])
     extends UserList(encoder, isCaseSensitive = true, users = user.map(u => (u.getUsername, u)).toMap)
 
 /**
- * The main user list, exposing the resolved configuration of the file, including parsed users
+ * The main user list coming from a file, exposing the resolved configuration of the file, including parsed users
  * @param parsedUsers Raw user attributes parsed from the file
  */
 final class ValidatedUserList(
@@ -611,6 +614,7 @@ object UserFileProcessing {
       debugFileName:             String,
       reload:                    Boolean
   ): IOResult[ValidatedUserList] = {
+    implicit val roleMapping: RoleApiMapping = roleApiMapping
     for {
       parsed     <- parseXmlNoResolve(xml, debugFileName)
       parsedUsers = parsed.users.map(u => (u.name, u)).toMap
@@ -636,7 +640,7 @@ object UserFileProcessing {
           users.map { case (u, rs, nsc) => (u.login, (u, rs, nsc)) }.toMap
         )
       }
-      new ValidatedUserList(parsedUsers, config)(roleApiMapping)
+      new ValidatedUserList(parsedUsers, config)
     }
   }
 
@@ -726,7 +730,7 @@ object UserFileProcessing {
               .map(_.toList.map(_.text)),
             node.attribute("password").map(_.toList.map(_.text)),
             // accept both "role" and "roles"
-            userRoles(node.attribute("role")) ++ userRoles(node.attribute("permissions")),
+            (userRoles(node.attribute("role")) ++ userRoles(node.attribute("permissions"))).filterNot(_.isBlank()),
             getCommaSeparatedList("tenants", node)
           ) match {
             case (Some(name :: Nil), pwd, permissions, tenants) if (name.size > 0) =>

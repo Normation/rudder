@@ -441,8 +441,14 @@ class UserManagementApiImpl(
           userManagementService.update(id, u.username, u.password, permissions, u.isPreHashed)(
             allRoles
           )
+        res         = if (newUser.password.isEmpty) {
+                        newUser.transformInto[JsonUpdatedUser]
+                      } else { // return the password if it's not updated i.e. non-empty
+                        newUser.transformInto[JsonUpdatedUser].withPassword(u.password)
+                      }
+
       } yield {
-        newUser.transformInto[JsonUpdatedUser]
+        res
       }).chainError(s"Could not update user '${id}'").toLiftResponseOne(params, schema, _ => None)
     }
   }
