@@ -18,12 +18,10 @@ serde_json = "1"
 regex = "1.10.2"
 rusqlite = { version = "0.33.0", features = ["bundled"] }
 rudder_module_type = { path = "../../rudder-module-type" }
-#rust-apt = { version = "0.8.0", optional = true }
-# while we don't have a fixed release
-rust-apt = { git = "https://gitlab.com/amousset/rust-apt.git", branch = "rudder", optional = true }
+rust-apt-compat = { package = "rust-apt", git = "https://gitlab.com/amousset/rust-apt.git", branch = "rudder", optional = true }
+rust-apt = { git = "https://gitlab.com/volian/rust-apt.git", optional = true }
 memfile = { version = "0.3.2", optional = true }
 uuid = { version = "1", features = ["v4"] }
-#librpm = "0.1.1"
 chrono = { version = "0.4.38", features = ["serde"] }
 fnv = "1.0.7"
 log = "0.4.21"
@@ -31,6 +29,8 @@ log = "0.4.21"
 [features]
 # Enable APT package management
 apt = ["dep:rust-apt", "dep:memfile"]
+# Build with the old APT compatibility
+apt-compat = ["dep:rust-apt-compat", "dep:memfile"]
 
 [dev-dependencies]
 rudder_commons_test = { path = "../../rudder-commons-test" }
