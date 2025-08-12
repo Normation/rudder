@@ -99,7 +99,7 @@ pub enum Expr<'src> {
 #[grammar = "dsl/raugeas.pest"]
 pub struct RaugeasParser;
 
-fn parse_array(pair: Pairs<Rule>) -> Vec<&str> {
+fn parse_array(pair: Pairs<'_, Rule>) -> Vec<&str> {
     pair.map(|p| p.as_str()).collect()
 }
 

@@ -200,12 +200,12 @@ impl Rpkg {
             )
         }
         // Verify that dependencies are installed
-        if let Some(d) = &self.metadata.depends {
-            if !(force || d.are_installed()) {
-                bail!(
-                    "Some dependencies are missing, install them before trying to install the plugin."
-                )
-            }
+        if let Some(d) = &self.metadata.depends
+            && !(force || d.are_installed())
+        {
+            bail!(
+                "Some dependencies are missing, install them before trying to install the plugin."
+            )
         }
 
         if is_upgrade {

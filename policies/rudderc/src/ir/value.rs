@@ -284,15 +284,15 @@ impl Expression {
                             key1_seq.iter().map(|v| v.as_str().unwrap()).collect();
 
                         // Allow specifying only the first level to access the object
-                        if let Some(Expression::Scalar(k2)) = s.get(1) {
-                            if !vals.contains(&k2.as_str()) {
-                                if let Some(prop) = did_you_mean(k2, vals) {
-                                    warn!(
-                                        "Unknown variable 'node.inventory[{k1}][{k2}]', did you mean '{prop}'?"
-                                    );
-                                } else {
-                                    warn!("Unknown variable 'node.inventory[{k1}][{k2}]'");
-                                }
+                        if let Some(Expression::Scalar(k2)) = s.get(1)
+                            && !vals.contains(&k2.as_str())
+                        {
+                            if let Some(prop) = did_you_mean(k2, vals) {
+                                warn!(
+                                    "Unknown variable 'node.inventory[{k1}][{k2}]', did you mean '{prop}'?"
+                                );
+                            } else {
+                                warn!("Unknown variable 'node.inventory[{k1}][{k2}]'");
                             }
                         }
                     }

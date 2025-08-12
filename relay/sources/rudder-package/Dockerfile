@@ -1,4 +1,4 @@
-FROM rust:1.88.0-bookworm
+FROM rust:1.89.0-bookworm
 LABEL ci=rudder/relay/sources/rudder-package/Dockerfile
 
 ARG USER_ID=1000

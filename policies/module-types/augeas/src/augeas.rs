@@ -317,13 +317,12 @@ impl Augeas {
         // identified.
 
         // Make a backup if needed.
-        if let Some(b) = backup_dir {
-            if let Some(c) = &current_content {
-                if modified {
-                    let backup_file = Backup::BeforeEdit.backup_file(p.path.as_path());
-                    fs::write(b.join(backup_file), c)?;
-                }
-            }
+        if let Some(b) = backup_dir
+            && let Some(c) = &current_content
+            && modified
+        {
+            let backup_file = Backup::BeforeEdit.backup_file(p.path.as_path());
+            fs::write(b.join(backup_file), c)?;
         }
 
         // FIXME audit mode should report non compliance

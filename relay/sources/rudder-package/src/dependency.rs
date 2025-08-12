@@ -35,25 +35,27 @@ pub struct RpmDependency(String);
 
 impl Dependencies {
     pub fn are_installed(&self) -> bool {
-        if let Some(v) = &self.python {
-            if !v.iter().all(|x| x.is_installed()) {
-                return false;
-            }
+        if let Some(v) = &self.python
+            && !v.iter().all(|x| x.is_installed())
+        {
+            return false;
         };
-        if let Some(v) = &self.binary {
-            if !v.iter().all(|x| x.is_installed()) {
-                return false;
-            }
+        if let Some(v) = &self.binary
+            && !v.iter().all(|x| x.is_installed())
+        {
+            return false;
         };
-        if let Some(v) = &self.apt {
-            if which("apt").is_ok() && !v.iter().all(|x| x.is_installed()) {
-                return false;
-            }
+        if let Some(v) = &self.apt
+            && which("apt").is_ok()
+            && !v.iter().all(|x| x.is_installed())
+        {
+            return false;
         };
-        if let Some(v) = &self.rpm {
-            if which("rpm").is_ok() && !v.iter().all(|x| x.is_installed()) {
-                return false;
-            }
+        if let Some(v) = &self.rpm
+            && which("rpm").is_ok()
+            && !v.iter().all(|x| x.is_installed())
+        {
+            return false;
         };
         true
     }

@@ -298,11 +298,11 @@ pub mod action {
         };
 
         // Open in browser
-        if let Some(f) = file_to_open {
-            if open {
-                ok_output("Opening", f.display());
-                let _ = Command::new("xdg-open").args([f]).output();
-            }
+        if let Some(f) = file_to_open
+            && open
+        {
+            ok_output("Opening", f.display());
+            let _ = Command::new("xdg-open").args([f]).output();
         }
 
         Ok(())
