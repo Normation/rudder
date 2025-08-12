@@ -602,7 +602,7 @@ rudder.batch.storeAgentRunTimes.updateInterval=5
 rudder.server.certificate.additionalKeyHash=
 
 #
-# Value for POLICY_SERVER_CERT_CA, ie the path to the file with the CA cert that should be used
+# Value for POLICY_SERVER_CERT_CA, ie the path to the file with the CA cert(s) that should be used
 # for server certificate validation (the validation is handled by the node).
 # Let empty to use system CA list.
 # Default: empty.
