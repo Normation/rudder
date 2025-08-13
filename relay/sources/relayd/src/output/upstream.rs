@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
-use std::{path::PathBuf, sync::Arc};
 use hyper::Request;
-use reqwest::Body;
+use reqwest::{Body, Method};
 use secrecy::{ExposeSecret, SecretString};
+use std::{path::PathBuf, sync::Arc};
+use toml::Value::String;
 use tracing::{debug, instrument};
 
 use crate::{processing::inventory::InventoryType, Error, JobConfig};
@@ -65,23 +66,27 @@ async fn forward_file(
 ) -> Result<(), Error> {
     let content = tokio::fs::read(path.clone()).await?;
 
+    let pkey_hash = &job_config.cfg.upstream_pkey_hash();
     let client = job_config.http_client.read().await.clone();
 
-    let request = RequestBuilder::put(format!(
-            "{}/{}/{}",
-            job_config.cfg.upstream_url(),
-            endpoint,
-            path.file_name().expect("not a file").to_string_lossy()
-        ))
+    let request = client
+        .request(
+            Method::PUT,
+            format!(
+                "{}/{}/{}",
+                job_config.cfg.upstream_url(),
+                endpoint,
+                path.file_name().expect("not a file").to_string_lossy()
+            ),
+        )
         .basic_auth(
             &job_config.cfg.output.upstream.user,
             Some(&password.expose_secret()),
         )
-        .body(Body::from(content));
+        .body(Body::from(content))
+        .build()?;
 
-    let result =
-        .send()
-        .await;
+    let result = client.send(request, Some(pkey_hash)).await?;
 
     result
         // HTTP error -> Err()

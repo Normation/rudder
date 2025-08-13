@@ -11,7 +11,7 @@ use anyhow::{anyhow, Error};
 use base64::Engine;
 use lazy_static::lazy_static;
 use openssl::x509::X509;
-use reqwest::{tls::Version, Certificate, Client};
+use reqwest::{tls::Version, Certificate, Client, IntoUrl, Method, RequestBuilder};
 use tracing::debug;
 
 lazy_static! {
@@ -24,15 +24,10 @@ pub type PemCertificate = Vec<u8>;
 pub type DerCertificate = Vec<u8>;
 
 /// Computes the public key hash from a DER certificate.
-/// Uses the SHA-256 hashing algorithm to hash the public key extracted from the certificate,
-/// and the curl compatible format for output.
 fn public_key_hash(cert: &DerCertificate) -> Result<String, Error> {
     // Parse certificate and extract the public key.
     let pub_key = X509::from_der(cert)?.public_key()?.public_key_to_pem()?;
-    let key_hash = Sha256.hash(&pub_key);
-    let b64 = base64::engine::general_purpose::STANDARD;
-    let encoded = b64.encode(&key_hash.value);
-    Ok(format!("sha256//{}", encoded))
+    Ok(Sha256.hash(&pub_key).to_string())
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -103,13 +98,17 @@ impl HttpClient {
         Ok(Self { settings, client })
     }
 
-    pub async fn request(
+    pub fn request<U: IntoUrl>(&self, method: Method, url: U) -> RequestBuilder {
+        self.client.request(method, url)
+    }
+
+    pub async fn send(
         &self,
         req: reqwest::Request,
-        pubkey_hash: Option<String>,
-    ) -> Result<reqwest::Response, Error> {
+        pubkey_hash: Option<&str>,
+    ) -> Result<Result<reqwest::Response, reqwest::Error>, Error> {
         // Send the request using the client
-        let response = self.client.execute(req).await?;
+        let response = self.client.execute(req).await;
 
         if self.settings.pubkey_pinning {
             if let Some(pubkey_hash) = pubkey_hash {
@@ -134,6 +133,7 @@ impl HttpClient {
                 anyhow!("Public key hash is required for public key pinning");
             }
         }
+
         Ok(response)
     }
 
@@ -176,9 +176,10 @@ mod tests {
 
     #[test]
     fn it_computes_public_key_hash() {
-        let pem_cert = fs::read("tests/files/http/cert.pem").unwrap();
+        let pem_cert =
+            fs::read("tests/files/keys/37817c4d-fbf7-4850-a985-50021f4e8f41.cert").unwrap();
         let der_cert = X509::from_pem(&pem_cert).unwrap().to_der().unwrap();
-        let expected_hash = "sha256//4BmcSBb6WJebDT5p0Y6yKHvmlyh193YN5no9Pj6D5Vo=";
+        let expected_hash = "sha256//ZE9q37dB6Nq+ZJz1cdrfdt+qPL+Xk8sKkLDMTp4QemY=";
 
         let hash = public_key_hash(&der_cert).unwrap();
         assert_eq!(hash, expected_hash);

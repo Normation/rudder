@@ -173,6 +173,15 @@ impl Configuration {
             self.output.upstream.host, self.general.https_port
         )
     }
+
+    pub fn upstream_pkey_hash(&self) -> &str {
+        self.output
+            .upstream
+            .server_public_key_hash
+            .as_ref()
+            .map(|s| s.as_str())
+            .unwrap_or("")
+    }
 }
 
 impl FromStr for Configuration {

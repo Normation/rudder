@@ -15,6 +15,7 @@ use http_body_util::combinators::BoxBody;
 use http_body_util::StreamBody;
 use hyper::body::Frame;
 use regex::Regex;
+use reqwest::Method;
 use std::{collections::HashMap, process::Stdio, str::FromStr, sync::Arc};
 use sync_wrapper::SyncStream;
 use tokio::{
@@ -281,7 +282,7 @@ impl RemoteRun {
         );
 
         // We cannot simply serialize it using `.form()` as we
-        // need specific formatting
+        // need specific formatting.
         let mut params = HashMap::new();
         params.insert("keep_output", self.run_parameters.keep_output.to_string());
         params.insert("asynchronous", self.run_parameters.asynchronous.to_string());
@@ -298,29 +299,34 @@ impl RemoteRun {
             params.insert("nodes", nodes.join(","));
         }
 
-        let key_hash = job_config.nodes.read().await.key_hash(&id);
-        let client = match job_config.http_client.read().await {
-            Some(c) => c.clone(),
+        let key_hash = match job_config.nodes.read().await.key_hash(&id).ok() {
+            Some(c) => c.to_string(),
             None => {
                 error!("unknown sub-relay '{}'", id);
                 return Box::new(futures::stream::empty());
             }
         };
+        let client = job_config.http_client.read().await.clone();
 
-        let response = client
-            .inner()
-            .post(format!(
-                "https://{}:{}/rudder/relay-api/remote-run/{}",
-                hostname,
-                job_config.cfg.general.https_port,
-                match target {
-                    RemoteRunTarget::All => "all",
-                    RemoteRunTarget::Nodes(_) => "nodes",
-                },
-            ))
+        let request = client
+            .request(
+                Method::POST,
+                format!(
+                    "https://{}:{}/rudder/relay-api/remote-run/{}",
+                    hostname,
+                    job_config.cfg.general.https_port,
+                    match target {
+                        RemoteRunTarget::All => "all",
+                        RemoteRunTarget::Nodes(_) => "nodes",
+                    },
+                ),
+            )
             .form(&params)
-            .send()
-            .await
+            .build()?;
+
+        client
+            .send(request, Some(&key_hash))
+            .await?
             // Fail if HTTP error
             .and_then(|response| response.error_for_status());
 
@@ -328,7 +334,6 @@ impl RemoteRun {
             Ok(r) => Box::new(r.bytes_stream().map(|c| c.map_err(|e| e.into()))),
             Err(e) => {
                 error!("forward error: {}", e);
-                // TODO find a better way to chain errors
                 Box::new(futures::stream::empty())
             }
         }
