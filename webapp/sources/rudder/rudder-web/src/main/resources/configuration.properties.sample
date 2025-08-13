@@ -335,6 +335,12 @@ rudder.policy.distribution.port.cfengine=5309
 rudder.policy.distribution.port.https=443
 
 #
+# Value for POLICY_SERVER_HTTPS_ONLY.
+# Only use HTTPS to distribute policies. Disables the cf-serverd service altogether.
+#
+rudder.policy.distribution.https_only=false
+
+#
 # Directories used to write nodes policies.
 # - policies generated for a node with id UUID go in ***/var/rudder/share/UUID***
 #   For now, that property can not be modified, because there is no simple

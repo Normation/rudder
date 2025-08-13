@@ -23,14 +23,12 @@ use tracing_subscriber::{
     reload::Handle,
 };
 
+use crate::http_client::HttpClientSettings;
 use crate::{
     configuration::{
         cli::CliConfiguration,
         logging::LogConfig,
-        main::{
-            Configuration, InventoryOutputSelect, OutputSelect, PeerAuthentication,
-            ReportingOutputSelect,
-        },
+        main::{Configuration, InventoryOutputSelect, OutputSelect, ReportingOutputSelect},
     },
     data::node::{NodeId, NodesList},
     http_client::HttpClient,
@@ -214,25 +212,13 @@ fn signal_handlers(job_config: Arc<JobConfig>) {
     });
 }
 
-pub enum HttpClients {
-    /// Upstream client for the parent policy server
-    /// and downstream clients for sub-relays.
-    Pinned(HttpClient, HashMap<NodeId, HttpClient>),
-    // A unique client in case of CA-based certificate validation.
-    Validated(HttpClient),
-}
-
 pub struct JobConfig {
     /// Does not reload, by definition
     pub cli_cfg: CliConfiguration,
     pub cfg: Configuration,
     pub nodes: RwLock<NodesList>,
     pub pool: Option<PgPool>,
-    /// Parent policy server
-    pub upstream_client: RwLock<HttpClient>,
-    /// Sub relays
-    // TODO could be lazily created
-    pub downstream_clients: RwLock<HashMap<NodeId, HttpClient>>,
+    pub http_client: RwLock<HttpClient>,
     handle: LogHandle,
 }
 
@@ -278,55 +264,11 @@ impl JobConfig {
 
         // HTTP clients
         //
-        let model = cfg.peer_authentication();
+
+        let http_settings = HttpClientSettings::try_from(&cfg)?;
 
         debug!("Creating HTTP client for upstream");
-        let upstream_client = match model {
-            PeerAuthentication::CertPinning => {
-                let cert = fs::read(&cfg.output.upstream.server_certificate_file)?;
-                HttpClient::builder(cfg.general.https_idle_timeout).pinned(vec![cert])
-            }
-            PeerAuthentication::SystemRootCerts => {
-                HttpClient::builder(cfg.general.https_idle_timeout).system()
-            }
-            PeerAuthentication::CustomCaCert => {
-                let ca = fs::read(&cfg.general.ca_path.clone().unwrap())?;
-                HttpClient::builder(cfg.general.https_idle_timeout).custom_ca(vec![ca])
-            }
-            PeerAuthentication::DangerousNone => {
-                HttpClient::builder(cfg.general.https_idle_timeout).no_verify()
-            }
-        }?;
-
-        let mut downstream_clients = HashMap::new();
-
-        for (id, certs) in nodes.my_sub_relays_certs() {
-            debug!("Creating HTTP client for '{}'", id);
-            let client = match model {
-                PeerAuthentication::CertPinning => {
-                    let certs = match certs {
-                        Some(stack) => stack
-                            .into_iter()
-                            // certificate has already be parsed by openssl, assume it's correct
-                            .map(|c| c.to_pem().unwrap())
-                            .collect(),
-                        None => vec![],
-                    };
-                    HttpClient::builder(cfg.general.https_idle_timeout).pinned(certs)
-                }
-                PeerAuthentication::SystemRootCerts => {
-                    HttpClient::builder(cfg.general.https_idle_timeout).system()
-                }
-                PeerAuthentication::CustomCaCert => {
-                    let ca = fs::read(&cfg.general.ca_path.unwrap())?;
-                    HttpClient::builder(cfg.general.https_idle_timeout).custom_ca(vec![ca])
-                }
-                PeerAuthentication::DangerousNone => {
-                    HttpClient::builder(cfg.general.https_idle_timeout).no_verify()
-                }
-            }?;
-            downstream_clients.insert(id, client);
-        }
+        let http_client = RwLock::new(HttpClient::new(http_settings)?);
 
         let nodes = RwLock::new(nodes);
 
@@ -336,8 +278,7 @@ impl JobConfig {
             nodes,
             pool,
             handle,
-            upstream_client: RwLock::new(upstream_client),
-            downstream_clients: RwLock::new(downstream_clients),
+            http_client,
         }))
     }
 
@@ -361,81 +302,15 @@ impl JobConfig {
     }
 
     async fn reload_http_clients(&self) -> Result<(), Error> {
-        // Here we will replace the clients stored in `JobConfig`.
-        //
-        // It works because `reqwest::Client` is actually an `Arc<ActualClient>`
-        // which means that:
-        //
-        // * when the client is replaced, `JobConfig` will stop holding references to the old clients.
-        //   Those with no ongoing requests will be dropped immediately. Those with ongoing requests
-        //   will continue normally with previous configuration in the old client.
-        // * when all requests in the old client are over, all references to the `Arc` will disappear
-        //   and the old client itself will be dropped.
-        // * the unchanged downstream clients will be kept thanks to the reference to the old client
-        //   added to the new `HashMap`.
-        //
-        // To enable this replacement, we store the clients in a `RwLock`. Write locking will be
-        // possible as when using the clients to make requests, we don't lock for the request
-        // duration but only for the time necessary to clone the client (=very short).
-        if self.cfg.peer_authentication() == PeerAuthentication::CertPinning {
-            // upstream client
-            let cert = fs::read(&self.cfg.output.upstream.server_certificate_file)?;
-            let certs = vec![cert];
+        let http_settings = HttpClientSettings::try_from(&self.cfg)?;
+        let needs_reload = self.http_client.read().await.outdated(&http_settings);
 
-            let needs_reload = self.upstream_client.read().await.outdated(&certs);
-            if needs_reload {
-                debug!(
-                    "Upstream HTTP client has outdated certificate, updating from {}",
-                    &self.cfg.output.upstream.server_certificate_file.display()
-                );
-                let mut upstream_client = self.upstream_client.write().await;
-                *upstream_client =
-                    HttpClient::builder(self.cfg.general.https_idle_timeout).pinned(certs)?;
-            } else {
-                debug!("Upstream HTTP client has up-to-date certificate");
-            }
-
-            // sub-relay clients
-            // recreate up to date map, keep existing clients if possible
-            // to preserve connections
-            let mut new_downstream_clients = HashMap::new();
-            let mut downstream_clients = self.downstream_clients.write().await;
-
-            for (id, certs) in self.nodes.read().await.my_sub_relays_certs() {
-                let certs = match certs {
-                    Some(stack) => stack
-                        .into_iter()
-                        // certificate has already be parsed by openssl, assume it's correct
-                        .map(|c| c.to_pem().unwrap())
-                        .collect(),
-                    None => vec![],
-                };
-
-                match downstream_clients.get(&id) {
-                    Some(c) => {
-                        if c.outdated(&certs) {
-                            debug!("HTTP client for '{}' has outdated certificate", id);
-                            let client = HttpClient::builder(self.cfg.general.https_idle_timeout)
-                                .pinned(certs)?;
-                            new_downstream_clients.insert(id, client);
-                        } else {
-                            debug!("HTTP client for '{}' is up-to-date", id);
-                            new_downstream_clients.insert(id, c.clone());
-                        }
-                    }
-                    None => {
-                        debug!("Creating HTTP client for '{}'", id);
-                        let client = HttpClient::builder(self.cfg.general.https_idle_timeout)
-                            .pinned(certs)?;
-                        new_downstream_clients.insert(id, client);
-                    }
-                }
-            }
-            // this will drop the previous `HashMap` and free the references to the clients that it
-            // contained. The only references left are clients with ongoing requests, which will all be
-            // dropped when they are over.
-            // It would also be possible to modify the current `HashMap in place` for slightly better performance.
-            *downstream_clients = new_downstream_clients;
+        if needs_reload {
+            info!("HTTP client configuration is outdated, reloading",);
+            let mut upstream_client = self.http_client.write().await;
+            *upstream_client = HttpClient::new(http_settings)?;
+        } else {
+            debug!("Upstream HTTP client has up-to-date certificate");
         }
 
         Ok(())

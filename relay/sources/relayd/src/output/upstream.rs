@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
 use std::{path::PathBuf, sync::Arc};
-
+use hyper::Request;
 use reqwest::Body;
 use secrecy::{ExposeSecret, SecretString};
 use tracing::{debug, instrument};
@@ -65,10 +65,9 @@ async fn forward_file(
 ) -> Result<(), Error> {
     let content = tokio::fs::read(path.clone()).await?;
 
-    let client = job_config.upstream_client.read().await.inner().clone();
+    let client = job_config.http_client.read().await.clone();
 
-    let result = client
-        .put(format!(
+    let request = RequestBuilder::put(format!(
             "{}/{}/{}",
             job_config.cfg.upstream_url(),
             endpoint,
@@ -78,7 +77,9 @@ async fn forward_file(
             &job_config.cfg.output.upstream.user,
             Some(&password.expose_secret()),
         )
-        .body(Body::from(content))
+        .body(Body::from(content));
+
+    let result =
         .send()
         .await;
 

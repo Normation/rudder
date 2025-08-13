@@ -298,7 +298,8 @@ impl RemoteRun {
             params.insert("nodes", nodes.join(","));
         }
 
-        let client = match job_config.downstream_clients.read().await.get(&id) {
+        let key_hash = job_config.nodes.read().await.key_hash(&id);
+        let client = match job_config.http_client.read().await {
             Some(c) => c.clone(),
             None => {
                 error!("unknown sub-relay '{}'", id);

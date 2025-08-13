@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2020 Normation SAS
 
+use std::fs;
 use std::time::Duration;
 
-use anyhow::Error;
+use crate::configuration::main::Configuration;
+use crate::hashing::HashType::Sha256;
+use crate::{CRATE_NAME, CRATE_VERSION};
+use anyhow::{anyhow, Error};
+use base64::Engine;
 use lazy_static::lazy_static;
+use openssl::x509::X509;
 use reqwest::{tls::Version, Certificate, Client};
 use tracing::debug;
-
-use crate::{CRATE_NAME, CRATE_VERSION};
 
 lazy_static! {
     /// User-Agent used in our HTTP requests
@@ -17,35 +21,58 @@ lazy_static! {
 }
 
 pub type PemCertificate = Vec<u8>;
+pub type DerCertificate = Vec<u8>;
+
+/// Computes the public key hash from a DER certificate.
+/// Uses the SHA-256 hashing algorithm to hash the public key extracted from the certificate,
+/// and the curl compatible format for output.
+fn public_key_hash(cert: &DerCertificate) -> Result<String, Error> {
+    // Parse certificate and extract the public key.
+    let pub_key = X509::from_der(cert)?.public_key()?.public_key_to_pem()?;
+    let key_hash = Sha256.hash(&pub_key);
+    let b64 = base64::engine::general_purpose::STANDARD;
+    let encoded = b64.encode(&key_hash.value);
+    Ok(format!("sha256//{}", encoded))
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+/// All variables that can be used to configure the HTTP client.
+pub struct HttpClientSettings {
+    pub pubkey_pinning: bool,
+    pub certificate_validation: bool,
+    pub ca: Option<PemCertificate>,
+    pub idle_timeout: Duration,
+}
+
+impl TryFrom<&Configuration> for HttpClientSettings {
+    type Error = Error;
+
+    fn try_from(config: &Configuration) -> Result<Self, Error> {
+        let ca = match config.general.ca_path.clone() {
+            Some(path) => {
+                debug!("Using custom CA from {}", path.display());
+                Some(fs::read(path)?)
+            }
+            None => None,
+        };
+        Ok(HttpClientSettings {
+            pubkey_pinning: config.general.public_key_pinning,
+            certificate_validation: config.general.certificate_validation,
+            ca,
+            idle_timeout: config.general.https_idle_timeout,
+        })
+    }
+}
 
 #[derive(Clone, Debug)]
-pub enum HttpClient {
-    /// Keep the associated certificates to be able to compare afterwards.
-    ///
-    /// We can't currently compare reqwest::Certificate or openssl::X509Ref,
-    /// so we'll compare pem exports.
-    Pinned(Client, Vec<PemCertificate>),
-    /// Check certificates against the system's root certificates
-    System(Client),
-    /// Check certificates against a custom certificate authority
-    CustomCertificateAuthority(Client, Vec<PemCertificate>),
-    /// No certificate verification at all
-    NoVerify(Client),
+pub struct HttpClient {
+    // Stored here to be able to check if the certs are up to date.
+    settings: HttpClientSettings,
+    client: Client,
 }
 
-pub struct HttpClientBuilder {
-    builder: reqwest::ClientBuilder,
-}
-
-// With Rudder cert model we currently need one client for each host we talk to.
-// Fortunately we only talk with other policy servers, which are only a few.
-//
-// Not efficient in "System" case, but it's deprecated anyway.
-//
-// A future improvement could be to implement public key pinning in the reqwest-hyper-tokio stack.
-impl HttpClientBuilder {
-    /// Common parameters
-    pub fn new(idle_timeout: Duration) -> Self {
+impl HttpClient {
+    pub fn new(settings: HttpClientSettings) -> Result<HttpClient, Error> {
         let builder = Client::builder()
             // enforce HTTPS to prevent misconfigurations
             .https_only(true)
@@ -56,75 +83,63 @@ impl HttpClientBuilder {
             // And we can't switch to rustls due to missing:
             // https://docs.rs/reqwest/0.11.18/reqwest/struct.ClientBuilder.html#method.danger_accept_invalid_hostnames
             .min_tls_version(Version::TLS_1_2)
+            .tls_info(settings.pubkey_pinning)
             .user_agent(USER_AGENT.clone())
-            .pool_idle_timeout(idle_timeout);
-        Self { builder }
-    }
+            .pool_idle_timeout(settings.idle_timeout);
 
-    // Not very efficient as we parse a cert just dumped by openssl
-    pub fn pinned(self, certs: Vec<PemCertificate>) -> Result<HttpClient, Error> {
-        debug!("Creating HTTP client with pinned certificates");
-        let mut client = self
-            .builder
-            .danger_accept_invalid_hostnames(true)
-            .tls_built_in_root_certs(false);
-        for cert in &certs {
-            client = client.add_root_certificate(Certificate::from_pem(cert)?);
+        let client = if settings.certificate_validation {
+            if let Some(ca) = settings.ca.as_ref() {
+                builder
+                    .tls_built_in_root_certs(false)
+                    .add_root_certificate(Certificate::from_pem(ca)?)
+            } else {
+                builder
+            }
+        } else {
+            builder.danger_accept_invalid_certs(true)
         }
-        Ok(HttpClient::Pinned(client.build()?, certs))
+        .build()?;
+
+        Ok(Self { settings, client })
     }
 
-    pub fn custom_ca(self, ca: Vec<PemCertificate>) -> Result<HttpClient, Error> {
-        debug!("Creating HTTP client with custom CA certificates");
-        let mut client = self.builder.tls_built_in_root_certs(false);
-        for cert in &ca {
-            client = client.add_root_certificate(Certificate::from_pem(cert)?);
+    pub async fn request(
+        &self,
+        req: reqwest::Request,
+        pubkey_hash: Option<String>,
+    ) -> Result<reqwest::Response, Error> {
+        // Send the request using the client
+        let response = self.client.execute(req).await?;
+
+        if self.settings.pubkey_pinning {
+            if let Some(pubkey_hash) = pubkey_hash {
+                // Check if the public key matches the expected hash
+                let tls_info = response.extensions().get::<reqwest::tls::TlsInfo>();
+                if let Some(tls_info) = tls_info {
+                    let peer_certificate = tls_info.peer_certificate();
+                    if let Some(cert) = peer_certificate {
+                        // Parse certificate and extract the public key.
+                        let pub_key = X509::from_der(cert)?.public_key()?.public_key_to_pem()?;
+                        let presenter_key_hash = Sha256.hash(&pub_key).hex();
+                        if presenter_key_hash != pubkey_hash {
+                            anyhow!("Public key does not match expected hash");
+                        }
+                    } else {
+                        anyhow!("No peer certificate found in response");
+                    }
+                } else {
+                    anyhow!("No TLS info available in response");
+                }
+            } else {
+                anyhow!("Public key hash is required for public key pinning");
+            }
         }
-        Ok(HttpClient::CustomCertificateAuthority(client.build()?, ca))
+        Ok(response)
     }
 
-    pub fn system(self) -> Result<HttpClient, Error> {
-        debug!("Creating HTTP client with system root certificates");
-        Ok(HttpClient::System(self.builder.build()?))
-    }
-
-    pub fn no_verify(self) -> Result<HttpClient, Error> {
-        debug!("Creating HTTP client with no certificate verification");
-        Ok(HttpClient::System(
-            self.builder.danger_accept_invalid_certs(true).build()?,
-        ))
-    }
-}
-
-// With Rudder cert model we currently need one client for each host we talk to.
-// Fortunately we only talk with other policy servers, which are only a few.
-//
-// Not efficient in "System" case, but it's deprecated anyway.
-//
-// A future improvement could be to implement public key pinning in the reqwest-hyper-tokio stack.
-impl HttpClient {
-    /// Common parameters
-    pub fn builder(idle_timeout: Duration) -> HttpClientBuilder {
-        HttpClientBuilder::new(idle_timeout)
-    }
-
-    /// Access inner client
-    pub fn inner(&self) -> &Client {
-        match *self {
-            Self::Pinned(ref c, _) => c,
-            Self::System(ref c) => c,
-            Self::CustomCertificateAuthority(ref c, _) => c,
-            Self::NoVerify(ref c) => c,
-        }
-    }
-
-    /// If order is not good, reload.
-    /// We have only one certificate anyway.
-    pub fn outdated(&self, certs: &[PemCertificate]) -> bool {
-        match *self {
-            Self::Pinned(_, ref current) => current.as_slice() != certs,
-            _ => unreachable!("Reload is only possible for cert-pinning based-clients"),
-        }
+    /// Should the client be recreated with new settings?
+    pub fn outdated(&self, settings: &HttpClientSettings) -> bool {
+        self.settings != *settings
     }
 }
 
@@ -137,18 +152,35 @@ mod tests {
     #[test]
     fn it_creates_pinned_cert_client() {
         let cert = fs::read("tests/files/keys/37817c4d-fbf7-4850-a985-50021f4e8f41.cert").unwrap();
-        let certs = vec![cert];
 
-        let client = HttpClient::builder(Duration::from_secs(10))
-            .pinned(certs.clone())
-            .unwrap();
+        let settings = HttpClientSettings {
+            pubkey_pinning: true,
+            certificate_validation: true,
+            ca: Some(cert.clone()),
+            idle_timeout: Duration::from_secs(10),
+        };
 
-        assert!(!client.outdated(&certs));
+        let client = HttpClient::new(settings.clone()).unwrap();
+
+        assert!(!client.outdated(&settings));
 
         let new_cert =
             fs::read("tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert").unwrap();
-        let new_certs = vec![new_cert];
+        let new_settings = HttpClientSettings {
+            ca: Some(new_cert),
+            ..settings
+        };
 
-        assert!(client.outdated(&new_certs));
+        assert!(client.outdated(&new_settings));
+    }
+
+    #[test]
+    fn it_computes_public_key_hash() {
+        let pem_cert = fs::read("tests/files/http/cert.pem").unwrap();
+        let der_cert = X509::from_pem(&pem_cert).unwrap().to_der().unwrap();
+        let expected_hash = "sha256//4BmcSBb6WJebDT5p0Y6yKHvmlyh193YN5no9Pj6D5Vo=";
+
+        let hash = public_key_hash(&der_cert).unwrap();
+        assert_eq!(hash, expected_hash);
     }
 }

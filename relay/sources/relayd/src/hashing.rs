@@ -13,7 +13,7 @@ use crate::error::RudderError;
 #[derive(Clone, PartialEq, Eq, Default)]
 pub struct Hash {
     pub hash_type: HashType,
-    value: Vec<u8>,
+    pub value: Vec<u8>,
 }
 
 impl fmt::Debug for Hash {
