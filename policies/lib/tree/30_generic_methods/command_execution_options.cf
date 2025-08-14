@@ -76,7 +76,7 @@ bundle agent command_execution_options(command, args, run_in_audit_mode, in_shel
       "class_prefix" string => canonify("command_execution_options_${command}");
 
   defaults:
-      "run_in_audit_mode" string => "true", if_match_regex => "";
+      "run_in_audit_mode" string => "false", if_match_regex => "";
       "in_shell" string => "false", if_match_regex => "";
       "shell_path" string => "/bin/sh", if_match_regex => "";
       "stdin_add_newline" string => "true", if_match_regex => "";
