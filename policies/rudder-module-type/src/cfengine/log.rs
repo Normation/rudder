@@ -36,7 +36,8 @@ impl fmt::Display for Level {
                 Level::Critical => "critical",
                 Level::Error => "error",
                 Level::Warning => "warning",
-                Level::Info => "info",
+                // 'notice' is used in place of 'info' for allowing Level::Info to be used in audit mode.
+                Level::Info => "notice",
                 Level::Debug => "verbose",
                 Level::Trace => "debug",
             }
