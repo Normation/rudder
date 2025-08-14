@@ -38,9 +38,7 @@ package com.normation.rudder.users
 
 import better.files.Dsl.SymbolicOperations
 import better.files.File
-import com.normation.errors.IOResult
-import com.normation.errors.Unexpected
-import com.normation.errors.effectUioUnit
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
@@ -49,6 +47,7 @@ import com.normation.rudder.Role.Custom
 import com.normation.rudder.RudderRoles
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
+import com.normation.rudder.users.UserFileProcessing.ParsedUser
 import com.normation.rudder.users.UserManagementIO.getUserFilePath
 import com.normation.rudder.users.UserPassword.StorableUserPassword
 import com.normation.rudder.users.UserPassword.UnknownPassword
@@ -233,7 +232,7 @@ class UserManagementService(
    * For now, when we add an user, we always add it in the XML file (and not only in database).
    * So we let the callback on file reload does what it needs.
    */
-  def add(newUser: JsonUserFormData): IOResult[User] = {
+  def add(newUser: JsonUserFormData): IOResult[Unit] = {
     for {
       file       <- getUserResourceFile.map(getUserFilePath(_))
       parsedFile <- IOResult.attempt(ConstructingParser.fromFile(file.toJava, preserveWS = true))
@@ -248,7 +247,7 @@ class UserManagementService(
                         Unexpected(s"Wrong formatting : ${file.path}").fail
                     }
       _          <- userService.reloadPure()
-    } yield user
+    } yield ()
   }
 
   /*
@@ -279,7 +278,7 @@ class UserManagementService(
    */
   def update(id: String, updateUser: JsonUserFormData)(
       allRoles: Map[String, Role]
-  ): IOResult[Unit] = {
+  ): IOResult[ParsedUser] = {
     implicit val currentRoles: Set[Role] = allRoles.values.toSet
 
     // Unknown permissions are trusted and put in file
@@ -344,8 +343,11 @@ class UserManagementService(
                  }
                }).transform(toUpdate).head
       _     <- UserManagementIO.replaceXml(userXML, newXml, file)
-      _     <- userService.reloadPure()
-    } yield ()
+      users <- userService.reloadPure()
+      res   <- users.parsedUsers.get(id).notOptional(s"User '${id}' was not found after update")
+    } yield {
+      res
+    }
   }
 
   /**

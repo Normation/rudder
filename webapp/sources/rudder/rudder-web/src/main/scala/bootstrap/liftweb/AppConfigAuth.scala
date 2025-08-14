@@ -357,16 +357,16 @@ class AppConfigAuth extends ApplicationContextAware {
     // For that, we let the user either let undefined rudder.auth.admin.login,
     // or let empty udder.auth.admin.login or rudder.auth.admin.password
 
-    val encoder = RudderPasswordEncoder(passwordEncoderDispatcher)
-    val admins  = if (config.hasPath("rudder.auth.admin.login") && config.hasPath("rudder.auth.admin.password")) {
+    implicit val encoder: RudderPasswordEncoder = RudderPasswordEncoder(passwordEncoderDispatcher)
+    val admin = if (config.hasPath("rudder.auth.admin.login") && config.hasPath("rudder.auth.admin.password")) {
       val login    = config.getString("rudder.auth.admin.login")
       val password = config.getString("rudder.auth.admin.password")
 
       if (login.isEmpty || password.isEmpty) {
-        Map.empty[String, RudderUserDetail]
+        None
       } else {
-        Map(
-          login -> RudderUserDetail(
+        Some(
+          RudderUserDetail(
             RudderAccount.User(
               login,
               UserPassword.unsafeHashed(password)
@@ -379,26 +379,24 @@ class AppConfigAuth extends ApplicationContextAware {
         )
       }
     } else {
-      Map.empty[String, RudderUserDetail]
+      None
     }
 
-    if (admins.isEmpty) {
+    if (admin.isEmpty) {
       ApplicationLoggerPure.logEffect.info(
         "No master admin account is defined. You can define one with 'rudder.auth.admin.login' and 'rudder.auth.admin.password' properties in the configuration file"
       )
     }
 
     val authConfigProvider = new UserDetailListProvider {
-      // in the case of the root admin defined in config file, given is very specific use case, we enforce case sensitivity
-      override def authConfig: ValidatedUserList =
-        ValidatedUserList(encoder, isCaseSensitive = true, customRoles = Nil, users = admins)
+      override def authConfig: UserList = SingleUserList(encoder, admin)
     }
     (for {
       rootAccountUserRepo <- InMemoryUserRepository.make()
       _                   <- rootAccountUserRepo.setExistingUsers(
                                "root-account",
-                               admins.keys.toList,
-                               EventTrace(com.normation.rudder.domain.eventlog.RudderEventActor, DateTime.now(DateTimeZone.UTC))
+                               admin.map(_.getUsername).toList,
+                               EventTrace(com.normation.rudder.domain.eventlog.RudderEventActor, DateTime.now())
                              )
     } yield {
       val provider = new DaoAuthenticationProvider()
