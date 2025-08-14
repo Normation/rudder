@@ -49,6 +49,7 @@ import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.RoleApiMapping
 import com.normation.rudder.users.*
+import com.normation.rudder.users.UserFileProcessing.ParsedUser
 import com.normation.utils.XmlSafe
 import com.normation.zio.*
 import enumeratum.*
@@ -209,7 +210,7 @@ case class RudderPasswordEncoder(
 }
 
 /**
- * An user list is a parsed list of users with their authorisations
+ * An user list is a parsed list of users with their resolved authorisations
  */
 final case class UserDetailFileConfiguration(
     encoder:         RudderPasswordEncoder,
@@ -217,17 +218,57 @@ final case class UserDetailFileConfiguration(
     customRoles:     List[Role],
     users:           Map[String, (RudderAccount.User, Seq[Role], NodeSecurityContext)]
 )
+object UserDetailFileConfiguration {
+  def default(implicit passwordEncoder: RudderPasswordEncoder): UserDetailFileConfiguration = UserDetailFileConfiguration(
+    passwordEncoder,
+    isCaseSensitive = true,
+    customRoles = Nil,
+    users = Map()
+  )
+}
 
-final case class ValidatedUserList(
-    encoder:         RudderPasswordEncoder,
-    isCaseSensitive: Boolean,
-    customRoles:     List[Role],
-    users:           Map[String, RudderUserDetail]
+/**
+ * List of managed users in Rudder, and configuration on the management of the users.
+ */
+sealed abstract class UserList(
+    val encoder:         RudderPasswordEncoder,
+    val isCaseSensitive: Boolean,
+    val users:           Map[String, RudderUserDetail]
 )
+
+/**
+ * One-sized list for a known managed user, when there is an implementation for only a single user (e.g. super-admin)
+ */
+final case class SingleUserList(override val encoder: RudderPasswordEncoder, user: Option[RudderUserDetail])
+    extends UserList(encoder, isCaseSensitive = true, users = user.map(u => (u.getUsername, u)).toMap)
+
+/**
+ * The main user list coming from a file, exposing the resolved configuration of the file, including parsed users
+ * @param parsedUsers Raw user attributes parsed from the file
+ */
+final class ValidatedUserList(
+    val parsedUsers:   Map[String, ParsedUser],
+    fileConfiguration: UserDetailFileConfiguration
+)(implicit roleApiMapping: RoleApiMapping)
+    extends UserList(
+      fileConfiguration.encoder,
+      fileConfiguration.isCaseSensitive,
+      ValidatedUserList.userDetailsFromConfig(fileConfiguration)
+    ) {
+
+  def customRoles: List[Role] = fileConfiguration.customRoles
+}
 
 object ValidatedUserList {
 
   private val logger = ApplicationLoggerPure.Auth
+
+  def default(implicit passwordEncoder: RudderPasswordEncoder, roleApiMapping: RoleApiMapping): ValidatedUserList = {
+    new ValidatedUserList(
+      Map.empty,
+      UserDetailFileConfiguration.default
+    )
+  }
 
   /**
    * Filter the list of users by checking if the username
@@ -240,7 +281,10 @@ object ValidatedUserList {
    *   - users with same username (according to the case sensitivity)
    *     will be removed from the returned list
    */
-  def filterByCaseSensitivity(userDetails: List[RudderUserDetail], isCaseSensitive: Boolean): Map[String, RudderUserDetail] = {
+  private def filterByCaseSensitivity(
+      userDetails:     List[RudderUserDetail],
+      isCaseSensitive: Boolean
+  ): Map[String, RudderUserDetail] = {
     userDetails.groupBy(_.getUsername.toLowerCase).flatMap {
       // User name is unique with or without case sensitivity, accept
       case (k, u :: Nil)                  => (u.getUsername, u) :: Nil
@@ -276,10 +320,9 @@ object ValidatedUserList {
    * that the user may be using, and that these custom roles are well behaving: basically,
    * the step on role check/update is done.
    */
-  def fromRudderAccountList(
-      roleApiMapping: RoleApiMapping,
-      accountConfig:  UserDetailFileConfiguration
-  ): ValidatedUserList = {
+  private def userDetailsFromConfig(
+      accountConfig: UserDetailFileConfiguration
+  )(implicit roleApiMapping: RoleApiMapping): Map[String, RudderUserDetail] = {
 
     val userDetails   = accountConfig.users.map {
       case (_, (user, roles, nodeSecurityContext)) =>
@@ -298,7 +341,7 @@ object ValidatedUserList {
         RudderUserDetail(user, UserStatus.Deleted, roles.toSet, ApiAuthorization.ACL(acls), nodeSecurityContext)
     }
     val filteredUsers = filterByCaseSensitivity(userDetails.toList, accountConfig.isCaseSensitive)
-    ValidatedUserList(accountConfig.encoder, accountConfig.isCaseSensitive, accountConfig.customRoles, filteredUsers)
+    filteredUsers
   }
 }
 
@@ -308,7 +351,7 @@ object ValidatedUserList {
 final case class RudderAuthorizationFileReloadCallback(name: String, exec: ValidatedUserList => IOResult[Unit])
 
 trait UserDetailListProvider {
-  def authConfig: ValidatedUserList
+  def authConfig: UserList
 
   /*
    * Utility method to retrieve user by name.
@@ -320,7 +363,7 @@ trait UserDetailListProvider {
       .get(username)
       .orElse(
         conf.users.collectFirst {
-          case (u, userDetail) if !conf.isCaseSensitive && u.toLowerCase() == username.toLowerCase() => userDetail
+          case (u, userDetail) if !conf.isCaseSensitive && u.equalsIgnoreCase(username) => userDetail
         }
       )
       .toRight(Unexpected(s"User with username '${username}' was not found"))
@@ -344,22 +387,15 @@ final class FileUserDetailListProvider(
 ) extends UserDetailListProvider with UserFileHashTypeMigration {
 
   private val logger = ApplicationLoggerPure.Auth
+  implicit private val roleMapping: RoleApiMapping = roleApiMapping
 
   /**
    * Initialize user details list when class is instantiated with an empty list.
    * We also set case sensitivity to false as a default (which will be updated with the actual data from the file on reload).
    */
   private val cache = {
-    Ref
-      .make(
-        ValidatedUserList(
-          RudderPasswordEncoder(passwordEncoderDispatcher),
-          isCaseSensitive = false,
-          customRoles = Nil,
-          users = Map()
-        )
-      )
-      .runNow
+    implicit val rudderPasswordEncoder: RudderPasswordEncoder = RudderPasswordEncoder(passwordEncoderDispatcher)
+    Ref.make(ValidatedUserList.default).runNow
   }
 
   /**
@@ -370,7 +406,7 @@ final class FileUserDetailListProvider(
   /**
    * Reload the list of users. Only update the cache if there is no errors.
    */
-  def reloadPure(): IOResult[Unit] = {
+  def reloadPure(): IOResult[ValidatedUserList] = {
     for {
       config <- UserFileProcessing.parseUsers(roleApiMapping, passwordEncoderDispatcher, file, reload = true)
       _      <- cache.set(config)
@@ -379,11 +415,13 @@ final class FileUserDetailListProvider(
                   cb.exec(config)
                     .catchAll(err => logger.warn(s"Error when executing user authorization call back '${cb.name}': ${err.fullMsg}"))
                 }
-    } yield ()
+    } yield {
+      config
+    }
   }
 
   def reload(): Unit = {
-    reloadPure()
+    reloadPure().unit
       .catchAll(err => logger.error(s"Error when reloading users and roles authorisation configuration file: ${err.fullMsg}"))
       .runNow
   }
@@ -526,12 +564,14 @@ object UserFileProcessing {
       debugFileName:             String,
       reload:                    Boolean
   ): IOResult[ValidatedUserList] = {
+    implicit val roleMapping: RoleApiMapping = roleApiMapping
     for {
-      parsed <- parseXmlNoResolve(xml, debugFileName)
-      known  <- if (reload) RudderRoles.builtInRoles.get else RudderRoles.getAllRoles
-      roles  <- resolveRoles(known, parsed.customRoles)
-      _      <- RudderRoles.register(roles, resetExisting = reload)
-      users  <- resolveUsers(parsed.users, debugFileName)
+      parsed     <- parseXmlNoResolve(xml, debugFileName)
+      parsedUsers = parsed.users.map(u => (u.name, u)).toMap
+      known      <- if (reload) RudderRoles.builtInRoles.get else RudderRoles.getAllRoles
+      roles      <- resolveRoles(known, parsed.customRoles)
+      _          <- RudderRoles.register(roles, resetExisting = reload)
+      users      <- resolveUsers(parsedUsers.values, debugFileName)
     } yield {
       val encoder = RudderPasswordEncoder(passwordEncoderDispatcher)
 
@@ -543,7 +583,7 @@ object UserFileProcessing {
           users.map { case (u, rs, nsc) => (u.login, (u, rs, nsc)) }.toMap
         )
       }
-      ValidatedUserList.fromRudderAccountList(roleApiMapping, config)
+      new ValidatedUserList(parsedUsers, config)
     }
   }
 
@@ -621,7 +661,7 @@ object UserFileProcessing {
               .map(_.toList.map(_.text)),
             node.attribute("password").map(_.toList.map(_.text)),
             // accept both "role" and "roles"
-            userRoles(node.attribute("role")) ++ userRoles(node.attribute("permissions")),
+            (userRoles(node.attribute("role")) ++ userRoles(node.attribute("permissions"))).filterNot(_.isBlank()),
             getCommaSeparatedList("tenants", node)
           ) match {
             case (Some(name :: Nil), pwd, permissions, tenants) if (name.size > 0) =>
@@ -712,9 +752,9 @@ object UserFileProcessing {
   }
 
   private def resolveUsers(
-      users:         List[ParsedUser],
+      users:         Iterable[ParsedUser],
       debugFileName: String
-  ): UIO[List[(RudderAccount.User, List[Role], NodeSecurityContext)]] = {
+  ): UIO[Iterable[(RudderAccount.User, List[Role], NodeSecurityContext)]] = {
 
     val TODO_MODULE_TENANTS_ENABLED = true
 
