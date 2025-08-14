@@ -99,9 +99,10 @@ bundle agent rudder_actual_file_from_template_options(destination, engine, data,
       "${report_data.method_id}" usebundle => call_method("file_absent");
       "${report_data.method_id}" usebundle => file_absent("${datastate_file}");
       "${report_data.method_id}" usebundle => call_method_end("file_absent");
+      "${report_data.method_id}" usebundle => pop_dry_run_mode();
 
   template:
-    pass2::
+    pass2.!pass3::
       "module_call"
         rudder_module_protocol  => "0",
         state_dir               => "/var/rudder/tmp/",
