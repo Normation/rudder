@@ -1,5 +1,6 @@
 mod cli;
 use crate::cli::Cli;
+use rudder_module_type::rudder_info;
 use std::{
     collections::HashMap,
     fs::{self, File},
@@ -350,7 +351,7 @@ impl ModuleType0 for Commands {
             PolicyMode::Audit if p.run_in_audit_mode => Commands::run(&p, true)?,
             PolicyMode::Audit => {
                 let cmd = get_used_cmd(&p);
-                println!("dry-run: {cmd}");
+                rudder_info!("Skipped command in audit mode: {cmd}");
                 return Ok(Outcome::success());
             }
         };
