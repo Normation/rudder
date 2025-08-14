@@ -474,8 +474,7 @@ final class FileUserDetailListProvider(
   }
 
   def reload(): Unit = {
-    reloadPure()
-      .unit
+    reloadPure().unit
       .catchAll(err => logger.error(s"Error when reloading users and roles authorisation configuration file: ${err.fullMsg}"))
       .runNow
   }
