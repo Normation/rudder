@@ -42,6 +42,7 @@ import com.normation.rudder.Role
 import com.normation.rudder.Role.Custom
 import com.normation.rudder.rest.ProviderRoleExtension
 import com.normation.rudder.users.RudderUserDetail
+import com.normation.rudder.users.UserFileProcessing.ParsedUser
 import com.normation.rudder.users.UserStatus
 import com.normation.utils.DateFormaterService
 import io.scalaland.chimney.Transformer
@@ -411,7 +412,15 @@ final case class JsonInternalUserData(
 )
 
 object JsonInternalUserData {
-  implicit val transformer: Transformer[User, JsonInternalUserData] = Transformer.derive[User, JsonInternalUserData]
+  // safe transformation by default does not copy the password to avoid exposing it
+  // to expose the password in the JSON, create an unsafe transformer or copy it
+  implicit val transformerParsedUser: Transformer[ParsedUser, JsonInternalUserData] = {
+    Transformer
+      .define[ParsedUser, JsonInternalUserData]
+      .withFieldRenamed(_.name, _.username)
+      .withFieldConst(_.password, "")
+      .buildTransformer
+  }
 }
 
 final case class JsonAddedUser(
@@ -424,9 +433,11 @@ object JsonAddedUser        {
 
 final case class JsonUpdatedUser(
     updatedUser: JsonInternalUserData
-)
+) {
+  def withPassword(password: String): JsonUpdatedUser = JsonUpdatedUser(updatedUser.copy(password = password))
+}
 object JsonUpdatedUser      {
-  implicit val transformer: Transformer[User, JsonUpdatedUser] = (u: User) =>
+  implicit val transformerParsedUser: Transformer[ParsedUser, JsonUpdatedUser] = (u: ParsedUser) =>
     JsonUpdatedUser(u.transformInto[JsonInternalUserData])
 }
 
@@ -465,19 +476,21 @@ final case class JsonUserFormData(
 )
 
 object JsonUserFormData {
-  implicit val transformer:           Transformer[JsonUserFormData, User]           = {
+  implicit val transformer:               Transformer[JsonUserFormData, User]           = {
     Transformer
       .define[JsonUserFormData, User]
       .enableOptionDefaultsToNone
       .withFieldComputed(_.permissions, _.permissions.getOrElse(Nil).toSet)
       .buildTransformer
   }
-  implicit val transformerUpdateUser: Transformer[JsonUserFormData, UpdateUserFile] = {
+  implicit val transformerUpdateUser:     Transformer[JsonUserFormData, UpdateUserFile] = {
     Transformer
       .define[JsonUserFormData, UpdateUserFile]
       .withFieldComputed(_.permissions, _.permissions.getOrElse(Nil).toSet)
       .buildTransformer
   }
+  implicit val transformerUpdateUserInfo: Transformer[JsonUserFormData, UpdateUserInfo] =
+    Transformer.define[JsonUserFormData, UpdateUserInfo].enableOptionDefaultsToNone.buildTransformer
 }
 
 final case class JsonCoverage(

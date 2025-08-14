@@ -85,7 +85,7 @@ import com.normation.rudder.users.UserSession
 import com.normation.rudder.users.UserStatus
 import enumeratum.*
 import io.scalaland.chimney.Transformer
-import io.scalaland.chimney.dsl.*
+import io.scalaland.chimney.syntax.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import org.joda.time.DateTime
@@ -391,7 +391,7 @@ class UserManagementApiImpl(
   }
 
   private def reload(): IOResult[Unit] = {
-    userService.reloadPure().chainError("Error when trying to reload the list of users from 'rudder-users.xml' file")
+    userService.reloadPure().unit.chainError("Error when trying to reload the list of users from 'rudder-users.xml' file")
   }
 
   object AddUser extends LiftApiModule0 {
@@ -450,12 +450,18 @@ class UserManagementApiImpl(
         permissions = u.permissions.map(_.filter(_ != AuthorizationType.NoRights.id))
         allRoles   <- RudderRoles.getAllRoles
         // We ignore the "user info" part of the request when updating
-        _          <-
+        newUser    <-
           userManagementService.update(id, u.username, u.password, permissions, u.isPreHashed)(
             allRoles
           )
+        res         = if (newUser.password.isEmpty) {
+                        newUser.transformInto[JsonUpdatedUser]
+                      } else { // return the password if it's not updated i.e. non-empty
+                        newUser.transformInto[JsonUpdatedUser].withPassword(u.password)
+                      }
+
       } yield {
-        u.copy(permissions = permissions).transformInto[User].transformInto[JsonUpdatedUser]
+        res
       }).chainError(s"Could not update user '${id}'").toLiftResponseOne(params, schema, _ => None)
     }
   }
