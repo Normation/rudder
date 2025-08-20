@@ -314,13 +314,14 @@ impl Commands {
             _ => "failed",
         };
 
+        let elapsed = start_time.elapsed();
         let report = json!({
             "exit_code": exit_code,
             "status": status,
             "stdout": stdout,
             "stderr": stderr,
-            "running_time": format!("{}.{}", start_time.elapsed().as_secs(),
-                start_time.elapsed().subsec_millis())
+            "running_time": format!("{}.{:03}s", elapsed.as_secs(),
+                elapsed.subsec_millis())
         });
 
         if let Some(output_file) = &p.output_to_file {
