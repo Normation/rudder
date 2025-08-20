@@ -14,8 +14,8 @@ use std::{
 
 use anyhow::{Context, Result, bail};
 use rudder_module_type::{
-    CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ProtocolResult,
-    ValidateResult, cfengine::called_from_agent, parameters::Parameters, run_module,
+    CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
+    cfengine::called_from_agent, parameters::Parameters, run_module,
 };
 use rustix::{fs::Mode, process::umask};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -182,8 +182,10 @@ impl Commands {
 
         if let Some(chdir) = &p.chdir
             && !chdir.is_empty()
-            && fs::exists(chdir)?
         {
+            if !fs::exists(chdir)? {
+                bail!("The chdir directory '{}' does not exist", chdir);
+            }
             command.current_dir(chdir);
         }
 
@@ -327,10 +329,6 @@ impl ModuleType0 for Commands {
         ModuleTypeMetadata::from_metadata(meta)
             .expect("invalid metadata")
             .documentation(docs)
-    }
-
-    fn init(&mut self) -> rudder_module_type::ProtocolResult {
-        ProtocolResult::Success
     }
 
     fn validate(&self, parameters: &Parameters) -> ValidateResult {
