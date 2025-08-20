@@ -319,7 +319,8 @@ impl Commands {
             "status": status,
             "stdout": stdout,
             "stderr": stderr,
-            "running_time": start_time.elapsed().as_secs(),
+            "running_time": format!("{}.{}", start_time.elapsed().as_secs(),
+                start_time.elapsed().subsec_millis())
         });
 
         if let Some(output_file) = &p.output_to_file {
