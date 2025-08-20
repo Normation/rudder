@@ -283,20 +283,33 @@ impl Commands {
             }
         };
 
-        let repaired_code = p
+        let repaired_codes: Vec<i32> = p
             .repaired_codes
-            .parse::<i32>()
-            .with_context(|| format!("Invalid repaired codes '{}'", p.repaired_codes))?;
+            .split(' ')
+            .map(|s| {
+                s.trim()
+                    .parse::<i32>()
+                    .with_context(|| format!("Invalid repaired code '{}'", s))
+            })
+            .collect::<Result<Vec<i32>>>()?;
 
-        let compliant_code = p.compliant_codes.as_ref().and_then(|c| {
-            c.parse::<i32>()
-                .with_context(|| format!("Invalid compliant codes '{c}'"))
-                .ok()
-        });
+        let compliant_codes = if let Some(cc) = &p.compliant_codes {
+            Some(
+                cc.split_whitespace()
+                    .map(|s| {
+                        s.trim()
+                            .parse::<i32>()
+                            .with_context(|| format!("Invalid compliant code '{}'", s))
+                    })
+                    .collect::<Result<Vec<i32>>>()?,
+            )
+        } else {
+            None
+        };
 
-        let status = match (audit, exit_code, repaired_code, compliant_code) {
-            (false, e, r, _) if e == r => "repaired",
-            (true, e, _, Some(c)) if e == c => "compliant",
+        let status = match (audit, exit_code, repaired_codes, compliant_codes) {
+            (false, e, r, _) if r.contains(&e) => "repaired",
+            (true, e, _, Some(c)) if c.contains(&e) => "compliant",
             (true, _, _, None) => "compliant",
             _ => "failed",
         };
