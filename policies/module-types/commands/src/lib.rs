@@ -601,6 +601,44 @@ mod tests {
 
     #[test]
     #[cfg(target_family = "unix")]
+    fn test_cmd_with_args() {
+        use super::*;
+
+        let cmd = CommandsParameters {
+            command: "echo".to_string(),
+            args: Some("OK1 -- OK2 -- OK3".to_string()),
+            run_in_audit_mode: false,
+            in_shell: false,
+            shell_path: "/bin/sh".to_string(),
+            chdir: None,
+            timeout: "30".to_string(),
+            stdin: None,
+            stdin_add_newline: true,
+            compliant_codes: None,
+            repaired_codes: "0".to_string(),
+            output_to_file: None,
+            strip_output: true,
+            uid: None,
+            gid: None,
+            umask: None,
+            env_vars: None,
+            show_content: true,
+        };
+
+        let s = Commands::run(&cmd, false);
+        assert!(s.is_ok());
+
+        let out = s.unwrap();
+
+        let exit_code = out.get("exit_code").unwrap().to_string();
+        assert_eq!(exit_code, "0");
+
+        let stdout = out.get("stdout").unwrap().to_string();
+        assert_eq!(stdout, "\"OK1 -- OK2 -- OK3\"");
+    }
+
+    #[test]
+    #[cfg(target_family = "unix")]
     fn test_run_ls_on_root() {
         use super::*;
 
