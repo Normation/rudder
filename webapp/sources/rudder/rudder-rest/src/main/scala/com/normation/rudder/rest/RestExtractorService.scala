@@ -527,7 +527,8 @@ final case class RestExtractorService(
 
     for {
       name             <- extractOneValue(params, "displayName")(toMinimalSizeString(3))
-      category         <- extractOneValue(params, "category")(toRuleCategoryId)
+      categoryId       <- extractOneValue(params, "categoryId")(toRuleCategoryId)
+                            .orElse(extractOneValue(params, "category")(toRuleCategoryId))
       shortDescription <- extractOneValue(params, "shortDescription")()
       longDescription  <- extractOneValue(params, "longDescription")()
       enabled          <- extractOneValue(params, "enabled")(toBoolean)
@@ -536,7 +537,7 @@ final case class RestExtractorService(
       tagsList         <- extractList(params, "tags")(traverse(_)(toTag))
       tags              = tagsList.map(t => Tags(t.toSet))
     } yield {
-      RestRule(name, category, shortDescription, longDescription, directives, target.map(Set(_)), enabled, tags)
+      RestRule(name, categoryId, shortDescription, longDescription, directives, target.map(Set(_)), enabled, tags)
     }
   }
 
@@ -562,10 +563,11 @@ final case class RestExtractorService(
       query       <- extractOneValue(params, "query")(toQuery)
       _           <- if (query.map(_.criteria.size > 0).getOrElse(true)) Full("Query has at least one criteria")
                      else Failure("Query should containt at least one criteria")
-      category    <- extractOneValue(params, "category")(toGroupCategoryId)
+      categoryId  <- extractOneValue(params, "categoryId")(toGroupCategoryId)
+                       .orElse(extractOneValue(params, "category")(toGroupCategoryId))
       properties  <- extractGroupProperties(params)
     } yield {
-      RestGroup(id, name, description, properties, query, dynamic, enabled, category)
+      RestGroup(id, name, description, properties, query, dynamic, enabled, categoryId)
     }
   }
 
@@ -794,7 +796,8 @@ final case class RestExtractorService(
   def extractRuleFromJSON(json: JValue): Box[RestRule] = {
     for {
       name             <- extractJsonString(json, "displayName", toMinimalSizeString(3))
-      category         <- extractJsonString(json, "category", toRuleCategoryId)
+      categoryId       <- extractJsonString(json, "categoryId", toRuleCategoryId)
+                            .orElse(extractJsonString(json, "category", toRuleCategoryId))
       shortDescription <- extractJsonString(json, "shortDescription")
       longDescription  <- extractJsonString(json, "longDescription")
       directives       <- extractJsonListString(json, "directives", convertListToDirectiveId)
@@ -802,7 +805,7 @@ final case class RestExtractorService(
       enabled          <- extractJsonBoolean(json, "enabled")
       tags             <- extractTagsFromJson(json \ "tags") ?~! "Error when extracting Rule tags"
     } yield {
-      RestRule(name, category, shortDescription, longDescription, directives, target.map(Set(_)), enabled, tags)
+      RestRule(name, categoryId, shortDescription, longDescription, directives, target.map(Set(_)), enabled, tags)
     }
   }
 
@@ -910,9 +913,10 @@ final case class RestExtractorService(
                                  else Failure("Query should containt at least one criteria")
                          } yield Some(q)
                      }
-      category    <- extractJsonString(json, "category", toGroupCategoryId)
+      categoryId  <- extractJsonString(json, "categoryId", toGroupCategoryId)
+                       .orElse(extractJsonString(json, "categoryId", toGroupCategoryId))
     } yield {
-      RestGroup(id, name, description, properties.map(_.toList), query, dynamic, enabled, category)
+      RestGroup(id, name, description, properties.map(_.toList), query, dynamic, enabled, categoryId)
     }
   }
 

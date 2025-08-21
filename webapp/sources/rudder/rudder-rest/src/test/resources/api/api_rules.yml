@@ -148,7 +148,7 @@ body: >-
     "displayName": "Security policy",
     "shortDescription": "Baseline applying CIS guidelines",
     "longDescription": "This rules should be applied to all Linux nodes required basic hardening",
-    "category": "rootRuleCategory",
+    "categoryId": "rootRuleCategory",
     "directives": ["e9a1a909-2490-4fc9-95c3-9d0aa01717c9", "16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
     "targets": [{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
     "enabled": true,
@@ -242,7 +242,7 @@ body: >-
     "displayName":"clone from api of 50-rule-technique-ncf",
     "shortDescription":"not and ncf technique rule",
     "longDescription":"Some long description",
-    "category": "rootRuleCategory",
+    "categoryId": "rootRuleCategory",
     "enabled": true,
     "system": false,
     "tags": [{"customer": "MyCompany"}]
@@ -443,7 +443,7 @@ headers:
   - "Content-Type: application/json"
 body: >-
   {
-    "category": "category1"
+    "categoryId": "category1"
   }
 response:
   code: 200
