@@ -715,7 +715,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
       JQRule(
         id,
         params.optGet("displayName"),
-        params.optGet("category"),
+        params.optGet("categoryId").orElse(params.optGet("category")),
         params.optGet("shortDescription"),
         params.optGet("longDescription"),
         directives,
@@ -793,7 +793,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
         query,
         dynamic,
         enabled,
-        params.optGet("category").map(NodeGroupCategoryId.apply),
+        params.optGet("categoryId").orElse(params.optGet("category")).map(NodeGroupCategoryId.apply),
         source
       )
     }
