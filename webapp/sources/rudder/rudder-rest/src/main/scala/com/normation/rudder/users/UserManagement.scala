@@ -45,8 +45,7 @@ import com.normation.rudder.users.UserFileProcessing.ParsedUser
 import com.normation.rudder.users.UserPassword.*
 import com.normation.utils.DateFormaterService
 import io.scalaland.chimney.Transformer
-import io.scalaland.chimney.dsl.*
-import java.security.SecureRandom
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.Logger
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
@@ -54,115 +53,6 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import scala.xml.Node
 import zio.json.*
 import zio.json.ast.Json
-
-sealed trait UserPassword {
-
-  /**
-   * Override the toString when needed for subtypes
-   */
-  override def toString: String = "[REDACTED UserPassword]"
-}
-
-object UserPassword {
-
-  private val secureRandom = new SecureRandom()
-
-  sealed trait StorableUserPassword extends UserPassword {
-    def exposeValue(): String
-  }
-
-  case class HashedUserPassword private[UserPassword] (private val value: String) extends StorableUserPassword {
-    // if we apply strict check on hash format, maybe we should the display first chars, to know at least the hash algo ?
-    override def toString: String = "[REDACTED HashedUserPassword]"
-
-    override def exposeValue(): String = value
-  }
-
-  /**
-   * When the password is raw user input that was not hashed
-   */
-  case class SecretUserPassword private[UserPassword] (private val secret: String) extends UserPassword {
-    override def toString: String = "[REDACTED SecretUserPassword]"
-
-    def toHashed(using encoder: PasswordEncoder): HashedUserPassword = HashedUserPassword(encoder.encode(secret))
-  }
-
-  /**
-   * For cases when user cannot have a password e.g. with remote authentication, it should never match
-   */
-  case class UnknownPassword(value: String) extends StorableUserPassword {
-    override def toString:      String = "[REDACTED UnknownPassorwd]"
-    override def exposeValue(): String = value
-  }
-
-  case class RandomHexaPassword private[UserPassword] (randomValue: String) extends StorableUserPassword {
-    override def exposeValue(): String = randomValue
-  }
-
-  implicit def transformSecretToHashed(using PasswordEncoder): Transformer[SecretUserPassword, HashedUserPassword] =
-    _.toHashed
-
-  implicit def transformToStorable(using PasswordEncoder): Transformer[UserPassword, StorableUserPassword] = {
-    Transformer
-      .define[UserPassword, StorableUserPassword]
-      .withSealedSubtypeHandled[SecretUserPassword](_.transformInto[HashedUserPassword])
-      .buildTransformer
-  }
-
-  object UnsafeInstances {
-    implicit val transformStorableToString: Transformer[StorableUserPassword, String] = _.exposeValue()
-  }
-
-  /**
-   * Create a hashed password from string, the string format is not checked for hash properties,
-   * it is only checked for emptiness (maybe later, it should be strictly checked
-   * with our RudderPasswordEncoder#getFromEncoded).
-   * The hash could then be used as a "hashed" password type.
-   */
-  def unsafeHashed(s: String): StorableUserPassword = {
-    if (s.strip().nonEmpty) {
-      HashedUserPassword(s)
-    } else {
-      UnknownPassword(s)
-    }
-  }
-
-  // password can be optional when an other authentication backend is used.
-  // When the tag is omitted, we generate a 32 bytes random value in place of the pass internally
-  // to avoid any cases where the empty string will be used if all other backend are in failure.
-  // Also forbid empty or all blank passwords.
-  // If the attribute is defined several times, use the first occurrence.
-  // see https://stackoverflow.com/a/44227131
-  // produce a random hexa string of 32 chars
-  def randomHexa32: RandomHexaPassword = {
-    // here, we can be unlucky with the chosen token which convert to an int starting with one or more 0.
-    // In that case, just complete the string
-    def randInternal: String = {
-      val token = new Array[Byte](16)
-      secureRandom.nextBytes(token)
-      new java.math.BigInteger(1, token).toString(16)
-    }
-
-    var s = randInternal
-    while (s.length < 32) { // we can be very unlucky and keep drawing 000s
-      s = s + randInternal.substring(0, 32 - s.length)
-    }
-    RandomHexaPassword(s)
-  }
-
-  def fromSecret(s: String): SecretUserPassword = SecretUserPassword(s)
-  def unknown: UnknownPassword = UnknownPassword("") // this is allowed to be stored, not used as hash
-
-  /**
-   * Applying checks on the string, but this does not validate the format of the password
-   */
-  object checkHashedPassword {
-    def unapply(s: String): Option[HashedUserPassword] = unsafeHashed(s) match {
-      case h: HashedUserPassword => Some(h)
-      case _ => None
-    }
-  }
-}
 
 case class User(username: String, password: StorableUserPassword, permissions: Set[String], tenants: Option[String]) {
   def toNode: Node = <user name={username} password={password.exposeValue()} permissions={permissions.mkString(",")} tenants={
@@ -568,19 +458,23 @@ final case class JsonUserFormData(
 )
 
 object JsonUserFormData {
-  implicit def transformer(using passwordEncoder: PasswordEncoder): Transformer[JsonUserFormData, User]           = {
+  given (using encoder: PasswordEncoder): UserPasswordEncoder[SecretUserPassword] = encoder.encode(_)
+
+  given transformer(using passwordEncoder: PasswordEncoder): Transformer[JsonUserFormData, User]           = {
     Transformer
       .define[JsonUserFormData, User]
       .withFieldComputed(
         _.password,
-        json =>
-          if (json.isPreHashed) UserPassword.unsafeHashed(json.password) else UserPassword.fromSecret(json.password).toHashed
+        json => {
+          if (json.isPreHashed) UserPassword.unsafeHashed(json.password)
+          else UserPassword.fromSecret(json.password).transformInto[HashedUserPassword]
+        }
       )
       .withFieldComputed(_.permissions, _.permissions.getOrElse(Nil).toSet)
       .withFieldConst(_.tenants, None)
       .buildTransformer
   }
-  implicit val transformerUpdateUser:                               Transformer[JsonUserFormData, UpdateUserFile] = {
+  given transformerUpdateUser:                               Transformer[JsonUserFormData, UpdateUserFile] = {
     Transformer
       .define[JsonUserFormData, UpdateUserFile]
       .withFieldComputed(
@@ -589,7 +483,7 @@ object JsonUserFormData {
       )
       .buildTransformer
   }
-  implicit val transformerUpdateUserInfo:                           Transformer[JsonUserFormData, UpdateUserInfo] =
+  given transformerUpdateUserInfo:                           Transformer[JsonUserFormData, UpdateUserInfo] =
     Transformer.define[JsonUserFormData, UpdateUserInfo].enableOptionDefaultsToNone.buildTransformer
 }
 
