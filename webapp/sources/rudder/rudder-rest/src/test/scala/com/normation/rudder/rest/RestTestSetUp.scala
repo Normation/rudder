@@ -245,11 +245,11 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   implicit val userService: TestUserService = new TestUserService
   class TestUserService extends UserService {
     val user:           AuthenticatedUser = new AuthenticatedUser {
-      val user:    Option[RudderAccount.User] = Some(RudderAccount.User("test-user", UserPassword.unsafeHashed("pass")))
-      val account: Option[ApiAccount]         = None
-      def checkRights(auth: AuthorizationType) = true
-      def getApiAuthz: ApiAuthz            = ApiAuthz.allAuthz
-      def nodePerms:   NodeSecurityContext = NodeSecurityContext.All
+      val user:        Option[RudderAccount.User]   = Some(RudderAccount.User("test-user", UserPassword.unsafeHashed("pass")))
+      val account:     Option[ApiAccount]           = None
+      val checkRights: AuthorizationType => Boolean = _ => true
+      def getApiAuthz: ApiAuthz                     = ApiAuthz.allAuthz
+      def nodePerms:   NodeSecurityContext          = NodeSecurityContext.All
     }
     val getCurrentUser: AuthenticatedUser = user
   }
@@ -832,7 +832,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   }
 
   val systemApi = new SystemApi(apiService11, apiService13, TestSystemInfoService)
-  val authzToken:       AuthzToken = AuthzToken(userService.getCurrentUser.queryContext)
+  val authzToken:       AuthzToken = AuthzToken(userService.getCurrentUser)
   val systemStatusPath: String     = "api" + systemApi.Status.schema.path
 
   val softDao = mockNodes.softwareDao

@@ -37,14 +37,12 @@
 
 package com.normation.rudder.users
 
-import com.normation.eventlog.EventActor
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.facts.nodes.NodeSecurityContext
-import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.UserPassword.HashedUserPassword
 import com.normation.rudder.users.UserPassword.RandomHexaPassword
 import java.util.Collection
@@ -58,17 +56,6 @@ import scala.jdk.CollectionConverters.*
  * User related data structures related to authentication and bridging with Spring-security.
  * Base UserDetails and UserSession structure are defined in rudder-core.
  */
-
-/**
- * Rudder user details must know if the account is for a
- * rudder user or an api account, and in the case of an
- * api account, what sub-case of it.
- */
-sealed trait RudderAccount
-object RudderAccount {
-  final case class User(login: String, password: UserPassword) extends RudderAccount
-  final case class Api(api: ApiAccount)                        extends RudderAccount
-}
 
 /**
  * We don't use at all Spring Authority to implements
@@ -148,27 +135,6 @@ case class RudderUserDetail(
 }
 
 /**
- * An authenticated user with the relevant authentication information. That structure
- * will be kept in session (or for API, in the request processing).
- */
-trait AuthenticatedUser {
-  def user:    Option[RudderAccount.User]
-  def account: Option[ApiAccount]
-  def checkRights(auth: AuthorizationType): Boolean
-  def getApiAuthz: ApiAuthorization
-  final def actor: EventActor = EventActor((user, account) match {
-    case (Some(user), _)    => user.login
-    case (_, Some(account)) => account.name.value
-    case (None, None)       => "unknown"
-  })
-  def nodePerms:   NodeSecurityContext
-
-  def queryContext: QueryContext = {
-    QueryContext(actor, nodePerms)
-  }
-}
-
-/**
  * An utility class that stores the currently logged user (if any).
  * We can't rely only on SecurityContextHolder because Lift async (comet, at least)
  * uses a different thread local scope than the one used by spring/container to store
@@ -210,10 +176,12 @@ object CurrentUser extends RequestVar[Option[RudderUserDetail]](None) with Authe
     case None    => NodeSecurityContext.None
   }
 
-  override def checkRights(auth: AuthorizationType): Boolean = {
+  // Eagerly evaluate the variable to obtain the current user, since there may be lifetime issue with the RequestVar
+  // see https://issues.rudder.io/issues/26605
+  override def checkRights: AuthorizationType => Boolean = {
     this.get match {
-      case Some(u) => u.checkRights(auth)
-      case None    => false
+      case Some(u) => u.checkRights
+      case None    => _ => false
     }
   }
 }

@@ -71,9 +71,13 @@ trait ApiAuthorization[T] {
 
 /*
  * A simple class used by API and which hold authentication actor.
- * We only need the authz token/user name
+ * We need the fully authenticated user/account, to be able to check some rights.
+ * We also frequently check other attributes
  */
-final case class AuthzToken(qc: QueryContext)
+final case class AuthzToken(user: AuthenticatedUser) {
+  export user.{user as _, *}
+  def qc: QueryContext = user.queryContext
+}
 
 /*
  * This service allows to know if the ACL module is set
@@ -169,7 +173,7 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
                   logger.debug(s"Account '${user.actor.name}' has ACL authorizations.")
                   checkACL(acl, path, endpoint.schema.action)
 
-              }).map(_ => Right(AuthzToken(user.queryContext)))
+              }).map(_ => Right(AuthzToken(user)))
                 .getOrElse(
                   Left(
                     ApiError.Authz(

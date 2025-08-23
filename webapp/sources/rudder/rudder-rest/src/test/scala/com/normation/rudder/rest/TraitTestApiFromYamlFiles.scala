@@ -108,11 +108,11 @@ object TraitTestApiFromYamlFiles {
       case None    =>
         new UserService {
           val user = new AuthenticatedUser {
-            val user:    Option[RudderAccount.User] = Some(RudderAccount.User("test-user", UserPassword.unsafeHashed("pass")))
-            val account: Option[ApiAccount]         = None
-            def checkRights(auth: AuthorizationType) = true
-            def getApiAuthz: ApiAuthorization    = ApiAuthorization.allAuthz
-            def nodePerms:   NodeSecurityContext = NodeSecurityContext.All
+            val user:        Option[RudderAccount.User]   = Some(RudderAccount.User("test-user", UserPassword.unsafeHashed("pass")))
+            val account:     Option[ApiAccount]           = None
+            val checkRights: AuthorizationType => Boolean = _ => true
+            def getApiAuthz: ApiAuthorization             = ApiAuthorization.allAuthz
+            def nodePerms:   NodeSecurityContext          = NodeSecurityContext.All
           }
           val getCurrentUser: AuthenticatedUser = user
         }
