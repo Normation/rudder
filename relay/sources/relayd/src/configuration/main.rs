@@ -106,16 +106,7 @@ impl Configuration {
     /// Used to validate what is not validated by typing
     fn validate(self) -> Result<Self, Error> {
         // If not on root we need an upstream server
-        if &self.node_id()? != "root"
-            && self.output.upstream.host.is_empty()
-            && (self
-                .output
-                .upstream
-                .url
-                .as_ref()
-                .map(|u| u.is_empty())
-                .unwrap_or(true))
-        {
+        if &self.node_id()? != "root" && self.output.upstream.host.is_empty() {
             bail!("missing upstream server configuration");
         }
 
@@ -143,19 +134,21 @@ impl Configuration {
         Ok(self)
     }
 
-    /// Check for valid configs known to present security or stability risks
+    /// Check for valid configs known to present security or stability risks.
     pub fn warnings(&self) -> Vec<Error> {
         let mut warnings = vec![];
 
-        if self.peer_authentication() == PeerAuthentication::DangerousNone {
-            warnings.push(anyhow!("Certificate verification is disabled"));
+        if !self.general.certificate_validation && !self.general.public_key_pinning {
+            warnings.push(anyhow!(
+                "No security mechanism are enabled for peer authentication. This is a security risk, please enable at least one of certificate validation or public key pinning."
+            ));
         }
 
         warnings
     }
 
     /// Read current node_id, and handle override by node_id
-    /// Can be removed once node_id is removed
+    /// Can be removed once node_id is removed.
     pub fn node_id(&self) -> Result<NodeId, Error> {
         Ok(match &self.general.node_id {
             Some(id) => {
@@ -172,34 +165,22 @@ impl Configuration {
         })
     }
 
-    pub fn peer_authentication(&self) -> PeerAuthentication {
-        // compute actual model
-        if !self.output.upstream.verify_certificates {
-            warn!(
-                "output.upstream.verify_certificates parameter is deprecated, use general.peer_authentication instead"
-            );
-            PeerAuthentication::DangerousNone
-        } else {
-            self.general.peer_authentication
-        }
+    /// Gives current url of the upstream relay API
+    pub fn upstream_url(&self) -> String {
+        format!(
+            // TODO compute once
+            "https://{}:{}/",
+            self.output.upstream.host, self.general.https_port
+        )
     }
 
-    /// Gives current url of the upstream relay API
-    /// Can be removed once upstream.url is removed
-    pub fn upstream_url(&self) -> String {
-        match &self.output.upstream.url {
-            Some(id) => {
-                warn!(
-                    "upstream.url setting is deprecated, use upstream.host and general.https_port instead"
-                );
-                id.clone()
-            }
-            None => format!(
-                // TODO compute once
-                "https://{}:{}/",
-                self.output.upstream.host, self.general.https_port
-            ),
-        }
+    pub fn upstream_pkey_hash(&self) -> &str {
+        self.output
+            .upstream
+            .server_public_key_hash
+            .as_ref()
+            .map(|s| s.as_str())
+            .unwrap_or("")
     }
 }
 
@@ -249,23 +230,17 @@ pub struct GeneralConfig {
     #[serde(deserialize_with = "compat_humantime")]
     #[serde_inline_default(Duration::from_secs(2))]
     pub https_idle_timeout: Duration,
-    /// Which certificate validation model to use
-    #[serde_inline_default(PeerAuthentication::SystemRootCerts)]
-    peer_authentication: PeerAuthentication,
+    #[serde_inline_default(true)]
+    pub certificate_validation: bool,
+    #[serde_inline_default(false)]
+    pub public_key_pinning: bool,
+    pub ca_path: Option<PathBuf>,
 }
 
 impl Default for GeneralConfig {
     fn default() -> Self {
         toml::from_str::<Self>("").unwrap()
     }
-}
-
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
-#[serde(rename_all = "snake_case")]
-pub enum PeerAuthentication {
-    CertPinning,
-    SystemRootCerts,
-    DangerousNone,
 }
 
 #[serde_inline_default]
@@ -489,9 +464,6 @@ impl Default for DatabaseConfig {
 #[serde_inline_default]
 #[derive(Deserialize, Debug, Clone)]
 pub struct UpstreamConfig {
-    /// DEPRECATED: use host and global.https_port
-    #[serde(default)]
-    url: Option<String>,
     /// When the section is there, host is mandatory
     #[serde(default)]
     host: String,
@@ -502,29 +474,17 @@ pub struct UpstreamConfig {
     /// Default password, to be used for new inventories
     #[serde_inline_default(SecretString::new("rudder".into()))]
     pub default_password: SecretString,
-    /// Allows to completely disable certificate validation.
-    ///
-    /// If true, https is required for all connections
-    ///
-    /// This preserves compatibility with 6.X configs
-    /// DEPRECATED: replaced by certificate_verification_mode = DangerousNone
-    #[serde_inline_default(true)]
-    pub verify_certificates: bool,
-    /// Allows specifying the root certificate path
-    /// Used for our Rudder PKI
-    /// Not used if the verification model is not `Rudder`.
-    #[serde_inline_default(PathBuf::from("/var/rudder/lib/ssl/policy_server.pem"))]
-    pub server_certificate_file: PathBuf,
+    /// Allows specifying the upstream server certificate's public key hash
+    /// Only used (and required) when pinning is enabled.
+    pub server_public_key_hash: Option<String>,
     // TODO timeout?
 }
 
 impl PartialEq for UpstreamConfig {
     fn eq(&self, other: &Self) -> bool {
-        self.url == other.url
-            && self.host == other.host
+        self.host == other.host
             && self.user == other.user
-            && self.verify_certificates == other.verify_certificates
-            && self.server_certificate_file == other.server_certificate_file
+            && self.server_public_key_hash == other.server_public_key_hash
     }
 }
 
@@ -604,7 +564,9 @@ mod tests {
                 blocking_threads: None,
                 https_port: 443,
                 https_idle_timeout: Duration::from_secs(2),
-                peer_authentication: PeerAuthentication::SystemRootCerts,
+                certificate_validation: true,
+                public_key_pinning: true,
+                ca_path: Some(PathBuf::from("tests/files/keys/ca.pem")),
             },
             processing: ProcessingConfig {
                 inventory: InventoryConfig {
@@ -635,13 +597,11 @@ mod tests {
             },
             output: OutputConfig {
                 upstream: UpstreamConfig {
-                    url: None,
                     host: "".to_string(),
                     user: "rudder".to_string(),
                     password: None,
                     default_password: "".into(),
-                    verify_certificates: true,
-                    server_certificate_file: PathBuf::from("/var/rudder/lib/ssl/policy_server.pem"),
+                    server_public_key_hash: None,
                 },
                 database: DatabaseConfig {
                     url: "postgres://rudder@127.0.0.1/rudder".to_string(),
@@ -710,7 +670,9 @@ mod tests {
                 blocking_threads: Some(512),
                 https_port: 4443,
                 https_idle_timeout: Duration::from_secs(42),
-                peer_authentication: PeerAuthentication::CertPinning,
+                certificate_validation: true,
+                public_key_pinning: true,
+                ca_path: Some(PathBuf::from("tests/files/keys/ca.pem")),
             },
             processing: ProcessingConfig {
                 inventory: InventoryConfig {
@@ -741,14 +703,12 @@ mod tests {
             },
             output: OutputConfig {
                 upstream: UpstreamConfig {
-                    url: None,
                     host: "rudder.example.com".to_string(),
                     user: "rudder".to_string(),
                     password: Some("password".into()),
                     default_password: "rudder".into(),
-                    verify_certificates: true,
-                    server_certificate_file: PathBuf::from(
-                        "tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert",
+                    server_public_key_hash: Some(
+                        "sha256//4BmcSBb6WJebDT5p0Y6yKHvmlyh193YN5no9Pj6D5Vo=".into(),
                     ),
                 },
                 database: DatabaseConfig {

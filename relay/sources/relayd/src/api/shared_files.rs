@@ -14,6 +14,7 @@ use bytes::{Buf, Bytes};
 use chrono::Utc;
 use humantime::parse_duration;
 use percent_encoding::percent_decode_str;
+use reqwest::{Method, RequestBuilder};
 use serde::{Deserialize, Serialize};
 use tokio::fs;
 use tracing::{debug, error, instrument, warn};
@@ -177,18 +178,26 @@ async fn put_forward(
     job_config: Arc<JobConfig>,
     body: Bytes,
 ) -> Result<StatusCode, Error> {
-    let client = job_config.upstream_client.read().await.inner().clone();
-    client
-        .put(format!(
-            "{}/{}/{}",
-            job_config.cfg.upstream_url(),
-            "relay-api/shared-files",
-            file.url(),
-        ))
+    let client = job_config.http_client.read().await.clone();
+
+    let pkey_hash = &job_config.cfg.upstream_pkey_hash();
+    let request = client
+        .request(
+            Method::PUT,
+            format!(
+                "{}/{}/{}",
+                job_config.cfg.upstream_url(),
+                "relay-api/shared-files",
+                file.url(),
+            ),
+        )
         .query(&params)
         .body(body)
-        .send()
-        .await
+        .build()?;
+
+    client
+        .send(request, Some(pkey_hash))
+        .await?
         .map(|r| r.status())
         .map_err(|e| e.into())
 }
@@ -307,18 +316,25 @@ async fn head_forward(
     params: SharedFilesHeadParams,
     job_config: Arc<JobConfig>,
 ) -> Result<StatusCode, Error> {
-    let client = job_config.upstream_client.read().await.inner().clone();
+    let client = job_config.http_client.read().await.clone();
+
+    let pkey_hash = &job_config.cfg.upstream_pkey_hash();
+    let request = client
+        .request(
+            Method::HEAD,
+            format!(
+                "{}/{}/{}",
+                job_config.cfg.upstream_url(),
+                "relay-api/shared-files",
+                file.url(),
+            ),
+        )
+        .query(&params)
+        .build()?;
 
     client
-        .head(format!(
-            "{}/{}/{}",
-            job_config.cfg.upstream_url(),
-            "relay-api/shared-files",
-            file.url(),
-        ))
-        .query(&params)
-        .send()
-        .await
+        .send(request, Some(pkey_hash))
+        .await?
         .map(|r| r.status())
         .map_err(|e| e.into())
 }
