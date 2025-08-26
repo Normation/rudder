@@ -8,35 +8,35 @@ properties:
     type: string
     example: This category contains Techniques designed to install, configure and manage applications
     description: Category description
-  subcategories:
+  subCategories:
     description: Sub categories of the category
     type: array
     items:
       type: object
-        properties:
-          name:
-            type: string
-            description: Category name
-          description:
-            type: string
-            description: Category description
-          subcategories:
-            type: array
-            description: Sub categories of the sub category
-          techniques:
-            type: array
-            description: Techniques of the sub category
+      properties:
+        name:
+          type: string
+          description: Category name
+        description:
+          type: string
+          description: Category description
+        subCategories:
+          type: array
+          description: Sub categories of the sub category
+        techniques:
+          type: array
+          description: Techniques of the sub category
   techniques:
     type: array
     items:
       type: object
-        properties:
-          name:
-            type: string
-            example: checkGenericFileContent
-            description: technique name
-          directives:
-            type: array
-            description: Directives of the techniques
-            items:
-              $ref: directive.yml
+      properties:
+        name:
+          type: string
+          example: checkGenericFileContent
+          description: technique name
+        directives:
+          type: array
+          description: Directives of the techniques
+          items:
+            $ref: directive.yml
