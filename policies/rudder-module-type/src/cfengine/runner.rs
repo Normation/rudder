@@ -104,7 +104,7 @@ impl CfengineRunner {
 
         let progname = std::env::current_exe()?
             .file_name()
-            .with_context(|| format!("Could not get program name"))?
+            .context("Could not get program name")?
             .to_string_lossy()
             .to_string();
 
