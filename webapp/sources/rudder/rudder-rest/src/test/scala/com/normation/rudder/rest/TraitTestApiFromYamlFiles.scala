@@ -40,12 +40,8 @@ package com.normation.rudder.rest
 import better.files.*
 import com.normation.box.IOManaged
 import com.normation.errors.*
-import com.normation.rudder.AuthorizationType
-import com.normation.rudder.api.ApiAccount
-import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.ApplicationLogger
-import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.lift.LiftApiProcessingLogger
 import com.normation.rudder.rest.lift.LiftHandler
@@ -105,17 +101,7 @@ object TraitTestApiFromYamlFiles {
       userService: Option[UserService]
   ): (LiftHandler, LiftRules) = {
     implicit val userServiceImp = userService match {
-      case None    =>
-        new UserService {
-          val user = new AuthenticatedUser {
-            val user:    Option[RudderAccount.User] = Some(RudderAccount.User("test-user", UserPassword.unsafeHashed("pass")))
-            val account: Option[ApiAccount]         = None
-            def checkRights(auth: AuthorizationType) = true
-            def getApiAuthz: ApiAuthorization    = ApiAuthorization.allAuthz
-            def nodePerms:   NodeSecurityContext = NodeSecurityContext.All
-          }
-          val getCurrentUser: AuthenticatedUser = user
-        }
+      case None    => new TestUserService
       case Some(u) => u
     }
 

@@ -39,6 +39,7 @@ package com.normation.rudder.users
 
 import com.normation.eventlog.EventActor
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.Rights
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.facts.nodes.NodeSecurityContext
@@ -70,29 +71,26 @@ object RudderAccount {
 }
 
 /**
- * An authenticated user with the relevant authentication information. That structure
- * will be kept in session (or for API, in the request processing).
+ * An authenticated user with the relevant authentication information within the API.
+ * That structure will be kept in session (or for API, in the request processing).
  */
 trait AuthenticatedUser {
-  def user: Option[RudderAccount.User]
+  def account: RudderAccount
 
-  def account: Option[ApiAccount]
+  def name:  String = account match {
+    case RudderAccount.User(login, _) => login
+    case RudderAccount.Api(api)       => api.name.value
+  }
+  def login: String = name
+
+  def authz:       Rights
+  def apiAuthz:    ApiAuthorization
+  def nodePerms:   NodeSecurityContext
+  implicit def qc: QueryContext = {
+    QueryContext(EventActor(name), nodePerms)
+  }
 
   def checkRights(auth: AuthorizationType): Boolean
-
-  def getApiAuthz: ApiAuthorization
-
-  final def actor: EventActor = EventActor((user, account) match {
-    case (Some(user), _)    => user.login
-    case (_, Some(account)) => account.name.value
-    case (None, None)       => "unknown"
-  })
-
-  def nodePerms: NodeSecurityContext
-
-  def queryContext: QueryContext = {
-    QueryContext(actor, nodePerms)
-  }
 }
 
 sealed trait UserPassword {

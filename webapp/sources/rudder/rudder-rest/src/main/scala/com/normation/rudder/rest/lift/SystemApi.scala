@@ -63,7 +63,6 @@ import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.OneParam
 import com.normation.rudder.rest.RestUtils
-import com.normation.rudder.rest.RestUtils.getActor
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.SystemApi as API
@@ -80,7 +79,6 @@ import com.normation.rudder.services.healthcheck.HealthcheckService
 import com.normation.rudder.services.system.DebugInfoScriptResult
 import com.normation.rudder.services.system.DebugInfoService
 import com.normation.rudder.services.user.PersonIdentService
-import com.normation.rudder.users.UserService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
@@ -194,6 +192,7 @@ class SystemApi(
     val schema: API.TechniquesReload.type = API.TechniquesReload
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
       apiv11service.reloadTechniques(req, params)
     }
   }
@@ -210,6 +209,7 @@ class SystemApi(
     val schema: API.ReloadAll.type = API.ReloadAll
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
       apiv11service.reloadAll(req, params)
     }
   }
@@ -220,6 +220,7 @@ class SystemApi(
     val schema: API.PoliciesUpdate.type = API.PoliciesUpdate
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
       apiv11service.updatePolicies(req, params)
     }
   }
@@ -228,6 +229,7 @@ class SystemApi(
     val schema: API.PoliciesRegenerate.type = API.PoliciesRegenerate
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
       apiv11service.regeneratePolicies(req, params)
     }
   }
@@ -376,6 +378,7 @@ class SystemApi(
     val schema: API.ArchiveDirectives.type = API.ArchiveDirectives
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
       apiv11service.archiveDirectives(req, params)
     }
   }
@@ -384,6 +387,7 @@ class SystemApi(
     val schema: API.ArchiveRules.type = API.ArchiveRules
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
       apiv11service.archiveRules(req, params)
     }
   }
@@ -392,6 +396,7 @@ class SystemApi(
     val schema: API.ArchiveParameters.type = API.ArchiveParameters
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
       apiv11service.archiveParameters(req, params)
     }
   }
@@ -637,18 +642,17 @@ class SystemApiService11(
     itemArchiveManager:   ItemArchiveManager,
     personIdentService:   PersonIdentService,
     repo:                 GitRepositoryProvider
-)(implicit userService: UserService)
-    extends Loggable {
+) extends Loggable {
   import SystemApi.*
 
   // The private methods are the internal behavior of the API.
   // They are helper functions called by the public method (implemented lower) to avoid code repetition.
 
-  private def reloadTechniquesWrapper(req: Req): Either[String, JField] = {
+  private def reloadTechniquesWrapper(req: Req)(implicit qc: QueryContext): Either[String, JField] = {
     ApiLogger.info(s"Trigger technique reload")
     updatePTLibService.update(
       ModificationId(uuidGen.newUuid),
-      getActor(req),
+      qc.actor,
       Some("Technique library reloaded from REST API")
     ) match {
       case Full(_) => Right(JField("techniques", "Started"))
@@ -701,10 +705,10 @@ class SystemApiService11(
       list:        () => IOResult[Map[DateTime, GitArchiveId]],
       restore:     (GitCommitId, PersonIdent, Boolean) => IOResult[GitCommitId],
       archiveType: String
-  ): Either[String, JField] = {
+  )(implicit qc: QueryContext): Either[String, JField] = {
     (for {
       archives   <- list()
-      commiter   <- personIdentService.getPersonIdentOrDefault(getActor(req).name)
+      commiter   <- personIdentService.getPersonIdentOrDefault(qc.actor.name)
       x          <-
         archives.toList.sortWith { case ((d1, _), (d2, _)) => d1.isAfter(d2) }.headOption.notOptional("No archive is available")
       (date, tag) = x
@@ -725,9 +729,9 @@ class SystemApiService11(
       req:         Req,
       restore:     (PersonIdent, Boolean) => IOResult[GitCommitId],
       archiveType: String
-  ): Either[String, JField] = {
+  )(implicit qc: QueryContext): Either[String, JField] = {
     (for {
-      commiter <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
+      commiter <- personIdentService.getPersonIdentOrDefault(qc.actor.name)
       restored <- restore(
                     commiter,
                     false
@@ -746,13 +750,13 @@ class SystemApiService11(
       restore:     (GitCommitId, PersonIdent, Boolean) => IOResult[GitCommitId],
       datetime:    String,
       archiveType: String
-  ): Either[String, JField] = {
+  )(implicit qc: QueryContext): Either[String, JField] = {
     (for {
       valideDate <- IOResult.attempt(s"The given archive id is not a valid archive tag: ${datetime}")(
                       DateFormaterService.gitTagFormat.parseDateTime(datetime)
                     )
       archives   <- list()
-      commiter   <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
+      commiter   <- personIdentService.getPersonIdentOrDefault(qc.actor.name)
       tag        <-
         archives
           .get(valideDate)
@@ -776,11 +780,11 @@ class SystemApiService11(
       req:         Req,
       archive:     (PersonIdent, ModificationId, EventActor, Option[String], Boolean) => IOResult[GitArchiveId],
       archiveType: String
-  ): Either[String, JField] = {
+  )(implicit qc: QueryContext): Either[String, JField] = {
     (for {
-      committer <- personIdentService.getPersonIdentOrDefault(RestUtils.getActor(req).name)
+      committer <- personIdentService.getPersonIdentOrDefault(qc.actor.name)
       archiveId <-
-        archive(committer, newModId, RestUtils.getActor(req), Some("Create new archive requested from REST API"), false)
+        archive(committer, newModId, qc.actor, Some("Create new archive requested from REST API"), false)
     } yield {
       archiveId
     }).either.runNow.fold(
@@ -1016,7 +1020,7 @@ class SystemApiService11(
     }
   }
 
-  def archiveDirectives(req: Req, params: DefaultParams): LiftResponse = {
+  def archiveDirectives(req: Req, params: DefaultParams)(implicit qc: QueryContext): LiftResponse = {
     implicit val action   = "archiveDirectives"
     implicit val prettify = params.prettify
 
@@ -1025,7 +1029,7 @@ class SystemApiService11(
       case Right(field) => toJsonResponse(None, JObject(field))
     }
   }
-  def archiveRules(req: Req, params: DefaultParams):      LiftResponse = {
+  def archiveRules(req: Req, params: DefaultParams)(implicit qc: QueryContext):      LiftResponse = {
     implicit val action   = "archiveRules"
     implicit val prettify = params.prettify
 
@@ -1034,7 +1038,7 @@ class SystemApiService11(
       case Right(field) => toJsonResponse(None, JObject(field))
     }
   }
-  def archiveParameters(req: Req, params: DefaultParams): LiftResponse = {
+  def archiveParameters(req: Req, params: DefaultParams)(implicit qc: QueryContext): LiftResponse = {
     implicit val action   = "archiveParameters"
     implicit val prettify = params.prettify
 
@@ -1327,7 +1331,7 @@ class SystemApiService11(
     }
   }
 
-  def reloadTechniques(req: Req, params: DefaultParams): LiftResponse = {
+  def reloadTechniques(req: Req, params: DefaultParams)(implicit qc: QueryContext): LiftResponse = {
     implicit val action   = "reloadTechniques"
     implicit val prettify = params.prettify
 
@@ -1337,7 +1341,7 @@ class SystemApiService11(
     }
   }
 
-  def reloadAll(req: Req, params: DefaultParams): LiftResponse = {
+  def reloadAll(req: Req, params: DefaultParams)(implicit qc: QueryContext): LiftResponse = {
 
     implicit val action   = "reloadAll"
     implicit val prettify = params.prettify
@@ -1355,23 +1359,23 @@ class SystemApiService11(
 
   // Update and Regenerate(update + clear Cache) policies
 
-  def updatePolicies(req: Req, params: DefaultParams): LiftResponse = {
+  def updatePolicies(req: Req, params: DefaultParams)(implicit qc: QueryContext): LiftResponse = {
 
     implicit val action   = "updatePolicies"
     implicit val prettify = params.prettify
-    val dest              = ManualStartDeployment(newModId, getActor(req), "Policy update asked by REST request")
+    val dest              = ManualStartDeployment(newModId, qc.actor, "Policy update asked by REST request")
 
     asyncDeploymentAgent.launchDeployment(dest)
     toJsonResponse(None, "policies" -> "Started")
   }
 
-  def regeneratePolicies(req: Req, params: DefaultParams): LiftResponse = {
+  def regeneratePolicies(req: Req, params: DefaultParams)(implicit qc: QueryContext): LiftResponse = {
 
     implicit val action   = "regeneratePolicies"
     implicit val prettify = params.prettify
-    val dest              = ManualStartDeployment(newModId, getActor(req), "Policy regenerate asked by REST request")
+    val dest              = ManualStartDeployment(newModId, qc.actor, "Policy regenerate asked by REST request")
 
-    clearCacheService.action(getActor(req))
+    clearCacheService.action(qc.actor)
     asyncDeploymentAgent.launchDeployment(dest)
     toJsonResponse(None, "policies" -> "Started")
   }

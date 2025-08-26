@@ -37,10 +37,8 @@
 
 package com.normation.rudder.rest
 
-import com.normation.eventlog.EventActor
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.logger.ApiLogger
-import com.normation.rudder.users.UserService
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
@@ -109,28 +107,6 @@ object RestUtils {
       case eb: EmptyBox => eb ?~ ("Error when getting header X-API-VERSION")
     }
   }
-
-  /**
-   * Get the rest user name, as follow:
-   * - if the user is authenticated, use the provided UserName
-   * - else, use the HTTP Header: X-REST-USERNAME
-   * - else, return none
-   */
-  def getUsername(req: Req)(implicit userService: UserService): Option[String] = {
-
-    userService.getCurrentUser.actor.name match {
-      case "unknown" =>
-        req.header(s"X-REST-USERNAME") match {
-          case eb: EmptyBox => None
-          case Full(name) => Some(name)
-        }
-      case userName  => Some(userName)
-    }
-  }
-
-  def getActor(req: Req)(implicit userService: UserService): EventActor = EventActor(
-    getUsername(req).getOrElse("UnknownRestUser")
-  )
 
   def getPrettify(req: Req): Box[Boolean] = {
     req.json match {
