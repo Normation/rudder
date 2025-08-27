@@ -1,0 +1,202 @@
+# This file is templated by the agent according to these variables:
+#
+# cert_validation: bool
+# cert_pinning: bool
+# custom_ca_path: string
+
+DocumentRoot /var/www
+# We do not require mod_deflate as it is not strictly necessary
+<IfModule mod_deflate.c>
+    <IfModule mod_filter.c>
+        # Enable gzip encoding on textual resources
+        AddOutputFilterByType DEFLATE text/plain text/html text/xml text/javascript text/css
+        AddOutputFilterByType DEFLATE application/xml application/xhtml+xml application/rss+xml image/svg+xml
+        AddOutputFilterByType DEFLATE application/json application/javascript application/x-javascript
+    </IfModule>
+</IfModule>
+
+# Common TLS config
+SSLEngine on
+SSLRequireSSL
+SSLUserName SSL_CLIENT_S_DN_UID
+
+# TLS 1.3 only
+SSLProtocol             -all +TLSv1.3
+SSLHonorCipherOrder     off
+SSLSessionTickets       off
+
+
+
+# Node-server communication
+# -------------------------
+
+{{#cert_validation}}
+{{#custom_ca_path}}
+# User provided CA
+SSLCACertificateFile {{custom_ca_path}}
+{{/custom_ca_path}}
+{{/cert_validation}}
+
+{{^cert_validation}}
+# Key/Certificate used by the server for nodes communication
+SSLCertificateFile     /opt/rudder/etc/ssl/agent.cert
+SSLCertificateKeyFile  /var/rudder/cfengine-community/ppkeys/localhost.priv
+
+# List of allowed certificates
+SSLCACertificateFile   /var/rudder/lib/ssl/nodescerts.pem
+# Set the list of accepted CA to send to then client when an authentication is needed
+SSLCADNRequestFile     /var/rudder/lib/ssl/policy_server.pem
+{{/cert_validation}}
+
+
+# Provide nodes policies
+# ----------------------
+
+# Explanation
+# 1. The RewriteRule pattern is matched
+#   Yes -> if so the result goes to $0,$1,$2
+#   No  -> no rewrite, no access to the files
+# 2. The RewriteCond is checked
+#   -> Get client uuid from %{SSL:SSL_CLIENT_S_DN_UID}
+#   -> Get requested uuid from the Rewriterule pattern ($1)
+#   -> Generate a TestString of the form "<client_uuid>=<requested_uuid>"
+#   -> Test the string against a regex that check that the left part is identical to the right part
+# 3. The Rewriterule is applied
+#   -> final path is generated from the rule pattern
+RewriteEngine On
+
+RewriteCond "%{SSL:SSL_CLIENT_S_DN_UID}=$1" "^(.*?)=\1"
+RewriteRule /policies/(.*?)/(.*) /var/rudder/share/$1/$2
+
+# This is the basic configuration for sub-directories of /var/rudder/share
+<Directory /var/rudder/share>
+  SSLVerifyClient require
+  SSLUserName SSL_CLIENT_S_DN_UID
+  SSLRequireSSL
+
+  # rudder-networks-24.conf is automatically
+  # generated according to the hosts allowed by rudder.
+  Include /opt/rudder/etc/rudder-networks-24.conf
+</Directory>
+
+# expose common archives publicly
+Alias /common /var/rudder/share/common
+<Directory /var/rudder/share/common>
+  SSLVerifyClient none
+  # avoid repetitive warning in the logs caused by upper directory configuration
+  SSLUserName SSL_SESSION_ID
+  Include /opt/rudder/etc/rudder-networks-24.conf
+</Directory>
+
+# Expose the server UUID through https
+Alias /uuid /opt/rudder/etc/uuid.hive
+<Directory /opt/rudder/etc>
+  Require all granted
+</Directory>
+
+# WebDAV share to receive inventories
+Alias /inventories /var/rudder/inventories/incoming
+<Directory /var/rudder/inventories/incoming>
+  DAV on
+  AuthName "WebDAV Storage"
+  AuthType Basic
+  AuthUserFile /opt/rudder/etc/htpasswd-webdav-initial
+
+  <Limit PUT>
+    <RequireAll>
+      Require valid-user
+      <RequireAny>
+        # rudder-networks-24.conf is automatically generated according to the hosts allowed by rudder.
+        Include /opt/rudder/etc/rudder-networks-24.conf
+      </RequireAny>
+    </RequireAll>
+  </Limit>
+
+  <LimitExcept PUT>
+    Require all denied
+  </LimitExcept>
+</Directory>
+
+# WebDAV share to receive inventories
+Alias /inventory-updates /var/rudder/inventories/accepted-nodes-updates
+<Directory /var/rudder/inventories/accepted-nodes-updates>
+  DAV on
+  AuthName "WebDAV Storage"
+  AuthType Basic
+  AuthUserFile /opt/rudder/etc/htpasswd-webdav
+
+  <Limit PUT>
+    <RequireAll>
+      Require valid-user
+      <RequireAny>
+        # rudder-networks-24.conf is automatically generated according to the hosts allowed by rudder.
+        Include /opt/rudder/etc/rudder-networks-24.conf
+      </RequireAny>
+    </RequireAll>
+  </Limit>
+
+  <LimitExcept PUT>
+    Require all denied
+  </LimitExcept>
+</Directory>
+
+# WebDAV share to receive reports
+Alias /reports /var/rudder/reports/incoming
+<Directory /var/rudder/reports/incoming>
+{{#cert_validation}}
+  SSLVerifyClient require
+{{/cert_validation}}
+
+  DAV on
+  AuthName "WebDAV Storage"
+  AuthType Basic
+  AuthUserFile /opt/rudder/etc/htpasswd-webdav
+
+  <Limit PUT>
+    <RequireAll>
+      Require valid-user
+      <RequireAny>
+        Include /opt/rudder/etc/rudder-networks-24.conf
+      </RequireAny>
+    </RequireAll>
+  </Limit>
+
+  <LimitExcept PUT>
+    Require all denied
+  </LimitExcept>
+</Directory>
+
+# Remote-run can be long
+# Will also be applied for webapp proxy
+ProxyTimeout 300
+# Load relay-api
+ProxyPass /rudder/relay-api/ http://127.0.0.1:3030/rudder/relay-api/1/
+
+## Set directory access permissions
+
+# Disallow by default
+<Location /rudder/relay-api/>
+  Require all denied
+</Location>
+
+<Location /rudder/relay-api/shared-folder>
+  SSLVerifyClient require
+
+  Include /opt/rudder/etc/rudder-networks-24.conf
+</Location>
+
+
+<Location /rudder/relay-api/shared-files>
+{{#cert_validation}}
+  SSLVerifyClient require
+{{/cert_validation}}
+  Include /opt/rudder/etc/rudder-networks-24.conf
+</Location>
+
+<Location /rudder/relay-api/remote-run>
+{{#cert_validation}}
+  SSLVerifyClient require
+{{/cert_validation}}
+  Include /opt/rudder/etc/rudder-networks-policy-server-24.conf
+</Location>
+
