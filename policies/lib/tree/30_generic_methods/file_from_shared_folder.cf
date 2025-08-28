@@ -27,8 +27,7 @@
 #
 # @parameter source      Source file (path, relative to /var/rudder/configuration-repository/shared-files)
 # @parameter path        Destination file (absolute path on the target node)
-# @parameter hash_type   Hash algorithm used to check if file is updated (sha256, sha512). Only used on Windows, ignored on Unix. default is sha256
-# # keep md5 and sha1 to support old generic methods, also add a default so you don't have to enter a value on linux, md5/sha1 should go to default
+# @parameter hash_type   Deprecated, now ignored.
 # @parameter_constraint hash_type "select" : [ "", "sha256", "sha512", "md5", "sha1" ]
 # @parameter_constraint hash_type "allow_empty_string" : true
 #
@@ -49,7 +48,7 @@ bundle agent file_from_shared_folder(source, path, hash_type)
       "pass1" expression => "any";
 
   methods:
-    pass3::
+    pass3.!rudder_https_only::
       "${report_data.method_id}" usebundle => call_method("file_from_remote_source_recursion");
       "${report_data.method_id}" usebundle => file_from_remote_source_recursion("/var/rudder/configuration-repository/shared-files/${source}", "${path}", "inf");
       "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");

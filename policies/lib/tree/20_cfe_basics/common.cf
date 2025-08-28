@@ -429,3 +429,10 @@ bundle agent call_method_end(method) {
       "${configuration.debug} Exiting method ${method} from ${report_data.method_id}, should_report: false";
 }
 
+# Download a file using rudder client CLI
+bundle agent rudder_client_dl(source, path, hashType) {
+  vars:
+  returnszero("/opt/rudder/bin/rudder-client ");
+
+}
+
