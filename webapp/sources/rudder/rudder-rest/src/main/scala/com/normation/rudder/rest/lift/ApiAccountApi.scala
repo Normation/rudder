@@ -42,6 +42,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.*
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.domain.logger.ApiLoggerPure
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.rest.{ApiAccounts as API, *}
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.implicits.*
@@ -103,6 +104,7 @@ class ApiAccountApi(
     val schema: API.CreateAccount.type = API.CreateAccount
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val qc: QueryContext = authzToken.qc
       (for {
         account <- ZioJsonExtractor.parseJson[NewRestApiAccount](req).toIO
         res     <- service.createAccount(account)
@@ -114,6 +116,7 @@ class ApiAccountApi(
     val schema: API.UpdateAccount.type = API.UpdateAccount
 
     def process(v: ApiVersion, path: ApiPath, s: String, req: Req, params: DefaultParams, t: AuthzToken): LiftResponse = {
+      implicit val qc: QueryContext = t.qc
       (for {
         id      <- toId(s)
         account <- ZioJsonExtractor.parseJson[UpdateApiAccount](req).toIO
@@ -126,6 +129,7 @@ class ApiAccountApi(
     val schema: API.RegenerateToken.type = API.RegenerateToken
 
     def process(v: ApiVersion, path: ApiPath, s: String, req: Req, params: DefaultParams, t: AuthzToken): LiftResponse = {
+      implicit val qc: QueryContext = t.qc
       (for {
         id <- toId(s)
         r  <- service.regenerateToken(id)
@@ -137,6 +141,7 @@ class ApiAccountApi(
     val schema: API.DeleteToken.type = API.DeleteToken
 
     def process(v: ApiVersion, path: ApiPath, s: String, req: Req, params: DefaultParams, t: AuthzToken): LiftResponse = {
+      implicit val qc: QueryContext = t.qc
       (for {
         id <- toId(s)
         r  <- service.deleteToken(id)
@@ -148,6 +153,7 @@ class ApiAccountApi(
     val schema: API.DeleteAccount.type = API.DeleteAccount
 
     def process(v: ApiVersion, path: ApiPath, s: String, req: Req, params: DefaultParams, t: AuthzToken): LiftResponse = {
+      implicit val qc: QueryContext = t.qc
       (for {
         id <- toId(s)
         r  <- service.deleteAccount(id).map(_.toList)
@@ -164,11 +170,11 @@ class ApiAccountApi(
 trait ApiAccountApiService {
   def getAccounts(): IOResult[List[ApiAccountDetails.Public]]
   def getAccount(id:         ApiAccountId): IOResult[Option[ApiAccountDetails.Public]]
-  def createAccount(account: NewRestApiAccount): IOResult[ApiAccountDetails]
-  def updateAccount(id:      ApiAccountId, data: UpdateApiAccount): IOResult[ApiAccountDetails.Public]
-  def regenerateToken(id:    ApiAccountId): IOResult[ApiAccountDetails]
-  def deleteToken(id:        ApiAccountId): IOResult[ApiAccountDetails]
-  def deleteAccount(id:      ApiAccountId): IOResult[Option[ApiAccountDetails.Public]]
+  def createAccount(account: NewRestApiAccount)(using QueryContext): IOResult[ApiAccountDetails]
+  def updateAccount(id:      ApiAccountId, data: UpdateApiAccount)(using QueryContext): IOResult[ApiAccountDetails.Public]
+  def regenerateToken(id:    ApiAccountId)(using QueryContext): IOResult[ApiAccountDetails]
+  def deleteToken(id:        ApiAccountId)(using QueryContext): IOResult[ApiAccountDetails]
+  def deleteAccount(id:      ApiAccountId)(using QueryContext): IOResult[Option[ApiAccountDetails.Public]]
 }
 
 class ApiAccountApiServiceV1(
@@ -209,7 +215,7 @@ class ApiAccountApiServiceV1(
     getOptPublicApiAccount(id).map(_.map(_.transformInto[ApiAccountDetails.Public]))
   }
 
-  override def createAccount(data: NewRestApiAccount): IOResult[ApiAccountDetails] = {
+  override def createAccount(data: NewRestApiAccount)(using qc: QueryContext): IOResult[ApiAccountDetails] = {
     for {
       pair <- mapper.fromNewApiAccount(data)
       // check that that account doesn't already exist
@@ -218,7 +224,7 @@ class ApiAccountApiServiceV1(
                   ZIO.unit
                 case Some(a) => Inconsistency(s"Error: an account with id ${a.id.value} already exists").fail
               }
-      _    <- writeApi.save(pair._1, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor)
+      _    <- writeApi.save(pair._1, ModificationId(uuidGen.newUuid), qc.actor)
     } yield {
       pair._2 match {
         case Some(s) => mapper.toDetailsWithSecret(pair._1, s)
@@ -227,36 +233,38 @@ class ApiAccountApiServiceV1(
     }
   }
 
-  override def updateAccount(id: ApiAccountId, data: UpdateApiAccount): IOResult[ApiAccountDetails.Public] = {
+  override def updateAccount(id: ApiAccountId, data: UpdateApiAccount)(using
+      qc: QueryContext
+  ): IOResult[ApiAccountDetails.Public] = {
     for {
       a  <- getPublicApiAccount(id)
       up <- mapper.update(a, data).toIO
-      _  <- writeApi.save(up, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor)
+      _  <- writeApi.save(up, ModificationId(uuidGen.newUuid), qc.actor)
     } yield up.transformInto[ApiAccountDetails.Public]
   }
 
-  override def regenerateToken(id: ApiAccountId): IOResult[ApiAccountDetails] = {
+  override def regenerateToken(id: ApiAccountId)(using qc: QueryContext): IOResult[ApiAccountDetails] = {
     for {
       a    <- getPublicApiAccount(id)
       pair <- mapper.updateToken(a)
-      _    <- writeApi.save(pair._1, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor)
+      _    <- writeApi.save(pair._1, ModificationId(uuidGen.newUuid), qc.actor)
     } yield mapper.toDetailsWithSecret.tupled(pair)
   }
 
-  override def deleteToken(id: ApiAccountId): IOResult[ApiAccountDetails] = {
+  override def deleteToken(id: ApiAccountId)(using qc: QueryContext): IOResult[ApiAccountDetails] = {
     for {
       a <- getPublicApiAccount(id)
       u  = a.modify(_.token).setTo(None)
-      _ <- writeApi.save(u, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor)
+      _ <- writeApi.save(u, ModificationId(uuidGen.newUuid), qc.actor)
     } yield u.transformInto[ApiAccountDetails.Public]
   }
 
-  override def deleteAccount(id: ApiAccountId): IOResult[Option[ApiAccountDetails.Public]] = {
+  override def deleteAccount(id: ApiAccountId)(using qc: QueryContext): IOResult[Option[ApiAccountDetails.Public]] = {
     for {
       opt <- getOptPublicApiAccount(id)
       _   <- opt match {
                case None    => None.succeed
-               case Some(_) => writeApi.delete(id, ModificationId(uuidGen.newUuid), userService.getCurrentUser.actor)
+               case Some(_) => writeApi.delete(id, ModificationId(uuidGen.newUuid), qc.actor)
              }
     } yield opt.map(_.transformInto[ApiAccountDetails.Public])
   }

@@ -1758,9 +1758,8 @@ object RudderConfigInit {
 
     lazy val tokenGenerator = new TokenGeneratorImpl(32)
 
-    implicit lazy val userService = new UserService {
-      def getCurrentUser: AuthenticatedUser = CurrentUser
-    }
+    // implementation of user lookup using the `onBeginServicing` from LiftRules to set the current user
+    implicit lazy val userService: UserService = CurrentUser
 
     lazy val userRepository:   UserRepository = new JdbcUserRepository(doobie)
     // batch for cleaning users
@@ -1810,7 +1809,7 @@ object RudderConfigInit {
       userService,
       linkUtil
     )
-    lazy val restCompletion  = new RestCompletion(new RestCompletionService(roDirectiveRepository, roRuleRepository))
+    lazy val restCompletion  = new RestCompletion(new RestCompletionService(roDirectiveRepository, roRuleRepository), userService)
 
     lazy val clearCacheService = new ClearCacheServiceImpl(
       nodeConfigurationHashRepo,

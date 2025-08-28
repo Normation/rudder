@@ -41,7 +41,6 @@ import com.normation.eventlog.EventActor
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.Rights
 import com.normation.rudder.Role
-import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAuthorization
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.facts.nodes.QueryContext
@@ -58,17 +57,6 @@ import scala.jdk.CollectionConverters.*
  * User related data structures related to authentication and bridging with Spring-security.
  * Base UserDetails and UserSession structure are defined in rudder-core.
  */
-
-/**
- * Rudder user details must know if the account is for a
- * rudder user or an api account, and in the case of an
- * api account, what sub-case of it.
- */
-sealed trait RudderAccount
-object RudderAccount {
-  final case class User(login: String, password: UserPassword) extends RudderAccount
-  final case class Api(api: ApiAccount)                        extends RudderAccount
-}
 
 /**
  * We don't use at all Spring Authority to implements
@@ -115,27 +103,28 @@ case class RudderUserDetail(
     roles:     Set[Role],
     apiAuthz:  ApiAuthorization,
     nodePerms: NodeSecurityContext
-) extends UserDetails {
+) extends UserDetails with AuthenticatedUser {
   // merge roles rights
-  val authz: Rights = Rights(roles.flatMap(_.rights.authorizationTypes))
+  override val authz: Rights = Rights(roles.flatMap(_.rights.authorizationTypes))
 
   val isAdmin: Boolean = {
     (AuthorizationType.AnyRights +: AuthorizationType.Administration.values).exists(authz.authorizationTypes.contains)
   }
 
   override val (getUsername, getPassword, getAuthorities) = account match {
-    case RudderAccount.User(login, h: HashedUserPassword) => (login, h.exposeValue(), RudderAuthType.User.grantedAuthorities)
-    case RudderAccount.User(login, r: RandomHexaPassword) => (login, r.randomValue, RudderAuthType.User.grantedAuthorities)
-    case RudderAccount.User(login, _)                     => (login, "", RudderAuthType.User.grantedAuthorities)
+    case RudderAccount.User(_, h: HashedUserPassword) => (login, h.exposeValue(), RudderAuthType.User.grantedAuthorities)
+    case RudderAccount.User(_, r: RandomHexaPassword) => (login, r.randomValue, RudderAuthType.User.grantedAuthorities)
+    case RudderAccount.User(_, _)                     => (login, "", RudderAuthType.User.grantedAuthorities)
     // We can default to "" as this value is ot used for authentication.
-    case RudderAccount.Api(api)                           =>
-      (api.name.value, api.token.flatMap(_.exposeHash()).getOrElse(""), RudderAuthType.Api.grantedAuthorities)
+    case RudderAccount.Api(api)                       =>
+      (login, api.token.flatMap(_.exposeHash()).getOrElse(""), RudderAuthType.Api.grantedAuthorities)
   }
   override val isAccountNonExpired                        = true
   override val isAccountNonLocked                         = true
   override val isCredentialsNonExpired                    = true
-  override val isEnabled:                   Boolean = status == UserStatus.Active
-  def checkRights(auth: AuthorizationType): Boolean = {
+  override val isEnabled: Boolean = status == UserStatus.Active
+
+  override def checkRights(auth: AuthorizationType): Boolean = {
     if (authz.authorizationTypes.contains(AuthorizationType.NoRights)) false
     else if (authz.authorizationTypes.contains(AuthorizationType.AnyRights)) true
     else {
@@ -144,27 +133,6 @@ case class RudderUserDetail(
         case _                          => authz.authorizationTypes.contains(auth)
       }
     }
-  }
-}
-
-/**
- * An authenticated user with the relevant authentication information. That structure
- * will be kept in session (or for API, in the request processing).
- */
-trait AuthenticatedUser {
-  def user:    Option[RudderAccount.User]
-  def account: Option[ApiAccount]
-  def checkRights(auth: AuthorizationType): Boolean
-  def getApiAuthz: ApiAuthorization
-  final def actor: EventActor = EventActor((user, account) match {
-    case (Some(user), _)    => user.login
-    case (_, Some(account)) => account.name.value
-    case (None, None)       => "unknown"
-  })
-  def nodePerms:   NodeSecurityContext
-
-  def queryContext: QueryContext = {
-    QueryContext(actor, nodePerms)
   }
 }
 
@@ -178,42 +146,32 @@ trait AuthenticatedUser {
  * We can't use ContainerVar because spring migrates jetty session and we don't want
  * to impose a MigratingSession to everything just to that variable.
  */
-object CurrentUser extends RequestVar[Option[RudderUserDetail]](None) with AuthenticatedUser {
+object CurrentUser extends RequestVar[Option[RudderUserDetail]](None) with UserService {
   // it's ok if that request var is not read in all/most request - but it must be
   // set in case it's needed.
   override def logUnreadVal = false
+
+  override def getCurrentUser: Option[AuthenticatedUser] = this.get
 
   def getRights: Rights = this.get match {
     case Some(u) => u.authz
     case None    => Rights.forAuthzs(AuthorizationType.NoRights)
   }
 
-  def account: Option[ApiAccount] = this.get match {
-    case Some(RudderUserDetail(RudderAccount.Api(apiAccount), _, _, _, _)) => Some(apiAccount)
-    case _                                                                 => None
-  }
+  //  This is used only in snippets. It could be a more generic query context, which could be empty, which impacts snippets
+  def queryContext: QueryContext =
+    getCurrentUser.map(_.qc).getOrElse(QueryContext(EventActor("unknown"), NodeSecurityContext.None))
 
-  def user: Option[RudderAccount.User] = this.get match {
-    case Some(RudderUserDetail(user: RudderAccount.User, _, _, _, _)) => Some(user)
-    case _                                                            => None
-  }
+  def nodePerms: NodeSecurityContext = getCurrentUser.map(_.nodePerms).getOrElse(NodeSecurityContext.None)
 
-  def getApiAuthz: ApiAuthorization = {
-    this.get match {
-      case None    => ApiAuthorization.None
-      case Some(u) => u.apiAuthz
-    }
-  }
+  def actor: EventActor = getCurrentUser.map(_.qc.actor).getOrElse(EventActor("unknown"))
 
-  def nodePerms: NodeSecurityContext = this.get match {
-    case Some(u) => u.nodePerms
-    case None    => NodeSecurityContext.None
-  }
-
-  override def checkRights(auth: AuthorizationType): Boolean = {
-    this.get match {
-      case Some(u) => u.checkRights(auth)
-      case None    => false
+  // Eagerly evaluate the variable to obtain the current user, since there may be lifetime issue with the RequestVar
+  // see https://issues.rudder.io/issues/26605
+  def checkRights: AuthorizationType => Boolean = {
+    getCurrentUser match {
+      case Some(u) => u.checkRights
+      case None    => _ => false
     }
   }
 }

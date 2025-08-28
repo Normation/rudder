@@ -253,7 +253,7 @@ class SharedFilesAPI(
       implicit val prettify = false
       implicit val action: String = "readFileResource"
 
-      OldInternalApiAuthz.withReadConfig {
+      OldInternalApiAuthz.withReadConfig(userService.getCurrentUser) {
         (req.params.get("action") match {
           case None                    => Failure("'action' is not defined in request")
           case Some("download" :: Nil) =>

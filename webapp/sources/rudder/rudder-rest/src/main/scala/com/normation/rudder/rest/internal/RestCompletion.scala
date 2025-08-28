@@ -42,12 +42,14 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestUtils.*
+import com.normation.rudder.users.UserService
 import net.liftweb.common.*
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JsonDSL.*
 
 class RestCompletion(
-    completion: RestCompletionService
+    completion:  RestCompletionService,
+    userService: UserService
 ) extends RestHelper with Loggable {
 
   serve {
@@ -55,7 +57,7 @@ class RestCompletion(
       implicit val prettify = false
       implicit val action: String = "completeTagsKey"
 
-      OldInternalApiAuthz.withReadConfig {
+      OldInternalApiAuthz.withReadConfig(userService.getCurrentUser) {
         val fetchTags = if (kind == "directive") {
           completion.findDirectiveTagNames(token)
         } else {
@@ -77,7 +79,7 @@ class RestCompletion(
       implicit val prettify = false
       implicit val action: String = "completeTagsValue"
 
-      OldInternalApiAuthz.withReadConfig {
+      OldInternalApiAuthz.withReadConfig(userService.getCurrentUser) {
 
         val fetchTags = if (kind == "directive") {
           completion.findDirectiveTagValues(token, None)
