@@ -50,8 +50,9 @@ methodsList model =
     Introduction -> text""
     _ ->
       let
-        filter = model.methodsUI.filter
-        filterMethods = List.filter ( filterMethod filter )  (Dict.values model.methods)
+        methodsUI = model.methodsUI
+        filter = methodsUI.filter
+        filterMethods = List.filter ( filterMethod methodsUI )  (Dict.values model.methods)
         methodByCategories = Dict.Extra.groupBy (\m -> Maybe.withDefault m.id.value (List.head (String.split "_" m.id.value)) |> String.Extra.toTitleCase) (filterMethods)
 
         block = element "li"
@@ -151,17 +152,23 @@ methodsList model =
          ]
        ]
 
-filterMethod: MethodFilter -> Method -> Bool
-filterMethod filter method =
-  (String.contains (String.toUpper filter.name) (String.toUpper method.name)) &&
-    ( case filter.agent of
+filterMethod: MethodListUI -> Method -> Bool
+filterMethod methodsUI method =
+  let
+    filter = methodsUI.filter
+    nameCheck = String.contains (String.toUpper filter.name) (String.toUpper method.name)
+    agentCheck = case filter.agent of
       Nothing -> True
       Just ag -> List.member ag method.agentSupport
-    ) && (filter.showDeprecated ||
-           case method.deprecated of
-             Nothing -> True
-             _ -> False
-         )
+    deprecatedCheck = filter.showDeprecated ||
+      case method.deprecated of
+        Nothing -> True
+        _ -> False
+    docOpenedCheck = List.member method.id methodsUI.docsOpen
+  in
+    ( nameCheck && agentCheck && deprecatedCheck
+    || docOpenedCheck
+    )
 
 showMethodsCategories : Model -> (String, List  Method) -> Element Msg
 showMethodsCategories model (category, methods) =
