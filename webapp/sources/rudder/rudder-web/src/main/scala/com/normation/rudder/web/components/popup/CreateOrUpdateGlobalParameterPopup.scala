@@ -37,9 +37,11 @@
 package com.normation.rudder.web.components.popup
 
 import bootstrap.liftweb.RudderConfig
+import cats.syntax.applicativeError.*
 import com.normation.GitVersion
 import com.normation.box.*
 import com.normation.errors.PureResult
+import com.normation.errors.SystemError
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.InventoryError.Inconsistency
 import com.normation.rudder.domain.properties.AddGlobalParameterDiff
@@ -59,6 +61,7 @@ import com.normation.rudder.services.workflows.GlobalParamModAction
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.*
+import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigValue
 import com.typesafe.config.ConfigValueType
 import net.liftweb.common.*
@@ -127,9 +130,20 @@ class CreateOrUpdateGlobalParameterPopup(
     import GenericProperty.*
     for {
       // in case of string, we need to force parse as string
-      v <- if (jsonRequired) GenericProperty.parseValue(value) else Right(value.toConfigValue)
+      v <- if (jsonRequired) {
+             GenericProperty.parseValue(value).adaptErr {
+               // a system error displays full trace, but for an invalid JSON we only want a message
+               case SystemError(_, ex: ConfigException.Parse) => Inconsistency(s"The JSON value is invalid: ${ex.getMessage}")
+             }
+           } else {
+             Right(value.toConfigValue)
+           }
       _ <- if (jsonRequired && v.valueType() == ConfigValueType.STRING) {
-             Left(Inconsistency("JSON check is enabled, but the value format is invalid."))
+             Left(
+               Inconsistency(
+                 "JSON check is enabled, but the value appears to be a String. Please select the String format instead."
+               )
+             )
            } else Right(())
     } yield {
       v
@@ -188,7 +202,7 @@ class CreateOrUpdateGlobalParameterPopup(
         case Full(res) =>
           res
         case eb: EmptyBox =>
-          val msg = (eb ?~! "An error occurred while updating the parameter").messageChain
+          val msg = (eb ?~! s"An error occurred while attempting to ${change.action.name} the parameter").messageChain
           logger.error(msg)
           formTracker.addFormError(error(msg))
           onFailure
