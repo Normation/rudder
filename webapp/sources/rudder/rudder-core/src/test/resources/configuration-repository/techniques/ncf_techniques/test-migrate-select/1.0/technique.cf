@@ -1,0 +1,44 @@
+# @name test
+# @version 1.0
+
+bundle agent test(test) {
+
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
+
+    "args"              slist => {"${test}"};
+    "report_param"      string => join("_", args);
+    "full_class_prefix" string => canonify("test_${report_param}");
+    "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
+    "pass3" expression => "pass2";
+    "pass2" expression => "pass1";
+    "pass1" expression => "any";
+
+  methods:
+    "index_${local_index}_0" usebundle => call_test_c7b5c43e_3bd2_492f_b926_de6ceb200a94("Command execution", "/bin/echo \"toto\"", "c7b5c43e-3bd2-492f-b926-de6ceb200a94", @{args}, "${class_prefix}", "/bin/echo \"toto\""),
+                                    if => "pass3";
+
+}
+bundle agent call_test_c7b5c43e_3bd2_492f_b926_de6ceb200a94(c_name, c_key, report_id, args, class_prefix, command) {
+
+  vars:
+    "report_data.index" int => int(eval("${report_data.index}+1", "math", "infix")),
+                           unless => "rudder_increment_guard";
+    "local_index"       int => ${report_data.index},
+                           unless => "rudder_increment_guard";
+
+  classes:
+    "rudder_increment_guard" expression => "any";
+
+  methods:
+    "index_${local_index}_0" usebundle => _method_reporting_context_v4("${c_name}", "${c_key}", "${report_id}");
+    "index_${local_index}_1" usebundle => command_execution("${command}");
+
+}
