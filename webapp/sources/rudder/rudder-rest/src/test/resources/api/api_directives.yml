@@ -2094,6 +2094,11 @@ response:
                     ]
                   },
                   {
+                    "id" : "test-migrate-select",
+                    "name" : "test-migrate-select",
+                    "directives" : []
+                  },
+                  {
                     "id": "test_import_export_archive",
                     "name": "test import/export archive",
                     "directives": [
@@ -2108,8 +2113,7 @@ response:
                           "section":{
                             "name":"sections",
                             "sections":[]
-                          }
-                        },
+                          }                        },
                         "priority":5,
                         "enabled": true,
                         "system": false,

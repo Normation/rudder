@@ -690,7 +690,10 @@ class ArchiveApiTest extends Specification with AfterAll with Loggable {
             "test_18205",
             "1.0",
             "metadata.xml",
-            "test_18205.st"
+            "test_18205.st",
+            "test-migrate-select",
+            "technique.yml",
+            "1.0"
           )
         )
 
