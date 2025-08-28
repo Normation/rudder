@@ -38,8 +38,8 @@
 package com.normation.rudder.users
 
 /**
- * A minimalistic definition of a service that give access to currently logged user .
+ * A minimalistic definition of a service that give access to currently logged user, if any.
  */
 trait UserService {
-  def getCurrentUser: AuthenticatedUser
+  def getCurrentUser: Option[AuthenticatedUser]
 }

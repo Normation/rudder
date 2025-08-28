@@ -236,6 +236,21 @@ import zio.test.*
  *   services and lift test framework)
  */
 
+/**
+ * A stub user service with full rights to API
+ */
+class TestUserService extends UserService {
+  val user:                    AuthenticatedUser         = new AuthenticatedUser {
+    override val account:   RudderAccount       = RudderAccount.User("test-user", UserPassword.unsafeHashed("pass"))
+    override val authz:     Rights              = Rights.AnyRights
+    override val apiAuthz:  ApiAuthz            = ApiAuthz.allAuthz
+    override val nodePerms: NodeSecurityContext = NodeSecurityContext.All
+
+    override def checkRights(auth: AuthorizationType): Boolean = true
+  }
+  override val getCurrentUser: Option[AuthenticatedUser] = Some(user)
+}
+
 /*
  * Mock everything needed to test rest API, ie almost a whole rudder.
  * One can customize API version, but by default they match the one supported in Rudder.
@@ -243,16 +258,6 @@ import zio.test.*
 class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiVersions) {
 
   implicit val userService: TestUserService = new TestUserService
-  class TestUserService extends UserService {
-    val user:           AuthenticatedUser = new AuthenticatedUser {
-      val user:    Option[RudderAccount.User] = Some(RudderAccount.User("test-user", UserPassword.unsafeHashed("pass")))
-      val account: Option[ApiAccount]         = None
-      def checkRights(auth: AuthorizationType) = true
-      def getApiAuthz: ApiAuthz            = ApiAuthz.allAuthz
-      def nodePerms:   NodeSecurityContext = NodeSecurityContext.All
-    }
-    val getCurrentUser: AuthenticatedUser = user
-  }
 
   // Instantiate Service needed to feed System API constructor
 
@@ -832,8 +837,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
   }
 
   val systemApi = new SystemApi(apiService11, apiService13, TestSystemInfoService)
-  val authzToken:       AuthzToken = AuthzToken(userService.getCurrentUser.queryContext)
-  val systemStatusPath: String     = "api" + systemApi.Status.schema.path
+  val systemStatusPath: String = "api" + systemApi.Status.schema.path
 
   val softDao = mockNodes.softwareDao
   val roReportsExecutionRepository: RoReportsExecutionRepository = new RoReportsExecutionRepository {

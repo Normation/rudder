@@ -47,6 +47,7 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides.*
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.JsTreeNode
 import com.normation.rudder.web.snippet.WithNonce
 import net.liftweb.common.Loggable
@@ -115,8 +116,7 @@ object AgentCompat {
 
 object DisplayDirectiveTree extends Loggable {
 
-  private val linkUtil    = RudderConfig.linkUtil
-  private val userService = RudderConfig.userService
+  private val linkUtil = RudderConfig.linkUtil
 
   /**
    * Display the directive tree, optionaly filtering out
@@ -239,7 +239,7 @@ object DisplayDirectiveTree extends Loggable {
             val btnCreateDirective = createDirective match {
               case Some(newDirective) =>
                 import net.liftweb.http.js.JsExp.*
-                if (userService.getCurrentUser.checkRights(AuthorizationType.Directive.Write)) {
+                if (CurrentUser.checkRights(AuthorizationType.Directive.Write)) {
                   <span class="btn btn-success btn-xs create" style="opacity: 0;" onclick={
                     s"""event.preventDefault();event.stopPropagation();${SHtml.ajaxCall(
                         "",
