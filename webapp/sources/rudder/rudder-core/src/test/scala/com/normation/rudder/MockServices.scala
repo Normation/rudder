@@ -313,7 +313,7 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     reportsDbPassword = "secret",
     configurationRepository = configurationRepositoryRoot.pathAsString,
     serverVersion = "7.0.0",                // denybadclocks is runtime properties
-    PolicyServerCertificateConfig(Nil, "", false),
+    PolicyServerCertificateConfig(Nil, "", false, false),
     getDenyBadClocks = () => Full(true),
     getSyncMethod = () => Full(Classic),
     getSyncPromises = () => Full(false),

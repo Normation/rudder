@@ -787,7 +787,7 @@ class TestNodeConfiguration(
     reportsDbPassword = "secret",
     configurationRepository = configurationRepositoryRoot.getAbsolutePath,
     serverVersion = "7.0.0",                // denybadclocks is runtime properties
-    PolicyServerCertificateConfig("sha256//Pxjkq/Qlp02j8Q3ti3M1khEaUTL7Dxcz8sLOfGcg5rQ=" :: Nil, "", false),
+    PolicyServerCertificateConfig("sha256//Pxjkq/Qlp02j8Q3ti3M1khEaUTL7Dxcz8sLOfGcg5rQ=" :: Nil, "", false, false),
     getDenyBadClocks = () => Full(true),
     getSyncMethod = () => Full(Classic),
     getSyncPromises = () => Full(false),
@@ -814,7 +814,7 @@ class TestNodeConfiguration(
     reportsDbPassword = "secret",
     configurationRepository = configurationRepositoryRoot.getAbsolutePath,
     serverVersion = "7.0.0",                // denybadclocks is runtime properties
-    PolicyServerCertificateConfig(Nil, "", false),
+    PolicyServerCertificateConfig(Nil, "", false, false),
     getDenyBadClocks = () => Full(true),
     getSyncMethod = () => Full(Classic),
     getSyncPromises = () => Full(false),

@@ -407,8 +407,14 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       constraint = Constraint(mayBeEmpty = true)
     ),
     SystemVariableSpec(
-      "POLICY_SERVER_SECURE_VALIDATION",
-      "Check policy server certificate name",
+      "POLICY_SERVER_CERT_VALIDATION",
+      "Check policy server certificate validity",
+      multivalued = false,
+      constraint = Constraint(mayBeEmpty = true)
+    ),
+    SystemVariableSpec(
+      "POLICY_SERVER_HTTPS_ONLY",
+      "Only allow communications over HTTPS",
       multivalued = false,
       constraint = Constraint(mayBeEmpty = true)
     ),

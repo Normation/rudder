@@ -561,7 +561,12 @@ object RudderParsedProperties {
       case _:  ConfigException => ""
     },
     try {
-      config.getBoolean("rudder.server.certificate.nameValidation")
+      config.getBoolean("rudder.server.certificate.validation")
+    } catch {
+      case _:  ConfigException => false
+    },
+    try {
+      config.getBoolean("rudder.server.certificate.httpsOnly")
     } catch {
       case _:  ConfigException => false
     }
