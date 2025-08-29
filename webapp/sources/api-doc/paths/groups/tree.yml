@@ -10,8 +10,8 @@ get:
       required: false
       schema:
         type: boolean
-        default: true
-      example: false
+        default: false
+      example: true
       description: Whether to include system categories and groups in results.
   responses:
     "200":
