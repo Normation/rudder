@@ -1,7 +1,18 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2025 Normation SAS
 get:
   summary: Get directive tree
   description: Get all information about all directives in a tree like structure (with categories and techniques)
   operationId: directivesTree
+  parameters:
+    - name: "includeSystem"
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
+      example: true
+      description: Should we include system techniques and categories in the tree or not.
   requestBody:
     required: false
     content:
@@ -12,7 +23,7 @@ get:
             includeSystem:
               type: boolean
               example: false
-              description: Should we include or not system techniques and categories in the tree.
+              description: Should we include system techniques and categories in the tree or not.
   responses:
     '200':
       description: Directives tree
@@ -20,10 +31,10 @@ get:
         application/json:
           schema:
             type: object
-              required:
-                - result
-                - action
-                - data
+            required:
+              - result
+              - action
+              - data
             properties:
               result:
                 type: string
@@ -36,15 +47,15 @@ get:
                 description: The id of the action
                 enum:
                   - directivesTree
-            data:
-              type: object
-              required:
-                - directiveTree
-              properties:
-                directives:
-                    type: object
+              data:
+                type: object
+                required:
+                  - directives
+                properties:
+                  directives:
+                    type: array
                     items:
-                      $ref: ../../components/schemas/directiveTree.yml
+                      $ref: ../../components/schemas/directive-tree.yml
   tags:
     - Directives
   x-codeSamples:
