@@ -184,7 +184,7 @@ getGroupsTree model =
       request
         { method  = "GET"
         , headers = [header "X-Requested-With" "XMLHttpRequest"]
-        , url     = getUrl model ["groups", "tree"] []
+        , url     = getUrl model ["groups", "tree"] [Url.Builder.string "includeSystem" "true"]
         , body    = emptyBody
         , expect  = expectJson GetGroupsTreeResult decodeGetGroupsTree
         , timeout = Nothing

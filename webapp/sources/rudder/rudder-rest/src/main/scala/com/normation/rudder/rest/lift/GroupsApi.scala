@@ -263,7 +263,7 @@ class GroupsApi(
         includeSystem <- zioJsonExtractor.extractIncludeSystem(req).toIO
         res           <-
           service
-            .getCategoryTree(includeSystem.getOrElse(true))
+            .getCategoryTree(includeSystem.getOrElse(false))
             .map(JRGroupCategoriesFull(_))
             .chainError("Could not fetch Group tree")
       } yield {
