@@ -79,14 +79,12 @@ import com.normation.rudder.web.snippet.WithNonce
 import com.normation.zio.*
 import io.scalaland.chimney.syntax.*
 import java.net.URI
-import java.net.URLConnection
 import java.time.ZonedDateTime
 import java.util.Locale
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.provider.HTTPRequest
-import net.liftweb.http.rest.RestHelper
 import net.liftweb.sitemap.*
 import net.liftweb.sitemap.Loc.*
 import net.liftweb.util.TimeHelpers.*
@@ -279,43 +277,6 @@ object PluginsInfo {
       }
     }
     recApi(Nil, _plugins.values.toList)
-  }
-}
-
-////////// rewrites rules to remove the version from resources urls //////////
-//////////
-object StaticResourceRewrite extends RestHelper {
-  // prefix added to signal that the resource is cached
-  val prefix:                                  String                 = s"cache-${RudderConfig.rudderFullVersion}"
-  def headers(others: List[(String, String)]): List[(String, String)] = {
-    ("Cache-Control", "max-age=31556926, public") ::
-    ("Pragma", "") ::
-    ("Expires", DateTime.now.plusMonths(6).toString("EEE, d MMM yyyy HH':'mm':'ss 'GMT'")) ::
-    others
-  }
-
-  // the resource directory we want to server that way
-  val resources: Set[String] = Set("javascript", "style", "images", "toserve")
-  serve {
-    case Get(prefix_ :: resource :: tail, req) if (resources.contains(resource)) =>
-      val resourcePath = req.uri.replaceFirst(prefix_ + "/", "")
-      () => {
-        for {
-          url <- LiftRules.getResource(resourcePath)
-        } yield {
-          val contentType = URLConnection.guessContentTypeFromName(url.getFile) match {
-            // if we don't know the content type, skip the header: most of the time,
-            // browsers can live without it, but can't with a bad value in it
-            case null                         => Nil
-            case x if (x.contains("unknown")) => Nil
-            case x                            => ("Content-Type", x) :: Nil
-          }
-          val conn        = url.openConnection // will be local, so ~ efficient
-          val size        = conn.getContentLength.toLong
-          val in          = conn.getInputStream
-          StreamingResponse(in, () => in.close, size = size, headers(contentType), cookies = Nil, code = 200)
-        }
-      }
   }
 }
 
@@ -524,9 +485,9 @@ class Boot extends Loggable {
         }
     }
     // Resolve resources prefixed with the cache resource prefix
-    LiftRules.statelessDispatch.append(StaticResourceRewrite)
+    LiftRules.statelessDispatch.append(RudderConfig.staticResourceRewrite)
     // and tell lift to append rudder version when "with-resource-id" is used
-    LiftRules.attachResourceId = (path: String) => { "/" + StaticResourceRewrite.prefix + path }
+    LiftRules.attachResourceId = RudderConfig.staticResourceRewrite.prependResourceVersion
     LiftRules.snippetDispatch.append(Map("with-cached-resource" -> WithCachedResource))
 
     // REST API V1
