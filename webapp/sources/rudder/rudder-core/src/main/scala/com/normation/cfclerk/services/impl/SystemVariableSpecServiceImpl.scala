@@ -418,12 +418,6 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       multivalued = false,
       constraint = Constraint(mayBeEmpty = true)
     ),
-    // Deprecated, kept for compatibility with pre-8.0 agents
-    SystemVariableSpec(
-      "RUDDER_VERIFY_CERTIFICATES",
-      "Enforce certificate validation in all HTTPS calls",
-      multivalued = false
-    )
   )
 
   private val varSpecsMap = varSpecs.map(x => (x.name -> x)).toMap

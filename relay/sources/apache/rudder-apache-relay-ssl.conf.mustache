@@ -1,8 +1,4 @@
-# This file is templated by the agent according to these variables:
-#
-# cert_validation: bool
-# cert_pinning: bool
-# custom_ca_path: string
+# This file is templated by the agent
 
 DocumentRoot /var/www
 # We do not require mod_deflate as it is not strictly necessary
@@ -24,8 +20,6 @@ SSLUserName SSL_CLIENT_S_DN_UID
 SSLProtocol             -all +TLSv1.3
 SSLHonorCipherOrder     off
 SSLSessionTickets       off
-
-
 
 # Node-server communication
 # -------------------------

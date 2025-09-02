@@ -278,7 +278,7 @@ impl JobConfig {
                 let cert = fs::read(&cfg.output.upstream.server_certificate_file)?;
                 HttpClient::builder(cfg.general.https_idle_timeout).pinned(vec![cert])
             }
-            PeerAuthentication::SystemRootCerts => {
+            PeerAuthentication::CertValidation => {
                 HttpClient::builder(cfg.general.https_idle_timeout).system()
             }
             PeerAuthentication::DangerousNone => {
@@ -302,7 +302,7 @@ impl JobConfig {
                     };
                     HttpClient::builder(cfg.general.https_idle_timeout).pinned(certs)
                 }
-                PeerAuthentication::SystemRootCerts => {
+                PeerAuthentication::CertValidation => {
                     HttpClient::builder(cfg.general.https_idle_timeout).system()
                 }
                 PeerAuthentication::DangerousNone => {

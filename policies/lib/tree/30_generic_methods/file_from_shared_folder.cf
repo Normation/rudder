@@ -28,7 +28,6 @@
 # @parameter source      Source file (path, relative to /var/rudder/configuration-repository/shared-files)
 # @parameter path        Destination file (absolute path on the target node)
 # @parameter hash_type   Deprecated, now ignored.
-# @parameter_constraint hash_type "select" : [ "", "sha256", "sha512", "md5", "sha1" ]
 # @parameter_constraint hash_type "allow_empty_string" : true
 #
 #
@@ -42,10 +41,21 @@ bundle agent file_from_shared_folder(source, path, hash_type)
   vars:
       "class_prefix" string => "file_from_shared_folder_${canonified_path}";
 
+      "audit_arg"    string => "";
+    (global_dry_run|dry_run)::
+      "audit_arg"    string => "-a";
+
   classes:
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
+
+  commands:
+    pass2.!pass3.rudder_https_only::
+      "promises/download-shared-file -s ${source} -f ${path} ${audit_arg}"
+        args => "more args",
+        contain => contain_body,
+        module => "true";
 
   methods:
     pass3.!rudder_https_only::

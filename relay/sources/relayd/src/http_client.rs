@@ -16,7 +16,7 @@ lazy_static! {
     static ref USER_AGENT: String = format!("{}/{}", CRATE_NAME, CRATE_VERSION);
 }
 
-type PemCertificate = Vec<u8>;
+pub type PemCertificate = Vec<u8>;
 
 #[derive(Clone, Debug)]
 pub enum HttpClient {

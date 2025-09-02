@@ -607,11 +607,15 @@ rudder.server.certificate.additionalKeyHash=
 #
 # When enabled, the CFEngine network communications are completely disabled.
 #
+# WARNING: This setting is sensitive as the value is persisted on nodes.
+#
 rudder.server.certificate.httpsOnly=false
 
 #
 # Enable the certificate validation mode. Requires a proper PKI managed by the user
 # When false, the default public key pinning mode is used.
+#
+# WARNING: This setting is sensitive as the value is persisted on nodes.
 #
 rudder.server.certificate.validation=false
 
