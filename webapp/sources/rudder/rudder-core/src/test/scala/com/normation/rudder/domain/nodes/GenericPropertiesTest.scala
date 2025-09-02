@@ -39,6 +39,7 @@ package com.normation.rudder.domain.nodes
 
 import com.normation.BoxSpecMatcher
 import com.normation.errors.PureResult
+import com.normation.errors.RudderError
 import com.normation.rudder.domain.properties.GenericProperty
 import com.normation.rudder.domain.properties.GenericProperty.*
 import com.normation.rudder.domain.properties.NodeProperty
@@ -127,10 +128,14 @@ class GenericPropertiesTest extends Specification with Loggable with BoxSpecMatc
       (GenericProperty.parseValue(s) must beRight(ConfigValueFactory.fromMap(jmap(("a", "b")))))
     }
     "fails in a badly eneded json-like structure" in {
-      GenericProperty.parseValue("""{"a":"b" """) must beLeft
+      GenericProperty.parseValue("""{"a":"b" """) must beLeft[RudderError].like(
+        _.msg must beMatching("The JSON object or array is not valid.*")
+      )
     }
     "fails in a non key/value property structure" in {
-      GenericProperty.parseValue("""{"a"} """) must beLeft
+      GenericProperty.parseValue("""{"a"} """) must beLeft[RudderError].like(
+        _.msg must beMatching("The JSON object or array is not valid.*")
+      )
     }
   }
 

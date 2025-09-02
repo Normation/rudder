@@ -40,6 +40,7 @@ package com.normation.rudder.domain.properties
 import cats.data.Ior
 import cats.kernel.Monoid
 import cats.kernel.Semigroup
+import cats.syntax.either.*
 import cats.syntax.semigroup.*
 import com.normation.GitVersion
 import com.normation.GitVersion.Revision
@@ -473,7 +474,7 @@ object GenericProperty {
   /**
    * Parse a value that was correctly serialized to hocon (ie string are quoted, etc)
    */
-  def parseSerialisedValue(value: String): PureResult[ConfigValue] = {
+  def parseSerialisedValue(value: String): Either[SystemError, ConfigValue] = {
     PureResult.attempt(s"Error: value is not parsable as a property: ${value}") {
       ConfigFactory
         .parseString(
@@ -503,7 +504,10 @@ object GenericProperty {
           Right(ConfigValueFactory.fromAnyRef(value))
         // root can be an object or an array
         case Some(c) if (c == '{' || c == '[') =>
-          parseSerialisedValue(value)
+          // parsing error does not need stack trace here, simply the root cause message
+          parseSerialisedValue(value).leftMap(e =>
+            Inconsistency(s"The JSON object or array is not valid : ${e.msg}, ${e.cause.getMessage}")
+          )
         case _                                 => // it's a string that should be understood as a string
           Right(ConfigValueFactory.fromAnyRef(value))
       }
