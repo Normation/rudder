@@ -132,7 +132,11 @@ class CreateOrUpdateGlobalParameterPopup(
       // in case of string, we need to force parse as string
       v <- if (jsonRequired) GenericProperty.parseValue(value) else Right(value.toConfigValue)
       _ <- if (jsonRequired && v.valueType() == ConfigValueType.STRING) {
-             Left(Inconsistency("JSON check is enabled, but the value format is invalid."))
+             Left(
+               Inconsistency(
+                 "JSON check is enabled, but the value appears to be a String. Please select the String format instead."
+               )
+             )
            } else Right(())
     } yield {
       v
@@ -194,7 +198,7 @@ class CreateOrUpdateGlobalParameterPopup(
       }
 
       savedChangeRequest
-        .chainError("An error occurred while updating the parameter")
+        .chainError(s"An error occurred while attempting to ${change.action.name} the parameter")
         .either
         .runNow match {
         case Right(jsCmd) => jsCmd
