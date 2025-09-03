@@ -78,12 +78,23 @@ bundle agent rudder_actual_file_from_template_options(destination, engine, data,
   vars:
    # "datastate" string => string_mustache("{{%-top-}}"),
    #                    unless => isvariable($(this.promiser));
-   "datastate_file" string => "/var/rudder/tmp/datastate-${this.promiser_pid}.json";
+   # When passing custom data to fill the template, the data variable comes as a non escaped Json string.
+   # To avoid escaping issues we need to deserialize it, build the global module input and re-serialize it
+   "datastate_file"        string => "/var/rudder/tmp/datastate-${this.promiser_pid}.json";
+   "data_without_data"     data => parsejson('{ "path": "${destination}", "template_src": "${template_string}", "template_path": "${template_path}", engine: "${engine}", "show_content": ${show_content}, "datastate_path": "${datastate_file}" }');
+   pass1.!data_is_empty::
+     "data_as_data"          data => parsejson("${data}");
+     "module_inputs_as_data" data => mergedata("data_without_data", '{ "data": data_as_data }');
+   pass1.data_is_empty::
+     "module_inputs_as_data" data => mergedata("data_without_data", '{ "data": "" }');
+   pass1::
+     "module_inputs"       string => storejson("module_inputs_as_data");
 
   classes:
-      "pass3" expression => "pass2";
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
+      "pass3"         expression => "pass2";
+      "pass2"         expression => "pass1";
+      "pass1"         expression => "any";
+      "data_is_empty" expression => strcmp("${data}", "");
 
   files:
       "${datastate_file}"
@@ -110,5 +121,5 @@ bundle agent rudder_actual_file_from_template_options(destination, engine, data,
         node_id                 => "${g.uuid}",
         agent_frequency_minutes => "${g.agent_run_interval}",
         classes                 => classes_generic("${report_data.method_id}"),
-        data                    => '{ "path": "${destination}", "template_src": "${template_string}", "template_path": "${template_path}", engine: "${engine}", "show_content": ${show_content}, "data": "${data}", "datastate_path": "${datastate_file}" }';
+        data                    => "${module_inputs}";
 }
