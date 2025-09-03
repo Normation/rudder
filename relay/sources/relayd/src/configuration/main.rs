@@ -160,11 +160,19 @@ impl Configuration {
     pub fn warnings(&self) -> Vec<Error> {
         let mut warnings = vec![];
 
-        if self.peer_authentication() == PeerAuthentication::DangerousNone {
+        if self.peer_authentication().unwrap() == PeerAuthentication::DangerousNone {
             warnings.push(anyhow!("Certificate verification is disabled"));
         }
 
         warnings
+    }
+
+    pub fn upstream_url(&self) -> String {
+        format!(
+            // TODO compute once
+            "https://{}:{}/",
+            self.output.upstream.host, self.general.https_port
+        )
     }
 
     /// Read current node_id, and handle override by node_id
@@ -564,7 +572,8 @@ mod tests {
                 blocking_threads: None,
                 https_port: 443,
                 https_idle_timeout: Duration::from_secs(2),
-                peer_authentication: PeerAuthentication::CertValidation,
+                peer_authentication: PeerAuthenticationType::CertPinning,
+                ca_path: None,
             },
             processing: ProcessingConfig {
                 inventory: InventoryConfig {
@@ -664,7 +673,8 @@ mod tests {
                 blocking_threads: Some(512),
                 https_port: 4443,
                 https_idle_timeout: Duration::from_secs(42),
-                peer_authentication: PeerAuthentication::CertPinning,
+                peer_authentication: PeerAuthenticationType::CertPinning,
+                ca_path: None,
             },
             processing: ProcessingConfig {
                 inventory: InventoryConfig {

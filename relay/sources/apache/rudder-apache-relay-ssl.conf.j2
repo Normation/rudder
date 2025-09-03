@@ -24,23 +24,21 @@ SSLSessionTickets       off
 # Node-server communication
 # -------------------------
 
-{{#cert_validation}}
-{{#custom_ca_path}}
-# User provided CA
-SSLCACertificateFile {{custom_ca_path}}
-{{/custom_ca_path}}
-{{/cert_validation}}
-
-{{^cert_validation}}
 # Key/Certificate used by the server for nodes communication
 SSLCertificateFile     /opt/rudder/etc/ssl/agent.cert
 SSLCertificateKeyFile  /var/rudder/cfengine-community/ppkeys/localhost.priv
 
+{% if classes.rudder_cert_validation is defined and vars.custom_ca_path is defined %}
+# User provided CA
+SSLCACertificateFile {{vars.custom_ca_path}}
+{% endif %}
+
+{% if classes.rudder_cert_validation is not defined %}
 # List of allowed certificates
 SSLCACertificateFile   /var/rudder/lib/ssl/nodescerts.pem
 # Set the list of accepted CA to send to then client when an authentication is needed
 SSLCADNRequestFile     /var/rudder/lib/ssl/policy_server.pem
-{{/cert_validation}}
+{% endif %}
 
 
 # Provide nodes policies
@@ -137,9 +135,9 @@ Alias /inventory-updates /var/rudder/inventories/accepted-nodes-updates
 # WebDAV share to receive reports
 Alias /reports /var/rudder/reports/incoming
 <Directory /var/rudder/reports/incoming>
-{{#cert_validation}}
+{% if classes.rudder_cert_validation is defined %}
   SSLVerifyClient require
-{{/cert_validation}}
+{% endif %}
 
   DAV on
   AuthName "WebDAV Storage"
@@ -181,16 +179,16 @@ ProxyPass /rudder/relay-api/ http://127.0.0.1:3030/rudder/relay-api/1/
 
 
 <Location /rudder/relay-api/shared-files>
-{{#cert_validation}}
+{% if classes.rudder_cert_validation is defined %}
   SSLVerifyClient require
-{{/cert_validation}}
+{% endif %}
   Include /opt/rudder/etc/rudder-networks-24.conf
 </Location>
 
 <Location /rudder/relay-api/remote-run>
-{{#cert_validation}}
+{% if classes.rudder_cert_validation is defined %}
   SSLVerifyClient require
-{{/cert_validation}}
+{% endif %}
   Include /opt/rudder/etc/rudder-networks-policy-server-24.conf
 </Location>
 

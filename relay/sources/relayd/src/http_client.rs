@@ -76,6 +76,13 @@ impl HttpClientBuilder {
         Ok(HttpClient::System(self.builder.build()?))
     }
 
+    pub fn custom_ca(self, ca: &PemCertificate) -> Result<HttpClient, Error> {
+        debug!("Creating HTTP client with custom CA");
+        let mut client = self.builder;
+        client = client.add_root_certificate(Certificate::from_pem(ca)?);
+        Ok(HttpClient::System(client.build()?))
+    }
+
     pub fn no_verify(self) -> Result<HttpClient, Error> {
         debug!("Creating HTTP client with no certificate verification");
         Ok(HttpClient::System(

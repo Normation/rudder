@@ -417,7 +417,7 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       "Only allow communications over HTTPS",
       multivalued = false,
       constraint = Constraint(mayBeEmpty = true)
-    ),
+    )
   )
 
   private val varSpecsMap = varSpecs.map(x => (x.name -> x)).toMap
