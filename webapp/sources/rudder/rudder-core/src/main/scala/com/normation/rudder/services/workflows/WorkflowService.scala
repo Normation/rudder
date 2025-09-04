@@ -54,7 +54,7 @@ import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.workflows.*
 import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.users.AuthenticatedUser
 import net.liftweb.common.*
 import zio.syntax.ToZio
 
@@ -225,16 +225,10 @@ trait WorkflowService {
 
   def stepsValue: List[WorkflowNodeId]
 
-  def findNextSteps(
-      currentUserRights: Seq[String],
-      currentStep:       WorkflowNodeId,
-      isCreator:         Boolean
-  )(implicit qc: QueryContext): WorkflowAction
+  def findNextSteps(currentStep: WorkflowNodeId)(implicit auth: AuthenticatedUser): WorkflowAction
 
-  def findBackSteps(
-      currentUserRights: Seq[String],
-      currentStep:       WorkflowNodeId,
-      isCreator:         Boolean
+  def findBackSteps(currentStep: WorkflowNodeId)(implicit
+      auth: AuthenticatedUser
   ): Seq[(WorkflowNodeId, (ChangeRequestId, EventActor, Option[String]) => IOResult[WorkflowNodeId])]
 
   def findStep(changeRequestId: ChangeRequestId): IOResult[WorkflowNodeId]
@@ -281,16 +275,10 @@ class NoWorkflowServiceImpl(
 
   val name = "no-changes-validation-workflow"
 
-  def findNextSteps(
-      currentUserRights: Seq[String],
-      currentStep:       WorkflowNodeId,
-      isCreator:         Boolean
-  )(implicit qc: QueryContext): WorkflowAction = NoWorkflowAction
+  def findNextSteps(currentStep: WorkflowNodeId)(implicit authz: AuthenticatedUser): WorkflowAction = NoWorkflowAction
 
-  def findBackSteps(
-      currentUserRights: Seq[String],
-      currentStep:       WorkflowNodeId,
-      isCreator:         Boolean
+  def findBackSteps(currentStep: WorkflowNodeId)(implicit
+      auth: AuthenticatedUser
   ): Seq[(WorkflowNodeId, (ChangeRequestId, EventActor, Option[String]) => IOResult[WorkflowNodeId])] = Seq()
 
   def findStep(changeRequestId: ChangeRequestId): IOResult[WorkflowNodeId] = Inconsistency("No state when no workflow").fail
