@@ -543,29 +543,66 @@ object RudderParsedProperties {
     }
   }
 
-  val RUDDER_SERVER_CERTIFICATE_CONFIG: PolicyServerCertificateConfig = PolicyServerCertificateConfig(
-    try {
-      config
-        .getString("rudder.server.certificate.additionalKeyHash")
-        .split(";")
-        .collect { case s if (s.strip().nonEmpty) => s.strip() }
-        .toList
-    } catch {
-      case ex: ConfigException =>
-        println(ex.getMessage)
-        Nil
-    },
-    try {
-      config.getString("rudder.server.certificate.ca.path")
-    } catch {
-      case _:  ConfigException => ""
-    },
-    try {
-      config.getBoolean("rudder.server.certificate.nameValidation")
-    } catch {
-      case _:  ConfigException => false
+  val RUDDER_SERVER_CERTIFICATE_CONFIG: PolicyServerCertificateConfig = {
+    val certValidation = {
+      try {
+        config.getBoolean("rudder.server.certificate.validation")
+      } catch {
+        case _: ConfigException => false
+      }
     }
-  )
+    val httpsOnly      = {
+      try {
+        config.getBoolean("rudder.server.certificate.httpsOnly")
+      } catch {
+        case _: ConfigException => false
+      }
+    }
+    val CAPath         = {
+      try {
+        config.getString("rudder.server.certificate.ca.path")
+      } catch {
+        case _: ConfigException => ""
+      }
+    }
+    val CApem          = {
+      if (CAPath.isEmpty) { "" }
+      else {
+        try {
+          better.files.File(CAPath).contentAsString()
+        } catch {
+          case ex: Exception => {
+            ApplicationLogger.error(
+              s"Could not open CA path ${CAPath}: ${ex.getMessage}"
+            )
+            ""
+          }
+        }
+      }
+    }
+
+    PolicyServerCertificateConfig(
+      try {
+        config
+          .getString("rudder.server.certificate.additionalKeyHash")
+          .split(";")
+          .collect { case s if (s.strip().nonEmpty) => s.strip() }
+          .toList
+      } catch {
+        case ex: ConfigException =>
+          println(ex.getMessage)
+          Nil
+      },
+      CApem,
+      if (certValidation & !httpsOnly) {
+        ApplicationLogger.error(
+          "Property 'rudder.server.certificate.validation' is set to true, but httpsOnly is false. This is unsupported, disabling."
+        )
+        false
+      } else { certValidation },
+      httpsOnly
+    )
+  }
 
   val POSTGRESQL_IS_LOCAL: Boolean = {
     try {

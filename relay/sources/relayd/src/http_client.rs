@@ -16,7 +16,7 @@ lazy_static! {
     static ref USER_AGENT: String = format!("{}/{}", CRATE_NAME, CRATE_VERSION);
 }
 
-type PemCertificate = Vec<u8>;
+pub type PemCertificate = Vec<u8>;
 
 #[derive(Clone, Debug)]
 pub enum HttpClient {
@@ -74,6 +74,13 @@ impl HttpClientBuilder {
     pub fn system(self) -> Result<HttpClient, Error> {
         debug!("Creating HTTP client with system root certificates");
         Ok(HttpClient::System(self.builder.build()?))
+    }
+
+    pub fn custom_ca(self, ca: &PemCertificate) -> Result<HttpClient, Error> {
+        debug!("Creating HTTP client with custom CA");
+        let mut client = self.builder;
+        client = client.add_root_certificate(Certificate::from_pem(ca)?);
+        Ok(HttpClient::System(client.build()?))
     }
 
     pub fn no_verify(self) -> Result<HttpClient, Error> {

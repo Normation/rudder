@@ -118,10 +118,12 @@ object SystemVariableService {
   }
 }
 
+/* Configuration node-server communication security */
 final case class PolicyServerCertificateConfig(
-    additionalKeyHash:  List[String],
-    certCA:             String,
-    certNameValidation: Boolean
+    additionalKeyHash: List[String],
+    certCA:            String,
+    certValidation:    Boolean,
+    httpsOnly:         Boolean
 )
 
 class SystemVariableServiceImpl(
@@ -677,8 +679,11 @@ class SystemVariableServiceImpl(
           .get("POLICY_SERVER_CERT_CA")
           .toVariable(Seq(policyServerCertificate.certCA)),
         systemVariableSpecService
-          .get("POLICY_SERVER_SECURE_VALIDATION")
-          .toVariable(Seq(policyServerCertificate.certNameValidation.toString))
+          .get("POLICY_SERVER_CERT_VALIDATION")
+          .toVariable(Seq(policyServerCertificate.certValidation.toString)),
+        systemVariableSpecService
+          .get("POLICY_SERVER_HTTPS_ONLY")
+          .toVariable(Seq(policyServerCertificate.httpsOnly.toString))
       ) map (x => (x.spec.name, x))
     }
 

@@ -21,6 +21,7 @@ use serde_inline_default::serde_inline_default;
 use tracing::{debug, warn};
 
 use crate::data::node::NodeId;
+use crate::http_client::PemCertificate;
 
 pub type BaseDirectory = PathBuf;
 pub type WatchedDirectory = PathBuf;
@@ -76,8 +77,6 @@ pub struct Configuration {
     pub shared_files: SharedFiles,
     #[serde(default)]
     pub shared_folder: SharedFolder,
-    #[serde(default)]
-    pub rsync: RsyncConfig,
 }
 
 impl Configuration {
@@ -106,16 +105,7 @@ impl Configuration {
     /// Used to validate what is not validated by typing
     fn validate(self) -> Result<Self, Error> {
         // If not on root we need an upstream server
-        if &self.node_id()? != "root"
-            && self.output.upstream.host.is_empty()
-            && (self
-                .output
-                .upstream
-                .url
-                .as_ref()
-                .map(|u| u.is_empty())
-                .unwrap_or(true))
-        {
+        if &self.node_id()? != "root" && self.output.upstream.host.is_empty() {
             bail!("missing upstream server configuration");
         }
 
@@ -143,15 +133,46 @@ impl Configuration {
         Ok(self)
     }
 
+    pub fn peer_authentication(&self) -> Result<PeerAuthentication, Error> {
+        Ok(match self.general.peer_authentication {
+            PeerAuthenticationType::CertPinning => PeerAuthentication::CertPinning,
+            PeerAuthenticationType::CertValidation => {
+                if let Some(p) = self.general.ca_path.as_ref() {
+                    let cert = read_to_string(p)
+                        .with_context(|| {
+                            format!("Could not read CA certificate from {}", p.display())
+                        })
+                        .unwrap_or_else(|e| {
+                            warn!("{}", e);
+                            "".to_string()
+                        })
+                        .into();
+                    PeerAuthentication::CertValidation(Some(cert))
+                } else {
+                    PeerAuthentication::CertValidation(None)
+                }
+            }
+            PeerAuthenticationType::DangerousNone => PeerAuthentication::DangerousNone,
+        })
+    }
+
     /// Check for valid configs known to present security or stability risks
     pub fn warnings(&self) -> Vec<Error> {
         let mut warnings = vec![];
 
-        if self.peer_authentication() == PeerAuthentication::DangerousNone {
+        if self.peer_authentication().unwrap() == PeerAuthentication::DangerousNone {
             warnings.push(anyhow!("Certificate verification is disabled"));
         }
 
         warnings
+    }
+
+    pub fn upstream_url(&self) -> String {
+        format!(
+            // TODO compute once
+            "https://{}:{}/",
+            self.output.upstream.host, self.general.https_port
+        )
     }
 
     /// Read current node_id, and handle override by node_id
@@ -170,36 +191,6 @@ impl Configuration {
                 read_to_string(&self.general.node_id_file)?
             }
         })
-    }
-
-    pub fn peer_authentication(&self) -> PeerAuthentication {
-        // compute actual model
-        if !self.output.upstream.verify_certificates {
-            warn!(
-                "output.upstream.verify_certificates parameter is deprecated, use general.peer_authentication instead"
-            );
-            PeerAuthentication::DangerousNone
-        } else {
-            self.general.peer_authentication
-        }
-    }
-
-    /// Gives current url of the upstream relay API
-    /// Can be removed once upstream.url is removed
-    pub fn upstream_url(&self) -> String {
-        match &self.output.upstream.url {
-            Some(id) => {
-                warn!(
-                    "upstream.url setting is deprecated, use upstream.host and general.https_port instead"
-                );
-                id.clone()
-            }
-            None => format!(
-                // TODO compute once
-                "https://{}:{}/",
-                self.output.upstream.host, self.general.https_port
-            ),
-        }
     }
 }
 
@@ -250,8 +241,9 @@ pub struct GeneralConfig {
     #[serde_inline_default(Duration::from_secs(2))]
     pub https_idle_timeout: Duration,
     /// Which certificate validation model to use
-    #[serde_inline_default(PeerAuthentication::SystemRootCerts)]
-    peer_authentication: PeerAuthentication,
+    #[serde_inline_default(PeerAuthenticationType::CertPinning)]
+    peer_authentication: PeerAuthenticationType,
+    ca_path: Option<PathBuf>,
 }
 
 impl Default for GeneralConfig {
@@ -262,9 +254,17 @@ impl Default for GeneralConfig {
 
 #[derive(Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
+pub enum PeerAuthenticationType {
+    CertPinning,
+    CertValidation,
+    DangerousNone,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
+#[serde(rename_all = "snake_case")]
 pub enum PeerAuthentication {
     CertPinning,
-    SystemRootCerts,
+    CertValidation(Option<PemCertificate>),
     DangerousNone,
 }
 
@@ -489,9 +489,6 @@ impl Default for DatabaseConfig {
 #[serde_inline_default]
 #[derive(Deserialize, Debug, Clone)]
 pub struct UpstreamConfig {
-    /// DEPRECATED: use host and global.https_port
-    #[serde(default)]
-    url: Option<String>,
     /// When the section is there, host is mandatory
     #[serde(default)]
     host: String,
@@ -502,14 +499,6 @@ pub struct UpstreamConfig {
     /// Default password, to be used for new inventories
     #[serde_inline_default(SecretString::new("rudder".into()))]
     pub default_password: SecretString,
-    /// Allows to completely disable certificate validation.
-    ///
-    /// If true, https is required for all connections
-    ///
-    /// This preserves compatibility with 6.X configs
-    /// DEPRECATED: replaced by certificate_verification_mode = DangerousNone
-    #[serde_inline_default(true)]
-    pub verify_certificates: bool,
     /// Allows specifying the root certificate path
     /// Used for our Rudder PKI
     /// Not used if the verification model is not `Rudder`.
@@ -520,10 +509,8 @@ pub struct UpstreamConfig {
 
 impl PartialEq for UpstreamConfig {
     fn eq(&self, other: &Self) -> bool {
-        self.url == other.url
-            && self.host == other.host
+        self.host == other.host
             && self.user == other.user
-            && self.verify_certificates == other.verify_certificates
             && self.server_certificate_file == other.server_certificate_file
     }
 }
@@ -531,24 +518,6 @@ impl PartialEq for UpstreamConfig {
 impl Eq for UpstreamConfig {}
 
 impl Default for UpstreamConfig {
-    fn default() -> Self {
-        toml::from_str::<Self>("").unwrap()
-    }
-}
-
-#[serde_inline_default]
-#[derive(Deserialize, Debug, PartialEq, Eq, Clone)]
-pub struct RsyncConfig {
-    // where to listen on
-    #[serde_inline_default("localhost:5310".into())]
-    listen: String,
-
-    // False to allow non authenticated clients
-    #[serde_inline_default(true)]
-    authentication: bool,
-}
-
-impl Default for RsyncConfig {
     fn default() -> Self {
         toml::from_str::<Self>("").unwrap()
     }
@@ -578,18 +547,6 @@ mod tests {
     }
 
     #[test]
-    fn it_parses_upstream_url() {
-        let default = "[general]\n\
-        node_id = \"test\"\n\
-        [output.upstream]\n\
-        url = \"https://myserver/\"\n\
-        password = \"my_password\"";
-        let config = default.parse::<Configuration>().unwrap();
-        assert_eq!(config.upstream_url(), "https://myserver/".to_string());
-        assert!(config.validate().is_ok());
-    }
-
-    #[test]
     fn it_parses_main_configuration_with_defaults() {
         let config = "".parse::<Configuration>().unwrap();
 
@@ -604,7 +561,8 @@ mod tests {
                 blocking_threads: None,
                 https_port: 443,
                 https_idle_timeout: Duration::from_secs(2),
-                peer_authentication: PeerAuthentication::SystemRootCerts,
+                peer_authentication: PeerAuthenticationType::CertPinning,
+                ca_path: None,
             },
             processing: ProcessingConfig {
                 inventory: InventoryConfig {
@@ -635,12 +593,10 @@ mod tests {
             },
             output: OutputConfig {
                 upstream: UpstreamConfig {
-                    url: None,
                     host: "".to_string(),
                     user: "rudder".to_string(),
                     password: None,
                     default_password: "".into(),
-                    verify_certificates: true,
                     server_certificate_file: PathBuf::from("/var/rudder/lib/ssl/policy_server.pem"),
                 },
                 database: DatabaseConfig {
@@ -662,10 +618,6 @@ mod tests {
             },
             shared_folder: SharedFolder {
                 path: PathBuf::from("/var/rudder/configuration-repository/shared-files/"),
-            },
-            rsync: RsyncConfig {
-                listen: "localhost:5310".to_string(),
-                authentication: true,
             },
         };
 
@@ -710,7 +662,8 @@ mod tests {
                 blocking_threads: Some(512),
                 https_port: 4443,
                 https_idle_timeout: Duration::from_secs(42),
-                peer_authentication: PeerAuthentication::CertPinning,
+                peer_authentication: PeerAuthenticationType::CertPinning,
+                ca_path: None,
             },
             processing: ProcessingConfig {
                 inventory: InventoryConfig {
@@ -741,12 +694,10 @@ mod tests {
             },
             output: OutputConfig {
                 upstream: UpstreamConfig {
-                    url: None,
                     host: "rudder.example.com".to_string(),
                     user: "rudder".to_string(),
                     password: Some("password".into()),
                     default_password: "rudder".into(),
-                    verify_certificates: true,
                     server_certificate_file: PathBuf::from(
                         "tests/files/keys/e745a140-40bc-4b86-b6dc-084488fc906b.cert",
                     ),
@@ -771,17 +722,9 @@ mod tests {
             shared_folder: SharedFolder {
                 path: PathBuf::from("tests/api_shared_folder"),
             },
-            rsync: RsyncConfig {
-                listen: "localhost:1234".to_string(),
-                authentication: false,
-            },
         };
         assert_eq!(config, reference);
         assert_eq!(config.node_id().unwrap(), "root".to_string());
-        assert_eq!(
-            config.upstream_url(),
-            "https://rudder.example.com:4443/".to_string()
-        );
         assert!(config.validate().is_ok());
     }
 }

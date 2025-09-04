@@ -1,0 +1,90 @@
+#!/bin/sh
+
+# Download a file from the shared folder
+#
+# Does hash comparison to avoid useless downloads.
+
+# Uses the CFEngine module protocol.
+
+# Use rudder binaries in priority
+export PATH="/opt/rudder/bin:$PATH"
+
+HASH="sha256"
+BASE="/rudder/relay-api/shared-folder"
+SOURCE=""
+FILE=""
+VERBOSE="false"
+# In audit mode, return with failure and never update file
+AUDIT="false"
+
+define_class() {
+  echo "+$1"
+}
+
+## Get options
+while [ "$1" != "" ]
+do
+  if [ "$1" = "-h" ]; then
+    echo "Usage $0 -s <source> -f <file>"
+    echo "  -s <source>: source file on the policy server"
+    echo "  -f <file>: local path to store the file into"
+    echo "  -a: audit mode, only check"
+    echo "  -h: help"
+    echo "  -v: verbose"
+
+    exit
+  elif [ "$1" = "-s" ]; then
+    SOURCE="$2"
+    shift 2
+  elif [ "$1" = "-f" ]; then
+    FILE="$2"
+    shift 2
+  elif [ "$1" = "-a" ]; then
+    AUDIT="true"
+    shift
+  elif [ "$1" = "-v" ]; then
+    VERBOSE="true"
+    shift
+  else
+    echo "Unknown parameter $1, try -h for help" >&2
+    exit 1
+  fi
+done
+if [ "${FILE}" = "" ]; then
+  echo "You need to pass a file, try -h for help" >&2
+  exit 1
+fi
+if [ "${SOURCE}" = "" ]; then
+  echo "You need to pass a source, try -h for help" >&2
+  exit 1
+fi
+
+ENDPOINT="${BASE}/${SOURCE}"
+
+LOCAL_HASH=""
+if [ -f "${FILE}" ]; then
+  LOCAL_HASH=$(openssl dgst -${HASH} "${FILE}" | awk '{print $2}')
+  [ "${VERBOSE}" = "true" ] && echo "Local hash: ${LOCAL_HASH}"
+fi
+
+UP_TO_DATE="false"
+if [ "${LOCAL_HASH}" != "" ]; then
+  code=$(rudder-client -c -e "${ENDPOINT}?hash=${LOCAL_HASH}&hash_type=${HASH}" -r -- --head)
+  if [ "$code" = "304" ]; then
+    UP_TO_DATE="true"
+  elif [ "$code" = "200" ]; then
+    UP_TO_DATE="false"
+  else
+    echo "Error checking file state: returned ${code}"
+    exit 1
+  fi
+fi
+
+if [ "${UP_TO_DATE}" != "true" ]; then
+  code=$(rudder-client -c -e "${ENDPOINT}?hash=${LOCAL_HASH}&hash_type=${HASH}" -r -- --output "${FILE}")
+  if [ "$code" = "200" ]; then
+    UP_TO_DATE="false"
+  else
+    echo "Error checking file state: returned ${code}"
+  fi
+fi
