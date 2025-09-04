@@ -1166,7 +1166,7 @@ object RudderParsedProperties {
       }
     } catch {
       case ex: ConfigException       => // default
-        ApplicationLogger.info(s"Key '${propName}' is absent, defaulting to: ${default}")
+        ApplicationLogger.info(s"Key '${propName}' is absent, defaulting to: ${default.render}")
         default
       case ex: NumberFormatException =>
         ApplicationLogger.error(
