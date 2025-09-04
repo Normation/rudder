@@ -55,6 +55,7 @@ import com.normation.rudder.domain.RudderLDAPConstants.*
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ComplianceLogger
 import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.reports.ComplianceLevel
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.QueryContext
@@ -193,8 +194,7 @@ class HomePage extends StatefulSnippet {
 
   def getAllCompliance()(implicit qc: QueryContext): NodeSeq = {
     // this needs to be outside of the zio for-comprehension context to see the right node facts
-    val nodes = HomePage.nodeFacts.get.keys.toSet
-
+    val nodes = HomePage.nodeFacts.get.filterNot(_._2.rudderSettings.state == NodeState.Ignored).keys.toSet
     (for {
       n2                <- currentTimeMillis
       userRules         <- roRuleRepo.getIds()
@@ -225,10 +225,10 @@ class HomePage extends StatefulSnippet {
       n5                <- currentTimeMillis
       _                 <- TimingDebugLoggerPure.trace(s"Compute global compliance in: ${n5 - n4}ms")
       _                 <- TimingDebugLoggerPure.debug(s"Compute compliance: ${n5 - n2}ms")
-      scores            <- scoreService.getAll()
+      unfilteredScores  <- scoreService.getAll()
       existingScore     <- scoreService.getAvailableScore()
     } yield {
-
+      val scores = unfilteredScores.filter(n => nodes.contains(n._1))
       // log global compliance info (useful for metrics on number of components and log data analysis)
       ComplianceLogger.info(
         s"[metrics] global compliance (number of components): ${global.map(g => g._1.total.toString + " " + g._1.toString).getOrElse("undefined")}"
