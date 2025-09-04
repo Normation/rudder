@@ -429,3 +429,4 @@ bundle agent call_method_end(method) {
       "${configuration.debug} Exiting method ${method} from ${report_data.method_id}, should_report: false";
 }
 
+

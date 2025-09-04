@@ -407,16 +407,23 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       constraint = Constraint(mayBeEmpty = true)
     ),
     SystemVariableSpec(
-      "POLICY_SERVER_SECURE_VALIDATION",
-      "Check policy server certificate name",
+      "POLICY_SERVER_CERT_VALIDATION",
+      "Check policy server certificate validity",
       multivalued = false,
       constraint = Constraint(mayBeEmpty = true)
     ),
-    // Deprecated, kept for compatibility with pre-8.0 agents
+    SystemVariableSpec(
+      "POLICY_SERVER_HTTPS_ONLY",
+      "Only allow communications over HTTPS",
+      multivalued = false,
+      constraint = Constraint(mayBeEmpty = true)
+    ),
+    // Deprecated and ignored
     SystemVariableSpec(
       "RUDDER_VERIFY_CERTIFICATES",
       "Enforce certificate validation in all HTTPS calls",
-      multivalued = false
+      multivalued = false,
+      constraint = Constraint(mayBeEmpty = true)
     )
   )
 

@@ -270,27 +270,29 @@ impl JobConfig {
 
         // HTTP clients
         //
-        let model = cfg.peer_authentication();
+        let model = cfg.peer_authentication()?;
 
         debug!("Creating HTTP client for upstream");
-        let upstream_client = match model {
+        let builder = HttpClient::builder(cfg.general.https_idle_timeout);
+        let upstream_client = match &model {
             PeerAuthentication::CertPinning => {
                 let cert = fs::read(&cfg.output.upstream.server_certificate_file)?;
-                HttpClient::builder(cfg.general.https_idle_timeout).pinned(vec![cert])
+                builder.pinned(vec![cert])
             }
-            PeerAuthentication::SystemRootCerts => {
-                HttpClient::builder(cfg.general.https_idle_timeout).system()
-            }
-            PeerAuthentication::DangerousNone => {
-                HttpClient::builder(cfg.general.https_idle_timeout).no_verify()
-            }
+            PeerAuthentication::CertValidation(ca_opt) => match ca_opt {
+                None => builder.system(),
+                Some(ca) => builder.custom_ca(ca),
+            },
+            PeerAuthentication::DangerousNone => builder.no_verify(),
         }?;
 
         let mut downstream_clients = HashMap::new();
 
         for (id, certs) in nodes.my_sub_relays_certs() {
             debug!("Creating HTTP client for '{}'", id);
-            let client = match model {
+            let builder = HttpClient::builder(cfg.general.https_idle_timeout);
+
+            let client = match &model {
                 PeerAuthentication::CertPinning => {
                     let certs = match certs {
                         Some(stack) => stack
@@ -300,14 +302,13 @@ impl JobConfig {
                             .collect(),
                         None => vec![],
                     };
-                    HttpClient::builder(cfg.general.https_idle_timeout).pinned(certs)
+                    builder.pinned(certs)
                 }
-                PeerAuthentication::SystemRootCerts => {
-                    HttpClient::builder(cfg.general.https_idle_timeout).system()
-                }
-                PeerAuthentication::DangerousNone => {
-                    HttpClient::builder(cfg.general.https_idle_timeout).no_verify()
-                }
+                PeerAuthentication::CertValidation(ca_opt) => match ca_opt {
+                    None => builder.system(),
+                    Some(ca) => builder.custom_ca(ca),
+                },
+                PeerAuthentication::DangerousNone => builder.no_verify(),
             }?;
             downstream_clients.insert(id, client);
         }
@@ -361,7 +362,7 @@ impl JobConfig {
         // To enable this replacement, we store the clients in a `RwLock`. Write locking will be
         // possible as when using the clients to make requests, we don't lock for the request
         // duration but only for the time necessary to clone the client (=very short).
-        if self.cfg.peer_authentication() == PeerAuthentication::CertPinning {
+        if self.cfg.peer_authentication()? == PeerAuthentication::CertPinning {
             // upstream client
             let cert = fs::read(&self.cfg.output.upstream.server_certificate_file)?;
             let certs = vec![cert];
