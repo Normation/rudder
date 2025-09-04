@@ -72,7 +72,11 @@ RewriteRule /policies/(.*?)/(.*) /var/rudder/share/$1/$2
 # expose common archives publicly
 Alias /common /var/rudder/share/common
 <Directory /var/rudder/share/common>
+{% if classes.rudder_cert_validation is defined %}
+  SSLVerifyClient require
+{% else %}
   SSLVerifyClient none
+{% endif %}
   # avoid repetitive warning in the logs caused by upper directory configuration
   SSLUserName SSL_SESSION_ID
   Include /opt/rudder/etc/rudder-networks-24.conf
@@ -81,6 +85,9 @@ Alias /common /var/rudder/share/common
 # Expose the server UUID through https
 Alias /uuid /opt/rudder/etc/uuid.hive
 <Directory /opt/rudder/etc>
+{% if classes.rudder_cert_validation is defined %}
+  SSLVerifyClient require
+{% endif %}
   Require all granted
 </Directory>
 
