@@ -348,15 +348,15 @@ object JsonQueryObjects {
   )
 
   final case class JQGroup(
-      id:          Option[NodeGroupId] = None,
-      displayName: Option[String] = None,
-      description: Option[String] = None,
-      properties:  Option[List[GroupProperty]] = None,
-      query:       Option[StringQuery] = None,
-      dynamic:     Option[Boolean] = None,
-      enabled:     Option[Boolean] = None,
-      category:    Option[NodeGroupCategoryId] = None,
-      source:      Option[NodeGroupId] = None
+      id:                                  Option[NodeGroupId] = None,
+      displayName:                         Option[String] = None,
+      description:                         Option[String] = None,
+      properties:                          Option[List[GroupProperty]] = None,
+      query:                               Option[StringQuery] = None,
+      dynamic:                             Option[Boolean] = None,
+      enabled:                             Option[Boolean] = None,
+      @jsonAliases("categoryId") category: Option[NodeGroupCategoryId] = None,
+      source:                              Option[NodeGroupId] = None
   ) {
 
     val onlyName: Boolean = displayName.isDefined &&
