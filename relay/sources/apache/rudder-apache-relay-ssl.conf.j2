@@ -26,7 +26,7 @@ SSLSessionTickets       off
 SSLCertificateFile     /opt/rudder/etc/ssl/agent.cert
 SSLCertificateKeyFile  /var/rudder/cfengine-community/ppkeys/localhost.priv
 
-{% if classes.rudder_cert_validation is defined and vars.custom_ca_path is defined %}
+{% if classes.rudder_cert_validation is defined and classes.rudder_custom_ca is defined %}
 # User provided CA
 SSLCACertificateFile /var/rudder/lib/ssl/policy_server_ca.pem
 {% endif %}
@@ -92,9 +92,15 @@ Alias /inventories /var/rudder/inventories/incoming
   AuthType Basic
   AuthUserFile /opt/rudder/etc/htpasswd-webdav-initial
 
+{% if classes.rudder_cert_validation is defined %}
+  SSLVerifyClient require
+{% endif %}
+
   <Limit PUT>
     <RequireAll>
+    {% if classes.rudder_cert_validation is not defined %}
       Require valid-user
+    {% endif %}
       <RequireAny>
         # rudder-networks-24.conf is automatically generated according to the hosts allowed by rudder.
         Include /opt/rudder/etc/rudder-networks-24.conf
@@ -115,9 +121,15 @@ Alias /inventory-updates /var/rudder/inventories/accepted-nodes-updates
   AuthType Basic
   AuthUserFile /opt/rudder/etc/htpasswd-webdav
 
+{% if classes.rudder_cert_validation is defined %}
+  SSLVerifyClient require
+{% endif %}
+
   <Limit PUT>
     <RequireAll>
+    {% if classes.rudder_cert_validation is not defined %}
       Require valid-user
+    {% endif %}
       <RequireAny>
         # rudder-networks-24.conf is automatically generated according to the hosts allowed by rudder.
         Include /opt/rudder/etc/rudder-networks-24.conf
@@ -144,7 +156,9 @@ Alias /reports /var/rudder/reports/incoming
 
   <Limit PUT>
     <RequireAll>
+    {% if classes.rudder_cert_validation is not defined %}
       Require valid-user
+    {% endif %}
       <RequireAny>
         Include /opt/rudder/etc/rudder-networks-24.conf
       </RequireAny>
