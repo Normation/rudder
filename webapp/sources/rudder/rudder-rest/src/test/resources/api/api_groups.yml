@@ -1250,6 +1250,75 @@ response:
       }
     }
 ---
+description: Move a node group to a new category with 'category'
+method: POST
+url: /api/latest/groups/3fa29229-1a4b-4fd6-9edd-af114289fc9a
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "category": "GroupRoot"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateGroup",
+      "id":"3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+      "result":"success",
+      "data":{
+        "groups":[
+          {
+            "id":"3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+            "displayName":"Debian 10 nodes, updated",
+            "description":"description, updated",
+            "category":"GroupRoot",
+            "query":{
+              "select":"node",
+              "composition":"and",
+              "where":[
+                {
+                  "objectType":"node",
+                  "attribute":"osName",
+                  "comparator":"eq",
+                  "value":"Debian"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"osVersion",
+                  "comparator":"regex",
+                  "value":"10\\..*"
+                }
+              ]
+            },
+            "nodeIds":[
+              "node1",
+              "node1-pending",
+              "node2",
+              "node2-pending"
+            ],
+            "dynamic":true,
+            "enabled":false,
+            "groupClass":[
+              "group_3fa29229_1a4b_4fd6_9edd_af114289fc9a",
+              "group_debian_10_nodes__updated"
+            ],
+            "properties":[
+              {
+                "name":"os",
+                "value":{
+                  "name":"debian",
+                  "version":"10"
+                }
+              }
+            ],
+            "target":"group:3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+            "system":false
+          }
+        ]
+      }
+    }
+---
 description: Move a node group to a new category
 method: POST
 url: /api/latest/groups/3fa29229-1a4b-4fd6-9edd-af114289fc9a
@@ -1257,7 +1326,7 @@ headers:
   - "Content-Type: application/json"
 body: >-
   {
-    "category": "category1"
+    "categoryId": "category1"
   }
 response:
   code: 200

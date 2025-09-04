@@ -355,7 +355,7 @@ object JsonQueryObjects {
       query:                               Option[StringQuery] = None,
       dynamic:                             Option[Boolean] = None,
       enabled:                             Option[Boolean] = None,
-      @jsonAliases("categoryId") category: Option[NodeGroupCategoryId] = None,
+      @jsonAliases("category") categoryId: Option[NodeGroupCategoryId] = None,
       source:                              Option[NodeGroupId] = None
   ) {
 
@@ -365,7 +365,7 @@ object JsonQueryObjects {
       query.isEmpty &&
       dynamic.isEmpty &&
       enabled.isEmpty &&
-      category.isEmpty
+      categoryId.isEmpty
 
     def updateGroup(group: NodeGroup, queryParser: CmdbQueryParser): PureResult[NodeGroup] = {
       for {
