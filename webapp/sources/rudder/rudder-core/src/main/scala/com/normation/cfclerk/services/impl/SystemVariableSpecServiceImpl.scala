@@ -417,6 +417,13 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       "Only allow communications over HTTPS",
       multivalued = false,
       constraint = Constraint(mayBeEmpty = true)
+    ),
+    // Deprecated and ignored
+    SystemVariableSpec(
+      "RUDDER_VERIFY_CERTIFICATES",
+      "Enforce certificate validation in all HTTPS calls",
+      multivalued = false,
+      constraint = Constraint(mayBeEmpty = true)
     )
   )
 

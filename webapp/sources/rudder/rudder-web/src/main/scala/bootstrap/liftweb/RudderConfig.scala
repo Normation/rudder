@@ -551,21 +551,35 @@ object RudderParsedProperties {
         case _: ConfigException => false
       }
     }
-    val httpsOnly = {
+    val httpsOnly      = {
       try {
         config.getBoolean("rudder.server.certificate.httpsOnly")
       } catch {
         case _: ConfigException => false
       }
     }
-    val CAPath = {
+    val CAPath         = {
       try {
         config.getString("rudder.server.certificate.ca.path")
       } catch {
         case _: ConfigException => ""
       }
     }
-    val CApem = (better.files.File(CAPath)).contentAsString()
+    val CApem          = {
+      if (CAPath.isEmpty) { "" }
+      else {
+        try {
+          better.files.File(CAPath).contentAsString()
+        } catch {
+          case ex: Exception => {
+            ApplicationLogger.error(
+              s"Could not open CA path ${CAPath}: ${ex.getMessage}"
+            )
+            ""
+          }
+        }
+      }
+    }
 
     PolicyServerCertificateConfig(
       try {
@@ -581,8 +595,8 @@ object RudderParsedProperties {
       },
       CApem,
       if (certValidation & !httpsOnly) {
-        ApplicationLogger.warn(
-          "Property 'rudder.server.certificate.validation' is set to true but httpsOnly to false. This is unsupported, disabling."
+        ApplicationLogger.error(
+          "Property 'rudder.server.certificate.validation' is set to true, but httpsOnly is false. This is unsupported, disabling."
         )
         false
       } else { certValidation },
