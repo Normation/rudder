@@ -50,13 +50,6 @@ bundle agent file_from_shared_folder(source, path, hash_type)
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
-  commands:
-    pass2.!pass3.rudder_https_only::
-      "promises/download-shared-file -s ${source} -f ${path} ${audit_arg}"
-        args => "more args",
-        contain => contain_body,
-        module => "true";
-
   methods:
     pass3.!rudder_https_only::
       "${report_data.method_id}" usebundle => call_method("file_from_remote_source_recursion");
@@ -65,4 +58,11 @@ bundle agent file_from_shared_folder(source, path, hash_type)
       "${report_data.method_id}" usebundle => call_method_classes_caller;
       "${report_data.method_id}" usebundle => call_method_end("file_from_remote_source_recursion");
       "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Copying ${path} from ${source}", "");
+
+  commands:
+    pass2.!pass3.rudder_https_only::
+      "promises/download-shared-file -s ${source} -f ${path} ${audit_arg}"
+        args => "more args",
+        contain => contain_body,
+        module => "true";
 }
