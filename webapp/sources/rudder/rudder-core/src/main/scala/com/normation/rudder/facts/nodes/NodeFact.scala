@@ -96,7 +96,8 @@ import zio.json.internal.Write
  * - no resolved properties (for ex inherited ones)
  */
 final case class IpAddress(inet: String) {
-  def isLocalhostIPv4IPv6: Boolean = inet == "127.0.0.1" || inet == "0:0:0:0:0:0:0:1"
+  // fe80 is a local IPv6, see https://issues.rudder.io/issues/27112
+  def isLocalhostIPv4IPv6: Boolean = inet == "127.0.0.1" || inet == "0:0:0:0:0:0:0:1" || inet == "::1" || inet.startsWith("fe80:")
 }
 final case class ManagementTechnology(
     name:         String,
