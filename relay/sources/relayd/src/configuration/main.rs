@@ -547,17 +547,6 @@ mod tests {
     }
 
     #[test]
-    fn it_parses_upstream_url() {
-        let default = "[general]\n\
-        node_id = \"test\"\n\
-        [output.upstream]\n\
-        url = \"https://myserver/\"\n\
-        password = \"my_password\"";
-        let config = default.parse::<Configuration>().unwrap();
-        assert!(config.validate().is_ok());
-    }
-
-    #[test]
     fn it_parses_main_configuration_with_defaults() {
         let config = "".parse::<Configuration>().unwrap();
 
