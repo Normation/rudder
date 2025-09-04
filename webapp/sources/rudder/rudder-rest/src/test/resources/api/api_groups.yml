@@ -551,7 +551,7 @@ response:
           {
             "id" : "all-nodes",
             "displayName" : "All nodes",
-            "description" : "All nodes known by Rudder(including Rudder policy servers)",
+            "description" : "All nodes known by Rudder (including Rudder policy servers)",
             "category" : "GroupRoot",
             "nodeIds" : [
               "0",
@@ -579,6 +579,7 @@ response:
         ]
       }
     }
+---
 description: Create a node group (JSON)
 method: PUT
 url: /api/latest/groups
@@ -589,7 +590,6 @@ body: >-
     "id": "3fa29229-1a4b-4fd6-9edd-af114289fc9a",
     "displayName": "Debian 10 only Node group from API",
     "description": "A node group for debian version 10",
-    "category": "GroupRoot",
     "enabled": true,
     "properties": [{"name":"os", "value": { "name": "debian", "nickname":"Buster" }}],
     "query": {
@@ -668,6 +668,81 @@ response:
       }
     }
 ---
+description: Create a node group with category
+method: PUT
+url: /api/latest/groups
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "3fa29230-1a4b-4fd6-9edd-af114289fc9a",
+    "displayName": "All Debian",
+    "description": "A node group for debian",
+    "enabled": true,
+    "properties": [{"name":"os", "value": { "name": "debian" }}],
+    "query": {
+      "select": "node",
+      "composition": "and",
+      "where": [
+        {
+          "objectType": "node",
+          "attribute": "osName",
+          "comparator": "eq",
+          "value": "Debian"
+        }
+      ]
+    }
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"createGroup",
+      "id":"3fa29230-1a4b-4fd6-9edd-af114289fc9a",
+      "result":"success",
+      "data":{
+        "groups":[
+          {
+            "id":"3fa29230-1a4b-4fd6-9edd-af114289fc9a",
+            "displayName":"All Debian",
+            "description":"A node group for debian",
+            "category":"GroupRoot",
+            "query":{
+              "select":"node",
+              "composition":"and",
+              "where":[
+                {
+                  "objectType":"node",
+                  "attribute":"osName",
+                  "comparator":"eq",
+                  "value":"Debian"
+                }
+              ]
+            },
+            "nodeIds":[
+
+            ],
+            "dynamic":true,
+            "enabled":true,
+            "groupClass":[
+              "group_3fa29230_1a4b_4fd6_9edd_af114289fc9a",
+              "group_all_debian"
+            ],
+            "properties":[
+              {
+                "name":"os",
+                "value":{
+                  "name":"debian"
+                }
+              }
+            ],
+            "target":"group:3fa29230-1a4b-4fd6-9edd-af114289fc9a",
+            "system":false
+          }
+        ]
+      }
+    }
+---
 description: Create a node group (PARAMS)
 method: PUT
 url: /api/latest/groups
@@ -678,7 +753,6 @@ params:
   id: "3fa29229-1a4b-4fd6-0001-af114289fc9a"
   displayName: "Debian 10 only Node group from API"
   description: "A node group for debian version 10"
-  category: "GroupRoot"
   enabled: "true"
   system: "false"
   properties: >-
@@ -1250,6 +1324,75 @@ response:
       }
     }
 ---
+description: Move a node group to a new category with 'category'
+method: POST
+url: /api/latest/groups/3fa29229-1a4b-4fd6-9edd-af114289fc9a
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "category": "GroupRoot"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateGroup",
+      "id":"3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+      "result":"success",
+      "data":{
+        "groups":[
+          {
+            "id":"3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+            "displayName":"Debian 10 nodes, updated",
+            "description":"description, updated",
+            "category":"GroupRoot",
+            "query":{
+              "select":"node",
+              "composition":"and",
+              "where":[
+                {
+                  "objectType":"node",
+                  "attribute":"osName",
+                  "comparator":"eq",
+                  "value":"Debian"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"osVersion",
+                  "comparator":"regex",
+                  "value":"10\\..*"
+                }
+              ]
+            },
+            "nodeIds":[
+              "node1",
+              "node1-pending",
+              "node2",
+              "node2-pending"
+            ],
+            "dynamic":true,
+            "enabled":false,
+            "groupClass":[
+              "group_3fa29229_1a4b_4fd6_9edd_af114289fc9a",
+              "group_debian_10_nodes__updated"
+            ],
+            "properties":[
+              {
+                "name":"os",
+                "value":{
+                  "name":"debian",
+                  "version":"10"
+                }
+              }
+            ],
+            "target":"group:3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+            "system":false
+          }
+        ]
+      }
+    }
+---
 description: Move a node group to a new category
 method: POST
 url: /api/latest/groups/3fa29229-1a4b-4fd6-9edd-af114289fc9a
@@ -1257,7 +1400,7 @@ headers:
   - "Content-Type: application/json"
 body: >-
   {
-    "category": "category1"
+    "categoryId": "category1"
   }
 response:
   code: 200
@@ -1861,15 +2004,6 @@ response:
             "target" : "group:00000000-cb9d-4f7b-0001-ca38c5d643ea"
           },
           {
-            "id" : "5555f5d3-8c61-4d20-88a7-bb947705ba8a",
-            "displayName" : "Nodes id divided by 3",
-            "description" : "",
-            "category" : "GroupRoot",
-            "dynamic" : false,
-            "enabled" : true,
-            "target" : "group:5555f5d3-8c61-4d20-88a7-bb947705ba8a"
-          },
-          {
             "id" : "a-group-for-root-only",
             "displayName" : "Serveurs [€ðŋ] cassés",
             "description" : "Liste de l'ensemble de serveurs cassés à réparer",
@@ -1913,6 +2047,24 @@ response:
             "dynamic" : false,
             "enabled" : true,
             "target" : "group:1111f5d3-8c61-4d20-88a7-bb947705ba8a"
+          },
+          {
+            "id" : "5555f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName" : "Nodes id divided by 3",
+            "description" : "",
+            "category" : "GroupRoot",
+            "dynamic" : false,
+            "enabled" : true,
+            "target" : "group:5555f5d3-8c61-4d20-88a7-bb947705ba8a"
+          },
+          {
+            "id" : "3fa29230-1a4b-4fd6-9edd-af114289fc9a",
+            "displayName" : "All Debian",
+            "description" : "A node group for debian",
+            "category" : "GroupRoot",
+            "dynamic" : true,
+            "enabled" : true,
+            "target" : "group:3fa29230-1a4b-4fd6-9edd-af114289fc9a"
           }
         ],
         "targets" : [

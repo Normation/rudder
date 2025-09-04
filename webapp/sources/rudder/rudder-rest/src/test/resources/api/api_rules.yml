@@ -148,7 +148,7 @@ body: >-
     "displayName": "Security policy",
     "shortDescription": "Baseline applying CIS guidelines",
     "longDescription": "This rules should be applied to all Linux nodes required basic hardening",
-    "category": "rootRuleCategory",
+    "categoryId": "category1",
     "directives": ["e9a1a909-2490-4fc9-95c3-9d0aa01717c9", "16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
     "targets": [{"include":{"or":["special:all"]},"exclude":{"or":["policyServer:root"]}}],
     "enabled": true,
@@ -168,7 +168,7 @@ response:
           {
             "id":"0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
             "displayName": "Security policy",
-            "categoryId":"rootRuleCategory",
+            "categoryId":"category1",
             "shortDescription": "Baseline applying CIS guidelines",
             "longDescription": "This rules should be applied to all Linux nodes required basic hardening",
             "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9","e9a1a909-2490-4fc9-95c3-9d0aa01717c9"],
@@ -242,7 +242,7 @@ body: >-
     "displayName":"clone from api of 50-rule-technique-ncf",
     "shortDescription":"not and ncf technique rule",
     "longDescription":"Some long description",
-    "category": "rootRuleCategory",
+    "categoryId": "rootRuleCategory",
     "enabled": true,
     "system": false,
     "tags": [{"customer": "MyCompany"}]
@@ -345,7 +345,7 @@ response:
           {
             "id":"0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
             "displayName": "Security policy updated",
-            "categoryId":"rootRuleCategory",
+            "categoryId":"category1",
             "shortDescription": "Baseline applying CIS guidelines updated",
             "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
             "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
@@ -421,6 +421,42 @@ response:
           {
             "id":"0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
             "displayName": "Security policy updated",
+            "categoryId":"category1",
+            "shortDescription": "Baseline applying CIS guidelines updated",
+            "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
+            "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
+            "targets":[{"include":{"or":["special:all"]},"exclude":{"or":[]}}],
+            "enabled":false,
+            "system":false,
+            "tags":[{"customer":"MyCompany"},{"more":"tags"}],
+            "policyMode":"enforce",
+            "status":{"value":"Disabled","details":"This rule is disabled. , Directive 'directive 16d86a56-93ef-49aa-86b7-0d10102e4ea9' disabled"}
+          }
+        ]
+      }
+    }
+---
+description: Move a rule to a new category (JSON) with categoryId
+method: POST
+url: /api/latest/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "categoryId": "rootRuleCategory"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateRule",
+      "id":"0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
+      "result":"success",
+      "data":{
+        "rules":[
+          {
+            "id":"0c1713ae-cb9d-4f7b-abda-ca38c5d643ea",
+            "displayName": "Security policy updated",
             "categoryId":"rootRuleCategory",
             "shortDescription": "Baseline applying CIS guidelines updated",
             "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
@@ -436,7 +472,7 @@ response:
       }
     }
 ---
-description: Move a rule to a new category (JSON)
+description: Move a rule to a new category (JSON) with category
 method: POST
 url: /api/latest/rules/0c1713ae-cb9d-4f7b-abda-ca38c5d643ea
 headers:
@@ -479,7 +515,7 @@ headers:
   - "Content-Type: application/x-www-form-urlencoded"
 body:
 params:
-  category: "category1"
+  category: "rootRuleCategory"
 response:
   code: 200
   content: >-
@@ -492,7 +528,7 @@ response:
           {
             "id":"0c1713ae-cb9d-4f7b-0001-ca38c5d643ea",
             "displayName": "Security policy updated",
-            "categoryId":"category1",
+            "categoryId":"rootRuleCategory",
             "shortDescription": "Baseline applying CIS guidelines updated",
             "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
             "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
@@ -552,7 +588,7 @@ response:
           {
             "id":"0c1713ae-cb9d-4f7b-0001-ca38c5d643ea",
             "displayName": "Security policy updated",
-            "categoryId":"category1",
+            "categoryId":"rootRuleCategory",
             "shortDescription": "Baseline applying CIS guidelines updated",
             "longDescription": "This rules should be applied to all Linux nodes required basic hardening updated",
             "directives":["16d86a56-93ef-49aa-86b7-0d10102e4ea9"],
