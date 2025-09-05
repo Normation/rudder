@@ -268,7 +268,7 @@ class GroupsApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       implicit val qc: QueryContext = authzToken.qc
-      (for {
+      val group = for {
         restGroup <- zioJsonExtractor.extractGroup(req).chainError(s"Could not extract a group from request.").toIO
         id        <- NodeGroupId.parse(sid).toIO
         res       <- service.updateGroup(restGroup.copy(id = Some(id)), params)
@@ -276,7 +276,13 @@ class GroupsApi(
         _         <- propertiesService.updateAll()
       } yield {
         res
-      }).toLiftResponseOne(params, schema, s => Some(s.id))
+      }
+
+      if (version.value <= 21) {
+        group.map(_.transformInto[JRGroupV21]).toLiftResponseOne(params, schema, s => Some(s.id))
+      } else {
+        group.toLiftResponseOne(params, schema, s => Some(s.id))
+      }
     }
   }
 
