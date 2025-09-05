@@ -1747,12 +1747,28 @@ object JsonResponseObjects {
     }
   }
 
-  final case class JRGroup(
+  final case class JRGroupV21(
       changeRequestId: Option[String] = None,
       id:              String,
       displayName:     String,
       description:     String,
       category:        String,
+      query:           Option[JRQuery],
+      nodeIds:         List[String],
+      dynamic:         Boolean,
+      enabled:         Boolean,
+      groupClass:      List[String],
+      properties:      List[JRProperty],
+      target:          String,
+      system:          Boolean
+  )
+
+  final case class JRGroup(
+      changeRequestId: Option[String] = None,
+      id:              String,
+      displayName:     String,
+      description:     String,
+      categoryId:      String,
       query:           Option[JRQuery],
       nodeIds:         List[String],
       dynamic:         Boolean,
@@ -1777,7 +1793,7 @@ object JsonResponseObjects {
              }
       } yield {
         (
-          NodeGroupCategoryId(category),
+          NodeGroupCategoryId(categoryId),
           NodeGroup(
             i,
             displayName,
@@ -1818,7 +1834,7 @@ object JsonResponseObjects {
         .withFieldConst(_.changeRequestId, crId.map(_.value.toString))
         .withFieldComputed(_.id, _.id.serialize)
         .withFieldRenamed(_.name, _.displayName)
-        .withFieldConst(_.category, catId.value)
+        .withFieldConst(_.categoryId, catId.value)
         .withFieldComputed(_.query, _.query.map(JRQuery.fromQuery(_)))
         .withFieldComputed(_.nodeIds, _.serverList.toList.map(_.value).sorted)
         .withFieldComputed(_.groupClass, x => List(x.id.serialize, x.name).map(RuleTarget.toCFEngineClassName).sorted)
@@ -1827,12 +1843,20 @@ object JsonResponseObjects {
         .withFieldComputed(_.system, _.isSystem)
         .transform
     }
+
+    given Transformer[JRGroup, JRGroupV21] =
+      Transformer.define[JRGroup, JRGroupV21].withFieldRenamed(_.categoryId, _.category).buildTransformer
   }
 
   /**
    * Data container for the whole group category tree, provides the "groupCategories" dataContainer
    */
   final case class JRGroupCategoriesFull(groupCategories: JRFullGroupCategory)
+  final case class JRGroupCategoriesFullV21(groupCategories: JRFullGroupCategoryV21)
+  object JRGroupCategoriesFullV21 {
+    given Transformer[JRGroupCategoriesFull, JRGroupCategoriesFullV21] =
+      Transformer.derive[JRGroupCategoriesFull, JRGroupCategoriesFullV21]
+  }
 
   /**
    * Data container for the group category tree with minimal info, provides the "groupCategories" dataContainer
@@ -1849,6 +1873,19 @@ object JsonResponseObjects {
       parent:                                 NodeGroupCategoryId,
       @jsonField("categories") subCategories: List[JRFullGroupCategory],
       groups:                                 List[JRGroup],
+      @jsonField("targets") targetInfos:      List[JRRuleTargetInfo]
+  )
+
+  /**
+   * Representation with the API format < version 21 of groups
+   */
+  final case class JRFullGroupCategoryV21(
+      id:                                     NodeGroupCategoryId,
+      name:                                   String,
+      description:                            String,
+      parent:                                 NodeGroupCategoryId,
+      @jsonField("categories") subCategories: List[JRFullGroupCategoryV21],
+      groups:                                 List[JRGroupV21],
       @jsonField("targets") targetInfos:      List[JRRuleTargetInfo]
   )
 
@@ -1886,6 +1923,9 @@ object JsonResponseObjects {
         )
         .transform
     }
+
+    given Transformer[JRFullGroupCategory, JRFullGroupCategoryV21] =
+      Transformer.derive[JRFullGroupCategory, JRFullGroupCategoryV21]
   }
 
   /**
@@ -2150,12 +2190,15 @@ trait RudderJsonEncoders {
   implicit lazy val propertyEncoder:                 JsonEncoder[JRProperty]                 = DeriveJsonEncoder.gen
   implicit lazy val criteriumEncoder:                JsonEncoder[JRCriterium]                = DeriveJsonEncoder.gen
   implicit lazy val queryEncoder:                    JsonEncoder[JRQuery]                    = DeriveJsonEncoder.gen
+  implicit lazy val groupV21Encoder:                 JsonEncoder[JRGroupV21]                 = DeriveJsonEncoder.gen
   implicit lazy val groupEncoder:                    JsonEncoder[JRGroup]                    = DeriveJsonEncoder.gen
   implicit lazy val objectInheritedObjectProperties: JsonEncoder[JRGroupInheritedProperties] = DeriveJsonEncoder.gen
 
   implicit lazy val fullGroupCategoryEncoder:      JsonEncoder[JRFullGroupCategory]             = DeriveJsonEncoder.gen
+  implicit lazy val fullGroupCategoryV21Encoder:   JsonEncoder[JRFullGroupCategoryV21]          = DeriveJsonEncoder.gen
   implicit lazy val minimalGroupCategoryEncoder:   JsonEncoder[JRMinimalGroupCategory]          = DeriveJsonEncoder.gen
   implicit lazy val groupCategoriesFullEncoder:    JsonEncoder[JRGroupCategoriesFull]           = DeriveJsonEncoder.gen
+  implicit lazy val groupCategoriesFullV21Encoder: JsonEncoder[JRGroupCategoriesFullV21]        = DeriveJsonEncoder.gen
   implicit lazy val groupCategoriesMinimalEncoder: JsonEncoder[JRGroupCategoriesMinimal]        = DeriveJsonEncoder.gen
   implicit lazy val groupInfoEncoder:              JsonEncoder[JRGroupCategoryInfo.JRGroupInfo] = DeriveJsonEncoder.gen
   implicit lazy val groupCategoryInfoEncoder:      JsonEncoder[JRGroupCategoryInfo]             = DeriveJsonEncoder.gen
