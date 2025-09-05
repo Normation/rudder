@@ -3469,6 +3469,12 @@ object RudderConfigInit {
 
       new CheckRudderGlobalParameter(roLDAPParameterRepository, woLDAPParameterRepository, stringUuidGenerator),
       new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, stringUuidGenerator),
+      new MigrateDirectiveWithSelectInputBroken(
+        ncfTechniqueReader,
+        roDirectiveRepository,
+        woDirectiveRepository,
+        stringUuidGenerator
+      ),
       new CheckNcfTechniqueUpdate(
         ncfTechniqueWriter,
         roLDAPApiAccountRepository.systemAPIAccount,
