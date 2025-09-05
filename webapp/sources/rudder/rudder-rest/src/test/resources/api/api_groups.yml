@@ -1,4 +1,67 @@
 ---
+description: Get a group (v21)
+method: GET
+url: /api/21/groups/0000f5d3-8c61-4d20-88a7-bb947705ba8a
+response:
+  code: 200
+  content: >-
+    {
+      "action":"groupDetails",
+      "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+      "result":"success",
+      "data":{
+        "groups":[
+          {
+            "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName":"Real nodes",
+            "description":"",
+            "category":"category1",
+            "query":{
+              "select":"nodeAndPolicyServer",
+              "composition":"or",
+              "where":[
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"node1"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"node2"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"root"
+                }
+              ]
+            },
+           "nodeIds":[
+              "node1",
+              "node2",
+              "root"
+            ],
+            "dynamic":false,
+            "enabled":true,
+            "groupClass":[
+              "group_0000f5d3_8c61_4d20_88a7_bb947705ba8a",
+              "group_real_nodes"
+            ],
+            "properties":[
+              {"name":"stringParam","value":"string","inheritMode":"map","provider":"datasources"},
+              {"name":"jsonParam","value":{"array":[5,6],"group":"string","json":{"g1":"g1"}}}
+            ],
+            "target":"group:0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
+          }
+        ]
+      }
+    }
+---
 description: Get a group
 method: GET
 url: /api/latest/groups/0000f5d3-8c61-4d20-88a7-bb947705ba8a
@@ -15,7 +78,7 @@ response:
             "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
             "displayName":"Real nodes",
             "description":"",
-            "category":"category1",
+            "categoryId":"category1",
             "query":{
               "select":"nodeAndPolicyServer",
               "composition":"or",
@@ -304,9 +367,9 @@ response:
       "errorDetails":"Group with id 'xxxxxxxx-2675-43b9-ab57-bfbab84346aa' was not found'"
     }
 ---
-description: List groups
+description: List groups (v21)
 method: GET
-url: /api/latest/groups
+url: /api/21/groups
 response:
   code: 200
   content: >-
@@ -502,6 +565,204 @@ response:
       }
     }
 ---
+description: List groups
+method: GET
+url: /api/latest/groups
+response:
+  code: 200
+  content: >-
+    {
+      "action":"listGroups",
+      "result":"success",
+      "data":{
+        "groups":[
+          {
+            "id":"0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName":"Real nodes",
+            "description":"",
+            "categoryId":"category1",
+            "query":{
+              "select":"nodeAndPolicyServer",
+              "composition":"or",
+              "where":[
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"node1"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"node2"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"nodeId",
+                  "comparator":"eq",
+                  "value":"root"
+                }
+              ]
+            },
+            "nodeIds":["node1","node2","root"],
+            "dynamic":false,
+            "enabled":true,
+            "groupClass":[
+              "group_0000f5d3_8c61_4d20_88a7_bb947705ba8a",
+              "group_real_nodes"
+            ],
+            "properties":[
+              {"name":"stringParam","value":"string","inheritMode":"map","provider":"datasources"},
+              {"name":"jsonParam","value":{"array":[5,6],"group":"string","json":{"g1":"g1"}}}
+            ],
+            "target":"group:0000f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
+          },
+          {
+            "id":"1111f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName":"Empty group",
+            "description":"",
+            "categoryId":"GroupRoot",
+            "nodeIds":[],
+            "dynamic":false,
+            "enabled":true,
+            "groupClass":[
+              "group_1111f5d3_8c61_4d20_88a7_bb947705ba8a",
+              "group_empty_group"
+            ],
+            "properties":[],
+            "target":"group:1111f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
+          },
+          {
+            "id":"2222f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName":"only root",
+            "description":"",
+            "categoryId":"GroupRoot",
+            "nodeIds":["root"],
+            "dynamic":false,
+            "enabled":true,
+            "groupClass":[
+              "group_2222f5d3_8c61_4d20_88a7_bb947705ba8a",
+              "group_only_root"
+            ],
+            "properties":[],
+            "target":"group:2222f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
+          },
+          {
+            "id":"3333f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName":"Even nodes",
+            "description":"",
+            "categoryId":"GroupRoot",
+            "nodeIds":["0","10","2","4","6","8"],
+            "dynamic":false,
+            "enabled":true,
+            "groupClass":[
+              "group_3333f5d3_8c61_4d20_88a7_bb947705ba8a",
+              "group_even_nodes"
+            ],
+            "properties":[],
+            "target":"group:3333f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
+          },
+          {
+            "id":"4444f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName":"Odd nodes",
+            "description":"",
+            "categoryId":"GroupRoot",
+            "nodeIds":["1","3","5","7","9"],
+            "dynamic":false,
+            "enabled":true,
+            "groupClass":[
+              "group_4444f5d3_8c61_4d20_88a7_bb947705ba8a",
+              "group_odd_nodes"
+            ],
+            "properties":[],
+            "target":"group:4444f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
+          },
+          {
+            "id":"5555f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName":"Nodes id divided by 3",
+            "description":"",
+            "categoryId":"GroupRoot",
+            "nodeIds":["0","3","6","9"],
+            "dynamic":false,
+            "enabled":true,
+            "groupClass":[
+              "group_5555f5d3_8c61_4d20_88a7_bb947705ba8a",
+              "group_nodes_id_divided_by_3"
+            ],
+            "properties":[],
+            "target":"group:5555f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
+          },
+          {
+            "id":"6666f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "displayName":"Nodes id divided by 5",
+            "description":"",
+            "categoryId":"GroupRoot",
+            "nodeIds":["0","10","5"],
+            "dynamic":false,
+            "enabled":true,
+            "groupClass":[
+              "group_6666f5d3_8c61_4d20_88a7_bb947705ba8a",
+              "group_nodes_id_divided_by_5"
+            ],
+            "properties":[],
+            "target":"group:6666f5d3-8c61-4d20-88a7-bb947705ba8a",
+            "system":false
+          },
+          {
+            "id":"a-group-for-root-only",
+            "displayName":"Serveurs [€ðŋ] cassés",
+            "description":"Liste de l'ensemble de serveurs cassés à réparer",
+            "categoryId":"GroupRoot",
+            "nodeIds":["root"],
+            "dynamic":true,
+            "enabled":true,
+            "groupClass":[
+              "group_a_group_for_root_only",
+              "group_serveurs_______casses"
+            ],
+            "properties":[],
+            "target":"group:a-group-for-root-only",
+            "system":false
+          },
+          {
+            "id" : "all-nodes",
+            "displayName" : "All nodes",
+            "description" : "All nodes known by Rudder (including Rudder policy servers)",
+            "categoryId" : "GroupRoot",
+            "nodeIds" : [
+              "0",
+              "1",
+              "10",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9"
+            ],
+            "dynamic" : false,
+            "enabled" : true,
+            "groupClass" : [
+              "group_all_nodes",
+              "group_all_nodes"
+            ],
+            "properties" : [],
+            "target" : "group:all-nodes",
+            "system" : true
+          }
+        ]
+      }
+    }
+---
 description: Create a node group (JSON)
 method: PUT
 url: /api/latest/groups
@@ -546,7 +807,7 @@ response:
             "id":"3fa29229-1a4b-4fd6-9edd-af114289fc9a",
             "displayName":"Debian 10 only Node group from API",
             "description":"A node group for debian version 10",
-            "category":"GroupRoot",
+            "categoryId":"GroupRoot",
             "query":{
               "select":"node",
               "composition":"and",
@@ -628,7 +889,7 @@ response:
             "id":"3fa29230-1a4b-4fd6-9edd-af114289fc9a",
             "displayName":"All Debian",
             "description":"A node group for debian",
-            "category":"GroupRoot",
+            "categoryId":"GroupRoot",
             "query":{
               "select":"node",
               "composition":"and",
@@ -711,7 +972,7 @@ response:
             "id":"3fa29229-1a4b-4fd6-0001-af114289fc9a",
             "displayName":"Debian 10 only Node group from API",
             "description":"A node group for debian version 10",
-            "category":"GroupRoot",
+            "categoryId":"GroupRoot",
             "query":{
               "select":"node",
               "composition":"and",
@@ -780,7 +1041,7 @@ response:
             "id":"00000000-cb9d-4f7b-abda-ca38c5d643ea",
             "displayName":"clone from api of debian group",
             "description":"Some long description",
-            "category":"GroupRoot",
+            "categoryId":"GroupRoot",
             "query":{
               "select":"node",
               "composition":"and",
@@ -846,7 +1107,7 @@ response:
             "id":"00000000-cb9d-4f7b-0001-ca38c5d643ea",
             "displayName":"clone from api of debian group",
             "description":"Some long description",
-            "category":"GroupRoot",
+            "categoryId":"GroupRoot",
             "query":{
               "select":"node",
               "composition":"and",
@@ -891,7 +1152,85 @@ response:
 description: Update a node group (JSON)
 method: POST
 url: /api/latest/groups/3fa29229-1a4b-4fd6-9edd-af114289fc9a
-comment: notice that we don't have the update node list here (since the workkflow that triggers dyn group update is not finished)
+comment: notice that we don't have the update node list here (since the workflow that triggers dyn group update is not finished)
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "id": "3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+    "displayName": "Debian 10 nodes, updated",
+    "description": "description, updated",
+    "enabled": false,
+    "system": false,
+    "properties":[
+      {
+        "name":"os",
+        "value":{
+          "name":"debian",
+          "version":"10"
+        }
+      }
+    ]
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateGroup",
+      "id":"3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+      "result":"success",
+      "data":{
+        "groups":[
+          {
+            "id":"3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+            "displayName":"Debian 10 nodes, updated",
+            "description":"description, updated",
+            "categoryId":"GroupRoot",
+            "query":{
+              "select":"node",
+              "composition":"and",
+              "where":[
+                {
+                  "objectType":"node",
+                  "attribute":"osName",
+                  "comparator":"eq",
+                  "value":"Debian"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"osVersion",
+                  "comparator":"regex",
+                  "value":"10\\..*"
+                }
+              ]
+            },
+            "nodeIds":[ ],
+            "dynamic":true,
+            "enabled":false,
+            "groupClass":[
+              "group_3fa29229_1a4b_4fd6_9edd_af114289fc9a",
+              "group_debian_10_nodes__updated"
+            ],
+            "properties":[
+              {
+                "name":"os",
+                "value":{
+                  "name":"debian",
+                  "version":"10"
+                }
+              }
+            ],
+            "target":"group:3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+            "system":false
+          }
+        ]
+      }
+    }
+---
+description: Update a node group v21 (JSON)
+method: POST
+url: /api/21/groups/3fa29229-1a4b-4fd6-9edd-af114289fc9a
+comment: notice that we don't have the update node list here (since the workflow that triggers dyn group update is not finished)
 headers:
   - "Content-Type: application/json"
 body: >-
@@ -943,7 +1282,12 @@ response:
                 }
               ]
             },
-            "nodeIds":[ ],
+            "nodeIds":[
+              "node1",
+              "node1-pending",
+              "node2",
+              "node2-pending"
+            ],
             "dynamic":true,
             "enabled":false,
             "groupClass":[
@@ -969,7 +1313,85 @@ response:
 description: Update a node group (PARAMS)
 method: POST
 url: /api/latest/groups/3fa29229-1a4b-4fd6-0001-af114289fc9a
-comment: notice that we don't have the update node list here (since the workkflow that triggers dyn group update is not finished)
+comment: notice that we don't have the update node list here (since the workflow that triggers dyn group update is not finished)
+headers:
+  - "Content-Type: application/x-www-form-urlencoded"
+body:
+params:
+  id: "3fa29229-1a4b-4fd6-0001-af114289fc9a"
+  displayName: "Debian 10 nodes, updated"
+  description: "description, updated"
+  enabled: "false"
+  system: "false"
+  properties: >-
+    [
+      {
+        "name":"os",
+        "value":{
+          "name":"debian",
+          "version":"10"
+        }
+      }
+    ]
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateGroup",
+      "id":"3fa29229-1a4b-4fd6-0001-af114289fc9a",
+      "result":"success",
+      "data":{
+        "groups":[
+          {
+            "id":"3fa29229-1a4b-4fd6-0001-af114289fc9a",
+            "displayName":"Debian 10 nodes, updated",
+            "description":"description, updated",
+            "categoryId":"GroupRoot",
+            "query":{
+              "select":"node",
+              "composition":"and",
+              "where":[
+                {
+                  "objectType":"node",
+                  "attribute":"osName",
+                  "comparator":"eq",
+                  "value":"Debian"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"osVersion",
+                  "comparator":"regex",
+                  "value":"10\\..*"
+                }
+              ]
+            },
+            "nodeIds":[ ],
+            "dynamic":true,
+            "enabled":false,
+            "groupClass":[
+              "group_3fa29229_1a4b_4fd6_0001_af114289fc9a",
+              "group_debian_10_nodes__updated"
+            ],
+            "properties":[
+              {
+                "name":"os",
+                "value":{
+                  "name":"debian",
+                  "version":"10"
+                }
+              }
+            ],
+            "target":"group:3fa29229-1a4b-4fd6-0001-af114289fc9a",
+            "system":false
+          }
+        ]
+      }
+    }
+---
+description: Update a node group v21 (PARAMS)
+method: POST
+url: /api/21/groups/3fa29229-1a4b-4fd6-0001-af114289fc9a
+comment: notice that we don't have the update node list here (since the workflow that triggers dyn group update is not finished)
 headers:
   - "Content-Type: application/x-www-form-urlencoded"
 body:
@@ -1021,7 +1443,12 @@ response:
                 }
               ]
             },
-            "nodeIds":[ ],
+            "nodeIds":[
+              "node1",
+              "node1-pending",
+              "node2",
+              "node2-pending"
+            ],
             "dynamic":true,
             "enabled":false,
             "groupClass":[
@@ -1060,7 +1487,7 @@ response:
             "id":"3fa29229-1a4b-4fd6-9edd-af114289fc9a",
             "displayName":"Debian 10 nodes, updated",
             "description":"description, updated",
-            "category":"GroupRoot",
+            "categoryId":"GroupRoot",
             "query":{
               "select":"node",
               "composition":"and",
@@ -1137,7 +1564,7 @@ response:
             "id":"00000000-cb9d-4f7b-abda-ca38c5d643ea",
             "displayName":"clone from api of debian group",
             "description":"Some long description",
-            "category":"GroupRoot",
+            "categoryId":"GroupRoot",
             "query": {
               "select": "nodeAndPolicyServer",
               "composition": "and",
@@ -1209,7 +1636,7 @@ response:
             "id":"00000000-cb9d-4f7b-abda-ca38c5d643ea",
             "displayName":"clone from api of debian group",
             "description":"Some long description",
-            "category":"GroupRoot",
+            "categoryId":"GroupRoot",
             "query": {
               "select": "nodeAndPolicyServer",
               "composition": "and",
@@ -1246,9 +1673,9 @@ response:
       }
     }
 ---
-description: Move a node group to a new category with 'category'
+description: Move a node group to a new category with 'category' (v21)
 method: POST
-url: /api/latest/groups/3fa29229-1a4b-4fd6-9edd-af114289fc9a
+url: /api/21/groups/3fa29229-1a4b-4fd6-9edd-af114289fc9a
 headers:
   - "Content-Type: application/json"
 body: >-
@@ -1269,6 +1696,75 @@ response:
             "displayName":"Debian 10 nodes, updated",
             "description":"description, updated",
             "category":"GroupRoot",
+            "query":{
+              "select":"node",
+              "composition":"and",
+              "where":[
+                {
+                  "objectType":"node",
+                  "attribute":"osName",
+                  "comparator":"eq",
+                  "value":"Debian"
+                },
+                {
+                  "objectType":"node",
+                  "attribute":"osVersion",
+                  "comparator":"regex",
+                  "value":"10\\..*"
+                }
+              ]
+            },
+            "nodeIds":[
+              "node1",
+              "node1-pending",
+              "node2",
+              "node2-pending"
+            ],
+            "dynamic":true,
+            "enabled":false,
+            "groupClass":[
+              "group_3fa29229_1a4b_4fd6_9edd_af114289fc9a",
+              "group_debian_10_nodes__updated"
+            ],
+            "properties":[
+              {
+                "name":"os",
+                "value":{
+                  "name":"debian",
+                  "version":"10"
+                }
+              }
+            ],
+            "target":"group:3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+            "system":false
+          }
+        ]
+      }
+    }
+---
+description: Move a node group to a new category with 'category'
+method: POST
+url: /api/latest/groups/3fa29229-1a4b-4fd6-9edd-af114289fc9a
+headers:
+  - "Content-Type: application/json"
+body: >-
+  {
+    "categoryId": "GroupRoot"
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"updateGroup",
+      "id":"3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+      "result":"success",
+      "data":{
+        "groups":[
+          {
+            "id":"3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+            "displayName":"Debian 10 nodes, updated",
+            "description":"description, updated",
+            "categoryId":"GroupRoot",
             "query":{
               "select":"node",
               "composition":"and",
@@ -1337,7 +1833,7 @@ response:
             "id":"3fa29229-1a4b-4fd6-9edd-af114289fc9a",
             "displayName":"Debian 10 nodes, updated",
             "description":"description, updated",
-            "category":"category1",
+            "categoryId":"category1",
             "query":{
               "select":"node",
               "composition":"and",
@@ -1405,7 +1901,7 @@ response:
             "id":"3fa29229-1a4b-4fd6-0001-af114289fc9a",
             "displayName":"Debian 10 nodes, updated",
             "description":"description, updated",
-            "category":"category1",
+            "categoryId":"category1",
             "query":{
               "select":"node",
               "composition":"and",
@@ -1468,7 +1964,7 @@ response:
             "id":"3fa29229-1a4b-4fd6-9edd-af114289fc9a",
             "displayName":"Debian 10 nodes, updated",
             "description":"description, updated",
-            "category":"GroupRoot",
+            "categoryId":"GroupRoot",
             "query":{
               "select":"node",
               "composition":"and",
@@ -1515,6 +2011,35 @@ response:
       }
     }
 ---
+description: Delete a node group (v21)
+method: DELETE
+url: /api/21/groups/3fa29229-1a4b-4fd6-9edd-af114289fc9a
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteGroup",
+      "id":"3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+      "result":"success",
+      "data":{
+        "groups":[
+          {
+            "id":"3fa29229-1a4b-4fd6-9edd-af114289fc9a",
+            "displayName":"",
+            "description":"",
+            "category":"",
+            "nodeIds":[],
+            "dynamic":false,
+            "enabled":false,
+            "groupClass":[],
+            "properties":[],
+            "target":"",
+            "system":false
+          }
+        ]
+      }
+    }
+---
 description: Delete a node group (PARAMS)
 method: DELETE
 url: /api/latest/groups/3fa29229-1a4b-4fd6-0001-af114289fc9a
@@ -1531,7 +2056,7 @@ response:
             "id":"3fa29229-1a4b-4fd6-0001-af114289fc9a",
             "displayName":"Debian 10 nodes, updated",
             "description":"description, updated",
-            "category":"GroupRoot",
+            "categoryId":"GroupRoot",
             "query":{
               "select":"node",
               "composition":"and",
@@ -1594,7 +2119,7 @@ response:
             "id" : "a-non-existing-group",
             "displayName" : "",
             "description" : "",
-            "category" : "",
+            "categoryId" : "",
             "nodeIds" : [],
             "dynamic" : false,
             "enabled" : false,
@@ -1868,9 +2393,9 @@ response:
       }
     }
 ---
-description: List all group categories and group in a tree format
+description: List all group categories and group in a tree format (v21)
 method: GET
-url: /api/latest/groups/tree
+url: /api/21/groups/tree
 response:
   code: 200
   content: >-
@@ -2319,7 +2844,7 @@ response:
                   "id" : "0000f5d3-8c61-4d20-88a7-bb947705ba8a",
                   "displayName" : "Real nodes",
                   "description" : "",
-                  "category" : "category1",
+                  "categoryId" : "category1",
                   "query" : {
                     "select" : "nodeAndPolicyServer",
                     "composition" : "or",
@@ -2397,7 +2922,7 @@ response:
               "id" : "00000000-cb9d-4f7b-0001-ca38c5d643ea",
               "displayName" : "clone from api of debian group",
               "description" : "Some long description",
-              "category" : "GroupRoot",
+              "categoryId" : "GroupRoot",
               "query" : {
                 "select" : "node",
                 "composition" : "and",
@@ -2439,7 +2964,7 @@ response:
               "id" : "00000000-cb9d-4f7b-abda-ca38c5d643ea",
               "displayName" : "clone from api of debian group",
               "description" : "Some long description",
-              "category" : "GroupRoot",
+              "categoryId" : "GroupRoot",
               "query": {
                 "select": "nodeAndPolicyServer",
                 "composition": "and",
@@ -2476,7 +3001,7 @@ response:
               "id" : "1111f5d3-8c61-4d20-88a7-bb947705ba8a",
               "displayName" : "Empty group",
               "description" : "",
-              "category" : "GroupRoot",
+              "categoryId" : "GroupRoot",
               "nodeIds" : [],
               "dynamic" : false,
               "enabled" : true,
@@ -2492,7 +3017,7 @@ response:
               "id" : "2222f5d3-8c61-4d20-88a7-bb947705ba8a",
               "displayName" : "only root",
               "description" : "",
-              "category" : "GroupRoot",
+              "categoryId" : "GroupRoot",
               "nodeIds" : [
                 "root"
               ],
@@ -2510,7 +3035,7 @@ response:
               "id" : "3333f5d3-8c61-4d20-88a7-bb947705ba8a",
               "displayName" : "Even nodes",
               "description" : "",
-              "category" : "GroupRoot",
+              "categoryId" : "GroupRoot",
               "nodeIds" : [
                 "0",
                 "10",
@@ -2533,7 +3058,7 @@ response:
               "id" : "3fa29230-1a4b-4fd6-9edd-af114289fc9a",
               "displayName" : "All Debian",
               "description" : "A node group for debian",
-              "category" : "GroupRoot",
+              "categoryId" : "GroupRoot",
               "query" : {
                 "select" : "node",
                 "composition" : "and",
@@ -2568,7 +3093,7 @@ response:
               "id" : "4444f5d3-8c61-4d20-88a7-bb947705ba8a",
               "displayName" : "Odd nodes",
               "description" : "",
-              "category" : "GroupRoot",
+              "categoryId" : "GroupRoot",
               "nodeIds" : [
                 "1",
                 "3",
@@ -2590,7 +3115,7 @@ response:
               "id" : "5555f5d3-8c61-4d20-88a7-bb947705ba8a",
               "displayName" : "Nodes id divided by 3",
               "description" : "",
-              "category" : "GroupRoot",
+              "categoryId" : "GroupRoot",
               "nodeIds" : [
                 "0",
                 "3",
@@ -2611,7 +3136,7 @@ response:
               "id" : "6666f5d3-8c61-4d20-88a7-bb947705ba8a",
               "displayName" : "Nodes id divided by 5",
               "description" : "",
-              "category" : "GroupRoot",
+              "categoryId" : "GroupRoot",
               "nodeIds" : [
                 "0",
                 "10",
@@ -2631,7 +3156,7 @@ response:
               "id" : "a-group-for-root-only",
               "displayName" : "Serveurs [€ðŋ] cassés",
               "description" : "Liste de l'ensemble de serveurs cassés à réparer",
-              "category" : "GroupRoot",
+              "categoryId" : "GroupRoot",
               "nodeIds" : [
                 "root"
               ],
@@ -2649,7 +3174,7 @@ response:
               "id" : "all-nodes",
               "displayName" : "All nodes",
               "description" : "All nodes known by Rudder (including Rudder policy servers)",
-              "category" : "GroupRoot",
+              "categoryId" : "GroupRoot",
               "nodeIds" : [
                 "0",
                 "1",
