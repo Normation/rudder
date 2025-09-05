@@ -1747,12 +1747,28 @@ object JsonResponseObjects {
     }
   }
 
-  final case class JRGroup(
+  final case class JRGroupV21(
       changeRequestId: Option[String] = None,
       id:              String,
       displayName:     String,
       description:     String,
       category:        String,
+      query:           Option[JRQuery],
+      nodeIds:         List[String],
+      dynamic:         Boolean,
+      enabled:         Boolean,
+      groupClass:      List[String],
+      properties:      List[JRProperty],
+      target:          String,
+      system:          Boolean
+  )
+
+  final case class JRGroup(
+      changeRequestId: Option[String] = None,
+      id:              String,
+      displayName:     String,
+      description:     String,
+      categoryId:      String,
       query:           Option[JRQuery],
       nodeIds:         List[String],
       dynamic:         Boolean,
@@ -1777,7 +1793,7 @@ object JsonResponseObjects {
              }
       } yield {
         (
-          NodeGroupCategoryId(category),
+          NodeGroupCategoryId(categoryId),
           NodeGroup(
             i,
             displayName,
@@ -1818,7 +1834,7 @@ object JsonResponseObjects {
         .withFieldConst(_.changeRequestId, crId.map(_.value.toString))
         .withFieldComputed(_.id, _.id.serialize)
         .withFieldRenamed(_.name, _.displayName)
-        .withFieldConst(_.category, catId.value)
+        .withFieldConst(_.categoryId, catId.value)
         .withFieldComputed(_.query, _.query.map(JRQuery.fromQuery(_)))
         .withFieldComputed(_.nodeIds, _.serverList.toList.map(_.value).sorted)
         .withFieldComputed(_.groupClass, x => List(x.id.serialize, x.name).map(RuleTarget.toCFEngineClassName).sorted)
@@ -1827,6 +1843,9 @@ object JsonResponseObjects {
         .withFieldComputed(_.system, _.isSystem)
         .transform
     }
+
+    given Transformer[JRGroup, JRGroupV21] =
+      Transformer.define[JRGroup, JRGroupV21].withFieldRenamed(_.categoryId, _.category).buildTransformer
   }
 
   /**
@@ -2150,6 +2169,7 @@ trait RudderJsonEncoders {
   implicit lazy val propertyEncoder:                 JsonEncoder[JRProperty]                 = DeriveJsonEncoder.gen
   implicit lazy val criteriumEncoder:                JsonEncoder[JRCriterium]                = DeriveJsonEncoder.gen
   implicit lazy val queryEncoder:                    JsonEncoder[JRQuery]                    = DeriveJsonEncoder.gen
+  implicit lazy val groupV21Encoder:                 JsonEncoder[JRGroupV21]                 = DeriveJsonEncoder.gen
   implicit lazy val groupEncoder:                    JsonEncoder[JRGroup]                    = DeriveJsonEncoder.gen
   implicit lazy val objectInheritedObjectProperties: JsonEncoder[JRGroupInheritedProperties] = DeriveJsonEncoder.gen
 
