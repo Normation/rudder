@@ -266,21 +266,21 @@ object JsonQueryObjects {
   }
 
   final case class JQRule(
-      id:               Option[RuleId] = None,
-      displayName:      Option[String] = None,
-      category:         Option[String] = None,
-      shortDescription: Option[String] = None,
-      longDescription:  Option[String] = None,
-      directives:       Option[Set[DirectiveId]] = None,
-      targets:          Option[Set[JRRuleTarget]] = None,
-      enabled:          Option[Boolean] = None,
-      tags:             Option[Tags] = None, // for clone
+      id:                                  Option[RuleId] = None,
+      displayName:                         Option[String] = None,
+      @jsonAliases("category") categoryId: Option[String] = None,
+      shortDescription:                    Option[String] = None,
+      longDescription:                     Option[String] = None,
+      directives:                          Option[Set[DirectiveId]] = None,
+      targets:                             Option[Set[JRRuleTarget]] = None,
+      enabled:                             Option[Boolean] = None,
+      tags:                                Option[Tags] = None, // for clone
 
       source: Option[RuleId] = None
   ) {
 
     val onlyName: Boolean = displayName.isDefined &&
-      category.isEmpty &&
+      categoryId.isEmpty &&
       shortDescription.isEmpty &&
       longDescription.isEmpty &&
       directives.isEmpty &&
@@ -291,7 +291,7 @@ object JsonQueryObjects {
     def updateRule(rule: Rule): Rule = {
       val updateRevision   = id.map(_.rev).getOrElse(rule.id.rev)
       val updateName       = displayName.getOrElse(rule.name)
-      val updateCategory   = category.map(RuleCategoryId.apply).getOrElse(rule.categoryId)
+      val updateCategory   = categoryId.map(RuleCategoryId.apply).getOrElse(rule.categoryId)
       val updateShort      = shortDescription.getOrElse(rule.shortDescription)
       val updateLong       = longDescription.getOrElse(rule.longDescription)
       val updateDirectives = directives.getOrElse(rule.directiveIds)
@@ -412,15 +412,15 @@ object JsonQueryObjects {
   }
 
   final case class JQGroup(
-      id:          Option[NodeGroupId] = None,
-      displayName: Option[String] = None,
-      description: Option[String] = None,
-      properties:  Option[List[GroupProperty]] = None,
-      query:       Option[StringQuery] = None,
-      dynamic:     Option[Boolean] = None,
-      enabled:     Option[Boolean] = None,
-      category:    Option[NodeGroupCategoryId] = None,
-      source:      Option[NodeGroupId] = None
+      id:                                  Option[NodeGroupId] = None,
+      displayName:                         Option[String] = None,
+      description:                         Option[String] = None,
+      properties:                          Option[List[GroupProperty]] = None,
+      query:                               Option[StringQuery] = None,
+      dynamic:                             Option[Boolean] = None,
+      enabled:                             Option[Boolean] = None,
+      @jsonAliases("category") categoryId: Option[NodeGroupCategoryId] = None,
+      source:                              Option[NodeGroupId] = None
   ) {
 
     val onlyName: Boolean = displayName.isDefined &&
@@ -429,7 +429,7 @@ object JsonQueryObjects {
       query.isEmpty &&
       dynamic.isEmpty &&
       enabled.isEmpty &&
-      category.isEmpty
+      categoryId.isEmpty
 
     def updateGroup(group: NodeGroup, queryParser: CmdbQueryParser): PureResult[NodeGroup] = {
       for {
@@ -825,7 +825,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
       JQRule(
         id,
         params.optGet("displayName"),
-        params.optGet("category"),
+        params.optGet("categoryId").orElse(params.optGet("category")),
         params.optGet("shortDescription"),
         params.optGet("longDescription"),
         directives,
@@ -903,7 +903,7 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
         query,
         dynamic,
         enabled,
-        params.optGet("category").map(NodeGroupCategoryId.apply),
+        params.optGet("categoryId").orElse(params.optGet("category")).map(NodeGroupCategoryId.apply),
         source
       )
     }
