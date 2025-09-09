@@ -139,7 +139,7 @@ class RestDataExtractorTest extends ZIOSpecDefault {
             """{
             "category": "38e0c6ea-917f-47b8-82e0-e6a1d3dd62ca"
          }""",
-            JQRule(category = Some("38e0c6ea-917f-47b8-82e0-e6a1d3dd62ca"))
+            JQRule(categoryId = Some("38e0c6ea-917f-47b8-82e0-e6a1d3dd62ca"))
           ),
           (
             """{

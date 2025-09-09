@@ -473,7 +473,7 @@ class GroupApiService14(
             updated <- restGroup.updateGroup(pair._1, queryParser).toIO
           } yield {
             // in that case, we take rest category and if empty, we default to cloned group category
-            val category = restGroup.category.orElse(Some(pair._2))
+            val category = restGroup.categoryId.orElse(Some(pair._2))
             val withId   = updated.copy(id = id)
             NodeGroupChangeRequest(DGModAction.CreateSolo, withId, category, Some(pair._1))
           }
@@ -496,7 +496,7 @@ class GroupApiService14(
            */
           for {
             updated  <- restGroup.updateGroup(baseGroup, queryParser).toIO
-            change    = NodeGroupChangeRequest(DGModAction.CreateSolo, updated, restGroup.category, Some(baseGroup))
+            change    = NodeGroupChangeRequest(DGModAction.CreateSolo, updated, restGroup.categoryId, Some(baseGroup))
             workflow <- workflowLevelService
                           .getForNodeGroup(actor, change)
                           .chainError("Could not find workflow status for that rule creation")
@@ -580,7 +580,7 @@ class GroupApiService14(
       pair    <- readGroup.getNodeGroup(id)
       updated <- restGroup.updateGroup(pair._1, queryParser).toIO
       diff     = ModifyToNodeGroupDiff(updated)
-      optCat   = restGroup.category.orElse(Some(pair._2))
+      optCat   = restGroup.categoryId.orElse(Some(pair._2))
       change   = NodeGroupChangeRequest(DGModAction.Update, updated, optCat, Some(pair._1))
       res     <- createChangeRequest(diff, change, params, actor)
     } yield {
