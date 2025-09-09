@@ -60,6 +60,7 @@ import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.properties.NodePropertiesService
 import com.normation.rudder.properties.PropertiesRepository
 import com.normation.rudder.repository.CategoryAndNodeGroup
+import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.rest.{GroupApi as API, *}
@@ -258,15 +259,16 @@ class GroupsApi(
   object GetTree        extends LiftApiModule0      {
     val schema:                                                                                                API.GetGroupTree.type = API.GetGroupTree
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse          = {
-      service
-        .getCategoryTree(version)
-        .map(JRGroupCategoriesFull(_))
-        .chainError("Could not fetch Group tree")
-        .toLiftResponseOne(
-          params,
-          schema,
-          _ => None
-        )
+      (for {
+        includeSystem <- zioJsonExtractor.extractIncludeSystem(req).toIO
+        res           <-
+          service
+            .getCategoryTree(includeSystem.getOrElse(true))
+            .map(JRGroupCategoriesFull(_))
+            .chainError("Could not fetch Group tree")
+      } yield {
+        res
+      }).toLiftResponseOne(params, schema, _ => None)
     }
   }
   object GetCategory    extends LiftApiModuleString {
@@ -586,8 +588,21 @@ class GroupApiService14(
     }
   }
 
-  def getCategoryTree(apiVersion: ApiVersion): IOResult[JRFullGroupCategory] = {
-    readGroup.getFullGroupLibrary().map(JRFullGroupCategory.fromCategory(_, None))
+  def getCategoryTree(includeSystem: Boolean): IOResult[JRFullGroupCategory] = {
+    def filterSystem(cat: FullNodeGroupCategory): FullNodeGroupCategory = {
+      if (includeSystem) {
+        cat
+      } else {
+        // system categories are only at root level
+        cat.copy(
+          subCategories = cat.subCategories.filterNot(_.isSystem),
+          targetInfos = cat.targetInfos.filterNot(_.isSystem)
+        )
+      }
+    }
+    readGroup
+      .getFullGroupLibrary()
+      .map(c => JRFullGroupCategory.fromCategory(filterSystem(c), None))
   }
 
   def getCategoryDetails(id: NodeGroupCategoryId): IOResult[JRMinimalGroupCategory] = {

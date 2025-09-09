@@ -313,6 +313,8 @@ paths:
     $ref: paths/directives/id.yml
   "/directives/{directiveId}/check":
     $ref: paths/directives/id-check.yml
+  "/directives/tree":
+    $ref: paths/directives/tree.yml
   "/rules":
     $ref: paths/rules/all.yml
   "/rules/{ruleId}":
