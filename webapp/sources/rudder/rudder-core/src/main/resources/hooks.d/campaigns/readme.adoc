@@ -5,14 +5,14 @@
 This directory contains hooks executed before and after a campaign event starts to run.
 This hooks are specific for each campaign, so contrary to other hook layout, for campaign
 you have:
-- /var/rudder/configuration-repository/campaigns/
+- /opt/rudder/etc/hooks.d/campaigns/
     - 781b2837-25d0-4c72-8384-04a22e59d83b // uuid of the campaign
        - pre-hooks
            [scripts for pre hooks]
        - post-hooks
            [scripts for post hooks]
 
-Hooks return code that stop processing will lead to failure campaign event.
+Hooks return code that stop processing will lead to a "failure" campaign event.
 
 == Parameters
 
