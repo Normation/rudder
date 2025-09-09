@@ -2143,6 +2143,41 @@ response:
               "system" : false
             },
             {
+              "id" : "3fa29230-1a4b-4fd6-9edd-af114289fc9a",
+              "displayName" : "All Debian",
+              "description" : "A node group for debian",
+              "category" : "GroupRoot",
+              "query" : {
+                "select" : "node",
+                "composition" : "and",
+                "where" : [
+                  {
+                    "objectType" : "node",
+                    "attribute" : "osName",
+                    "comparator" : "eq",
+                    "value" : "Debian"
+                  }
+                ]
+              },
+              "nodeIds" : [],
+              "dynamic" : true,
+              "enabled" : true,
+              "groupClass" : [
+                "group_3fa29230_1a4b_4fd6_9edd_af114289fc9a",
+                "group_all_debian"
+              ],
+              "properties" : [
+                {
+                  "name" : "os",
+                  "value" : {
+                    "name" : "debian"
+                  }
+                }
+              ],
+              "target" : "group:3fa29230-1a4b-4fd6-9edd-af114289fc9a",
+              "system" : false
+            },
+            {
               "id" : "4444f5d3-8c61-4d20-88a7-bb947705ba8a",
               "displayName" : "Odd nodes",
               "description" : "",
@@ -2542,6 +2577,41 @@ response:
               ],
               "properties" : [],
               "target" : "group:3333f5d3-8c61-4d20-88a7-bb947705ba8a",
+              "system" : false
+            },
+            {
+              "id" : "3fa29230-1a4b-4fd6-9edd-af114289fc9a",
+              "displayName" : "All Debian",
+              "description" : "A node group for debian",
+              "category" : "GroupRoot",
+              "query" : {
+                "select" : "node",
+                "composition" : "and",
+                "where" : [
+                  {
+                    "objectType" : "node",
+                    "attribute" : "osName",
+                    "comparator" : "eq",
+                    "value" : "Debian"
+                  }
+                ]
+              },
+              "nodeIds" : [],
+              "dynamic" : true,
+              "enabled" : true,
+              "groupClass" : [
+                "group_3fa29230_1a4b_4fd6_9edd_af114289fc9a",
+                "group_all_debian"
+              ],
+              "properties" : [
+                {
+                  "name" : "os",
+                  "value" : {
+                    "name" : "debian"
+                  }
+                }
+              ],
+              "target" : "group:3fa29230-1a4b-4fd6-9edd-af114289fc9a",
               "system" : false
             },
             {
