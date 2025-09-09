@@ -19,6 +19,8 @@ allow = [
 ignore = [
     # Not vulnerable to puny-code masking
     "RUSTSEC-2024-0421",
+    # adler is no longer maintained
+    "RUSTSEC-2025-0056",
 ]
 
 [bans]
