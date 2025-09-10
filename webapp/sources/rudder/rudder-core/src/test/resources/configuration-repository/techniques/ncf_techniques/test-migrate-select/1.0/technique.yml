@@ -1,0 +1,21 @@
+id: test-migrate-select
+name: test
+version: '1.0'
+category: ncf_techniques
+params:
+  - id: 8beca52f-7d5a-4c55-b5ae-fb56b7e50ddf
+    name: test
+    description: Mode
+    constraints:
+      allow_empty: false
+      select:
+        - value: enforce
+          name: Enfore
+        - value: audit
+          name: Audit
+items:
+  - id: c7b5c43e-3bd2-492f-b926-de6ceb200a94
+    name: ''
+    method: command_execution
+    params:
+      command: /bin/echo "toto"
