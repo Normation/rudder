@@ -149,6 +149,10 @@ impl Display for ParameterFormat {
 
 impl ParameterFormat {
     pub fn validate(&self, s: &str) -> Result<()> {
+        if s.trim().is_empty() {
+            // Allow empty value for optional parameters
+            return Ok(());
+        }
         match self {
             ParameterFormat::Json => serde_json::from_str::<serde_json::Value>(s).map(|_| ())?,
             ParameterFormat::Yaml => serde_yaml::from_str::<serde_yaml::Value>(s).map(|_| ())?,
@@ -489,6 +493,8 @@ mod tests {
                 .is_valid(r#"{"a": 42, "b": 42, "c": 42,}"#)
                 .is_err()
         );
+        assert!(constraints.is_valid(r#""#).is_ok());
+        assert!(constraints.is_valid(r#"  "#).is_ok());
 
         let constraints = MethodConstraints {
             valid_format: Some(ParameterFormat::Yaml),
