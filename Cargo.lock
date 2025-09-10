@@ -3599,7 +3599,7 @@ dependencies = [
  "rudder_module_type",
  "rusqlite",
  "rust-apt 0.8.0 (git+https://gitlab.com/amousset/rust-apt.git?branch=rudder)",
- "rust-apt 0.8.0 (git+https://gitlab.com/volian/rust-apt.git)",
+ "rust-apt 0.8.0 (git+https://gitlab.com/amousset/rust-apt.git?branch=rudder-libapt07)",
  "serde",
  "serde_json",
  "tempfile",
@@ -3836,7 +3836,7 @@ dependencies = [
 [[package]]
 name = "rust-apt"
 version = "0.8.0"
-source = "git+https://gitlab.com/volian/rust-apt.git#eced4e5cdc4c5667ac7de9c4441414ec784468df"
+source = "git+https://gitlab.com/amousset/rust-apt.git?branch=rudder-libapt07#6069ffaf7e537681e435dc35a56e32c9b3989938"
 dependencies = [
  "cxx",
  "cxx-build",
