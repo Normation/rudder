@@ -23,6 +23,12 @@ response:
             ]
           },
           {
+            "name" : "test-migrate-select",
+            "versions" : [
+              "1.0"
+            ]
+          },
+          {
             "name":"technique_by_Rudder",
             "versions":[
               "1.0"
