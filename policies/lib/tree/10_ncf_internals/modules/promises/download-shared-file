@@ -84,7 +84,7 @@ if [ "${LOCAL_HASH}" != "" ]; then
 fi
 
 if [ "${UP_TO_DATE}" != "true" ]; then
-  code=$(rudder-client -c -e "${ENDPOINT}?hash=${LOCAL_HASH}&hash_type=${HASH}" -r -- --output "${FILE}")
+  code=$(rudder-client -c -e "${ENDPOINT}" -- --write-out %{http_code} --output "${FILE}")
   if [ "$code" = "200" ]; then
     [ "${VERBOSE}" = "true" ] && echo "File was updated"
     exit 2
