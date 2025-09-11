@@ -4,7 +4,10 @@
 #
 # Does hash comparison to avoid useless downloads.
 
-# Uses the CFEngine module protocol.
+# Returns:
+# * 0 if the file is up to date
+# * 1 if there was an error or if the file was not up to date in audit mode
+# * 2 if the file was updated
 
 # Use rudder binaries in priority
 export PATH="/opt/rudder/bin:$PATH"
@@ -81,10 +84,15 @@ if [ "${LOCAL_HASH}" != "" ]; then
 fi
 
 if [ "${UP_TO_DATE}" != "true" ]; then
-  code=$(rudder-client -c -e "${ENDPOINT}?hash=${LOCAL_HASH}&hash_type=${HASH}" -r -- --output "${FILE}")
+  code=$(rudder-client -c -e "${ENDPOINT}" -- --write-out %{http_code} --output "${FILE}")
   if [ "$code" = "200" ]; then
-    UP_TO_DATE="false"
+    [ "${VERBOSE}" = "true" ] && echo "File was updated"
+    exit 2
   else
-    echo "Error checking file state: returned ${code}"
+    echo "Error downloading file: returned ${code}"
+    exit 1
   fi
+else
+  [ "${VERBOSE}" = "true" ] && echo "File is up to date"
+  exit 0
 fi
