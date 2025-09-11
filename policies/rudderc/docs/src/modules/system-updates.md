@@ -157,9 +157,13 @@ and `yum` is aliased to `dnf` on recent systems:
 lrwxrwxrwx. 1 root root 5 Apr  1  2024 /usr/bin/yum -> dnf-3
 ```
 
+For required reboot detection, we use the `needs-restarting` command from the `yum-utils` package, called with `needs-restarting --reboothint`. For the services to restart, we use the same command with `needs-restarting --services`.
+
 #### Zypper
 
 We use the `zypper` command line.
+
+For required reboot detection, we use the `zypper ps` command with the `zypper ps -s` options. For the services to restart, we use `zypper ps -sss`.
 
 #### APT
 
@@ -182,6 +186,10 @@ The APT support is enabled with the `apt` feature:
 ```shell
 cargo build --release --features=apt
 ```
+
+For required reboot detection, we use the presence of the `/var/run/reboot-required` file, as done by `unattended-upgrade`. For the services to restart, we use the `needrestart` command from the `needrestart` package, called with `needrestart -r l -b`.
+
+As we want to have a common interface and workflow for different package managers, we disable automatic service restart in APT interactions by setting the `NEEDRESTART_SUSPEND` environment variable, and we only use `needrestart` to get the list of services to restart, but not actually performing the restart.
 
 ### Security
 
