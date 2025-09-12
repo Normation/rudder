@@ -39,6 +39,8 @@ package com.normation.rudder.web.services
 import com.normation.box.*
 import com.normation.eventlog.EventLog
 import com.normation.rudder.repository.*
+import com.normation.rudder.web.StaticResourceRewrite
+import com.normation.rudder.web.lift.JsCommands.ScriptModule
 import com.normation.rudder.web.snippet.WithNonce
 import doobie.*
 import doobie.implicits.*
@@ -59,7 +61,7 @@ import scala.xml.*
  * Used to display the event list, in the pending modification (AsyncDeployment),
  * or in the administration EventLogsViewer
  */
-class EventListDisplayer(repos: EventLogRepository) extends Loggable {
+class EventListDisplayer(repos: EventLogRepository, staticResourceRewrite: StaticResourceRewrite) extends Loggable {
 
   def display(gridName: String, refreshEvents: () => Box[Seq[EventLog]]): NodeSeq = {
     // common part between last events and interval
@@ -136,21 +138,27 @@ class EventListDisplayer(repos: EventLogRepository) extends Loggable {
       (now.toString("yyyy-MM-dd'T'HH:mm:ss.SSSZ"), now.getZone.getID)
     }
 
-    WithNonce.scriptWithNonce(Script(OnLoad(JsRaw(s"""
-     var refreshEventLogs = ${refresh.toJsCmd};
+    WithNonce.scriptWithNonce(
+      ScriptModule(
+        OnLoad(JsRaw(s"""
+     const refreshEventLogs = ${refresh.toJsCmd};
      initDatePickers(
        "#filterLogs",
        ${AnonFunc(
-        "param",
-        SHtml.ajaxCall(JsVar("param"), getEventsInterval)._2
-      ).toJsCmd},
+            "param",
+            SHtml.ajaxCall(JsVar("param"), getEventsInterval)._2
+          ).toJsCmd},
        changeTimezone(new Date('${jsDateWithTimeZone}'), '${currentTimezone}'),
        '${currentTimezone}',
        ${hoursBeforeNow}
      );
      createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs)
      refreshEventLogs();
-    """)))) // JsRaw ok, escaped
+    """)),
+        imports =
+          s"import { createEventLogTable } from '${staticResourceRewrite.resourceUrl("/javascript/rudder/changeLogs.js")}'"
+      )
+    ) // JsRaw ok, escaped
   }
 
 }

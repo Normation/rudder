@@ -38,7 +38,7 @@
 package com.normation.rudder.web.snippet
 
 import bootstrap.liftweb.PluginsInfo
-import bootstrap.liftweb.StaticResourceRewrite
+import bootstrap.liftweb.RudderConfig
 import com.normation.plugins.PluginName
 import net.liftweb.common.Box
 import net.liftweb.common.Empty
@@ -62,6 +62,8 @@ import scala.xml.UnprefixedAttribute
  * but with img managed.
  */
 object WithCachedResource extends DispatchSnippet {
+  private val staticResourceRewrite = RudderConfig.staticResourceRewrite
+
   def dispatch: DispatchIt = { case _ => render }
 
   val pluginResourceRegex: Regex = """/?toserve/([\w-]+)/.+""".r
@@ -121,7 +123,7 @@ object WithCachedResource extends DispatchSnippet {
             MetaData.update(
               e.attributes,
               e.scope,
-              new UnprefixedAttribute("src", src.split("#").mkString(s"?version=${StaticResourceRewrite.prefix}#"), Null)
+              new UnprefixedAttribute("src", src.split("#").mkString(s"?version=${staticResourceRewrite.prefix}#"), Null)
             )
           })
         } openOr e
