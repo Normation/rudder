@@ -101,6 +101,7 @@ bundle common g
 {
   vars:
       # TODO tmpdir?
+      "agent_run_interval"         string => "5";
       "rudder_var"                 string => "/var/rudder";
       "rudder_base"                string => "/opt/rudder";
       "rudder_verify_certs_option" string => "";
