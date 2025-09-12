@@ -409,7 +409,7 @@ trait PromiseGenerationService {
                                                             jsTimeout,
                                                             generationContinueOnError
                                                           ) ?~! "Cannot build target configuration node"
-                                  /// only keep successfull node config. We will keep the failed one to fail the whole process in the end if needed
+                                  /// only keep successfully node config. We will keep the failed one to fail the whole process in the end if needed
                                   allNodeConfigurations = configsAndErrors.ok.map(c => (c.nodeInfo.id, c)).toMap
                                   allErrors             = configsAndErrors.errors.map(_.fullMsg) ++ errors.values
                                   errorNodes            = activeNodeIds -- allNodeConfigurations.keySet
@@ -873,11 +873,14 @@ class PromiseGenerationServiceImpl(
   }
 
   override def triggerNodeGroupUpdate(): Box[Unit] = {
-    dynamicsGroupsUpdate.map(groupUpdate(_)).getOrElse(Failure("Dynamic group update is not registered, this is an error"))
-
+    dynamicsGroupsUpdate match {
+      case Some(service) => groupUpdate(service)
+      case None          => Failure("Dynamic group update is not registered, this is an error")
+    }
   }
+
   private def groupUpdate(updateDynamicGroups: UpdateDynamicGroups): Box[Unit] = {
-    // Trigger a manual update if one is not pending (otherwise it goes in infinit loop)
+    // Trigger a manual update if one is not pending (otherwise it goes in infinite loop)
     // It doesn't expose anything about its ending, so we need to wait for the update to be idle
     if (updateDynamicGroups.isIdle()) {
       updateDynamicGroups.startManualUpdate
