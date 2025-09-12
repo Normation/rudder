@@ -10,7 +10,7 @@ use tracing::{debug, error, info, instrument, span, warn, Instrument, Level};
 use crate::{
     configuration::main::ReportingOutputSelect,
     data::{RunInfo, RunLog},
-    input::{read_compressed_file, signature, watch::*},
+    input::{read_compressed_file, verify_signature, watch::*},
     metrics::{REPORTS, REPORTS_PROCESSING_DURATION, REPORTS_SIZE_BYTES},
     output::{
         database::{insert_runlog, RunlogInsertion},
@@ -199,9 +199,11 @@ async fn output_report_database_inner(
     let timer = REPORTS_PROCESSING_DURATION.start_timer();
 
     let content = read_compressed_file(&path).await?;
-    let signed_runlog = signature(
+    let signed_runlog = verify_signature(
         &content,
         job_config.nodes.read().await.certs(&run_info.node_id)?,
+        &job_config.ca_store,
+        job_config.validate_certificates,
     )?;
 
     REPORTS_SIZE_BYTES.observe(signed_runlog.len() as f64);
