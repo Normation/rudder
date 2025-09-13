@@ -50,13 +50,13 @@ type alias Property =
 
 type alias HierarchyStatus =
   { hasChildTypeConflicts : Bool
-  , fullHierarchy : List ParentProperty
+  , fullHierarchy : ParentProperty
   , errorMessage : Maybe String
   }
 
 type alias ParentGlobalProperty = { valueType : String }
-type alias ParentGroupProperty = { id : String, name : String, valueType : String }
-type alias ParentNodeProperty = { id : String, name : String, valueType : String }
+type alias ParentGroupProperty = { id : String, name : String, valueType : String, parent : Maybe ParentProperty }
+type alias ParentNodeProperty = { id : String, name : String, valueType : String, parent : Maybe ParentProperty }
 type ParentProperty = ParentGlobal ParentGlobalProperty | ParentGroup ParentGroupProperty | ParentNode ParentNodeProperty
 
 
@@ -170,17 +170,28 @@ valueTypeToValueFormat valueType =
 getPossibleFormatsFromPropertyName : Model -> String -> List ValueFormat
 getPossibleFormatsFromPropertyName model propertyName =
   let
+    getOtherHierarchyValueType : ParentProperty -> List String
     getOtherHierarchyValueType p =
       case p of
-        ParentGlobal { valueType } -> Just valueType
-        ParentGroup { id, valueType } ->
-          if id /= model.nodeId then Just valueType else Nothing
-        ParentNode { id, valueType } ->
-          if id /= model.nodeId then Just valueType else Nothing
+        ParentGlobal prop -> [ prop.valueType ]
+        ParentGroup prop ->
+          let
+            parent = case prop.parent of
+                       Just par -> getOtherHierarchyValueType par
+                       Nothing -> []
+          in
+            if prop.id /= model.nodeId then prop.valueType :: parent else parent
+        ParentNode prop ->
+          let
+            parent = case prop.parent of
+                       Just par -> getOtherHierarchyValueType par
+                       Nothing -> []
+          in
+            if prop.id /= model.nodeId then prop.valueType :: parent else parent
     mergedValueTypes =
       List.Extra.find (\p -> p.name == propertyName) model.properties
       |> Maybe.andThen (\p -> p.hierarchyStatus)
-      |> Maybe.map (\hs -> List.filterMap (getOtherHierarchyValueType >> Maybe.map valueTypeToValueFormat) hs.fullHierarchy)
+      |> Maybe.map (\hs -> (getOtherHierarchyValueType >> List.map valueTypeToValueFormat) hs.fullHierarchy)
   in
     mergedValueTypes
     |> Maybe.withDefault []

@@ -47,24 +47,27 @@ decodeHierarchyStatus : Decoder HierarchyStatus
 decodeHierarchyStatus =
   succeed HierarchyStatus
     |> required "hasChildTypeConflicts" bool
-    |> required "fullHierarchy" (list decodeParentProperty)
+    |> required "fullHierarchy" decodeParentProperty
     |> optional "errorMessage" (map Just string) Nothing
 
 decodeParentProperty : Decoder ParentProperty
 decodeParentProperty =
   field "kind" string |> andThen (\s ->
     case s of
-      "group" -> 
-        map3 ParentGroupProperty
-          (field "id" string)
-          (field "name" string)
-          (field "valueType" string)
+      "group" ->
+
+        succeed ParentGroupProperty
+          |> required "id" string
+          |> required "name" string
+          |> required "valueType" string
+          |> optional "parent" (map Just decodeParentProperty) Nothing
           |> map ParentGroup
       "node" ->
-        map3 ParentNodeProperty
-          (field "id" string)
-          (field "name" string)
-          (field "valueType" string)
+        succeed ParentNodeProperty
+          |> required "id" string
+          |> required "name" string
+          |> required "valueType" string
+          |> optional "parent" (map Just decodeParentProperty) Nothing
           |> map ParentNode
       "global" -> 
         map ParentGlobalProperty

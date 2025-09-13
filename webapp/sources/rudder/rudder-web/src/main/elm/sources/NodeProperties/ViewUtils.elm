@@ -107,12 +107,12 @@ getFormatTxt format =
       StringFormat -> "String"
       JsonFormat -> "JSON"
 
-getParentPropertyDisplay : ParentProperty -> String
+getParentPropertyDisplay : ParentProperty ->  List String
 getParentPropertyDisplay pp =
   case pp of
-    ParentGlobal { valueType } -> "<span>Value of type: <strong>" ++ valueType ++ "</strong> for global parameter</span>"
-    ParentGroup { id, name, valueType } -> "<span>Value of type: <strong>" ++ valueType ++ "</strong> in group " ++ "\"" ++ name ++ "\" with id <em>" ++ id ++ "</em></span>"
-    ParentNode { id, name, valueType } -> "<span>Value of type: <strong>" ++ valueType ++ "</strong> in node " ++ "\"" ++ name ++ "\" with id <em>" ++ id ++ "</em></span>"
+    ParentGlobal { valueType } -> [ "<span>Value of type: <strong>" ++ valueType ++ "</strong> for global parameter</span>" ]
+    ParentGroup { id, name, valueType, parent } -> ("<span>Value of type: <strong>" ++ valueType ++ "</strong> in group " ++ "\"" ++ name ++ "\" with id <em>" ++ id ++ "</em></span>") :: (Maybe.withDefault [] <| Maybe.map getParentPropertyDisplay parent)
+    ParentNode { id, name, valueType, parent } -> ("<span>Value of type: <strong>" ++ valueType ++ "</strong> in node " ++ "\"" ++ name ++ "\" with id <em>" ++ id ++ "</em></span>") :: (Maybe.withDefault [] <| Maybe.map getParentPropertyDisplay parent)
 
 getInheritedPropertyWarning : Property -> Html Msg
 getInheritedPropertyWarning property =
@@ -143,7 +143,7 @@ getFormatConflictWarning property =
           , attribute "data-bs-placement" "top"
           , title (buildTooltipContent
             "Conflicting types along the hierarchy of properties"
-            (String.join "<br>" (List.map getParentPropertyDisplay hs.fullHierarchy))
+            (String.join "<br>" (getParentPropertyDisplay hs.fullHierarchy))
           )
         ] [ i [class "fa fa-exclamation-triangle text-danger"][] ]
       else
