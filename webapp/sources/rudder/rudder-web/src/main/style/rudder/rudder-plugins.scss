@@ -279,7 +279,7 @@ $spinner-height-sm: $spinner-width-sm;
 
         & .plugin-errors {
           $el-margin: 0.5rem;
-
+          width: fit-content;
           margin-top: $el-margin;
 
           & .callout-fade {
