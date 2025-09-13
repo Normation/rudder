@@ -192,6 +192,12 @@ pub(crate) struct TerminateRequest {
     operation: TerminateOperation,
 }
 
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
+pub(crate) enum Request {
+    Validate(ValidateRequest),
+    Evaluate(EvaluateRequest),
+    Terminate(TerminateRequest)
+}
 ////////////////////////////////////
 
 // {"operation": "validate_promise", "promiser": "/opt/cfengine/masterfiles", "attributes": {"repo": "https://github.com/cfengine/masterfiles"}, "result": "valid"}
