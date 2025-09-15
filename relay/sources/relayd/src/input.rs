@@ -75,8 +75,8 @@ pub async fn read_compressed_file<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, Er
 ///   certificate on the server to validate signature and embedded certs are ignored.
 pub fn verify_signature(
     input: &[u8],
-    // FIXME send certificates in reports
-    // And check ID in report
+    // FIXME: And check ID in report
+    // extract cert from signature and check id
     certs: &Stack<X509>,
     ca_store: &X509Store,
     verify_certificate_chain: bool,
