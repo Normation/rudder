@@ -89,6 +89,12 @@ fn it_shares_files() {
         .send().unwrap();
     assert_eq!(500, upload.status());
 
+    // Too big
+
+    let upload = client.put("http://127.0.0.1:3030/rudder/relay-api/1/shared-files/37817c4d-fbf7-4850-a985-50021f4e8f41/e745a140-40bc-4b86-b6dc-084488fc906b/file2?ttl=1d").body(format!("{}\n{}", signature, content))
+        .header("Content-Length", "10000000000") .send().unwrap();
+    assert_eq!(500, upload.status());
+
     // Correct upload
 
     let upload = client.put(format!(
