@@ -75,7 +75,7 @@ const csvButtonConfig = (filename, additionalCls) => ({
       const complianceColumnIdx = data.header.findIndex(s => s.toLowerCase() === "compliance")
       if (complianceColumnIdx >= 0) {
         data.body.forEach((row, idx) => {
-          data.body[idx][complianceColumnIdx] = computeCompliancePercentFromString(row[complianceColumnIdx]).toString() + "%"
+          data.body[idx][complianceColumnIdx] = computeCompliancePercent(row[complianceColumnIdx]).toString() + "%"
         })
       }
       return data
