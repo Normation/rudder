@@ -143,30 +143,45 @@ pre.json-beautify, .content-wrapper pre.json-beautify{
     overflow-wrap: anywhere;
   }
 }
-pre.json-beautify.toggle, .content-wrapper pre.json-beautify.toggle{
-  height:auto;
-  max-height:none;
-  -moz-box-shadow: none;
-  -webkit-box-shadow: none;
-  box-shadow: none;
-}
-pre.json-beautify:after,.content-wrapper pre.json-beautify:after{
-  position:absolute;
-  right:10px;
-  top : 10px;
-  color:#041922;
-  content: "\f054";
-  display: inline-block;
-  font: normal normal normal 14px/1 inherit;
-  font-family: "Font Awesome 5 Free";
-  font-size: inherit;
-  text-rendering: auto;
-  -webkit-font-smoothing: antialiased;
-  transition-duration:.2s;
-  font-weight: 900;
-}
-pre.json-beautify.toggle:after, .content-wrapper pre.json-beautify.toggle:after{
-  transform:rotate(90deg);
+pre.json-beautify, .content-wrapper pre.json-beautify {
+
+  &.collapse {
+    &.show {
+      height:auto;
+      max-height:none;
+      -moz-box-shadow: none;
+      -webkit-box-shadow: none;
+      box-shadow: none;
+
+      &:after {
+        transform:rotate(90deg);
+      }
+    }
+    &:not(.show) {
+      display: block;
+    }
+  }
+
+  &.collapsing {
+    height: 100% !important;
+    transition: none;
+  }
+
+  &:after {
+    position:absolute;
+    right:10px;
+    top : 10px;
+    color:$rudder-txt-primary;
+    content: "\f054";
+    display: inline-block;
+    font: normal normal normal 14px/1 inherit;
+    font-family: "Font Awesome 5 Free";
+    font-size: inherit;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    transition-duration:.2s;
+    font-weight: 900;
+  }
 }
 /* override syntax highlighting background */
 pre.json-beautify code.elmsh {
