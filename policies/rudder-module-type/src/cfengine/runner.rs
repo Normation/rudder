@@ -10,6 +10,7 @@ use std::{
 use anyhow::{Error, bail};
 use serde::Serialize;
 
+use crate::cfengine::protocol::Request;
 use crate::{
     ModuleType0, ProtocolResult, Runner0,
     cfengine::{
@@ -21,7 +22,6 @@ use crate::{
         },
     },
 };
-use crate::cfengine::protocol::Request;
 
 /// Promise executor
 ///
@@ -196,16 +196,17 @@ impl CfengineRunner {
                     return Ok(());
                 }
                 Err(errors) => {
-                   let error_msg = format!(
-                       "Failed to parse JSON as any known request type:\n{}\nOriginal input: {}",
-                       errors.iter()
-                           .map(|e| format!("  - {}", e))
-                           .collect::<Vec<_>>()
-                           .join("\n"),
-                       line
-                   );
-                   bail!(error_msg);
-               }
+                    let error_msg = format!(
+                        "Failed to parse JSON as any known request type:\n{}\nOriginal input: {}",
+                        errors
+                            .iter()
+                            .map(|e| format!("  - {}", e))
+                            .collect::<Vec<_>>()
+                            .join("\n"),
+                        line
+                    );
+                    bail!(error_msg);
+                }
             }
         }
     }

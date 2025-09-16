@@ -1,6 +1,15 @@
 mod cli;
 use crate::cli::Cli;
+use anyhow::{Context, Result, bail};
 use rudder_module_type::rudder_info;
+use rudder_module_type::{
+    CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
+    cfengine::called_from_agent, parameters::Parameters, run_module,
+};
+use rustix::{fs::Mode, process::umask};
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::{Value, json};
+use std::io::ErrorKind;
 use std::{
     collections::HashMap,
     fs::{self, File},
@@ -11,15 +20,6 @@ use std::{
     str::from_utf8,
     time::{Duration, Instant},
 };
-
-use anyhow::{Context, Result, bail};
-use rudder_module_type::{
-    CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
-    cfengine::called_from_agent, parameters::Parameters, run_module,
-};
-use rustix::{fs::Mode, process::umask};
-use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::{Value, json};
 use wait_timeout::ChildExt;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -237,7 +237,23 @@ impl Commands {
 
         let start_time = Instant::now();
 
-        let mut child = command.spawn()?;
+        let mut child = match command.spawn() {
+            Ok(child) => child,
+            Err(e) => match e.kind() {
+                ErrorKind::NotFound => {
+                    bail!(
+                        "Command '{}' not found. Please check if it's installed and in PATH",
+                        p.command
+                    );
+                }
+                ErrorKind::PermissionDenied => {
+                    bail!("Permission denied. Could not execute '{}'", p.command);
+                }
+                _ => {
+                    bail!("Failed to spawn process: {}", e);
+                }
+            },
+        };
         if let Some(stdin) = &p.stdin {
             let mut child_stdin = child.stdin.take().expect("Failed to get child stdin");
             if p.stdin_add_newline {

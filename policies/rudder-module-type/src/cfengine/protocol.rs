@@ -196,7 +196,7 @@ pub(crate) struct TerminateRequest {
 pub(crate) enum Request {
     Validate(ValidateRequest),
     Evaluate(EvaluateRequest),
-    Terminate(TerminateRequest)
+    Terminate(TerminateRequest),
 }
 ////////////////////////////////////
 
