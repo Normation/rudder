@@ -1,4 +1,4 @@
-FROM rust:bullseye
+FROM rust:bookworm
 LABEL ci=ncf/ci/methods.Dockerfile
 
 # Accept all OSes
@@ -9,6 +9,6 @@ wget https://repository.rudder.io/tools/rudder-setup
 sed -i "s/set -e/set -xe/" rudder-setup
 sed -i "s/rudder agent inventory//" rudder-setup
 sed -i "s/rudder agent health/rudder agent health || true/" rudder-setup
-sh ./rudder-setup setup-agent latest
+sh ./rudder-setup setup-agent 9.0-nightly
 curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
 EOF
