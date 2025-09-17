@@ -10,6 +10,7 @@ use std::{
 use anyhow::{Error, bail};
 use serde::Serialize;
 
+use crate::cfengine::protocol::Request;
 use crate::{
     ModuleType0, ProtocolResult, Runner0,
     cfengine::{
@@ -104,6 +105,26 @@ impl CfengineRunner {
         Self::write_line(output, &json)
     }
 
+    fn try_parse_request(line: &str) -> Result<Request, Vec<String>> {
+        let mut errors = Vec::new();
+
+        match serde_json::from_str::<ValidateRequest>(line) {
+            Ok(req) => return Ok(Request::Validate(req)),
+            Err(e) => errors.push(format!("ValidateRequest: {}", e)),
+        }
+
+        match serde_json::from_str::<EvaluateRequest>(line) {
+            Ok(req) => return Ok(Request::Evaluate(req)),
+            Err(e) => errors.push(format!("EvaluateRequest: {}", e)),
+        }
+
+        match serde_json::from_str::<TerminateRequest>(line) {
+            Ok(req) => return Ok(Request::Terminate(req)),
+            Err(e) => errors.push(format!("TerminateRequest: {}", e)),
+        }
+
+        Err(errors)
+    }
     fn run_type<T: ModuleType0, R: BufRead, W: Write, L: Write>(
         &self,
         mut promise: T,
@@ -145,35 +166,48 @@ impl CfengineRunner {
             }
 
             // Handle requests
-            if let Ok(req) = serde_json::from_str::<ValidateRequest>(&line) {
-                set_max_level(req.log_level);
-                // Check parameters
-                // FIXME add parameters spec check with info from the module type
-                let result: ValidateOutcome = promise.validate(&req.attributes).into();
-                Self::write_json(
-                    &mut output,
-                    &mut logger,
-                    ValidateResponse::new(&req, result),
-                )?
-            } else if let Ok(req) = serde_json::from_str::<EvaluateRequest>(&line) {
-                set_max_level(req.log_level);
-                let result: EvaluateOutcome = promise
-                    .check_apply(req.attributes.action_policy.into(), &req.attributes)
-                    .into();
-                Self::write_json(
-                    &mut output,
-                    &mut logger,
-                    EvaluateResponse::new(&req, result, vec![]),
-                )?
-            } else if let Ok(_req) = serde_json::from_str::<TerminateRequest>(&line) {
-                let result: ProtocolOutcome = promise.terminate().into();
-                Self::write_json(&mut output, &mut logger, TerminateResponse::new(result))?;
-                // Stop the runner
-                return Ok(());
-            } else {
-                // Stop the program? Not sure if there is something better and safe to do.
-                bail!("Could not parse request: {}", line);
-            };
+            match Self::try_parse_request(&line) {
+                Ok(Request::Validate(req)) => {
+                    set_max_level(req.log_level);
+                    // Check parameters
+                    // FIXME add parameters spec check with info from the module type
+                    let result: ValidateOutcome = promise.validate(&req.attributes).into();
+                    Self::write_json(
+                        &mut output,
+                        &mut logger,
+                        ValidateResponse::new(&req, result),
+                    )?
+                }
+                Ok(Request::Evaluate(req)) => {
+                    set_max_level(req.log_level);
+                    let result: EvaluateOutcome = promise
+                        .check_apply(req.attributes.action_policy.into(), &req.attributes)
+                        .into();
+                    Self::write_json(
+                        &mut output,
+                        &mut logger,
+                        EvaluateResponse::new(&req, result, vec![]),
+                    )?
+                }
+                Ok(Request::Terminate(_req)) => {
+                    let result: ProtocolOutcome = promise.terminate().into();
+                    Self::write_json(&mut output, &mut logger, TerminateResponse::new(result))?;
+                    // Stop the runner
+                    return Ok(());
+                }
+                Err(errors) => {
+                    let error_msg = format!(
+                        "Failed to parse JSON as any known request type:\n{}\nOriginal input: {}",
+                        errors
+                            .iter()
+                            .map(|e| format!("  - {}", e))
+                            .collect::<Vec<_>>()
+                            .join("\n"),
+                        line
+                    );
+                    bail!(error_msg);
+                }
+            }
         }
     }
 }
