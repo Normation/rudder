@@ -2437,8 +2437,6 @@ class MockNodes() {
         matching.map(_.id).toSeq
       }
     }.toBox
-
-    override def processOnlyId(query: Query)(implicit qc: QueryContext): Box[Seq[NodeId]] = process(query).map(_.toSeq)
   }
 
   object newNodeManager extends NewNodeManager {

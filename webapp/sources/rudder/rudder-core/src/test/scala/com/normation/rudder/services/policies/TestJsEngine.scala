@@ -58,7 +58,7 @@ import zio.syntax.*
 
 /*
  * This class test the JsEngine.
- * It must works identically on Java 7 and Java 8.
+ * It must work identically on Java 7 and Java 8.
  *
  */
 

@@ -196,8 +196,7 @@ class NodeFactQueryProcessor(
     status:        InventoryStatus = AcceptedInventory
 ) extends QueryProcessor with QueryChecker {
 
-  def process(query:       Query)(implicit qc: QueryContext): Box[Seq[NodeId]] = processPure(query).map(_.toList.map(_.id)).toBox
-  def processOnlyId(query: Query)(implicit qc: QueryContext): Box[Seq[NodeId]] = processPure(query).map(_.toList.map(_.id)).toBox
+  def process(query: Query)(implicit qc: QueryContext): Box[Seq[NodeId]] = processPure(query).map(_.toList.map(_.id)).toBox
 
   def check(query: Query, nodeIds: Option[Seq[NodeId]])(implicit qc: QueryContext): IOResult[Set[NodeId]] = {
     // make a 0 criteria request raise an error like LDAP would do,

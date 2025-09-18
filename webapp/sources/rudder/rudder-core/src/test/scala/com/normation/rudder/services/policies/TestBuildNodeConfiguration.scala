@@ -71,7 +71,6 @@ import org.joda.time.DateTime
 import org.junit.runner.*
 import org.specs2.mutable.*
 import org.specs2.runner.*
-import scala.collection.MapView
 import scala.collection.SortedMap
 import scala.concurrent.duration.*
 
@@ -101,9 +100,9 @@ class TestBuildNodeConfiguration extends Specification {
   def newNode(i: Int): CoreNodeFact =
     fact1.modify(_.id).setTo(NodeId("node" + i)).modify(_.fqdn).setTo(s"node$i.localhost")
 
-  val allNodes:   MapView[NodeId, CoreNodeFact] = ((1 to 100).map(newNode) :+ factRoot).map(n => (n.id, n)).toMap.view
+  val allNodes:   Map[NodeId, CoreNodeFact]   = ((1 to 100).map(newNode) :+ factRoot).map(n => (n.id, n)).toMap
   // only one group with all nodes
-  val group:      NodeGroup                     = {
+  val group:      NodeGroup                   = {
     NodeGroup(
       NodeGroupId(NodeGroupUid("allnodes")),
       name = "allnodes",
@@ -115,7 +114,7 @@ class TestBuildNodeConfiguration extends Specification {
       _isEnabled = true
     )
   }
-  val groupLib:   FullNodeGroupCategory         = FullNodeGroupCategory(
+  val groupLib:   FullNodeGroupCategory       = FullNodeGroupCategory(
     NodeGroupCategoryId("test_root"),
     "",
     "",
@@ -130,7 +129,7 @@ class TestBuildNodeConfiguration extends Specification {
       )
     )
   )
-  val directives: Map[DirectiveId, Directive]   = {
+  val directives: Map[DirectiveId, Directive] = {
     ((1 to 100).map(i => data.rpmDirective("rpm" + i, "somepkg" + i)) :+
     // add a directive with a node property with a default value of " " - it should work, see https://issues.rudder.io/issues/25557
     data.rpmDirective("blank_default_node", """${node.properties[udp_open_ports] | default=" "}""")).map(d => (d.id, d))
@@ -205,7 +204,7 @@ class TestBuildNodeConfiguration extends Specification {
     logger.trace("\n--------------------------------")
     val t1           = System.currentTimeMillis()
     val ruleVal      =
-      ruleValService.buildRuleVal(rule, directiveLib, groupLib, allNodes.mapValues(_.rudderSettings.isPolicyServer))
+      ruleValService.buildRuleVal(rule, directiveLib, groupLib, allNodes.view.mapValues(_.rudderSettings.isPolicyServer).toMap)
     val ruleVals     = Seq(ruleVal.getOrElse(throw new RuntimeException("oups")))
     val t2           = System.currentTimeMillis()
     val nodeContexts = buildContext
