@@ -32,25 +32,159 @@ get:
                 description: Information about the service
                 required:
                   - rudder
+                  - system
+                  - nodes
+                  - plugins
                 properties:
                   rudder:
                     required:
-                      - major-version
-                      - full-version
-                      - build-time
+                      - version
+                      - buildTime
+                      - instanceId
+                      - relays
                     properties:
-                      major-version:
+                      version:
                         type: string
-                        example: "6.0"
-                        format: X.Y
-                      full-version:
-                        type: string
-                        example: 6.0.4
+                        example: "8.3.4-SNAPSHOT"
                         format: X.Y.Z
-                      build-time:
+                      buildTime:
                         type: string
+                        example: "2025-09-07T01:31:07Z"
                         format: date
-                        example: 2019-03-25T10:11:23Z
+                      instanceId:
+                        type: string
+                        example: "294e04bd-61cd-4b79-ac46-90c68cdb7983"
+                        format: uuid
+                      relays:
+                        type: array
+                        items:
+                          type: object
+                          required:
+                            - uuid
+                            - hostname
+                            - managedNodes
+                          properties:
+                            uuid:
+                              type: string 
+                              example: "15b7cbec-f6c3-41e9-81bc-b99ae75c7a5f"
+                              format: uuid
+                            hostname:
+                              type: string
+                              example: "https://normation.com"
+                              format: url
+                            managedNode:
+                              type: number
+                              example: 32
+                        example: >
+                          [{
+                              "uuid":"d209c14f-318d-4d7f-85b2-61f125dc1803", 
+                              "hostname":"normation.com", 
+                              "managedNode":1
+                          },
+                          {
+                              "uuid":"bbec3115-e487-445e-91ab-2abb2676babf", 
+                              "hostname":"normation.com", 
+                              "managedNode":2
+                          }]
+                  system:
+                    required:
+                      - os
+                      - jvm
+                    properties:
+                      os:
+                        type: object
+                        required: 
+                          - name
+                          - version
+                        properties:
+                          name:
+                            type: string
+                            example: "linux"
+                            format: text
+                          version: 
+                            type: string
+                            example: "12"
+                            format: X
+                      jvm:
+                        type: object
+                        required:
+                          - version
+                          - cmd
+                        properties:
+                          version:
+                            type: string
+                            example: "17.0.14+7-Debian-1deb12u1" 
+                            format: text
+                          cmd:
+                            type: string
+                            format: "java command with parameters"
+                            example: >
+                              "/usr/lib/jvm/java-17-openjdk-amd64/bin/java -Djava.io.tmpdir=/tmp -Djetty.home=/opt/rudder/jetty -Djetty.base=/opt/rudder/etc/rudder-jetty-base -server -Xms1024m -Xmx1024m -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+AlwaysPreTouch -Xlog:gc=info,gc+cpu=info,gc+stringdedup=info:file=/var/log/rudder/webapp/jvm/jvm-gc.log:utctime,pid,level,tags:filecount=5,filesize=50M -XX:+CrashOnOutOfMemoryError -Dfile.encoding=UTF-8 -Drun.mode=production -Drudder.configFile=/opt/rudder/etc/rudder-web.properties -Drudder.authFile=/opt/rudder/etc/rudder-users.xml -Dlogback.configurationFile=/opt/rudder/etc/logback.xml..." 
+                  nodes:
+                    required:
+                      - total
+                      - audit
+                      - enforce
+                      - mixed
+                      - enabled
+                      - disabled
+                    properties:
+                      total:
+                        type: number
+                        example: 1
+                      audit:
+                        type: number
+                        example: 0
+                      enforce:
+                        type: number
+                        example: 0
+                      mixed:
+                        type: number
+                        example: 0
+                      enabled:
+                        type: number
+                        example: 1
+                      disabled:
+                        type: number
+                        example: 0
+                  plugins:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - name
+                        - version
+                        - abiVersion
+                      properties:
+                        id: 
+                          type: string
+                        name: 
+                          type: string
+                        version: 
+                          type: string
+                        abiVersion: 
+                          type: string
+                        license: 
+                          type: object
+                          required:
+                            - licensee
+                            - startDate
+                            - endDate
+                            - supportedVersions
+                          properties:
+                            licensee:
+                              type: string
+                            startDate: 
+                              type: string
+                              format: date
+                            endDate:  
+                              type: string
+                              format: date
+                            allowedNodesNumber: 
+                              type: number
+                            supportedVersions:  
+                              type: string
   tags:
     - System
   x-codeSamples:
