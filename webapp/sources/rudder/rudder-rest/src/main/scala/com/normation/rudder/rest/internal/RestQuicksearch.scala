@@ -41,6 +41,7 @@ import com.normation.box.*
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.nodes.NodeGroupUid
 import com.normation.rudder.domain.policies.RuleUid
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.rest.OldInternalApiAuthz
 import com.normation.rudder.rest.RestUtils.*
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
@@ -86,7 +87,8 @@ class RestQuicksearch(
   serve {
     case Get("secure" :: "api" :: "quicksearch" :: Nil, req) => {
       implicit val prettify = false
-      implicit val action: String = "completeTagsValue"
+      implicit val action: String       = "completeTagsValue"
+      implicit val qc:     QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
 
       OldInternalApiAuthz.withReadUser(userService.getCurrentUser) {
         val token = req.params.get("value") match {
@@ -96,7 +98,7 @@ class RestQuicksearch(
           case Some(values)       => values.mkString("")
         }
         val limit = req.params.get("limit").flatMap(_.headOption).flatMap(_.toIntOption)
-        quicksearch.search(token, limit)(CurrentUser.queryContext).toBox match {
+        quicksearch.search(token, limit).toBox match {
           case eb: EmptyBox =>
             val e = eb ?~! s"Error when looking for object containing '${token}'"
             toJsonError(None, e.messageChain)

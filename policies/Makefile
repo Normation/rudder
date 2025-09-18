@@ -9,6 +9,7 @@ build:
 check:
 	cd rudderc && make check
 	cd module-types/system-updates && make check
+	cd module-types/augeas && make check
 
 install:
 	cd rudderc && make install

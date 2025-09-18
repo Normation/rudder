@@ -1,0 +1,88 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File from remote source recursion
+# @description Ensure that a file or directory is copied from a policy server
+# @documentation This method requires that the policy server is configured to accept
+# copy of the source file or directory from the agents it will be applied to.
+#
+# You can download a file from the shared files with:
+# ```
+# /var/rudder/configuration-repository/shared-files/PATH_TO_YOUR_DIRECTORY_OR_FILE
+# ```
+#
+# @parameter source      Source file (absolute path on the policy server)
+# @parameter path        Destination file (absolute path on the target node)
+# @parameter recursion   Recursion depth to enforce for this path (0, 1, 2, ..., inf)
+#
+# 
+# @parameter_rename destination path
+# @class_prefix file_from_remote_source
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_from_remote_source_recursion(source, path, recursion)
+{
+  vars:
+      "old_class_prefix" string => canonify("file_from_remote_source_${path}");
+      "args"              slist => { "${source}", "${path}", "${recursion}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_from_remote_source_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+      # depth_search prevents from copying file/symlink
+      # so we need to detect if we want to copy a folder or a file
+      # If we check if it is a file, the class will always be true
+      # event if was in fact a directory. Then, we test if it is a dir.
+      "is_dir_copy"  expression => isdir("${path}");
+      # We won't be able to know if it is really a directory
+      # or not before the first iteration
+      "iteration_2"  expression => "iteration_1";
+      "iteration_1"  expression => "any";
+
+  files:
+
+   !is_dir_copy::
+      "${path}"
+        copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "digest"),
+        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+   is_dir_copy::
+      "${path}"
+        copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "digest"),
+        depth_search => recurse("${recursion}"),
+        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+    iteration_2::
+      "error" usebundle => _classes_failure("${old_class_prefix}"),
+        ifvarclass=> "!${class_prefix}_reached";
+      "error" usebundle => _classes_failure("${class_prefix}"),
+        ifvarclass=> "!${class_prefix}_reached";
+
+    # The reports should only be made after we know if this is a
+    # directory (to apply recursion) or a file
+    iteration_2.!is_dir_copy::
+      "report"
+        usebundle    => _log_v3("Copying file ${path} from ${source}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    iteration_2.is_dir_copy::
+      "report"
+        usebundle    => _log_v3("Copying ${path} from ${source}, recursion level ${recursion}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

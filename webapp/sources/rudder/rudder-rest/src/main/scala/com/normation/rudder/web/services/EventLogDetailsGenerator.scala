@@ -47,6 +47,7 @@ import com.normation.rudder.domain.eventlog.WorkflowStepChanged
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.properties.GlobalParameter
+import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
@@ -62,8 +63,6 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.services.eventlog.EventLogDetailsService
 import com.normation.rudder.services.eventlog.RollbackInfo
 import com.normation.rudder.services.modification.ModificationService
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.web.model.LinkUtil
 import com.normation.utils.DateFormaterService
 import com.normation.zio.UnsafeRun
@@ -72,7 +71,6 @@ import net.liftweb.http.S
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.JsonAST.JObject
 import net.liftweb.util.Helpers.*
 import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
@@ -81,16 +79,13 @@ import scala.util.Failure as Catch
 import scala.util.Success
 import scala.util.Try
 import scala.xml.*
+import zio.json.*
 
 class EventLogDetailsGenerator(
     logDetailsService:   EventLogDetailsService,
-    repos:               EventLogRepository,
     nodeGroupRepository: RoNodeGroupRepository,
-    directiveRepository: RoDirectiveRepository,
-    nodeInfoService:     NodeInfoService,
     ruleCatRepository:   RoRuleCategoryRepository,
     modificationService: ModificationService,
-    personIdentService:  PersonIdentService,
     linkUtil:            LinkUtil,
     diffDisplayer:       DiffDisplayer
 ) extends Loggable {
@@ -499,7 +494,7 @@ class EventLogDetailsGenerator(
                           val mapOptionQuery = (opt: Option[Query]) => {
                             opt match {
                               case None    => Text("None")
-                              case Some(q) => Text(q.toJSONString)
+                              case Some(q) => Text(q.toJson)
                             }
                           }
 
@@ -1041,6 +1036,8 @@ class EventLogDetailsGenerator(
                     mapComplexDiff(modDiff.modKeyStatus, <b>Key status</b>)(x => Text(x.value))
                   }{mapComplexDiff(modDiff.modKeyValue, <b>Key value</b>)(x => Text(x.key))}{reasonHtml}{
                     xmlParameters(event.id)
+                  }{
+                    mapComplexDiff(modDiff.modDocumentation, <b>Description</b>)(x => Text(x))
                   }
                   </div>
                 case e: EmptyBox =>
@@ -1138,16 +1135,16 @@ class EventLogDetailsGenerator(
 
   }
 
-  def nodePropertiesDiff(event: EventLog): Option[SimpleDiff[JObject]] = {
+  def nodePropertiesDiff(event: EventLog): Option[SimpleDiff[List[NodeProperty]]] = {
     event match {
       case m: ModifyNode =>
         logDetailsService
           .getModifyNodeDetails(event.details)
           .toOption
           .flatMap(_.modProperties)
-          .map(_.map(_.toDataJson))
       case _ => None
     }
+
   }
 
   private def agentRunDetails(ar: AgentRunInterval): NodeSeq = {
@@ -1230,7 +1227,7 @@ class EventLogDetailsGenerator(
     </div>
   }
 
-  private def nodeGroupDetails(nodes: Set[NodeId]): NodeSeq = {
+  private def nodeGroupDetails(nodes: Set[NodeId])(implicit qc: QueryContext): NodeSeq = {
     val res = nodes.toSeq match {
       case Seq() => NodeSeq.Empty
       case t     =>
@@ -1281,7 +1278,7 @@ class EventLogDetailsGenerator(
       "#shortDescription" #> group.description &
       "#query" #> (group.query match {
         case None    => Text("None")
-        case Some(q) => Text(q.toJSONString)
+        case Some(q) => Text(q.toJson)
       }) &
       "#isDynamic" #> group.isDynamic &
       "#nodes" #> ({
@@ -1330,7 +1327,7 @@ class EventLogDetailsGenerator(
 
     ("#id" #> apiAccount.id.value &
     "#name" #> apiAccount.name.value &
-    "#token" #> apiAccount.token.value &
+    "#token" #> apiAccount.token.flatMap(_.exposeHash()).getOrElse("") &
     "#description" #> apiAccount.description &
     "#isEnabled" #> apiAccount.isEnabled &
     "#creationDate" #> DateFormaterService.getDisplayDate(apiAccount.creationDate) &

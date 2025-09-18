@@ -61,6 +61,7 @@ import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.RoNodeGroupRepository
+import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.utils.DateFormaterService
 import java.util.function.Predicate
 import java.util.regex.Pattern
@@ -91,7 +92,7 @@ class DefaultSubGroupComparatorRepository(repo: RoNodeGroupRepository) extends S
 }
 
 // groupRepo must be `=> ` to avoid cyclic dep
-class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository) {
+class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository, instanceIdService: InstanceIdService) {
 
   implicit class IterableToChunk[A](it: Iterable[A]) {
     def toChunk: Chunk[A] = Chunk.fromIterable(it)
@@ -247,7 +248,9 @@ class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository) {
         Criterion(A_STATE, NodeStateComparator, NodeCriterionMatcherString(_.rudderSettings.state.name.wrap)),
         Criterion(A_OS_RAM, MemoryComparator, NodeCriterionMatcherMemory(_.ram.toChunk)),
         Criterion(A_OS_SWAP, MemoryComparator, UnsupportedByNodeMinimalApi),
-        Criterion(A_AGENTS_NAME, AgentComparator, AgentMatcher),
+        Criterion(A_AGENT_NAME, AgentComparator, AgentMatcher),
+        // agentVersion does not exist at LDAP level, it only works with the NodeFact matcher
+        Criterion(A_AGENT_VERSION, StringComparator, NodeCriterionMatcherString(_.rudderAgent.version.value.wrap)),
         Criterion(A_ACCOUNT, StringComparator, UnsupportedByNodeMinimalApi),
         Criterion(A_LIST_OF_IP, NodeIpListComparator, NodeCriterionMatcherIpaddress),
         Criterion(A_ROOT_USER, StringComparator, NodeCriterionMatcherString(_.rudderAgent.user.wrap)),
@@ -256,7 +259,9 @@ class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository) {
           A_POLICY_SERVER_UUID,
           StringComparator,
           NodeCriterionMatcherString(_.rudderSettings.policyServerId.value.wrap)
-        )
+        ),
+        // this one is not an LDAP constant but a global value in the application memory space
+        Criterion("instanceId", InstanceIdComparator(instanceIdService.instanceId), UnsupportedByNodeMinimalApi)
       )
     ),
     ObjectCriterion(
@@ -684,7 +689,7 @@ object AgentMatcher extends NodeCriterionMatcher {
     // any cfengine, which is just cfengine-community since we don't do anything else
     def eq(value: String, tpe: AgentType): Boolean = {
       value match {
-        case AgentComparator.ANY_CFENGINE => tpe == AgentType.CfeCommunity || tpe == AgentType.CfeEnterprise
+        case AgentComparator.ANY_CFENGINE => tpe == AgentType.CfeCommunity
         case x                            => tpe.id == x || tpe.oldShortName == x
       }
     }

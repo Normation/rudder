@@ -1,0 +1,50 @@
+#####################################################################################
+# Copyright 2018 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File copy from local source with check
+# @rename file_from_local_source_with_check
+# @deprecated Use [file_from_local_source_with_check](#_file_from_local_source_with_check) instead.
+
+# @description Ensure that a file or directory is copied from a local source if a check command succeeds
+# @documentation This method is a conditional file copy.
+#
+# @parameter source          Source file (absolute path on the target node)
+# @parameter path            Destination file (absolute path on the target node)
+# @parameter check_command   Command to run, it will get the source path as argument
+# @parameter rc_ok           Return codes to be considered as valid, separated by a comma (default is 0)
+# @parameter_constraint      rc_ok "allow_empty_string" : true
+#
+# 
+# @parameter_rename destination path
+# @class_prefix file_copy_from_local_source_with_check
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_copy_from_local_source_with_check(source, path, check_command, rc_ok)
+{
+  vars:
+      "class_prefix" string => canonify("file_copy_from_local_source_with_check_${path}");
+
+  methods:
+      "${report_data.method_id}" usebundle => call_method("file_from_local_source_with_check");
+      "${report_data.method_id}" usebundle => file_from_local_source_with_check("${source}", "${path}", "${check_command}", "${rc_ok}");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}" usebundle => call_method_classes("${report_data.report_id}");
+      "${report_data.method_id}" usebundle => call_method_end("file_from_local_source_with_check");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${path}", "Copying ${path} from local ${source} with check", "");
+}

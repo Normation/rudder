@@ -1,0 +1,1092 @@
+# Services bodies
+
+bundle common services_common
+# @brief Enumerate policy files used by this policy file for inclusion to inputs
+{
+  vars:
+      "inputs" slist => { "$(this.promise_dirname)/common.cf",
+                          "$(this.promise_dirname)/paths.cf" };
+}
+
+body file control
+# @brief Include policy files used by this policy file as part of inputs
+{
+      inputs => { @(services_common.inputs) };
+}
+
+##-------------------------------------------------------
+## service promises
+##-------------------------------------------------------
+
+body service_method bootstart
+# @brief Start the service and all its dependencies at boot time
+#
+# **See also:** `service_autostart_policy`, `service_dependence_chain`
+{
+      service_autostart_policy => "boot_time";
+      service_dependence_chain => "start_parent_services";
+    windows::
+      service_type => "windows";
+}
+
+##
+
+body service_method force_deps
+# @brief Start all dependendencies when this service starts, and stop all
+# dependent services when this service stops.
+#
+# The service does not get automatically started.
+#
+# **See also:** `service_autostart_policy`, `service_dependence_chain`
+{
+      service_dependence_chain => "all_related";
+    windows::
+      service_type => "windows";
+}
+
+body service_method standard_services
+# @brief Default services_method for when you wan't to call it explicitly
+#
+# By default this service_method is *not* used. The call for standard_services
+# is within the core and not here. In case you use a promise like:
+#
+# ```cf3
+# services:
+#     "ssh"
+#       service_policy => "start";
+# ```
+#
+# Then this method is skipped and CFEngine calls standard_services bundle
+# directly. This is here as a helper in case you wan't to be explicit
+# with your service promise and point it to standard_services (for readability,
+# documentation, etc).
+#
+# Do note that any options defined in this method does not apply to service
+# promises without explicit template_method call for standard_services.
+#
+# **Example:**
+#
+# ```cf3
+# services:
+#     "ssh"
+#       service_policy => "start",
+#       service_method => standard_services;
+# ```
+{
+        service_bundle => default:standard_services( $(this.promiser), $(this.service_policy) );
+}
+
+body service_method systemd_services
+# @brief systemd service method
+#
+# **Example:**
+#
+# ```cf3
+# services:
+#     "ssh"
+#       service_policy => "enabled",
+#       service_method => systemd_services;
+# ```
+{
+        service_bundle => default:systemd_services( $(this.promiser), $(this.service_policy) );
+}
+
+bundle agent standard_services(service,state)
+# @brief Standard services bundle, used by CFEngine by default
+# @author CFEngine AS
+# @param service Name of service to control
+# @param state The desired state for that service: "start", "restart", "reload", "stop", or "disable". "enable", "enabled", and "disabled" are also able to be used when systemd is detected. "active" and "inactive" states are supported for systemd managed hosts and can be used for controlling the services currently running state, but make no promises about the service state on boot.
+#
+# This bundle is used by CFEngine if you don't specify a services
+# handler explicitly, and will work with systemd or chkconfig or other
+# non-sysvinit service managers. It will try to automate service
+# discovery, unlike `classic_services` which requires known service
+# names. If it can't do the automatic management, it will pass control
+# to `classic_services`.
+#
+# This bundle receives the service name and the desired service state,
+# then does the needful to reach the desired state.
+#
+# If you're running systemd, systemctl will be used via `systemd_services`.
+#
+# Else, if chkconfig is present, it will be used.
+#
+# Else, if the service command is available, if will be used.
+#
+# Else, if the svcadm command is available, if will be used. Note you
+# have to supply the full SMF service identifier.
+#
+# Else, control is passed to `classic_services`.
+#
+# Note you do **not** have to call this bundle from `services`
+# promises. You can simply make a `methods` call to it. That would
+# enable you to use systemd states like `try-restart` for instance.
+#
+# **Example:**
+#
+# ```cf3
+# services:
+#     "sshd" service_policy => "start"; # uses `standard_services`
+#
+# methods:
+#     "" usebundle => standard_services("sshd", "start"); # direct
+# ```
+#
+# Alternatively, since services promises are an abstraction around bundles, the service state can be promised via a methods type promise.
+#
+# ```cf3
+#
+# methods:
+#     "SSHD should be running" usebundle => standard_services("sshd", "start");
+# ```
+{
+  vars:
+      "c_service" string => canonify("$(service)");
+
+    freebsd::
+      "init" string => ifelse(fileexists("/usr/local/etc/rc.d/$(service)"),
+                              "/usr/local/etc/rc.d/$(service)",
+                              "/etc/rc.d/$(service)");
+
+    !freebsd::
+      "init" string => "/etc/init.d/$(service)";
+
+    start|restart|reload::
+      "chkconfig_mode" string => "on";
+      "svcadm_mode" string => "enable";
+
+    stop|disable::
+      "chkconfig_mode" string => "off";
+      "svcadm_mode" string => "disable";
+
+  classes:
+      # define a class named after the desired state
+      "$(state)" expression => "any";
+      "non_disabling" or => { "start", "stop", "restart", "reload" };
+
+      "chkconfig" expression => "!systemd._stdlib_path_exists_chkconfig";
+      "sysvservice" expression => "!systemd.!chkconfig._stdlib_path_exists_service";
+      "smf" expression => "!systemd.!chkconfig.!sysvservice._stdlib_path_exists_svcadm";
+      "fallback" expression => "!systemd.!chkconfig.!sysvservice.!smf";
+
+      "have_init" expression => fileexists($(init));
+
+    chkconfig.have_init.freebsd::
+      "running" -> { "CFE-3513" }
+        expression => returnszero("$(init) onestatus > /dev/null", "useshell");
+
+    chkconfig.have_init.!freebsd::
+      "running" expression => returnszero("$(init) status > /dev/null", "useshell");
+
+    sysvservice.have_init::
+      "running" expression => returnszero("$(paths.service) $(service) status > /dev/null", "useshell");
+
+    chkconfig.SuSE::
+      "onboot"
+        expression => returnszero("$(paths.chkconfig) $(service) | $(paths.grep) 'on$' >/dev/null", "useshell"),
+        comment => "SuSE chkconfig outputs current state to stdout rather than as an exit code";
+
+    chkconfig.!SuSE::
+      "onboot"
+        expression => returnszero("$(paths.chkconfig) $(service)", "noshell"),
+        comment => "We need to know if the service is configured to start at boot or not";
+
+      # We redirect stderr and stdout to dev null so that we do not create noise in the logs
+      "chkconfig_$(c_service)_unregistered"
+        not => returnszero("$(paths.chkconfig) --list $(service) &> /dev/null", "useshell"),
+        comment => "We need to know if the service is registered with chkconfig
+                    so that we can perform other chkconfig operations, if the
+                    service is not registered it must be added.  Note we do not
+                    automatically try to add the service at this time.";
+
+  commands:
+
+    chkconfig.stop.onboot::
+      # Only chkconfig disable if it's currently set to start on boot
+      "$(paths.chkconfig) $(service) $(chkconfig_mode)"
+      classes => kept_successful_command,
+      contain => silent;
+
+    chkconfig.start.!onboot::
+      # Only chkconfig enable service if it's not already set to start on boot, and if its a registered chkconfig service
+      "$(paths.chkconfig) $(service) $(chkconfig_mode)"
+      if => "!chkconfig_$(c_service)_unregistered",
+      classes => kept_successful_command,
+      contain => silent;
+
+    chkconfig.have_init.(((start|restart).!running)|((stop|restart|reload).running)).non_disabling::
+      "$(init) $(state)"
+      contain => silent;
+
+    sysvservice.start.!running::
+      "$(paths.service) $(service) start"
+      handle => "standard_services_sysvservice_not_running_start",
+      classes => kept_successful_command,
+      comment => "If the service should be running and it is not
+                  currently running then we should issue the standard service
+                  command to start the service.";
+
+    sysvservice.restart::
+      "$(paths.service) $(service) restart"
+      handle => "standard_services_sysvservice_restart",
+      classes => kept_successful_command,
+      comment => "If the service should be restarted we issue the
+                  standard service command to restart or reload the service.
+                  There is no restriction based on the services current state as
+                  restart can start a service that was not already
+                  running.";
+
+    sysvservice.reload.running::
+      "$(paths.service) $(service) reload"
+      handle => "standard_services_sysvservice_reload",
+      classes => kept_successful_command,
+      comment => "If the service should be reloaded we issue the
+                  standard service command to reload the service.
+                  It is restricted to when the service is running as a reload
+                  should not start services that are not already running. This
+                  may not be triggered as service state parameters are limited
+                  and translated to the closest meaning.";
+
+    sysvservice.((stop|disable).running)::
+      "$(paths.service) $(service) stop"
+      handle => "standard_services_sysvservice_stop",
+      classes => kept_successful_command,
+      comment => "If the service should be stopped or disabled and it is
+                  currently running then we should issue the standard service
+                  command to stop the service.";
+
+    smf::
+      "$(paths.svcadm) $(svcadm_mode) $(service)"
+      classes => kept_successful_command;
+
+  methods:
+    fallback::
+      "classic" usebundle => classic_services($(service), $(state));
+
+    systemd::
+      "systemd"
+        usebundle => systemd_services( $(service), $(state) );
+
+  reports:
+    verbose_mode.systemd::
+      "$(this.bundle): using systemd layer to $(state) $(service)";
+    verbose_mode.systemd.!service_loaded::
+      "$(this.bundle): Service $(service) unit file is not loaded; doing nothing";
+    verbose_mode.chkconfig::
+      "$(this.bundle): using chkconfig layer to $(state) $(service) (chkconfig mode $(chkconfig_mode))"
+        if => "!chkconfig_$(c_service)_unregistered.((start.!onboot)|(stop.onboot))";
+    verbose_mode.chkconfig::
+      "$(this.bundle): skipping chkconfig layer to $(state) $(service) because $(service) is not registered with chkconfig (chkconfig --list $(service))"
+        if => "chkconfig_$(c_service)_unregistered";
+    verbose_mode.sysvservice::
+      "$(this.bundle): using System V service / Upstart layer to $(state) $(service)";
+    verbose_mode.smf::
+      "$(this.bundle): using Solaris SMF to $(state) $(service) (svcadm mode $(svcadm_mode))";
+    verbose_mode.fallback::
+      "$(this.bundle): falling back to classic_services to $(state) $(service)";
+
+}
+
+body action fresh_systemd_state
+# @brief An 'action' body ensuring the state information for a systemd service is always fresh
+#
+# This 'action' body disables caching for functions, in particular the
+# execresult*() family of functions.
+#
+# Although it's now the same as the 'immediate' action body, this may change in
+# the future.
+{
+    cfengine::
+      # ^Needed for versions 3.15.x and older that did not
+      # support empty bodies. When 3.15.x is no longer
+      # supported, this can be removed.
+
+@if minimum_version(3.18.1)
+      # Beginning with 3.18.1 ifelapsed being set to 0 results in bypassing of
+      # function caching. In versions prior to 3.18, if an action body with
+      # ifelapsed set to 0 was used in a vars type promise a warning was
+      # emitted. This is guarded to suppress that warning in older versions
+      # where this setting would not change the behavior.
+
+    ifelapsed => "0";
+@endif
+
+}
+
+bundle agent systemd_services(service,state)
+# @brief Manage systemd service state
+# @author Bryan Burke
+# @param service specific service to control
+# @param state The desired state for that service: "active", "inactive", "restart", "reload", "enabled", "disabled", "start", and "stop" are specifically understood states. Any other custom state will be passed through to systemctl.
+#
+# **State descriptions:**
+#
+# * active - Service should be running, no promise about state on boot made.
+# * inactive - Service should not be running, no promise about state on boot made.
+# * restart - Service should be restarted, no promise about state on boot made.
+# * reload - Service should be reloaded, no promise about state on boot made.
+# * enabled - Service should be enabled, no promise about state on boot made.
+# * disabled - Service should be reloaded, no promise about state on boot made.
+# * start - Service should be running, service should be started on boot (active + enabled).
+# * stop - Service should not be running, service should not be started on boot (inactive + disabled).
+#
+# **Example:**
+#
+# ```cf3
+# services:
+#     # Uses `standard_services`, dynamic decision about init subsystem
+#     "sshd"
+#       service_policy => "enabled";
+#
+#     # Explicitly use `systemd_services`
+#     "sshd"
+#       service_policy => "running",
+#       service_policy => "systemd_services";
+# ```
+#
+# Alternatively, since services promises are an abstraction around bundles, the service state can be promised via a methods type promise.
+#
+# ```cf3
+#
+# methods:
+#     "SSHD should be running" usebundle => systemd_services("sshd", "enabled");
+# ```
+{
+  vars:
+    systemd::
+      "call_systemctl"
+        string => "$(paths.systemctl) --no-ask-password --global --system";
+
+      "systemd_properties"
+        string => "-pLoadState,CanStop,UnitFileState,ActiveState,LoadState,CanStart,CanReload";
+
+      "systemd_service_info"
+        slist => string_split(execresult("$(call_systemctl) $(systemd_properties) show $(service)",
+                                         "noshell"), "\n", "10"),
+        action => fresh_systemd_state;  # Ensure this info is always fresh and not cached [CFE-3753]
+
+  classes:
+    systemd::
+      "service_enabled" expression => reglist(@(systemd_service_info), "UnitFileState=enabled");
+      "service_enabled" -> { "CFE-2923" }
+        expression => returnszero( "$(call_systemctl) is-enabled $(service) > /dev/null 2>&1", useshell);
+      "service_active" -> { "CFE-3238" }
+        expression => reglist(@(systemd_service_info), "ActiveState=(active|activating)");
+      "service_loaded"  expression => reglist(@(systemd_service_info), "LoadState=loaded");
+      "service_notfound" expression => reglist(@(systemd_service_info), "LoadState=not-found");
+
+      "can_stop_service"   expression => reglist(@(systemd_service_info), "CanStop=yes");
+      "can_start_service"  expression => reglist(@(systemd_service_info), "CanStart=yes");
+      "can_reload_service" expression => reglist(@(systemd_service_info), "CanReload=yes");
+
+      "request_start"    expression => strcmp("start", "$(state)");
+      "request_stop"     expression => strcmp("stop", "$(state)");
+      "request_reload"   expression => strcmp("reload", "$(state)");
+      "request_restart"  expression => strcmp("restart", "$(state)");
+      "request_disable"  expression => strcmp("disable", "$(state)");
+      "request_disabled" expression => strcmp("disabled", "$(state)");
+      "request_enable"   expression => strcmp("enable", "$(state)");
+      "request_enabled"  expression => strcmp("enabled", "$(state)");
+      "request_active"   expression => strcmp("active", "$(state)");
+      "request_inactive" expression => strcmp("inactive", "$(state)");
+
+      "action_custom"  expression => "!(request_start|request_stop|request_reload|request_restart|request_disable|request_disabled|request_enable|request_enabled|request_active|request_inactive)";
+      "action_start"   expression => "(request_start|request_active).!service_active.can_start_service";
+      "action_stop"    expression => "(request_stop|request_inactive).service_active.can_stop_service";
+      "action_reload"  expression => "request_reload.service_active.can_reload_service";
+      "action_restart"         or => {
+                                      "request_restart",
+
+                                      # Possibly undesirable... if a reload is
+                                      # requested, and the service "can't" be
+                                      # reloaded, then we restart it instead.
+                                      "request_reload.!can_reload_service.service_active",
+                                     };
+
+      # Starting a service implicitly enables it
+      "action_enable"  expression => "(request_start|request_enable|request_enabled).!service_enabled";
+
+      # Respectively, stopping it implicitly disables it
+      "action_disable" expression => "(request_disable|request_disabled|request_stop).service_enabled";
+
+  commands:
+    systemd.service_loaded:: # note this class is defined in `inventory/linux.cf`
+      # conveniently, systemd states map to `services` states, except
+      # for `enable`
+
+      "$(call_systemctl) -q start $(service)"
+        if => "action_start";
+
+      "$(call_systemctl) -q stop $(service)"
+        if => "action_stop";
+
+      "$(call_systemctl) -q reload $(service)"
+        if => "action_reload";
+
+      "$(call_systemctl) -q restart $(service)"
+        if => "action_restart";
+
+      "$(call_systemctl) -q enable $(service)"
+        if => "action_enable";
+
+      "$(call_systemctl) -q disable $(service)"
+        if => "action_disable";
+
+      # Custom action for any of the non-standard systemd actions such a
+      # status, try-restart, isolate, et al.
+      "$(call_systemctl) $(state) $(service)"
+        if => "action_custom";
+
+  reports:
+    systemd.service_notfound.(start|restart|reload).(inform_mode|verbose_mode)::
+      "$(this.bundle): Could not find service: $(service)";
+}
+
+bundle agent classic_services(service,state)
+# @brief Classic services bundle
+# @author CFEngine AS
+# @author Tero Kantonen <prkele@gmail.com>
+# @param service specific service to control
+# @param state desired state for that service
+#
+# This bundle is used by `standard_services` if it doesn't have an
+# automatic driver for the current service manager.
+#
+# It receives the service name and the desired service state, then
+# does the needful to reach the desired state.
+#
+# **Example:**
+#
+# ```cf3
+# services:
+#     "ntp" service_policy => "start";
+#     "ssh" service_policy => "stop";
+# ```
+#
+# There's multiple ways you can add new services to this list.
+# Here's few examples:
+#
+# a) The zeroconf mode; If the new service matches these rules,
+#    you don't need to add anything to the standard_services:
+#
+#  1. Your init script basename = `$(service)`
+#  2. Your init script argument = `$(state)`
+#  3. Your init script lives in `/etc/init.d/` (for non-*bsd),
+#     or `/etc/rc.d/` (for *bsd)
+#  4. Your process regex pattern = `\b$(service)\b`
+#  5. You call the init as `/etc/init.d/<script> <arg>` (for non-*bsd),
+#     or `/etc/rc.d/<script> <arg>` (for *bsd)
+#
+# b) If the 1st rule doesn't match, but rest does:
+#
+#   Use the `baseinit[$(service)]` array to point towards your
+#   init script's basename. For example:
+#
+# ```cf3
+#    "baseinit[www]" string => "httpd";
+# ```
+#
+#   This would fire up init script `/etc/init.d/httpd`, instead of
+#   the default `/etc/init.d/www`. From `/etc/rc.d/` if you're on *bsd system.
+#
+# c) If the 4th rule doesn't match, but rest does:
+#
+#   Use the `pattern[$(service)]` array to specify your own
+#   regex match. It's advisable to use conservative regex so
+#   there's less chance of getting a mismatch.
+#
+# ```cf3
+#    "pattern[www]" string => ".*httpd.*";
+# ```
+#
+#   Instead of matching the default '\bwww\b', this now matches
+#   your given string,
+#
+# d) 5th rule doesn't match:
+#
+#   If you can specify the init system used.
+#    Currently supported: `sysvinitd`, `sysvservice`, `systemd`
+#
+# ```cf3
+#     "init[www]" string => "sysvservice";
+#     "init[www]" string => "sysvinitd";
+#     "init[www]" string => "systemd";
+# ```
+#
+#   ^^ The above is not a valid syntax as you can only use one `init[]`
+#      per service, but it shows all the currently supported ones.
+#
+# ```cf3
+#     "sysvservice" == /(usr/)?sbin/service
+#     "sysvinitd"   == /etc/init.d/ (non-*bsd) | /etc/rc.d/ (*bsd)
+#     "systemd"     == /bin/systemctl
+# ```
+#
+# e) 2nd and 3rd rule matches, but rest doesn't:
+#
+#   Use a combination of the `pattern[]`, `baseinit[]` and `init[]`,
+#   to fill your need.
+#
+# ```cf3
+#     "baseinit[www]" string => "httpd";
+#     "pattern[www]"  string => ".*httpd.*";
+#     "init[www]"     string => "sysvservice";
+# ```
+#
+# f) As a fallback, if none of the above rules match, you can also
+#    define exactly what you need for each `$(state)`.
+#
+# ```cf3
+#    "startcommand[rhnsd]"   string => "/sbin/service rhnsd start";
+#    "restartcommand[rhnsd]" string => "/sbin/service rhnsd restart";
+#    "reloadcommand[rhnsd]"  string => "/sbin/service rhnsd reload";
+#    "stopcommand[rhnsd]"    string => "/sbin/service rhnsd stop";
+#    "pattern[rhnsd]"        string => "rhnsd";
+# ```
+#
+# If *any* of the `(re)?(start|load|stop)command` variables are set for
+# your service, they take _priority_ in case there's conflict of intent
+# with other data.
+#
+# Say you'd have the following service definition:
+#
+# ```cf3
+#    "startcommand[qwerty]"   string => "/sbin/service qwerty start";
+#    "stopcommand[qwerty]"    string => "/sbin/service qwerty stop";
+#    "pattern[qwerty]"        string => ".*qwerty.*";
+#    "baseinit[qwerty]"       string => "asdfgh"
+#    "init[qwerty]"           string => "systemd";
+# ```
+#
+# There's a conflict of intent now. As the `~command` definitions takes
+# priority, this kind of service config for `qwerty` would execute the
+# following commands:
+#
+# ```
+#   start:   "/sbin/service qwerty start"
+#   stop:    "/sbin/service qwerty stop"
+#   restart: "/bin/systemctl asdfgh restart"
+#   reload:  "/bin/systemctl asdfgh reload"
+# ```
+{
+  vars:
+      "all_states" slist => { "start", "restart", "reload", "stop", "disable" };
+
+      "inits" slist => { "sysvinitd", "sysvservice", "systemd", "chkconfig" },
+      comment => "Currently handled init systems";
+
+      "default[prefix][sysvservice]" string => "$(paths.service) ",
+      comment => "Command for sysv service interactions";
+
+      "default[prefix][systemd]" string => "$(paths.systemctl) ",
+      comment => "Command for systemd interactions";
+
+      "default[prefix][sysvinitd]" string => ifelse("openbsd", "/etc/rc.d/",
+                                                    "freebsd", "/etc/rc.d/",
+                                                    "netbsd", "/etc/rc.d/",
+                                                    "/etc/init.d/"),
+      comment => "Command prefix for sysv init script interactions";
+
+      "default[prefix][chkconfig]" string => "$(default[prefix][sysvinitd])",
+      comment => "Command prefix for chkconfig init script interactions";
+
+      "default[cmd][$(inits)]" string => "$(default[prefix][$(inits)])$(service) $(state)",
+      comment => "Default command to control the service";
+
+      "default[pattern]" string => "\b$(service)\b",
+      comment => "Set default pattern for proc matching";
+
+    _stdlib_path_exists_chkconfig::
+      "default[init]" string => "chkconfig",
+      comment => "Use chkconfig as the default init system if one isn't defined";
+
+    !_stdlib_path_exists_chkconfig::
+      "default[init]" string => "sysvinitd",
+      comment => "Use sysvinitd as the default init system if one isn't defined";
+
+    no_inits_set::
+      "init_system" string => "$(default[init])";
+
+    any::
+      "init_system" string => "$(init[$(service)])",
+      if => "$(inits_set)";
+
+    start|restart|reload::
+      "chkconfig_mode" string => "on";
+
+    stop|disable::
+      "chkconfig_mode" string => "off";
+
+    any::
+      "stakeholders[cfengine3]" slist => { "cfengine_in" };
+      "stakeholders[acpid]" slist => { "cpu", "cpu0", "cpu1", "cpu2", "cpu3" };
+      "stakeholders[postfix]" slist => { "smtp_in" };
+      "stakeholders[sendmail]" slist => { "smtp_in" };
+      "stakeholders[www]" slist => { "www_in", "wwws_in", "www_alt_in" };
+      "stakeholders[ssh]" slist => { "ssh_in" };
+      "stakeholders[mysql]" slist => { "mysql_in" };
+      "stakeholders[nfs]" slist => { "nfsd_in" };
+      "stakeholders[syslog]" slist => { "syslog" };
+      "stakeholders[rsyslog]" slist => { "syslog" };
+      "stakeholders[tomcat5]" slist => { "www_alt_in" };
+      "stakeholders[tomcat6]" slist => { "www_alt_in" };
+
+    linux::
+
+      "pattern[acpid]"            string => ".*acpid.*";
+      "pattern[cfengine3]"        string => ".*cf-execd.*";
+      "pattern[fancontrol]"       string => ".*fancontrol.*";
+      "pattern[hddtemp]"          string => ".*hddtemp.*";
+      "pattern[irqbalance]"       string => ".*irqbalance.*";
+      "pattern[lm-sensor]"        string => ".*psensor.*";
+      "pattern[openvpn]"          string => ".*openvpn.*";
+      "pattern[postfix]"          string => ".*postfix.*";
+      "pattern[rsync]"            string => ".*rsync.*";
+      "pattern[rsyslog]"          string => ".*rsyslogd.*";
+      "pattern[sendmail]"         string => ".*sendmail.*";
+      "pattern[tomcat5]"          string => ".*tomcat5.*";
+      "pattern[tomcat6]"          string => ".*tomcat6.*";
+      "pattern[varnish]"          string => ".*varnish.*";
+      "pattern[wpa_supplicant]"   string => ".*wpa_supplicant.*";
+
+    suse|sles::
+
+      "baseinit[mysql]"           string => "mysqld";
+      "pattern[mysql]"            string => ".*mysqld.*";
+
+      "baseinit[www]"             string => "apache2";
+      "pattern[www]"              string => ".*apache2.*";
+
+      "baseinit[ssh]"             string => "sshd";
+      # filter out "sshd: ..." children
+      "pattern[ssh]"              string => ".*\Ssshd.*";
+
+      "pattern[ntpd]"             string => ".*ntpd.*";
+
+    redhat::
+
+      "pattern[anacron]"          string => ".*anacron.*";
+      "pattern[atd]"              string => ".*sbin/atd.*";
+      "pattern[auditd]"           string => ".*auditd$";
+      "pattern[autofs]"           string => ".*automount.*";
+      "pattern[capi]"             string => ".*capiinit.*";
+      "pattern[conman]"           string => ".*conmand.*";
+      "pattern[cpuspeed]"         string => ".*cpuspeed.*";
+      "pattern[crond]"            string => ".*crond.*";
+      "pattern[dc_client]"        string => ".*dc_client.*";
+      "pattern[dc_server]"        string => ".*dc_server.*";
+      "pattern[dnsmasq]"          string => ".*dnsmasq.*";
+      "pattern[dund]"             string => ".*dund.*";
+      "pattern[gpm]"              string => ".*gpm.*";
+      "pattern[haldaemon]"        string => ".*hald.*";
+      "pattern[hidd]"             string => ".*hidd.*";
+      "pattern[irda]"             string => ".*irattach.*";
+      "pattern[iscsid]"           string => ".*iscsid.*";
+      "pattern[isdn]"             string => ".*isdnlog.*";
+      "pattern[lvm2-monitor]"     string => ".*vgchange.*";
+      "pattern[mcstrans]"         string => ".*mcstransd.*";
+      "pattern[mdmonitor]"        string => ".*mdadm.*";
+      "pattern[mdmpd]"            string => ".*mdmpd.*";
+      "pattern[messagebus]"       string => ".*dbus-daemon.*";
+      "pattern[microcode_ctl]"    string => ".*microcode_ctl.*";
+      "pattern[multipathd]"       string => ".*multipathd.*";
+      "pattern[netplugd]"         string => ".*netplugd.*";
+      "pattern[NetworkManager]"   string => ".*NetworkManager.*";
+      "pattern[nfs]"              string => ".*nfsd.*";
+      "pattern[nfslock]"          string => ".*rpc.statd.*";
+      "pattern[nscd]"             string => ".*nscd.*";
+      "pattern[ntpd]"             string => ".*ntpd.*";
+      "pattern[oddjobd]"          string => ".*oddjobd.*";
+      "pattern[pand]"             string => ".*pand.*";
+      "pattern[pcscd]"            string => ".*pcscd.*";
+      "pattern[portmap]"          string => ".*portmap.*";
+      "pattern[postgresql]"       string => ".*postmaster.*";
+      "pattern[rdisc]"            string => ".*rdisc.*";
+      "pattern[readahead_early]"  string => ".*readahead.*early.*";
+      "pattern[readahead_later]"  string => ".*readahead.*later.*";
+      "pattern[restorecond]"      string => ".*restorecond.*";
+      "pattern[rpcgssd]"          string => ".*rpc.gssd.*";
+      "pattern[rpcidmapd]"        string => ".*rpc.idmapd.*";
+      "pattern[rpcsvcgssd]"       string => ".*rpc.svcgssd.*";
+      "pattern[saslauthd]"        string => ".*saslauthd.*";
+      "pattern[smartd]"           string => ".*smartd.*";
+      "pattern[svnserve]"         string => ".*svnserve.*";
+      "pattern[syslog]"           string => ".*syslogd.*";
+      "pattern[tcsd]"             string => ".*tcsd.*";
+      "pattern[xfs]"              string => ".*xfs.*";
+      "pattern[ypbind]"           string => ".*ypbind.*";
+      "pattern[yum-updatesd]"     string => ".*yum-updatesd.*";
+      "pattern[munin-node]"       string => ".*munin-node.*";
+
+      "baseinit[bluetoothd]"      string => "bluetooth";
+      "pattern[bluetoothd]"       string => ".*hcid.*";
+
+      "baseinit[mysql]"           string => "mysqld";
+      "pattern[mysql]"            string => ".*mysqld.*";
+
+      "baseinit[www]"             string => "httpd";
+      "pattern[www]"              string => ".*httpd.*";
+
+      "baseinit[ssh]"             string => "sshd";
+      # filter out "sshd: ..." children
+      "pattern[ssh]"              string => ".*\Ssshd.*";
+
+      "init[rhnsd]"               string => "sysvservice";
+      "pattern[rhnsd]"            string => "rhnsd";
+
+      "baseinit[snmpd]"           string => "snmpd";
+      "pattern[snmpd]"            string => "/usr/sbin/snmpd";
+
+    debian|ubuntu::
+
+      "pattern[atd]"              string => "atd.*";
+      "pattern[bluetoothd]"       string => ".*bluetoothd.*";
+      "pattern[bootlogd]"         string => ".*bootlogd.*";
+      "pattern[crond]"            string => ".*cron.*";
+      "pattern[kerneloops]"       string => ".*kerneloops.*";
+      "pattern[mysql]"            string => ".*mysqld.*";
+      "pattern[NetworkManager]"   string => ".*NetworkManager.*";
+      "pattern[ondemand]"         string => ".*ondemand.*";
+      "pattern[plymouth]"         string => ".*plymouthd.*";
+      "pattern[saned]"            string => ".*saned.*";
+      "pattern[udev]"             string => ".*udev.*";
+      "pattern[udevmonitor]"      string => ".*udevadm.*monitor.*";
+      "pattern[snmpd]"            string => "/usr/sbin/snmpd";
+      "pattern[pgbouncer]"        string => ".*pgbouncer.*";
+      "pattern[supervisor]"       string => ".*supervisord.*";
+      "pattern[munin-node]"       string => ".*munin-node.*";
+      "pattern[carbon-cache]"     string => ".*carbon-cache.*";
+      "pattern[cassandra]"        string => ".*jsvc\.exec.*apache-cassandra\.jar.*";
+      # filter out "sshd: ..." children
+      "pattern[ssh]"              string => ".*\Ssshd.*";
+
+      "baseinit[ntpd]"            string => "ntp";
+      "pattern[ntpd]"             string => ".*ntpd.*";
+
+      "baseinit[postgresql84]"    string => "postgresql-8.4";
+      "pattern[postgresql84]"     string => ".*postgresql.*";
+
+      "baseinit[postgresql91]"    string => "postgresql-9.1";
+      "pattern[postgresql91]"     string => ".*postgresql.*";
+
+      "baseinit[www]"             string => "apache2";
+      "pattern[www]"              string => ".*apache2.*";
+
+      "baseinit[nrpe]"            string => "nagios-nrpe-server";
+      "pattern[nrpe]"             string => ".*nrpe.*";
+
+      "baseinit[omsa-dataeng]"    string => "dataeng";
+      "pattern[omsa-dataeng]"     string => ".*dsm_sa_datamgr.*";
+
+      "baseinit[quagga]"          string => "quagga";
+      "pattern[quagga]"           string => "quagga/.*";
+
+    freebsd::
+
+      "pattern[ntpd]"       string => ".*ntpd.*";
+
+      "baseinit[ssh]"       string => "sshd";
+      "pattern[ssh]"        string => "/usr/sbin/sshd.*";
+
+      "baseinit[syslog]"    string => "syslogd";
+      "pattern[syslog]"     string => "/usr/sbin/syslogd.*";
+
+      "baseinit[crond]"     string => "cron";
+      "pattern[crond]"      string => "/usr/sbin/cron.*";
+
+      "baseinit[snmpd]"     string => "bsnmpd";
+      "pattern[snmpd]"      string => "/usr/sbin/bsnmpd.*";
+
+      "pattern[newsyslog]"  string => "/usr/sbin/newsyslog.*";
+
+  classes:
+      # Set classes for each possible state after $(all_states)
+      "$(all_states)" expression => strcmp($(all_states), $(state)),
+      comment => "Set a class named after the desired state";
+
+      "$(inits)_set" expression => strcmp("$(init[$(service)])","$(inits)"),
+      comment => "Check if init system is specified";
+      "no_inits_set" not => isvariable("init[$(service)]"),
+      comment => "Check if no init system is specified";
+
+      # define a class to tell us what init system we're using
+      "using_$(init_system)" expression => "any";
+
+  commands:
+    using_chkconfig::
+      "$(paths.chkconfig) $(service) $(chkconfig_mode)"
+      classes => kept_successful_command;
+
+  processes:
+
+    start::
+
+      "$(pattern[$(service)])" ->  { "@(stakeholders[$(service)])" }
+
+      comment => "Verify that the service appears in the process table",
+      restart_class => "start_$(service)",
+      if => and(isvariable("pattern[$(service)]"));
+
+      "$(default[pattern])" ->  { "@(stakeholders[$(service)])" }
+
+      comment => "Verify that the service appears in the process table",
+      restart_class => "start_$(service)",
+      if => not(isvariable("pattern[$(service)]"));
+
+    stop|disable::
+
+      "$(pattern[$(service)])" -> { "@(stakeholders[$(service)])" }
+
+      comment => "Verify that the service does not appear in the process",
+      process_stop => "$(stopcommand[$(service)])",
+      signals => { "term", "kill"},
+      if => and(isvariable("stopcommand[$(service)]"),
+                isvariable("pattern[$(service)]"));
+
+      "$(default[pattern])" -> { "@(stakeholders[$(service)])" }
+
+      comment => "Verify that the service does not appear in the process",
+      process_stop => "$(stopcommand[$(service)])",
+      signals => { "term", "kill"},
+      if => and(isvariable("stopcommand[$(service)]"),
+                not(isvariable("pattern[$(service)]")));
+
+      "$(pattern[$(service)])" -> { "@(stakeholders[$(service)])" }
+
+      comment => "Verify that the service does not appear in the process",
+      process_stop => "$(default[prefix][$(default[init])])$(baseinit[$(service)]) $(state)",
+      signals => { "term", "kill"},
+      if => and(not(isvariable("stopcommand[$(service)]")),
+                isvariable("baseinit[$(service)]"),
+                isvariable("pattern[$(service)]"),
+                "no_inits_set");
+
+      "$(pattern[$(service)])" -> { "@(stakeholders[$(service)])" }
+
+      comment => "Verify that the service does not appear in the process",
+      process_stop => "$(default[prefix][$(inits)])$(baseinit[$(service)]) $(state)",
+      signals => { "term", "kill"},
+      if => and(not(isvariable("stopcommand[$(service)]")),
+                isvariable("baseinit[$(service)]"),
+                isvariable("pattern[$(service)]"),
+                canonify("$(inits)_set"));
+
+##
+      "$(default[pattern])" -> { "@(stakeholders[$(service)])" }
+
+      comment => "Verify that the service does not appear in the process",
+      process_stop => "$(default[prefix][$(default[init])])$(baseinit[$(service)]) $(state)",
+      signals => { "term", "kill"},
+      if => and(not(isvariable("stopcommand[$(service)]")),
+                isvariable("baseinit[$(service)]"),
+                not(isvariable("pattern[$(service)]")),
+                "no_inits_set");
+
+      "$(default[pattern])" -> { "@(stakeholders[$(service)])" }
+
+      comment => "Verify that the service does not appear in the process",
+      process_stop => "$(default[prefix][$(inits)])$(baseinit[$(service)]) $(state)",
+      signals => { "term", "kill"},
+      if => and(not(isvariable("stopcommand[$(service)]")),
+                isvariable("baseinit[$(service)]"),
+                not(isvariable("pattern[$(service)]")),
+                canonify("$(inits)_set"));
+
+##
+      "$(pattern[$(service)])" -> { "@(stakeholders[$(service)])" }
+
+      comment => "Verify that the service does not appear in the process",
+      process_stop => "$(default[cmd][$(default[init])])",
+      signals => { "term", "kill"},
+      if => and(not(isvariable("stopcommand[$(service)]")),
+                not(isvariable("baseinit[$(service)]")),
+                isvariable("pattern[$(service)]"),
+                "no_inits_set");
+
+      "$(pattern[$(service)])" -> { "@(stakeholders[$(service)])" }
+
+      comment => "Verify that the service does not appear in the process",
+      process_stop => "$(default[cmd][$(inits)])",
+      signals => { "term", "kill"},
+      if => and(not(isvariable("stopcommand[$(service)]")),
+                not(isvariable("baseinit[$(service)]")),
+                isvariable("pattern[$(service)]"),
+                canonify("$(inits)_set"));
+
+##
+      "$(default[pattern])" -> { "@(stakeholders[$(service)])" }
+
+      comment => "Verify that the service does not appear in the process",
+      process_stop => "$(default[cmd][$(default[init])])",
+      signals => { "term", "kill"},
+      if => and(not(isvariable("stopcommand[$(service)]")),
+                not(isvariable("baseinit[$(service)]")),
+                not(isvariable("pattern[$(service)]")),
+                "no_inits_set");
+
+      "$(default[pattern])" -> { "@(stakeholders[$(service)])" }
+
+      comment => "Verify that the service does not appear in the process",
+      process_stop => "$(default[cmd][$(inits)])",
+      signals => { "term", "kill"},
+      if => and(not(isvariable("stopcommand[$(service)]")),
+                not(isvariable("baseinit[$(service)]")),
+                not(isvariable("pattern[$(service)]")),
+                canonify("$(inits)_set"));
+
+  commands:
+
+      "$(startcommand[$(service)])" -> { "@(stakeholders[$(service)])" }
+      comment => "Execute command to start the $(service) service",
+      classes => kept_successful_command,
+      if => and(isvariable("startcommand[$(service)]"),
+                canonify("start_$(service)"));
+##
+      "$(default[prefix][$(default[init])])$(baseinit[$(service)]) $(state)" -> { "@(stakeholders[$(service)])" }
+      comment => "Execute (baseinit init) command to start the $(service) service",
+      classes => kept_successful_command,
+      if => and(not(isvariable("startcommand[$(service)]")),
+                isvariable("baseinit[$(service)]"),
+                canonify("start_$(service)"),
+                "no_inits_set");
+
+      "$(default[prefix][$(inits)])$(baseinit[$(service)]) $(state)" -> { "@(stakeholders[$(service)])" }
+      comment => "Execute (baseinit init) command to start the $(service) service",
+      classes => kept_successful_command,
+      if => and(not(isvariable("startcommand[$(service)]")),
+                isvariable("baseinit[$(service)]"),
+                canonify("start_$(service)"),
+                canonify("$(inits)_set"));
+##
+      "$(default[cmd][$(default[init])])" -> { "@(stakeholders[$(service)])" }
+      comment => "Execute (default) command to start the $(service) service",
+      classes => kept_successful_command,
+      if => and(not(isvariable("startcommand[$(service)]")),
+                not(isvariable("baseinit[$(service)]")),
+                canonify("start_$(service)"),
+                "no_inits_set");
+
+      "$(default[cmd][$(inits)])" -> { "@(stakeholders[$(service)])" }
+      comment => "Execute (default) command to start the $(service) service",
+      classes => kept_successful_command,
+      if => and(not(isvariable("startcommand[$(service)]")),
+                not(isvariable("baseinit[$(service)]")),
+                canonify("start_$(service)"),
+                canonify("$(inits)_set"));
+
+    restart::
+      "$(restartcommand[$(service)])" -> { "@(stakeholders[$(service)])" }
+      comment => "Execute command to restart the $(service) service",
+      classes => kept_successful_command,
+      if => and(isvariable("restartcommand[$(service)]"));
+##
+
+      "$(default[prefix][$(default[init])])$(baseinit[$(service)]) $(state)" -> { "@(stakeholders[$(service)])" }
+      comment => "Execute (baseinit init) command to restart the $(service) service",
+      classes => kept_successful_command,
+      if => and(not(isvariable("restartcommand[$(service)]")),
+                isvariable("baseinit[$(service)]"),
+                "no_inits_set");
+
+      "$(default[prefix][$(inits)])$(baseinit[$(service)]) $(state)" -> { "@(stakeholders[$(service)])" }
+      comment => "Execute (baseinit init) command to restart the $(service) service",
+      classes => kept_successful_command,
+      if => and(not(isvariable("restartcommand[$(service)]")),
+                isvariable("baseinit[$(service)]"),
+                canonify("$(inits)_set"));
+##
+      "$(default[cmd][$(default[init])])" -> { "@(stakeholders[$(service)])" }
+      comment => "Execute (default) command to restart the $(service) service",
+      classes => kept_successful_command,
+      if => and(not(isvariable("restartcommand[$(service)]")),
+                not(isvariable("baseinit[$(service)]")),
+                "no_inits_set");
+
+      "$(default[cmd][$(inits)])" -> { "@(stakeholders[$(service)])" }
+      comment => "Execute (default) command to restart the $(service) service",
+      classes => kept_successful_command,
+      if => and(not(isvariable("restartcommand[$(service)]")),
+                not(isvariable("baseinit[$(service)]")),
+                canonify("$(inits)_set"));
+
+    reload::
+      "$(reloadcommand[$(service)])" -> { "@(stakeholders[$(service)])" }
+      comment => "Execute command to reload the $(service) service",
+      classes => kept_successful_command,
+      if => and(isvariable("reloadcommand[$(service)]"));
+##
+      "$(default[prefix][$(default[init])])$(baseinit[$(service)]) $(state)" -> { "@(stakeholders[$(service)])" }
+      comment => "Execute (baseinit init) command to reload the $(service) service",
+      classes => kept_successful_command,
+      if => and(not(isvariable("reloadcommand[$(service)]")),
+                isvariable("baseinit[$(service)]"),
+                "no_inits_set");
+
+      "$(default[prefix][$(inits)])$(baseinit[$(service)]) $(state)" -> { "@(stakeholders[$(service)])" }
+      comment => "Execute (baseinit init) command to reload the $(service) service",
+      classes => kept_successful_command,
+      if => and(not(isvariable("reloadcommand[$(service)]")),
+                isvariable("baseinit[$(service)]"),
+                canonify("$(inits)_set"));
+##
+      "$(default[cmd][$(default[init])])" -> { "@(stakeholders[$(service)])" }
+      comment => "Execute (default) command to reload the $(service) service",
+      classes => kept_successful_command,
+      if => and(not(isvariable("reloadcommand[$(service)]")),
+                not(isvariable("baseinit[$(service)]")),
+                "no_inits_set");
+
+      "$(default[cmd][$(inits)])" -> { "@(stakeholders[$(service)])" }
+      comment => "Execute (default) command to reload the $(service) service",
+      classes => kept_successful_command,
+      if => and(not(isvariable("reloadcommand[$(service)]")),
+                not(isvariable("baseinit[$(service)]")),
+                canonify("$(inits)_set"));
+
+  reports:
+    "DEBUG|DEBUG_$(this.bundle)"::
+      "DEBUG $(this.bundle): Using init system $(inits)"
+      if => and(canonify("$(inits)_set"));
+
+      "DEBUG $(this.bundle): No init system is set, using $(default[init])"
+      if => "no_inits_set";
+
+      "DEBUG $(this.bundle): The service $(service) needs to be started"
+      if => and(canonify("start_$(service)"));
+
+      "DEBUG $(this.bundle): The service pattern is provided: $(pattern[$(service)])"
+      if => and(isvariable("pattern[$(service)]"));
+
+      "DEBUG $(this.bundle): The default service pattern was used: $(default[pattern])"
+      if => not(isvariable("pattern[$(service)]"));
+
+      "DEBUG $(this.bundle): The stopcommand is provided: $(stopcommand[$(service)])"
+      if => and(isvariable("stopcommand[$(service)]"));
+
+      "DEBUG $(this.bundle): The stopcommand is NOT provided, using default"
+      if => not(isvariable("stopcommand[$(service)]"));
+
+      "DEBUG $(this.bundle): The startcommand is provided: $(startcommand[$(service)])"
+      if => and(isvariable("startcommand[$(service)]"));
+
+      "DEBUG $(this.bundle): The startcommand is NOT provided, using default"
+      if => not(isvariable("startcommand[$(service)]"));
+
+      "DEBUG $(this.bundle): The restartcommand is provided: $(restartcommand[$(service)])"
+      if => and(isvariable("restartcommand[$(service)]"));
+
+      "DEBUG $(this.bundle): The restartcommand is NOT provided, using default"
+      if => not(isvariable("restartcommand[$(service)]"));
+
+      "DEBUG $(this.bundle): The reloadcommand is provided: $(reloadcommand[$(service)])"
+      if => and(isvariable("reloadcommand[$(service)]"));
+
+      "DEBUG $(this.bundle): The reloadcommand is NOT provided, using default"
+      if => not(isvariable("reloadcommand[$(service)]"));
+
+      "DEBUG $(this.bundle): The baseinit is provided: $(baseinit[$(service)])"
+      if => and(isvariable("baseinit[$(service)]"));
+
+      "DEBUG $(this.bundle): The baseinit is NOT provided, using default"
+      if => not(isvariable("baseinit[$(service)]"));
+}

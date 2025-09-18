@@ -1,0 +1,40 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+# Copyright 2016 Janos Mattyasovszky
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File check if character device
+# @description Checks if a file exists and is a character device
+# @documentation This bundle will define a condition `file_check_character_device_${path}_{ok, reached, kept}` if the
+# file is a character device, or `file_check_character_device_${path}_{not_ok, reached, not_kept, failed}` if
+# the file is not a character device or does not exist
+#
+# @parameter path File name (absolute path on the target node)
+#
+# 
+# @parameter_rename file_name path
+# @class_prefix file_check_character_device
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_check_character_device(path)
+{
+    methods:
+      "file_exists_and_is_character_device"
+        usebundle => file_check_special( "${path}", "character device");
+
+}

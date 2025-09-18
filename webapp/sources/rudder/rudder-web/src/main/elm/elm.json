@@ -30,12 +30,13 @@
             "elm-community/list-extra": "8.7.0",
             "elm-community/maybe-extra": "5.3.0",
             "elm-community/string-extra": "4.0.1",
+            "elm-explorations/test": "2.2.0",
             "hecrj/html-parser": "2.4.0",
             "isaacseymour/deprecated-time": "1.0.0",
             "jinjor/elm-debounce": "3.0.0",
-            "justinmimbs/date": "4.0.1",
-            "justinmimbs/time-extra": "1.1.1",
+            "justinmimbs/time-extra": "1.2.0",
             "jzxhuang/http-extras": "2.1.0",
+            "matthewsj/elm-ordering": "2.0.0",
             "mcordova47/elm-natural-ordering": "1.1.0",
             "mercurymedia/elm-datetime-picker": "8.0.1",
             "pablen/toasty": "1.2.0",
@@ -53,17 +54,13 @@
             "TSFoster/elm-md5": "2.0.1",
             "TSFoster/elm-sha1": "2.1.1",
             "danfishgold/base64-bytes": "1.1.0",
+            "justinmimbs/date": "4.1.0",
             "kuon/elm-string-normalize": "1.0.5",
             "rtfeldman/elm-hex": "1.0.0"
         }
     },
     "test-dependencies": {
-        "direct": {
-            "elm-explorations/test": "2.1.2"
-        },
-        "indirect": {
-            "elm-community/basics-extra": "4.1.0",
-            "the-sett/elm-pretty-printer": "2.2.3"
-        }
+        "direct": {},
+        "indirect": {}
     }
 }

@@ -1,0 +1,67 @@
+<lift:surround with="common-layout" at="content">
+
+  <div data-lift="administration.ApiAccounts.render">
+    That gives us a JS variable with the servlet
+    context path named "contextPath" and the variable
+    for module status `aclPluginEnabled` and `tenantsPluginEnabled`
+  </div>
+
+  <head>
+    <title>Rudder - API accounts</title>
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource"
+      href="/style/rudder/datepicker.css" media="screen">
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource"
+      href="/style/rudder/rudder-elm-datepicker.css" media="screen">
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource"
+      href="/style/rudder/rudder-accounts.css" media="screen">
+  </head>
+
+  <div data-lift="administration.ApiAccounts.body">
+    <div id="accounts-app"></div>
+    <script>
+      var app;
+      $(document).ready(function () {
+        const main = document.getElementById("accounts-app")
+        const initValues = {
+            contextPath: contextPath,
+            hasWriteRights: hasWriteRights,
+            aclPluginEnabled: aclPluginEnabled,
+            tenantsPluginEnabled: tenantsPluginEnabled
+        };
+
+        app = Elm.Accounts.init({node: main, flags: initValues});
+
+        app.ports.successNotification.subscribe(function (str) {
+          createSuccessNotification(str)
+        });
+
+        app.ports.errorNotification.subscribe(function (str) {
+          createErrorNotification(str)
+        });
+
+        app.ports.copy.subscribe(function (str) {
+          copy(str);
+        });
+        // Initialize tooltips
+        app.ports.initTooltips.subscribe(function (msg) {
+          setTimeout(function () {
+            initBsTooltips();
+          }, 600);
+        });
+      });
+    </script>
+    <div id="acl-app"></div>
+    <div id="tenants-app"></div>
+  </div>
+
+  <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-accounts.js"></script>
+
+  <script>
+    var hasWriteRights = false;
+  </script>
+  <lift:authz role="administration_write">
+    <script>
+      var hasWriteRights = true;
+    </script>
+  </lift:authz>
+</lift:surround>

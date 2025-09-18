@@ -11,7 +11,7 @@ use std::{
 
 use pretty_assertions::assert_eq;
 use rudder_cli::logs;
-use rudder_commons::{methods::Methods, Target, ALL_TARGETS};
+use rudder_commons::{ALL_TARGETS, Target, methods::Methods};
 use rudderc::{
     action,
     compiler::{metadata, read_technique},
@@ -52,7 +52,7 @@ fn lint_file(source: &Path) {
 
 /// Compile the metadata.xml
 fn compile_metadata(methods: &'static Methods, input: &str, source: &Path) {
-    let result = read_technique(methods, input).and_then(|p| metadata(p, source));
+    let result = read_technique(methods, input, true).and_then(|p| metadata(p, source));
     let output = result.expect("Test compilation failed");
     let ref_file = source.parent().unwrap().join("metadata.xml");
     // Update ref files
@@ -64,13 +64,13 @@ fn compile_metadata(methods: &'static Methods, input: &str, source: &Path) {
 
 /// Compile the given source file with the given target. Panics if compilation fails.
 fn compile_file(methods: &'static Methods, input: &str, source: &Path, target: Target) {
-    let result = read_technique(methods, input)
+    let result = read_technique(methods, input, true)
         .and_then(|p| rudderc::compiler::compile(p, target, source, false));
 
     let output = result.expect("Test compilation failed");
     let ref_file = source.with_extension(target.extension());
     // Update ref files
-    //std::fs::write(&ref_file, &output).unwrap();
+    std::fs::write(&ref_file, &output).unwrap();
 
     let reference = read_to_string(ref_file).unwrap();
     assert_eq!(reference.trim(), output.trim());

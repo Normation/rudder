@@ -5,7 +5,7 @@
 //!
 //! The style is heavily inspired from cargo/rustc.
 
-use anyhow::{bail, Context, Error, Result};
+use anyhow::{Context, Error, Result, bail};
 use colored::Colorize;
 use std::{
     env,
@@ -16,7 +16,7 @@ use std::{
 };
 use tracing_appender::rolling::RollingFileAppender;
 use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::{filter::LevelFilter, fmt, EnvFilter, Layer};
+use tracing_subscriber::{EnvFilter, Layer, filter::LevelFilter, fmt};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum OutputFormat {

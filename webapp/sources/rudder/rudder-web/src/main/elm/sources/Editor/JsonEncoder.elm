@@ -2,6 +2,7 @@ module Editor.JsonEncoder exposing (..)
 
 import Iso8601
 import Json.Encode exposing (..)
+import Json.Encode.Extra exposing (maybe)
 
 import Editor.DataTypes exposing (..)
 import Editor.MethodConditions exposing (..)
@@ -121,7 +122,6 @@ encodeMethodElem call =
 
 encodeMethodCall: MethodCall -> Value
 encodeMethodCall call =
-
   appendPolicyMode call.policyMode [
     ("id"           , string call.id.value)
   , ("component"    , string call.component)
@@ -130,6 +130,8 @@ encodeMethodCall call =
   , ("parameters"   , object (List.map encodeCallParameters call.parameters))
   , ("disabledReporting"   , bool call.disableReporting)
   , ("type", string "call")
+  , ("foreachName", maybe string call.foreachName)
+  , ("foreach", (maybe (list (dict identity string))) call.foreach)
   ]
 
 encodeCompositionRule: ReportingLogic -> Value
@@ -155,6 +157,8 @@ encodeMethodBlock call =
   , ("calls"   , list encodeMethodElem call.calls)
   , ("id"   , string call.id.value)
   , ("type", string "block")
+  , ("foreachName", maybe string call.foreachName)
+  , ("foreach", (maybe (list (dict identity string))) call.foreach)
   ]
 
 encodeCallParameters: CallParameter -> (String, Value)

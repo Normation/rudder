@@ -44,13 +44,14 @@ import com.normation.inventory.domain.LinuxType
 import com.normation.inventory.domain.OsType
 import com.normation.inventory.ldap.core.LDAPConstants.*
 import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
-import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.queries.*
-import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.CriterionComposition
+import com.normation.rudder.domain.queries.CriterionComposition.And
+import com.normation.rudder.domain.queries.CriterionComposition.Or
 import com.normation.rudder.domain.queries.CriterionLine
-import com.normation.rudder.domain.queries.Or
+import com.normation.rudder.domain.queries.QueryReturnType.*
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.ChooseTemplate
@@ -82,7 +83,7 @@ class SearchNodeComponent(
     htmlId: String, // unused ...
 
     _query:           Option[Query],
-    _srvList:         Box[Seq[NodeInfo]],
+    _srvList:         Box[Seq[CoreNodeFact]],
     onUpdateCallback: () => JsCmd = { () => Noop }, // on grid refresh
 
     onClickCallback: Option[(String, Boolean) => JsCmd] = None, // this callback is used when we click on an element in the grid
@@ -103,7 +104,9 @@ class SearchNodeComponent(
 
   private val queryProcessor = RudderConfig.acceptedNodeQueryProcessor
 
-  private val nodeInfoService = RudderConfig.nodeInfoService
+  private val nodeFactRepo = RudderConfig.nodeFactRepository
+
+  implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
 
   // The portlet for the server detail
   private def searchNodes: NodeSeq = ChooseTemplate(
@@ -136,7 +139,7 @@ class SearchNodeComponent(
    * Page/component which includes SearchNodeComponent can use it.
    * @return
    */
-  def getSrvList(): Box[Seq[NodeInfo]] = srvList
+  def getSrvList(): Box[Seq[CoreNodeFact]] = srvList
 
   /**
    * External exposition of the current state of query.
@@ -145,7 +148,7 @@ class SearchNodeComponent(
    */
   def getQuery(): Option[Query] = query
 
-  var dispatch: DispatchIt = { case "showQuery" => { _ => buildQuery(false)(CurrentUser.queryContext) } }
+  var dispatch: DispatchIt = { case "showQuery" => { _ => buildQuery(false) } }
 
   var initUpdate = true // this is true when we arrive on the page, or when we've done an search
 
@@ -193,7 +196,7 @@ class SearchNodeComponent(
       ajaxCriteriaRefresh(isGroupsPage, preventSave = true)
     }
 
-    def processForm(isGroupPage: Boolean): JsCmd = {
+    def processForm(isGroupPage: Boolean)(implicit qc: QueryContext): JsCmd = {
       // filter on non validate values
       errors.clear()
       lines.zipWithIndex.foreach {
@@ -209,7 +212,11 @@ class SearchNodeComponent(
         // ********* EXECUTE QUERY ***********
         srvList = (for {
           nodeIds   <- queryProcessor.process(newQuery)
-          nodeInfos <- nodeInfoService.getNodeInfosSeq(nodeIds).toBox
+          nodeInfos <-
+            nodeFactRepo
+              .getAll()
+              .map(_.collect { case (id, f) if nodeIds.contains(id) => f }.toSeq)
+              .toBox
         } yield {
           nodeInfos
         })
@@ -920,7 +927,19 @@ object SearchNodeComponent {
               attrs*
             )
         }
-      case _                                          => AsForm.default
+
+      case InstanceIdComparator(instanceId) =>
+        AsForm {
+          case (value, func, attrs) =>
+            // empty value is not allowed so the input is filled with the current instance ID as default
+            val defaultOrValue = if (value.isEmpty) instanceId.value else value
+            SHtml.text(
+              defaultOrValue,
+              func,
+              attrs*
+            )
+        }
+      case _                                => AsForm.default
     }
   }
 }

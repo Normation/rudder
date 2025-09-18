@@ -48,15 +48,9 @@ trait QueryProcessor {
   /**
    * Process a query and (hopefully) return the list of entry that match it.
    * @param query - the query to process
-   * @return
+   * @return the sequence of node IDs matching the query.
    */
   def process(query: Query)(implicit qc: QueryContext): Box[Seq[NodeId]]
-
-  /**
-   * Only get node ids corresponding to that request, with minimal consistency check.
-   * This method is useful to maximize performance (low memory, high throughout) for ex for dynamic groups.
-   */
-  def processOnlyId(query: Query)(implicit qc: QueryContext): Box[Seq[NodeId]]
 }
 
 trait QueryChecker {

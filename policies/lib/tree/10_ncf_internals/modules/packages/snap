@@ -1,0 +1,86 @@
+#!/bin/bash -e
+get_package_data() {
+  name="${INPUT_File?File must be given to get-package-data}"
+  echo PackageType=repo
+  echo Name=$name
+}
+
+list_installed() {
+  # Example pkg output:
+  # Name         Version  Rev   Developer  Notes
+  # core         16-2.30  3748  canonical  core
+  # hello-world  6.3      27    canonical  -
+  #
+  # After rewrite:
+  # Name=core
+  # Version=16-2.30
+  # Architecture=none
+  snap list | sed 1d | awk '
+{
+    printf("Name=%s\n",$1)
+    printf("Version=%s\n",$2)
+    printf("Architecture=none\n")
+}'
+}
+
+repo_install() {
+  name="${INPUT_Name?Name must be given to repo-install}"
+  # TODO: investigate channel, revision flags
+  snap install "$name" >&2
+}
+
+
+list_updates() {
+  # By default snaps are updated daily, at the time of this writing, there is no
+  # way to disable the auto-update, but it can be delayed.
+
+  # TODO: Get example output showing updates from `snap refresh --list`
+
+  true
+}
+
+remove() {
+  name="${INPUT_Name?Name must be given to remove}"
+  snap remove "$name" >&2
+}
+
+main() {
+  command=$1
+
+  # Output maybe contain backslashes, and we don't want those to end up escaping
+  # something so we use use -r with read.
+  while read -r line; do
+    # Note that line is a variable assignment, e.g.
+    # INPUT_File=syncthing
+    declare INPUT_$line
+  done
+
+
+  case $command in
+    supports-api-version)
+      echo 1
+      ;;
+    get-package-data)
+      get_package_data
+      ;;
+    list-installed)
+      list_installed
+      ;;
+    repo-install)
+      repo_install
+      ;;
+    list-updates)
+      list_updates
+      ;;
+    list-updates-local)
+      list_updates
+      ;;
+    remove)
+      remove
+      ;;
+    *)
+      echo "ErrorMessage=Invalid operation"
+  esac
+}
+
+main $1

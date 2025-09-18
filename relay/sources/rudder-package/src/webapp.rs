@@ -3,9 +3,9 @@
 
 use anyhow::{Context, Result};
 use quick_xml::{
+    Writer,
     events::{BytesEnd, BytesStart, BytesText, Event},
     reader::Reader,
-    Writer,
 };
 use spinners::{Spinner, Spinners};
 use std::io::IsTerminal;
@@ -16,9 +16,9 @@ use std::{
     path::PathBuf,
     process::Command,
 };
-use tracing::{debug, enabled, info, Level};
+use tracing::{Level, debug, enabled, info};
 
-use crate::{cmd::CmdOutput, versions::RudderVersion, DONT_RESTART_ENV_VAR};
+use crate::{DONT_RESTART_ENV_VAR, cmd::CmdOutput, versions::RudderVersion};
 
 enum SpinnerOption {
     Show(Spinner),

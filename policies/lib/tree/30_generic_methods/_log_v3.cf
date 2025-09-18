@@ -1,0 +1,45 @@
+#####################################################################################
+# Copyright 2013-2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Log_v3
+# @description Standard logging output, with class_parameter passed as an argument
+#
+# @parameter message              The common part of the message to display
+# @parameter class_parameter      The class parameter used for reporting to support iterator
+# @parameter old_class_prefix     The prefix of the class for different states (<4.3 version)
+# @parameter class_prefix         The prefix of the class for different states (4.3 version)
+# @parameter args                 The arguments used to call the generic method (slist)
+#
+# The args parameter is used:
+# * to be able to make reports when calling the same method with the same class parameter several times
+# * to be able to display detailed reports
+#
+# The class_prefix is used in priority, with a fallback on the old_class_prefix if empty.
+#
+# @class_prefix
+# @class_parameter old_class_prefix
+# @agent_support = ["cfengine-community"]
+
+bundle agent _log_v3(message, class_parameter, old_class_prefix, class_prefix, args)
+{
+  methods:
+      # Report using the appropriate bundle(s)
+      "wrapper for log_rudder"
+        usebundle => log_rudder("${message}", "", "${old_class_prefix}", "${class_prefix}", "@{args}"),
+        comment   => "Call the log_rudder bundle for directive ${report_data.directive_id} with arguments ${old_class_prefix}, ${class_prefix}, @{args}";
+}

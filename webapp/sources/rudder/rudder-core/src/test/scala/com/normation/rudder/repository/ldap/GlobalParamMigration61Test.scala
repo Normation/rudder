@@ -97,7 +97,7 @@ class GlobalParamMigration61Test extends Specification {
     val nodeDit         = new NodeDit(new DN("ou=Nodes, ou=Rudder, cn=rudder-configuration"))
     val cmdbQueryParser = CmdbQueryParser.jsonRawParser(Map.empty)
 
-    new LDAPEntityMapper(rudderDit, nodeDit, acceptedNodesDitImpl, cmdbQueryParser, inventoryMapper)
+    new LDAPEntityMapper(rudderDit, nodeDit, cmdbQueryParser, inventoryMapper)
   }
 
   val baseParam: GlobalParameter =

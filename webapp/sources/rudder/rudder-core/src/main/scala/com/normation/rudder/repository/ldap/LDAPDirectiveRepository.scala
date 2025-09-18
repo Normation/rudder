@@ -74,10 +74,10 @@ import com.normation.rudder.services.user.PersonIdentService
 import com.normation.utils.StringUuidGenerator
 import com.unboundid.ldap.sdk.DN
 import com.unboundid.ldap.sdk.Filter
-import net.liftweb.json.JsonAST
 import org.joda.time.DateTime
 import scala.collection.immutable.SortedMap
 import zio.*
+import zio.json.*
 import zio.syntax.*
 
 class RoLDAPDirectiveRepository(
@@ -572,7 +572,7 @@ class RoLDAPDirectiveRepository(
         id = at.id,
         techniqueName = at.techniqueName,
         techniques = SortedMap(techniqueRepository.getByName(at.techniqueName).toSeq*),
-        acceptationDatetimes = SortedMap(at.acceptationDatetimes.toSeq*),
+        acceptationDatetimes = SortedMap(at.acceptationDatetimes.versions.toSeq*),
         directives = maps.directivesByActiveTechnique.getOrElse(at.id, Nil),
         isEnabled = at.isEnabled,
         policyTypes = at.policyTypes
@@ -1184,7 +1184,7 @@ class WoLDAPDirectiveRepository(
       newActiveTechnique = ActiveTechnique(
                              ActiveTechniqueId(techniqueName.value),
                              techniqueName,
-                             versions.map(x => x -> DateTime.now()).toMap,
+                             AcceptationDateTime(versions.map(x => x -> DateTime.now()).toMap),
                              policyTypes = policyTypes
                            )
       uptEntry           = mapper.activeTechnique2Entry(newActiveTechnique, categoryEntry.dn)
@@ -1323,9 +1323,10 @@ class WoLDAPDirectiveRepository(
       activeTechnique    <- getUPTEntry(con, uactiveTechniqueId, A_ACCEPTATION_DATETIME).notOptional(
                               s"Active technique with id '${uactiveTechniqueId.value}' was not found"
                             )
-      oldAcceptations    <- ZIO.fromEither(mapper.unserializeAcceptations(activeTechnique(A_ACCEPTATION_DATETIME).getOrElse("")))
+      oldAcceptations    <-
+        activeTechnique(A_ACCEPTATION_DATETIME).getOrElse("").fromJson[AcceptationDateTime].toIO
       saved              <- {
-        val json = JsonAST.compactRender(mapper.serializeAcceptations(oldAcceptations ++ datetimes))
+        val json = oldAcceptations.withNewVersions(datetimes).toJson
         activeTechnique.resetValuesTo(A_ACCEPTATION_DATETIME, json)
         con.save(activeTechnique)
       }

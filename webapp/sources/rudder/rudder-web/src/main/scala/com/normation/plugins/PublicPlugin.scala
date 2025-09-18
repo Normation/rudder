@@ -48,7 +48,7 @@ import net.liftweb.util.Helpers
 import scala.xml.NodeSeq
 
 trait PluginEnableImpl extends PluginStatus {
-  override val current: PluginStatusInfo = PluginStatusInfo.EnabledNoLicense
+  override val current: RudderPluginLicenseStatus = RudderPluginLicenseStatus.EnabledNoLicense
   override def isEnabled() = true
 }
 
@@ -99,14 +99,14 @@ trait DefaultPluginDef extends RudderPluginDef {
     }
   }
 
-  override lazy val name:        PluginName     = PluginName(buildConf.getString("plugin-fullname"))
-  override lazy val shortName:   String         = buildConf.getString("plugin-name")
-  override lazy val displayName: String         = buildConf.getString("plugin-title-description")
-  override lazy val version:     PluginVersion  = {
+  override lazy val name:        PluginName          = PluginName(buildConf.getString("plugin-fullname"))
+  override lazy val shortName:   String              = buildConf.getString("plugin-name")
+  override lazy val displayName: String              = buildConf.getString("plugin-title-description")
+  override lazy val version:     RudderPluginVersion = {
     val versionString = buildConf.getString("rudder-version") + "-" + buildConf.getString("plugin-version")
-    PluginVersion.from(versionString).getOrElse(PluginVersion.PARSING_ERROR(versionString))
+    RudderPluginVersion.from(versionString).getOrElse(RudderPluginVersion.PARSING_ERROR(versionString))
   }
-  override lazy val versionInfo: Option[String] = {
+  override lazy val versionInfo: Option[String]      = {
     try {
       Some(buildConf.getString("version-info"))
     } catch {
@@ -138,18 +138,15 @@ trait DefaultPluginDef extends RudderPluginDef {
 
     val updatedMenu = pluginMenuParent
       .foldRight(menus) {
+        // We need to ensure plugin name is managed correctly between plugins
         case (newParent, menu) =>
-          if (menu.exists(_.loc.name == newParent.loc.name)) {
-            menu
-          } else {
-            newParent :: menu
-          }
+          if (menu.exists(_.loc.name == newParent.loc.name)) menu else newParent :: menu
       }
       .sortBy(_.loc.name)
 
     pluginMenuEntry.foldRight(updatedMenu) {
       case ((newMenu, optParent), menu) =>
-        val parent = optParent.getOrElse(MenuUtils.pluginsMenu)
+        val parent = optParent.getOrElse(MenuUtils.administrationMenu)
 
         menu.map {
           case m @ Menu(l, _*) if (l.name == parent) =>

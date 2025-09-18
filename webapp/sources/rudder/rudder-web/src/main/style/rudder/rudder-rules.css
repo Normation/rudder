@@ -85,7 +85,10 @@ label.rule-info + div{
   font-weight:normal;
   font-size:12px;
 }
-
+#grid_rules_grid_zone {
+  width: 100%;
+  table-layout: fixed;
+}
 .recentChange_refresh{
   float: right;
   position: absolute;

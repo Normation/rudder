@@ -187,7 +187,7 @@ class ActiveTechniqueSerialisationImpl(xmlVersion: String) extends ActiveTechniq
         <isEnabled>{activeTechnique.isEnabled}</isEnabled>
         <policyTypes>{activeTechnique.policyTypes.toJson}</policyTypes>
         <versions>{
-        activeTechnique.acceptationDatetimes.map {
+        activeTechnique.acceptationDatetimes.versions.map {
           case (version, date) =>
             // we never serialize revision in xml
             <version name={version.version.toVersionString}>{date.toString(ISODateTimeFormat.dateTime)}</version>
@@ -248,7 +248,7 @@ class NodeGroupSerialisationImpl(xmlVersion: String) extends NodeGroupSerialisat
       <id>{group.id.withDefaultRev.serialize}</id>
         <displayName>{group.name}</displayName>
         <description>{group.description}</description>
-        <query>{group.query.map(_.toJSONString).getOrElse("")}</query>
+        <query>{group.query.map(_.toJson).getOrElse("")}</query>
         <isDynamic>{group.isDynamic}</isDynamic>
         <nodeIds>{
         if (group.isDynamic) {
@@ -536,7 +536,7 @@ class APIAccountSerialisationImpl(xmlVersion: String) extends APIAccountSerialis
       (
         <id>{account.id.value}</id>
        <name>{account.name.value}</name>
-       <token>{account.token.value}</token>
+       <token>{account.token.flatMap(_.exposeHash()).getOrElse("")}</token>
        <description>{account.description}</description>
        <isEnabled>{account.isEnabled}</isEnabled>
        <creationDate>{account.creationDate.toString(ISODateTimeFormat.dateTime)}</creationDate>

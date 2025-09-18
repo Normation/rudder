@@ -11,8 +11,8 @@ response:
         {
           "header" : {
             "type" : "Directive",
-            "summary" : "10 found",
-            "numbers" : 10
+            "summary" : "11 found, only displaying the first 10. Please refine your query.",
+            "numbers" : 11
           },
           "items" : [
             {
@@ -30,6 +30,14 @@ response:
               "value" : "directive1",
               "desc" : "ID: directive1",
               "url" : "/secure/configurationManager/directiveManagement#{\"directiveId\":\"directive1\"}"
+            },
+            {
+              "name" : "25. Testing blocks",
+              "type" : "directive",
+              "id" : "directive-techniqueWithBlocks",
+              "value" : "directive-techniqueWithBlocks",
+              "desc" : "ID: directive-techniqueWithBlocks",
+              "url" : "/secure/configurationManager/directiveManagement#{\"directiveId\":\"directive-techniqueWithBlocks\"}"
             },
             {
               "name" : "99. Generic Variable Def #1",
@@ -86,14 +94,6 @@ response:
               "value" : "directive2",
               "desc" : "ID: directive2",
               "url" : "/secure/configurationManager/directiveManagement#{\"directiveId\":\"directive2\"}"
-            },
-            {
-              "name" : "test_import_export_archive_directive",
-              "type" : "directive",
-              "id" : "test_import_export_archive_directive",
-              "value" : "test_import_export_archive_directive",
-              "desc" : "ID: test_import_export_archive_directive",
-              "url" : "/secure/configurationManager/directiveManagement#{\"directiveId\":\"test_import_export_archive_directive\"}"
             }
           ]
         }

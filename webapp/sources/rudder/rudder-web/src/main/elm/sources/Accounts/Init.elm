@@ -2,7 +2,7 @@ port module Accounts.Init exposing (..)
 
 import Accounts.DataTypes exposing (..)
 import Accounts.DatePickerUtils exposing (..)
-import Accounts.JsonDecoder exposing (decodeAcl)
+import Accounts.JsonDecoder exposing (decodePortAcl)
 import Json.Decode exposing (..)
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
 import Task
@@ -61,12 +61,12 @@ subscriptions model =
     Sub.batch
         [ SingleDatePicker.subscriptions (userDefinedDatePickerSettings model.ui.datePickerInfo.zone model.ui.datePickerInfo.currentTime model.ui.datePickerInfo.currentTime) model.ui.datePickerInfo.picker
         , Time.every 1000 Tick -- Update of the current time every second
-        , getCheckedAcl (GetCheckedAcl << decodeValue (Json.Decode.list decodeAcl))
+        , getCheckedAcl (GetCheckedAcl << decodeValue (Json.Decode.list decodePortAcl)) -- here, we are talking to the plugin, so with ("path", "verb")
         , getCheckedTenants (GetCheckedTenants << decodeValue (Json.Decode.list string))
         ]
 
 
-init : { contextPath : String, hasWriteRights : Bool } -> ( Model, Cmd Msg )
+init : { contextPath : String, hasWriteRights : Bool, aclPluginEnabled:Bool, tenantsPluginEnabled: Bool } -> ( Model, Cmd Msg )
 init flags =
     let
         initDatePicker =
@@ -78,11 +78,25 @@ init flags =
             UI initFilters NoModal False True initDatePicker False False
 
         initModel =
-            Model flags.contextPath initUi [] False False Nothing
+            Model flags.contextPath initUi [] flags.aclPluginEnabled flags.tenantsPluginEnabled Nothing
+
+        initAclPlugin =
+            if flags.aclPluginEnabled && not initUi.pluginAclInit then
+                initAcl ""
+            else
+                Cmd.none
+
+        initTenantsPlugin =
+            if flags.tenantsPluginEnabled && not initUi.pluginTenantsInit then
+                initTenants ""
+            else
+                Cmd.none
 
         initActions =
             [ Task.perform Tick Time.now
             , Task.perform AdjustTimeZone Time.here
+            , initAclPlugin
+            , initTenantsPlugin
             ]
     in
     ( initModel, Cmd.batch initActions )

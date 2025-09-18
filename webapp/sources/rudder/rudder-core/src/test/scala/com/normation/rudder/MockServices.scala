@@ -61,12 +61,14 @@ import com.normation.rudder.configuration.ConfigurationRepositoryImpl
 import com.normation.rudder.configuration.DirectiveRevisionRepository
 import com.normation.rudder.configuration.GroupRevisionRepository
 import com.normation.rudder.configuration.RuleRevisionRepository
+import com.normation.rudder.db.DB
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.archives.ParameterArchiveId
 import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
+import com.normation.rudder.domain.policies.PolicyMode.Audit
 import com.normation.rudder.domain.properties.*
 import com.normation.rudder.domain.properties.GenericProperty.StringToConfigValue
 import com.normation.rudder.domain.properties.Visibility.Hidden
@@ -74,11 +76,16 @@ import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.reports.NodeComplianceExpirationMode
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.facts.nodes.*
+import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
 import com.normation.rudder.hooks.HookEnvPairs
+import com.normation.rudder.ncf.EditorTechnique
+import com.normation.rudder.ncf.TechniqueCompilationOutput
+import com.normation.rudder.ncf.TechniqueCompiler
+import com.normation.rudder.ncf.TechniqueCompilerApp
 import com.normation.rudder.properties.InMemoryPropertiesRepository
 import com.normation.rudder.properties.NodePropertiesServiceImpl
 import com.normation.rudder.properties.PropertiesRepository
@@ -87,6 +94,8 @@ import com.normation.rudder.repository.*
 import com.normation.rudder.repository.xml.GitParseGroupLibrary
 import com.normation.rudder.repository.xml.GitParseRules
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
+import com.normation.rudder.repository.xml.RudderPrettyPrinter
+import com.normation.rudder.repository.xml.TechniqueArchiverImpl
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rule.category.*
 import com.normation.rudder.score.*
@@ -98,6 +107,7 @@ import com.normation.rudder.services.queries.*
 import com.normation.rudder.services.reports.NodePropertyBasedComplianceExpirationService
 import com.normation.rudder.services.servers.*
 import com.normation.rudder.services.servers.RelaySynchronizationMethod.Classic
+import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGeneratorImpl
@@ -111,6 +121,7 @@ import net.liftweb.common.Box
 import net.liftweb.common.Full
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.lib.PersonIdent
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.annotation.tailrec
@@ -214,6 +225,12 @@ class MockGitConfigRepo(prefixTestResources: String = "", configRepoDirName: Str
       ZIO.unit
     }
   }
+
+  val gitModificationRepository: GitModificationRepository = new GitModificationRepository {
+    override def getCommits(modificationId: ModificationId): IOResult[Option[GitCommitId]] = None.succeed
+    override def addCommit(commit: GitCommitId, modId: ModificationId): IOResult[DB.GitCommitJoin] =
+      DB.GitCommitJoin(commit, modId).succeed
+  }
 }
 
 object MockTechniques {
@@ -278,9 +295,11 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     override def deleteRelaySystemObjects(policyServerId: NodeId): IOResult[Unit] = ???
   }
 
+  val instanceIdService     = new InstanceIdService(InstanceId("test-instance-id"))
   val systemVariableService = new SystemVariableServiceImpl(
     systemVariableServiceSpec,
     policyServerManagementService,
+    instanceIdService,
     toolsFolder = "tools_folder",
     policyDistribCfenginePort = 5309,
     policyDistribHttpsPort = 443,
@@ -309,6 +328,36 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
   val globalSystemVariables: Map[String, Variable] = systemVariableService
     .getGlobalSystemVariables(globalAgentRun)
     .openOrThrowException("I should get global system variable in test!")
+
+  // a false technique compiler that just error
+  val techniqueCompiler: TechniqueCompiler = new TechniqueCompiler {
+    override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
+      TechniqueCompilationOutput(
+        TechniqueCompilerApp.Rudderc,
+        1,
+        Chunk.empty,
+        s"error: test compiler for ${technique.id.value}",
+        "",
+        ""
+      ).succeed
+    }
+    override def getCompilationOutputFile(technique: EditorTechnique): File = File("compilation-config.yml")
+    override def getCompilationConfigFile(technique: EditorTechnique): File = File("compilation-output.yml")
+  }
+
+  val techniqueArchiver: TechniqueArchiverImpl = new TechniqueArchiverImpl(
+    mockGit.gitRepo,
+    new RudderPrettyPrinter(Int.MaxValue, 2),
+    mockGit.gitModificationRepository,
+    new PersonIdentService {
+      override def getPersonIdentOrDefault(username: String): IOResult[PersonIdent] = {
+        new PersonIdent("test-technique-archiver", "test@technique.archiver").succeed
+      }
+    },
+    techniqueParser,
+    techniqueCompiler,
+    System.getProperty("user.name")
+  )
 }
 
 object TV {
@@ -572,8 +621,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
     /*
      * Test override order of generic-variable-definition.
      * We want to have to directive, directive1 and directive2.
-     * directive1 is the default value and must be overriden by value in directive 2, which means that directive2 value must be
-     * define after directive 1 value in generated "genericVariableDefinition.cf".
+     * directive1 is the default value and must be overridden by value in directive 2, which means that directive2 value must be
+     * defined after directive 1 value in generated "genericVariableDefinition.cf".
      * The semantic to achieve that is to use Priority: directive 1 has a higher (ie smaller int number) priority than directive 2.
      *
      * To be sure that we don't use rule/directive name order, we will make directive 2 sort name come before directive 1 sort name.
@@ -611,6 +660,27 @@ class MockDirectives(mockTechniques: MockTechniques) {
       10
     )
 
+    /*
+     * a directive for testing blocks
+     */
+    val DIRECTIVE_TECHNIQUE_WITH_BLOCKS = "directive-technique_with_blocks"
+    val techniqueWithBlocksTechnique: Technique =
+      techniqueRepos.unsafeGet(TechniqueId(TechniqueName("technique_with_blocks"), TV("1.0")))
+    val techniqueWithBlocksDirective: Directive = Directive(
+      DirectiveId(DirectiveUid("directive-techniqueWithBlocks"), GitVersion.DEFAULT_REV),
+      TV("1.0"),
+      Map(
+        ("path", Seq("/tmp/root2")),
+        ("command", Seq("/bin/true #root1"))
+      ),
+      "25. Testing blocks",
+      """a short "description' with quotes""",
+      Some(Audit),
+      "a documentation *with markdown*",
+      _isEnabled = true,
+      tags = Tags.fromMaps(List(Map("aTagName" -> "the tagName value")))
+    )
+
     val all = Map(
       (commonTechnique, commonDirective :: Nil),
       (inventoryTechnique, inventoryDirective :: Nil),
@@ -628,7 +698,8 @@ class MockDirectives(mockTechniques: MockTechniques) {
       (ncf1Technique, ncf1Directive :: Nil),
       (pkgTechnique, pkgDirective :: Nil),
       (archiveTechnique, archiveDirective :: Nil),
-      (rpmTechnique, rpmDirective :: Nil)
+      (rpmTechnique, rpmDirective :: Nil),
+      (techniqueWithBlocksTechnique, techniqueWithBlocksDirective :: Nil)
     )
   }
 
@@ -1735,15 +1806,38 @@ object MockNodes {
 
   // a valid, not used pub key
   // cfengine key hash is: 081cf3aac62624ebbc83be7e23cb104d
-  val PUBKEY =
-    """-----BEGIN RSA PUBLIC KEY-----
-MIIBCAKCAQEAlntroa72gD50MehPoyp6mRS5fzZpsZEHu42vq9KKxbqSsjfUmxnT
-Rsi8CDvBt7DApIc7W1g0eJ6AsOfV7CEh3ooiyL/fC9SGATyDg5TjYPJZn3MPUktg
-YBzTd1MMyZL6zcLmIpQBH6XHkH7Do/RxFRtaSyicLxiO3H3wapH20TnkUvEpV5Qh
-zUkNM8vHZuu3m1FgLrK5NCN7BtoGWgeyVJvBMbWww5hS15IkCRuBkAOK/+h8xe2f
-hMQjrt9gW2qJpxZyFoPuMsWFIaX4wrN7Y8ZiN37U2q1G11tv2oQlJTQeiYaUnTX4
-z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
------END RSA PUBLIC KEY-----"""
+  val CERTIFICATE_NODE1 =
+    """-----BEGIN CERTIFICATE-----
+MIIFTjCCAzagAwIBAgIUO0kEJ2Fwb4MWT2yBVqR+UX4osMcwDQYJKoZIhvcNAQEL
+BQAwFzEVMBMGCgmSJomT8ixkAQEMBW5vZGUxMB4XDTI0MTEwMjE2MTIxOVoXDTM0
+MTAzMTE2MTIxOVowFzEVMBMGCgmSJomT8ixkAQEMBW5vZGUxMIICIjANBgkqhkiG
+9w0BAQEFAAOCAg8AMIICCgKCAgEAptzhnQCPvgOwjn6LCfVhTMAs10hwYj5YxqOX
+i8MPiFT4Rlrn6xyB24O7E+O2EL/IUYSk5Lbp2OGSJWvNe1d+KbESpmGoM1UnAa8j
+VsW+HY/uJ23THKAhe9ykOxWObSp/sSwFhw6C0p7SriI72uW/fJ40XCh2m2FuJuQP
+YHjNOR5P/cOLhKs/cEkt3icMxyfipor+kcqC/GsCPtwwXFwnS5yWlmRxVSzkI1fZ
+6B403aHMe5PSqD0kxWX8roR/9sIVRvLVbxQtiuyM2xUeSuIlg3bho9wN4/shhqKv
+q3zqJQy86YZVC9jRmX21BeQukTWiu3uqppxVcyTM5Wzf3jrE7A+2Iea6ZvMFA0fq
+D39CgXhkuCGdGaBQtVzuYBASyECUEmMgQMb99rnlONVVVdFQHS26+c1fR1rn+Iyq
+kGOmrTRSaf1F8OLnvAY9UhXi/oJNDh57y+Y+X11XY2mBgmt/zRFN05HxD0UpsvlS
+p850QzmoO7qusRY5CnrX40HHhhB9wr5lhKTVEAgoEhrYvC/wDWLBElECNQzC99ye
+FUR2T1sc1qsmDVki5eivm086viHt231plJIXKtAdTLc2EXYxtNiVowXKbhujtwOR
+gIcG9YXEwc7woXnpxOJHYlFfB9TKMKzc8FfKVZnOibp0Ceenpxj0nUItlLJMoEaM
+G4upElcCAwEAAaOBkTCBjjAMBgNVHRMEBTADAQH/MB0GA1UdDgQWBBT9f5l3IkLI
+dwooamw/OugzXWT8RjBSBgNVHSMESzBJgBT9f5l3IkLIdwooamw/OugzXWT8RqEb
+pBkwFzEVMBMGCgmSJomT8ixkAQEMBW5vZGUxghQ7SQQnYXBvgxZPbIFWpH5Rfiiw
+xzALBgNVHQ8EBAMCArwwDQYJKoZIhvcNAQELBQADggIBAF0LWEG8O3W18U0r+6v1
+pSS1UqcP0HI3M27+Pq2Gk+/s9DRlgeyPmSYTGMdbP1eL5lR5BubUrZlKmXCneda+
+Vl4akoNaYXHFKpRIKm4y2ezX6XRugblurc+tL3V17UAhYjSglL/5yRXiLrJKACOP
+0NNjjrqn2JM2PfD29Ge6K+yir92V8aOByElZVYNH4f9Avc+zzg4yBDTONutZ2TBx
+cPZ3s2Z7bsbOYhJey+j99Oc/puyUNyvh5R/hLV5QP+FA/N8JR8N2IeaIwF8/Kyhu
+MTSajF4pLY1N8YbQA0jd6zwz6NvRu5HBJ+u53JX4kyMc8mMAG0PZz6pUmAwlqq7V
+EqsjDVYHB19WKh9gaJkKNkft7IsB1b7exklGRPUuR/Sb4a5rgl47a3EM38KCVfFX
+BBNUhCn0Lt3lKs4RUXxLSh36ptEPre9qkWtdTnjR+T6KLxVonLdNQSOeqRplb4la
+Uu/CwaqyaPf39pzyXLNdZszknsXk+ih1+Kn/X7cTTUjNsvlMRqlh/wW2Ss0FK3R3
+7GObkgYD5hHVDrH5tp9gh0a0r0GT3bT4119BgE8zgwqMGbOHkg5ENT+nyL0b0niZ
+0ITz1f3/arh35zGKGr1mueUrJuSLeRG1v62+Mire+5PIliT+tQM7Bk8TptlSIl37
+3jccIfXR+UOVrHdSl0QmGOxb
+-----END CERTIFICATE-----"""
 
   val emptyNodeReportingConfiguration: ReportingConfiguration = ReportingConfiguration(None, None, None)
 
@@ -1781,7 +1875,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     List("127.0.0.1", "192.168.0.100"),
     DateTime.parse("2021-01-30T01:20+01:00"),
     UndefinedKey,
-    Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), PublicKey(PUBKEY), Set())),
+    Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), Certificate(CERTIFICATE_NODE1), Set())),
     rootId,
     rootAdmin,
     None,
@@ -1861,7 +1955,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
     List("192.168.0.10"),
     DateTime.parse("2021-01-30T01:20+01:00"),
     UndefinedKey,
-    Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), PublicKey(PUBKEY), Set())),
+    Seq(AgentInfo(CfeCommunity, Some(AgentVersion("7.0.0")), Certificate(CERTIFICATE_NODE1), Set())),
     rootId,
     admin1,
     None,
@@ -2090,7 +2184,7 @@ z5VEb9yx2KikbWyChM1Akp82AV5BzqE80QIBIw==
         Nil,
         DateTime.now,
         UndefinedKey,
-        Seq(AgentInfo(CfeCommunity, None, PublicKey("rsa public key"), Set())),
+        Seq(AgentInfo(CfeCommunity, None, Certificate("node certificate"), Set())),
         NodeId("root"),
         "",
         None,
@@ -2277,7 +2371,7 @@ class MockNodes() {
             case A_STATE              => Right((n: NodeFact) => List(n.rudderSettings.state.name))
             case A_OS_RAM             => Right((n: NodeFact) => n.ram.map(_.size.toString).toList)
             case A_OS_SWAP            => Right((n: NodeFact) => n.swap.map(_.size.toString).toList)
-            case A_AGENTS_NAME        => Right((n: NodeFact) => List(n.rudderAgent.agentType.id))
+            case A_AGENT_NAME         => Right((n: NodeFact) => List(n.rudderAgent.agentType.id))
             case A_ACCOUNT            => Right((n: NodeFact) => n.accounts.toList)
             case A_LIST_OF_IP         => Right((n: NodeFact) => n.ipAddresses.map(_.inet).toList)
             case A_ROOT_USER          => Right((n: NodeFact) => List(n.rudderAgent.user))
@@ -2327,9 +2421,9 @@ class MockNodes() {
         byLine <- lines.traverse(filterForLine(_, nodes))
       } yield {
         combine match {
-          case And =>
+          case CriterionComposition.And =>
             (nodes :: byLine).reduce((a, b) => a.intersect(b))
-          case Or  =>
+          case CriterionComposition.Or  =>
             (Nil :: byLine).reduce((a, b) => a ++ b)
         }
       }
@@ -2343,13 +2437,7 @@ class MockNodes() {
         matching.map(_.id).toSeq
       }
     }.toBox
-
-    override def processOnlyId(query: Query)(implicit qc: QueryContext): Box[Seq[NodeId]] = process(query).map(_.toSeq)
   }
-
-  val nodeInfoService         = new NodeInfoServiceProxy(nodeFactRepo)
-  val fullInventoryRepository = new MockNodeFactFullInventoryRepositoryProxy(nodeFactRepo)
-  val woNodeRepository        = new WoFactNodeRepositoryProxy(nodeFactRepo)
 
   object newNodeManager extends NewNodeManager {
     implicit val qc: QueryContext = QueryContext.todoQC
@@ -3068,7 +3156,8 @@ class MockLdapQueryParsing(mockGit: MockGitConfigRepo, mockNodeGroups: MockNodeG
   val inventoryDitService: InventoryDitService =
     new InventoryDitServiceImpl(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl)
   val getSubGroupChoices = new DefaultSubGroupComparatorRepository(mockNodeGroups.groupsRepo)
-  val nodeQueryData      = new NodeQueryCriteriaData(() => getSubGroupChoices)
+  val instanceIdService  = new InstanceIdService(InstanceId("test-instance-id"))
+  val nodeQueryData      = new NodeQueryCriteriaData(() => getSubGroupChoices, instanceIdService)
   val ditQueryDataImpl   = new DitQueryData(acceptedNodesDitImpl, nodeDit, rudderDit, nodeQueryData)
   val queryParser        = CmdbQueryParser.jsonStrictParser(ditQueryDataImpl.criteriaMap.toMap)
 

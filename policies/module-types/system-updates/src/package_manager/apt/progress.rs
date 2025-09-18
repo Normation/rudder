@@ -6,7 +6,7 @@ use rust_apt::{
     error::pending_error,
     progress::DynAcquireProgress,
     raw::{AcqTextStatus, ItemDesc, ItemState, PkgAcquire},
-    util::{time_str, unit_str, NumSys},
+    util::{NumSys, time_str, unit_str},
 };
 use std::io::{BufWriter, Read, Seek, SeekFrom, Write};
 

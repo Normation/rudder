@@ -37,10 +37,10 @@
 
 package com.normation.rudder.domain.nodes
 
+import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.KeyStatus
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.PublicKey
 import com.normation.inventory.domain.SecurityToken
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.SimpleDiff
@@ -92,17 +92,18 @@ case object Node {
   }
 }
 
-sealed abstract class NodeState(override val entryName: String) extends EnumEntry {
+// isEnabled is a generic marker to decide if that state should be ignored during generation etc.
+sealed abstract class NodeState(override val entryName: String, val isEnabled: Boolean) extends EnumEntry {
   def name: String = entryName
 }
 
 object NodeState extends Enum[NodeState] {
 
-  case object Initializing  extends NodeState("initializing")
-  case object Enabled       extends NodeState("enabled")
-  case object EmptyPolicies extends NodeState("empty-policies")
-  case object Ignored       extends NodeState("ignored")
-  case object PreparingEOL  extends NodeState("preparing-eol")
+  case object Initializing  extends NodeState("initializing", true)
+  case object Enabled       extends NodeState("enabled", true)
+  case object EmptyPolicies extends NodeState("empty-policies", true)
+  case object Ignored       extends NodeState("ignored", false)
+  case object PreparingEOL  extends NodeState("preparing-eol", false)
 
   def values: IndexedSeq[NodeState] = findValues
 
@@ -138,14 +139,15 @@ object NodeState extends Enum[NodeState] {
  * For now, other simple properties are not handle.
  */
 final case class ModifyNodeDiff(
-    id:            NodeId,
-    modHeartbeat:  Option[SimpleDiff[Option[HeartbeatConfiguration]]],
-    modAgentRun:   Option[SimpleDiff[Option[AgentRunInterval]]],
-    modProperties: Option[SimpleDiff[List[NodeProperty]]],
-    modPolicyMode: Option[SimpleDiff[Option[PolicyMode]]],
-    modKeyValue:   Option[SimpleDiff[SecurityToken]],
-    modKeyStatus:  Option[SimpleDiff[KeyStatus]],
-    modNodeState:  Option[SimpleDiff[NodeState]]
+    id:               NodeId,
+    modHeartbeat:     Option[SimpleDiff[Option[HeartbeatConfiguration]]],
+    modAgentRun:      Option[SimpleDiff[Option[AgentRunInterval]]],
+    modProperties:    Option[SimpleDiff[List[NodeProperty]]],
+    modPolicyMode:    Option[SimpleDiff[Option[PolicyMode]]],
+    modKeyValue:      Option[SimpleDiff[SecurityToken]],
+    modKeyStatus:     Option[SimpleDiff[KeyStatus]],
+    modNodeState:     Option[SimpleDiff[NodeState]],
+    modDocumentation: Option[SimpleDiff[String]]
 )
 
 object ModifyNodeDiff {
@@ -196,7 +198,10 @@ object ModifyNodeDiff {
 
     val state = if (oldNode.state == newNode.state) None else Some(SimpleDiff(oldNode.state, newNode.state))
 
-    ModifyNodeDiff(newNode.id, heartbeat, agentRun, properties, policyMode, keyValue, keyStatus, state)
+    val documentation =
+      if (oldNode.description == newNode.description) None else Some(SimpleDiff(oldNode.description, newNode.description))
+
+    ModifyNodeDiff(newNode.id, heartbeat, agentRun, properties, policyMode, keyValue, keyStatus, state, documentation)
   }
 
   def keyInfo(
@@ -210,7 +215,7 @@ object ModifyNodeDiff {
       case None    => None
       case Some(k) =>
         oldKeys match {
-          case Nil    => Some(SimpleDiff(PublicKey(""), k))
+          case Nil    => Some(SimpleDiff(Certificate(""), k))
           case x :: _ => if (k == x) None else Some(SimpleDiff(x, k))
         }
     }
@@ -219,6 +224,6 @@ object ModifyNodeDiff {
       case Some(s) => if (s == oldStatus) None else Some(SimpleDiff(oldStatus, s))
     }
 
-    ModifyNodeDiff(nodeId, None, None, None, None, keyInfo, keyStatus, None)
+    ModifyNodeDiff(nodeId, None, None, None, None, keyInfo, keyStatus, None, None)
   }
 }

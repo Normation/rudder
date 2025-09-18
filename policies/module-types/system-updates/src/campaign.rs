@@ -4,12 +4,12 @@
 #![allow(clippy::borrowed_box)]
 
 use crate::{
+    CampaignType, PackageParameters, RebootType, Schedule,
     db::PackageDatabase,
     hooks::Hooks,
     output::{Report, ScheduleReport, Status},
     package_manager::{LinuxPackageManager, PackageSpec},
     system::System,
-    CampaignType, PackageParameters, RebootType, Schedule,
 };
 use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
@@ -103,7 +103,7 @@ pub enum FullSchedule {
 impl FullSchedule {
     pub fn new(schedule: &Schedule, node_id: String, agent_frequency: Duration) -> Self {
         match schedule {
-            Schedule::Scheduled(ref s) => FullSchedule::Scheduled(FullScheduleParameters {
+            Schedule::Scheduled(s) => FullSchedule::Scheduled(FullScheduleParameters {
                 start: s.start,
                 end: s.end,
                 node_id,
@@ -118,7 +118,6 @@ impl FullSchedule {
 ///
 /// The returned outcome is not linked to the success of the update, but to the success of the
 /// process. The update itself can fail, but the process can be successful.
-
 pub fn do_schedule(
     p: &RunnerParameters,
     db: &mut PackageDatabase,
@@ -263,6 +262,10 @@ fn update(
     if (reboot_type == RebootType::ServicesOnly || reboot_type == RebootType::AsNeeded)
         && !services_list.is_empty()
     {
+        report.stdout(format!(
+            "Restarting services: {}",
+            &services_list.join(", ")
+        ));
         let restart_result = system.restart_services(&services_list);
         // Don't fail on service restart failure
         report.step(restart_result);

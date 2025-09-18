@@ -1,0 +1,113 @@
+/*
+*************************************************************************************
+* Copyright 2024 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
+// Modules
+@use 'rudder-variables' as *;
+
+.rudder-template > .one-col{
+  flex: 1;
+}
+.template-main{
+  flex-basis : initial !important;
+  flex: auto !important;
+}
+
+#reportFromDate, #deleteReports {
+  margin-left: 7px;
+  padding: 6px 12px;
+  border: 1px solid #dcdcdc;
+  border-radius: 4px;
+}
+#modeSelector{
+  margin: 15px 8px 0 0;
+  display: inline-block;
+}
+#modeSelector > li{
+  margin-bottom:0;
+  display:inline-block;
+}
+#modeSelector > li input{
+  display:none;
+}
+#modeSelector > li > label {
+  margin-bottom: 0;
+}
+#modeSelector > li > label span{
+  margin-bottom: 0;
+  padding: 6px 12px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #dcdcdc;
+  background-color: #F8F9FC;
+  margin:0;
+  transition-duration:.2s;
+  opacity:.7;
+  cursor:pointer;
+}
+#modeSelector > li > label span:hover{
+  opacity:1;
+}
+#modeSelector > li:first-child > label span{
+  border-top-right-radius:0;
+  border-bottom-right-radius:0;
+  border-right-color:transparent;
+}
+#modeSelector > li:last-child > label span{
+  border-top-left-radius:0;
+  border-bottom-left-radius:0;
+  border-left-color:transparent;
+}
+#modeSelector > li > label input:checked + span{
+  opacity:1;
+  cursor:default;
+  color:#fff;
+}
+#modeSelector > li:last-child > label input:checked + span{
+  background-color: #DA291C;
+  border-color: #DA291C;
+}
+#modeSelector > li:first-child > label input:checked + span{
+  background-color: #3694d1;
+  border: 1px solid #2173a9;
+}
+
+.database-info-table {
+  width: auto;
+}
+
+.database-info-table td {
+  border: none !important;
+}

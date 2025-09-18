@@ -36,6 +36,8 @@ import com.normation.errors.PureResult
 import com.normation.errors.RudderError
 import com.normation.errors.SystemError
 import com.normation.errors.effectUioUnit
+import io.scalaland.chimney.cats.*
+import io.scalaland.chimney.partial.*
 import java.util.concurrent.TimeUnit
 import net.liftweb.common.{Logger as _, *}
 import org.slf4j.Logger
@@ -43,8 +45,8 @@ import org.slf4j.Logger
 /**
  * This is our based error for Rudder. Any method that can
  * error should return that RudderError type to allow
- * seemless interaction between modules.
- * None the less, all module should have its own domain error
+ * seamless interaction between modules.
+ * Nonetheless, all module should have its own domain error
  * for meaningful semantic intra-module.
  */
 object errors {
@@ -90,10 +92,13 @@ object errors {
    * use `IOResult.succeed`).
    */
   object IOResult {
-    def attempt[A](error: String)(effect: => A):                IO[SystemError, A] = {
+    // attempt is blocking
+    def attempt[A](error: String)(effect: => A): IO[SystemError, A] = {
       // In ZIO 2 blocking is automagically managed - https://github.com/zio/zio/issues/1275
-      ZIO.attempt(effect).mapError(ex => SystemError(error, ex))
+      // in 2.1.0, they remove the auto-blocking. Our code is not ready for that, so we need to set it back.
+      ZIO.attemptBlocking(effect).mapError(ex => SystemError(error, ex))
     }
+
     def attempt[A](effect: => A):                               IO[SystemError, A] = {
       this.attempt("An error occurred")(effect)
     }
@@ -108,6 +113,29 @@ object errors {
     def attemptZIO[A](ioeffect: => IOResult[A]):                IOResult[A]        = {
       attemptZIO("An error occurred")(ioeffect)
     }
+
+    // for non-blocking case
+    def nonBlocking[A](error: String)(effect: => A): IO[SystemError, A] = {
+      // in ZIO 2.1, attempt is for non blocking, CPU bound effects
+      ZIO.attempt(effect).mapError(ex => SystemError(error, ex))
+    }
+
+    def nonBlocking[A](effect: => A): IO[SystemError, A] = {
+      this.nonBlocking("An error occurred")(effect)
+    }
+
+    def nonBlockingZIO[A](error: String)(ioeffect: => IOResult[A]): IOResult[A] = {
+      ZIO
+        .attempt(ioeffect)
+        .foldZIO(
+          ex => SystemError(error, ex).fail,
+          res => res
+        )
+    }
+    def nonBlockingZIO[A](ioeffect: => IOResult[A]):                IOResult[A] = {
+      nonBlockingZIO("An error occurred")(ioeffect)
+    }
+
   }
 
   object PureResult {
@@ -293,7 +321,7 @@ object errors {
     }
 
     /*
-     * Execute in parallel, non ordered, and accumulate error, using at max N fibers
+     * Execute in parallel, non-ordered, and accumulate error, using at max N fibers
      */
     def accumulateParNELN[R, E, B](n: Int)(f: A => ZIO[R, E, B]): ZIO[R, NonEmptyList[E], List[B]] = {
       ZIO.partitionPar(in)(f).flatMap(toNEL).withParallelism(n)
@@ -319,11 +347,19 @@ object errors {
     }
 
     /*
-     * Execute in parallel, non ordered, and accumulate error, using at max N fibers
+     * Execute in parallel, non-ordered, and accumulate error, using at max N fibers
      */
     def accumulateParN[R, E <: RudderError, B](n: Int)(f: A => ZIO[R, E, B]): ZIO[R, Accumulated[E], List[B]] = {
       in.accumulateParNELN(n)(f).mapError(Accumulated(_))
     }
+  }
+
+  /*
+   * Translate a ZIO[R, ::[E<:RudderError], A] to an accumulated.
+   * This happens often when using `ZIO.validate`
+   */
+  implicit class ToRudderAccumulateErrors[A](val in: ZIO[Any, ::[RudderError], A]) extends AnyVal {
+    def toAccumulated: IOResult[A] = in.mapError(l => Accumulated(NonEmptyList(l.head, l.tail)))
   }
 
   /*
@@ -338,6 +374,17 @@ object errors {
       case err :: t => Left(Accumulated(NonEmptyList.of(err, t*)))
       case Nil      => Right(())
     }
+  }
+
+  implicit class ChimneyErrorToPureResult[A](val in: io.scalaland.chimney.partial.Result[A]) extends AnyVal {
+
+    private def errorToString(e: Error): String = s"${e.path.asString}: ${e.message.asString}"
+
+    def toPureResult: PureResult[A] = {
+      in.asValidatedNel.leftMap(e => Accumulated(e.map(err => Inconsistency(errorToString(err))))).toEither
+    }
+
+    def toIO: IOResult[A] = ZIO.fromEither(toPureResult)
   }
 
   /**

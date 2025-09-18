@@ -40,14 +40,6 @@ package com.normation.rudder.apidata
 import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.api.ApiAccount
-import com.normation.rudder.api.ApiAccountKind.PublicApi as PublicApiAccount
-import com.normation.rudder.api.ApiAccountKind.System
-import com.normation.rudder.api.ApiAccountKind.User
-import com.normation.rudder.api.ApiAuthorization.ACL
-import com.normation.rudder.api.ApiAuthorization.None as NoAccess
-import com.normation.rudder.api.ApiAuthorization.RO
-import com.normation.rudder.api.ApiAuthorization.RW
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.domain.nodes.*
 import com.normation.rudder.domain.policies.*
@@ -63,7 +55,6 @@ import com.normation.rudder.services.healthcheck.HealthcheckResult.Critical
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Ok
 import com.normation.rudder.services.healthcheck.HealthcheckResult.Warning
 import com.normation.rudder.services.modification.DiffService
-import com.normation.utils.DateFormaterService
 import net.liftweb.common.*
 import net.liftweb.json.*
 import net.liftweb.json.JsonDSL.*
@@ -182,7 +173,8 @@ final case class RestDataSerializerImpl(
   }
 
   override def serializeGroup(group: NodeGroup, cat: Option[NodeGroupCategoryId], crId: Option[ChangeRequestId]): JValue = {
-    val query = group.query.map(query => query.toJSON)
+    import zio.json.*
+    val query = group.query.map(query => parse(query.toJson))
     (
       ("changeRequestId" -> crId.map(_.value.toString))
       ~ ("id"            -> group.id.serialize)
@@ -392,7 +384,7 @@ final case class RestDataSerializerImpl(
   def serializeGroupChange(change: NodeGroupChange, apiVersion: ApiVersion): Box[JValue] = {
 
     def serializeNodeGroupDiff(diff: ModifyNodeGroupDiff, initialState: NodeGroup): JValue = {
-      implicit def convert[T](value: GroupProperty): JValue = value.toJson
+      implicit def convert[T](value: GroupProperty): JValue = value.toJsonObj
       def convertNodeList(nl:        Set[NodeId]):   JValue = nl.map(_.value).toList
       def convertQuery(q:            Option[Query]): JValue = q.map(_.toString)
 
@@ -590,47 +582,5 @@ final case class RestDataSerializerImpl(
     (("name" -> check.name.value)
     ~ ("msg"    -> check.msg)
     ~ ("status" -> status))
-  }
-}
-
-/*
- * ACL
- * Between front and backend, we exchange a JsonAcl list, where JsonAcl are *just*
- * one path and one verb. The grouping is done in extractor
- */
-final case class JsonApiAcl(path: String, verb: String)
-
-object ApiAccountSerialisation {
-
-  implicit val formats: Formats = DefaultFormats
-
-  implicit class Json(val account: ApiAccount) extends AnyVal {
-    def toJson: JObject = {
-      val (expirationDate, authzType, acl): (Option[String], Option[String], Option[List[JsonApiAcl]]) = {
-        account.kind match {
-          case User | System                           => (None, None, None)
-          case PublicApiAccount(authz, expirationDate) =>
-            val acl = authz match {
-              case NoAccess | RO | RW => None
-              case ACL(acls)          => Some(acls.flatMap(x => x.actions.map(a => JsonApiAcl(x.path.value, a.name))))
-            }
-            (expirationDate.map(DateFormaterService.getDisplayDateTimePicker), Some(authz.kind.name), acl)
-        }
-      }
-
-      ("id"                    -> account.id.value) ~
-      ("name"                  -> account.name.value) ~
-      ("token"                 -> account.token.value) ~
-      ("tokenGenerationDate"   -> DateFormaterService.serialize(account.tokenGenerationDate)) ~
-      ("kind"                  -> account.kind.kind.name) ~
-      ("description"           -> account.description) ~
-      ("creationDate"          -> DateFormaterService.serialize(account.creationDate)) ~
-      ("enabled"               -> account.isEnabled) ~
-      ("expirationDate"        -> expirationDate) ~
-      ("expirationDateDefined" -> expirationDate.isDefined) ~
-      ("authorizationType"     -> authzType) ~
-      ("acl"                   -> acl.map(x => Extraction.decompose(x))) ~
-      ("tenants"               -> account.tenants.serialize)
-    }
   }
 }

@@ -46,14 +46,14 @@ import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_GROUP_UUID
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
-import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.Criterion
+import com.normation.rudder.domain.queries.CriterionComposition.And
+import com.normation.rudder.domain.queries.CriterionComposition.Or
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Equals
 import com.normation.rudder.domain.queries.ExactStringComparator
 import com.normation.rudder.domain.queries.NodeCriterionMatcherString
 import com.normation.rudder.domain.queries.ObjectCriterion
-import com.normation.rudder.domain.queries.Or
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.ResultTransformation.*
 import com.normation.rudder.domain.queries.StringComparator

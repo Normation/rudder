@@ -65,7 +65,7 @@ object ApplicationStatus {
       case PartiallyApplied(seq) =>
         val why = seq.map { case (at, d) => "Directive '" + d.name + "' disabled" }.mkString(", ")
         ("Partially applied", Some(why))
-      case x: NotAppliedStatus =>
+      case _: NotAppliedStatus =>
         val (status, disabledMessage) = {
           if ((!rule.isEnabled) && (!rule.isEnabledStatus)) {
             ("Disabled", Some("This rule is disabled. "))

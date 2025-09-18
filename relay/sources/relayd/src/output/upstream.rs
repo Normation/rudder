@@ -15,7 +15,15 @@ pub async fn send_report(job_config: Arc<JobConfig>, path: PathBuf) -> Result<()
         job_config.clone(),
         "reports",
         path,
-        job_config.cfg.output.upstream.password.clone(),
+        // upstream is selected at this point, so validation must have detected None password
+        job_config
+            .cfg
+            .output
+            .upstream
+            .password
+            .as_ref()
+            .unwrap()
+            .clone(),
     )
     .await
 }
@@ -35,7 +43,15 @@ pub async fn send_inventory(
         path,
         match inventory_type {
             InventoryType::New => job_config.cfg.output.upstream.default_password.clone(),
-            InventoryType::Update => job_config.cfg.output.upstream.password.clone(),
+            // upstream is selected at this point, so validation must have detected None password
+            InventoryType::Update => job_config
+                .cfg
+                .output
+                .upstream
+                .password
+                .as_ref()
+                .unwrap()
+                .clone(),
         },
     )
     .await

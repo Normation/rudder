@@ -1,3 +1,4 @@
 node_modules
 webapp/javascript
 webapp/style
+webapp/images/**/*svg

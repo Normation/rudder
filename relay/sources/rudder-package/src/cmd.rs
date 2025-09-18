@@ -4,7 +4,7 @@
 use std::{process::Command, str::FromStr};
 
 use anyhow::Result;
-use serde::{ser::SerializeMap, Serialize};
+use serde::{Serialize, ser::SerializeMap};
 use tracing::debug;
 
 pub struct CmdOutput {

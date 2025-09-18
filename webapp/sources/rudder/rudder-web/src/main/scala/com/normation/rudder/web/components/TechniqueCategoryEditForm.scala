@@ -120,7 +120,7 @@ class TechniqueCategoryEditForm(
         // update UI
         JsRaw("hideBsModal('removeCategoryActionDialog');") & // JsRaw ok, const
         onSuccessCallback() &                                 // Replace(htmlId_activeTechniquesTree, userLibrary) &
-        SetHtml(htmlId_form, <span class="greenscala">Category successfully deleted</span>) &
+        SetHtml(htmlId_form, <span class="text-success">Category successfully deleted</span>) &
         successPopup
 
       case e: EmptyBox =>
@@ -157,8 +157,8 @@ class TechniqueCategoryEditForm(
         & "field-errors" #> (errors match {
           case Nil => NodeSeq.Empty
           case l   =>
-            <span><ul class="field_errors paddscala">{
-              l.map(e => <li class="text-danger lopaddscala">{e.msg}</li>)
+            <span><ul class="text-danger mt-1">{
+              l.map(e => <li class="text-danger mt-1">{e.msg}</li>)
             }</ul></span><hr class="spacer"/>
         })
     )(
@@ -249,7 +249,7 @@ class TechniqueCategoryEditForm(
           }
         } else {
           <button id="deleteCategoryButton" disabled="disabled"  class="btn btn-danger">Delete</button>
-              <br/><span class="catdelete">Only non root and empty category can be deleted</span>
+              <br/><span class="ms-1">Only non root and empty category can be deleted</span>
         }
       }
       & "update-notifications" #> {
@@ -258,7 +258,7 @@ class TechniqueCategoryEditForm(
 
         if (categoryNotifications.isEmpty) NodeSeq.Empty
         else {
-          val notifications = <div class="notify"><ul class="field_errors">{
+          val notifications = <div class="notify"><ul class="text-danger">{
             categoryNotifications.map(n => <li>{n}</li>)
           }</ul></div>
           categoryNotifications = Nil

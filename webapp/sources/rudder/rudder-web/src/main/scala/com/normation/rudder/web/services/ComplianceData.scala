@@ -45,83 +45,54 @@ import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.reports.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.utils.DateFormaterService
+import com.normation.rudder.web.services.EscapeHtml.*
+import io.scalaland.chimney.*
+import io.scalaland.chimney.syntax.*
 import net.liftweb.common.*
 import net.liftweb.http.*
-import net.liftweb.http.js.JE.*
-import net.liftweb.http.js.JsExp
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.util.Helpers.*
-import org.joda.time.Interval
-import scala.collection.MapView
+import org.apache.commons.text.StringEscapeUtils
+import zio.json.*
+import zio.json.internal.Write
+
+object EscapeHtml {
+  implicit class DoEscapeHtml(s: String) {
+    // this is needed because DataTable doesn't escape HTML element when using table.rows.add
+    def escapeHTML: String = StringEscapeUtils.escapeHtml4(s)
+  }
+}
 
 /*
- * That files contains all the datastructures related to
+ * This is used to provide the jsid: nextFuncName in main code, a decidable pseudo-random in tests.
+ */
+trait ProvideNextName {
+  def nextName: String
+}
+
+object LiftProvideNextName extends ProvideNextName {
+  override def nextName: String = net.liftweb.util.Helpers.nextFuncName
+}
+
+object ProvideNextName {
+  implicit val encoderProvideNextName: JsonEncoder[ProvideNextName] = JsonEncoder.string.contramap(_.nextName)
+}
+
+final case class RuleComplianceLines(rules: List[RuleComplianceLine])
+
+object RuleComplianceLines {
+  /*
+   * This is the main encoder that under the hood will transform to the JsonXXXLine corresponding object to encode them.
+   * It will need a `ProvideNextName` implicit in context to be used.
+   */
+  implicit def encoderRuleComplianceLines(implicit next: ProvideNextName): JsonEncoder[RuleComplianceLines] =
+    JsonEncoder.list[JsonRuleComplianceLine].contramap[RuleComplianceLines](_.rules.map(_.transformInto[JsonRuleComplianceLine]))
+}
+
+/*
+ * That file contains all the datastructures related to
  * compliance of different level of rules/nodes, and
  * that will be mapped to JSON
  *
  */
-
-/*
- *   Javascript object containing all data to create a line about a change in the DataTable
- *   { "nodeName" : Name of the node [String]
- *   , "message" : Messages linked to that change [String]
- *   , "directiveName" : Name of the directive [String]
- *   , "component" : Component name [String]
- *   , "value": Value of the change [String]
- *   , "executionDate" : date the report was run on the Node [String]
- *   }
- */
-final case class ChangeLine(
-    report:        ResultReports,
-    nodeName:      Option[String] = None,
-    ruleName:      Option[String] = None,
-    directiveName: Option[String] = None
-) extends JsTableLine {
-  val json: js.JsObj = {
-    JsObj(
-      ("nodeName"      -> JsExp.strToJsExp(nodeName.getOrElse(report.nodeId.value))),
-      ("message"       -> escapeHTML(report.message)),
-      ("directiveName" -> escapeHTML(directiveName.getOrElse(report.directiveId.serialize))),
-      ("component"     -> escapeHTML(report.component)),
-      ("value"         -> escapeHTML(report.keyValue)),
-      ("executionDate" -> DateFormaterService.getDisplayDate(report.executionTimestamp))
-    )
-  }
-}
-
-object ChangeLine {
-  def jsonByInterval(
-      changes:      Map[Interval, Seq[ResultReports]],
-      ruleName:     Option[String] = None,
-      directiveLib: FullActiveTechniqueCategory,
-      allNodeInfos: Map[NodeId, CoreNodeFact]
-  ): JsArray = {
-
-    val jsonChanges = {
-      for {
-        // Sort changes by interval so we can use index to select changes
-        (interval, changesOnInterval) <- changes.toList.sortWith {
-                                           case ((i1, _), (i2, _)) => i1.getStart() isBefore i2.getStart()
-                                         }
-
-      } yield {
-        val lines = for {
-          change       <- changesOnInterval
-          nodeName      = allNodeInfos.get(change.nodeId).map(_.fqdn)
-          directiveName = directiveLib.allDirectives.get(change.directiveId).map(_._2.name)
-        } yield {
-          ChangeLine(change, nodeName, ruleName, directiveName)
-        }
-
-        JsArray(lines.toList.map(_.json))
-      }
-    }
-
-    JsArray(jsonChanges.toSeq*)
-  }
-}
 
 /*
  *   Javascript object containing all data to create a line in the DataTable
@@ -139,27 +110,46 @@ final case class RuleComplianceLine(
     rule:            Rule,
     id:              RuleId,
     compliance:      ComplianceLevel,
-    details:         JsTableData[DirectiveComplianceLine],
+    details:         List[DirectiveComplianceLine],
     policyMode:      String,
     modeExplanation: String,
-    tags:            JValue
-) extends JsTableLine {
-  val json: js.JsObj = {
-    JsObj(
-      ("rule"              -> escapeHTML(rule.name)),
-      ("compliance"        -> jsCompliance(compliance)),
-      ("compliancePercent" -> compliance.computePercent().compliance),
-      ("id"                -> escapeHTML(rule.id.serialize)),
-      ("details"           -> details.json), // unique id, usable as DOM id - rules, directives, etc can
-      // appear several time in a page
+    tags:            Tags
+)
 
-      ("jsid"        -> nextFuncName),
-      ("isSystem"    -> rule.isSystem),
-      ("policyMode"  -> policyMode),
-      ("explanation" -> modeExplanation),
-      ("tags"        -> tags)
-    )
+object RuleComplianceLine {
+
+  implicit def transformRuleComplianceLine(implicit
+      next: ProvideNextName
+  ): Transformer[RuleComplianceLine, JsonRuleComplianceLine] = {
+    Transformer
+      .define[RuleComplianceLine, JsonRuleComplianceLine]
+      .withFieldComputed(_.rule, _.rule.name.escapeHTML)
+      .withFieldComputed(_.compliancePercent, _.compliance.computePercent().compliance)
+      .withFieldComputed(_.id, _.rule.id.serialize.escapeHTML)
+      .withFieldComputed(_.details, _.details.map(_.transformInto[JsonDirectiveComplianceLine]))
+      .withFieldConst(_.jsid, next)
+      .withFieldComputed(_.isSystem, _.rule.isSystem)
+      .withFieldRenamed(_.modeExplanation, _.explanation)
+      .buildTransformer
   }
+}
+
+final case class JsonRuleComplianceLine(
+    rule:              String,
+    compliance:        ComplianceLevel,
+    compliancePercent: Double,
+    id:                String,
+    details:           List[JsonDirectiveComplianceLine],
+    jsid:              ProvideNextName,
+    isSystem:          Boolean,
+    policyMode:        String,
+    explanation:       String,
+    tags:              Tags
+)
+
+object JsonRuleComplianceLine {
+  import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.array.*
+  implicit val encoderJsonRuleComplianceLine: JsonEncoder[JsonRuleComplianceLine] = DeriveJsonEncoder.gen
 }
 
 /*
@@ -182,62 +172,48 @@ final case class DirectiveComplianceLine(
     techniqueName:    String,
     techniqueVersion: TechniqueVersion,
     compliance:       ComplianceLevel,
-    details:          JsTableData[ComponentComplianceLine],
+    details:          List[ComponentComplianceLine],
     policyMode:       String,
-    modeExplanation:  String,
-    tags:             JValue
-) extends JsTableLine {
-  val json: js.JsObj = {
-    JsObj(
-      ("directive"         -> escapeHTML(directive.name)),
-      ("id"                -> escapeHTML(directive.id.uid.value)),
-      ("techniqueName"     -> escapeHTML(techniqueName)),
-      ("techniqueVersion"  -> escapeHTML(techniqueVersion.serialize)),
-      ("compliance"        -> jsCompliance(compliance)),
-      ("compliancePercent" -> compliance.computePercent().compliance),
-      ("details"           -> details.json), // unique id, usable as DOM id - rules, directives, etc can
-      // appear several time in a page
+    explanation:      String,
+    tags:             Tags
+)
 
-      ("jsid"        -> nextFuncName),
-      ("isSystem"    -> directive.isSystem),
-      ("policyMode"  -> policyMode),
-      ("explanation" -> modeExplanation),
-      ("tags"        -> tags)
-    )
+object DirectiveComplianceLine {
+  implicit def transformDirectiveComplianceLine(implicit
+      next: ProvideNextName
+  ): Transformer[DirectiveComplianceLine, JsonDirectiveComplianceLine] = {
+    Transformer
+      .define[DirectiveComplianceLine, JsonDirectiveComplianceLine]
+      .withFieldComputed(_.directive, _.directive.name.escapeHTML)
+      .withFieldComputed(_.id, _.directive.id.uid.value.escapeHTML)
+      .withFieldComputed(_.techniqueName, _.techniqueName.escapeHTML)
+      .withFieldComputed(_.techniqueVersion, _.techniqueVersion.serialize.escapeHTML)
+      .withFieldComputed(_.compliancePercent, _.compliance.computePercent().compliance)
+      .withFieldComputed(_.details, _.details.map(_.transformInto[JsonComponentComplianceLine]))
+      .withFieldConst(_.jsid, next)
+      .withFieldComputed(_.isSystem, _.directive.isSystem)
+      .buildTransformer
   }
 }
 
-/*
- *   Javascript object containing all data to create a line in the DataTable
- *   { "node" : Node name [String]
- *   , "id" : Node id [String]
- *   , "compliance" : array of number of reports by compliance status [Array[Float]]
- *   , "compliancePercent" : Compliance percentage [Float]
- *   , "details" : Details of Directive applied by the Node [Array of Directive values ]
- *   , "jsid"    : unique identifier for the line [String]
- *   }
- */
-final case class NodeComplianceLine(
-    nodeInfo:        CoreNodeFact,
-    compliance:      ComplianceLevel,
-    details:         JsTableData[DirectiveComplianceLine],
-    policyMode:      String,
-    modeExplanation: String
-) extends JsTableLine {
-  val json: js.JsObj = {
-    JsObj(
-      ("node"              -> escapeHTML(nodeInfo.fqdn)),
-      ("compliance"        -> jsCompliance(compliance)),
-      ("compliancePercent" -> compliance.computePercent().compliance),
-      ("id"                -> escapeHTML(nodeInfo.id.value)),
-      ("details"           -> details.json), // unique id, usable as DOM id - rules, directives, etc can
-      // appear several time in a page
+final case class JsonDirectiveComplianceLine(
+    directive:         String,
+    id:                String,
+    techniqueName:     String,
+    techniqueVersion:  String,
+    compliance:        ComplianceLevel,
+    compliancePercent: Double,
+    details:           List[JsonComponentComplianceLine],
+    jsid:              ProvideNextName,
+    isSystem:          Boolean,
+    policyMode:        String,
+    explanation:       String,
+    tags:              Tags
+)
 
-      ("jsid"        -> nextFuncName),
-      ("policyMode"  -> policyMode),
-      ("explanation" -> modeExplanation)
-    )
-  }
+object JsonDirectiveComplianceLine {
+  import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.array.*
+  implicit val encoderJsonDirectiveComplianceLine: JsonEncoder[JsonDirectiveComplianceLine] = DeriveJsonEncoder.gen
 }
 
 /*
@@ -252,50 +228,109 @@ final case class NodeComplianceLine(
  *   }
  */
 
-sealed trait ComponentComplianceLine extends JsTableLine {
+sealed trait ComponentComplianceLine {
   def component:  String
   def compliance: ComplianceLevel
+}
+
+object ComponentComplianceLine {
+  implicit def transformComponentComplianceLine(implicit
+      next: ProvideNextName
+  ): Transformer[ComponentComplianceLine, JsonComponentComplianceLine] = {
+    case x: BlockComplianceLine => x.transformInto[JsonBlockComplianceLine]
+    case x: ValueComplianceLine => x.transformInto[JsonValueComplianceLine]
+  }
 }
 
 final case class BlockComplianceLine(
     component:      String,
     compliance:     ComplianceLevel,
-    details:        JsTableData[ComponentComplianceLine],
+    details:        List[ComponentComplianceLine],
     reportingLogic: ReportingLogic
-) extends ComponentComplianceLine {
+) extends ComponentComplianceLine
 
-  val json: js.JsObj = {
-    JsObj(
-      ("component"         -> escapeHTML(component)),
-      ("compliance"        -> jsCompliance(compliance)),
-      ("compliancePercent" -> compliance.computePercent().compliance),
-      ("details"           -> details.json),
-      ("jsid"              -> nextFuncName),
-      ("composition"       -> reportingLogic.toString)
-    )
+object BlockComplianceLine {
+  implicit def transformBlockComplianceLine(implicit
+      next: ProvideNextName
+  ): Transformer[BlockComplianceLine, JsonBlockComplianceLine] = {
+    Transformer
+      .define[BlockComplianceLine, JsonBlockComplianceLine]
+      .withFieldComputed(_.component, _.component.escapeHTML)
+      .withFieldComputed(_.compliancePercent, _.compliance.computePercent().compliance)
+      .withFieldComputed(_.details, _.details.map(_.transformInto[JsonComponentComplianceLine]))
+      .withFieldConst(_.jsid, next)
+      .withFieldComputed(_.composition, _.reportingLogic.toString)
+      .buildTransformer
   }
+
 }
 
 final case class ValueComplianceLine(
     component:  String,
     unexpanded: String,
     compliance: ComplianceLevel,
-    details:    JsTableData[ComponentValueComplianceLine],
+    details:    List[ComponentValueComplianceLine],
     noExpand:   Boolean
-) extends ComponentComplianceLine {
+) extends ComponentComplianceLine
 
-  val json: js.JsObj = {
-    JsObj(
-      ("component"         -> escapeHTML(component)),
-      ("unexpanded"        -> escapeHTML(unexpanded)),
-      ("compliance"        -> jsCompliance(compliance)),
-      ("compliancePercent" -> compliance.computePercent().compliance),
-      ("details"           -> details.json),
-      ("noExpand"          -> noExpand),
-      ("jsid"              -> nextFuncName)
-    )
+object ValueComplianceLine {
+  implicit def transformValueComplianceLine(implicit
+      next: ProvideNextName
+  ): Transformer[ValueComplianceLine, JsonValueComplianceLine] = {
+    Transformer
+      .define[ValueComplianceLine, JsonValueComplianceLine]
+      .withFieldComputed(_.component, _.component.escapeHTML)
+      .withFieldComputed(_.unexpanded, _.unexpanded.escapeHTML)
+      .withFieldComputed(_.compliancePercent, _.compliance.computePercent().compliance)
+      .withFieldComputed(_.details, _.details.map(_.transformInto[JsonComponentValueComplianceLine]))
+      .withFieldConst(_.jsid, next)
+      .buildTransformer
   }
 
+}
+
+sealed trait JsonComponentComplianceLine
+
+object JsonComponentComplianceLine {
+  implicit val encoderJsonComponentComplianceLine: JsonEncoder[JsonComponentComplianceLine] = {
+    new JsonEncoder[JsonComponentComplianceLine] {
+      override def unsafeEncode(a: JsonComponentComplianceLine, indent: Option[Int], out: Write): Unit = {
+        a match {
+          case x: JsonBlockComplianceLine => JsonEncoder[JsonBlockComplianceLine].unsafeEncode(x, indent, out)
+          case x: JsonValueComplianceLine => JsonEncoder[JsonValueComplianceLine].unsafeEncode(x, indent, out)
+        }
+      }
+    }
+  }
+}
+
+final case class JsonBlockComplianceLine(
+    component:         String,
+    compliance:        ComplianceLevel,
+    compliancePercent: Double,
+    details:           List[JsonComponentComplianceLine],
+    jsid:              ProvideNextName,
+    composition:       String
+) extends JsonComponentComplianceLine
+
+object JsonBlockComplianceLine {
+  import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.array.*
+  implicit val encoderJsonBlockComplianceLine: JsonEncoder[JsonBlockComplianceLine] = DeriveJsonEncoder.gen
+}
+
+final case class JsonValueComplianceLine(
+    component:         String,
+    unexpanded:        String,
+    compliance:        ComplianceLevel,
+    compliancePercent: Double,
+    details:           List[JsonComponentValueComplianceLine],
+    noExpand:          Boolean,
+    jsid:              ProvideNextName
+) extends JsonComponentComplianceLine
+
+object JsonValueComplianceLine {
+  import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.array.*
+  implicit val encoderJsonValueComplianceLine: JsonEncoder[JsonValueComplianceLine] = DeriveJsonEncoder.gen
 }
 
 /*
@@ -316,71 +351,41 @@ final case class ComponentValueComplianceLine(
     compliance:      ComplianceLevel,
     status:          String,
     statusClass:     String
-) extends JsTableLine {
+)
 
-  val json: js.JsObj = {
-    JsObj(
-      ("value"             -> escapeHTML(value)),
-      ("unexpanded"        -> escapeHTML(unexpandedValue)),
-      ("status"            -> status),
-      ("statusClass"       -> statusClass),
-      ("messages"          -> JsArray(messages.map { case (s, m) => JsObj(("status" -> s), ("value" -> escapeHTML(m))) })),
-      ("compliance"        -> jsCompliance(compliance)),
-      ("compliancePercent" -> compliance.computePercent().compliance), // unique id, usable as DOM id - rules, directives, etc can
-      // appear several time in a page
-
-      ("jsid" -> nextFuncName)
-    )
+object ComponentValueComplianceLine {
+  implicit def transformComponentValueComplianceLine(implicit
+      next: ProvideNextName
+  ): Transformer[ComponentValueComplianceLine, JsonComponentValueComplianceLine] = {
+    Transformer
+      .define[ComponentValueComplianceLine, JsonComponentValueComplianceLine]
+      .withFieldComputed(_.value, _.value.escapeHTML)
+      .withFieldComputed(_.unexpanded, _.unexpandedValue.escapeHTML)
+      .withFieldComputed(_.messages, _.messages.map { case (s, v) => Map("status" -> s, "value" -> v.escapeHTML) })
+      .withFieldComputed(_.compliancePercent, _.compliance.computePercent().compliance)
+      .withFieldConst(_.jsid, next)
+      .buildTransformer
   }
 
 }
 
+final case class JsonComponentValueComplianceLine(
+    value:             String,
+    unexpanded:        String,
+    status:            String,
+    statusClass:       String,
+    messages:          List[Map[String, String]],
+    compliance:        ComplianceLevel,
+    compliancePercent: Double,
+    jsid:              ProvideNextName
+)
+
+object JsonComponentValueComplianceLine {
+  import com.normation.rudder.domain.reports.ComplianceLevelSerialisation.array.*
+  implicit val encoderJsonComponentValueComplianceLine: JsonEncoder[JsonComponentValueComplianceLine] = DeriveJsonEncoder.gen
+}
+
 object ComplianceData extends Loggable {
-
-  /*
-   * For a given rule, display compliance by nodes.
-   * For each node, elements displayed are restraint
-   */
-  def getRuleByNodeComplianceDetails(
-      directiveLib: FullActiveTechniqueCategory,
-      ruleId:       RuleId,
-      nodeReports:  Map[NodeId, NodeStatusReport],
-      allNodeInfos: Map[NodeId, CoreNodeFact],
-      globalMode:   GlobalPolicyMode,
-      allRules:     Seq[Rule]
-  ): JsTableData[NodeComplianceLine] = {
-
-    // Compute node compliance detail
-    val nodeComplianceLines = nodeReports.flatMap {
-      case (nodeId, reports) =>
-        val aggregate =
-          reports.reports.getOrElse(PolicyTypeName.rudderBase, AggregatedStatusReport(Nil)).filterByRules(Set(ruleId))
-        for {
-          nodeInfo <- allNodeInfos.get(nodeId)
-        } yield {
-
-          val directivesMode            = aggregate.directives.keys.map(x => directiveLib.allDirectives.get(x).flatMap(_._2.policyMode))
-          val (policyMode, explanation) =
-            ComputePolicyMode.nodeModeOnRule(nodeInfo.rudderSettings.policyMode, globalMode)(directivesMode.toSet).tuple
-
-          val details = getDirectivesComplianceDetails(
-            aggregate.directives.values.toList,
-            directiveLib,
-            globalMode,
-            ComputePolicyMode.directiveModeOnNode(nodeInfo.rudderSettings.policyMode, globalMode)
-          )
-          NodeComplianceLine(
-            nodeInfo,
-            aggregate.compliance,
-            JsTableData(details),
-            policyMode,
-            explanation
-          )
-        }
-    }
-
-    JsTableData(nodeComplianceLines.toList)
-  }
 
   /*
    * For a given unique node, create the "by rule"
@@ -396,7 +401,7 @@ object ComplianceData extends Loggable {
       directiveLib: FullActiveTechniqueCategory,
       rules:        Seq[Rule],
       globalMode:   GlobalPolicyMode
-  ): JsTableData[RuleComplianceLine] = {
+  ): RuleComplianceLines = {
 
     val ruleComplianceLine = for {
       (ruleId, aggregate) <- (report.reports
@@ -410,7 +415,6 @@ object ComplianceData extends Loggable {
       val details  = getDirectivesComplianceDetails(
         aggregate.directives.values.toList,
         directiveLib,
-        globalMode,
         ComputePolicyMode.directiveModeOnNode(nodeMode, globalMode)
       )
 
@@ -420,44 +424,21 @@ object ComplianceData extends Loggable {
         rule,
         rule.id,
         aggregate.compliance,
-        JsTableData(details),
+        details,
         policyMode,
         explanation,
-        JsonTagSerialisation.serializeTags(rule.tags)
+        rule.tags
       )
     }
-    JsTableData(ruleComplianceLine.toList.sortBy(_.id.serialize))
+    RuleComplianceLines(ruleComplianceLine.toList.sortBy(_.id.serialize))
   }
 
   //////////////// Directive Report ///////////////
-
-  // From Rule Point of view
-  def getRuleByDirectivesComplianceDetails(
-      report:       RuleStatusReport,
-      rule:         Rule,
-      nodeFacts:    MapView[NodeId, CoreNodeFact],
-      directiveLib: FullActiveTechniqueCategory,
-      groupLib:     FullNodeGroupCategory,
-      globalMode:   GlobalPolicyMode
-  ): JsTableData[DirectiveComplianceLine] = {
-    // restrict mode computing to nodes really targeted by that rule
-    val appliedNodes = groupLib.getNodeIds(rule.targets, nodeFacts.mapValues(_.rudderSettings.isPolicyServer))
-    val nodeModes    = appliedNodes.flatMap(id => nodeFacts.get(id).map(_.rudderSettings.policyMode))
-    val lines        = getDirectivesComplianceDetails(
-      report.report.directives.values.toList,
-      directiveLib,
-      globalMode,
-      ComputePolicyMode.directiveModeOnRule(nodeModes, globalMode)
-    )
-
-    JsTableData(lines)
-  }
 
   // From Node Point of view
   private def getDirectivesComplianceDetails(
       directivesReport: List[DirectiveStatusReport],
       directiveLib:     FullActiveTechniqueCategory,
-      globalPolicyMode: GlobalPolicyMode,
       computeMode:      Option[PolicyMode] => ComputePolicyMode.ComputedPolicyMode
   ): List[DirectiveComplianceLine] = {
     val directivesComplianceData = for {
@@ -469,7 +450,6 @@ object ComplianceData extends Loggable {
       val techniqueVersion          = directive.techniqueVersion
       val components                = getComponentsComplianceDetails(directiveStatus.components, includeMessage = true)
       val (policyMode, explanation) = computeMode(directive.policyMode).tuple
-      val directiveTags             = JsonTagSerialisation.serializeTags(directive.tags)
       DirectiveComplianceLine(
         directive,
         techniqueName,
@@ -478,7 +458,7 @@ object ComplianceData extends Loggable {
         components,
         policyMode,
         explanation,
-        directiveTags
+        directive.tags
       )
     }
 
@@ -490,7 +470,7 @@ object ComplianceData extends Loggable {
   private def getComponentsComplianceDetails(
       components:     List[ComponentStatusReport],
       includeMessage: Boolean
-  ): JsTableData[ComponentComplianceLine] = {
+  ): List[ComponentComplianceLine] = {
     val componentsComplianceData = components.map {
       case component: BlockStatusReport =>
         BlockComplianceLine(
@@ -517,7 +497,7 @@ object ComplianceData extends Loggable {
         )
     }
 
-    JsTableData(componentsComplianceData)
+    componentsComplianceData
   }
 
   //////////////// Value Report ///////////////
@@ -525,7 +505,7 @@ object ComplianceData extends Loggable {
   // From Node Point of view
   private def getValuesComplianceDetails(
       values: List[ComponentValueStatusReport]
-  ): JsTableData[ComponentValueComplianceLine] = {
+  ): List[ComponentValueComplianceLine] = {
     val valuesComplianceData = for {
       value <- values
     } yield {
@@ -543,11 +523,15 @@ object ComplianceData extends Loggable {
         severity
       )
     }
-    JsTableData(valuesComplianceData)
+    valuesComplianceData
   }
 
   private def getDisplayStatusFromSeverity(severity: String): String = {
-    S.?(s"reports.severity.${severity}")
+    try {
+      S.?(s"reports.severity.${severity}")
+    } catch { // S can only be used in a Lift session context, so for tests, we need that workaround
+      case _: IllegalStateException => severity
+    }
   }
 
 }

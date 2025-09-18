@@ -1,0 +1,65 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name HTTP request sending content with headers
+# @description Make an HTTP request with a specific header
+# @action We don't know when HTTP methods cause side effect, this can be an action or not depending on your server behavior
+# @documentation Perform a HTTP request on the URL, method and headers provided 
+# and send the content provided. Will return an error if the request failed.
+#
+# @parameter method Method to call the URL (POST, PUT)
+# @parameter url URL to send content to
+# @parameter content Content to send
+# @parameter headers Headers to include in the HTTP request
+# @parameter_constraint headers "allow_empty_string" : true
+#
+# @class_prefix http_request_content_headers
+# @class_parameter url
+# @agent_support = ["cfengine-community"]
+
+bundle agent http_request_content_headers(method, url, content, headers)
+{
+  vars:
+      "old_class_prefix" string => canonify("http_request_content_headers_${url}");
+      "args"              slist => { "${method}", "${url}", "${content}", "${headers}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("http_request_content_headers_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+    any::
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass2::
+      "report" usebundle => _log_v3("Performing a HTTP ${method} request on ${url} with specific content", "${url}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    !_ncf_path_exists_curl::
+      "force_failure_class old"   usebundle => _classes_failure("${old_class_prefix}");
+      "force_failure_class"       usebundle => _classes_failure("${class_prefix}");
+      "report"                    usebundle => _log_v3("Unable to perform a HTTP ${method} on ${url}: curl is not installed", "${url}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+  commands:
+      "/bin/echo \"${content}\" | ${ncf_paths.path[curl]}"
+        args => "${url} -L -X ${method} -H '${headers}' -o /dev/null -s -f -d @-",
+        contain => in_shell,
+        classes => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+}
+

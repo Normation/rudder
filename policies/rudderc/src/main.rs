@@ -15,7 +15,10 @@ fn main() {
     // and can be helpful to troubleshoot production crashes
     if env::var_os("RUST_BACKTRACE").is_none() {
         // Set default value, others are "0" and "full"
-        env::set_var("RUST_BACKTRACE", "1");
+        // SAFETY: single-threaded
+        unsafe {
+            env::set_var("RUST_BACKTRACE", "1");
+        }
     }
 
     let args = MainArgs::parse();

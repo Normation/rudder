@@ -14,7 +14,7 @@ fn main() {
         // Done in `Jenkinsfile`
         let libs = [
             // Unix
-            PathBuf::from("target/repos/ncf/tree"),
+            PathBuf::from("target/repos/rudder/policies/lib/tree"),
             // Windows
             PathBuf::from("target/repos/dsc/plugin/src/ncf"),
         ];

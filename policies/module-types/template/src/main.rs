@@ -7,12 +7,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use minijinja::UndefinedBehavior;
 use rudder_module_type::cfengine::called_from_agent;
 use rudder_module_type::{
-    backup::Backup, parameters::Parameters, rudder_debug, run_module, CheckApplyResult,
-    ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
+    CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
+    backup::Backup, parameters::Parameters, rudder_debug, run_module,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -50,7 +50,7 @@ impl Engine {
         data: Value,
     ) -> Result<String> {
         let template = match (&template_path, template_src) {
-            (Some(ref p), _) => read_to_string(p)
+            (Some(p), _) => read_to_string(p)
                 .with_context(|| format!("Failed to read template {}", p.display()))?,
             (_, Some(s)) => s,
             _ => unreachable!(),
@@ -72,7 +72,7 @@ impl Engine {
     ) -> Result<String> {
         let template =
             match (&template_path, template_src) {
-                (Some(ref p), _) => mustache::compile_path(p)
+                (Some(p), _) => mustache::compile_path(p)
                     .with_context(|| "Failed to compile mustache template")?,
                 (_, Some(ref s)) => mustache::compile_str(s)
                     .with_context(|| "Failed to compile mustache template")?,

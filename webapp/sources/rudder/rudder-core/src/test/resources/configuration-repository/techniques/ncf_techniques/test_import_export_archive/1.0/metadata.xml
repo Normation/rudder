@@ -1,7 +1,7 @@
 <TECHNIQUE name="test import/export archive">
   <DESCRIPTION></DESCRIPTION>
   <USEMETHODREPORTING>true</USEMETHODREPORTING>
-  <AGENT type="cfengine-community,cfengine-nova">
+  <AGENT type="cfengine-community">
     <BUNDLES>
       <NAME>test import export archive</NAME>
     </BUNDLES>

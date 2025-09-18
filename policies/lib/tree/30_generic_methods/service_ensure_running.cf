@@ -1,0 +1,52 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Service ensure running
+# @description Ensure that a service is running using the appropriate method
+# @rename service_started
+# @deprecated Use [service_started](#_service_started) instead.
+#
+# @parameter name Service name (as recognized by systemd, init.d, etc...)
+# 
+#
+# @parameter_rename service_name name
+# @class_prefix service_ensure_running
+# @class_parameter name
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent service_ensure_running(name)
+{
+  vars:
+      "class_prefix" string => "service_ensure_running_${name}";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass1.!pass2::
+      "${report_data.method_id}_${name}" usebundle => _classes_cancel("${report_data.method_id}");
+    pass3::
+      "${report_data.method_id}_${name}" usebundle => call_method("service_started");
+      "${report_data.method_id}_${name}" usebundle => service_started("${name}");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes("${class_prefix}");
+      "${report_data.method_id}_${name}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}_${name}" usebundle => call_method_end("service_started");
+      "${report_data.method_id}_${name}" usebundle => log_rudder_v4("${name}", "Ensure that service ${name} is running", "");
+}

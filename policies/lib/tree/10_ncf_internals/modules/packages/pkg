@@ -1,0 +1,226 @@
+#!/bin/sh
+
+## Licensed under
+## BSD License (2-clause)
+## https://opensource.org/licenses/BSD-2-Clause
+
+## Copyright (c) 2015, John D. "Trix" Farrar <trix@basement.net>
+
+## pkgng module for CFEngine 3.7+
+
+
+if [ -n "$CFENGINE_TEST_PKGNG_MOCK" ]; then
+    alias pkg='./mock_pkgng'
+fi
+
+CMD="$1"
+
+DEFARCH=`uname -m`
+REPO=''
+INPUTLIST=''
+
+fatal() {
+    echo "ErrorMessage=$*"
+    exit 1
+}
+
+parse_line() {
+    INPUTP="$1"
+
+    echo "${INPUTP}" | awk -F= '{print "KEYWORD=" $1 "; VALUE=" $2;}' 2>/dev/null
+
+    unset INPUTP
+
+}
+
+read_options() {
+    while read -r INPUT ; do
+        if [ -n "${INPUT}" ] ; then
+            eval `parse_line "${INPUT}"`
+            case "${KEYWORD}" in
+                File|Name)
+                    VER=''
+                    ARCH=''
+                    if [ "${KEYWORD}" = 'File' ] ; then
+                        PKG="${VALUE}"
+                    else
+                        NAM="${VALUE}"
+                    fi
+                    ;;
+                Version)
+                    VER="${VALUE}"
+                    ;;
+                Architecture)
+                    ARCH=${VALUE:=${DEFARCH}}
+                    ;;
+                options*)
+                    if [ -n "${repository}" ] ; then
+                        REPO="-r ${repository}"
+                    fi
+                    continue
+                    ;;
+                PackageType*)
+                    TYP="${VALUE}"
+                    ;;
+                *)
+                    fatal "Invalid input: '${KEYWORD}'."
+                    ;;
+            esac
+            if [ -n "${KEYWORD}" ] && [ -n "${VALUE}" ] ; then
+                if [ -n "${INPUTLIST}" ] ; then
+                    INPUTLIST="${INPUTLIST} ${KEYWORD}=${VALUE}"
+                else
+                    INPUTLIST="${KEYWORD}=${VALUE}"
+                fi
+            fi
+        fi
+    done
+}
+
+process_inputs() {
+    CMD="$1" ; shift
+    OPTIONS="$*"
+
+    for OPT in ${OPTIONS} ; do
+        eval `parse_line ${OPT}`
+        case "${KEYWORD}" in
+            File*)
+                if [ "${CMD}" = 'file-install' ] ; then
+                    PKG="${PKG} ${VALUE}"
+                else
+                    fatal "Bad Input: '${OPT}' (should be Name=...)."
+                fi
+                VER=''
+                ;;
+            Name*)
+                if [ "${CMD}" != 'file-install' ] ; then
+                    PKG="${PKG} ${VALUE}"
+                else
+                    fatal "Bad Input: '${OPT}' (should be File=...)"
+                fi
+                VER=''
+                ;;
+            Version*)
+                PKG="${PKG}-${VALUE}"
+                ;;
+            Architecture*)
+                if [ -n "${VALUE}" ] &&
+                       [ "${VALUE}" != "${DEFARCH}" ] ; then
+                    fatal "Bad Input: Architecture ${VALUE} does not match ${DEFARCH}."
+                fi
+                ;;
+            PackageType*)
+                TYP="${VALUE}"
+                ;;
+            *)
+                fatal "Invalid input: '${INPUT}'."
+                ;;
+        esac
+    done
+}
+
+get_package_data() {
+    if [ -n "${NAM}" ] && [ -z "${PKG}" ] ; then
+        PKG="${NAM}"
+    fi
+    if [ -n "${PKG}" ] ; then
+        case "${PKG}" in
+            /*) # File Path.  It's a file
+                TYP='file'
+                if [ ! -e "${PKG}" ] ; then
+                    fatal "No such file: '${PKG}'."
+                fi
+                ;;
+            http://*|ftp://|file://) # URL, it's a file.
+                TYP='file'
+                ;;
+            *)
+                TYP='repo'
+                ;;
+        esac
+        echo "PackageType=${TYP}"
+        if [ "${TYP}" = 'repo' ] ; then
+            PKGNAM=`basename "${PKG}" | sed -r -e 's/^([A-Za-z0-9_-]+)-[0-9a-z.,_]+/\1/'`
+            PKGVER=`basename "${PKG}" | sed -r -e 's/^[A-Za-z0-9_-]+-([0-9a-z.,_]+)/\1/' -e 's/\.(tgz|(tar\.)?gz|txz|zip)$//'`
+            if [ -z "`echo ${PKGVER} | grep -E '^[0-9]'`" ] ; then
+                if [ "${PKGNAM}" != "${PKGVER}" ] ;  then
+                    PKGNAM="${PKGNAM}-${PKGVER}"
+                fi
+                PKGVER=''
+            fi
+            echo "Name=${PKGNAM}"
+            # Returning version for PackageType=repo is not advised
+            # https://docs.cfengine.com/latest/reference-standard-library-package_modules.html
+            # if [ -n "${PKGVER}" ] ; then
+            #     echo "Version=${PKGVER}"
+            # fi
+        else
+            pkg query --file "${PKG}"  'Name=%n\nVersion=%v\nArchitecture=%q' | \
+                                      sed -e 's/=freebsd:[0-9]*:/=:/' \
+                                      -e 's/:x86:32/i386/' \
+                                      -e 's/:x86:64/amd64/'
+
+        fi
+    fi
+}
+
+if [ "${CMD}" = 'supports-api-version' ] ; then
+    echo '1'
+    exit 0
+else
+    read_options
+fi
+
+case "${CMD}" in
+    get-package-data)
+        get_package_data
+        ;;
+    list-installed)
+        pkg query -a 'Name=%n\nVersion=%v\nArchitecture=%q' | \
+            sed -e 's/=freebsd:[0-9]*:/=:/' \
+                -e 's/:x86:32/i386/' \
+                -e 's/:x86:64/amd64/'
+
+        ;;
+    list-updates-local|list-updates)
+        if [ "${CMD}" = 'list-updates-local' ] ; then
+            LOCALUPDATE='-U'
+        else
+            LOCALUPDATE=''
+        fi
+        pkg version ${LOCALUPDATE} -vl'<' | \
+            awk 'BEGIN { cmd="uname -m"; cmd | getline arch}
+/ repositor(y|ies) / { next; }
+{
+  pkgname = $1;
+  pkgver  = $7;
+  sub(/-[0-9_.,]*$/,"",pkgname);
+  sub(/\)/, "", pkgver);
+  print "Name=" pkgname;
+  print "Version=" pkgver;
+  print "Architecture=" arch;
+}'
+        ;;
+    repo-install|file-install|remove)
+        process_inputs "${CMD}" "${INPUTLIST}"
+        case "${CMD}" in
+            repo-install)
+                pkg install -qy ${REPO} ${PKG} 2>/dev/null >/dev/null
+                ;;
+            file-install)
+                pkg install -qy ${PKG} 2>/dev/null >/dev/null
+                ;;
+            remove)
+                pkg delete -Rqy ${PKG} 2>/dev/null >/dev/null
+                ;;
+        esac
+        RC=$?
+        if [ ${RC} -ne 0 ] ; then
+            fatal "Package manager error"
+            exit $RC
+        fi
+        ;;
+    *)
+        fatal "Command '${CMD}' is either not valid or not implemented."
+        ;;
+esac

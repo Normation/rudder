@@ -49,6 +49,7 @@ import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.RunAnalysisKind as R
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.RudderSettings
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -66,6 +67,7 @@ import net.liftweb.util.Helpers.*
 import org.joda.time.DateTime
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
+import zio.json.*
 
 /**
  * Display the last reports of a server
@@ -96,7 +98,7 @@ class ReportDisplayer(
       tableId:     String,
       getReports:  NodeId => Box[NodeStatusReport],
       onlySystem:  Boolean
-  ): NodeSeq = {
+  )(implicit qc: QueryContext): NodeSeq = {
     val i        = configService.agent_run_interval().option.runNow.getOrElse(10)
     val callback = {
       SHtml.ajaxInvoke(() => SetHtml(containerId, displayReports(node, getReports, tabId, tableId, containerId, onlySystem, i)))
@@ -131,8 +133,9 @@ class ReportDisplayer(
       tableId:            String,
       getReports:         NodeId => Box[NodeStatusReport],
       defaultRunInterval: Int
-  ): AnonFunc = {
-    def refreshData: Box[JsCmd] = {
+  )(implicit qc: QueryContext): AnonFunc = {
+    implicit val next: ProvideNextName = LiftProvideNextName
+    def refreshData:   Box[JsCmd]      = {
       for {
         report <- getReports(node.id)
         data   <- getComplianceData(node.id, report)
@@ -141,7 +144,7 @@ class ReportDisplayer(
         import net.liftweb.util.Helpers.encJs
         val intro = encJs(displayIntro(report, node.rudderSettings, defaultRunInterval).toString)
         JsRaw(
-          s"""refreshTable("${tableId}",${data.json.toJsCmd}); $$("#node-compliance-intro").replaceWith(${intro})"""
+          s"""refreshTable("${tableId}",${data.toJson}); $$("#node-compliance-intro").replaceWith(${intro})"""
         ) // JsRaw ok, escaped
       }
     }
@@ -385,7 +388,7 @@ class ReportDisplayer(
       containerId:        String,
       onlySystem:         Boolean,
       defaultRunInterval: Int
-  ): NodeSeq = {
+  )(implicit qc: QueryContext): NodeSeq = {
     val boxXml = (if (node.rudderSettings.state == NodeState.Ignored) {
                     Full(
                       <div><div class="col-md-3"><p class="center alert alert-info" style="padding: 25px; margin:5px;">This node is disabled.</p></div></div>
@@ -409,10 +412,7 @@ class ReportDisplayer(
                        * other kind of agent (windows in particular).
                        */
                       def triggerAgent(node: CoreNodeFact): NodeSeq = if (tableId == "reportsGrid") {
-                        if (
-                          node.rudderAgent.agentType == AgentType.CfeCommunity ||
-                          node.rudderAgent.agentType == AgentType.CfeEnterprise
-                        ) {
+                        if (node.rudderAgent.agentType == AgentType.CfeCommunity) {
                           <div id="triggerAgent">
             <button id="triggerBtn" class="btn btn-primary btn-trigger"  onclick={
                             s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, defaultRunInterval).toJsCmd});"
@@ -574,10 +574,10 @@ class ReportDisplayer(
   private def getComplianceData(
       nodeId:       NodeId,
       reportStatus: NodeStatusReport
-  ): Box[JsTableData[RuleComplianceLine]] = {
+  )(implicit qc: QueryContext): Box[RuleComplianceLines] = {
     for {
       directiveLib <- directiveRepository.getFullDirectiveLibrary().toBox
-      allNodeInfos <- nodeFactRepo.getAll()(CurrentUser.queryContext).toBox
+      allNodeInfos <- nodeFactRepo.getAll().toBox
       rules        <- ruleRepository.getAll(true).toBox
       globalMode   <- configService.rudder_global_policy_mode().toBox
     } yield {

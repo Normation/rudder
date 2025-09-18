@@ -112,12 +112,12 @@ class ShowNodeDetailsFromNode(
     () => Some(getGlobalSchedule())
   )
 
-  def nodeStateEditForm(nodeFact: CoreNodeFact)(implicit qr: QueryContext) = new NodeStateForm(
+  private def nodeStateEditForm(nodeFact: CoreNodeFact)(implicit qc: QueryContext) = new NodeStateForm(
     nodeFact,
     saveNodeState(nodeFact.id)
   )
 
-  def saveNodeState(nodeId: NodeId)(nodeState: NodeState)(implicit qr: QueryContext): Box[NodeState] = {
+  private def saveNodeState(nodeId: NodeId)(nodeState: NodeState)(implicit qc: QueryContext): Box[NodeState] = {
     val modId = ModificationId(uuidGen.newUuid)
 
     for {
@@ -127,7 +127,7 @@ class ShowNodeDetailsFromNode(
                    .toBox // we can't change the state of a missing node
       newNode  = oldNode.modify(_.rudderSettings.state).setTo(nodeState)
       result  <- nodeFactRepo
-                   .save(newNode)(ChangeContext(modId, qr.actor, DateTime.now(), None, None, qr.nodePerms))
+                   .save(newNode)(ChangeContext(modId, qc.actor, DateTime.now(), None, None, qc.nodePerms))
                    .toBox
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.actor)
@@ -266,7 +266,7 @@ class ShowNodeDetailsFromNode(
       withinPopup: Boolean,
       globalMode:  GlobalPolicyMode,
       globalScore: GlobalScore
-  )(implicit qr: QueryContext): NodeSeq = {
+  )(implicit qc: QueryContext): NodeSeq = {
     val id   = JsNodeId(nodeFact.id)
     val sm   = nodeFact.toFullInventory
     val node = nodeFact.toCore

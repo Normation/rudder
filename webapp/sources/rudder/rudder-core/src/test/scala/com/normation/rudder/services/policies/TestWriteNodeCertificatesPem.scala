@@ -43,7 +43,6 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.OutputStreamAppender
 import com.normation.inventory.domain.Certificate
 import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.PublicKey
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.zio.ZioRuntime
 import com.softwaremill.quicklens.*
@@ -124,7 +123,8 @@ class TestWriteNodeCertificatesPem extends Specification {
                         |TZEW7+Ri43DsMyRwYiCafuVThL+J
                         |-----END CERTIFICATE-----""".stripMargin
 
-  val root:  CoreNodeFact = NodeConfigData.factRoot.modify(_.rudderAgent.securityToken).setTo(PublicKey(NodeConfigData.PUBKEY))
+  val root:  CoreNodeFact =
+    NodeConfigData.factRoot.modify(_.rudderAgent.securityToken).setTo(Certificate(NodeConfigData.ROOT_CERT))
   val node1: CoreNodeFact = NodeConfigData.fact1.modify(_.rudderAgent.securityToken).setTo(Certificate(cert1))
   val node2: CoreNodeFact = NodeConfigData.fact2.modify(_.rudderAgent.securityToken).setTo(Certificate(cert2))
 
@@ -136,13 +136,16 @@ class TestWriteNodeCertificatesPem extends Specification {
 
   sequential // because files, etc
 
+  // the content of the file is just each certificate concatenated together
+  val expectedFileContent = NodeConfigData.ROOT_CERT + "\n" + cert1 + "\n" + cert2 + "\n"
+
   "When nodes have certificates, they" should {
-    "certificate are writen to file only for nodes with certificate" in {
+    "certificate are written to file only for nodes with certificate" in {
       val writer = new WriteNodeCertificatesPemImpl(Some(s"/usr/bin/touch ${dest.pathAsString}"))
       val res    = ZioRuntime.runNow(writer.writeCertificates(dest, nodes).either)
 
       (res must beRight) and
-      (dest.contentAsString(StandardCharsets.UTF_8) must beEqualTo(cert1 + "\n" + cert2 + "\n"))
+      (dest.contentAsString(StandardCharsets.UTF_8) must beEqualTo(expectedFileContent))
     }
   }
 
@@ -186,6 +189,6 @@ class TestWriteNodeCertificatesPem extends Specification {
       """(?s).*Unexpected: Error when executing reload command.*code: -2147483648.*""".r
     )
       .eventually(10, 100.millis.asScala)) and
-    (dest.contentAsString(StandardCharsets.UTF_8) must beEqualTo(cert1 + "\n" + cert2 + "\n").eventually(10, 100.millis.asScala))
+    (dest.contentAsString(StandardCharsets.UTF_8) must beEqualTo(expectedFileContent).eventually(10, 100.millis.asScala))
   }
 }

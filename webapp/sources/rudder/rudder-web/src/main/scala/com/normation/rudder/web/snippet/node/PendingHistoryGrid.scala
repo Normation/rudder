@@ -89,7 +89,7 @@ object PendingHistoryGrid extends Loggable {
 
   def jsVarNameForId() = "pendingNodeHistoryTable"
 
-  def initJs(entries: Seq[EventLog] = Seq())(implicit qr: QueryContext): JsCmd = {
+  def initJs(entries: Seq[EventLog] = Seq())(implicit qc: QueryContext): JsCmd = {
     JsRaw("""
         var #table_var#;
         /* Formating function for row details */
@@ -180,7 +180,7 @@ object PendingHistoryGrid extends Loggable {
    * You will have to do that for line added after table
    * initialization.
    */
-  def initJsCallBack(entries: Seq[EventLog])(implicit qr: QueryContext): JsCmd = {
+  def initJsCallBack(entries: Seq[EventLog])(implicit qc: QueryContext): JsCmd = {
     val eventWithDetails = entries.flatMap(event => logDetailsService.getDeleteNodeLogDetails(event.details).map((event, _)))
     // Group the events by node id, then drop the event details. Set default Map value to an empty Seq
     val deletedNodes     = eventWithDetails.groupMap(_._2.nodeId)(_._1).withDefaultValue(Seq())
@@ -214,7 +214,7 @@ object PendingHistoryGrid extends Loggable {
     )
   }
 
-  def displayPastInventory(deletedNodes: Map[NodeId, Seq[EventLog]])(s: String)(implicit qr: QueryContext): JsCmd = {
+  def displayPastInventory(deletedNodes: Map[NodeId, Seq[EventLog]])(s: String)(implicit qc: QueryContext): JsCmd = {
 
     val arr = s.split("\\|")
     if (arr.length != 4) {
@@ -253,7 +253,7 @@ object PendingHistoryGrid extends Loggable {
     effectiveEvents.sortWith((ev1, ev2) => ev1.creationDate.isBefore(ev2.creationDate)).headOption match {
       case Some(deleted) =>
         <div style="padding: 10px 15px 0">
-          <i class="fa fa-exclamation-triangle warnicon" aria-hidden="true"></i>
+          <i class="fa fa-exclamation-triangle me-1" aria-hidden="true"></i>
           <h3> {
           s"This node was deleted on ${DateFormaterService.getDisplayDate(deleted.creationDate)} by ${deleted.principal.name}"
         }</h3>

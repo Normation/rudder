@@ -1,0 +1,59 @@
+#####################################################################################
+# Copyright 2018 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Condition from variable existence
+# @description Create a condition from the existence of a variable
+# @documentation
+# This method define a condition:
+# * `{condition}_true` if the variable named from
+#   the parameter **Variable name** is defined
+# * `{condition}_false` if the variable named from
+#   the parameter **Variable name** is not defined
+#
+# Also, this method always result with a *success* outcome status.
+#
+# @parameter condition Prefix of the condition
+# @parameter variable_name Complete name of the variable being tested, like my_prefix.my_variable
+# 
+#
+# @parameter_rename condition_prefix condition
+# @class_prefix condition_from_variable_existence
+# @class_parameter condition
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent condition_from_variable_existence(condition, variable_name)
+{
+  vars:
+      "class_prefix"           string => canonify("condition_from_variable_existence_${condition}");
+
+  classes:
+      "${condition}_true"  expression => isvariable("${variable_name}"),
+                                scope => "namespace";
+
+      "${condition}_false"        not => isvariable("${variable_name}"),
+                                scope => "namespace";
+
+  methods:
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+
+      "${report_data.method_id}" usebundle => log_rudder_v4("${condition}", "The condition ${condition}_true was defined as the variable ${variable_name} was defined", ""),
+                                        if => isvariable("${variable_name}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${condition}", "The condition ${condition}_false was defined as the variable ${variable_name} was undefined", ""),
+                                    unless => isvariable("${variable_name}");
+}

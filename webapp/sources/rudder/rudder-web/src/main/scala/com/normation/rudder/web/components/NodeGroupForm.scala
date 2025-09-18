@@ -49,6 +49,7 @@ import com.normation.rudder.domain.policies.*
 import com.normation.rudder.domain.queries.*
 import com.normation.rudder.domain.reports.ComplianceLevelSerialisation
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.services.workflows.DGModAction
@@ -71,6 +72,7 @@ import org.apache.commons.text.StringEscapeUtils
 import scala.xml.*
 import zio.ZIO
 import zio.json.*
+import zio.json.ast.*
 import zio.syntax.*
 
 object NodeGroupForm {
@@ -121,8 +123,8 @@ class NodeGroupForm(
   private val nodeGroupForm         = new LocalSnippet[NodeGroupForm]
   private val searchNodeComponent   = new LocalSnippet[SearchNodeComponent]
 
-  private var query:   Option[Query]      = nodeGroup.toOption.flatMap(_.query)
-  private var srvList: Box[Seq[NodeInfo]] = getNodeList(nodeGroup)
+  private var query:   Option[Query]          = nodeGroup.toOption.flatMap(_.query)
+  private var srvList: Box[Seq[CoreNodeFact]] = getNodeList(nodeGroup)(CurrentUser.queryContext)
 
   private def setSearchNodeComponent: Unit = {
     searchNodeComponent.set(
@@ -140,18 +142,18 @@ class NodeGroupForm(
     )
   }
 
-  private def getNodeList(target: Either[NonGroupRuleTarget, NodeGroup]): Box[Seq[NodeInfo]] = {
+  private def getNodeList(target: Either[NonGroupRuleTarget, NodeGroup])(implicit qc: QueryContext): Box[Seq[CoreNodeFact]] = {
 
     for {
-      nodes <- nodeFactRepo.getAll()(CurrentUser.queryContext).toBox
+      nodes <- nodeFactRepo.getAll().toBox
       setIds = target match {
                  case Right(nodeGroup_) => nodeGroup_.serverList
                  case Left(target)      =>
                    val allNodes = nodes.mapValues(_.rudderSettings.kind.isPolicyServer)
-                   RuleTarget.getNodeIds(Set(target), allNodes, Map())
+                   RuleTarget.getNodeIds(Set(target), allNodes.toMap, Map())
                }
     } yield {
-      nodes.filterKeys(id => setIds.contains(id)).map(_._2.toNodeInfo).toSeq
+      nodes.filterKeys(id => setIds.contains(id)).map(_._2).toSeq
     }
   }
 
@@ -275,8 +277,8 @@ class NodeGroupForm(
     _.name
   )
 
-  private def showComplianceForGroup(progressBarSelector: String, optComplianceArray: Option[JsArray]) = {
-    val complianceHtml = optComplianceArray.map(js => s"buildComplianceBar(${js.toJsCmd})").getOrElse("\"No report\"")
+  private def showComplianceForGroup(progressBarSelector: String, optComplianceArray: Option[Json.Arr]) = {
+    val complianceHtml = optComplianceArray.map(js => s"buildComplianceBar(${js.toJson})").getOrElse("\"No report\"")
     Script(JsRaw(s"""$$("${progressBarSelector}").html(${complianceHtml});"""))
   }
 
@@ -471,7 +473,7 @@ class NodeGroupForm(
   private def systemGroupDeleteButton(group: NodeGroup) = {
     // cve-groups category has another delete button in the CVE UI
     if (rootCategory.categoryByGroupId.get(group.id).exists(_.value == "cve-groups")) { // button is a link with a tooltip
-      val href           = s"/secure/security/cveManagement/cve/${StringEscapeUtils.escapeHtml4(group.id.uid.value)}"
+      val href           = s"/secure/patch/cveManagement/cve/${StringEscapeUtils.escapeHtml4(group.id.uid.value)}"
       val tooltipContent =
         "<h4 class='tags-tooltip-title'>CVE group not deletable from here</h4><div class='tooltip-inner-content'>This group can only be deleted from the CVE details page from where it has been created.</div>"
       <a class="btn btn-default btn-icon" href={
@@ -511,7 +513,7 @@ class NodeGroupForm(
       <div class="info">
         <h4>Property inheritance and overriding in hierarchy</h4>
         <p>When a group is a subgroup of another one, it inherit all its properties. If it defines
-        a property with the same name than a parent, then that property value is overriden and
+        a property with the same name than a parent, then that property value is overridden and
         the subgroup value is used. A node can also define a property with the same name, and in
         that case its value will override any group's value for that property name.</p>
       </div>
@@ -526,7 +528,7 @@ class NodeGroupForm(
     intro ++ tabProperties
   }
 
-  private def loadComplianceBar(isGlobalCompliance: Boolean): Option[JsArray] = {
+  private def loadComplianceBar(isGlobalCompliance: Boolean): Option[Json.Arr] = {
     val target = nodeGroup match {
       case Left(value)  => value
       case Right(value) => GroupTarget(value.id)
@@ -564,7 +566,7 @@ class NodeGroupForm(
       override def labelClassName        = ""
       override def subContainerClassName = ""
       override def containerClassName    = "pe-2"
-      override def errorClassName        = "field_errors paddscala"
+      override def errorClassName        = "text-danger mt-1"
       override def inputAttributes: Seq[(String, String)] = Seq(("rows", "15"))
       override def labelExtensions: NodeSeq               = {
         <i class="fa fa-check text-success cursorPointer half-opacity"     onmouseenter="toggleOpacity(this)" title="Valid description" onmouseout="toggleOpacity(this)" onclick="toggleMarkdownEditor('longDescriptionField')"></i> ++ Text(
@@ -666,7 +668,7 @@ class NodeGroupForm(
 
           isDynamic = groupStatic.get match { case "dynamic" => true; case _ => false },
           query = query,
-          serverList = srvList.getOrElse(Set.empty[NodeInfo]).map(_.id).toSet
+          serverList = srvList.getOrElse(Set.empty[CoreNodeFact]).map(_.id).toSet
         )
 
         /*
@@ -826,7 +828,7 @@ class NodeGroupForm(
             case DGModAction.Disable if !savedGroup.isSystem => false
             case _                                           => savedGroup._isEnabled
           },
-          serverList = srvList.getOrElse(Set.empty[NodeInfo]).map(_.id).toSet
+          serverList = srvList.getOrElse(Set.empty[CoreNodeFact]).map(_.id).toSet
         )
 
         displayConfirmationPopup(action, newGroup, optContainer, None)
@@ -984,7 +986,7 @@ class NodeGroupForm(
     } else {
       val html = {
         <div id="errorNotification" class="notify">
-          <ul class="field_errors">{notifications.map(n => <li>{n}</li>)}</ul>
+          <ul class="text-danger">{notifications.map(n => <li>{n}</li>)}</ul>
         </div>
       }
       html

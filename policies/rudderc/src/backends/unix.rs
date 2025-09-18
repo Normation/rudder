@@ -8,6 +8,7 @@ use anyhow::Result;
 use tracing::trace;
 
 use super::Backend;
+use crate::ir::technique::ForeachResolvedState;
 use crate::{
     backends::unix::{
         cfengine::{bundle::Bundle, promise::Promise},
@@ -19,7 +20,6 @@ use crate::{
         technique::{ItemKind, TechniqueId},
     },
 };
-
 // TODO support macros at the policy or bundle level
 // this will allow conditionals on the agent version
 // and using more recent features while keeping compatibility
@@ -45,17 +45,15 @@ impl Unix {
         // Static content including parts of the system techniques required to run most techniques,
         // i.e. lib loading and global vars (`g.X`).
         let static_prelude = include_str!("unix/prelude.cf");
-        let init = Promise::usebundle("rudder_test_init", None, None, vec![]);
+        let init = Promise::usebundle("rudder_test_init", None, vec![]);
         let policy_mode = Promise::usebundle(
             "set_dry_run_mode",
-            None,
             None,
             vec!["${rudder_test_init.dry_run}".to_string()],
         );
         //   "CIS audit/CIS 9.1 configure cron"  usebundle => set_dry_run_mode("true");
         let technique_call = Promise::usebundle(
             technique_id.to_string(),
-            None,
             None,
             params
                 .iter()
@@ -82,10 +80,7 @@ impl Backend for Unix {
             match r {
                 ItemKind::Block(r) => {
                     let mut calls: Vec<(Promise, Option<Bundle>)> = vec![];
-                    if let Some(x) = dry_run_mode::push_policy_mode(
-                        r.policy_mode_override,
-                        format!("push_policy_mode_for_block_{}", r.id),
-                    ) {
+                    if let Some(x) = dry_run_mode::push_policy_mode(r.policy_mode_override) {
                         calls.push((x.if_condition("pass3"), None))
                     }
                     for inner in r.items {
@@ -95,17 +90,24 @@ impl Backend for Unix {
                             technique_id,
                         )?);
                     }
-                    if let Some(x) = dry_run_mode::pop_policy_mode(
-                        r.policy_mode_override,
-                        format!("pop_policy_mode_for_block_{}", r.id),
-                    ) {
+                    if let Some(x) = dry_run_mode::pop_policy_mode(r.policy_mode_override) {
                         calls.push((x.if_condition("pass3"), None))
                     }
                     Ok(calls)
                 }
                 ItemKind::Method(r) => {
+                    // As some bundle generation optimizations are done later in the generation if
+                    // the context is resolvable at compile time (always false or always true),
+                    // we need to force the context of the main branches of forks to be non
+                    // resolvable at compile time by making it an expression
+                    let computed_context = match r.resolved_foreach_state {
+                        Some(ForeachResolvedState::Main) => {
+                            Condition::Expression(context.to_string())
+                        }
+                        _ => context,
+                    };
                     let method: Vec<(Promise, Option<Bundle>)> =
-                        vec![method_call(technique_id, r, context)?];
+                        vec![method_call(technique_id, r, computed_context)?];
                     Ok(method)
                 }
                 _ => todo!(),
@@ -148,7 +150,7 @@ impl Backend for Unix {
             ),
         ]);
         for item in technique.items {
-            for call in resolve_module(item, Condition::Defined, &technique.id)? {
+            for call in resolve_module(item.clone(), Condition::Defined, &technique.id)? {
                 let (use_bundle, bundle) = call;
                 main_bundle.add_promise_group(vec![use_bundle]);
                 call_bundles.push(bundle)

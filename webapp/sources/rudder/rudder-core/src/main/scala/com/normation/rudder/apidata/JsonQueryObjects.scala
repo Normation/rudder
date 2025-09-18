@@ -64,9 +64,10 @@ import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.domain.properties.PatchProperty
 import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.properties.Visibility.Hidden
-import com.normation.rudder.domain.queries.NodeReturnType
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.domain.queries.QueryReturnType
+import com.normation.rudder.domain.queries.QueryReturnType.NodeReturnType
+import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.policies.PropertyParser
@@ -82,6 +83,7 @@ import io.scalaland.chimney.Transformer
 import io.scalaland.chimney.dsl.*
 import net.liftweb.common.*
 import net.liftweb.http.Req
+import zio.Chunk
 import zio.NonEmptyChunk
 import zio.json.*
 
@@ -115,6 +117,9 @@ object JsonQueryObjects {
   final case class JQClasses(
       classes: Option[List[String]]
   )
+  final case class JQNodeIdChunk(
+      nodeId: Option[Chunk[NodeId]]
+  )
   final case class JQNodeIdStatus(
       nodeId: List[NodeId],
       status: JQNodeStatusAction
@@ -141,6 +146,10 @@ object JsonQueryObjects {
     )
   }
 
+  final case class JQNodeInherited(
+      inherited: Option[Boolean]
+  )
+
   final case class JQNodePropertyInfo(
       inherited: Boolean,
       value:     String
@@ -165,6 +174,10 @@ object JsonQueryObjects {
       )
     }
   }
+
+  final case class JQIncludeSystem(
+      includeSystem: Option[Boolean]
+  )
 
   final case class JQDirectiveSectionVar(
       name:  String,
@@ -347,6 +360,57 @@ object JsonQueryObjects {
       _isEnabled:  Option[Boolean]
   )
 
+  final case class JQGroupCategory private[apidata] (
+      id:          Option[NodeGroupCategoryId] = None,
+      name:        Option[String] = None,
+      description: Option[String] = None,
+      parent:      Option[NodeGroupCategoryId] = None
+  ) {
+    def update(category: FullNodeGroupCategory): FullNodeGroupCategory = {
+      val updateId          = id.getOrElse(category.id)
+      val updateName        = name.getOrElse(category.name)
+      val updateDescription = description.getOrElse(category.description)
+      category.copy(
+        id = updateId,
+        name = updateName,
+        description = updateDescription
+      )
+    }
+
+    def create(defaultId: => NodeGroupCategoryId): PureResult[FullNodeGroupCategory] = {
+      name match {
+        case Some(name) =>
+          Right(
+            FullNodeGroupCategory(
+              id.getOrElse(defaultId),
+              name,
+              description.getOrElse(""),
+              Nil,
+              Nil
+            )
+          )
+        case None       =>
+          Left(Inconsistency("Could not create group Category, cause: name is not defined"))
+      }
+    }
+  }
+  object JQGroupCategory {
+    private val minimalNameSize = 3
+    // validation method for validating the name the group category
+    private[apidata] def validate(groupCategory: JQGroupCategory): Either[String, JQGroupCategory] = {
+      def validateName: Either[String, JQGroupCategory] = {
+        groupCategory.name match {
+          case None        => Right(groupCategory)
+          case Some(value) =>
+            if (value.size < minimalNameSize) {
+              Left(s"Group category name '${value}' must at least have a ${minimalNameSize} character size")
+            } else Right(groupCategory)
+        }
+      }
+      validateName
+    }
+  }
+
   final case class JQGroup(
       id:                                  Option[NodeGroupId] = None,
       displayName:                         Option[String] = None,
@@ -397,8 +461,25 @@ object JsonQueryObjects {
     }
   }
 
+  /*
+   * we want to directly decode:
+   * "agentKey": {
+   *   "value": "-----BEGIN CERTIFICATE-----...",
+   *    "status": "certified"
+   * }
+   * ie no duplicate { "value": { "value": ... see https://issues.rudder.io/issues/27369
+   */
+  final case class JQSecurityToken(sk: SecurityToken)
+  object JQSecurityToken {
+    implicit val decoderJQSecurityToken: JsonDecoder[JQSecurityToken] = JsonDecoder.string.mapOrFail { s =>
+      SecurityToken.parseValidate(s) match {
+        case Right(sk) => Right(JQSecurityToken(sk))
+        case Left(err) => Left(err.fullMsg)
+      }
+    }
+  }
   final case class JQAgentKey(
-      value:  Option[SecurityToken],
+      value:  Option[JQSecurityToken],
       status: Option[KeyStatus]
   ) {
     // if agentKeyValue is present, we set both it and key status.
@@ -406,18 +487,19 @@ object JsonQueryObjects {
     val toKeyInfo: (Option[SecurityToken], Option[KeyStatus]) = {
       (value, status) match {
         case (None, None)       => (None, None)
-        case (Some(k), None)    => (Some(k), Some(CertifiedKey))
+        case (Some(k), None)    => (Some(k.sk), Some(CertifiedKey))
         case (None, Some(s))    => (None, Some(s))
-        case (Some(k), Some(s)) => (Some(k), Some(s))
+        case (Some(k), Some(s)) => (Some(k.sk), Some(s))
       }
     }
   }
   final case class JQUpdateNode(
-      properties: Option[List[NodeProperty]],
-      policyMode: Option[Option[PolicyMode]],
-      state:      Option[NodeState],
-      agentKey:   Option[JQAgentKey],
-      reason:     Option[String]
+      properties:    Option[List[NodeProperty]],
+      policyMode:    Option[Option[PolicyMode]],
+      state:         Option[NodeState],
+      agentKey:      Option[JQAgentKey],
+      documentation: Option[String],
+      reason:        Option[String]
   ) {
     val keyInfo: (Option[SecurityToken], Option[KeyStatus]) = agentKey.map(_.toKeyInfo).getOrElse((None, None))
   }
@@ -444,6 +526,7 @@ trait RudderJsonDecoders {
   implicit val classesDecoder:      JsonDecoder[JQClasses]    = DeriveJsonDecoder.gen[JQClasses].orElse((_, _) => JQClasses(None))
 
   implicit val nodeIdDecoder:             JsonDecoder[NodeId]                      = JsonDecoder[String].map(NodeId.apply)
+  implicit val nodeIdChunkDecoder:        JsonDecoder[JQNodeIdChunk]               = DeriveJsonDecoder.gen[JQNodeIdChunk]
   implicit val nodeStatusActionDecoder:   JsonDecoder[JQNodeStatusAction]          =
     JsonDecoder[String].mapOrFail(JQNodeStatusAction.withNameInsensitiveEither(_).left.map(_.getMessage()))
   implicit val nodeIdStatusDecoder:       JsonDecoder[JQNodeIdStatus]              = DeriveJsonDecoder
@@ -455,17 +538,16 @@ trait RudderJsonDecoders {
         Right(x)
       }
     })
+  implicit val nodeInheritedDecoder:      JsonDecoder[JQNodeInherited]             = DeriveJsonDecoder.gen[JQNodeInherited]
   implicit val nodestatusDecoder:         JsonDecoder[JQNodeStatus]                = DeriveJsonDecoder.gen[JQNodeStatus]
   implicit val nodePropertyInfoDecoder:   JsonDecoder[JQNodePropertyInfo]          = DeriveJsonDecoder.gen[JQNodePropertyInfo]
   implicit val nodeIdsSoftwareProperties: JsonDecoder[JQNodeIdsSoftwareProperties] =
     DeriveJsonDecoder.gen[JQNodeIdsSoftwareProperties]
 
-  implicit val securityTokenDecoder: JsonDecoder[SecurityToken] =
-    JsonDecoder[String].mapOrFail(SecurityToken.parseValidate(_).left.map(_.fullMsg))
-  implicit val keyStatusDecoder:     JsonDecoder[KeyStatus]     =
+  implicit val keyStatusDecoder:  JsonDecoder[KeyStatus]    =
     JsonDecoder[String].mapOrFail(KeyStatus.apply(_).left.map(_.fullMsg))
-  implicit val agentKeyDecoder:      JsonDecoder[JQAgentKey]    = DeriveJsonDecoder.gen[JQAgentKey]
-  implicit val updateNodeDecoder:    JsonDecoder[JQUpdateNode]  = DeriveJsonDecoder.gen[JQUpdateNode]
+  implicit val agentKeyDecoder:   JsonDecoder[JQAgentKey]   = DeriveJsonDecoder.gen[JQAgentKey]
+  implicit val updateNodeDecoder: JsonDecoder[JQUpdateNode] = DeriveJsonDecoder.gen[JQUpdateNode]
 
   // JRRuleTarget
   object JRRuleTargetDecoder {
@@ -520,6 +602,8 @@ trait RudderJsonDecoders {
 
   implicit val ruleCategoryDecoder: JsonDecoder[JQRuleCategory] = DeriveJsonDecoder.gen
 
+  implicit val includeSystemDecoder: JsonDecoder[JQIncludeSystem] = DeriveJsonDecoder.gen
+
   // RestDirective - lazy because section/sectionVar/directive are mutually recursive
   implicit lazy val sectionDecoder:   JsonDecoder[JQDirectiveSection]    = DeriveJsonDecoder.gen
   implicit lazy val variableDecoder:  JsonDecoder[JQDirectiveSectionVar] = DeriveJsonDecoder.gen
@@ -542,6 +626,8 @@ trait RudderJsonDecoders {
   implicit val groupPropertyDecoder:       JsonDecoder[JQGroupProperty]     = DeriveJsonDecoder.gen
   implicit val groupPropertyDecoder2:      JsonDecoder[GroupProperty]       = JsonDecoder[JQGroupProperty].map(_.toGroupProperty)
   implicit val nodeGroupIdDecoder:         JsonDecoder[NodeGroupId]         = JsonDecoder[String].mapOrFail(x => NodeGroupId.parse(x))
+  implicit val groupCategoryDecoder:       JsonDecoder[JQGroupCategory]     =
+    DeriveJsonDecoder.gen[JQGroupCategory].mapOrFail(JQGroupCategory.validate)
   implicit val groupDecoder:               JsonDecoder[JQGroup]             = DeriveJsonDecoder.gen
 
 }
@@ -651,6 +737,14 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
     }
   }
 
+  def extractGroupCategory(req: Req): PureResult[JQGroupCategory] = {
+    if (req.json_?) {
+      parseJson[JQGroupCategory](req)
+    } else {
+      extractGroupCategoryFromParams(req.params)
+    }
+  }
+
   def extractDeleteMode(req: Req): PureResult[Option[DeleteMode]] = {
     if (req.json_?) {
       parseJson[JQDeleteMode](req).map(_.mode)
@@ -665,6 +759,14 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
     } else {
       Right(extractClassesFromParams(req.params))
     }
+  }
+
+  def extractNodeIdChunk(req: Req): PureResult[Option[Chunk[NodeId]]] = {
+    parseJson[JQNodeIdChunk](req).map(_.nodeId)
+  }
+
+  def extractNodeInherited(req: Req): PureResult[Option[Boolean]] = {
+    parseJson[JQNodeInherited](req).map(_.inherited)
   }
 
   def extractNodeIdStatus(req: Req): PureResult[JQNodeIdStatus] = {
@@ -696,6 +798,14 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
       parseJson[JQUpdateNode](req)
     } else {
       extractUpdateNodeFromParams(req.params)
+    }
+  }
+
+  def extractIncludeSystem(req: Req): PureResult[Option[Boolean]] = {
+    if (req.json_?) {
+      parseJson[JQIncludeSystem](req).map(_.includeSystem)
+    } else {
+      extractIncludeSystemFromParams(req.params)
     }
   }
 
@@ -799,6 +909,29 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
     }
   }
 
+  def extractGroupCategoryFromParams(params: Map[String, List[String]]): PureResult[JQGroupCategory] = {
+    for {
+      id            <- params.parse("id", JsonDecoder[NodeGroupCategoryId])
+      name          <- params.parse("name", JsonDecoder[String])
+      description   <- params.parse("description", JsonDecoder[String])
+      parent        <- params.parse("parent", JsonDecoder[NodeGroupCategoryId])
+      groupCategory <-
+        JQGroupCategory
+          .validate(
+            JQGroupCategory(
+              id,
+              name,
+              description,
+              parent
+            )
+          )
+          .left
+          .map(Inconsistency(_))
+    } yield {
+      groupCategory
+    }
+  }
+
   def extractNodeDetailLevelFromParams(params: Map[String, List[String]]): PureResult[Option[JQNodeDetailLevel]] = {
     params.parseOne("include", _.split(",").toSet.transformInto[JQNodeDetailLevel])
   }
@@ -898,10 +1031,14 @@ class ZioJsonExtractor(queryParser: CmdbQueryParser with JsonQueryLexer) {
       policyMode <- params.parse2("policyMode", PolicyMode.parseDefault(_))
       state      <- params.parseString("state", NodeState.parse(_))
       agentKey   <- params.parse("agentKey", JsonDecoder[JQAgentKey])
+      doc         = params.optGet("documentation")
       reason      = params.optGet("reason")
     } yield {
-      JQUpdateNode(properties, policyMode, state, agentKey, reason)
+      JQUpdateNode(properties, policyMode, state, agentKey, doc, reason)
     }
   }
 
+  def extractIncludeSystemFromParams(params: Map[String, List[String]]): PureResult[Option[Boolean]] = {
+    params.parse("includeSystem", JsonDecoder[Boolean])
+  }
 }

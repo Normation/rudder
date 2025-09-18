@@ -19,11 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
   <DESCRIPTION>Configure system clock (automatic updates via NTP, time zone, ...)</DESCRIPTION>
   <DEPRECATED>This version is deprecated, use 3.1 instead.</DEPRECATED>
 
-
-  <SYSTEMVARS>
-    <NAME>NOVA</NAME>
-  </SYSTEMVARS>
-
   <BUNDLES>
     <NAME>check_clock_configuration</NAME>
   </BUNDLES>

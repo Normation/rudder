@@ -6,7 +6,7 @@ import Accounts.DatePickerUtils exposing (..)
 import Accounts.JsonDecoder exposing (parseTenants)
 import Accounts.JsonEncoder exposing (encodeTenants)
 import Html exposing (..)
-import Html.Attributes exposing (attribute, checked, class, disabled, for, id, name, placeholder, selected, style, title, type_, value)
+import Html.Attributes exposing (checked, class, disabled, for, id, name, placeholder, selected, style, title, type_, value)
 import Html.Events exposing (onCheck, onClick, onInput)
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..))
 import Time.Extra as Time exposing (Interval(..), add)
@@ -103,18 +103,12 @@ displayModal model =
                       displayAclPlugin = account.authorisationType == "acl" && model.aclPluginEnabled
                       displayTenants   = account.tenantMode == ByTenants && model.tenantsPluginEnabled
 
-                      ( expirationDate, selectedDate ) =
-                          case account.expirationDate of
-                              Just d ->
-                                  ( if account.expirationDateDefined then
-                                      posixToString model.ui.datePickerInfo d
+                      ( expirationText, selectedDate ) =
+                          case account.expirationPolicy of
+                              ExpireAtDate d ->
+                                  ( posixToString model.ui.datePickerInfo d, d )
 
-                                    else
-                                      "Never"
-                                  , d
-                                  )
-
-                              Nothing ->
+                              NeverExpire ->
                                   ( "Never", add Month 1 model.ui.datePickerInfo.zone model.ui.datePickerInfo.currentTime )
 
                       displayWarningName =
@@ -149,6 +143,16 @@ displayModal model =
 
                           else
                               span [] [ text (": " ++ encodeTenants account.tenantMode account.selectedTenants) ]
+
+                      chooseId =
+                          case model.ui.modalState of
+                              NewAccount ->
+                                  div [ class "form-group" ]
+                                      [ label [ for "newAccount-id" ] [ text "Account ID" ]
+                                      , div [] [ span [ class "small fw-light"] [ text "By default, Rudder uses a generated UUID as account ID, but you can specify your own ID if needed. In that case, no token secret will be generated automatically."] ]
+                                      , input [ id "newAccount-id", placeholder "generated", class "form-control vresize float-none", value account.id, onInput (\s -> UpdateAccountForm { account | id = s }) ] []
+                                      ]
+                              _ -> text ""
                   in
                       div[]
                       [ form
@@ -179,13 +183,14 @@ displayModal model =
                               ]
                           , div [ class "form-group" ]
                               [ label [ for "newAccount-description" ] [ text "Description" ]
-                              , textarea [ id "newAccount-description", class "form-control vresize float-inherit", value account.description, onInput (\s -> UpdateAccountForm { account | description = s }) ] []
+                              , textarea [ id "newAccount-description", class "form-control vresize float-none", value account.description, onInput (\s -> UpdateAccountForm { account | description = s }) ] []
                               ]
+                          , chooseId
                           , div [ class "form-group" ]
                               [ label [ for "newAccount-expiration", class "mb-1" ]
                                   [ text "Expiration date"
                                   , label [ for "selectDate", class "custom-toggle toggle-secondary" ]
-                                      [ input [ type_ "checkbox", id "selectDate", checked account.expirationDateDefined, onCheck (\c -> UpdateAccountForm { account | expirationDateDefined = c }) ] []
+                                      [ input [ type_ "checkbox", id "selectDate", checked <| account.expirationPolicy /= NeverExpire, onCheck (\c -> UpdateAccountForm ( account |> if c then setExpirationPolicy (ExpireAtDate selectedDate) else setExpirationPolicy NeverExpire ) ) ] []
                                       , label [ for "selectDate", class "custom-toggle-group" ]
                                           [ label [ for "selectDate", class "toggle-enabled" ] [ text "Defined" ]
                                           , span [ class "cursor" ] []
@@ -194,13 +199,12 @@ displayModal model =
                                       ]
                                   , if checkIfExpired model.ui.datePickerInfo account then
                                       span [ class "warning-info" ] [ i [ class "fa fa-warning" ] [], text " Expiration date has passed" ]
-
                                     else
                                       text ""
                                   ]
                               , div [ class "elm-datepicker-container" ]
-                                  [ button [ type_ "button", class "form-control btn-datepicker", disabled (not account.expirationDateDefined), onClick (OpenPicker selectedDate), placeholder "Select an expiration date" ]
-                                      [ text expirationDate
+                                  [ button [ type_ "button", class "form-control btn-datepicker", disabled (account.expirationPolicy == NeverExpire), onClick (OpenPicker selectedDate), placeholder "Select an expiration date" ]
+                                      [ text expirationText
                                       ]
                                   , SingleDatePicker.view (userDefinedDatePickerSettings model.ui.datePickerInfo.zone model.ui.datePickerInfo.currentTime selectedDate) model.ui.datePickerInfo.picker
                                   ]
@@ -266,6 +270,16 @@ displayModal model =
                         ]
                     , button [ type_ "button", class ("btn btn-" ++ btnClass), onClick action ] [ text "Confirm" ]
                     )
+            CopyToken "" ->
+                ( "Account created without secret token"
+                , div []
+                    [ div [ class "alert alert-info" ]
+                        [ i [ class "fa fa-exclamation-triangle" ] []
+                        , text "This account doesn't have a token. You can create one with the refresh action"
+                        ]
+                    ]
+                , text ""
+                )
             CopyToken token ->
                 ( "Copy the token"
                 , div []

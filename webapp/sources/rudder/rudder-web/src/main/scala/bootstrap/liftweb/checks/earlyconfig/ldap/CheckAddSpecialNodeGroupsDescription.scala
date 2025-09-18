@@ -81,6 +81,7 @@ class CheckAddSpecialNodeGroupsDescription(
       .whenZIO(checkMigrationNeeded())(
         createSpecialTarget()
       )
+      .unit
       .catchAll(err => {
         MigrationLoggerPure.error(
           s"Error when trying to modify name and description of groups hasPolicyServer-root and all-nodes-with-cfengine-agent"

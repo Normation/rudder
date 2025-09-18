@@ -59,7 +59,7 @@ class CheckLdapConnection(
   override def checks(): Unit = {
 
     def FAIL(msg: String) = {
-      BootstrapLogger.logEffect.error(msg)
+      BootstrapLogger.Early.LDAP.logEffect.error(msg)
       throw new UnavailableException(msg)
     }
 
@@ -69,7 +69,7 @@ class CheckLdapConnection(
       case _                         => // ok
     }
 
-    BootstrapLogger.logEffect.info("LDAP connection is OK")
+    BootstrapLogger.Early.LDAP.logEffect.info("LDAP connection is OK")
   }
 
 }

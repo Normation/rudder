@@ -1,0 +1,98 @@
+#####################################################################################
+# Copyright 2018 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Condition once
+# @description Create a new condition only once
+# @documentation This method define a condition named from the parameter **Condition** when it is
+# called for the first time. Following agent execution will not define the
+# condition.
+#
+# This allows executing actions only once on a given machine.
+# The created condition is global to the agent.
+#
+# In case of reinstallation or factory-reset of the Rudder agent, this method 
+# will no longer detect if the condition has already been defined.
+#
+# ##### Example:
+#
+# If you use:
+#
+# ```
+# condition_once("my_condition")
+# ```
+#
+# The first agent run will have the condition `my_condition` defined, contrary to subsequent runs
+# for which no condition will be defined.
+#
+# See also : [command\_execution\_once](#_command_execution_once)
+# @parameter condition     The condition to define
+#
+# @class_prefix condition_once
+# @class_parameter condition
+# @agent_support = ["cfengine-community"]
+
+bundle agent condition_once(condition)
+{
+  vars:
+      "c_condition"   string => canonify("${condition}");
+      "class_prefix"  string => canonify("condition_once_${condition}");
+
+  classes:
+      "reserved"         expression => strcmp("${reserve[1]}", "ok");
+      "already_set"      expression => strcmp("${reserve[1]}", "failed_set");
+      "already_reserved" expression => strcmp("${reserve[1]}", "failed_reserved");
+      "set_ok"           expression => strcmp("${set[1]}", "ok");
+
+      "${c_condition}" expression => "set_ok",
+                            scope => "namespace";
+
+      "should_report" expression => "${report_data.should_report}";
+      "pass3"         expression => "pass2";
+      "pass2"         expression => "pass1";
+      "pass1"         expression => "any";
+
+  methods:
+      "${report_data.method_id}" usebundle => reserve_flag("condition_once_${c_condition}"),
+                                 useresult => "reserve";
+    reserved::
+      "${report_data.method_id}" usebundle => set_flag("condition_once_${c_condition}"),
+                                 useresult => "set";
+
+    set_ok::
+      "${report_data.method_id}" usebundle => _classes_repaired("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_repaired("${class_prefix}");
+
+    pass3.reserved.!set_ok::
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+
+    pass3.(already_set|already_reserved)::
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => _classes_success("${class_prefix}");
+
+    pass3.already_reserved::
+      "${report_data.method_id}" usebundle => disable_reporting;
+      "${report_data.method_id}" usebundle => _classes_failure("${class_prefix}");
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}");
+      "${report_data.method_id}" usebundle => log_rudder_v4("${c_condition}", "condition was reserved but not set, this is unexpected", "");
+      "${report_data.method_id}" usebundle => enable_reporting,
+                                        if => "should_report";
+
+    pass3::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${condition}", "Create the condition ${c_condition} once", "");
+}

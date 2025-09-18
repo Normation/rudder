@@ -39,13 +39,13 @@ package com.normation.rudder.web.components
 
 import bootstrap.liftweb.RudderConfig
 import com.normation.box.*
-import com.normation.cfclerk.domain.Technique
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.repository.*
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
@@ -56,19 +56,14 @@ import com.normation.rudder.web.services.ComputePolicyMode
 import com.normation.rudder.web.services.JsTableData
 import com.normation.rudder.web.services.JsTableLine
 import com.normation.utils.Control.traverse
+import com.normation.utils.SimpleStatus
 import com.normation.zio.*
 import net.liftweb.common.*
 import net.liftweb.http.*
 import net.liftweb.http.js.*
 import net.liftweb.http.js.JE.*
-import net.liftweb.http.js.JE.AnonFunc
 import net.liftweb.http.js.JsCmds.*
-import net.liftweb.json.JArray
-import net.liftweb.json.JField
-import net.liftweb.json.JObject
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.JsonParser
-import net.liftweb.json.JString
+import net.liftweb.json.*
 import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 import org.joda.time.Interval
@@ -89,7 +84,6 @@ object DisplayColumn {
 
 class RuleGrid(
     htmlId_rulesGridZone: String, // JS callback to call when clicking on a line
-
     detailsCallbackLink:  Option[(Rule, String) => JsCmd],
     showCheckboxColumn:   Boolean,
     directiveApplication: Option[DirectiveApplicationManagement],
@@ -97,20 +91,7 @@ class RuleGrid(
     graphRecentChanges:   DisplayColumn
 ) extends DispatchSnippet with Loggable {
 
-  sealed private trait Line { val rule: Rule }
-
-  private case class OKLine(
-      rule:              Rule,
-      applicationStatus: ApplicationStatus,
-      trackerVariables:  Seq[(Directive, ActiveTechnique, Technique)],
-      targets:           Set[RuleTargetInfo]
-  ) extends Line
-
-  private case class ErrorLine(
-      rule:             Rule,
-      trackerVariables: Box[Seq[(Directive, ActiveTechnique, Technique)]],
-      targets:          Box[Set[RuleTargetInfo]]
-  ) extends Line
+  import RuleGrid.*
 
   private val getFullNodeGroupLib      = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private val getFullDirectiveLib      = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
@@ -172,13 +153,17 @@ class RuleGrid(
   )
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "rulesGrid" => { (_: NodeSeq) => rulesGridWithUpdatedInfo(None, showActionsColumn = true, isPopup = false) }
+    case "rulesGrid" => {
+      implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+
+      (_: NodeSeq) => rulesGridWithUpdatedInfo(None, showActionsColumn = true, isPopup = false)
+    }
   }
 
   /**
    * Display all the rules. All data are charged asynchronously.
    */
-  def asyncDisplayAllRules(onlyRules: Option[Set[RuleId]]): AnonFunc = {
+  def asyncDisplayAllRules(onlyRules: Option[Set[RuleId]])(implicit qc: QueryContext): AnonFunc = {
     AnonFunc(
       SHtml.ajaxCall(
         JsNull,
@@ -199,7 +184,7 @@ class RuleGrid(
             // we skip request only if the column is not displayed - we need it even to display text info
             futureChanges = if (showComplianceAndChangesColumn) ajaxChanges(changesFuture(rules)) else Noop
 
-            nodeFacts     <- nodeFactRepo.getAll()(CurrentUser.queryContext).toBox
+            nodeFacts     <- nodeFactRepo.getAll().toBox
             afterNodeInfos = System.currentTimeMillis
             _              = TimingDebugLogger.debug(s"Rule grid: fetching all Nodes informations took ${afterNodeInfos - afterRules}ms")
 
@@ -233,7 +218,7 @@ class RuleGrid(
               ruleCompliances = {};
               recentChanges = {};
               recentGraphs = {};
-              refreshTable("${htmlId_rulesGridId}", ${newData.json.toJsCmd});
+              refreshTable("${htmlId_rulesGridId}", ${newData.toJson.toJsCmd});
               ${futureCompliance.toJsCmd}
               ${futureChanges.toJsCmd}
           """) // JsRaw ok, escaped
@@ -255,10 +240,12 @@ class RuleGrid(
   /**
    * Display the selected set of rules.
    */
-  def rulesGridWithUpdatedInfo(rules: Option[Seq[Rule]], showActionsColumn: Boolean, isPopup: Boolean): NodeSeq = {
+  def rulesGridWithUpdatedInfo(rules: Option[Seq[Rule]], showActionsColumn: Boolean, isPopup: Boolean)(implicit
+      qc: QueryContext
+  ): NodeSeq = {
 
     (for {
-      nodeFacts    <- nodeFactRepo.getAll()(CurrentUser.queryContext)
+      nodeFacts    <- nodeFactRepo.getAll()
       groupLib     <- getFullNodeGroupLib()
       directiveLib <- getFullDirectiveLib()
       ruleCat      <- getRootRuleCategory()
@@ -278,7 +265,7 @@ class RuleGrid(
         logger.error(e)
 
         <div id={htmlId_rulesGridZone}>
-          <div id={htmlId_modalReportsPopup} class="nodisplay">
+          <div id={htmlId_modalReportsPopup} class="d-none">
             <div id={htmlId_reportsPopup} ></div>
           </div>
           <span class="error">{e}</span>
@@ -290,7 +277,7 @@ class RuleGrid(
         val onLoad              = {
           s"""createRuleTable (
                   "${htmlId_rulesGridId}"
-                , ${tableData.json.toJsCmd}
+                , ${tableData.toJson.toJsCmd}
                 , ${showCheckboxColumn}
                 , ${showActionsColumn}
                 , ${showComplianceAndChangesColumn}
@@ -304,7 +291,7 @@ class RuleGrid(
           """
         }
         <div id={htmlId_rulesGridZone}>
-          <div id={htmlId_modalReportsPopup} class="nodisplay">
+          <div id={htmlId_modalReportsPopup} class="d-none">
             <div id={htmlId_reportsPopup} ></div>
           </div>
           <table id={htmlId_rulesGridId} class="display" cellspacing="0"> </table>
@@ -421,6 +408,25 @@ class RuleGrid(
 
   }
 
+  private def getRulePolicyMode(
+      rule:         Rule,
+      nodes:        Set[NodeId],
+      nodeFacts:    MapView[NodeId, CoreNodeFact],
+      directiveLib: FullActiveTechniqueCategory,
+      globalMode:   GlobalPolicyMode
+  ) = {
+    val nodeModes = nodes.flatMap(id => nodeFacts.get(id).map(_.rudderSettings.policyMode))
+    // when building policy mode explanation we look into every directive applied by the rule.
+    // But some directive may be missing so we do 'get', we them skip the missing directive and only use existing one ( thanks to flatmap)
+    // Rule will be disabled somewhere else, stating that some objects are missing and you should enable it again to fix it
+    ComputePolicyMode.ruleMode(
+      globalMode,
+      rule.directiveIds.map(directiveLib.allDirectives.get(_)).flatMap(_.map(_._2)),
+      nodeModes
+    )
+
+  }
+
   /*
    * Get Data to use in the datatable for all Rules
    * First: transform all Rules to Lines
@@ -439,69 +445,63 @@ class RuleGrid(
     val converted = convertRulesToLines(
       directiveLib,
       groupLib,
-      nodeFacts.mapValues(_.rudderSettings.isPolicyServer),
+      nodeFacts,
       rules.toList,
-      rootRuleCategory
+      globalMode
     )
     val t1        = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: convert to lines: ${t1 - t0}ms")
 
-    var tData = 0L
+    var tData = System.currentTimeMillis
 
-    val lines = for {
-      line <- converted
-    } yield {
-      val tf0 = System.currentTimeMillis
-      val res = getRuleData(
-        line,
-        groupLib,
-        nodeFacts,
-        rootRuleCategory,
-        directiveLib,
-        globalMode
-      )
-      val tf1 = System.currentTimeMillis
-      tData = tData + tf1 - tf0
-      res
-    }
+    val lines = getRulesData(converted, directiveApplication, callback, getCategoryName(rootRuleCategory))
+
+    tData = System.currentTimeMillis - tData
 
     val size = converted.size
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data ${tData}ms for ${size} lines ${if (size == 0) ""
       else s"(by line: ${tData / size}ms)"}")
 
-    val t2  = System.currentTimeMillis
-    val res = JsTableData(lines)
-    val t3  = System.currentTimeMillis
-    TimingDebugLogger.trace(s"Rule grid: transforming into data: jstable: ${t3 - t2}ms")
-    res
+    lines
   }
 
   /*
    * Convert Rules to Data used in Datatables Lines
    */
   private def convertRulesToLines(
-      directivesLib:    FullActiveTechniqueCategory,
-      groupsLib:        FullNodeGroupCategory,
-      arePolicyServers: MapView[NodeId, Boolean],
-      rules:            List[Rule],
-      rootRuleCategory: RuleCategory
+      directivesLib: FullActiveTechniqueCategory,
+      groupsLib:     FullNodeGroupCategory,
+      nodeFacts:     MapView[NodeId, CoreNodeFact],
+      rules:         List[Rule],
+      globalMode:    GlobalPolicyMode
   ): List[Line] = {
+
+    val arePolicyServers = nodeFacts.mapValues(_.rudderSettings.isPolicyServer).toMap
 
     // we compute beforehand the compliance, so that we have a single big query
     // to the database
 
     rules.map { rule =>
-      val trackerVariables: Box[Seq[(Directive, ActiveTechnique, Technique)]] = {
+      val nodes                     = groupsLib.getNodeIds(rule.targets, arePolicyServers)
+      val (policyMode, explanation) = getRulePolicyMode(rule, nodes, nodeFacts, directivesLib, globalMode).tuple
+
+      val trackerVariables: Box[Seq[DirectiveStatus]] = {
         traverse(rule.directiveIds.toSeq) { id =>
           directivesLib.allDirectives.get(id) match {
             case Some((activeTechnique, directive)) =>
               techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName) match {
-                case None            =>
+                case None    =>
                   Failure(
                     s"Can not find Technique for activeTechnique with name ${activeTechnique.techniqueName.value} referenced in Rule with ID ${rule.id.serialize}"
                   )
-                case Some(technique) =>
-                  Full((directive, activeTechnique.toActiveTechnique(), technique))
+                case Some(_) =>
+                  Full(
+                    DirectiveStatus(
+                      directive.name,
+                      SimpleStatus.fromBool(directive.isEnabled),
+                      SimpleStatus.fromBool(activeTechnique.isEnabled)
+                    )
+                  )
               }
             case None                               => // it's an error if the directive ID is defined and found but it is not attached to an activeTechnique
               val error =
@@ -539,7 +539,7 @@ class RuleGrid(
             )
           }
 
-          OKLine(rule, applicationStatus, seq, targets)
+          OKLine(rule, policyMode, explanation, nodes.isEmpty, applicationStatus, seq, targets)
 
         case (x, y) =>
           if (rule.isEnabledStatus) {
@@ -578,40 +578,78 @@ class RuleGrid(
               case _ => // ok
             }
           }
-          ErrorLine(rule, x, y)
+          ErrorLine(rule, policyMode, explanation, nodes.isEmpty)
       }
     }
+  }
+
+  def callback(rule: Rule): Option[AnonFunc] = for {
+    cb  <- detailsCallbackLink
+    ajax = SHtml.ajaxCall(JsVar("action"), (tab: String) => cb(rule, tab))
+  } yield {
+    AnonFunc("action", ajax)
+  }
+
+  def getCategoryName(rootRuleCategory: RuleCategory)(id: RuleCategoryId): String = {
+    categoryService.shortFqdn(rootRuleCategory, id).getOrElse("Error")
+  }
+
+}
+
+object RuleGrid {
+  sealed private[components] trait Line {
+    def rule:                  Rule
+    def policyMode:            String
+    def policyModeExplanation: String
+    def nodeIsEmpty:           Boolean // true if rule defining this line currently targets zero node
+  }
+
+  private[components] case class DirectiveStatus(
+      directiveName:    String,
+      directiveEnabled: SimpleStatus,
+      techniqueEnabled: SimpleStatus
+  )
+
+  private[components] case class OKLine(
+      rule:                  Rule,
+      policyMode:            String,
+      policyModeExplanation: String,
+      nodeIsEmpty:           Boolean, // true if rule defining this line currently targets zero node
+      applicationStatus:     ApplicationStatus,
+      trackerVariables:      Seq[DirectiveStatus],
+      targets:               Set[RuleTargetInfo]
+  ) extends Line
+
+  private[components] case class ErrorLine(
+      rule:                  Rule,
+      policyMode:            String,
+      policyModeExplanation: String,
+      nodeIsEmpty:           Boolean // true if rule defining this line currently targets zero node
+  ) extends Line
+
+  private[components] def getRulesData(
+      lines:                List[Line],
+      directiveApplication: Option[DirectiveApplicationManagement],
+      callback:             Rule => Option[AnonFunc],
+      getCategoryName:      RuleCategoryId => String
+  ): JsTableData[RuleLine] = {
+    JsTableData(lines.map(l => getRuleData(l, directiveApplication, callback, getCategoryName)))
   }
 
   /*
    * Generates Data for a line of the table
    */
-  private def getRuleData(
-      line:             Line,
-      groupsLib:        FullNodeGroupCategory,
-      nodeFacts:        MapView[NodeId, CoreNodeFact],
-      rootRuleCategory: RuleCategory,
-      directiveLib:     FullActiveTechniqueCategory,
-      globalMode:       GlobalPolicyMode
+  private[components] def getRuleData(
+      line:                 Line,
+      directiveApplication: Option[DirectiveApplicationManagement],
+      createCallback:       Rule => Option[AnonFunc],
+      getCategoryName:      RuleCategoryId => String
   ): RuleLine = {
 
     val t0 = System.currentTimeMillis
 
-    val nodes                     = groupsLib.getNodeIds(line.rule.targets, nodeFacts.mapValues(_.rudderSettings.isPolicyServer))
-    val nodeModes                 = nodes.flatMap(id => nodeFacts.get(id).map(_.rudderSettings.policyMode))
-    // when building policy mode explanation we look into all directives every directive applied by the rule
-    // But some directive may be missing so we do 'get', we them skip the missing directive and only use existing one ( thanks to flatmap)
-    // Rule will be disabled somewhere else, stating that some object are missing and you should enable it again to fix it
-    val (policyMode, explanation) = ComputePolicyMode
-      .ruleMode(
-        globalMode,
-        line.rule.directiveIds.map(directiveLib.allDirectives.get(_)).flatMap(_.map(_._2)),
-        nodeModes
-      )
-      .tuple
-
     // Status is the state of the Rule, defined as a string
-    // reasons are the the reasons why a Rule is disabled
+    // reasons are the reasons why a Rule is disabled
     val (status, reasons): (String, Option[String]) = {
       line match {
         case line: OKLine    =>
@@ -620,7 +658,7 @@ class RuleGrid(
             case PartiallyApplied(seq) =>
               val why = seq.map { case (at, d) => "Directive " + d.name + " disabled" }.mkString(", ")
               ("Partially applied", Some(why))
-            case x: NotAppliedStatus =>
+            case _: NotAppliedStatus =>
               val (status, disabledMessage) = {
                 if ((!line.rule.isEnabled) && (!line.rule.isEnabledStatus)) {
                   ("Disabled", Some("This rule is disabled. "))
@@ -635,13 +673,13 @@ class RuleGrid(
                   (line.rule.isEnabledStatus && !line.rule.isEnabled, "Rule unapplied"),
                   (line.trackerVariables.isEmpty, "No policy defined"),
                   (!isAllTargetsEnabled, "Group disabled"),
-                  (nodes.isEmpty, "Empty groups")
+                  (line.nodeIsEmpty, "Empty groups")
                 ) ++
                 line.trackerVariables.flatMap {
-                  case (directive, activeTechnique, _) =>
+                  case DirectiveStatus(directiveName, directiveEnabled, techniqueEnabled) =>
                     Seq(
-                      (!directive.isEnabled, "Directive " + directive.name + " disabled"),
-                      (!activeTechnique.isEnabled, "Technique for '" + directive.name + "' disabled")
+                      (!directiveEnabled.asBool, "Directive " + directiveName + " disabled"),
+                      (!techniqueEnabled.asBool, "Technique for '" + directiveName + "' disabled")
                     )
                 }
               }
@@ -654,7 +692,7 @@ class RuleGrid(
     val t1 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: line status: ${t1 - t0}ms")
 
-    // Is the ruple applying a Directive and callback associated to the checkbox
+    // Is the rule applying a Directive and callback associated to the checkbox
     val (applying, checkboxCallback) = {
       directiveApplication match {
         case Some(directiveApplication) =>
@@ -693,24 +731,18 @@ class RuleGrid(
     val t3 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: css class: ${t3 - t2}ms")
 
-    val category = categoryService.shortFqdn(rootRuleCategory, line.rule.categoryId).getOrElse("Error")
+    val category = getCategoryName(line.rule.categoryId)
 
     val t4 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: category: ${t4 - t3}ms")
 
     // Callback to use on links
-    val callback = for {
-      callback <- detailsCallbackLink
-      ajax      = SHtml.ajaxCall(JsVar("action"), (tab: String) => callback(line.rule, tab))
-    } yield {
-      AnonFunc("action", ajax)
-    }
+    val callback = createCallback(line.rule)
 
     val t5 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: callback: ${t5 - t4}ms")
 
-    val tags          = JsObj(line.rule.tags.map(tag => (tag.name.value, Str(tag.value.value))).toList*).toJsCmd
-    val tagsDisplayed = JsonTagSerialisation.serializeTags(line.rule.tags)
+    val tags = JsObj(line.rule.tags.map(tag => (tag.name.value, Str(tag.value.value))).toList*).toJsCmd
     RuleLine(
       line.rule.name,
       line.rule.id,
@@ -722,12 +754,13 @@ class RuleGrid(
       callback,
       checkboxCallback,
       reasons,
-      policyMode,
-      explanation,
+      line.policyMode,
+      line.policyModeExplanation,
       tags,
-      tagsDisplayed
+      line.rule.tags
     )
   }
+
 }
 
 /*
@@ -760,11 +793,20 @@ final case class RuleLine(
     policyMode:       String,
     explanation:      String,
     tags:             String,
-    tagsDisplayed:    JValue
+    tagsDisplayed:    Tags
 ) extends JsTableLine {
 
+  private def serializeTags(tags: Tags): JValue = {
+    // sort all the tags by name
+    import net.liftweb.json.JsonDSL.*
+    val m: JValue = JArray(
+      tags.tags.toList.sortBy(_.name.value).map(t => ("key", t.name.value) ~ ("value", t.value.value))
+    )
+    m
+  }
+
   /* Would love to have a reflexive way to generate that map ...  */
-  override val json: JsObj = {
+  override def json(freshName: () => String): JsObj = {
 
     val reasonField = reasons.map(r => ("reasons" -> escapeHTML(r)))
 
@@ -785,7 +827,7 @@ final case class RuleLine(
       ("policyMode", policyMode),
       ("explanation", explanation),
       ("tags", tags),
-      ("tagsDisplayed", tagsDisplayed)
+      ("tagsDisplayed", serializeTags(tagsDisplayed))
     )
 
     base +* JsObj(optFields*)

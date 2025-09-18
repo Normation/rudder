@@ -1,0 +1,68 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File from template
+# @description Build a file from a legacy CFEngine template
+# @deprecated This method uses CFEngine's templating which is deprecated and not portable across agents.
+# Please use [file_from_template_mustache](#_file_from_template_mustache) or [file_from_template_jinja2](#_file_from_template_jinja2) instead.
+# 
+# @documentation See [file_from_template_type](#_file_from_template_type) for general documentation about
+# templates usage.
+#
+# @parameter source_template Source file containing a template to be expanded (absolute path on the target node)
+# @parameter path     Destination file (absolute path on the target node)
+#
+#
+# @parameter_rename destination path
+# @class_prefix file_from_template
+# @class_parameter path
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent file_from_template(source_template, path)
+{
+  vars:
+      "old_class_prefix"  string => canonify("file_from_template_${path}");
+      "args"               slist => { "${source_template}", "${path}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_from_template_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+
+    "template_exists" expression => fileexists("${source_template}");
+
+  files:
+    "${path}"
+      create          => "true",
+      edit_template   => "${source_template}",
+      edit_defaults   => ncf_empty_select("true"),
+      ifvarclass      => "template_exists",
+      classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+    !template_exists::
+
+      "template_absent" usebundle => _classes_failure("${old_class_prefix}");
+      "template_absent" usebundle => _classes_failure("${class_prefix}");
+
+    any::
+      "sanitize"        usebundle => _classes_sanitize("${old_class_prefix}");
+      "sanitize"        usebundle => _classes_sanitize("${class_prefix}");
+      "report"          usebundle => _log_v3("Build file ${path} from template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+}

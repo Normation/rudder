@@ -4,7 +4,7 @@
   <DESCRIPTION></DESCRIPTION>
   <LONGDESCRIPTION></LONGDESCRIPTION>
   <USEMETHODREPORTING>true</USEMETHODREPORTING>
-  <AGENT type="cfengine-community,cfengine-nova">
+  <AGENT type="cfengine-community">
     <BUNDLES>
       <NAME>testing_variables_in_conditions</NAME>
       <NAME>testing_variables_in_conditions_rudder_reporting</NAME>

@@ -3,21 +3,21 @@
 #![allow(unused_imports)]
 
 use crate::{
+    CampaignType, MODULE_DIR, PackageParameters, RebootType, Schedule, SystemUpdateModule,
     campaign::{FullCampaignType, FullSchedule, RunnerParameters},
     cli,
     db::{Event, PackageDatabase},
     package_manager::{LinuxPackageManager, PackageManager},
     runner::Runner,
     system::{System, Systemd},
-    CampaignType, PackageParameters, RebootType, Schedule, SystemUpdateModule, MODULE_DIR,
 };
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use chrono::{Duration, SecondsFormat};
 use cli_table::format::{HorizontalLine, Separator, VerticalLine};
 use gumdrop::Options;
 use rudder_module_type::{
-    inventory::system_node_id, os_release::OsRelease, parameters::Parameters, ModuleType0,
-    PolicyMode,
+    ModuleType0, PolicyMode, inventory::system_node_id, os_release::OsRelease,
+    parameters::Parameters,
 };
 use std::{fs, path::PathBuf};
 use uuid::Uuid;
@@ -167,7 +167,7 @@ fn shorten(s: &str, max_len: usize) -> String {
 }
 
 pub fn show_events(events: Vec<Event>) -> Result<()> {
-    use cli_table::{print_stdout, Cell, Style, Table};
+    use cli_table::{Cell, Style, Table, print_stdout};
 
     let table = events
         .into_iter()

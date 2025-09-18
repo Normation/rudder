@@ -101,9 +101,9 @@ class TechniqueParser(
             deprecationInfo <- parseDeprecrationInfo(xml)
 
             // for compatibility reason, we cheat and make the template/file/bundlesequence under root
-            // and not in an <AGENT> sub-element be considered as being in <AGENT type="cfengine-community,cfengine-enterprise">
+            // and not in an <AGENT> sub-element be considered as being in <AGENT type="cfengine-community,...">
             compatibilityAgent <- {
-              val forCompatibilityAgent = <AGENT type={s"${AgentType.CfeCommunity.toString},${AgentType.CfeEnterprise.toString}"}>
+              val forCompatibilityAgent = <AGENT type={s"${AgentType.CfeCommunity.toString}"}>
                                       {(xml \ PROMISE_TEMPLATES_ROOT)}
                                       {(xml \ FILES)}
                                       {(xml \ BUNDLES_ROOT)}

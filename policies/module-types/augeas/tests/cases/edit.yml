@@ -1,0 +1,4 @@
+inputs:
+  path: file/hosts
+  script: |
+    set /files/etc/hosts/1/ipaddr

@@ -4,7 +4,7 @@
   <DESCRIPTION>This Technique exists only to see if Rudder creates Technique correctly.</DESCRIPTION>
   <LONGDESCRIPTION></LONGDESCRIPTION>
   <USEMETHODREPORTING>true</USEMETHODREPORTING>
-  <AGENT type="cfengine-community,cfengine-nova">
+  <AGENT type="cfengine-community">
     <BUNDLES>
       <NAME>technique_any</NAME>
     </BUNDLES>

@@ -81,10 +81,9 @@ class CreateOrUpdateGlobalParameterPopup(
 
   private val userPropertyService = RudderConfig.userPropertyService
   private[this] val uuidGen       = RudderConfig.stringUuidGenerator
+  implicit private val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
 
-  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
-    case "popupContent" => { _ => popupContent()(CurrentUser.queryContext) }
-  }
+  def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = { case "popupContent" => { _ => popupContent() } }
 
   /* Text variation for
    * - Global Parameter
@@ -333,11 +332,11 @@ class CreateOrUpdateGlobalParameterPopup(
   val parameterOverridable = true
 
   private val paramReasons = {
-    import com.normation.rudder.web.services.ReasonBehavior.*
-    (userPropertyService.reasonsFieldBehavior: @unchecked) match {
+    import com.normation.rudder.config.ReasonBehavior.*
+    userPropertyService.reasonsFieldBehavior match {
       case Disabled  => None
-      case Mandatory => Some(buildReasonField(true, "subContainerReasonField"))
-      case Optionnal => Some(buildReasonField(false, "subContainerReasonField"))
+      case Mandatory => Some(buildReasonField(true, "px-1"))
+      case Optional  => Some(buildReasonField(false, "px-1"))
     }
   }
 

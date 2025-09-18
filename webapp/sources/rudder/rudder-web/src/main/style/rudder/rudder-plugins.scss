@@ -1,0 +1,392 @@
+/*
+*************************************************************************************
+* Copyright 2024 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
+
+@use 'rudder-variables' as *;
+
+@import "../../node_modules/bootstrap/scss/functions";
+@import "../../node_modules/bootstrap/scss/variables";
+@import "../../node_modules/bootstrap/scss/mixins";
+
+// Limit the size of spinner in loading buttons
+$spinner-width-sm: 1.3rem;
+$spinner-height-sm: $spinner-width-sm;
+@import "../../node_modules/bootstrap/scss/spinners";
+
+.rudder-template .template-main {
+  flex: auto !important;
+}
+
+.plugin:first-child h3.title-section {
+  margin-top: 0;
+}
+
+.plugin h3.title-section:before {
+  content: "\f12e";
+  display: inline-block;
+  font: normal normal normal 14px/1;
+  font-family: "Font Awesome 5 Free";
+  font-weight: 900;
+  font-size: inherit;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  margin-right: 6px;
+  color: #04192277;
+}
+
+.plugin .description {
+  color: #738195;
+}
+
+.license-card {
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #e1e3e6;
+  border-left: 4px solid #337ab7;
+  max-width: 780px;
+  padding: 10px;
+
+  & .license-info {
+
+    & .license-info-title {
+      font-size: $h4-font-size;
+      color: #337ab7;
+      margin-top: 0;
+      padding-right: 40px;
+      position: relative;
+
+      & .license-icon {
+        font-size: 50px;
+        position: absolute;
+        top: 0;
+        right: 0;
+      }
+    }
+
+    & .license-info-title+p {
+      padding-right: 40px;
+    }
+
+    & p:last-child,
+    & dl:last-child {
+      margin-bottom: 0;
+    }
+
+    & dl {
+      margin-bottom: 10px;
+    }
+  }
+}
+
+.header-title {
+  & > :first-child {
+    display: flex;
+    flex-direction: column;
+  }
+
+  & ul {
+    max-width: 30vw;
+    margin-bottom: 0;
+    text-align: right;
+    font-weight: 300;
+    font-style: italic;
+
+    & li {
+      width: 100%;
+    }
+  }
+}
+
+.plugins-container {
+  $default-font-size: 0.86em;
+  $main-details-lr-padding: 15px;
+  position: absolute;
+  top: 0;
+  right: $main-details-lr-padding;
+  left: $main-details-lr-padding;
+  bottom: 0;
+
+  & .plugins-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+
+    // in combination with datatable classes
+    &.table-filter {
+      border-bottom: 2px solid $rudder-border-color-default !important;
+      padding-bottom: 10px !important;
+      border-top: 0 !important;
+      margin-top: 0 !important;
+    }
+
+    & .btn {
+      font-size: $default-font-size;
+      border-radius: 0.3em;
+      min-width: 4.8rem;
+    }
+
+    & .plugins-actions-filters {
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: space-between;
+
+      & :first-child {
+        flex: 0 0 160px;
+      }
+
+      & .plugins-actions-filters-search  {
+        flex: 0 0 20%;
+      }
+
+      & .plugins-actions-filters-radio {
+        opacity: 0.85;
+        display: flex;
+        justify-content: space-between;
+
+        & :first-child {
+          margin-right: 2em;
+        }
+      }
+    }
+
+    & .plugins-actions-buttons {
+      margin-left: auto;
+      overflow: visible;
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: space-between;
+    }
+
+    & .plugins-actions-warning {
+      width: 100%;
+      font-size: 12px;
+      margin-top: 0.5em;
+    }
+  }
+
+  & .plugins-list {
+    padding-left: 1rem;
+    padding-right: 1rem;
+
+    &.callout-warning {
+      margin: 10px 0;
+    }
+
+    & .plugin-card.card {
+      margin: 10px 0;
+
+      &.plugin-card-disabled {
+        background-color: $rudder-bg-light-gray;
+      }
+
+      &.plugin-card-missing-license {
+        opacity: 95%;
+
+        & .badge.float-end {
+          background-color: #D6DEEF;
+        }
+      }
+
+      & .badge.float-start {
+        font-size: $default-font-size;
+        border-top-right-radius: 0;
+        border-bottom-left-radius: 0;
+        text-transform: uppercase;
+        padding: 0.3rem 0.8rem;
+        font-weight: 600;
+        margin: 0;
+      }
+
+      & .card-body {
+        margin-top: 1rem;
+      }
+
+      & .form-check label {
+        cursor: pointer;
+      }
+
+      & .plugin-title {
+        font-size: 1rem;
+        font-weight: 500;
+
+        & .plugin-doc-icon {
+          margin-left: 0.6rem;
+          color: #337ab7;
+          opacity: 0.8;
+          &:hover {
+            opacity: 1;
+          }
+        }
+      }
+
+      & .card-text {
+        font-size: $default-font-size;
+
+        & .plugin-technical-info {
+          color: $rudder-txt-secondary;
+
+          & .badge.badge-type {
+            opacity: 0.75;
+            border-radius: 0.25rem;
+
+            &.plugin-webapp + &.plugin-integration{
+              background-color: #72829d;
+              font-weight: 600 !important;
+            }
+          }
+
+          & .plugin-version {
+            &:before{
+              content: "-";
+              padding: 0 0.3rem;
+            }
+          }
+        }
+
+        & .plugin-errors {
+          $el-margin: 0.5rem;
+
+          margin-top: $el-margin;
+
+          & .callout-fade {
+            &:not(:last-child) {
+              margin-top: $el-margin;
+              margin-bottom: $el-margin;
+            }
+
+            &:last-child {
+              margin-bottom: 0;
+            }
+
+            &.callout-danger {
+              background-color: $rudder-bg-danger;
+
+              & .fa.fa-warning {
+                color: #58151c;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/* === MODAL === */
+.modal {
+  .modal-body {
+    .plugin-action.callout-fade {
+      .plugin-action-error {
+        &:not(:last-child) {
+          padding-bottom: 1em;
+        }
+        & .list-group li {
+          background: #f8f9fc;
+        }
+      }
+    }
+  }
+}
+
+
+/* === License warning === */
+.license-card.warning {
+  border-left-color: #EF9600;
+  background-color: #EF96000d;
+}
+
+.license-card.warning .license-info h4 {
+  color: #EF9600;
+}
+
+.license-card.warning p.txt-warning {
+  color: #ef8004;
+  font-weight: bold;
+  margin-top: 6px;
+}
+
+/* === License danger === */
+.license-card.critical {
+  border-left-color: #C80004;
+  background-color: #ff040908;
+}
+
+.txt-critical {
+  color: #9e0205 !important;
+}
+
+.license-card.critical .license-info h4 {
+  color: #C80004;
+}
+
+/* === LICENSE DETAILS === */
+.table-license tr>td {
+  padding: 2px 3px;
+}
+
+.table-license tr>td:first-child {
+  font-weight: bold;
+  text-align: right;
+  padding-left: 0;
+}
+
+.table-license tr>td:last-child {
+  padding-left: 10px;
+}
+
+.tooltip>.tooltip-inner {
+  padding: 0px !important;
+}
+
+.rudder-package-doc {
+  margin-top: 25px;
+}
+
+.pluginpadd {
+  padding: 0 10px;
+}
+
+.badge-plugin-version {
+  margin-left: 15px;
+  display: inline-block;
+  background-color: #FFEAD1;
+  color: #EF9600;
+  padding: 5px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: bold;
+}

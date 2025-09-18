@@ -309,7 +309,6 @@ class VariableSpecParser extends Loggable {
         defaultValue: Option[String]
     ): SectionVariableSpec = {
       val (postfix, vtype) = tpe match {
-        case DerivedPasswordType.AIX   => ("AIX", AixDerivedPasswordVType)
         case DerivedPasswordType.Linux => ("LINUX", LinuxDerivedPasswordVType)
       }
 
@@ -335,9 +334,6 @@ class VariableSpecParser extends Loggable {
             .split(",")
             .flatMap { s =>
               s.toLowerCase.trim match {
-                case "aix" =>
-                  Some(derivedPasswordVar(varName, DerivedPasswordType.AIX, mayBeEmpty, defaultValue))
-
                 case "linux" =>
                   Some(derivedPasswordVar(varName, DerivedPasswordType.Linux, mayBeEmpty, defaultValue))
 

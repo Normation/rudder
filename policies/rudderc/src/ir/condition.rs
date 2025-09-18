@@ -3,9 +3,9 @@
 
 use std::{fmt, str::FromStr};
 
-use anyhow::{bail, Error};
+use anyhow::{Error, bail};
 use rudder_commons::is_canonified;
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use serde_yaml::Value;
 
 /// Valid condition

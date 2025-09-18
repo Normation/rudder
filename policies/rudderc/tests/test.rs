@@ -11,7 +11,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use rudderc::{action, DEFAULT_AGENT_PATH};
+use rudderc::{DEFAULT_AGENT_PATH, action};
 use test_generator::test_resources;
 
 const UNIX_TEST_LIB: &str = "tests/lib/common";

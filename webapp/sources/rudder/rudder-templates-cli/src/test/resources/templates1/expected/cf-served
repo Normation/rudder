@@ -1,18 +1,9 @@
 bundle server access_rules
 {
-  vars:
-    enterprise::
-      "query_types" slist => {"delta", "rebase", "full"};
-
   # Access rules are only defined on a policy server. Standard nodes should not share any files.
   access:
 
     policy_server|role_rudder_relay_promises_only::
-      "695031f3-4123-4c2a-bded-0c6b56d7cf0f"
-        handle        => "policy_server_uuid",
-        resource_type => "literal",
-        admit         => {".*"};
-
       "${def.dir_masterfiles}"
         handle  => "grant_access_policy",
         comment => "Grant access to the policy updates",
@@ -36,15 +27,6 @@ bundle server access_rules
         deny    => {  ".*"  };
 
 
-    role_rudder_cfengine_mission_portal::
-      "${query_types}"
-        handle             => "server_access_grant_${query_types}_for_hub",
-        comment            => "Grant ${query_types} reporting query for the hub on the policy server",
-        resource_type      => "query",
-        report_data_select => rudder_data_select_policy_hub,
-        admit              => { ${def.policy_server}, @{sys.ip_addresses} }; # an enterprise policy server needs to be able to contact itself
-
-
     any::
           "/var/rudder/share/aaaaaaaa-3ad9-4347-866c-56a692ca8d39/"
             maproot => { host2ip("node1"), string_downcase(escape("node1"))  },
@@ -63,13 +45,6 @@ bundle server access_rules
       # Allow server to remotely run the agent
       "${sys.workdir}/bin/cf-agent"
         admit   => { host2ip("${server_info.cfserved}"), string_downcase(escape("${server_info.cfserved}")) };
-
-      "${query_types}"
-        handle => "server_access_grant_${query_types}_for_hosts",
-        comment => "Grant ${query_types} reporting query for the hub on the hosts",
-        resource_type => "query",
-        report_data_select => rudder_data_select_host,
-        admit => { ${def.policy_server}, @{sys.ip_addresses} };
 
   roles:
       # Allow user root to set any class
@@ -163,12 +138,12 @@ body server control
 
 body runagent control
 {
-  # If using enterprise, the nodes to connect to are using default port
+  # When using community, we must use the port 424242 to connect to nodes
         hosts => {
 
-                    "node1",
-                    "node2",
-                    "node3",
+                    "node1:424242",
+                    "node2:424242",
+                    "node3:424242",
         };
 
         max_children => "25";
@@ -177,27 +152,4 @@ body runagent control
         port => "424242";
     community_edition.debug_port::
         port => "5310";
-}
-body report_data_select rudder_data_select_host
-# @brief Data to collect from remote hosts by default
-#
-# By convention variables and classes known to be internal, (having no
-# reporting value) should be prefixed with an underscore. By default the policy
-# framework explicitly excludes these variables and classes from collection.
-{
-    metatags_include => { "inventory", "report" };
-    metatags_exclude => { "noreport" };
-    monitoring_include => { ".*" };
-}
-
-body report_data_select rudder_data_select_policy_hub
-# @brief Data to collect from policy servers by default
-#
-# By convention variables and classes known to be internal, (having no
-# reporting value) should be prefixed with an underscore. By default the policy
-# framework explicitly excludes these variables and classes from collection.
-{
-    metatags_include => { "inventory", "report" };
-    metatags_exclude => { "noreport" };
-    monitoring_include => { ".*" };
 }

@@ -1,0 +1,30 @@
+[
+  {
+    "name": "aix",
+    "version": "8.0.0~rc2-2.1",
+    "installed": true,
+    "enabled": false,
+    "webapp_plugin": true,
+    "requires_license": true
+  },
+  {
+    "name": "dsc",
+    "version": "8.0.0~rc2-2.4",
+    "installed": true,
+    "enabled": true,
+    "webapp_plugin": true,
+    "requires_license": false,
+    "license": {
+      "start_date": "2020-03-31T00:00:00Z",
+      "end_date": "2024-09-28T12:00:00Z"
+    }
+  },
+  {
+    "name": "notify",
+    "version": "8.0.0~rc2-2.2",
+    "installed": true,
+    "enabled": false,
+    "webapp_plugin": false,
+    "requires_license": false
+  }
+]

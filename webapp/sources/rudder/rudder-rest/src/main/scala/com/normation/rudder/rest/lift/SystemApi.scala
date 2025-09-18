@@ -56,6 +56,7 @@ import com.normation.rudder.git.GitArchiveId
 import com.normation.rudder.git.GitCommitId
 import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProvider
+import com.normation.rudder.metrics.SystemInfoService
 import com.normation.rudder.repository.ItemArchiveManager
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
@@ -68,6 +69,9 @@ import com.normation.rudder.rest.RestUtils.getActor
 import com.normation.rudder.rest.RestUtils.toJsonError
 import com.normation.rudder.rest.RestUtils.toJsonResponse
 import com.normation.rudder.rest.SystemApi as API
+import com.normation.rudder.rest.data.*
+import com.normation.rudder.rest.data.SystemInfoJson.*
+import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.services.ClearCacheService
 import com.normation.rudder.services.healthcheck.HealthcheckNotificationService
 import com.normation.rudder.services.healthcheck.HealthcheckService
@@ -98,77 +102,73 @@ class SystemApi(
     restExtractorService: RestExtractorService,
     apiv11service:        SystemApiService11,
     apiv13service:        SystemApiService13,
-    rudderMajorVersion:   String,
-    rudderFullVerion:     String,
-    rudderBuildTimestamp: String
+    systemInfoService:    SystemInfoService
 ) extends LiftApiModuleProvider[API] {
 
   def schemas: ApiModuleProvider[API] = API
 
   override def getLiftEndpoints(): List[LiftApiModule] = {
 
-    API.endpoints.map(e => {
-      e match {
-        case API.Info                           => Info
-        case API.Status                         => Status
-        case API.DebugInfo                      => DebugInfo
-        case API.TechniquesReload               => TechniquesReload
-        case API.DyngroupsReload                => DyngroupsReload
-        case API.ReloadAll                      => ReloadAll
-        case API.PoliciesUpdate                 => PoliciesUpdate
-        case API.PoliciesRegenerate             => PoliciesRegenerate
-        case API.ArchivesGroupsList             => ArchivesGroupsList
-        case API.ArchivesDirectivesList         => ArchivesDirectivesList
-        case API.ArchivesRulesList              => ArchivesRulesList
-        case API.ArchivesParametersList         => ArchivesParametersList
-        case API.ArchivesFullList               => ArchivesFullList
-        case API.RestoreGroupsLatestArchive     => RestoreGroupsLatestArchive
-        case API.RestoreDirectivesLatestArchive => RestoreDirectivesLatestArchive
-        case API.RestoreRulesLatestArchive      => RestoreRulesLatestArchive
-        case API.RestoreParametersLatestArchive => RestoreParametersLatestArchive
-        case API.RestoreFullLatestArchive       => RestoreFullLatestArchive
-        case API.RestoreGroupsLatestCommit      => RestoreGroupsLatestCommit
-        case API.RestoreDirectivesLatestCommit  => RestoreDirectivesLatestCommit
-        case API.RestoreRulesLatestCommit       => RestoreRulesLatestCommit
-        case API.RestoreParametersLatestCommit  => RestoreParametersLatestCommit
-        case API.RestoreFullLatestCommit        => RestoreFullLatestCommit
-        case API.ArchiveGroups                  => ArchiveGroups
-        case API.ArchiveDirectives              => ArchiveDirectives
-        case API.ArchiveRules                   => ArchiveRules
-        case API.ArchiveParameters              => ArchiveParameters
-        case API.ArchiveFull                    => ArchiveAll
-        case API.ArchiveGroupDateRestore        => ArchiveGroupDateRestore
-        case API.ArchiveDirectiveDateRestore    => ArchiveDirectiveDateRestore
-        case API.ArchiveRuleDateRestore         => ArchiveRuleDateRestore
-        case API.ArchiveParameterDateRestore    => ArchiveParameterDateRestore
-        case API.ArchiveFullDateRestore         => ArchiveFullDateRestore
-        case API.GetGroupsZipArchive            => GetGroupsZipArchive
-        case API.GetDirectivesZipArchive        => GetDirectivesZipArchive
-        case API.GetRulesZipArchive             => GetRulesZipArchive
-        case API.GetParametersZipArchive        => GetParametersZipArchive
-        case API.GetAllZipArchive               => GetAllZipArchive
-        case API.GetHealthcheckResult           => GetHealthcheckResult
-        case API.PurgeSoftware                  => PurgeSoftware
-      }
-    })
+    API.endpoints.map {
+      case API.Info                           => Info
+      case API.Status                         => Status
+      case API.DebugInfo                      => DebugInfo
+      case API.TechniquesReload               => TechniquesReload
+      case API.DyngroupsReload                => DyngroupsReload
+      case API.ReloadAll                      => ReloadAll
+      case API.PoliciesUpdate                 => PoliciesUpdate
+      case API.PoliciesRegenerate             => PoliciesRegenerate
+      case API.ArchivesGroupsList             => ArchivesGroupsList
+      case API.ArchivesDirectivesList         => ArchivesDirectivesList
+      case API.ArchivesRulesList              => ArchivesRulesList
+      case API.ArchivesParametersList         => ArchivesParametersList
+      case API.ArchivesFullList               => ArchivesFullList
+      case API.RestoreGroupsLatestArchive     => RestoreGroupsLatestArchive
+      case API.RestoreDirectivesLatestArchive => RestoreDirectivesLatestArchive
+      case API.RestoreRulesLatestArchive      => RestoreRulesLatestArchive
+      case API.RestoreParametersLatestArchive => RestoreParametersLatestArchive
+      case API.RestoreFullLatestArchive       => RestoreFullLatestArchive
+      case API.RestoreGroupsLatestCommit      => RestoreGroupsLatestCommit
+      case API.RestoreDirectivesLatestCommit  => RestoreDirectivesLatestCommit
+      case API.RestoreRulesLatestCommit       => RestoreRulesLatestCommit
+      case API.RestoreParametersLatestCommit  => RestoreParametersLatestCommit
+      case API.RestoreFullLatestCommit        => RestoreFullLatestCommit
+      case API.ArchiveGroups                  => ArchiveGroups
+      case API.ArchiveDirectives              => ArchiveDirectives
+      case API.ArchiveRules                   => ArchiveRules
+      case API.ArchiveParameters              => ArchiveParameters
+      case API.ArchiveFull                    => ArchiveAll
+      case API.ArchiveGroupDateRestore        => ArchiveGroupDateRestore
+      case API.ArchiveDirectiveDateRestore    => ArchiveDirectiveDateRestore
+      case API.ArchiveRuleDateRestore         => ArchiveRuleDateRestore
+      case API.ArchiveParameterDateRestore    => ArchiveParameterDateRestore
+      case API.ArchiveFullDateRestore         => ArchiveFullDateRestore
+      case API.GetGroupsZipArchive            => GetGroupsZipArchive
+      case API.GetDirectivesZipArchive        => GetDirectivesZipArchive
+      case API.GetRulesZipArchive             => GetRulesZipArchive
+      case API.GetParametersZipArchive        => GetParametersZipArchive
+      case API.GetAllZipArchive               => GetAllZipArchive
+      case API.GetHealthcheckResult           => GetHealthcheckResult
+      case API.PurgeSoftware                  => PurgeSoftware
+    }
   }
 
   object Info extends LiftApiModule0 {
     val schema: API.Info.type = API.Info
-    val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      implicit val prettify = params.prettify
-      implicit val action   = "getSystemInfo"
 
-      toJsonResponse(
-        None,
-        ("rudder"           -> (
-          ("major-version"  -> rudderMajorVersion)
-          ~ ("full-version" -> rudderFullVerion)
-          ~ ("build-time"   -> rudderBuildTimestamp)
-        ))
-      )
+      systemInfoService
+        .getAll()
+        .map { i =>
+          // at version 21, in Rudder 8.3 we introduce about page with more info
+          (if (version.value < 21) {
+             AboutInfoJsonV20(AboutRudderInfoJsonV20.transformSystemInfo.transform(i))
+           } else {
+             SystemInfoJson.transformSystemInfo.transform(i)
+           }): SystemInfoJson
+        }
+        .toLiftResponseOne(params, schema, None)
     }
   }
 
@@ -185,15 +185,12 @@ class SystemApi(
   }
 
   object DebugInfo extends LiftApiModule0 {
-
     val schema: API.DebugInfo.type = API.DebugInfo
     val restExtractor = restExtractorService
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-
       apiv11service.debugInfo(params)
     }
-
   }
 
   // Reload [techniques / dynamics groups] endpoint implementation

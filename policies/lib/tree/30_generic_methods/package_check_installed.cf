@@ -1,0 +1,64 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Package check installed
+# @description Verify if a package is installed in any version
+# @deprecated Use [package_present](#_package_present) in audit mode instead.
+# @documentation This bundle will define a condition `package_check_installed_${file_name}_{ok, reached, kept}` if the
+# package is installed, or `package_check_installed_${file_name}_{not_ok, reached, not_kept, failed}` if
+# the package is not installed
+#
+# @parameter name Name of the package to check
+#
+#
+# @parameter_rename package_name name
+# @class_prefix package_check_installed
+# @class_parameter name
+# @agent_support = ["cfengine-community"]
+
+bundle agent package_check_installed(name)
+{
+  vars:
+      "old_class_prefix"        string => canonify("package_check_installed_${name}");
+      "args"                     slist => { "${name}" };
+
+      "report_param"            string => join("_", args);
+      "full_class_prefix"       string => canonify("package_check_installed_${report_param}");
+      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
+
+      "full_inner_class_prefix" string => canonify("package_install_${name}____latest_verify_false");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
+  methods:
+      "disable_reporting_${class_prefix}"
+                        usebundle => disable_reporting;
+
+      "check install with latest version"
+                        usebundle => package_install_version_cmp_update("${name}", "==", "latest", "verify", "false");
+
+      "reenable_reporting_${class_prefix}"    usebundle => enable_reporting,
+                        ifvarclass => "should_report";
+      "copy old classes" usebundle => _classes_copy("${inner_class_prefix}", "${old_class_prefix}");
+      "copy old classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+
+      "report"
+        usebundle  => _log_v3("Check that package ${name} is installed", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

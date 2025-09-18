@@ -172,7 +172,7 @@ trait DirectiveField extends BaseField with SectionChildField {
     <tr>
       <td colspan="2">
       <span>{if (optional) displayName else <b>{displayName}</b>} {tooltipElem} {
-      if (optional) <span> - <small class="greyscala">Optional</small></span>
+      if (optional) <span> - <small class="text-secondary">Optional</small></span>
     }</span>
       </td>
       <td class="directiveVarValue">{value}</td>

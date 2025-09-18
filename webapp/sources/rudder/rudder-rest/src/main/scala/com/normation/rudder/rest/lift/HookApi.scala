@@ -23,11 +23,7 @@ class HookApi(
 
   override def getLiftEndpoints(): List[LiftApiModule] = {
 
-    API.endpoints.map(e => {
-      e match {
-        case API.GetHooks => GetHooks
-      }
-    })
+    API.endpoints.map { case API.GetHooks => GetHooks }
   }
 
   object GetHooks extends LiftApiModule0 {

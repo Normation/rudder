@@ -56,7 +56,7 @@ class CheckPostgreConnection(
   override def checks(): Unit = {
 
     def FAIL(msg: String) = {
-      BootstrapLogger.logEffect.error(msg)
+      BootstrapLogger.Early.DB.logEffect.error(msg)
       throw new UnavailableException(msg)
     }
 
@@ -67,7 +67,7 @@ class CheckPostgreConnection(
       case e: Exception => FAIL("Can not open connection to PostgreSQL database server")
     }
 
-    BootstrapLogger.logEffect.info("PostgreSQL connection is OK")
+    BootstrapLogger.Early.DB.logEffect.info("PostgreSQL connection is OK")
   }
 
 }

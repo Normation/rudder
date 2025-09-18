@@ -63,6 +63,31 @@
   font-size: 24px !important;
 }
 
+/* === NODE SEARCH === */
+.compositionCheckbox input {
+  margin-left : 5px;
+  vertical-align: middle;
+  margin-bottom: 2px;
+}
+.composition input {
+  vertical-align: middle;
+}
+form select.selectComparator {
+   width: 150px;
+}
+form select.selectField {
+   width: 220px;
+}
+.content-wrapper input.queryInputValue, .content-wrapper select.queryInputValue {
+  width:280px;
+}
+/* ========= */
+
+#node-compliance-intro {
+  padding: 10px 15px;
+  margin: 10px 0;
+}
+
 #nodeHeaderInfo {
   display: flex;
   gap: 8px;
@@ -79,9 +104,6 @@
 #nodeDetails {
   flex: 70;
   padding: 0 15px 0 0;
-}
-.details .tabs > .ui-tabs-panel {
-  padding: 10px 15px;
 }
 
 #nodeGroups {
@@ -101,7 +123,7 @@
   padding: 15px 15px 10px !important;
   margin: 0;
   font-size: 1.3rem;
-  background-color: $rudder-bg-gray;
+  background-color: $rudder-bg-light-gray;
   border-bottom: 1px solid $rudder-border-color-default;
 }
 
@@ -256,7 +278,7 @@ pre.display-keys{
   border-top-left-radius: 0;
   border: 1px solid $rudder-border-color-default;
   border-radius: 0px 4px 4px 4px;
-  background-color: $rudder-bg-gray;
+  background-color: $rudder-bg-light-gray;
   display: inline-block;
 }
 pre.display-keys > label:first-child{
@@ -278,7 +300,6 @@ pre.display-keys > label{
   width: 100%;
   padding-bottom: 40px;
 }
-
 /* INVENTORY TAB */
 .sInventory .tab-pane > .alert:first-child{
   margin-top: 0;
@@ -297,7 +318,7 @@ pre.display-keys > label{
   & > .nav-item {
     & > button {
       transition-duration: .2s;
-      background-color: $rudder-bg-gray;
+      background-color: $rudder-bg-light-gray;
       border: 1px solid $rudder-border-color-default;
       padding: 6px 10px;
       color: $rudder-txt-secondary;
@@ -417,3 +438,107 @@ pre.display-keys > label{
 .errorSaving > .fa{
   margin-right:8px;
 }
+
+/* --- */
+
+div.serverDetail {
+  font-weight:bold;
+  text-align:center;
+}
+#serverDetails{
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+
+  .query-search-message, #querySearchSection, #query-search-content, #querySearchInfo{
+    display:none !important;
+  }
+}
+.rudder-template .one-col .template-main .main-details{
+  padding-bottom: 0;
+}
+#logsDetails{
+  margin-bottom: 50px;
+}
+
+.reportLine {
+  background: url("../../images/tableau/fdTaboHead.jpg") repeat-x scroll left top transparent;
+  color: #FFFFFF;
+  float: left;
+  margin-top: 4px;
+  padding: 5px;
+}
+@media screen and (min-width: 993px) {
+  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child,
+  #nodeReportsGrid tr>th:last-child,#nodeReportsGrid tr>td:last-child{
+    width:350px!important;
+    white-space:nowrap;
+  }
+}
+@media screen and (max-width: 992px) {
+  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child,
+  #nodeReportsGrid tr>th:last-child,#nodeReportsGrid tr>td:last-child{
+    width:300px !important;
+    white-space:nowrap;
+  }
+}
+@media screen and (max-width: 768px) {
+  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child,
+  #nodeReportsGrid tr>th:last-child,#nodeReportsGrid tr>td:last-child{
+    width:50% !important;
+    white-space:nowrap;
+  }
+}
+#reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child,
+#nodeReportsGrid tr>th:last-child,#nodeReportsGrid tr>td:last-child{
+  width:auto !important;
+  white-space: normal;
+}
+
+.border-fail {
+  border-left-width: 5px;
+  border-left-style: solid;
+  border-left-color: #c9302c;
+  border-radius: 5px;
+}
+.border-success {
+  border-left-width: 5px;
+  border-left-style: solid;
+  border-left-color: #13BEB7;
+  border-radius: 5px;
+}
+
+.btn-state {
+  width:128px;
+  height:40px;
+}
+.btn-trigger {
+  min-width:150px;
+  height:40px;
+}
+.fa-times-custom {
+  color: #c9302c;
+}
+.fa-check-custom {
+  color: #13BEB7;
+}
+
+/* TECHNICAL LOGS TAB */
+#filterLogs button{
+  width: auto;
+  outline:none;
+}
+#filterLogs .form-control.input-xs{
+  display:inline;
+  height: 25px;
+  margin: 0 5px;
+  width: 140px !important;
+}
+#filterLogs .form-control.input-xs:focus {
+  border-color: #c1c1c1;
+  outline: 0;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgba(208, 208, 208, 0.6);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgb(208, 208, 208);
+}
+

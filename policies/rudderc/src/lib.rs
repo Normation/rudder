@@ -8,7 +8,7 @@ use std::{
 };
 
 use anyhow::bail;
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use rudder_cli::custom_panic_hook_ignore_sigpipe;
 use tracing::debug;
 
@@ -205,26 +205,26 @@ pub fn run(args: MainArgs) -> Result<()> {
 // Actions
 pub mod action {
     use std::{
-        fs::{self, create_dir, create_dir_all, read_to_string, remove_dir_all, File},
+        fs::{self, File, create_dir, create_dir_all, read_to_string, remove_dir_all},
         io::{self, Read, Write},
         path::{Path, PathBuf},
         process::Command,
     };
 
-    use anyhow::{bail, Context, Result};
-    use rudder_commons::{logs::ok_output, Target, ALL_TARGETS};
+    use anyhow::{Context, Result, bail};
+    use rudder_commons::{ALL_TARGETS, Target, logs::ok_output};
     use walkdir::WalkDir;
     use zip::write::{ExtendedFileOptions, FileOptions, ZipWriter};
 
     pub use crate::compiler::compile;
     use crate::{
+        METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TESTS_DIR, YAML_EXTENSIONS,
         backends::{unix::cfengine::cf_agent, windows::test::win_agent},
         compiler::{metadata, read_technique},
-        doc::{book, Format},
+        doc::{Format, book},
         frontends::read_methods,
         ir::Technique,
         test::TestCase,
-        METADATA_FILE, RESOURCES_DIR, TECHNIQUE, TESTS_DIR, YAML_EXTENSIONS,
     };
 
     /// Create a technique skeleton
@@ -316,7 +316,7 @@ pub mod action {
 
         let policy_str = read_to_string(input)
             .with_context(|| format!("Failed to read input from {}", input.display()))?;
-        let policy = read_technique(methods, &policy_str)?;
+        let policy = read_technique(methods, &policy_str, true)?;
         for target in ALL_TARGETS {
             compile(policy.clone(), *target, input, false)?;
         }
@@ -389,13 +389,16 @@ pub mod action {
                 bail!("One library path must be passed using the '--library' option");
             }
             let run_log = match case.target {
-                Target::Unix => cf_agent(
-                    &target_dir.join("technique.cf"),
-                    case_path.as_path(),
-                    libraries[0].as_path(),
-                    &agent_path,
-                    agent_verbose,
-                )?,
+                Target::Unix => {
+                    cf_agent(
+                        &target_dir.join("technique.cf"),
+                        case_path.as_path(),
+                        libraries[0].as_path(),
+                        &agent_path,
+                        agent_verbose,
+                    )?
+                    .runlog
+                }
                 Target::Windows => {
                     // Read the technique
                     // TODO: reuse parsed technique from build step
@@ -404,7 +407,7 @@ pub mod action {
                     let policy_str = read_to_string(technique_src).with_context(|| {
                         format!("Failed to read input from {}", technique_src.display())
                     })?;
-                    let policy = read_technique(methods, &policy_str)?;
+                    let policy = read_technique(methods, &policy_str, true)?;
 
                     win_agent(
                         target_dir,
@@ -455,13 +458,14 @@ pub mod action {
         create_dir_all(output_dir)?;
 
         // Read technique, only do it once
-        let policy = read_technique(methods, &policy_str)?;
+        let policy = read_technique(methods, &policy_str, true)?;
 
         if store_ids {
+            let policy_without_resolving_loops = read_technique(methods, &policy_str, false)?;
             let src_file = input.with_extension("ids.yml");
             let mut file = File::create(&src_file)
                 .with_context(|| format!("Failed to create output file {}", src_file.display()))?;
-            file.write_all(serde_yaml::to_string(&policy)?.as_bytes())?;
+            file.write_all(serde_yaml::to_string(&policy_without_resolving_loops)?.as_bytes())?;
             ok_output("Wrote", src_file.display());
         }
 

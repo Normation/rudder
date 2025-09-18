@@ -1,0 +1,59 @@
+#####################################################################################
+# Copyright 2024 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Command execution as user
+# @description Execute a command as a given user
+# @action
+# @documentation
+#
+# Execute the **Command** in shell using a specific user.
+#
+# On Unix based agents, the method status will report:
+#
+# * a **Repaired** if the return code is "0"
+# * an **Error** if the return code is not "0"
+#
+# @parameter command  Command to run
+# @parameter user  User under which to run the command
+#
+# @class_prefix command_execution_as_user
+# @class_parameter command
+# @agent_support = ["cfengine-community"]
+
+bundle agent command_execution_as_user(command, user)
+{
+  vars:
+      "class_prefix"  string => canonify("command_execution_as_user_${command}");
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass3.dry_run::
+      "${report_data.method_id}" usebundle  => _classes_noop("${report_data.method_id}");
+      "${report_data.method_id}" usebundle  => _classes_noop("${class_prefix}");
+    pass3::
+      "${report_data.method_id}" usebundle  => log_rudder_v4("${command}", "Execute command as user ${user}", "${command}");
+  commands:
+    pass2.!pass3.!dry_run::
+      "${command}"
+        contain      => setuid_sh("${user}"),
+        classes      => classes_generic_two("${report_data.method_id}", "${class_prefix}");
+}

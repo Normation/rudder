@@ -140,37 +140,6 @@ object HashAlgoConstraint extends Enum[HashAlgoConstraint] {
 
   }
 
-  /*
-   * AIX /etc/security/user hash, as explained here:
-   *
-   * =>> $id$salt$encrypted
-   *
-   *    ID  | Method
-   *    ---------------------------------------------------------
-   *    1   | MD5
-   *    2a  | Blowfish (not in mainline glibc; added in some Linux distributions)
-   *    5   | SHA-256 (since glibc 2.7)
-   *    6   | SHA-512 (since glibc 2.7)
-   *
-   * "salt" stands for the up to 16 characters following "$id$" in the salt.
-   *
-   * shadow-md5 / shadow-sha-(level)
-   */
-  object AixMD5 extends HashAlgoConstraint("aix-smd5") {
-    override def hash(input: Array[Byte]): String = AixPasswordHashAlgo.smd5(new String(input, "UTF-8"))
-
-  }
-
-  object AixSHA256 extends HashAlgoConstraint("aix-ssha256") {
-    override def hash(input: Array[Byte]): String = AixPasswordHashAlgo.ssha256(new String(input, "UTF-8"))
-
-  }
-
-  object AixSHA512 extends HashAlgoConstraint("aix-ssha512") {
-    override def hash(input: Array[Byte]): String = AixPasswordHashAlgo.ssha512(new String(input, "UTF-8"))
-
-  }
-
   /**
    * Unix historical crypt algo (based on 56 bits DES)
    * Used in historical Unix systems.
@@ -189,28 +158,11 @@ object HashAlgoConstraint extends Enum[HashAlgoConstraint] {
 
   object DerivedPasswordType {
 
-    case object AIX extends DerivedPasswordType {
-      final val name = "AIX"
-
-      def hash(h: HashAlgoConstraint): HashAlgoConstraint = h match {
-        case LinuxShadowMD5    => AixMD5
-        case LinuxShadowSHA256 => AixSHA256
-        case LinuxShadowSHA512 => AixSHA512
-        case x                 => x
-      }
-    }
-
     case object Linux extends DerivedPasswordType {
       final val name = "Unix"
 
-      def hash(h: HashAlgoConstraint): HashAlgoConstraint = h match {
-        case AixMD5    => LinuxShadowMD5
-        case AixSHA256 => LinuxShadowSHA256
-        case AixSHA512 => LinuxShadowSHA512
-        case x         => x
-      }
+      def hash(h: HashAlgoConstraint): HashAlgoConstraint = h
     }
-    // solaris, etc: todo
   }
 
   /////
@@ -232,9 +184,6 @@ object HashAlgoConstraint extends Enum[HashAlgoConstraint] {
       case LinuxShadowMD5    => 21
       case LinuxShadowSHA256 => 22
       case LinuxShadowSHA512 => 23
-      case AixMD5            => 31
-      case AixSHA256         => 32
-      case AixSHA512         => 33
       case UnixCryptDES      => 70
       case MD5               => 81
       case SHA1              => 82

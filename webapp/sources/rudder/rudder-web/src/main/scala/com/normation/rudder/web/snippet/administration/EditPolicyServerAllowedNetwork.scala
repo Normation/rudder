@@ -47,6 +47,7 @@ import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.eventlog.AuthorizedNetworkModification
 import com.normation.rudder.domain.eventlog.UpdatePolicyServer
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.users.CurrentUser
 import com.normation.zio.*
@@ -66,7 +67,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
   private val eventLogService      = RudderConfig.eventLogRepository
   private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private val uuidGen              = RudderConfig.stringUuidGenerator
-  private val nodeInfoService      = RudderConfig.nodeInfoService
+  private val nodeFactRepo         = RudderConfig.nodeFactRepository
   private var addNetworkField      = ""
   /*
    * We are forced to use that class to deals with multiple request
@@ -82,13 +83,17 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
     }
   }
 
-  private val policyServers = nodeInfoService.getAllSystemNodeIds().toBox
-
   // we need to store that out of the form, so that the changes are persisted at redraw
   private val allowedNetworksMap = scala.collection.mutable.Map[NodeId, Buffer[VH]]()
 
   def dispatch: PartialFunction[String, NodeSeq => NodeSeq] = {
     case "render" =>
+      implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+      val policyServers = nodeFactRepo
+        .getAll()
+        .map(_.collect { case (id, f) if (f.rudderSettings.kind.isPolicyServer) => id }.toSeq)
+        .toBox
+
       policyServers match {
         case e: EmptyBox => errorMessage("#allowedNetworksForm", e)
         case Full(seq) =>
@@ -118,12 +123,12 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
     }
   }
 
-  def renderForm(policyServerId: NodeId): IdMemoizeTransform = SHtml.idMemoize { outerXml =>
+  def renderForm(policyServerId: NodeId)(implicit qc: QueryContext): IdMemoizeTransform = SHtml.idMemoize { outerXml =>
     val allowedNetworksFormId = "allowedNetworksForm" + policyServerId.value
 
-    val policyServerName = nodeInfoService.getNodeInfo(policyServerId).either.runNow match {
+    val policyServerName = nodeFactRepo.get(policyServerId).either.runNow match {
       case Right(Some(nodeInfo)) =>
-        <span>{nodeInfo.hostname}</span>
+        <span>{nodeInfo.fqdn}</span>
       case Left(err)             =>
         val e = s"Could not get details for Policy Server ID ${policyServerId.value}: ${err.fullMsg}"
         logger.error(e)
@@ -225,7 +230,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
               (
                 ".deleteNetwork" #> SHtml.ajaxButton(<span class="fa fa-minus"></span>, () => delete(i)) &
                 "#errorNetworkField" #> <div><span class={
-                  "lift:Msg?errorClass=bs-text-danger;id=errornetwork_" + i
+                  "lift:Msg?errorClass=text-danger;id=errornetwork_" + i
                 }>[error]</span></div> &
                 ".networkField [name]" #> id andThen
                 ".networkField" #> SHtml.text(

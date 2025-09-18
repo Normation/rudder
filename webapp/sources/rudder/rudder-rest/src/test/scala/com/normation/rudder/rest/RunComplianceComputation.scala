@@ -210,6 +210,7 @@ class SetUpCompliance(numNodes: Int, numRules: Int) {
       nodes.map(n => (n.id, n)).toMap.view.succeed
     }
 
+    def getNumberOfManagedNodes(): IOResult[RuntimeFlags] = ???
     def registerChangeCallbackAction(callback: NodeFactChangeEventCallback): IOResult[Unit] = ???
     def getStatus(id:                          NodeId)(implicit qc:   QueryContext): IOResult[InventoryStatus] = ???
     def get(nodeId:                            NodeId)(implicit qc:   QueryContext, status:    SelectNodeStatus): IOResult[Option[CoreNodeFact]]  = ???

@@ -125,8 +125,8 @@ class TechniqueSerializer(parameterTypeService: ParameterTypeService) {
 
     def serializeAgentSupport(agent: AgentType) = {
       agent match {
-        case AgentType.Dsc                                    => JString("dsc")
-        case AgentType.CfeCommunity | AgentType.CfeEnterprise => JString("cfengine-community")
+        case AgentType.Dsc          => JString("dsc")
+        case AgentType.CfeCommunity => JString("cfengine-community")
       }
     }
 

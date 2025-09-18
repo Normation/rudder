@@ -1,0 +1,91 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Variable string from command
+# @description Define a variable from a command output
+# @documentation Define a variable from a command output.
+# The method will execute a shell command and define a variable `${prefix.name}` from it.
+#
+# * Only `stdout` is kept
+# * The variable will only be defined if the exit code of the command is 0
+# * If the variable definition is successful, the method will report a success, it will
+# report an error otherwise.
+# * The command will be executed even in *Audit mode*
+#
+# @parameter prefix The prefix of the variable name
+# @parameter name   The variable to define, the full name will be prefix.name
+# @parameter command         The command to execute
+#
+# @parameter_rename variable_prefix prefix
+# @parameter_rename variable_name name
+# @class_prefix variable_string_from_command
+# @class_parameter name
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent variable_string_from_command(prefix, name, command)
+{
+  vars:
+      "old_class_prefix"  string => canonify("variable_string_from_command_${name}");
+      "args"               slist => { "${prefix}", "${name}", "${command}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("variable_string_from_command_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+    # means < 8.0, promises.cf breaks on >= 3.14
+    # can be removed when 7.X compat is dropped
+    cfengine_3_15|cfengine_3_18::
+      # only capture stdout for compatibility with previous implementation
+      # add a comment to allow executing the exact same command without hitting
+      # https://northerntech.atlassian.net/browse/CFE-4244
+      "result" data => execresult_as_data("${command} # as_data", "useshell", "stdout");
+    !(cfengine_3_15|cfengine_3_18)::
+      "result" data => execresult_as_data("${command}", "useshell", "stdout");
+
+    returned_zero::
+      "${prefix}.${name}" string => "${result[output]}";
+
+  classes:
+    pass1::
+      "returned_zero"     expression => strcmp("${result[exit_code]}", "0");
+    pass2::
+      "variable_defined"  expression => isvariable("${prefix}.${name}");
+
+    any::
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass3.!variable_defined::
+      "error"    usebundle => _classes_failure("${old_class_prefix}");
+      "error"    usebundle => _classes_failure("${class_prefix}");
+
+    pass3.variable_defined::
+      "success"  usebundle => _classes_success("${old_class_prefix}");
+      "success"  usebundle => _classes_success("${class_prefix}");
+
+    pass3::
+      "report"
+        usebundle  => _log_v3("Set the string ${prefix}.${name} to the output of '${command}'", "${name}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+  reports:
+    pass3.info.returned_zero::
+      "The '${command}' command returned '${${prefix}.${name}}'";
+    pass3.info.!returned_zero::
+      "The '${command}' command failed with ${result[exit_code]} code";
+}

@@ -49,12 +49,13 @@ import com.normation.utils.StringUuidGenerator
 import com.softwaremill.quicklens.*
 import java.net.InetAddress
 import java.util.Locale
-import net.liftweb.json.JsonAST.JString
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
 import scala.xml.*
 import zio.*
+import zio.json.*
+import zio.json.ast.*
 import zio.syntax.*
 
 object FusionInventoryParser {
@@ -309,19 +310,17 @@ class FusionInventoryParser(
 
   // the whole content of the CUSTOM_PROPERTIES attribute should be valid JSON Array
   def processCustomProperties(xml: NodeSeq): List[CustomProperty] = {
-    import net.liftweb.json.*
-
-    parseOpt(xml.text) match {
-      case None       => Nil
-      case Some(json) =>
+    xml.text.fromJson[Json] match {
+      case Left(err)   => Nil
+      case Right(json) =>
         json match { // only Json Array is OK
-          case JArray(values) =>
+          case Json.Arr(values) =>
             // each values must be an object, with each key a property name (and values... it depends :)
             values.flatMap {
-              case JObject(fields) => fields.map(f => CustomProperty(f.name, f.value))
-              case _               => Nil
-            }
-          case x              => Nil
+              case Json.Obj(fields) => fields.map(f => CustomProperty(f._1, f._2))
+              case _                => Nil
+            }.toList
+          case x                => Nil
         }
     }
   }
@@ -354,10 +353,10 @@ class FusionInventoryParser(
     val origHostname = sortedAlternatives.collectFirst { case Some(fqdn) if validHostname(fqdn) => fqdn }
 
     customProperties.collectFirst {
-      case CustomProperty(CUSTOM_PROPERTY_OVERRIDE_HOSTNAME, JString(x)) if validHostname(x) => x
+      case CustomProperty(CUSTOM_PROPERTY_OVERRIDE_HOSTNAME, Json.Str(x)) if validHostname(x) => x
     } match {
       case Some(x) =>
-        val orig = CustomProperty(CUSTOM_PROPERTY_ORIGINAL_HOSTNAME, JString(origHostname.getOrElse("none")))
+        val orig = CustomProperty(CUSTOM_PROPERTY_ORIGINAL_HOSTNAME, Json.Str(origHostname.getOrElse("none")))
         (x, orig :: customProperties).succeed
       case None    =>
         origHostname match {
@@ -387,6 +386,7 @@ class FusionInventoryParser(
    *     <POLICY_SERVER_HOSTNAME>127.0.0.1</POLICY_SERVER_HOSTNAME>
    *     <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
    *   </AGENT>
+   *   <AGENT_VERSION>xxx</AGENT_VERSION> <!-- added in 8.3.1 -->
    *   <AGENT_CAPABILITIES>
    *     <AGENT_CAPABILITY>cfengine</AGENT_CAPABILITY>
    *     ...
@@ -411,7 +411,7 @@ class FusionInventoryParser(
 
     // as a temporary solution, we are getting information from packages
 
-    def findAgentVersion(software: Seq[Software], agentType: AgentType): Option[AgentVersion] = {
+    def findAgentVersionFromPackages(software: Seq[Software], agentType: AgentType): Option[AgentVersion] = {
       val agentSoftName = agentType.inventorySoftwareName.toLowerCase()
 
       software.filter(_.name.exists(_.toLowerCase().contains(agentSoftName))).toList.flatMap(_.version) match {
@@ -446,16 +446,10 @@ class FusionInventoryParser(
 
       val agentListEither = (rudderXml \\ "AGENT").toList.map { agentXML =>
         val agent = for {
-          agentName    <- optText(agentXML \ "AGENT_NAME").notOptionalPure(
-                            "could not parse agent name (tag AGENT_NAME) from Rudder specific inventory"
-                          )
-          rawAgentType <- AgentType.fromValue(agentName)
-          agentType    <- if (rawAgentType == AgentType.CfeEnterprise) {
-                            Left(Inconsistency("CFEngine Enterprise/Nova agents are not supported anymore"))
-                          } else {
-                            Right(rawAgentType)
-                          }
-
+          agentName      <- optText(agentXML \ "AGENT_NAME").notOptionalPure(
+                              "could not parse agent name (tag AGENT_NAME) from Rudder specific inventory"
+                            )
+          agentType      <- AgentType.fromValue(agentName)
           rootUser       <-
             optText(agentXML \\ "OWNER").notOptionalPure("could not parse rudder user (tag OWNER) from rudder specific inventory")
           policyServerId <- optText(agentXML \\ "POLICY_SERVER_UUID").notOptionalPure(
@@ -467,10 +461,13 @@ class FusionInventoryParser(
               case Some(cert) => Right(Certificate(cert))
               case None       => Left(Inconsistency("could not parse agent security token (tag AGENT_CERT), which is mandatory"))
             }
-          version        <-
-            findAgentVersion(inventory.applications, agentType).notOptionalPure(
-              s"Agent is not present in software list and so we can't get its version. This is not supported anymore."
-            )
+          version        <- optText(rudderXml \ "AGENT_VERSION") match {
+                              case Some(version) => Right(AgentVersion(version))
+                              case None          =>
+                                findAgentVersionFromPackages(inventory.applications, agentType).notOptionalPure(
+                                  s"Agent is not present in software list and so we can't get its version. This is not supported anymore."
+                                )
+                            }
         } yield {
           (AgentInfo(agentType, Some(version), securityToken, Set()), rootUser, policyServerId)
         }

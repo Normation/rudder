@@ -55,14 +55,24 @@ class RudderPluginTest extends Specification {
 
   "Parsing a plugin version" should {
     "be able to read simple rudder version" in {
-      PluginVersion.from("7.1.0-2.3.0") must_!= (PluginVersion("7.1.0".toVersion, "2.3.0".toVersion))
+      RudderPluginVersion.from("7.1.0-2.3.0") must_!= (RudderPluginVersion("7.1.0".toVersion, "2.3.0".toVersion))
     }
     "automatically add a patch level (eq 0)" in {
-      PluginVersion.from("7.1-2.3") must_!= (PluginVersion("7.1.0".toVersion, "2.3.0".toVersion))
+      RudderPluginVersion.from("7.1-2.3") must_!= (RudderPluginVersion("7.1.0".toVersion, "2.3.0".toVersion))
+    }
+    "understand complicated format with beta" in {
+      RudderPluginVersion
+        .from("8.3.0~beta1-SNAPSHOT-2.1-nightly") must_!= (RudderPluginVersion(
+        "7.0.0~beta1-SNAPSHOT".toVersion,
+        "2.1.0-nightly".toVersion
+      ))
     }
     "understand complicated format with rc" in {
-      PluginVersion
-        .from("7.0.0~rc2-SNAPSHOT-2.1-nightly") must_!= (PluginVersion("7.0.0~rc2-SNAPSHOT".toVersion, "2.1.0-nightly".toVersion))
+      RudderPluginVersion
+        .from("7.0.0~rc2-SNAPSHOT-2.1-nightly") must_!= (RudderPluginVersion(
+        "7.0.0~rc2-SNAPSHOT".toVersion,
+        "2.1.0-nightly".toVersion
+      ))
     }
   }
 }

@@ -20,7 +20,7 @@ view model =
         div[]
         [ p[]
           [ text "By default, agents on all nodes run following the same frequency defined in the global "
-          , a [href (model.contextPath ++ "/secure/administration/policyServerManagement#cfagentSchedule")][text "Settings"]
+          , a [href (model.contextPath ++ "/secure/administration/settings#cfagentSchedule")][text "Settings"]
           , text "."
           ]
         , p[]

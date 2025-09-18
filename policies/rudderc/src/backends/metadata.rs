@@ -12,14 +12,14 @@ use std::path::Path;
 
 use anyhow::{Error, Result};
 use quick_xml::se::{QuoteLevel, Serializer};
-use rudder_commons::{Target, ALL_TARGETS};
+use rudder_commons::{ALL_TARGETS, Target};
 use serde::Serialize;
 
 use crate::{
+    RESOURCES_DIR,
     backends::{Backend, Windows},
     ir,
     ir::technique::{Id, ItemKind, LeafReportingMode, Parameter, ParameterType},
-    RESOURCES_DIR,
 };
 
 pub struct Metadata;
@@ -136,7 +136,7 @@ impl From<Parameter> for SelectOne {
         };
 
         Self {
-            name: p.name.clone(),
+            name: p.id.to_string().to_uppercase(),
             variable_name: p.name.clone(),
             description: p.description.unwrap_or(p.name),
             long_description: p.documentation,

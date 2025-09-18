@@ -466,7 +466,7 @@ object DisplayDirectiveTree extends Loggable {
             else { "" }}</span>
               ${agentCompat.directiveText}
               ${disableMessage}
-              <span class="visually-hidden"> ${activeTechnique.techniqueName} </span>
+              <span class="d-none"> ${activeTechnique.techniqueName} </span>
             </div>
 
           """

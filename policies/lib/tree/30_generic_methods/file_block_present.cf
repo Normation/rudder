@@ -1,0 +1,76 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File block present
+# @description Ensure that a text block is present in a specific location
+# @documentation Ensure that a text block is present in the target file.
+# If the block is not found, it will be added at the end of the file.
+#
+# #### Examples:
+#
+# Given a file with the following content:
+# ```
+# apple
+# pear
+# banana
+# ```
+# Applying the method with the block:
+# ```
+# pear
+# orange
+# ```
+#
+# Will result in the following content:
+# ```
+# apple
+# pear
+# banana
+# pear
+# orange
+# ```
+#
+# @parameter path File name to edit (absolute path on the target node)
+# @parameter block Block(s) to add in the file
+#
+#
+# @parameter_rename file path
+# @class_prefix file_block_present
+# @class_parameter path
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent file_block_present(path, block)
+{
+  vars:
+      "old_class_prefix"  string => canonify("file_block_present_${path}");
+      "args"               slist => { "${path}", "${block}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_block_present_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  files:
+      "${path}"
+        create        => "true",
+        edit_line     => ncf_insert_block("${block}"),
+        edit_defaults => ncf_empty_select("false"),
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
+      "report"   usebundle => _log_v3("Insert text block into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

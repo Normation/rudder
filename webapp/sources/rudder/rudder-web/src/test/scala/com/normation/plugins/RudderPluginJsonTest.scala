@@ -37,9 +37,11 @@
 
 package com.normation.plugins
 
+import better.files.*
 import com.normation.utils.ParseVersion
 import com.normation.utils.Version
 import com.normation.zio.*
+import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import org.junit.runner.RunWith
@@ -118,7 +120,7 @@ class RudderPluginJsonTest extends Specification {
   val expected: List[JsonPluginDef] = List(
     JsonPluginDef(
       "rudder-plugin-branding",
-      PluginVersion("5.0.0".toVersion, "1.3.0".toVersion),
+      RudderPluginVersion("5.0.0".toVersion, "1.3.0".toVersion),
       List(
         "/opt/rudder/share/plugins/",
         "/opt/rudder/share/plugins/branding/",
@@ -130,7 +132,7 @@ class RudderPluginJsonTest extends Specification {
     ),
     JsonPluginDef(
       "rudder-plugin-centreon",
-      PluginVersion("5.0.0".toVersion, "1.1.0".toVersion),
+      RudderPluginVersion("5.0.0".toVersion, "1.1.0".toVersion),
       List(
         "/opt/rudder//",
         "/opt/rudder//bin/",
@@ -164,16 +166,22 @@ class RudderPluginJsonTest extends Specification {
     )
   )
 
-  val packageService = new ReadPluginPackageInfo("/tmp/foo")
-
   "Plugins JSON service" should {
     "be able to read json file format" in {
-      val all     = packageService.parseJson(index_json).runNow
-      val success = all.collect { case Right(x) => x }
-      val errors  = all.collect { case Left(x) => x }
+      ReadPluginPackageInfo.parseJsonPluginFileDefs(index_json) must beRight(containTheSameElementsAs(expected))
+    }
 
-      (errors must beEmpty) and
-      (success must containTheSameElementsAs(expected))
+    val withIndexFile = for {
+      tmp <- File.temporaryFile("index.json")
+      os  <- tmp.outputStream
+      is  <- new Dispose(Resource.getAsStream("plugins-index.json"))
+    } yield {
+      IOUtils.copy(is, os)
+      tmp
+    }
+    "be able to read all plugins" in withIndexFile { f =>
+      val read = new ReadPluginPackageInfo(f)
+      read.getInfo().either.runNow must beRight(haveSize[List[?]](11))
     }
   }
 }

@@ -65,7 +65,10 @@ pub trait IsInstalled {
 
 impl IsInstalled for PythonDependency {
     fn is_installed(&self) -> bool {
-        warn!("Deprecated dependency type 'python' with value '{}'. It is up to you to make sure it is installed, ignoring.", self.0);
+        warn!(
+            "Deprecated dependency type 'python' with value '{}'. It is up to you to make sure it is installed, ignoring.",
+            self.0
+        );
         true
     }
 }
@@ -84,7 +87,10 @@ impl IsInstalled for AptDependency {
         let package_status_output = match CmdOutput::new(cmd) {
             Ok(a) => a,
             Err(e) => {
-                warn!("Could not check 'apt' base dependency, most likely because apt is not installed:\n{}", e);
+                warn!(
+                    "Could not check 'apt' base dependency, most likely because apt is not installed:\n{}",
+                    e
+                );
                 return false;
             }
         };
@@ -107,7 +113,10 @@ impl IsInstalled for RpmDependency {
         let result = match CmdOutput::new(cmd) {
             Ok(a) => a,
             Err(e) => {
-                warn!("Could not check for 'rpm' base dependency, most likely because rpm is not installed,\n{}", e);
+                warn!(
+                    "Could not check for 'rpm' base dependency, most likely because rpm is not installed,\n{}",
+                    e
+                );
                 return false;
             }
         };

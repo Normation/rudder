@@ -44,14 +44,15 @@ import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.plugins.AlwaysEnabledPluginStatus
-import com.normation.plugins.JsonPluginsDetails
-import com.normation.plugins.PluginLicenseInfo
+import com.normation.plugins.Plugin
+import com.normation.plugins.PluginLicense
 import com.normation.plugins.PluginName
+import com.normation.plugins.PluginsMetadata
 import com.normation.plugins.PluginStatus
-import com.normation.plugins.PluginStatusInfo
-import com.normation.plugins.PluginVersion
 import com.normation.plugins.RudderPluginDef
+import com.normation.plugins.RudderPluginLicenseStatus
 import com.normation.plugins.RudderPluginModule
+import com.normation.plugins.RudderPluginVersion
 import com.normation.rudder.AuthorizationType
 import com.normation.rudder.domain.eventlog.ApplicationStarted
 import com.normation.rudder.domain.eventlog.LogoutEventLog
@@ -59,8 +60,12 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.logger.ApplicationLoggerPure
 import com.normation.rudder.domain.logger.PluginLogger
 import com.normation.rudder.rest.ApiModuleProvider
+import com.normation.rudder.rest.AuthorizationMappingListEndpoint
 import com.normation.rudder.rest.EndpointSchema
 import com.normation.rudder.rest.InfoApi as InfoApiDef
+import com.normation.rudder.rest.data.JsonGlobalPluginLimits
+import com.normation.rudder.rest.data.JsonPluginDetails
+import com.normation.rudder.rest.data.JsonPluginsDetails
 import com.normation.rudder.rest.lift.InfoApi
 import com.normation.rudder.rest.lift.LiftApiModuleProvider
 import com.normation.rudder.rest.v1.RestStatus
@@ -70,10 +75,11 @@ import com.normation.rudder.web.snippet.CustomPageJs
 import com.normation.rudder.web.snippet.WithCachedResource
 import com.normation.rudder.web.snippet.WithEnabledCSP
 import com.normation.rudder.web.snippet.WithNonce
-import com.normation.utils.DateFormaterService
 import com.normation.zio.*
+import io.scalaland.chimney.syntax.*
 import java.net.URI
 import java.net.URLConnection
+import java.time.ZonedDateTime
 import java.util.Locale
 import net.liftweb.common.*
 import net.liftweb.http.*
@@ -81,7 +87,6 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.sitemap.*
 import net.liftweb.sitemap.Loc.*
-import net.liftweb.sitemap.Loc.LocGroup
 import net.liftweb.sitemap.Loc.TestAccess
 import net.liftweb.sitemap.Menu
 import net.liftweb.util.TimeHelpers.*
@@ -196,6 +201,12 @@ object Boot {
       Full(RedirectWithState(redirectTo, redirection))
     }
   }
+
+  // shortcut to clarify menus: redirect to dashboard is user doesn't have requiredAuthz
+  def needPerms(requiredAuthz: AuthorizationType*): TestAccess = {
+    TestAccess(() => userIsAllowed("/secure/index", requiredAuthz*))
+  }
+
 }
 
 /*
@@ -211,14 +222,8 @@ object PluginsInfo {
   private var _plugins = Map[PluginName, RudderPluginDef]()
 
   // display license info for webapp logs
-  private def logInfo(name: String, i: PluginLicenseInfo): String = {
-    val nb = i.maxNodes match {
-      case Some(i) if i > 0 => i.toString
-      case _                => "unlimited"
-    }
-
-    s"Plugin '${name}' enabled. Licensed to ${i.licensee} for Rudder [${i.minVersion},${i.maxVersion}] " +
-    s"until ${DateFormaterService.getDisplayDate(i.endDate)} and up to ${nb} nodes"
+  private def logInfo(name: String, i: PluginLicense): String = {
+    s"Plugin '${name}' enabled. ${i.display}"
   }
 
   /*
@@ -230,19 +235,27 @@ object PluginsInfo {
 
     // log license info
     plugin.status.current match {
-      case PluginStatusInfo.EnabledNoLicense      =>
+      case RudderPluginLicenseStatus.EnabledNoLicense      =>
         ApplicationLoggerPure.Plugin.logEffect.info(s"Plugin '${plugin.name.value}' is enabled")
-      case PluginStatusInfo.EnabledWithLicense(i) =>
+      case RudderPluginLicenseStatus.EnabledWithLicense(i) =>
         ApplicationLoggerPure.Plugin.logEffect.info(logInfo(plugin.name.value, i))
-      case PluginStatusInfo.Disabled(reason, _)   =>
+      case RudderPluginLicenseStatus.Disabled(reason, _)   =>
         ApplicationLoggerPure.Plugin.logEffect.warn(s"Plugin '${plugin.name.value}' is disabled: ${reason}")
     }
   }
 
-  def plugins = _plugins
+  def plugins: Map[PluginName, RudderPluginDef] = _plugins
 
-  def pluginInfos: JsonPluginsDetails = {
-    JsonPluginsDetails.buildDetails(_plugins.values.toList.sortBy(_.name.value).map(_.toJsonPluginDetails))
+  def pluginInfos: PluginsMetadata[ZonedDateTime] = {
+    import com.normation.plugins.GlobalPluginsLicense.EndDateImplicits.*
+    PluginsMetadata.fromPlugins[ZonedDateTime](_plugins.values.toList.sortBy(_.name.value).map(_.transformInto[Plugin]))
+  }
+
+  // plugins details for the public plugins API with a different mapping, more oriented towards API consumers
+  def pluginJsonInfos: JsonPluginsDetails = {
+    // to get global information we need the metadata computed from pluginInfos
+    val license = pluginInfos.globalLicense.map(_.transformInto[JsonGlobalPluginLimits])
+    JsonPluginsDetails(license, _plugins.values.toList.sortBy(_.name.value).map(_.transformInto[JsonPluginDetails]))
   }
 
   def pluginApisDef: List[EndpointSchema] = {
@@ -517,20 +530,20 @@ class Boot extends Loggable {
     LiftRules.statelessDispatch.append(RestStatus)
 
     // REST API Internal
-    LiftRules.statelessDispatch.append(RudderConfig.restApiAccounts)
     LiftRules.statelessDispatch.append(RudderConfig.restQuicksearch)
     LiftRules.statelessDispatch.append(RudderConfig.restCompletion)
     LiftRules.statelessDispatch.append(RudderConfig.sharedFileApi)
-    LiftRules.statelessDispatch.append(RudderConfig.eventLogApi)
     // REST API (all public/internal API)
     // we need to add "info" API here to have all used API (even plugins)
-    val infoApi = {
+    val infoApi       = {
       // all used api - add info as it is not yet declared
       val schemas   = RudderConfig.rudderApi.apis().map(_.schema) ++ InfoApiDef.endpoints
       val endpoints = schemas.flatMap(RudderConfig.apiDispatcher.withVersion(_, RudderConfig.ApiVersions))
-      new InfoApi(RudderConfig.restExtractorService, RudderConfig.ApiVersions, endpoints)
+      new InfoApi(RudderConfig.ApiVersions, endpoints)
     }
     RudderConfig.rudderApi.addModules(infoApi.getLiftEndpoints())
+    val apiRoleMapper = new AuthorizationMappingListEndpoint(RudderConfig.rudderApi.apis().map(_.schema))
+    RudderConfig.authorizationApiMapping.addMapper(apiRoleMapper)
     LiftRules.statelessDispatch.append(RudderConfig.rudderApi.getLiftRestApi())
 
     // URL rewrites
@@ -587,8 +600,7 @@ class Boot extends Loggable {
       SecurityRules(
         https = hsts,
         content = Some(csp),
-        // Allow frames from same domain, used by external-node-info and openscap plugins
-        frameRestrictions = Some(FrameRestrictions.SameOrigin),
+        frameRestrictions = Some(FrameRestrictions.Deny),
         // OtherModes = not(DevMode) = Prod, enforce and log
         enforceInOtherModes = true,
         logInOtherModes = true,
@@ -736,6 +748,7 @@ class Boot extends Loggable {
      */
     import net.liftweb.http.provider.HTTPRequest
     import java.util.Locale
+    import com.normation.rudder.AuthorizationType as Authz
     val DefaultLocale = new Locale("")
     LiftRules.localeCalculator = { (request: Box[HTTPRequest]) =>
       {
@@ -758,169 +771,84 @@ class Boot extends Loggable {
     }
 
     // All the following is related to the sitemap
-    val nodeManagerMenu = {
+    // format: off
+    def nodeManagerMenu = {
       (Menu(MenuUtils.nodeManagementMenu, <i class="fa fa-sitemap"></i> ++ <span>Node management</span>: NodeSeq) /
-      "secure" / "nodeManager" / "index" >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Node.Read)))
+      "secure" / "nodeManager" / "index" >> needPerms(Authz.Node.Read))
         .submenus(
-          Menu("110-nodes", <span>Nodes</span>) /
-          "secure" / "nodeManager" / "nodes"
-          >> LocGroup("nodeGroup"),
-          Menu("120-search-nodes", <span>Node search</span>) /
-          "secure" / "nodeManager" / "searchNodes"
-          >> LocGroup("nodeGroup"),
-          Menu("120-node-details", <span>Node details</span>) /
-          "secure" / "nodeManager" / "node"
-          >> LocGroup("nodeGroup")
-          >> Hidden,
-          Menu("130-pending-nodes", <span>Pending nodes</span>) /
-          "secure" / "nodeManager" / "manageNewNode"
-          >> LocGroup("nodeGroup"),
-          Menu("140-groups", <span>Groups</span>) /
-          "secure" / "nodeManager" / "groups"
-          >> LocGroup("groupGroup")
-          >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Group.Read))
+          Menu("110-nodes", <span>Nodes</span>) / "secure" / "nodeManager" / "nodes"
+            >> needPerms(Authz.Node.Read),
+          Menu("120-node-details", <span>Node details</span>) / "secure" / "nodeManager" / "node"
+            >> needPerms(Authz.Node.Read)
+            >> Hidden,
+          Menu("130-pending-nodes", <span>Pending nodes</span>) / "secure" / "nodeManager" / "manageNewNode"
+            >> needPerms(Authz.Node.Read),
+          Menu("140-groups", <span>Groups</span>) / "secure" / "nodeManager" / "groups"
+            >> needPerms(Authz.Group.Read)
         )
     }
 
     def policyMenu = {
-      val name = "configuration"
-      (Menu(MenuUtils.policyMenu, <i class="fa fa-pencil"></i> ++ <span>{name.capitalize} policy</span>: NodeSeq) /
-      "secure" / (name + "Manager") / "index" >> TestAccess(() =>
-        userIsAllowed("/secure/index", AuthorizationType.Configuration.Read)
-      )).submenus(
-        Menu("210-rules", <span>Rules</span>) /
-        "secure" / (name + "Manager") / "ruleManagement"
-        >> LocGroup(name + "Group")
-        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Rule.Read)),
-        Menu("210-rule-details", <span>Rule</span>) /
-        "secure" / (name + "Manager") / "ruleManagement" / "rule" / *
-        >> TemplateBox { case _ => Templates("secure" :: (name + "Manager") :: "ruleManagement" :: Nil) }
-        >> LocGroup(name + "Group")
-        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Rule.Read))
-        >> Hidden,
-        Menu("210-rule-category", <span>Rule Category</span>) /
-        "secure" / (name + "Manager") / "ruleManagement" / "ruleCategory" / *
-        >> TemplateBox { case _ => Templates("secure" :: (name + "Manager") :: "ruleManagement" :: Nil) }
-        >> LocGroup(name + "Group")
-        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Rule.Read))
-        >> Hidden,
-        Menu("220-directives", <span>Directives</span>) /
-        "secure" / (name + "Manager") / "directiveManagement"
-        >> LocGroup(name + "Group")
-        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Directive.Read)),
-        Menu("230-techniques", <span>Techniques</span>) /
-        "secure" / (name + "Manager") / "techniqueEditor"
-        >> LocGroup((name + "Manager"))
-        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Technique.Read)),
-        Menu("230-technique-details", <span>Technique</span>) /
-        "secure" / (name + "Manager") / "techniqueEditor" / "technique" / *
-        >> TemplateBox { case _ => Templates("secure" :: (name + "Manager") :: "techniqueEditor" :: Nil) }
-        >> LocGroup(name + "Group")
-        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Rule.Read))
-        >> Hidden,
-        Menu("240-global-parameters", <span>Global properties</span>) /
-        "secure" / (name + "Manager") / "parameterManagement"
-        >> LocGroup(name + "Group")
-        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Parameter.Read))
+      (Menu(MenuUtils.policyMenu, <i class="fa fa-pencil"></i> ++ <span>Configurations</span>: NodeSeq) /
+      "secure" / "configurationManager" / "index" >> needPerms(Authz.Configuration.Read)).submenus(
+        Menu("210-rules", <span>Rules</span>) / "secure" / "configurationManager" / "ruleManagement"
+          >> needPerms(Authz.Rule.Read),
+        Menu("210-rule-details", <span>Rule</span>) / "secure" / "configurationManager" / "ruleManagement" / "rule" / *
+          >> TemplateBox { case _ => Templates("secure" :: "configurationManager" :: "ruleManagement" :: Nil) }
+          >> needPerms(Authz.Rule.Read)
+          >> Hidden,
+        Menu("210-rule-category", <span>Rule Category</span>) / "secure" / "configurationManager" / "ruleManagement" / "ruleCategory" / *
+          >> TemplateBox { case _ => Templates("secure" :: "configurationManager" :: "ruleManagement" :: Nil) }
+          >> needPerms(Authz.Rule.Read)
+          >> Hidden,
+        Menu("220-directives", <span>Directives</span>) / "secure" / "configurationManager" / "directiveManagement"
+          >> needPerms(Authz.Directive.Read),
+        Menu("230-techniques", <span>Techniques</span>) / "secure" / "configurationManager" / "techniqueEditor"
+          >> needPerms(Authz.Technique.Read),
+        Menu("230-technique-details", <span>Technique</span>) / "secure" / "configurationManager" / "techniqueEditor" / "technique" / *
+          >> TemplateBox { case _ => Templates("secure" :: "configurationManager" :: "techniqueEditor" :: Nil) }
+          >> needPerms(Authz.Rule.Read)
+          >> Hidden,
+        Menu("240-global-parameters", <span>Global properties</span>) / "secure" / "configurationManager" / "parameterManagement"
+          >> needPerms(Authz.Parameter.Read),
+        Menu("280-event-logs", <span>Change logs</span>) / "secure" / "configurationManager" / "changeLogs"
+          >> needPerms(Authz.Administration.Read)
+      )
+    }
+
+    def accessMenu = {
+      (Menu(MenuUtils.accessMenu, (<i class="fa fa-user"></i><span>Users &amp; access</span>): NodeSeq) /
+      "secure" / "access" / "index" >> needPerms(Authz.Administration.Write)).submenus(
+        Menu("810-users", <span>User management</span> ++ <span data-lift="UserManagementInfo.render"></span>) / "secure" / "access" / "userManagement"
+          >> needPerms(Authz.Administration.Write),
+        Menu("820-api", <span>API accounts</span>) / "secure" / "access" / "apiManagement"
+          >> needPerms(Authz.Administration.Write)
       )
     }
 
     def administrationMenu = {
       (Menu(MenuUtils.administrationMenu, <i class="fa fa-gear"></i> ++ <span>Administration</span>: NodeSeq) /
-      "secure" / "administration" / "index" >> TestAccess(() =>
-        userIsAllowed("/secure/index", AuthorizationType.Administration.Read, AuthorizationType.Technique.Read)
-      )).submenus(
-        Menu("710-setup", <span>Setup</span>) /
-        "secure" / "administration" / "setup"
-        >> LocGroup("administrationGroup")
-        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Administration.Read)),
-        Menu("720-settings", <span>Settings</span>) /
-        "secure" / "administration" / "policyServerManagement"
-        >> LocGroup("administrationGroup")
-        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Administration.Read)),
-        Menu("730-database", <span>Reports database</span>) /
-        "secure" / "administration" / "databaseManagement"
-        >> LocGroup("administrationGroup")
-        >> TestAccess(() =>
-          userIsAllowed("/secure/administration/policyServerManagement", AuthorizationType.Administration.Read)
-        ),
-        Menu("740-techniques-tree", <span>Techniques tree</span>) /
-        "secure" / "administration" / "techniqueLibraryManagement"
-        >> LocGroup("administrationGroup")
-        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Technique.Read)),
-        Menu("750-api", <span>API accounts</span>) /
-        "secure" / "administration" / "apiManagement"
-        >> LocGroup("administrationGroup")
-        >> TestAccess(() =>
-          userIsAllowed("/secure/administration/policyServerManagement", AuthorizationType.Administration.Write)
-        ),
-        Menu("760-hooks", <span>Hooks</span>) /
-        "secure" / "administration" / "hooksManagement"
-        >> LocGroup("administrationGroup")
-        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Administration.Read)),
-        Menu("760-userManagement", <span>User management</span> ++ <span data-lift="UserManagementInfo.render"></span>: NodeSeq) /
-        "secure" / "administration" / "userManagement"
-        >> LocGroup("administrationGroup")
-        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Administration.Write))
+      "secure" / "administration" / "index" >> needPerms(Authz.Administration.Read)).submenus(
+        Menu("910-settings", <span>Settings</span>) / "secure" / "administration" / "settings"
+          >> needPerms(Authz.Administration.Read),
+        Menu("920-maintenance", <span>Maintenance</span>) / "secure" / "administration" / "maintenance"
+          >> needPerms(Authz.Administration.Read),
+        Menu("950-plugins", <span>Plugins</span>) / "secure" / "administration" / "pluginInformation"
+          >> needPerms(Authz.Administration.Write),
+        Menu("990-about", <span>About</span>) / "secure" / "administration" / "about"
+          >> needPerms(Authz.Administration.Read)
       )
     }
+    // format: on
 
-    def pluginsMenu = {
-      (Menu(
-        MenuUtils.pluginsMenu,
-        <i class="fa fa-puzzle-piece"></i> ++ <span>Plugins</span> ++ <span data-lift="PluginExpirationInfo.renderIcon"></span>: NodeSeq
-      ) /
-      "secure" / "plugins" / "index"
-      >> LocGroup("pluginsGroup")
-      >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Administration.Read))) submenus (
-        Menu("910-plugins", <span>Plugin information</span>) /
-        "secure" / "plugins" / "pluginInformation"
-        >> LocGroup("pluginsGroup")
-        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Administration.Read))
-      )
-    }
-
-    def utilitiesMenu = {
-      // if we can't get the workflow property, default to false
-      // (don't give rights if you don't know)
-      def workflowEnabled = RudderConfig.configService.rudder_workflow_enabled().either.runNow.getOrElse(false)
-      (Menu(MenuUtils.utilitiesMenu, <i class="fa fa-wrench"></i> ++ <span>Utilities</span>: NodeSeq) /
-      "secure" / "utilities" / "index" >>
-      TestAccess(() => {
-        if (
-          (workflowEnabled && (CurrentUser.checkRights(AuthorizationType.Validator.Read) || CurrentUser
-            .checkRights(AuthorizationType.Deployer.Read))) || CurrentUser
-            .checkRights(AuthorizationType.Administration.Read)
-        ) {
-          Empty
-        } else {
-          Full(RedirectWithState("/secure/index", redirection))
-        }
-      })).submenus(
-        Menu("610-archives", <span>Archives</span>) /
-        "secure" / "utilities" / "archiveManagement"
-        >> LocGroup("utilitiesGroup")
-        >> TestAccess(() => userIsAllowed("/secure/utilities/eventLogs", AuthorizationType.Administration.Write)),
-        Menu("620-event-logs", <span>Event logs</span>) /
-        "secure" / "utilities" / "eventLogs"
-        >> LocGroup("utilitiesGroup")
-        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Administration.Read)),
-        Menu("630-health-check", <span>Health check</span>) /
-        "secure" / "utilities" / "healthcheck"
-        >> LocGroup("utilitiesGroup")
-        >> TestAccess(() => userIsAllowed("/secure/index", AuthorizationType.Administration.Read))
-      )
-    }
-
-    val rootMenu = List(
+    def rootMenu = List(
       Menu("000-dashboard", <i class="fa fa-dashboard"></i> ++ <span>Dashboard</span>: NodeSeq) / "secure" / "index",
       Menu("010-login") / "index" >> Hidden,
-      Menu("020-templates") / "templates" / ** >> Hidden, // allows access to html file use by js
+      Menu("020-templates") / "templates" / ** >> Hidden, // allows access to html files used by js
       nodeManagerMenu,
       policyMenu,
-      utilitiesMenu,
       administrationMenu,
-      pluginsMenu
+      accessMenu
     ).map(_.toMenu)
 
     ////////// import and init modules //////////
@@ -1003,22 +931,16 @@ class Boot extends Loggable {
         Nil
       case Right(plugins) =>
         val scalaKeys = scalaPlugins.keySet
-        // log parsing errors
-        plugins.collect { case Left(e) => e }.foreach { e =>
-          PluginLogger.error(
-            s"Error when parsing plugin information from index file '${RudderConfig.jsonPluginDefinition.index.pathAsString}': ${e.fullMsg}"
-          )
-        }
-        plugins.collect { case Right(p) if (!scalaKeys.contains(p.name) && p.jars.isEmpty) => p }.map { p =>
+        plugins.collect { case p if (!scalaKeys.contains(p.name) && p.jars.isEmpty) => p }.map { p =>
           val sn = p.name.replace("rudder-plugin-", "")
           new RudderPluginDef {
             override def displayName = sn.capitalize
             override val name        = PluginName(p.name)
-            override val shortName:   String         = sn
-            override val description: NodeSeq        = <p>{p.name}</p>
-            override val version:     PluginVersion  = p.version
-            override val versionInfo: Option[String] = None
-            override val status:      PluginStatus   = AlwaysEnabledPluginStatus
+            override val shortName:   String              = sn
+            override val description: NodeSeq             = <p>{p.name}</p>
+            override val version:     RudderPluginVersion = p.version
+            override val versionInfo: Option[String]      = None
+            override val status:      PluginStatus        = AlwaysEnabledPluginStatus
             override val init = ()
             override val basePackage: String              = p.name
             override val configFiles: Seq[ConfigResource] = Nil
@@ -1056,7 +978,6 @@ class Boot extends Loggable {
 object MenuUtils {
   val nodeManagementMenu = "100-nodes"
   val policyMenu         = "200-policy"
-  val administrationMenu = "700-administration"
-  val utilitiesMenu      = "600-utilities"
-  val pluginsMenu        = "900-plugins"
+  val accessMenu         = "800-usersAccess"
+  val administrationMenu = "900-administration"
 }

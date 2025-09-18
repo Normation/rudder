@@ -1,0 +1,47 @@
+body printfile cat(file)
+# @brief Report the contents of a file
+# @param file The full path of the file to report
+{
+        file_to_print => "$(file)";
+        number_of_lines => "inf";
+}
+
+body printfile head(file)
+# @brief Report the first 10 lines of a file
+# @param file The full path of the file to report
+{
+        file_to_print => "$(file)";
+      # GNU head defaults to 10
+        number_of_lines => "10";
+}
+
+body printfile head_n(file, n)
+# @brief Report the first `n` lines of a file
+# @param file The full path of the file to report
+# @param n The number of lines to report
+{
+        file_to_print => "$(file)";
+        number_of_lines => "$(n)";
+}
+
+@if minimum_version(3.18)
+body printfile tail(file)
+# @brief Report the last 10 lines of a file
+# @param file The full path of the file to report
+{
+        file_to_print => "$(file)";
+      # GNU tail defaults to 10
+        number_of_lines => "-10";
+}
+@endif
+
+@if minimum_version(3.18)
+body printfile tail_n(file, n)
+# @brief Report the last `n` lines of a file
+# @param file The full path of the file to report
+# @param n The number of lines to report
+{
+        file_to_print => "$(file)";
+        number_of_lines => "-$(n)";
+}
+@endif

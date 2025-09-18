@@ -56,7 +56,7 @@ view model =
       NodeForm _ ->
         p[]
         [ text "By default all nodes and all directives operate in the global mode defined in "
-        , a [href (model.contextPath ++ "/secure/administration/policyServerManagement")][text "Settings"]
+        , a [href (model.contextPath ++ "/secure/administration/settings")][text "Settings"]
         , text " which is currently "
         , b [][text (policyModeStr model.globalPolicyMode)]
         , text "."
@@ -85,7 +85,7 @@ view model =
               [ text ( if model.selectedSettings.overridable then
                 "Make this setting a default only and allow overrides on a per-node or per-directive basis."
                 else
-                "This setting may not be overriden per-node or per-directive. All Rudder configuration rules will operate in this mode."
+                "This setting may not be overridden per-node or per-directive. All Rudder configuration rules will operate in this mode."
                 )
               ]
             ]
@@ -103,7 +103,7 @@ view model =
               ]
               , span [class "info-mode"]
                 [ text (case selectedMode of
-                  Default -> "This may be overriden on a per-Directive basis."
+                  Default -> "This may be overridden on a per-Directive basis."
                   Audit   -> "Directives will never be enforced on this node, regardless of their policy mode."
                   Enforce -> "All Directives will apply necessary changes on this node, except Directives with an Audit override setting."
                   _       -> ""
@@ -114,7 +114,7 @@ view model =
         else
           div [class "alert alert-warning"]
           [ text "Current global settings do not allow this mode to be overridden on a per-node basis. You may change this in "
-          , a [href (model.contextPath ++ "/secure/administration/policyServerManagement#agentPolicyMode")] [text "Settings"]
+          , a [href (model.contextPath ++ "/secure/administration/settings#agentPolicyMode")] [text "Settings"]
           , text ", or contact your Rudder administrator about this."
           ]
   in

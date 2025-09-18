@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2022 Normation SAS
 
+#![allow(clippy::regex_creation_in_loops)]
+
 pub mod logs;
 pub mod methods;
 pub mod report;
 
-use anyhow::{anyhow, bail, Error, Result};
+use anyhow::{Error, Result, anyhow, bail};
 use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt::Display;
 use std::{ffi::OsStr, fmt, path::Path, str::FromStr};
@@ -478,12 +480,16 @@ mod tests {
         assert!(constraints.is_valid(r#"{"a": 42,}"#).is_err());
         assert!(constraints.is_valid(r#"{"a": 42, "b": 42}"#).is_ok());
         assert!(constraints.is_valid(r#"{"a": 42, "b": 42,}"#).is_err());
-        assert!(constraints
-            .is_valid(r#"{"a": 42, "b": 42, "c": 42}"#)
-            .is_ok());
-        assert!(constraints
-            .is_valid(r#"{"a": 42, "b": 42, "c": 42,}"#)
-            .is_err());
+        assert!(
+            constraints
+                .is_valid(r#"{"a": 42, "b": 42, "c": 42}"#)
+                .is_ok()
+        );
+        assert!(
+            constraints
+                .is_valid(r#"{"a": 42, "b": 42, "c": 42,}"#)
+                .is_err()
+        );
 
         let constraints = MethodConstraints {
             valid_format: Some(ParameterFormat::Yaml),

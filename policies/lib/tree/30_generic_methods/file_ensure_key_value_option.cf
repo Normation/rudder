@@ -1,0 +1,66 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File ensure key -> value present with option
+# @rename file_key_value_present_option
+# @deprecated Use [file_key_value_present_option](#_file_key_value_present_option) instead.
+# @description Ensure that the file contains a pair of "key separator value", with options on the spacing around the separator
+# @documentation Edit (or create) the file, and ensure it contains an entry key -> value with arbitrary separator between the key and its value.
+# If the key is already present, the method will change the value associated with this key.
+#
+# @parameter path File name to edit (absolute path on the target node)
+# @parameter key Key to define
+# @parameter value Value to define
+# @parameter option Option for the spacing around the separator: strict, which prevent spacing (space or tabs) around separators, or lax which accepts any number of spaces around separators
+# @parameter separator Separator between key and value, for example "=" or " " (without the quotes)
+# @parameter_constraint separator "allow_whitespace_string" : true
+# @parameter_constraint option "select" : [ "strict", "lax" ]
+#
+#
+# @parameter_rename file path
+# @class_prefix file_ensure_key_value
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_ensure_key_value_option(path, key, value, separator, option)
+{
+  vars:
+      "old_class_prefix"        string => canonify("file_ensure_key_value_${path}");
+      "args"                     slist => { "${path}", "${key}", "${value}","${separator}", "${option}" };
+
+      "report_param"            string => join("_", args);
+      "full_class_prefix"       string => canonify("file_ensure_key_value_${report_param}");
+      "class_prefix"            string => string_head("${full_class_prefix}", "1000");
+
+      "full_inner_class_prefix" string => canonify("file_key_value_present_${report_param}");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+
+  classes:
+      "should_report"       expression => "${report_data.should_report}";
+
+  methods:
+      "disable_reporting_${class_prefix}"  usebundle => disable_reporting;
+      "action"             usebundle => file_key_value_present_option("${path}", "${key}", "${value}","${separator}", "${option}");
+      "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
+                          ifvarclass => "should_report";
+      "class copy"         usebundle => _classes_copy("${inner_class_prefix}", "${old_class_prefix}"),
+                          ifvarclass => "${inner_class_prefix}_reached";
+      "new result classes" usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
+                          ifvarclass => "${inner_class_prefix}_reached";
+      "report"             usebundle => _log_v3("Ensure line in format key${separator}value in ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

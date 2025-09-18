@@ -1,0 +1,25 @@
+<xml:group>
+  <component-body>
+
+    <lift:authz role="administration_read">
+      <div id="healthcheck-main">
+        <head_merge>
+          <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-healthcheck.css"/>
+          <script data-lift="with-cached-resource" src="/javascript/rudder/elm/rudder-healthcheck.js"></script>
+        </head_merge>
+
+        <div id="healthcheck-app">
+          <div id="healthcheck-content"/>
+        </div>
+      </div>
+
+      <script data-lift="with-nonce">
+        var main = document.getElementById("healthcheck-content")
+        var initValues = {
+          contextPath : contextPath
+        };
+        var app  = Elm.Healthcheck.init({node: main, flags: initValues});
+      </script>
+    </lift:authz>
+  </component-body>
+</xml:group>

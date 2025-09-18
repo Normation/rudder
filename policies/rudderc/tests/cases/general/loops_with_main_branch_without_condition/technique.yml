@@ -1,0 +1,24 @@
+---
+id: technique_with_loops_with_main_branch_without_condition
+name: Loops with conditions
+version: "0.1"
+description: "Short description"
+documentation: "Long documentation"
+items:
+   - name: "Main block"
+     id: 5827012b-6947-4a42-95f6-5d493b0e44d8
+     items:
+       - name: "Do something"
+         id: 845f731a-2800-41c8-967e-7d1ce89bd1b9
+         condition: "${file.condition}"
+         method: file_from_shared_folder
+         params:
+           hash_type: sha256
+           source: "${file.path}"
+           path: "/home/bob/${file.path}"
+         foreach_name: "file"
+         foreach:
+           - path: ".vimrc"
+             condition: "any"
+           - path: ".bashrc"
+             condition: "a_condition_evaluated_at_runtime"

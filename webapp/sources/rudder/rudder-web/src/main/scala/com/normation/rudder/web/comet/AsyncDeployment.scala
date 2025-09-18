@@ -115,7 +115,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   private def displayTime(label: String, time: DateTime): NodeSeq = {
     // this is replaced by a dynamic JS timer, see updateDeploymentStart
-    val d = DateFormaterService.getFormatedPeriod(time, DateTime.now)
+    val d = DateFormaterService.getBroadlyFormatedPeriod(time, DateTime.now)
     <span>{label} <span id="deployment-start-interval">{d}</span> ago{displayHelpBlock(time)}</span>
   }
   private def displayDate(label: String, time: DateTime): NodeSeq = {
@@ -252,7 +252,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             <li class="list-group-item"><a href="#" class="no-click"><span class={statusClass + " fa fa-clock-o"}></span>{
               dur
             } {
-              DateFormaterService.getFormatedPeriod(start, end)
+              DateFormaterService.getBroadlyFormatedPeriod(start, end)
             }</a></li>
           })
           .getOrElse(NodeSeq.Empty)

@@ -213,8 +213,8 @@ class ReportsTest extends DBCommon {
 
       val checkInsert = transacRun(xa => sql"""select id from ruddersysevents""".query[Long].to[Vector].transact(xa)).size
 
-      (checkInsert must beEqualTo(14)) and
-      (res._1 must contain(exactly(expected*)))
+      checkInsert must beEqualTo(14)
+      res._1 must contain(exactly(expected*))
     }
 
   }

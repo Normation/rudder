@@ -2,38 +2,64 @@
 // SPDX-FileCopyrightText: 2023 Normation SAS
 
 use std::{
-    fs::{self, create_dir_all, File},
+    fs::{self, File, create_dir_all},
     path::{Path, PathBuf},
+    process::ExitCode,
 };
 
-use crate::license::Licenses;
-use crate::{
-    config::{Configuration, Credentials},
-    signature::{SignatureVerifier, VerificationSuccess},
-    webapp::Webapp,
-    LICENSES_FOLDER, REPOSITORY_INDEX_PATH,
-};
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use reqwest::{
-    blocking::{Client, Response},
     Proxy, StatusCode, Url,
+    blocking::{Client, Response},
 };
 use secrecy::ExposeSecret;
 use tempfile::tempdir;
 use tracing::{debug, info, warn};
 
+use crate::license::Licenses;
+use crate::{
+    LICENSES_FOLDER, REPOSITORY_INDEX_PATH,
+    config::{Configuration, Credentials},
+    signature::{SignatureVerifier, VerificationSuccess},
+    webapp::Webapp,
+};
+
 static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"),);
 
-#[derive(Clone)]
+#[derive(Debug)]
+pub enum RepositoryError {
+    InvalidCredentials(anyhow::Error),
+    Unauthorized(anyhow::Error),
+}
+impl std::fmt::Display for RepositoryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidCredentials(err) => write!(f, "{}", err),
+            Self::Unauthorized(err) => write!(f, "{}", err),
+        }
+    }
+}
+
+impl std::error::Error for RepositoryError {}
+
+impl From<&RepositoryError> for ExitCode {
+    fn from(value: &RepositoryError) -> Self {
+        match value {
+            RepositoryError::InvalidCredentials(_) => ExitCode::from(2),
+            RepositoryError::Unauthorized(_) => ExitCode::from(3),
+        }
+    }
+}
+
 pub struct Repository {
     inner: Client,
     creds: Option<Credentials>,
     pub server: Url,
-    verifier: SignatureVerifier,
+    verifier: Box<dyn SignatureVerifier>,
 }
 
 impl Repository {
-    pub fn new(config: &Configuration, verifier: SignatureVerifier) -> Result<Self> {
+    pub fn new(config: &Configuration, verifier: Box<dyn SignatureVerifier>) -> Result<Self> {
         let mut client = Client::builder()
             .use_native_tls()
             // Enforce HTTPS at client level
@@ -77,13 +103,24 @@ impl Repository {
         }
         let res = req.send()?;
 
-        // Special error messages for common errors
+        // Special error messages and codes for common errors
         match res.status() {
-            StatusCode::UNAUTHORIZED => bail!("Received an HTTP 401 Unauthorized error when trying to get {}. Please check your credentials in the configuration.", path),
-            StatusCode::FORBIDDEN => bail!("Received an HTTP 403 Forbidden error when trying to get {}. Please check your credentials in the configuration.", path),
-            StatusCode::NOT_FOUND => bail!("Received an HTTP 404 Not found error when trying to get {}. Please check your configuration.", path),
-            _ => ()
-        }
+            StatusCode::UNAUTHORIZED => {
+                let e = anyhow!(
+                    "Invalid credentials, please check your credentials in the configuration (received HTTP {:?}).",
+                    res.status()
+                );
+                bail!(RepositoryError::InvalidCredentials(e))
+            }
+            StatusCode::FORBIDDEN | StatusCode::NOT_FOUND => {
+                let e = anyhow!(
+                    "Unauthorized download from Rudder repository (received HTTP {:?}).",
+                    res.status()
+                );
+                bail!(RepositoryError::Unauthorized(e))
+            }
+            _ => (),
+        };
 
         Ok(res.error_for_status()?)
     }
@@ -190,12 +227,13 @@ mod tests {
     use tempfile::NamedTempFile;
 
     use super::Repository;
-    use crate::{config::Configuration, signature::SignatureVerifier};
+    use crate::config::Configuration;
+    use crate::signature::verifier;
 
     #[test]
     fn it_downloads_unverified_files() {
         let config = Configuration::parse("").unwrap();
-        let verifier = SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg"));
+        let verifier = verifier(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
         let repo = Repository::new(&config, verifier).unwrap();
         let dst = NamedTempFile::new().unwrap();
         repo.download_unsafe("../rpm/rudder_rpm_key.pub", dst.path())
@@ -207,7 +245,7 @@ mod tests {
     #[test]
     fn it_downloads_verified_files() {
         let config = Configuration::parse("").unwrap();
-        let verifier = SignatureVerifier::new(PathBuf::from("tools/rudder_plugins_key.gpg"));
+        let verifier = verifier(PathBuf::from("tools/rudder_plugins_key.gpg")).unwrap();
         let repo = Repository::new(&config, verifier).unwrap();
         let dst = NamedTempFile::new().unwrap();
         repo.download(

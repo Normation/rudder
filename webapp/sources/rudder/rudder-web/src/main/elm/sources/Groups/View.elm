@@ -50,7 +50,7 @@ view model =
               ]
             ))
             [ text item.name
-            , small [class "greyscala"] [text (" - " ++ if item.dynamic then "Dynamic" else "Static")]
+            , small [class "text-secondary"] [text (" - " ++ if item.dynamic then "Dynamic" else "Static")]
             , badgeDisabled
             ]
           ]

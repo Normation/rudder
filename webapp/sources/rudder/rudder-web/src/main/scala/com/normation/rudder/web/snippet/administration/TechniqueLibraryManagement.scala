@@ -42,6 +42,7 @@ import com.normation.box.*
 import com.normation.cfclerk.domain.*
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.config.ReasonBehavior.*
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.users.CurrentUser
@@ -50,7 +51,6 @@ import com.normation.rudder.web.components.popup.CreateActiveTechniqueCategoryPo
 import com.normation.rudder.web.components.popup.GiveReasonPopup
 import com.normation.rudder.web.model.JsTreeNode
 import com.normation.rudder.web.services.AgentCompat
-import com.normation.rudder.web.services.ReasonBehavior.*
 import net.liftweb.common.*
 import net.liftweb.common.Box.box2Option
 import net.liftweb.common.Box.option2Box
@@ -356,10 +356,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         updateCurrentTechniqueDetails(Some(technique), None)
         showTechniqueDetails()
       case _               =>
-        <div id={htmlId_bottomPanel}>
-          <div  class="text-center">
+        <div id={htmlId_bottomPanel} class="portlet pt-3 pb-4">
           Click on a technique or a category from user library to
-          display its details.</div>
+          display its details.
         </div>
     }
   }

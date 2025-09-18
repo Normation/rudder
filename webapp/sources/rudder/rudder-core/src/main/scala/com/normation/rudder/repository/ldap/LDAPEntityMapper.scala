@@ -45,7 +45,6 @@ import com.normation.NamedZioLogger
 import com.normation.cfclerk.domain.*
 import com.normation.errors.*
 import com.normation.inventory.domain.*
-import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.inventory.ldap.core.InventoryMappingResult.*
 import com.normation.inventory.ldap.core.InventoryMappingRudderError
@@ -77,16 +76,17 @@ import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.facts.nodes.NodeSecurityContext
 import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.reports.*
-import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.*
+import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.DN
-import net.liftweb.json.*
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonDSL.*
+import io.scalaland.chimney.PartialTransformer
+import io.scalaland.chimney.partial
+import io.scalaland.chimney.partial.syntax.*
+import io.scalaland.chimney.syntax.*
 import org.joda.time.DateTime
-import scala.util.control.NonFatal
+import scala.annotation.nowarn
 import zio.*
 import zio.json.*
 import zio.syntax.*
@@ -108,7 +108,6 @@ object NodeStateEncoder {
 class LDAPEntityMapper(
     rudderDit:       RudderDit,
     nodeDit:         NodeDit,
-    inventoryDit:    InventoryDit,
     cmdbQueryParser: CmdbQueryParser & RawStringQueryParser, // used to read from LDAP, in which case we do not need validation
     inventoryMapper: InventoryMapper
 ) extends NamedZioLogger {
@@ -116,7 +115,6 @@ class LDAPEntityMapper(
   def loggerName = "rudder-ldap-entity-mapper"
 
   //////////////////////////////    Node    //////////////////////////////
-
   def nodeToEntry(node: Node): LDAPEntry = {
     import NodeStateEncoder.*
     val entry = {
@@ -133,7 +131,7 @@ class LDAPEntityMapper(
 
     node.nodeReportingConfiguration.agentRunInterval match {
       case Some(interval) =>
-        entry.resetValuesTo(A_SERIALIZED_AGENT_RUN_INTERVAL, compactRender(serializeAgentRunInterval(interval)))
+        entry.resetValuesTo(A_SERIALIZED_AGENT_RUN_INTERVAL, interval.toJson)
       case _              =>
     }
 
@@ -151,12 +149,7 @@ class LDAPEntityMapper(
 
     node.nodeReportingConfiguration.heartbeatConfiguration match {
       case Some(heatbeatConfiguration) =>
-        val json = {
-          import net.liftweb.json.JsonDSL.*
-          ("overrides"       -> heatbeatConfiguration.overrides) ~
-          ("heartbeatPeriod" -> heatbeatConfiguration.heartbeatPeriod)
-        }
-        entry.resetValuesTo(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION, compactRender(json))
+        entry.resetValuesTo(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION, heatbeatConfiguration.toJson)
       case _                           => // Save nothing if missing
     }
     entry.addValues(A_POLICY_MODE, node.policyMode.map(_.name).getOrElse(PolicyMode.defaultValue))
@@ -166,36 +159,14 @@ class LDAPEntityMapper(
     entry
   }
 
-  def serializeAgentRunInterval(agentInterval: AgentRunInterval): JObject = {
-    ("overrides"   -> agentInterval.overrides) ~
-    ("interval"    -> agentInterval.interval) ~
-    ("startMinute" -> agentInterval.startMinute) ~
-    ("startHour"   -> agentInterval.startHour) ~
-    ("splaytime"   -> agentInterval.splaytime)
-  }
-
-  def unserializeAgentRunInterval(value: String): AgentRunInterval = {
-    import net.liftweb.json.JsonParser.*
-    implicit val formats: Formats = DefaultFormats
-
-    parse(value).extract[AgentRunInterval]
-  }
-
-  def unserializeNodeHeartbeatConfiguration(value: String): HeartbeatConfiguration = {
-    import net.liftweb.json.JsonParser.*
-    implicit val formats: Formats = DefaultFormats
-
-    parse(value).extract[HeartbeatConfiguration]
-  }
-
   def entryToNode(e: LDAPEntry): PureResult[Node] = {
     if (e.isA(OC_RUDDER_NODE) || e.isA(OC_POLICY_SERVER_NODE)) {
       // OK, translate
       for {
         id                     <- nodeDit.NODES.NODE.idFromDn(e.dn).toRight(Inconsistency(s"Bad DN found for a Node: ${e.dn}"))
         date                   <- e.requiredAs[GeneralizedTime](_.getAsGTime, A_OBJECT_CREATION_DATE)
-        agentRunInterval        = e(A_SERIALIZED_AGENT_RUN_INTERVAL).map(unserializeAgentRunInterval(_))
-        heartbeatConf           = e(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION).map(unserializeNodeHeartbeatConfiguration(_))
+        agentRunInterval        = e(A_SERIALIZED_AGENT_RUN_INTERVAL).flatMap(_.fromJson[AgentRunInterval].toOption)
+        heartbeatConf           = e(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION).flatMap(_.fromJson[HeartbeatConfiguration].toOption)
         agentReportingProtocol <- e(A_AGENT_REPORTING_PROTOCOL) match {
                                     case None        => Right(None)
                                     case Some(value) => AgentReportingProtocol.parse(value).map(Some(_))
@@ -304,20 +275,10 @@ class LDAPEntityMapper(
   }
 
   def parseAgentInfo(nodeId: NodeId, inventoryEntry: LDAPEntry): IOResult[(List[AgentInfo], KeyStatus)] = {
-    val keys = inventoryEntry.valuesFor(A_PKEYS).map(Some(_))
     for {
       agentsName <- {
-        val agents = inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_)).toList
-        ZIO.foreach(agents.zipAll(keys, None, None)) {
-          case (Some(agent), key) => AgentInfoSerialisation.parseJson(agent, key)
-          case (None, _)          =>
-            (Err
-              .MissingMandatory(
-                s"There was a public key defined for Node ${nodeId.value}," +
-                " without a related agent defined, it should not happen"
-              ))
-              .fail
-        }
+        val agents = inventoryEntry.valuesFor(A_AGENT_NAME).toList
+        ZIO.foreach(agents) { case agent => agent.fromJson[AgentInfo].toIO }
       }
       keyStatus  <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Right(UndefinedKey)).toIO
     } yield {
@@ -410,7 +371,7 @@ class LDAPEntityMapper(
   */
   def overrideProperties(nodeId: NodeId, existing: Seq[NodeProperty], inventory: List[NodeProperty]): List[NodeProperty] = {
     val customProperties = inventory.map(x => (x.name, x)).toMap
-    val overriden        = existing.map { current =>
+    val overridden       = existing.map { current =>
       customProperties.get(current.name) match {
         case None         => current
         case Some(custom) =>
@@ -430,9 +391,9 @@ class LDAPEntityMapper(
     }
 
     // now, filter remaining inventory properties (ie the one not already processed)
-    val alreadyDone = overriden.map(_.name).toSet
+    val alreadyDone = overridden.map(_.name).toSet
 
-    (overriden ++ inventory.filter(x => !alreadyDone.contains(x.name))).toList
+    (overridden ++ inventory.filter(x => !alreadyDone.contains(x.name))).toList
   }
 
   /**
@@ -557,38 +518,6 @@ class LDAPEntityMapper(
 
   //////////////////////////////    ActiveTechnique    //////////////////////////////
 
-  // two utilities to serialize / deserialize Map[TechniqueVersion,DateTime]
-  def unserializeAcceptations(value: String): PureResult[Map[TechniqueVersion, DateTime]] = {
-    import net.liftweb.json.JsonAST.JField
-    import net.liftweb.json.JsonAST.JString
-    import net.liftweb.json.JsonParser.*
-
-    parse(value) match {
-      case JObject(fields) =>
-        fields.collect { case JField(version, JString(date)) => (version, date) }.traverse {
-          case (v, d) =>
-            TechniqueVersion
-              .parse(v)
-              .leftMap(Unexpected.apply)
-              .flatMap(version => {
-                try {
-                  Right((version, GeneralizedTime(d).dateTime))
-                } catch {
-                  case NonFatal(ex) => Left(SystemError(s"Error when trying to parse '${d}' as a datetime", ex))
-                }
-              })
-        }.map(_.toMap)
-      case _               => Right(Map())
-    }
-  }
-
-  def serializeAcceptations(dates: Map[TechniqueVersion, DateTime]): JObject = {
-    dates.foldLeft(JObject(List())) {
-      case (js, (version, date)) =>
-        js ~ (version.serialize -> GeneralizedTime(date).toString)
-    }
-  }
-
   /**
    * Build a ActiveTechnique from and LDAPEntry.
    * children directives are left empty
@@ -608,10 +537,9 @@ class LDAPEntityMapper(
                                 }
         acceptationDatetimes <- e(A_ACCEPTATION_DATETIME) match {
                                   case Some(v) =>
-                                    unserializeAcceptations(v).leftMap(e =>
-                                      InventoryMappingRudderError.UnexpectedObject(e.fullMsg)
-                                    )
-                                  case None    => Right(Map.empty[TechniqueVersion, DateTime])
+                                    v.fromJson[AcceptationDateTime]
+                                      .leftMap(e => InventoryMappingRudderError.UnexpectedObject(e))
+                                  case None    => Right(AcceptationDateTime.empty)
                                 }
       } yield {
         ActiveTechnique(ActiveTechniqueId(id), refTechniqueUuid, acceptationDatetimes, Nil, isEnabled, policyTypes)
@@ -630,7 +558,7 @@ class LDAPEntityMapper(
       activeTechnique.id.value,
       parentDN,
       activeTechnique.techniqueName,
-      serializeAcceptations(activeTechnique.acceptationDatetimes),
+      activeTechnique.acceptationDatetimes.toJson,
       activeTechnique.isEnabled,
       activeTechnique.policyTypes
     )
@@ -843,14 +771,7 @@ class LDAPEntityMapper(
         priority         = e.getAsInt(A_PRIORITY).getOrElse(0)
         isEnabled        = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         isSystem         = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
-        tags            <- e(A_SERIALIZED_TAGS) match {
-                             case None       => Right(Tags(Set()))
-                             case Some(tags) =>
-                               CompleteJson
-                                 .unserializeTags(tags)
-                                 .toPureResult
-                                 .chainError(s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}")
-                           }
+        tags            <- Tags.parse(e(A_SERIALIZED_TAGS)).chainError(s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}")
       } yield {
         Directive(
           DirectiveId(DirectiveUid(id), ParseRev(e(A_REV_ID))),
@@ -889,7 +810,7 @@ class LDAPEntityMapper(
     entry.resetValuesTo(A_IS_ENABLED, directive.isEnabled.toLDAPString)
     entry.resetValuesTo(A_IS_SYSTEM, directive.isSystem.toLDAPString)
     directive.policyMode.foreach(mode => entry.resetValuesTo(A_POLICY_MODE, mode.name))
-    entry.resetValuesTo(A_SERIALIZED_TAGS, net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(directive.tags)))
+    entry.resetValuesTo(A_SERIALIZED_TAGS, directive.tags.toJson)
     entry
   }
 
@@ -935,14 +856,7 @@ class LDAPEntityMapper(
     if (e.isA(OC_RULE)) {
       for {
         id   <- e.required(A_RULE_UUID)
-        tags <- e(A_SERIALIZED_TAGS) match {
-                  case None       => Right(Tags(Set()))
-                  case Some(tags) =>
-                    CompleteJson
-                      .unserializeTags(tags)
-                      .toPureResult
-                      .chainError(s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}: ${tags}")
-                }
+        tags <- Tags.parse(e(A_SERIALIZED_TAGS)).chainError(s"Invalid attribute value for tags ${A_SERIALIZED_TAGS}")
       } yield {
         val targets      = for {
           target           <- e.valuesFor(A_RULE_TARGET)
@@ -1002,38 +916,23 @@ class LDAPEntityMapper(
     entry.resetValuesTo(A_DIRECTIVE_UUID, rule.directiveIds.map(_.serialize).toSeq*)
     entry.resetValuesTo(A_DESCRIPTION, rule.shortDescription)
     entry.resetValuesTo(A_LONG_DESCRIPTION, rule.longDescription.toString)
-    entry.resetValuesTo(A_SERIALIZED_TAGS, net.liftweb.json.compactRender(JsonTagSerialisation.serializeTags(rule.tags)))
+    entry.resetValuesTo(A_SERIALIZED_TAGS, rule.tags.toJson)
 
     entry
   }
 
   //////////////////////////////    API Accounts    //////////////////////////////
 
-  def serApiAcl(authz: List[ApiAclElement]): String                              = {
-    import net.liftweb.json.Serialization.*
-    import net.liftweb.json.*
-    implicit val formats: Formats = DefaultFormats
-    val toSerialize = JsonApiAcl(acl = authz.map(a => JsonApiAuthz(path = a.path.value, actions = a.actions.toList.map(_.name))))
-    write[JsonApiAcl](toSerialize)
+  def serApiAcl(authz: List[ApiAclElement]): String = {
+    JsonApiAcl(acl = authz.map(a => JsonApiAuthz(path = a.path.value, actions = a.actions.toList.map(_.name)))).toJson
   }
-  def unserApiAcl(s: String):                Either[String, List[ApiAclElement]] = {
-    import cats.implicits.*
-    import net.liftweb.json.*
-    implicit val formats = net.liftweb.json.DefaultFormats
-    for {
-      json <- parseOpt(s).toRight(s"The following string can not be parsed as a JSON object for API ACL: ${s}")
-      jacl <- (json.extractOpt[JsonApiAcl]).toRight(s"Can not extract API ACL object from json: ${s}")
-      acl  <- jacl.acl.traverse {
-                case JsonApiAuthz(path, actions) =>
-                  for {
-                    p <- AclPath.parse(path)
-                    a <- actions.traverse(HttpAction.parse)
-                  } yield {
-                    ApiAclElement(p, a.toSet)
-                  }
-              }
-    } yield {
-      acl
+
+  def unserApiAcl(s: String): Either[String, List[ApiAclElement]] = {
+    s.fromJson[JsonApiAcl] match {
+      case Right(acl) =>
+        acl.transformIntoPartial[List[ApiAclElement]].asEitherErrorPathMessageStrings.left.map(_.mkString(", "))
+      case Left(err)  =>
+        Left(s"Can not extract API ACL object from json: ${s}. Error was: ${err}")
     }
   }
 
@@ -1046,14 +945,14 @@ class LDAPEntityMapper(
       for {
         id                    <- e.required(A_API_UUID).map(ApiAccountId(_))
         name                  <- e.required(A_NAME).map(ApiAccountName(_))
-        token                 <- e.required(A_API_TOKEN).map(ApiToken(_))
+        token                  = e(A_API_TOKEN).map(ApiTokenHash.fromHashValue(_))
         creationDatetime      <- e.requiredAs[GeneralizedTime](_.getAsGTime, A_CREATION_DATETIME)
         tokenCreationDatetime <- e.requiredAs[GeneralizedTime](_.getAsGTime, A_API_TOKEN_CREATION_DATETIME)
         isEnabled              = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         description            = e(A_DESCRIPTION).getOrElse("")
-        // expiration date is optionnal
+        // expiration date is optional
         expirationDate         = e.getAsGTime(A_API_EXPIRATION_DATETIME)
-        // api authz kind/acl are not optionnal, but may be missing for Rudder < 4.3 migration
+        // api authz kind/acl are not optional, but may be missing for Rudder < 4.3 migration
         // in that case, use the defaultACL
         accountType            = e(A_API_KIND) match {
                                    case None    => ApiAccountType.PublicApi // this is the default
@@ -1064,9 +963,7 @@ class LDAPEntityMapper(
                                      if (accountType == ApiAccountType.PublicApi) {
                                        logEffect.warn(s"Missing API authorizations level kind for token '${name.value}' with id '${id.value}'")
                                      }
-                                     Right(
-                                       ApiAuthorization.None
-                                     ) // for Rudder < 4.3, it should have been migrated. So here, we just don't gave any access.
+                                     Right(ApiAuthorization.None)
                                    case Some(s) =>
                                      ApiAuthorizationKind.parse(s) match {
                                        case Left(error) => Left(Err.UnexpectedObject(error))
@@ -1119,13 +1016,18 @@ class LDAPEntityMapper(
             ApiAccountKind.PublicApi(authz, expirationDate.map(_.dateTime))
         }
 
+        // as of 8.3, we disable an API account with token version < 2
+        val isEnabledAndVersionOk = token match {
+          case Some(t) => if (t.version() >= 2) isEnabled else false
+          case None    => isEnabled
+        }
         ApiAccount(
           id,
           accountKind,
           name,
           token,
           description,
-          isEnabled,
+          isEnabledAndVersionOk,
           creationDatetime.dateTime,
           tokenCreationDatetime.dateTime,
           tenants
@@ -1142,7 +1044,10 @@ class LDAPEntityMapper(
     mod.resetValuesTo(A_API_UUID, principal.id.value)
     mod.resetValuesTo(A_NAME, principal.name.value)
     mod.resetValuesTo(A_CREATION_DATETIME, GeneralizedTime(principal.creationDate).toString)
-    mod.resetValuesTo(A_API_TOKEN, principal.token.value)
+    principal.token.flatMap(_.exposeHash()) match {
+      case Some(value) => mod.resetValuesTo(A_API_TOKEN, value)
+      case None        => mod.deleteAttribute(A_API_TOKEN)
+    }
     mod.resetValuesTo(A_API_TOKEN_CREATION_DATETIME, GeneralizedTime(principal.tokenGenerationDate).toString)
     mod.resetValuesTo(A_DESCRIPTION, principal.description)
     mod.resetValuesTo(A_IS_ENABLED, principal.isEnabled.toLDAPString)
@@ -1249,8 +1154,59 @@ class LDAPEntityMapper(
 
 }
 
-// This need to be on top level, else lift json does absolutly nothing good.
+// This need to be on top level, else lift json does absolutely nothing good.
 // a stable case class for json serialisation
 // { "acl": [ {"path":"some/path", "actions":["get","put"]}, {"path":"other/path","actions":["get"]}}
-final case class JsonApiAcl(acl: List[JsonApiAuthz]) extends AnyVal
 final case class JsonApiAuthz(path: String, actions: List[String])
+object JsonApiAuthz {
+  @nowarn("msg=type parameter Err.*") // we don't have any hand on that
+  implicit val codecJsonApiAuthz: JsonCodec[JsonApiAuthz] = DeriveJsonCodec.gen
+
+  /**
+   * Enforce that permissions are sorted by path first, then by verb (verb here)
+   */
+  def from(acl: ApiAclElement): JsonApiAuthz = {
+    JsonApiAuthz(acl.path.value, acl.actions.toList.map(_.name).sorted)
+  }
+
+  implicit val transformJsonApiAuthz: PartialTransformer[JsonApiAuthz, ApiAclElement] = {
+    PartialTransformer.apply[JsonApiAuthz, ApiAclElement] {
+      case JsonApiAuthz(path, actions) =>
+        (for {
+          p <- AclPath.parse(path)
+          a <- actions.traverse(HttpAction.parse)
+        } yield {
+          ApiAclElement(p, a.toSet)
+        }).asResult
+    }
+  }
+}
+
+final case class JsonApiAcl(acl: List[JsonApiAuthz]) extends AnyVal
+object JsonApiAcl {
+  implicit val decoderJsonApiAcl: JsonDecoder[JsonApiAcl] = JsonDecoder.list[JsonApiAuthz].map(JsonApiAcl.apply)
+  implicit val encoderJsonApiAcl: JsonEncoder[JsonApiAcl] = JsonEncoder.list[JsonApiAuthz].contramap(_.acl)
+
+  /*
+   * When we get JsonApiAcl, we always group/sort by path when transforming into business elements
+   */
+  implicit val transformJsonApiAcl: PartialTransformer[JsonApiAcl, List[ApiAclElement]] = {
+    PartialTransformer.apply[JsonApiAcl, List[ApiAclElement]] {
+      case JsonApiAcl(acl) =>
+        partial.Result
+          .traverse(acl.iterator, (x: JsonApiAuthz) => x.transformIntoPartial[ApiAclElement], failFast = false)
+          .map(x => {
+            x.groupMapReduce(_.path)(identity)((a, b) => a.modify(_.actions).setTo(a.actions ++ b.actions))
+              .values
+              .toList
+              .sortBy(_.path)
+          })
+    }
+  }
+
+  /**
+   * Enforce that permissions are sorted by path first, then by verb (path here)
+   */
+  def from(acls: List[ApiAclElement]): JsonApiAcl = JsonApiAcl(acls.map(JsonApiAuthz.from).sortBy(_.path))
+
+}

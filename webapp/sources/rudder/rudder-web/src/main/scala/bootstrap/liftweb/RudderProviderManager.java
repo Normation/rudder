@@ -112,6 +112,15 @@ public class RudderProviderManager implements org.springframework.security.authe
 
 		for (AuthenticationProvider provider : getProviders()) {
 			if (!provider.supports(toTest)) {
+                if(logger.isTraceEnabled()) {
+                    StringBuilder msg = new StringBuilder("Rudder authentication for ");
+                    msg.append(authentication.getClass().getName()).append(" can not be done with ");
+                    msg.append(provider.getClass().getName());
+                    if(provider instanceof RudderAuthenticationProvider) {
+                        msg.append(": ").append(((RudderAuthenticationProvider)provider).name());
+                    }
+                    logger.trace(msg.toString());
+                }
 				continue;
 			}
 
@@ -193,15 +202,20 @@ public class RudderProviderManager implements org.springframework.security.authe
                         }
                     }
 
+                    if(logger.isInfoEnabled()) {
+                        StringBuilder msg = new StringBuilder("Rudder authentication attempt for principal '")
+                                .append(principal)
+                                .append("' with backend '")
+                                .append(p.name())
+                                .append("': ")
+                                .append(authenticated? "success":"failure" + ((lastException==null)?"":": "+lastException.getMessage()));
 
-                    String msg = "Rudder authentication attempt for principal '" +principal+
-                            "' with backend '"+p.name()+"': " + (authenticated? "success":"failure");
-
-                    // we don't want to log info about "rootAdmin" backend
-                    if(p.name() == "rootAdmin") {
-                        logger.debug(msg);
-                    } else {
-                        logger.info(msg);
+                        // we don't want to log info about "rootAdmin" backend
+                        if(p.name() == "rootAdmin") {
+                            logger.debug(msg.toString());
+                        } else {
+                            logger.info(msg.toString());
+                        }
                     }
                 }
             }

@@ -63,6 +63,7 @@ import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
 import scala.xml.*
 import scala.xml.Text
+import zio.json.*
 
 trait EventLogFactory {
 
@@ -636,7 +637,7 @@ class EventLogFactoryImpl(
           SimpleDiff.toXml[Option[Query]](<query/>, x) { t =>
             t match {
               case None    => <none/>
-              case Some(y) => Text(y.toJSONString)
+              case Some(y) => Text(y.toJson)
             }
           }
         }) ++
@@ -1167,6 +1168,11 @@ class EventLogFactoryImpl(
         modifyDiff.modNodeState match {
           case None    => NodeSeq.Empty
           case Some(x) => SimpleDiff.toXml(<nodeState/>, x)(x => Text(x.name))
+        }
+      }{
+        modifyDiff.modDocumentation match {
+          case None    => NodeSeq.Empty
+          case Some(x) => SimpleDiff.toXml(<description/>, x)(x => Text(x))
         }
       }
       </node>)

@@ -41,7 +41,7 @@ import better.files.File
 import bootstrap.liftweb.BootstrapChecks
 import bootstrap.liftweb.BootstrapLogger
 import com.normation.errors.IOResult
-import com.normation.rudder.api.ApiToken
+import com.normation.rudder.api.ApiTokenSecret
 import com.normation.zio.UnsafeRun
 import java.nio.file.attribute.PosixFilePermissions
 import scala.jdk.CollectionConverters.*
@@ -49,14 +49,14 @@ import scala.jdk.CollectionConverters.*
 /**
  * Create an API token file at webapp startup to use for internal use.
  */
-class CreateSystemToken(systemToken: ApiToken, runDir: File, apiTokenHeaderName: String) extends BootstrapChecks {
+class CreateSystemToken(systemToken: ApiTokenSecret, runDir: File, apiTokenHeaderName: String) extends BootstrapChecks {
   import CreateSystemToken.*
 
   override val description = "Create system API token files"
 
   override def checks(): Unit = {
     (for {
-      token  <- restrictedPermissionsWrite(runDir / tokenFile, systemToken.value)
+      token  <- restrictedPermissionsWrite(runDir / tokenFile, systemToken.exposeSecret())
       // Allows easier usage in scripts, and in particular prevents making the token value visible in
       // process list by using the "--header @file" syntax in curl to read the file.
       header <- restrictedPermissionsWrite(runDir / tokenHeaderFile, curlTokenHeader)
@@ -77,11 +77,13 @@ class CreateSystemToken(systemToken: ApiToken, runDir: File, apiTokenHeaderName:
   }
 
   private val curlTokenHeader: String = {
-    s"${apiTokenHeaderName}: ${systemToken.value}"
+    s"${apiTokenHeaderName}: ${systemToken.exposeSecret()}"
   }
 }
 
 object CreateSystemToken {
+  // minimum size of the system API token to allow to write it
+  val tokenMinSize:    Int    = 10
   val tokenFile:       String = "api-token"
   val tokenHeaderFile: String = "api-token-header"
 

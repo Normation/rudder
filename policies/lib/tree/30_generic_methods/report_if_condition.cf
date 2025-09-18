@@ -1,0 +1,66 @@
+#####################################################################################
+# Copyright 2021 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Report if condition
+# @description Report a Rudder report based on a condition.
+# @action
+# @documentation
+#
+# This method will only send a Rudder report:
+#
+# If the **condition** is met, it will report a compliant report, with the following message:
+# `**<report_message>** was correct.`
+#
+# Otherwise, it will report an error, with the following message:
+# `**report_message** was incorrect`
+#
+# This method will never be in a repaired state.
+#
+# @parameter report_message  Message subject, will be extended based on the report status
+# @parameter condition  Condition to report a success
+#
+# @class_prefix report_if_condition
+# @class_parameter report_message
+# @agent_support = ["cfengine-community"]
+
+bundle agent report_if_condition(report_message, condition)
+{
+  vars:
+      "args"               slist => { "${report_message}", "${condition}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("report_if_condition_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+      "pass2"            expression => "pass1";
+      "pass1"            expression => "any";
+      "local_expression" expression => "${condition}";
+
+  methods:
+   pass2::
+      "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}"),
+                                        if => "local_expression";
+      "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}"),
+                                       if => not("local_expression");
+
+   pass2.!local_expression::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${report_message}", "Expression '${condition}' evaluates to false, ", "${report_message}");
+   pass2.local_expression::
+      "${report_data.method_id}" usebundle => log_rudder_v4("${report_message}", "Expression '${condition}' evaluates to true, ", "${report_message}");
+}
+

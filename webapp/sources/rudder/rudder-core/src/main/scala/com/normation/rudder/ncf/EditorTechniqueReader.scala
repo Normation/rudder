@@ -7,6 +7,7 @@ import com.normation.errors.IOResult
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.eventlog.RudderEventActor
+import com.normation.rudder.domain.logger.RuddercLogger
 import com.normation.rudder.git.GitConfigItemRepository
 import com.normation.rudder.git.GitRepositoryProvider
 import com.normation.rudder.hooks.Cmd
@@ -149,14 +150,14 @@ class EditorTechniqueReaderImpl(
 
     val cmd = Cmd(ruddercCmd, ruddercParams ::: ruddercLibs, Map.empty, None)
     for {
+      _         <- RuddercLogger.debug(s"Reading generic methods information with command: '${cmd.display}'")
       updateCmd <- RunNuCommand.run(cmd)
       res       <- updateCmd.await
-      _         <-
-        ZIO.when(res.code != 0)(
-          Inconsistency(
-            s"An error occurred while updating generic methods library with command '${cmd.display}':\n code: ${res.code}\n stderr: ${res.stderr}\n stdout: ${res.stdout}"
-          ).fail
-        )
+      _         <- ZIO.when(res.code != 0) {
+                     Inconsistency(
+                       s"An error occurred while updating generic methods library with command '${cmd.display}':\n ${res.debugString(sep = "\n ")}"
+                     ).fail
+                   }
       // write file
       _         <- IOResult.attempt(methodsFile.parent.createDirectories())
       _         <- IOResult.attempt(methodsFile.parent.setGroup(groupOwner))
@@ -271,7 +272,7 @@ object GenericMethodSerialization {
   implicit val decodeAgentType:                        JsonDecoder[List[AgentType]]                  = JsonDecoder.string.mapOrFail(id => {
     id match {
       case "dsc"                => Right(AgentType.Dsc :: Nil)
-      case "cfengine-community" => Right(AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil)
+      case "cfengine-community" => Right(AgentType.CfeCommunity :: Nil)
       case x                    => Left(s"Error: '${x}' is not recognized as an agent type")
     }
   })

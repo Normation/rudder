@@ -94,7 +94,7 @@ final case class FullActiveTechnique(
   def toActiveTechnique(): ActiveTechnique = ActiveTechnique(
     id = id,
     techniqueName = techniqueName,
-    acceptationDatetimes = acceptationDatetimes.toMap,
+    acceptationDatetimes = AcceptationDateTime(acceptationDatetimes.toMap),
     directives = directives.map(_.id.uid),
     _isEnabled = isEnabled,
     policyTypes = policyTypes

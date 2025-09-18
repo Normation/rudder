@@ -9,7 +9,7 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use anyhow::{bail, Error};
+use anyhow::{Error, bail};
 use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Debug, Serialize, Clone, Copy, Eq)]
@@ -173,7 +173,7 @@ impl PartialOrd<LevelFilter> for Level {
 static MAX_LOG_LEVEL_FILTER: AtomicUsize = AtomicUsize::new(0);
 
 #[inline]
-pub(crate) fn set_max_level(level: LevelFilter) {
+pub fn set_max_level(level: LevelFilter) {
     MAX_LOG_LEVEL_FILTER.store(level as usize, Ordering::SeqCst)
 }
 

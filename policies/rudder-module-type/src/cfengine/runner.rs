@@ -7,10 +7,11 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::{bail, Error};
+use anyhow::{Error, bail};
 use serde::Serialize;
 
 use crate::{
+    ModuleType0, ProtocolResult, Runner0,
     cfengine::{
         header::Header,
         log::set_max_level,
@@ -19,7 +20,6 @@ use crate::{
             TerminateResponse, ValidateOutcome, ValidateRequest, ValidateResponse,
         },
     },
-    ModuleType0, ProtocolResult, Runner0,
 };
 
 /// Promise executor

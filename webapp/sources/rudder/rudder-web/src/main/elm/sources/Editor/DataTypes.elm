@@ -91,12 +91,12 @@ type alias Technique =
 
 type MethodElem = Call (Maybe CallId) MethodCall | Block (Maybe CallId) MethodBlock
 
-
 type WorstReportKind = WorstReportWeightedOne | WorstReportWeightedSum | FocusWorst
 
 type ReportingLogic = WorstReport WorstReportKind | WeightedReport | FocusReport String
 
 type PolicyMode = Audit | Enforce
+
 
 type alias MethodBlock =
   { id : CallId
@@ -105,6 +105,8 @@ type alias MethodBlock =
   , reportingLogic : ReportingLogic
   , calls : List MethodElem
   , policyMode : Maybe PolicyMode
+  , foreachName : Maybe String
+  , foreach : Maybe (List (Dict String String))
   }
 
 type alias MethodCall =
@@ -115,6 +117,21 @@ type alias MethodCall =
   , component  : String
   , disableReporting : Bool
   , policyMode : Maybe PolicyMode
+  , foreachName : Maybe String
+  , foreach : Maybe (List (Dict String String))
+  }
+
+type alias NewForeach =
+  { foreachName : String
+  , foreachKeys : List String
+  , newKey : String
+  , newItem : Dict String String
+  }
+
+type alias ForeachUI =
+  { editName : Bool
+  , editKeys : Bool
+  , newForeach : NewForeach
   }
 
 type alias CallParameter =
@@ -134,11 +151,12 @@ type alias TechniqueParameter =
   }
 
 type alias TechniqueCategory =
-    { id : String
-    , name : String
-    , path : String
-    , subCategories : SubCategories
-    }
+  { id : String
+  , name : String
+  , path : String
+  , subCategories : SubCategories
+  }
+
 type SubCategories = SubCategories (List TechniqueCategory)
 
 allCategories t =
@@ -205,7 +223,6 @@ type alias TreeFilters =
   , folded : List String
   }
 
-
 type MethodFilterState = FilterOpened | FilterClosed
 type ValidationState error = Unchanged | ValidState | InvalidState (List error)
 type TechniqueNameError = EmptyName | AlreadyTakenName
@@ -218,12 +235,15 @@ type alias MethodCallUiInfo =
   { mode       : MethodCallMode
   , tab        : MethodCallTab
   , validation : ValidationState MethodCallParamError
+  , foreachUI  : ForeachUI
   }
+
 type alias MethodBlockUiInfo =
   { mode       : MethodCallMode
   , tab        : MethodBlockTab
   , validation : ValidationState BlockError
   , showChildDetails : Bool
+  , foreachUI  : ForeachUI
   }
 
 type alias TechniqueUiInfo =
@@ -243,8 +263,11 @@ type alias TechniqueEditInfo =
   ,  result : Result String ()
   }
 
-type MethodCallTab = CallParameters | CallConditions | Result | CallReporting
-type MethodBlockTab = BlockConditions | BlockReporting | Children
+type UiInfo = CallUiInfo MethodCallUiInfo MethodCall  | BlockUiInfo MethodBlockUiInfo MethodBlock
+
+type MethodCallTab = CallParameters | CallConditions | Result | CallReporting | CallForEach
+
+type MethodBlockTab = BlockConditions | BlockReporting | Children  | BlockForEach
 type MethodCallMode = Opened | Closed
 type Tab = General | Parameters | Resources | Output | None
 type Mode = Introduction | TechniqueDetails Technique TechniqueState TechniqueUiInfo TechniqueEditInfo
@@ -268,11 +291,12 @@ type Msg =
   | CheckOutYaml CheckMode (Result (Http.Detailed.Error String) ( Http.Metadata, String ))
   | UIMethodAction CallId MethodCallUiInfo
   | UIBlockAction CallId MethodBlockUiInfo
+  | UpdateCallAndUi UiInfo
+  | MethodCallModified MethodElem (Maybe UiInfo)
   | RemoveMethod CallId
   | UpdateEdition TechniqueEditInfo
   | CloneElem  MethodElem CallId
   | MethodCallParameterModified MethodCall ParameterId String
-  | MethodCallModified MethodElem
   | TechniqueParameterModified ParameterId TechniqueParameter
   | TechniqueParameterRemoved ParameterId
   | TechniqueParameterAdded ParameterId

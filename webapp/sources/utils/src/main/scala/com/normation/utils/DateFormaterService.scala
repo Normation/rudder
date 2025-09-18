@@ -39,27 +39,28 @@ package com.normation.utils
 
 import com.normation.errors.Inconsistency
 import com.normation.errors.PureResult
+import io.scalaland.chimney.*
 import java.time.ZonedDateTime
 import java.time.ZoneId
+import java.time.ZoneOffset
 import org.joda.time.DateTime
 import org.joda.time.DateTimeFieldType
 import org.joda.time.Duration
 import org.joda.time.chrono.ISOChronology
-import org.joda.time.format.DateTimeFormat
-import org.joda.time.format.DateTimeFormatter
-import org.joda.time.format.DateTimeFormatterBuilder
-import org.joda.time.format.ISODateTimeFormat
-import org.joda.time.format.PeriodFormatterBuilder
+import org.joda.time.format.*
 import scala.util.control.NonFatal
+import zio.*
 import zio.json.*
 
 object DateFormaterService {
 
   implicit class JodaTimeToJava(d: DateTime) {
-    def toJava: ZonedDateTime = ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(d.getMillis), ZoneId.of(d.getZone.getID))
+    // see https://stackoverflow.com/a/47753227 - read other solution and the comment in them, too
+    def toJava: ZonedDateTime =
+      ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(d.getMillis), ZoneId.of(d.getZone.getID, ZoneId.SHORT_IDS))
   }
 
-  object json {
+  trait DateTimeCodecs {
     implicit val encoderDateTime: JsonEncoder[DateTime] = JsonEncoder[String].contramap(serialize)
     implicit val decoderDateTime: JsonDecoder[DateTime] = JsonDecoder[String].mapOrFail(parseDate(_).left.map(_.fullMsg))
     implicit val codecDateTime:   JsonCodec[DateTime]   = new JsonCodec[DateTime](encoderDateTime, decoderDateTime)
@@ -70,7 +71,15 @@ object DateFormaterService {
 
     implicit val codecZonedDateTime: JsonCodec[ZonedDateTime] =
       new JsonCodec[ZonedDateTime](encoderZonedDateTime, decoderZonedDateTime)
+
+    implicit val transformDateTime: Transformer[DateTime, ZonedDateTime] = {
+      _.toJava
+    }
+
+    implicit val transformZonedDateTime: Transformer[ZonedDateTime, DateTime] = { x => new DateTime(x.toInstant.toEpochMilli) }
   }
+
+  object json extends DateTimeCodecs
 
   val displayDateFormat: DateTimeFormatter = new DateTimeFormatterBuilder()
     .append(DateTimeFormat.forPattern("YYYY-MM-dd"))
@@ -81,6 +90,9 @@ object DateFormaterService {
   val rfcDateformat:           DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZZ")
   val rfcDateformatWithMillis: DateTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
 
+  val javaDisplayDateFormat: java.time.format.DateTimeFormatter =
+    java.time.format.DateTimeFormatter.ofPattern("YYYY-MM-dd HH:mm:ssZ")
+
   /*
    * Display date must be used only for the user facing date in non serialized form
    * (for ex: in a web page).
@@ -89,13 +101,18 @@ object DateFormaterService {
     date.toString(displayDateFormat)
   }
 
+  def getDisplayDate(date: ZonedDateTime): String = {
+    date.format(javaDisplayDateFormat)
+  }
+
   /*
    * Format a date for serialisation (json, database, etc). We use
    * ISO 8601 (rfc 3339) for that (without millis)
    */
   def serialize(datetime: DateTime): String = datetime.toString(ISODateTimeFormat.dateTimeNoMillis.withZoneUTC())
 
-  def serializeZDT(datetime: ZonedDateTime): String = datetime.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+  def serializeZDT(datetime: ZonedDateTime): String =
+    datetime.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneOffset.UTC))
 
   def parseDate(date: String): PureResult[DateTime] = {
     try {
@@ -134,7 +151,8 @@ object DateFormaterService {
   def getDisplayDateTimePicker(date: DateTime): String = {
     date.toString(dateFormatTimePicker)
   }
-  private val periodFormatter = new PeriodFormatterBuilder()
+  // for joda time
+  private val jodaPeriodFormatter = new PeriodFormatterBuilder()
     .appendDays()
     .appendSuffix(" day", " days")
     .appendSeparator(", ")
@@ -148,13 +166,26 @@ object DateFormaterService {
     .appendSuffix(" s", " s")
     .toFormatter()
 
-  def formatPeriod(duration: Duration): String = {
-    if (duration.getMillis < 1000) "less than 1 s"
-    else periodFormatter.print(duration.toPeriod(ISOChronology.getInstanceUTC))
+  // for java.time, we don't have any built-in formatter, so we need to do it by hand
+  def formatJavaDuration(d: java.time.Duration): String = {
+    d.render
   }
 
-  def getFormatedPeriod(start: DateTime, end: DateTime): String = {
-    formatPeriod(new Duration(start, end))
+  /*
+   * Format the interval of time between start and end date time, with a
+   * coarse granularity of seconds, and "less than 1 s" for smaller values.
+   */
+  private def broadlyFormatPeriod(duration: Duration): String = {
+    if (duration.getMillis < 1000) "less than 1 s"
+    else jodaPeriodFormatter.print(duration.toPeriod(ISOChronology.getInstanceUTC))
+  }
+
+  /*
+   * Format the interval of time between start and end date time, with a
+   * coarse granularity of seconds, and "less than 1 s" for smaller values.
+   */
+  def getBroadlyFormatedPeriod(start: DateTime, end: DateTime): String = {
+    broadlyFormatPeriod(new Duration(start, end))
   }
 
   /**

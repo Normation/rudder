@@ -240,13 +240,17 @@ var complianceHoverColors =
   , "#DA291C" : "#ed1809ff"
   }
 
-function doughnutChart (id,data,colors,hoverColors) {
+async function doughnutChart(id, data, colors, hoverColors) {
 
-  var context = $("#"+id)
-  var count = data.values.length < 1 ? 0 : data.values.reduce((a, b) => a + b, 0);
+  const existingChart = Chart.getChart(id)
+  if (!!existingChart) existingChart.destroy()
 
-  var borderW = data.values.length > 1 ? 3 : 0;
-  var chartData = {
+  await waitForElement(`#${id}`)
+  const ctx = document.getElementById(id)
+  const count = data.values.length < 1 ? 0 : data.values.reduce((a, b) => a + b, 0);
+
+  const borderW = data.values.length > 1 ? 3 : 0;
+  const chartData = {
     labels  :  data.labels,
     datasets:
       [ { data           : data.values
@@ -256,7 +260,7 @@ function doughnutChart (id,data,colors,hoverColors) {
       } ]
   };
 
-  var chartOptions = {
+  const chartOptions = {
       type: 'doughnut'
     , data: chartData
     , options: {
@@ -285,67 +289,77 @@ function doughnutChart (id,data,colors,hoverColors) {
 
       , events: ['click', 'mousemove']
       , onClick: (e, active, currentChart) => {
-             if (active[0] !== undefined){
-              // we have specific mapping of query filters for scores
-              data = (data.labelQueryFilters ?? currentChart.data.labels)[active[0].index]
-              var query = {query:{select:"nodeAndPolicyServer",composition:"And"}};
-              switch (id) {
-                case 'nodeOs':
-                     if (g_osNames == undefined)
-                        return ;
-                     var osName = g_osNames[data];
-                     query.query.where = [{
-                         objectType: "node"
-                       , attribute : "osName"
-                       , comparator: "eq"
-                       , value     : osName
-                       }];
+        if (active[0] !== undefined){
+          // we have specific mapping of query filters for scores
+          data = (data.labelQueryFilters ?? currentChart.data.labels)[active[0].index]
+          const jsonHashSearch =
+            { query : {select:"nodeAndPolicyServer",composition:"And"}
+            , tab   : "#node_search"
+            };
+          const nodeListTab = "#node_list"
 
-                      break;
-                  case 'nodeAgents':
-                      query.query.where = [{
-                          objectType: "software"
-												 , attribute : "cn"
-												 , comparator: "regex"
-												 , value     : "rudder-agent|Rudder [aA]gent \\(DSC\\)"
-                      },{
-                          objectType: "software"
-                        , attribute : "softwareVersion"
-                        , comparator: "regex"
-                        , value     : "(\\d+:)?" + data.replace(/\./g, "(\.|~)") + ".*"
-                      }];
-                      break;
-                  case 'nodeMachine':
-                      query.query.where = [{
-                          objectType: "machine"
-                        , attribute : "machineType"
-                        , comparator: "eq"
-                        , value     : data
-                       }];
-                      break;
-                  case 'nodeCompliance':
-                     var filter = {score:data};
-                     window.location = contextPath + "/secure/nodeManager/nodes#" + JSON.stringify(filter);
-                     return;
+          switch (id) {
+            case 'nodeOs':
+              if (g_osNames == undefined) return ;
+              const osName = g_osNames[data];
+              jsonHashSearch.query.where = [
+                { objectType: "node"
+                , attribute : "osName"
+                , comparator: "eq"
+                , value     : osName
+                }
+              ];
+              break;
 
-                   default:
-                     if (id.startsWith("score-")) {
-                       var scoreId = id.substring(6)
-                       var filter = {scoreDetails:{[scoreId]:data}};
-                       window.location = contextPath + "/secure/nodeManager/nodes#" + JSON.stringify(filter);
-                       return;
-                     } else
-                       return;
-              }
-               var url = contextPath + "/secure/nodeManager/searchNodes#" +  JSON.stringify(query);
-               window.location = url;
+            case 'nodeAgents':
+              jsonHashSearch.query.where = [
+                { objectType: "node"
+                , attribute : "agentVersion"
+                , comparator: "regex"
+                , value     : "(\\d+:)?" + data.replace(/\./g, "(\.|~)") + ".*"
+                }
+              ];
+              break;
+
+            case 'nodeMachine':
+              jsonHashSearch.query.where = [
+                { objectType: "machine"
+                , attribute : "machineType"
+                , comparator: "eq"
+                , value     : data
+                }
+              ];
+              break;
+
+            case 'nodeCompliance':
+              const jsonHashFilter =
+                { score : data
+                , tab: nodeListTab
+                };
+              window.location = contextPath + "/secure/nodeManager/nodes#" + JSON.stringify(jsonHashFilter);
+              return;
+
+            default:
+              if (id.startsWith("score-")) {
+                const scoreId = id.substring(6)
+                const jsonHashFilter =
+                  { scoreDetails : {[scoreId]:data}
+                  , tab: nodeListTab
+                  };
+                window.location = contextPath + "/secure/nodeManager/nodes#" + JSON.stringify(jsonHashFilter);
+                return;
+              } else return;
             }
-         }
+
+            window.location = contextPath + "/secure/nodeManager/nodes#" +  JSON.stringify(jsonHashSearch);;
+          }
+        }
       }
     , plugins: [htmlLegendPlugin],
     }
-  var chart = new Chart(context, chartOptions);
+  const chart = new Chart(ctx, chartOptions);
   window[id] = chart;
+  return chart;
 }
 
 

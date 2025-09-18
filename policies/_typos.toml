@@ -9,3 +9,4 @@ SOFTWARES = "SOFTWARES"
 # crate name
 flate = "flate"
 
+monitord = "monitord"

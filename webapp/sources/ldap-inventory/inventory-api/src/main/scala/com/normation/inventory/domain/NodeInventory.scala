@@ -39,9 +39,9 @@ package com.normation.inventory.domain
 
 import enumeratum.*
 import java.net.InetAddress
-import net.liftweb.json.JsonAST.JValue
 import org.joda.time.DateTime
 import zio.json.*
+import zio.json.ast.*
 
 sealed trait NodeElement {
   def description: Option[String]
@@ -100,6 +100,10 @@ final case class Process(
     description:                                                Option[String] = None
 ) extends NodeElement
 
+object Process {
+  implicit val codecProcess: JsonCodec[Process] = DeriveJsonCodec.gen
+}
+
 final case class VirtualMachine(
     @jsonField("type") @jsonAliases("vmtype") vmtype: Option[String] = None,
     subsystem:                                        Option[String] = None,
@@ -114,10 +118,16 @@ final case class VirtualMachine(
 ) extends NodeElement
 
 final case class EnvironmentVariable(
-    name:        String,
-    value:       Option[String] = None,
-    description: Option[String] = None
-) extends NodeElement
+    name:  String,
+    value: Option[String] = None
+) extends NodeElement {
+  // description is never present in Environment Variable, and we don't store it if it was
+  val description: Option[String] = None
+}
+
+object EnvironmentVariable {
+  implicit val codecEnvironmentVariable: JsonCodec[EnvironmentVariable] = DeriveJsonCodec.gen
+}
 
 object InetAddressUtils {
 
@@ -161,6 +171,7 @@ object WindowsType {
       :: Windows2016R2
       :: Windows2019
       :: Windows2022
+      :: Windows2025
       :: Nil
   )
 }
@@ -181,6 +192,7 @@ case object Windows2016        extends WindowsType { val name = "Windows2016"   
 case object Windows2016R2      extends WindowsType { val name = "Windows2016R2" }
 case object Windows2019        extends WindowsType { val name = "Windows2019"   }
 case object Windows2022        extends WindowsType { val name = "Windows2022"   }
+case object Windows2025        extends WindowsType { val name = "Windows2025"   }
 
 /**
  * Specific Linux subtype (distribution)
@@ -352,6 +364,7 @@ object ParseOSType {
         else if (x.contains("2016")) Windows2016
         else if (x.contains("2019")) Windows2019
         else if (x.contains("2022")) Windows2022
+        else if (x.contains("2025")) Windows2025
         else UnknownWindowsType
 
       case ("linux", x, _) =>
@@ -473,8 +486,12 @@ final case class NodeTimezone(
 
 final case class CustomProperty(
     name:  String,
-    value: JValue
+    value: Json
 )
+
+object CustomProperty {
+  implicit val codecCustomProperty: JsonCodec[CustomProperty] = DeriveJsonCodec.gen
+}
 
 sealed abstract class SoftwareUpdateKind(override val entryName: String) extends EnumEntry {
   def name: String = entryName
@@ -550,6 +567,10 @@ object KeyStatus {
 }
 
 final case class AgentCapability(value: String) extends AnyVal
+
+object AgentCapability {
+  implicit val codecAgentCapability: JsonCodec[AgentCapability] = JsonCodec.string.transform(AgentCapability.apply, _.value)
+}
 
 final case class NodeInventory(
     main:                 NodeSummary,

@@ -7,23 +7,24 @@ use std::{
     sync::atomic::{AtomicBool, AtomicUsize, Ordering},
 };
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use boon::{Compiler, Schemas};
-use rudder_commons::{is_canonified, logs::ok_output, methods::Methods, Target};
+use rudder_commons::{Target, is_canonified, logs::ok_output, methods::Methods};
 use serde_json::Value;
 use tracing::{error, warn};
 
+use crate::ir::technique::ForeachResolvedState;
 use crate::{
-    backends::{backend, metadata::Metadata, Backend},
+    RESOURCES_DIR,
+    backends::{Backend, backend, metadata::Metadata},
     frontends,
     ir::{
+        Technique,
         technique::{
             Block, BlockReportingMode, Id, ItemKind, Method, Parameter, ParameterType, PasswordType,
         },
         value::Expression,
-        Technique,
     },
-    RESOURCES_DIR,
 };
 
 // Count of user errors detected when reading the technique
@@ -51,11 +52,15 @@ pub fn is_exit_on_user_error() -> bool {
 /// Read technique and augment with data from libraries
 ///
 /// Don't return early on user error but display an error message
-pub fn read_technique(methods: &'static Methods, input: &str) -> Result<Technique> {
+pub fn read_technique(
+    methods: &'static Methods,
+    input: &str,
+    resolve_loops: bool,
+) -> Result<Technique> {
     // Deserialize into `Technique`
     // Here return early as we can't do much if parsing failed,
     // plus serde already displays as many errors as possible
-    let mut policy = frontends::read(input)?;
+    let mut policy = frontends::read(input, resolve_loops)?;
     // Inject methods info into policy
     // Also check consistency (parameters, constraints, etc.)
     methods_metadata(&mut policy.items, methods)?;
@@ -99,9 +104,15 @@ pub fn read_technique(methods: &'static Methods, input: &str) -> Result<Techniqu
 // TODO: See if quick_xml should encode these anyway
 fn check_for_control_chars(s: String) -> Result<String> {
     // \n, \r and \t are allowed in XML
-    match s.chars().find(|c| c.is_ascii_control() && !['\n', '\r', '\t'].contains(c)) {
-         Some(c) => bail!("Output contains a forbidden control character '{}', stopping. This can happen when using escape sequence in YAML double quotes.", c.escape_default()),
-         None => Ok(s),
+    match s
+        .chars()
+        .find(|c| c.is_ascii_control() && !['\n', '\r', '\t'].contains(c))
+    {
+        Some(c) => bail!(
+            "Output contains a forbidden control character '{}', stopping. This can happen when using escape sequence in YAML double quotes.",
+            c.escape_default()
+        ),
+        None => Ok(s),
     }
 }
 
@@ -239,7 +250,7 @@ fn check_block(block: &Block) -> Result<()> {
                 if &r.id == id {
                     true
                 } else {
-                    r.items.iter().map(|r| is_id_child(r, id)).any(|t| t)
+                    r.items.iter().any(|r| is_id_child(r, id))
                 }
             }
             ItemKind::Method(r) => &r.id == id,
@@ -280,13 +291,26 @@ fn check_block(block: &Block) -> Result<()> {
 // TODO: Could be more efficient...
 fn check_ids_unicity(technique: &Technique) -> Result<()> {
     fn get_ids(r: &ItemKind) -> Vec<Id> {
+        // Only keep the id on non-virtual items
         match r {
-            ItemKind::Block(r) => {
-                let mut ids = vec![r.id.clone()];
-                ids.extend(r.items.iter().flat_map(get_ids));
-                ids
-            }
-            ItemKind::Method(r) => vec![r.id.clone()],
+            ItemKind::Block(r) => match r.resolved_foreach_state {
+                Some(ForeachResolvedState::Virtual) => vec![],
+                Some(ForeachResolvedState::Main) => {
+                    let mut ids = vec![r.id.clone()];
+                    ids.extend(r.items.iter().flat_map(get_ids));
+                    ids
+                }
+                None => {
+                    let mut ids = vec![r.id.clone()];
+                    ids.extend(r.items.iter().flat_map(get_ids));
+                    ids
+                }
+            },
+            ItemKind::Method(r) => match r.resolved_foreach_state {
+                Some(ForeachResolvedState::Virtual) => vec![],
+                Some(ForeachResolvedState::Main) => vec![r.id.clone()],
+                None => vec![r.id.clone()],
+            },
             _ => todo!(),
         }
     }

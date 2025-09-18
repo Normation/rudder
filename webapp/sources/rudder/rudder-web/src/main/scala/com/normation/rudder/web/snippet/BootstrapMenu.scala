@@ -68,7 +68,7 @@ class BootstrapMenu {
             <li class={style + "treeview treview-toggle"}>
               <a href="#">
                 {item.text}
-                <i class="fa fa-angle-left pull-right"></i>
+                <i class="fa fa-angle-right pull-right"></i>
               </a>
               <ul class="treeview-menu"> {
               for (kid <- kids) yield {

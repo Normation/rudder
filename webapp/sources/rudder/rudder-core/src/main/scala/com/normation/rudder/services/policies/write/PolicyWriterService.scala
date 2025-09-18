@@ -1122,7 +1122,6 @@ class PolicyWriterServiceImpl(
       "MANAGED_NODES_KEY",
       "MANAGED_NODES_NAME",
       "COMMUNITY",
-      "NOVA",
       "RUDDER_INVENTORY_VARS",
       "BUNDLELIST",
       "INPUTLIST"

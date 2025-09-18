@@ -58,6 +58,7 @@ import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.RudderAgent
 import com.normation.rudder.reports.*
+import com.normation.rudder.services.servers.InstanceIdService
 import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.rudder.services.servers.RelaySynchronizationMethod
 import com.normation.zio.*
@@ -70,14 +71,13 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import scala.collection.MapView
 
 trait SystemVariableService {
   def getGlobalSystemVariables(globalAgentRun: AgentRunInterval): Box[Map[String, Variable]]
 
   def getSystemVariables(
       nodeInfo:              CoreNodeFact,
-      allNodeInfos:          MapView[NodeId, CoreNodeFact],
+      allNodeInfos:          Map[NodeId, CoreNodeFact],
       nodeTargets:           List[FullRuleTargetInfo],
       globalSystemVariables: Map[String, Variable],
       globalAgentRun:        AgentRunInterval,
@@ -119,7 +119,8 @@ object SystemVariableService {
 
 class SystemVariableServiceImpl(
     systemVariableSpecService:     SystemVariableSpecService,
-    policyServerManagementService: PolicyServerManagementService, // Variables definitions
+    policyServerManagementService: PolicyServerManagementService,
+    instanceIdService:             InstanceIdService, // Variables definitions
 
     toolsFolder:               String,
     policyDistribCfenginePort: Int,
@@ -160,6 +161,9 @@ class SystemVariableServiceImpl(
   }
   val reportsDbUrl:  String = reportsDbUri.replace(s"""jdbc:postgresql://""", s"""postgresql://${reportsDbUser}@""")
 
+  val instanceId: SystemVariable =
+    systemVariableSpecService.get("INSTANCE_ID").toVariable(Seq(instanceIdService.instanceId.value))
+
   val varToolsFolder:                SystemVariable = systemVariableSpecService.get("TOOLS_FOLDER").toVariable(Seq(toolsFolder))
   val varWebdavUser:                 SystemVariable = systemVariableSpecService.get("DAVUSER").toVariable(Seq(webdavUser))
   val varWebdavPassword:             SystemVariable = systemVariableSpecService.get("DAVPASSWORD").toVariable(Seq(webdavPassword))
@@ -192,6 +196,7 @@ class SystemVariableServiceImpl(
 
     logger.trace("Global system variables done")
     val vars = {
+      instanceId ::
       varToolsFolder ::
       varSharedFilesFolder ::
       varPolicyDistribCfenginePort ::
@@ -221,7 +226,7 @@ class SystemVariableServiceImpl(
   // policy servers)
   def getSystemVariables(
       nodeInfo:              CoreNodeFact,
-      allNodeInfos:          MapView[NodeId, CoreNodeFact],
+      allNodeInfos:          Map[NodeId, CoreNodeFact],
       nodeTargets:           List[FullRuleTargetInfo],
       globalSystemVariables: Map[String, Variable],
       globalAgentRun:        AgentRunInterval,
@@ -349,8 +354,8 @@ class SystemVariableServiceImpl(
       // The distribution is chosen based on agent type.
       val (nodesAgentWithCfserverDistrib, nodesAgentWithHttpDistrib) = childerNodesList.partition(x => {
         x._1.agentType match {
-          case AgentType.CfeCommunity | AgentType.CfeEnterprise => true
-          case _                                                => false
+          case AgentType.CfeCommunity => true
+          case _                      => false
         }
       })
 
@@ -382,13 +387,13 @@ class SystemVariableServiceImpl(
           nodes.flatMap(n => {
             n :: {
               childrenByPolicyServer.get(n.id) match {
-                case None           => Nil
-                case Some(children) =>
-                  // If the node 'n' is the same node of the policy server we are generating variables, do not go to childs level, they will be treated by the upper level call
+                case None    => Nil
+                case Some(c) =>
+                  // If the node 'n' is the same node of the policy server we are generating variables, do not go to children level, they will be treated by the upper level call
                   if (n.id == nodeInfo.id) {
                     Nil
                   } else {
-                    addWithSubChildren(children)
+                    addWithSubChildren(c)
                   }
               }
             }

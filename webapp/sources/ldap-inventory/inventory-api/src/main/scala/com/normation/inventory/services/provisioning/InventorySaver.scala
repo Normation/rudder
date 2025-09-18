@@ -41,7 +41,6 @@ import com.normation.errors.*
 import com.normation.inventory.domain.Inventory
 import com.normation.inventory.domain.InventoryProcessingLogger
 import com.normation.zio.*
-import net.liftweb.common.Loggable
 import zio.*
 
 /**
@@ -75,7 +74,7 @@ trait InventorySaver[R] {
  * middle
  */
 
-trait PipelinedInventorySaver[R] extends InventorySaver[R] with Loggable {
+trait PipelinedInventorySaver[R] extends InventorySaver[R] {
 
   val preCommitPipeline: Seq[PreCommit]
   val basePostPipeline:  Seq[PostCommit[R]]

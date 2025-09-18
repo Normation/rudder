@@ -40,11 +40,11 @@ bundle server access_rules
     any::
           "/var/rudder/share/c8813416-316f-4307-9b6a-ca9c109a9fb0/"
             maproot => {  @{def.acl}  },
-            admit_keys => { "MD5=081cf3aac62624ebbc83be7e23cb104d" };
+            admit_keys => { "MD5=eec3a3c2cf41b2736b7a0a9dece02142" };
 
           "/var/rudder/shared-files/c8813416-316f-4307-9b6a-ca9c109a9fb0/"
             maproot => {  @{def.acl}  },
-            admit_keys => { "MD5=081cf3aac62624ebbc83be7e23cb104d" };
+            admit_keys => { "MD5=eec3a3c2cf41b2736b7a0a9dece02142" };
 
               "/var/rudder/share/root/"
             maproot => {  @{def.acl}  },

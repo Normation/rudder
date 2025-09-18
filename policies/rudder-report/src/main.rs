@@ -1,5 +1,5 @@
 use clap::Parser;
-use rudder_relayd::data::{report::runlog, Report};
+use rudder_relayd::data::{Report, report::runlog};
 use serde::{Deserialize, Serialize};
 use std::fs::read_to_string;
 use std::path::PathBuf;

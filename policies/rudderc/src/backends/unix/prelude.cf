@@ -34,6 +34,11 @@ body common control
         inputs => {
                     @{lib.files},
         };
+
+        bundlesequence => {
+          "main",
+          "export_datastate"
+        };
 }
 
 body agent control
@@ -113,4 +118,26 @@ bundle common g
       "SUSE" expression => "sles";
       "SuSE" expression => "sles";
       "suse" expression => "sles";
+}
+
+body action enforce
+{
+  action_policy => "fix";
+}
+
+bundle agent export_datastate
+{
+  vars:
+    "datastate_file" string => getenv("DATASTATE_FILE","2048");
+  classes:
+    "pass3" expression => "pass2";
+    "pass2" expression => "pass1";
+    "pass1" expression => "any";
+  files:
+    pass3::
+      "${datastate_file}"
+        template_method      => "inline_mustache",
+        create               => "true",
+        action               => enforce,
+        edit_template_string => "{{%-top-}}";
 }

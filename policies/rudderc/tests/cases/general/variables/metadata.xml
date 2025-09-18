@@ -36,9 +36,7 @@
     </SECTION>
     <SECTION name="File content" id="d982a7e6-494a-40a5-aea1-7d9a185eed61" component="true" multivalued="true">
       <REPORTKEYS>
-        <VALUE id="d982a7e6-494a-40a5-aea1-7d9a185eed61">
-          /some/path
-        </VALUE>
+        <VALUE id="d982a7e6-494a-40a5-aea1-7d9a185eed61">/some/path</VALUE>
       </REPORTKEYS>
     </SECTION>
   </SECTIONS>

@@ -49,8 +49,12 @@ import com.normation.rudder.batch.AsyncDeploymentActor
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.batch.PolicyGenerationTrigger
 import com.normation.rudder.domain.appconfig.FeatureSwitch
+import com.normation.rudder.domain.nodes.NodeKind
 import com.normation.rudder.domain.nodes.NodeState
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
+import com.normation.rudder.facts.nodes.SelectNodeStatus
 import com.normation.rudder.reports.*
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
@@ -59,7 +63,6 @@ import com.normation.rudder.rest.OneParam
 import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RestUtils
 import com.normation.rudder.rest.SettingsApi as API
-import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.SendMetrics
 import com.normation.rudder.services.servers.AllowedNetwork
 import com.normation.rudder.services.servers.PolicyServerManagementService
@@ -88,10 +91,11 @@ class SettingsApi(
     val asyncDeploymentAgent:          AsyncDeploymentActor,
     val uuidGen:                       StringUuidGenerator,
     val policyServerManagementService: PolicyServerManagementService,
-    val nodeInfoService:               NodeInfoService
+    val nodeFactRepo:                  NodeFactRepository
 ) extends LiftApiModuleProvider[API] {
 
-  val allSettings_v10: List[RestSetting[?]] = {
+  val allSettings: List[RestSetting[?]] = {
+    RestReportProtocolDefault ::
     RestPolicyMode ::
     RestPolicyModeOverridable ::
     RestRunFrequency ::
@@ -120,8 +124,6 @@ class SettingsApi(
     RestOnAcceptPolicyMode ::
     RestComputeChanges ::
     RestGenerationComputeDynGroups ::
-    RestPersistComplianceLevels ::
-    RestPersistComplianceDetails ::
     RestGenerationMaxParallelism ::
     RestGenerationJsTimeout ::
     RestContinueGenerationOnError ::
@@ -133,33 +135,21 @@ class SettingsApi(
     Nil
   }
 
-  val allSettings_v12: List[RestSetting[?]] = RestReportProtocolDefault :: allSettings_v10
-
-  def allSettings(version: ApiVersion): List[RestSetting[?]] = {
-    if (version.value <= 10) {
-      allSettings_v10
-    } else {
-      allSettings_v12
-    }
-  }
-
   val kind = "settings"
 
   def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints.map(e => {
-      e match {
-        case API.GetAllAllowedNetworks     => GetAllAllowedNetworks
-        case API.GetAllowedNetworks        => GetAllowedNetworks
-        case API.ModifyAllowedNetworks     => ModifyAllowedNetworks
-        case API.ModifyDiffAllowedNetworks => ModifyDiffAllowedNetworks
-        case API.GetAllSettings            => GetAllSettings
-        case API.ModifySettings            => ModifySettings
-        case API.GetSetting                => GetSetting
-        case API.ModifySetting             => ModifySetting
-      }
-    })
+    API.endpoints.map {
+      case API.GetAllAllowedNetworks     => GetAllAllowedNetworks
+      case API.GetAllowedNetworks        => GetAllowedNetworks
+      case API.ModifyAllowedNetworks     => ModifyAllowedNetworks
+      case API.ModifyDiffAllowedNetworks => ModifyDiffAllowedNetworks
+      case API.GetAllSettings            => GetAllSettings
+      case API.ModifySettings            => ModifySettings
+      case API.GetSetting                => GetSetting
+      case API.ModifySetting             => ModifySetting
+    }
   }
 
   object GetAllSettings extends LiftApiModule0 {
@@ -167,7 +157,7 @@ class SettingsApi(
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       val settings = for {
-        setting <- allSettings(version)
+        setting <- allSettings
       } yield {
         val result = setting.getJson match {
           case Full(res) => res
@@ -178,7 +168,7 @@ class SettingsApi(
         JField(setting.key, result)
       }
       val data     = if (version.value >= 11) {
-        val networks = GetAllAllowedNetworks.getAllowedNetworks().either.runNow match {
+        val networks = GetAllAllowedNetworks.getAllowedNetworks()(authzToken.qc).either.runNow match {
           case Right(nets) =>
             nets
           case Left(err)   =>
@@ -192,7 +182,8 @@ class SettingsApi(
 
       // sort settings alphanum
       RestUtils.response(restExtractorService, "settings", None)(Full(data.sortBy(_.name)), req, s"Could not settings")(
-        "getAllSettings"
+        "getAllSettings",
+        params.prettify
       )
     }
   }
@@ -203,14 +194,17 @@ class SettingsApi(
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       var generate = false
       val data     = for {
-        setting <- allSettings(version)
+        setting <- allSettings
         value   <- setting.setFromRequestOpt(req, authzToken.qc.actor)
       } yield {
         if (value.isDefined) generate = generate || setting.startPolicyGeneration
         JField(setting.key, value)
       }
       startNewPolicyGeneration(authzToken.qc.actor)
-      RestUtils.response(restExtractorService, "settings", None)(Full(data), req, s"Could not modfiy settings")("modifySettings")
+      RestUtils.response(restExtractorService, "settings", None)(Full(data), req, s"Could not modfiy settings")(
+        "modifySettings",
+        params.prettify
+      )
     }
   }
 
@@ -226,13 +220,14 @@ class SettingsApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       val data: Box[JValue] = for {
-        setting <- settingFromKey(key, allSettings(version))
+        setting <- settingFromKey(key, allSettings)
         value   <- setting.getJson
       } yield {
         (key -> value)
       }
       RestUtils.response(restExtractorService, "settings", Some(key))(data, req, s"Could not get parameter '${key}'")(
-        "getSetting"
+        "getSetting",
+        params.prettify
       )
     }
   }
@@ -249,13 +244,14 @@ class SettingsApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       val data: Box[JValue] = for {
-        setting <- settingFromKey(key, allSettings(version))
+        setting <- settingFromKey(key, allSettings)
         value   <- setting.setFromRequest(req, authzToken.qc.actor)
       } yield {
         (key -> value)
       }
       RestUtils.response(restExtractorService, "settings", Some(key))(data, req, s"Could not modify parameter '${key}'")(
-        "modifySetting"
+        "modifySetting",
+        params.prettify
       )
     }
   }
@@ -701,7 +697,8 @@ class SettingsApi(
   }
 
   def response(function: Box[JValue], req: Req, errorMessage: String, id: Option[String])(implicit
-      action: String
+      action:   String,
+      prettify: Boolean
   ): LiftResponse = {
     RestUtils.response(restExtractorService, kind, id)(function, req, errorMessage)
   }
@@ -722,22 +719,7 @@ class SettingsApi(
       configService.set_rudder_generation_compute_dyngroups(value)
   }
 
-  case object RestPersistComplianceLevels extends RestBooleanSetting {
-    val startPolicyGeneration = false
-    val key                   = "rudder_save_db_compliance_levels"
-    def get: IOResult[Boolean]                                       = configService.rudder_save_db_compliance_levels()
-    def set: (Boolean, EventActor, Option[String]) => IOResult[Unit] = (value: Boolean, _, _) =>
-      configService.set_rudder_save_db_compliance_levels(value)
-  }
-
-  case object RestPersistComplianceDetails extends RestBooleanSetting {
-    val startPolicyGeneration = false
-    val key                   = "rudder_save_db_compliance_details"
-    def get: IOResult[Boolean]                                       = configService.rudder_save_db_compliance_details()
-    def set: (Boolean, EventActor, Option[String]) => IOResult[Unit] = (value: Boolean, _, _) =>
-      configService.set_rudder_save_db_compliance_details(value)
-  }
-  case object RestGenerationMaxParallelism extends RestStringSetting  {
+  case object RestGenerationMaxParallelism extends RestStringSetting {
     val startPolicyGeneration = false
     val key                   = "rudder_generation_max_parallelism"
     def get: IOResult[String]                                       = configService.rudder_generation_max_parallelism()
@@ -831,9 +813,11 @@ class SettingsApi(
 
   object GetAllAllowedNetworks extends LiftApiModule0 {
 
-    def getAllowedNetworks(): ZIO[Any, RudderError, JArray] = {
+    def getAllowedNetworks()(implicit qc: QueryContext): ZIO[Any, RudderError, JArray] = {
       for {
-        servers         <- nodeInfoService.getAllSystemNodeIds()
+        servers         <- nodeFactRepo
+                             .getAll()(qc, SelectNodeStatus.Accepted)
+                             .map(_.collect { case (_, n) if (n.rudderSettings.kind != NodeKind.Node) => n.id }.toSeq)
         allowedNetworks <- policyServerManagementService.getAllAllowedNetworks()
       } yield {
         val toKeep = servers.map(id => (id.value, allowedNetworks.getOrElse(id, Nil).map(_.inet))).sortWith {
@@ -853,8 +837,9 @@ class SettingsApi(
     val restExtractor = restExtractorService
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
       implicit val action = "getAllAllowedNetworks"
+      implicit val prettify: Boolean = params.prettify
       RestUtils.response(restExtractorService, getRootNameForVersion(version), None)(
-        getAllowedNetworks().toBox,
+        getAllowedNetworks()(authzToken.qc).toBox,
         req,
         s"Could not get allowed networks"
       )
@@ -874,16 +859,17 @@ class SettingsApi(
     ): LiftResponse = {
 
       implicit val action = "getAllowedNetworks"
-      val result          = for {
-        nodeInfo <- nodeInfoService.getNodeInfo(NodeId(id))
+      implicit val prettify: Boolean = params.prettify
+      val result = for {
+        nodeInfo <- nodeFactRepo.get(NodeId(id))(authzToken.qc)
         isServer <- nodeInfo match {
-                      case Some(info) if info.isPolicyServer =>
+                      case Some(info) if info.rudderSettings.isPolicyServer =>
                         ZIO.unit
-                      case Some(_)                           =>
+                      case Some(_)                                          =>
                         Inconsistency(
                           s"Can get allowed networks of node with '${id}' because it is node a policy server (root or relay)"
                         ).fail
-                      case None                              =>
+                      case None                                             =>
                         Inconsistency(s"Could not find node information for id '${id}', this node does not exist").fail
                     }
         networks <- getAllowedNetworksForServer(NodeId(id))
@@ -915,6 +901,7 @@ class SettingsApi(
     ): LiftResponse = {
 
       implicit val action = "modifyAllowedNetworks"
+      implicit val prettify: Boolean = params.prettify
 
       def checkAllowedNetwork(v: String) = {
         val netWithoutSpaces = v.replaceAll("""\s""", "")
@@ -933,15 +920,15 @@ class SettingsApi(
       val modificationId = new ModificationId(uuidGen.newUuid)
       val nodeId         = NodeId(id)
       val result         = for {
-        nodeInfo <- nodeInfoService.getNodeInfo(nodeId).toBox
+        nodeInfo <- nodeFactRepo.get(nodeId)(authzToken.qc).toBox
         isServer <- nodeInfo match {
-                      case Some(info) if info.isPolicyServer =>
+                      case Some(info) if info.rudderSettings.isPolicyServer =>
                         Full(())
-                      case Some(_)                           =>
+                      case Some(_)                                          =>
                         Failure(
                           s"Can set allowed networks of node with '${id}' because it is node a policy server (root or relay)"
                         )
-                      case None                              =>
+                      case None                                             =>
                         Failure(s"Could not find node information for id '${id}', this node does not exist")
                     }
         networks <- if (req.json_?) {
@@ -998,6 +985,7 @@ class SettingsApi(
     ): LiftResponse = {
 
       implicit val action = "modifyDiffAllowedNetworks"
+      implicit val prettify: Boolean = params.prettify
 
       def checkAllowedNetwork(v: String) = {
         val netWithoutSpaces = v.replaceAll("""\s""", "")
@@ -1019,15 +1007,15 @@ class SettingsApi(
       implicit val formats = DefaultFormats
 
       val result = for {
-        nodeInfo <- nodeInfoService.getNodeInfo(nodeId).toBox
+        nodeInfo <- nodeFactRepo.get(nodeId)(authzToken.qc).toBox
         isServer <- nodeInfo match {
-                      case Some(info) if info.isPolicyServer =>
+                      case Some(info) if info.rudderSettings.isPolicyServer =>
                         Full(())
-                      case Some(_)                           =>
+                      case Some(_)                                          =>
                         Failure(
                           s"Can set allowed networks of node with '${id}' because it is node a policy server (root or relay)"
                         )
-                      case None                              =>
+                      case None                                             =>
                         Failure(s"Could not find node information for id '${id}', this node does not exist")
                     }
         json      = if (req.json_?) {

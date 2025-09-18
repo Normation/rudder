@@ -4,7 +4,7 @@
   <DESCRIPTION>This Technique exists only to see if Rudder creates Technique correctly.</DESCRIPTION>
   <LONGDESCRIPTION></LONGDESCRIPTION>
   <USEMETHODREPORTING>true</USEMETHODREPORTING>
-  <AGENT type="cfengine-community,cfengine-nova">
+  <AGENT type="cfengine-community">
     <BUNDLES>
       <NAME>technique_by_Rudder</NAME>
       <NAME>technique_by_Rudder_rudder_reporting</NAME>
@@ -61,7 +61,7 @@
         <NAME>1AAACD71-C2D5-482C-BCFF-5EEE6F8DA9C2</NAME>
         <VARIABLENAME>technique_parameter</VARIABLENAME>
         <DESCRIPTION>technique parameter</DESCRIPTION>
-        <LONGDESCRIPTION> a long description, with line 
+        <LONGDESCRIPTION> a long description, with line
  break within</LONGDESCRIPTION>
         <CONSTRAINT>
           <TYPE>textarea</TYPE>

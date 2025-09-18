@@ -38,7 +38,6 @@
 package com.normation.rudder.services.policies
 
 import com.normation.cfclerk.domain.AbstactPassword
-import com.normation.cfclerk.domain.AixPasswordHashAlgo
 import com.normation.cfclerk.domain.HashAlgoConstraint.*
 import com.normation.cfclerk.domain.Variable
 import com.normation.errors.*
@@ -68,7 +67,6 @@ import zio.syntax.*
 sealed trait HashOsType extends EnumEntry
 
 object HashOsType extends Enum[HashOsType] {
-  case object AixHash   extends HashOsType
   case object CryptHash extends HashOsType // linux, bsd,...
 
   val values: IndexedSeq[HashOsType] = findValues
@@ -118,22 +116,6 @@ trait JsLibPassword extends ImplicitGetBytes {
   @HostAccess.Export
   def cryptSha512(s: String, salt: String): String = Sha2Crypt.sha512Crypt(s, "$6$" + salt)
 
-  /// Aix specific
-
-  @HostAccess.Export
-  def aixMd5(s:    String): String = AixPasswordHashAlgo.smd5(s)
-  @HostAccess.Export
-  def aixSha256(s: String): String = AixPasswordHashAlgo.ssha256(s)
-  @HostAccess.Export
-  def aixSha512(s: String): String = AixPasswordHashAlgo.ssha512(s)
-
-  @HostAccess.Export
-  def aixMd5(s:    String, salt: String): String = AixPasswordHashAlgo.smd5(s, Some(salt))
-  @HostAccess.Export
-  def aixSha256(s: String, salt: String): String = AixPasswordHashAlgo.ssha256(s, Some(salt))
-  @HostAccess.Export
-  def aixSha512(s: String, salt: String): String = AixPasswordHashAlgo.ssha512(s, Some(salt))
-
   /// one automatically choosing correct hash also based of the kind of HashOsType
   /// method accessible from JS
 
@@ -171,32 +153,6 @@ trait JsLibPassword extends ImplicitGetBytes {
       case "md5"                => cryptMd5(s, salt)
       case "sha-256" | "sha256" => cryptSha256(s, salt)
       case "sha-512" | "sha512" => cryptSha512(s, salt)
-      case _                    => // unknown value, fail
-        throw new NoSuchAlgorithmException(
-          s"Evaluating script 'unix(${algo}, ${s}, ${salt})' failed, as algorithm ${algo} is not recognized"
-        )
-    }
-  }
-
-  @HostAccess.Export
-  def aix(algo: String, s: String): String = {
-    algo.toLowerCase match {
-      case "md5"                => aixMd5(s)
-      case "sha-256" | "sha256" => aixSha256(s)
-      case "sha-512" | "sha512" => aixSha512(s)
-      case _                    => // unknown value, fail
-        throw new NoSuchAlgorithmException(
-          s"Evaluating script 'aix(${algo}, ${s})' failed, as algorithm ${algo} is not recognized"
-        )
-    }
-  }
-
-  @HostAccess.Export
-  def aix(algo: String, s: String, salt: String): String = {
-    algo.toLowerCase match {
-      case "md5"                => aixMd5(s, salt)
-      case "sha-256" | "sha256" => aixSha256(s, salt)
-      case "sha-512" | "sha512" => aixSha512(s, salt)
       case _                    => // unknown value, fail
         throw new NoSuchAlgorithmException(
           s"Evaluating script 'unix(${algo}, ${s}, ${salt})' failed, as algorithm ${algo} is not recognized"
@@ -243,7 +199,7 @@ trait JsLibPassword extends ImplicitGetBytes {
  * - rudder.hash.sha512(value)
  *
  * ## Under the "rudder.password" namespace, salted hashing functions
- *    compatible with Unix crypt (Linux, BSD...) or AIX
+ *    compatible with Unix crypt (Linux, BSD...)
  * ### Automatically chosen based on the node type:
  * - rudder.password.md5(value [, salt])
  * - rudder.password.sha256(value [, salt])
@@ -254,20 +210,13 @@ trait JsLibPassword extends ImplicitGetBytes {
  * - rudder.password.cryptSha256(value [, salt])
  * - rudder.password.cryptSha512(value [, salt])
  *
- * ### Generates AIX password compatible hashes:
- * - rudder.password.aixMd5(value [, salt])
- * - rudder.password.aixSha256(value [, salt])
- * - rudder.password.aixSha512(value [, salt])
- *
  * ### Public methods (advertised to the users, fallback to the previous methods)
  * - rudder.password.auto(algo, password [, salt])
  * - rudder.password.unix(algo, password [, salt])
- * - rudder.password.aix(algo, password [, salt])
  *
  *   where algo can be MD5, SHA-512, SHA-256 (case insensitive, with or without -)
- *   * auto automatically choose the encryption based on the node type
+ *   * auto automatically choose the encryption based on the node type, currently only Unix
  *   * unix generated Unix crypt password compatible hashes (Linux, BSD, ...)
- *   * aix generates AIX password compatible hashes
  */
 
 import com.normation.rudder.services.policies.HashOsType.*
@@ -298,24 +247,6 @@ final class JsRudderLibImpl(
         def sha256(s: String, salt: String): String = super.cryptSha256(s, salt)
         @HostAccess.Export
         def sha512(s: String, salt: String): String = super.cryptSha512(s, salt)
-
-      }
-    case AixHash   =>
-      new JsLibPassword() {
-        /// method accessible from JS
-        @HostAccess.Export
-        def md5(s:    String): String = super.aixMd5(s)
-        @HostAccess.Export
-        def sha256(s: String): String = super.aixSha256(s)
-        @HostAccess.Export
-        def sha512(s: String): String = super.aixSha512(s)
-
-        @HostAccess.Export
-        def md5(s:    String, salt: String): String = super.aixMd5(s, salt)
-        @HostAccess.Export
-        def sha256(s: String, salt: String): String = super.aixSha256(s, salt)
-        @HostAccess.Export
-        def sha512(s: String, salt: String): String = super.aixSha512(s, salt)
 
       }
   }
@@ -357,13 +288,9 @@ object JsRudderLibBinding {
    * Be carefull, as bindings are mutable, we can't have
    * a val for bindings, else the same context is shared...
    *
-   * We have one for AIX and one for Crypt to specialize the
+   * We have one for Crypt to specialize the
    * "auto" methods
    */
-  object Aix extends JsRudderLibBinding {
-    val jsRudderLib = new JsRudderLibImpl(AixHash)
-    def bindings: Bindings = toBindings("rudder", jsRudderLib)
-  }
 
   object Crypt extends JsRudderLibBinding {
     val jsRudderLib = new JsRudderLibImpl(CryptHash)

@@ -530,7 +530,7 @@ object DisplayNode extends Loggable {
       creationDate:        Option[DateTime],
       salt:                String = "",
       isDisplayingInPopup: Boolean = false
-  )(implicit qr: QueryContext): NodeSeq = {
+  )(implicit qc: QueryContext): NodeSeq = {
 
     val nodePolicyMode     = {
       (globalMode.overridable, nodeFact.rudderSettings.policyMode) match {
@@ -634,6 +634,12 @@ object DisplayNode extends Loggable {
     }
           </div>
         </div>
+        <div class="rudder-info">
+          <h3>Documentation</h3>
+          <div class="markdown" id="nodeDocumentation">
+          </div>
+          {Script(OnLoad(JsRaw(s"generateMarkdown(${Str(nodeFact.documentation.getOrElse("")).toJsCmd}, '#nodeDocumentation')")))}
+        </div>
       </div>
       <div class="rudder-info">
         <h3>Rudder information</h3>
@@ -711,12 +717,10 @@ object DisplayNode extends Loggable {
 
     val agent     = nodeFact.rudderAgent
     val tokenKind = agent.securityToken match {
-      case _: PublicKey   => "Public key"
       case _: Certificate => "Certificate"
     }
     <div class="security-info" id={"security-" + nodeFact.id.value}>{
       agent.securityToken match {
-        case _: PublicKey   => NodeSeq.Empty
         case c: Certificate =>
           c.cert.either.runNow match {
             case Left(e)     => <span title={e.fullMsg}>Error while reading certificate information</span>
@@ -741,7 +745,7 @@ object DisplayNode extends Loggable {
       if (CurrentUser.checkRights(AuthorizationType.Node.Write) && nodeFact.rudderSettings.keyStatus == CertifiedKey) {
         SHtml.ajaxButton(
           "Reset status to be able to accept a different key",
-          () => resetKeyStatus(nodeFact, agent.securityToken)
+          () => resetKeyStatus(nodeFact)
         ) % ("class", "btn btn-default btn-sm")
       } else NodeSeq.Empty
     }
@@ -755,39 +759,42 @@ object DisplayNode extends Loggable {
   /*
    * Reset key status for given node and redisplay it's security <div>
    */
-  private def resetKeyStatus(nodeFact: NodeFact, st: SecurityToken)(implicit qc: QueryContext): JsCmd = {
+  private def resetKeyStatus(nodeFact: NodeFact)(implicit qc: QueryContext): JsCmd = {
+    implicit val cc: ChangeContext = ChangeContext(
+      ModificationId(RudderConfig.stringUuidGenerator.newUuid),
+      CurrentUser.actor,
+      DateTime.now(),
+      Some("Trusted key status reset to accept new key (first use)"),
+      None,
+      CurrentUser.nodePerms
+    )
 
-    RudderConfig.woNodeRepository
-      .updateNodeKeyInfo(
-        nodeFact.id,
-        None,
-        Some(UndefinedKey),
-        ModificationId(RudderConfig.stringUuidGenerator.newUuid),
-        CurrentUser.actor,
-        Some("Trusted key status reset to accept new key (first use)")
-      )
-      .map { _ =>
-        val js: JsCmd = {
-          SetHtml(
-            s"security-${nodeFact.id.value}",
-            displaySecurityInfo(nodeFact.modify(_.rudderSettings.keyStatus).setTo(UndefinedKey))
-          ) &
-          JsRaw(s"""createSuccessNotification("Key status for node '${StringEscapeUtils.escapeEcmaScript(
-              nodeFact.id.value
-            )}' correctly changed.")""") // JsRaw ok, escaped
-        }
-        js
+    (for {
+      node   <- RudderConfig.nodeFactRepository
+                  .get(nodeFact.id)(cc.toQuery)
+                  .notOptional(s"Cannot update node with id ${nodeFact.id.value}: there is no node with that id")
+      newNode = node.modify(_.rudderSettings.keyStatus).setTo(UndefinedKey)
+      _      <- RudderConfig.nodeFactRepository.save(newNode)
+    } yield {
+      val js: JsCmd = {
+        SetHtml(
+          s"security-${nodeFact.id.value}",
+          displaySecurityInfo(nodeFact.modify(_.rudderSettings.keyStatus).setTo(UndefinedKey))
+        ) &
+        JsRaw(s"""createSuccessNotification("Key status for node '${StringEscapeUtils.escapeEcmaScript(
+            nodeFact.id.value
+          )}' correctly changed.")""") // JsRaw ok, escaped
       }
-      .catchAll { err =>
-        val js: JsCmd = JsRaw(
-          s"""createErrorNotification("${s"An error happened when trying to change key status of node '${StringEscapeUtils
-                .escapeEcmaScript(nodeFact.fqdn)}' [${StringEscapeUtils.escapeEcmaScript(nodeFact.id.value)}]. " +
-            "Please contact your server admin to resolve the problem. " +
-            s"Error was: '${err.fullMsg}'"}")"""
-        ) // JsRaw ok, escaped
-        js.succeed
-      }
-      .runNow
+      js
+    }).catchAll { err =>
+      val js: JsCmd = JsRaw(
+        s"""createErrorNotification("${s"An error happened when trying to change key status of node '${StringEscapeUtils
+              .escapeEcmaScript(nodeFact.fqdn)}' [${StringEscapeUtils.escapeEcmaScript(nodeFact.id.value)}]. " +
+          "Please contact your server admin to resolve the problem. " +
+          s"Error was: '${err.fullMsg}'"}")"""
+      ) // JsRaw ok, escaped
+      js.succeed
+    }.runNow
 
   }
 
@@ -821,7 +828,7 @@ object DisplayNode extends Loggable {
     }
   }
 
-  private def displayPolicyServerInfos(sm: FullInventory)(implicit qr: QueryContext): NodeSeq = {
+  private def displayPolicyServerInfos(sm: FullInventory)(implicit qc: QueryContext): NodeSeq = {
     nodeFactRepository.get(sm.node.main.policyServerId).either.runNow match {
       case Left(err)                        =>
         val e = s"Could not fetch policy server details (id '${sm.node.main.policyServerId.value}') for node '${escapeHTML(
@@ -927,6 +934,10 @@ object DisplayNode extends Loggable {
           ("Total swap space (Swap)", StringEscapeUtils.escapeHtml4(sm.node.swap.map(_.toStringMo).getOrElse("-"))),
           ("System serial number", StringEscapeUtils.escapeHtml4(sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-"))),
           ("Agent type", StringEscapeUtils.escapeHtml4(sm.node.agents.headOption.map(_.agentType.displayName).getOrElse("-"))),
+          (
+            "Agent version",
+            StringEscapeUtils.escapeHtml4(sm.node.agents.headOption.flatMap(_.version.map(_.value)).getOrElse("-"))
+          ),
           ("Node state", StringEscapeUtils.escapeHtml4(getNodeState(node.rudderSettings.state))),
           ("Account(s)", displayAccounts(sm.node)),
           ("Administrator account", StringEscapeUtils.escapeHtml4(sm.node.main.rootUser)),

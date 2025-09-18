@@ -42,6 +42,11 @@ import inet.ipaddr.IPAddressString
 import io.scalaland.chimney.dsl.*
 import zio.json.*
 
+/**
+  * The unique instance id of a policy server
+  */
+final case class InstanceId(value: String) extends AnyVal
+
 /*
  * All policy servers. A root and 0 or more relays
  */

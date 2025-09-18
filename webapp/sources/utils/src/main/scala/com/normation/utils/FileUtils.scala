@@ -71,13 +71,15 @@ object FileUtils {
   def checkSanitizedIsIn(baseFolder: File, file: File): IOResult[File] = {
     // We also want to resolve symlinks before checking, let's resort to Java's `toRealPath`
     for {
-      fileExists <- IOResult.attempt(file.exists())
-      realPath    = if (fileExists) File(file.path.toRealPath()) else file
+      baseExists  <- IOResult.attempt(baseFolder.exists())
+      realBasePath = if (baseExists) File(baseFolder.path.toRealPath()) else baseFolder
+      fileExists  <- IOResult.attempt(file.exists())
+      realFilePath = if (fileExists) File(file.path.toRealPath()) else file
       // `false` means we allow access to the base directory itself
-      withinBase <- IOResult.attempt(baseFolder.contains(realPath, strict = false))
-      _          <- ZIO.when(!withinBase)(OutsideBaseDir(file.nameOption, realPath).fail)
+      withinBase  <- IOResult.attempt(realBasePath.contains(realFilePath, strict = false))
+      _           <- ZIO.when(!withinBase)(OutsideBaseDir(file.nameOption, realFilePath).fail)
     } yield {
-      realPath
+      realFilePath
     }
   }
 

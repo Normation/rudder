@@ -1,0 +1,67 @@
+# Monitor bodies
+
+body match_value scan_log(line)
+# @brief Selects lines matching `line` in a growing file
+# @param line Regular expression for matching lines.
+#
+# **See also:** `select_line_matching`, `track_growing_file`
+{
+      select_line_matching => "$(line)";
+      track_growing_file => "true";
+}
+
+##
+
+body match_value scan_changing_file(line)
+# @brief Selects lines matching `line` in a changing file
+# @param line Regular expression for matching lines.
+#
+# **See also:** `select_line_matching`, `track_growing_file`
+{
+      select_line_matching => "$(line)";
+      track_growing_file => "false";
+}
+
+##
+
+body match_value single_value(regex)
+# @brief Extract lines matching `regex` as values
+# @param regex Regular expression matching lines and values
+#
+# **See also:** `select_line_matching`, `extraction_regex`
+{
+      select_line_matching => "$(regex)";
+      extraction_regex => "($(regex))";
+}
+
+##
+
+body match_value line_match_value(line_match, extract_regex)
+# @brief Find lines matching line_match and extract a value matching extract_regex
+# @param line_match Regular expression matching line where value is found
+# @param extract_regex Regular expression matching value to extract
+#
+# **See also:** `select_line_matching`, `extraction_regex`
+#
+# **Example:**
+#
+# ```cf3
+# bundle monitor example
+# {
+#   vars:
+#      "regex_vsz" string => "root\s+[0-9]+\s+[0-9]+\s+[0-9]+\s+[0-9.]+\s+[0-9.]+\s+([0-9]+).*";
+#    measurements:
+#      "/var/cfengine/state/cf_procs"
+#              handle => "cf_serverd_vsz",
+#              comment => "Tracking the memory consumption of a process can help us identify possible memory leaks",
+#              stream_type => "file",
+#              data_type => "int",
+#              history_type => "weekly",
+#              units => "kB",
+#              match_value => line_match_value(".*cf-serverd.*", "$(regex_vsz)");
+# }
+# ```
+{
+      select_line_matching => "$(line_match)";
+      extraction_regex => "$(extract_regex)";
+}

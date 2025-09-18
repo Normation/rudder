@@ -51,9 +51,9 @@ import com.normation.ldap.sdk.schema.LDAPObjectClass
 import com.softwaremill.quicklens.*
 import com.unboundid.ldap.sdk.{Version as _, *}
 import java.net.InetAddress
-import net.liftweb.json.*
 import org.joda.time.DateTime
 import zio.*
+import zio.json.*
 import zio.syntax.*
 
 sealed trait InventoryMappingRudderError extends RudderError
@@ -89,50 +89,6 @@ object InventoryMappingResult {
 
 }
 
-////////////////// Node Custom Properties /////////////////////////
-object CustomPropertiesSerialization {
-
-  import net.liftweb.json.*
-
-  /*
-   * CustomProperty serialization must follow NodeProperties one:
-   * {"name":"propkey","value": JVALUE}
-   * with JVALUE either a simple type (string, int, etc) or a valid JSON
-   */
-  implicit class Serialise(val cs: CustomProperty) extends AnyVal {
-    def toJson: String = {
-      Serialization.write(cs)(DefaultFormats)
-    }
-  }
-
-  implicit class Unserialize(val json: String) extends AnyVal {
-    def toCustomProperty: Either[Throwable, CustomProperty] = {
-      implicit val formats: Formats = DefaultFormats
-      try {
-        Right(Serialization.read[CustomProperty](json))
-      } catch {
-        case ex: Exception => Left(ex)
-      }
-    }
-  }
-}
-
-class DateTimeSerializer extends Serializer[DateTime] {
-  private val IntervalClass = classOf[DateTime]
-
-  def deserialize(implicit format: Formats): PartialFunction[(TypeInfo, JValue), DateTime] = {
-    case (TypeInfo(IntervalClass, _), json) =>
-      json match {
-        case JObject(JField("datetime", JString(date)) :: Nil) => DateTime.parse(date)
-        case x                                                 => throw new MappingException("Can't convert " + x + " to DateTime")
-      }
-  }
-
-  def serialize(implicit format: Formats): PartialFunction[Any, JValue] = {
-    case date: DateTime => JObject(JField("datetime", JString(date.toString())) :: Nil)
-  }
-}
-
 object InventoryMapper {
   def getSoftwareUpdate(entry: LDAPEntry): IOResult[Chunk[SoftwareUpdate]] = {
     ZIO
@@ -158,8 +114,6 @@ class InventoryMapper(
     acceptedDit: InventoryDit,
     removedDit:  InventoryDit
 ) {
-
-  implicit val formats: Formats = DefaultFormats + new DateTimeSerializer
 
   ////////////////////////////////////////////////////////////
   ///////////////////////// Software /////////////////////////
@@ -741,30 +695,6 @@ class InventoryMapper(
     }
   }
 
-  ////////////////// Node Custom Properties /////////////////////////
-  object CustomPropertiesSerialization {
-
-    import net.liftweb.json.*
-
-    /*
-     * CustomProperty serialization must follow NodeProperties one:
-     * {"name":"propkey","value": JVALUE}
-     * with JVALUE either a simple type (string, int, etc) or a valid JSON
-     */
-    implicit class Serialise(cs: CustomProperty) {
-      def toJson: String = {
-        Serialization.write(cs)(DefaultFormats)
-      }
-    }
-
-    implicit class Unserialize(json: String) {
-      def toCustomProperty: IOResult[CustomProperty] = {
-        implicit val formats: Formats = DefaultFormats
-        IOResult.attempt(Serialization.read[CustomProperty](json))
-      }
-    }
-  }
-
   ////////////////// Node/ NodeInventory /////////////////////////
 
   private def createNodeModelFromServer(server: NodeInventory): LDAPEntry = {
@@ -844,6 +774,7 @@ class InventoryMapper(
           case Windows2016R2 => win.addValues(A_OS_NAME, A_OS_WIN_2016_R2)
           case Windows2019   => win.addValues(A_OS_NAME, A_OS_WIN_2019)
           case Windows2022   => win.addValues(A_OS_NAME, A_OS_WIN_2022)
+          case Windows2025   => win.addValues(A_OS_NAME, A_OS_WIN_2025)
           case _             => win.addValues(A_OS_NAME, A_OS_UNKNOWN_WINDOWS)
         }
         win.setOpt(userDomain, A_WIN_USER_DOMAIN, (x: String) => x)
@@ -858,8 +789,6 @@ class InventoryMapper(
   // This won't include the Process in it, it needs to be done with method
   // processesFromNode below
   def treeFromNode(server: NodeInventory): LDAPTree = {
-    import com.normation.inventory.domain.AgentInfoSerialisation.*
-
     val dit  = ditService.getDit(server.main.status)
     // the root entry of the tree: the machine inventory
     val root = rootEntryFromNode(server)
@@ -878,9 +807,9 @@ class InventoryMapper(
     root.setOpt(server.lastLoggedUserTime, A_LAST_LOGGED_USER_TIME, (x: DateTime) => GeneralizedTime(x).toString)
     root.setOpt(server.inventoryDate, A_INVENTORY_DATE, (x: DateTime) => GeneralizedTime(x).toString)
     root.setOpt(server.receiveDate, A_RECEIVE_DATE, (x: DateTime) => GeneralizedTime(x).toString)
-    root.resetValuesTo(A_AGENTS_NAME, server.agents.map(x => x.toJsonString)*)
+    root.resetValuesTo(A_AGENT_NAME, server.agents.map(x => x.toJson)*)
     root.resetValuesTo(A_SOFTWARE_DN, server.softwareIds.map(x => dit.SOFTWARE.SOFT.dn(x).toString)*)
-    root.resetValuesTo(A_EV, server.environmentVariables.map(x => Serialization.write(x))*)
+    root.resetValuesTo(A_EV, server.environmentVariables.map(_.toJson)*)
     root.resetValuesTo(A_LIST_OF_IP, server.serverIps.distinct*)
     // we don't know their dit...
     root.resetValuesTo(
@@ -895,12 +824,8 @@ class InventoryMapper(
       root.resetValuesTo(A_TIMEZONE_NAME, timezone.name)
       root.resetValuesTo(A_TIMEZONE_OFFSET, timezone.offset)
     }
-    server.customProperties.foreach { cp =>
-      import CustomPropertiesSerialization.Serialise
-      root.addValues(A_CUSTOM_PROPERTY, cp.toJson)
-    }
+    server.customProperties.foreach(cp => root.addValues(A_CUSTOM_PROPERTY, cp.toJson))
     server.softwareUpdates.foreach { s =>
-      import zio.json.*
       import JsonSerializers.implicits.*
       root.addValues(A_SOFTWARE_UPDATE, s.toJson)
     }
@@ -925,7 +850,7 @@ class InventoryMapper(
   // map process from node
   def processesFromNode(node: NodeInventory): Seq[String] = {
     // convert the processes
-    node.processes.map(x => Serialization.write(x))
+    node.processes.map(_.toJson)
   }
 
   // Create the entry with only processes
@@ -1003,6 +928,7 @@ class InventoryMapper(
                            case A_OS_WIN_2016_R2 => Windows2016R2
                            case A_OS_WIN_2019    => Windows2019
                            case A_OS_WIN_2022    => Windows2022
+                           case A_OS_WIN_2025    => Windows2025
                            case _                => UnknownWindowsType
                          }
                          val userDomain          = entry(A_WIN_USER_DOMAIN)
@@ -1074,31 +1000,28 @@ class InventoryMapper(
       hostname       <- entry.required(A_HOSTNAME).toIO
       rootUser       <- entry.required(A_ROOT_USER).toIO
       policyServerId <- entry.required(A_POLICY_SERVER_UUID).toIO
-      publicKeys      = entry.valuesFor(A_PKEYS).map(Some(_))
-      agentNames     <- {
-        val agents        = entry.valuesFor(A_AGENTS_NAME).toSeq.map(Some(_))
-        val agentWithKeys = agents.zipAll(publicKeys, None, None).filter(_._1.isDefined)
-        ZIO
-          .foreach(agentWithKeys) {
-            case (opt, key) =>
-              ((opt, key) match {
-                case (Some(agent), key) =>
-                  AgentInfoSerialisation
-                    .parseJson(agent, key)
-                    .chainError(s"Error when parsing agent security token '${agent}'")
-                case (None, _)          =>
-                  InventoryMappingRudderError.MissingMandatory("Error when parsing agent security token: agent is undefined").fail
-              }).foldZIO(
-                err =>
-                  InventoryDataLogger.error(
-                    s"Error when parsing agent information for node '${id.value}': that agent will be " +
-                    s"ignored for the node, which will likely cause problem like the node being ignored: ${err.fullMsg}"
-                  ) *> None.succeed,
-                ok => Some(ok).succeed
-              )
-          }
-          .map(_.flatten)
-      }
+      agentNames     <- ZIO
+                          .foreach(entry.valuesFor(A_AGENT_NAME).toList) {
+                            case agent =>
+                              agent.fromJson[AgentInfo].toIO.chainError(s"Error when parsing agent security token '${agent}'")
+                          }
+                          .foldZIO(
+                            err =>
+                              InventoryDataLogger.error(
+                                s"Error when parsing agent information for node '${id.value}': that agent will be " +
+                                s"ignored for the node, which will likely cause problem like the node being ignored: ${err.fullMsg}"
+                              ) *> Nil.succeed,
+                            _.distinct match {
+                              case Nil      => Nil.succeed
+                              case a :: Nil => List(a).succeed
+                              // we must have exactly one agent
+                              case several  =>
+                                InventoryDataLogger.error(
+                                  s"Error: inventory for node '${id.value}' has several (${several.size}) different agents defined, which is not supported. Ignoring all agents."
+                                ) *> Nil.succeed
+                            }
+                          )
+
       // now, look for the OS type
       osDetails      <- mapOsDetailsFromEntry(entry).toIO
       // optional information
@@ -1110,17 +1033,42 @@ class InventoryMapper(
 
       lastLoggedUser     = entry(A_LAST_LOGGED_USER)
       lastLoggedUserTime = entry.getAsGTime(A_LAST_LOGGED_USER_TIME).map(_.dateTime)
-      publicKeys         = entry.valuesFor(A_PKEYS).map(k => PublicKey(k))
-      ev                 = entry.valuesFor(A_EV).toSeq.map(Serialization.read[EnvironmentVariable](_))
-      process            = entry.valuesFor(A_PROCESS).toSeq.map(Serialization.read[Process](_))
-      softwareIds        = entry.valuesFor(A_SOFTWARE_DN).toSeq.flatMap(x => dit.SOFTWARE.SOFT.idFromDN(new DN(x)).toOption)
+      ev                <- ZIO.foldLeft(entry.valuesFor(A_EV))(List.empty[EnvironmentVariable]) {
+                             case (l, json) =>
+                               json.fromJson[EnvironmentVariable] match {
+                                 case Left(err) =>
+                                   InventoryProcessingLogger
+                                     .warn(s"Error when deserializing environment variable, ignoring it: ${json} ; error: ${err}") *> l.succeed
+                                 case Right(ev) => (ev :: l).succeed
+                               }
+                           }
+      process           <- ZIO.foldLeft(entry.valuesFor(A_PROCESS))(List.empty[Process]) {
+                             case (l, json) =>
+                               json.fromJson[Process] match {
+                                 case Left(err) =>
+                                   InventoryProcessingLogger
+                                     .warn(s"Error when deserializing process, ignoring it: ${json} ; error: ${err}") *> l.succeed
+                                 case Right(p)  => (p :: l).succeed
+                               }
+                           }
+      softwareIds       <- ZIO.foldLeft(entry.valuesFor(A_SOFTWARE_DN))(List.empty[SoftwareUuid]) {
+                             case (l, x) =>
+                               dit.SOFTWARE.SOFT.idFromDN(new DN(x)) match {
+                                 case Left(err) =>
+                                   InventoryProcessingLogger
+                                     .warn(
+                                       s"Error when deserializing software, ignoring it: ${x} ; error: ${err.msg}"
+                                     ) *> l.succeed
+                                 case Right(s)  => (s :: l).succeed
+                               }
+                           }
       machineId         <- mapSeqStringToMachineIdAndStatus(entry.valuesFor(A_CONTAINER_DN)).toList match {
                              case Nil                 => None.succeed
                              case m :: Nil            => Some(m).succeed
                              case l @ (m1 :: m2 :: _) =>
                                InventoryProcessingLogger.error(
                                  "Several machine were registered for a node. That is not supported. " +
-                                 "The first in the following list will be choosen, but you may encouter strange " +
+                                 "The first in the following list will be chosen, but you may encounter strange " +
                                  "results in the future: %s".format(
                                    l.map { case (id, status) => "%s [%s]".format(id.value, status.name) }.mkString(" ; ")
                                  )
@@ -1135,28 +1083,28 @@ class InventoryMapper(
                              case (Some(tzName), Some(offset)) => Some(NodeTimezone(tzName, offset))
                              case _                            => None
                            }
-      customProperties  <- {
-        import CustomPropertiesSerialization.Unserialize
-        ZIO.foreach(entry.valuesFor(A_CUSTOM_PROPERTY))(a => {
-          a.toCustomProperty.foldZIO(
-            err =>
-              InventoryProcessingLogger.warn(
-                Chained(s"Error when deserializing node inventory custom property (ignoring that property)", err).fullMsg
-              ) *> None.succeed,
-            p => Some(p).succeed
-          )
-        })
-      }
-      softwareUpdates   <- InventoryMapper.getSoftwareUpdate(entry)
-      main               = NodeSummary(
-                             id,
-                             inventoryStatus,
-                             rootUser,
-                             hostname,
-                             osDetails,
-                             NodeId(policyServerId),
-                             keyStatus
-                           )
+      customProperties  <- ZIO.foreach(entry.valuesFor(A_CUSTOM_PROPERTY)) { a =>
+                             a.fromJson[CustomProperty] match {
+                               case Left(err) =>
+                                 InventoryProcessingLogger.warn(
+                                   Unexpected(
+                                     s"Error when deserializing node inventory custom property (ignoring that property): ${a}; error: ${err}"
+                                   ).fullMsg
+                                 ) *> None.succeed
+                               case Right(p)  => Some(p).succeed
+                             }
+                           }
+
+      softwareUpdates <- InventoryMapper.getSoftwareUpdate(entry)
+      main             = NodeSummary(
+                           id,
+                           inventoryStatus,
+                           rootUser,
+                           hostname,
+                           osDetails,
+                           NodeId(policyServerId),
+                           keyStatus
+                         )
     } yield {
       NodeInventory(
         main,

@@ -41,6 +41,7 @@ import better.files.File
 import com.normation.cfclerk.domain
 import com.normation.cfclerk.domain.ReportingLogic
 import com.normation.cfclerk.domain.RootTechniqueCategory
+import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueCategory
 import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueCategoryMetadata
@@ -131,6 +132,16 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         committer:   EventActor,
         msg:         String
     ): IOResult[Unit] = ZIO.unit
+
+    override def deleteCategoryRecursively(
+        categoryId: TechniqueCategoryId,
+        modId:      ModificationId,
+        committer:  EventActor,
+        msg:        String
+    ): IOResult[Unit] = {
+      ZIO.unit
+    }
+
     override def saveTechnique(
         techniqueId:     TechniqueId,
         categories:      Seq[String],
@@ -147,6 +158,19 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         committer:  EventActor,
         msg:        String
     ): IOResult[Unit] = ZIO.unit
+
+    override def updateTechniqueCategoryRecursively(
+        category:  TechniqueCategoryId,
+        modId:     ModificationId,
+        committer: EventActor,
+        msg:       String
+    ): IOResult[Unit] = {
+      ZIO.unit
+    }
+
+    override def parseTechnique(techniqueId: TechniqueId, techniquePath: File): IOResult[Technique] = {
+      Unexpected("parseTechnique is not implemented").fail
+    }
   }
 
   object TestLibUpdater extends UpdateTechniqueLibrary {
@@ -349,7 +373,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
     Nil,
     ParameterId("package_name"),
     "package_install_version",
-    AgentType.CfeCommunity :: AgentType.CfeEnterprise :: AgentType.Dsc :: Nil,
+    AgentType.CfeCommunity :: AgentType.Dsc :: Nil,
     "",
     None,
     None,
@@ -362,7 +386,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       MethodParameter(ParameterId("service_name"), "", defaultConstraint, StringParameter) :: Nil,
       ParameterId("service_name"),
       "service_start",
-      AgentType.CfeCommunity :: AgentType.CfeEnterprise :: AgentType.Dsc :: Nil,
+      AgentType.CfeCommunity :: AgentType.Dsc :: Nil,
       "Service start",
       None,
       None,
@@ -375,7 +399,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       MethodParameter(ParameterId("package_name"), "", defaultConstraint, StringParameter) :: Nil,
       ParameterId("package_name"),
       "package_install",
-      AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil,
+      AgentType.CfeCommunity :: Nil,
       "Package install",
       None,
       None,
@@ -388,7 +412,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       MethodParameter(ParameterId("command"), "", defaultConstraint, StringParameter) :: Nil,
       ParameterId("command"),
       "command_execution",
-      AgentType.CfeCommunity :: AgentType.CfeEnterprise :: AgentType.Dsc :: Nil,
+      AgentType.CfeCommunity :: AgentType.Dsc :: Nil,
       "",
       None,
       None,
@@ -415,7 +439,7 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
       MethodParameter(ParameterId("old_class_prefix"), "", defaultConstraint, StringParameter) :: Nil,
       ParameterId("message"),
       "_logger",
-      AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil,
+      AgentType.CfeCommunity :: Nil,
       "",
       None,
       None,
@@ -458,7 +482,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
           "any",
           "Customized component",
           disabledReporting = false,
-          policyMode = None
+          policyMode = None,
+          None,
+          None
         ) ::
         MethodCall(
           BundleName("command_execution"),
@@ -467,9 +493,13 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
           "windows",
           "Command execution",
           disabledReporting = true,
-          policyMode = Some(Enforce)
+          policyMode = Some(Enforce),
+          None,
+          None
         ) :: Nil,
-        Some(Audit)
+        Some(Audit),
+        None,
+        None
       ) ::
       MethodCall(
         BundleName("service_start"),
@@ -478,7 +508,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "package_install_version_${node.properties[apache_package_name]}_repaired",
         "Customized component",
         disabledReporting = false,
-        policyMode = Some(Audit)
+        policyMode = Some(Audit),
+        None,
+        None
       ) ::
       MethodCall(
         BundleName("package_install"),
@@ -487,7 +519,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "redhat",
         "Package install",
         disabledReporting = false,
-        policyMode = None
+        policyMode = None,
+        None,
+        None
       ) ::
       MethodCall(
         BundleName("command_execution"),
@@ -496,7 +530,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "cfengine-community",
         "Command execution",
         disabledReporting = false,
-        policyMode = Some(Audit)
+        policyMode = Some(Audit),
+        None,
+        None
       ) ::
       MethodCall(
         BundleName("package_state_windows"),
@@ -505,7 +541,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "dsc",
         "Package state windows",
         disabledReporting = false,
-        policyMode = None
+        policyMode = None,
+        None,
+        None
       ) ::
       MethodCall(
         BundleName("_logger"),
@@ -514,7 +552,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "any",
         "Not sure we should test it ...",
         disabledReporting = false,
-        policyMode = None
+        policyMode = None,
+        None,
+        None
       ) :: Nil,
       "This Technique exists only to see if Rudder creates Technique correctly.",
       "",
@@ -585,7 +625,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "any",
         "Test component$&é)à\\'\"",
         disabledReporting = false,
-        policyMode = Some(Audit)
+        policyMode = Some(Audit),
+        None,
+        None
       ) :: Nil,
       "This Technique exists only to see if Rudder creates Technique correctly.",
       "",
@@ -634,7 +676,9 @@ class TestEditorTechniqueWriter extends Specification with ContentMatchers with 
         "${my_custom_condition}",
         "Command execution",
         disabledReporting = false,
-        policyMode = None
+        policyMode = None,
+        None,
+        None
       ) :: Nil,
       "",
       "",

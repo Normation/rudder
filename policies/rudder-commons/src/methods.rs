@@ -3,7 +3,7 @@
 
 use std::{collections::HashMap, path::PathBuf};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 
 pub type Methods = HashMap<String, MethodInfo>;
 

@@ -69,14 +69,14 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleUid
 import com.normation.rudder.domain.policies.Tags
 import com.normation.rudder.domain.queries.AgentComparator
-import com.normation.rudder.domain.queries.And
 import com.normation.rudder.domain.queries.Criterion
+import com.normation.rudder.domain.queries.CriterionComposition.And
 import com.normation.rudder.domain.queries.CriterionLine
 import com.normation.rudder.domain.queries.Equals
-import com.normation.rudder.domain.queries.NodeAndRootServerReturnType
 import com.normation.rudder.domain.queries.NodeCriterionMatcherString
 import com.normation.rudder.domain.queries.ObjectCriterion
 import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.queries.QueryReturnType.NodeAndRootServerReturnType
 import com.normation.rudder.domain.queries.ResultTransformation
 import com.normation.rudder.domain.queries.StringComparator
 import com.normation.rudder.repository.EventLogRepository
@@ -90,6 +90,7 @@ import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
+import scala.util.matching.Regex
 import zio.*
 import zio.json.*
 import zio.syntax.*
@@ -606,6 +607,21 @@ object PolicyServerConfigurationObjects {
     })
   }
 
+  val HAS_POLICY_SERVER_PREFIX:       String = "hasPolicyServer-"
+  val HAS_POLICY_SERVER_PREFIX_REGEX: Regex  = s"${HAS_POLICY_SERVER_PREFIX}(.+)".r
+
+  // retrieve the policy server ID from the name of a `hasPolicyServer-` group
+  def extractPolicyServerIdFromHasGroupName(nodeGroupId: NodeGroupId): Option[NodeId] = {
+    nodeGroupId.uid.value match {
+      case HAS_POLICY_SERVER_PREFIX_REGEX(id) => Some(NodeId(id))
+      case _                                  => None
+    }
+  }
+
+  def idGroupHasPolicyServer(policyServerId: NodeId) = NodeGroupId(
+    NodeGroupUid(s"${HAS_POLICY_SERVER_PREFIX}${policyServerId.value}")
+  )
+
   def groupHasPolicyServer(nodeId: NodeId): NodeGroup = {
     val objectType = ObjectCriterion(
       "node",
@@ -620,7 +636,7 @@ object PolicyServerConfigurationObjects {
       )
     )
     NodeGroup(
-      NodeGroupId(NodeGroupUid(s"hasPolicyServer-${nodeId.value}")),
+      idGroupHasPolicyServer(nodeId),
       s"All nodes managed by '${nodeId.value}' policy server",
       s"All nodes known by Rudder directly connected to the '${nodeId.value}' server. This group exists only as internal purpose and should not be used to configure Nodes.",
       Nil,
@@ -661,7 +677,7 @@ object PolicyServerConfigurationObjects {
       RuleId(RuleUid(s"hasPolicyServer-${nodeId.value}")),
       s"Rudder system policy: basic setup (common) - ${nodeId.value}",
       RuleCategoryId("rootRuleCategory"),
-      Set(GroupTarget(NodeGroupId(NodeGroupUid(s"hasPolicyServer-${nodeId.value}")))),
+      Set(GroupTarget(idGroupHasPolicyServer(nodeId))),
       Set(DirectiveId(DirectiveUid(s"common-hasPolicyServer-${nodeId.value}"))),
       "Common - Technical",
       "This is the basic system rule which all nodes must have.",

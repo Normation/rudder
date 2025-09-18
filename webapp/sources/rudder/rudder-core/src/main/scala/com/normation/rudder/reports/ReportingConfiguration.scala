@@ -42,6 +42,7 @@ import com.normation.errors.Unexpected
 import enumeratum.*
 import net.liftweb.common.*
 import org.joda.time.Duration
+import zio.json.*
 
 /**
  * Class that contains all relevant information about the reporting configuration:
@@ -65,28 +66,20 @@ final case class HeartbeatConfiguration(
     heartbeatPeriod: Int
 )
 
+object HeartbeatConfiguration {
+  implicit val codecHeartbeatConfiguration: JsonCodec[HeartbeatConfiguration] = DeriveJsonCodec.gen
+}
+
 final case class AgentRunInterval(
     overrides:   Option[Boolean],
     interval:    Int, // in minute
     startMinute: Int,
     startHour:   Int,
     splaytime:   Int
-) {
+)
 
-  def json: String = {
-
-    val overrideValue = overrides.map(_.toString).getOrElse("null")
-    val splayHour     = splaytime / 60
-    val splayMinute   = splaytime % 60
-
-    s"""{ 'overrides'   : ${overrideValue}
-        , 'interval'    : ${interval}
-        , 'startHour'   : ${startHour}
-        , 'startMinute' : ${startMinute}
-        , 'splayHour'   : ${splayHour}
-        , 'splayMinute' : ${splayMinute}
-       }"""
-  }
+object AgentRunInterval {
+  implicit val codecAgentRunInterval: JsonCodec[AgentRunInterval] = DeriveJsonCodec.gen
 }
 
 final case class ResolvedAgentRunInterval(interval: Duration, heartbeatPeriod: Int)

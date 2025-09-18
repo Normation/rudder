@@ -295,10 +295,7 @@ object OldInternalApiAuthz {
     }
   }
 
-  def withReadAdmin(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
-    withPerm(CurrentUser.checkRights(Administration.Read), resp)
-  }
-
+  // Still used in RestApiAccounts
   def withWriteAdmin(resp: => LiftResponse)(implicit action: String, prettify: Boolean): LiftResponse = {
     withPerm(CurrentUser.checkRights(Administration.Write) || CurrentUser.checkRights(Administration.Edit), resp)
   }

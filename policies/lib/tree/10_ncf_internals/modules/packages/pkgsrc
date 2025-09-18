@@ -1,0 +1,163 @@
+#!/bin/sh
+
+## Licensed under:
+## MIT Public License
+## http://www.opensource.org/licenses/MIT
+
+## Copyright (c) 2015, Brian Bennett <bahamat@digitalelf.net>
+
+## pkgsrc package module for cfengine
+
+# Set up mock environment if necessary
+if [ -n "$CFENGINE_TEST_PKGSRC_MOCK" ]; then
+    alias pkgin='./mock_pkgin'
+    alias pkg_info='./mock_pkg_info'
+fi
+
+# /opt/local supports SmartOS
+# /opt/pkg supports Mac OS X from Joyent, 2015Q2 or later
+# /usr/pkg supports standard pkgsrc
+# This should be sufficient to support all platforms supported by pgksrc.
+# pkgsrc bootstrapped manually to non-standard locations is not currently supported.
+export PATH=/opt/local/bin:/opt/local/sbin:/opt/pkg/bin:/opt/pkg/sbin:/usr/pkg/bin:/usr/pkg/sbin:$PATH
+export MACHINE_ARCH=$(pkg_info -X pkg_install | grep MACHINE_ARCH | cut -d = -f 2)
+export PKG_ROOT=$(pkg_info -pq pkg_install | cut -d ' ' -f 2 | sort -u)
+export PKG_INSTALL_CONF=${PKG_ROOT}/etc/pkg_install.conf
+
+LEVEL=0
+
+fatal () {
+    echo "ErrorMessage=$@"
+    exit 2
+}
+
+warn () {
+    [ $LEVEL -gt 0 ] && echo "[TRACE]: $*" >&2
+}
+
+supports_api_version () {
+    echo 1
+}
+
+repo_install () {
+    # If a version number is specified, insert a dash between the name and
+    # version
+    [ -n "$Version" ] && ver="-$Version"
+    pkgin -y in "${Name}${ver}" > /dev/null
+    if [ $? -gt 0 ]; then
+        fatal "Error installing ${Name}${ver}"
+    fi
+}
+
+file_install () {
+    # The specified config file might, for example override signature reqs:
+    # VERIFIED_INSTALLATION=never
+    pkg_add -U -C "$PKG_INSTALL_CONF" "$File" > /dev/null
+    if [ $? -gt 0 ]; then
+        echo "Error installing ${File}"
+    fi
+}
+
+remove () {
+    # If a version number is specified, insert a dash between the name and
+    # version
+    [ -n "$Version" ] && ver="-$Version"
+    pkgin -y rm "${Name}${ver}" > /dev/null
+}
+
+list_installed () {
+    parse_pkg_data "$(pkgin -p list)"
+}
+
+list_updates () {
+    # The difference between list-updates and list-updates-local, it seems
+    # is that list-updates expects to refresh from the upstream repo.
+    pkgin -f update >&2
+    list_updates_local
+}
+
+list_updates_local () {
+    parse_pkg_data "$(pkgin -pl '<' ls)"
+}
+
+get_package_data () {
+    if echo "$File" | grep '/' >/dev/null; then
+        # If there's a / in $File then we'll expec this to be a 'file' install.
+        # This is reliable because 1) pkgsrc packages don't have / in the name
+        # and because cfengine can't install a PackageType=file from a relative
+        # path.
+        #
+        # The package will be installed with pkg_add later, which also supports
+        # arbitrary HTTP locations.
+        echo "PackageType=file"
+        # To appease cfengine, we'll take the basename of the package passed.
+        echo "Name=$(echo "$File" | sed 's/.*\///g')"
+    else
+        # If $File does not contain /, it must be in an existing remote repo,
+        # because cfengine can't install files from relative paths.
+        echo "PackageType=repo"
+        # Cfengine expects a *single* matching package. So sort and return the
+        # most recent. If a version is specified it can partial match, in which
+        # case we'll again take the latest. If there's no match on the name
+        # or version, return nothing.
+        # There's possibly a bug here because we're already emitting that the
+        # PackageType is repo.
+        parse_pkg_data "$(pkgin -pP avail | grep "^${File}-[0-9]" | grep "$Version;" | sort -n | tail -1)" | grep Name
+    fi
+}
+
+parse_pkg_data () {
+    # This is a bit tricky.
+    # pkgin is called with parsable format and separates fields with ';'.
+    # Packages are further sub-split between name and version with '-', but
+    # package names may also contain '-'. To complicate matters, package
+    # versions can have '-' as well.
+
+    # Take the example package mozilla-rootcerts-1.0.20141117nb1
+    # $1 is the package-version compound. Discard the description in $2..
+    # Split $1 on 'separator' and store in array 'package'. Return length 'l'
+    # 'version' is the last element of array 'package'
+    # Now the tricky bit. We've split the package name, so now must reassemble
+    # it with dashes in tact, without the version number.
+    # For each element less 1 in 'package', if this is the first iteration
+    # print the element. On subsequent passes print "-element"
+    # Finally print the version and the machine architecture as well.
+    echo "$*" | awk -F';' '
+    {
+        separator="-"
+        l=split($1,package,separator)
+        version=package[l]
+        printf("Name=")
+        for (i=1ength;i<l;i++) {
+            if (i>1) {
+                printf("-")
+            }
+            printf("%s",package[i])
+        }
+        printf("\nVersion=%s\n",version)
+        printf("Architecture=%s\n",ENVIRON["MACHINE_ARCH"])
+    }'
+}
+
+# Cfengine passes data on STDIN. Absorb that and convert to shell variables.
+while IFS= read -r line; do
+  eval "$line"
+  # options can be passed multiple times so we need to avoid clobbering
+  # previous instances. Plus, what we really want to eval is the value of
+  # each option.
+  if [ -n "$options" ]; then
+    eval "$options"
+  fi
+done
+
+case "$1" in
+    supports-api-version) supports_api_version;;
+    repo-install) repo_install;;
+    file-install) file_install;;
+    remove) remove;;
+    list-installed) list_installed;;
+    list-updates) list_updates;;
+    list-updates-local) list_updates_local;;
+    get-package-data) get_package_data;;
+    *) fatal "Invalid operation";;
+esac

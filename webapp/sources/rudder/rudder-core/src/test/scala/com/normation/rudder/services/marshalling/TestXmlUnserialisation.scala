@@ -13,7 +13,6 @@ import com.normation.rudder.api.ApiAccountKind
 import com.normation.rudder.api.ApiAccountName
 import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.api.ApiAuthorization
-import com.normation.rudder.api.ApiToken
 import com.normation.rudder.api.HttpAction
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -163,7 +162,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
 
     val actual = new ApiAccountUnserialisationImpl().unserialise(serialized)
 
-    actual.map(_.copy(token = ApiToken(""))) must beEqualTo(
+    actual.map(_.copy(token = None)) must beEqualTo(
       Full(
         ApiAccount(
           id = ApiAccountId("c331c718-db0e-429e-b800-20b055ca6a67"),
@@ -172,7 +171,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
             expirationDate = Some(ISODateTimeFormat.dateTime.parseDateTime("2025-06-06T15:59:35.297+02:00"))
           ),
           name = ApiAccountName("Test account with some acl scala 3"),
-          token = ApiToken(""),
+          token = None,
           description = "",
           isEnabled = true,
           creationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
@@ -208,7 +207,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
 
     val actual = new ApiAccountUnserialisationImpl().unserialise(serialized)
 
-    actual.map(_.copy(token = ApiToken(""))) must beEqualTo(
+    actual.map(_.copy(token = None)) must beEqualTo(
       Full(
         ApiAccount(
           id = ApiAccountId("c331c718-db0e-429e-b800-20b055ca6a67"),
@@ -226,7 +225,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
             expirationDate = Some(ISODateTimeFormat.dateTime.parseDateTime("2025-06-06T15:59:35.297+02:00"))
           ),
           name = ApiAccountName("Test account with some acl scala 3"),
-          token = ApiToken(""),
+          token = None,
           description = "",
           isEnabled = true,
           creationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
@@ -262,7 +261,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
 
     val actual = new ApiAccountUnserialisationImpl().unserialise(serialized)
 
-    actual.map(_.copy(token = ApiToken(""))) must beEqualTo(
+    actual.map(_.copy(token = None)) must beEqualTo(
       Full(
         ApiAccount(
           id = ApiAccountId("c331c718-db0e-429e-b800-20b055ca6a67"),
@@ -282,7 +281,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
             expirationDate = Some(ISODateTimeFormat.dateTime.parseDateTime("2025-06-06T15:59:35.297+02:00"))
           ),
           name = ApiAccountName("Test account with some acl scala 3"),
-          token = ApiToken(""),
+          token = None,
           description = "",
           isEnabled = true,
           creationDate = ISODateTimeFormat.dateTime.parseDateTime("2025-05-06T13:59:59.613+02:00"),
@@ -316,7 +315,7 @@ class TestXmlUnserialisation extends Specification with BoxSpecMatcher {
           "xml" -> "hack:<img src=\"https://hackme.net/h.jpg\"/>"
         )
       ),
-      Some(Query(NodeReturnType, And, Identity, List())),
+      Some(Query(QueryReturnType.NodeReturnType, CriterionComposition.And, Identity, List())),
       isDynamic = true,
       serverList = Set(),
       _isEnabled = true

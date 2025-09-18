@@ -697,9 +697,15 @@ object ExecutionBatch extends Loggable {
                   val expireTime = currentConfig.beginDate.plus(updateValidityDuration(currentConfig.agentRun))
 
                   if (expireTime.isBefore(now)) {
-                    runType("no run (ever or too old)", NoReportInInterval(currentConfig, complianceComputationExpirationTime))
+                    runType(
+                      "no run (ever or too old/cleaned-up)",
+                      NoReportInInterval(currentConfig, complianceComputationExpirationTime)
+                    )
                   } else {
-                    runType(s"no run (ever or too old), Pending until ${expireTime}", Pending(currentConfig, None, expireTime))
+                    runType(
+                      s"no run (ever or too old/cleaned-up), Pending until ${expireTime}",
+                      Pending(currentConfig, None, expireTime)
+                    )
                   }
                 }
             }

@@ -1,17 +1,24 @@
 module Accounts.JsonDecoder exposing (..)
 
 import Accounts.DataTypes as TenantMode exposing (..)
-import Accounts.DatePickerUtils exposing (stringToPosix)
+import Accounts.DataTypes as Token exposing (..)
+import Accounts.DataTypes as TokenState exposing (..)
 import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import List exposing (drop, head)
 import String exposing (join, split)
+import Time exposing (Posix, Zone)
+import Time.DateTime
+import Time.Extra
+import Time.Iso8601
+import Time.Iso8601ErrorMsg
 
 
 
 -- GENERAL
 
 
+decodeGetAccounts : DatePickerInfo -> Decoder ApiResult
 decodeGetAccounts datePickerInfo =
     at [ "data" ] (decodeResult datePickerInfo)
 
@@ -23,40 +30,110 @@ decodeAccount datePickerInfo =
         |> required "name" string
         |> required "description" string
         |> required "authorizationType" string
-        |> required "kind" string
-        |> required "enabled" bool
+        |> optional "kind" string "public"
+        |> required "status" decodeEnabledStatus
         |> required "creationDate" string
-        |> required "token" string
-        |> required "tokenGenerationDate" string
-        |> required "expirationDateDefined" bool
-        |> optional "expirationDate"
-            (string
-                |> andThen
-                    (\s ->
-                        case stringToPosix datePickerInfo s of
-                            Just date ->
-                                succeed (Just date)
-
-                            Nothing ->
-                                fail "Expiration date invalid : bad format"
-                    )
-            )
-            Nothing
-        |> optional "acl" (map Just (list <| decodeAcl)) Nothing
+        |> required "tokenState" decodeTokenState
+        |> optional "token" (maybe decodeToken) Nothing
+        |> optional "tokenGenerationDate" (maybe string) Nothing
+        |> custom (decodeExpirationPolicy datePickerInfo)
+        |> optional "acl" (map Just (list decodeAcls |> map List.concat)) Nothing
         |> required "tenants" (string |> andThen toTenantMode)
         |> required "tenants" (string |> andThen toTenantList)
 
 
-decodeAcl : Decoder AccessControl
-decodeAcl =
+decodeEnabledStatus : Decoder Bool
+decodeEnabledStatus =
+    string
+        |> andThen
+            (\s ->
+                case s of
+                    "enabled" ->
+                        succeed True
+
+                    "disabled" ->
+                        succeed False
+
+                    _ ->
+                        fail "Enabled status invalid, expected \"enabled\" or \"disabled\"."
+            )
+
+
+-- this one is used to talk to the Rudder API
+-- we flatten the possible several actions into a list of unit ACL which is what is understood by UI
+-- It's why in the JSON, we have [actions] and in elm we have "verb"
+decodeAcls : Decoder (List AccessControl)
+decodeAcls =
+  let
+    path = field "path" string
+    actions = field "actions" (list string)
+    acls = map2 (\p -> \l -> List.map (\a -> AccessControl p a) l) path actions
+  in
+    acls
+
+-- this one is used to talk to the JS port
+decodePortAcl : Decoder AccessControl
+decodePortAcl =
     succeed AccessControl
         |> required "path" string
         |> required "verb" string
 
 
 
--- the string for a tenant mode is '*', '-', or a comma separated list of non-empty string
 
+decodeExpirationPolicy : DatePickerInfo -> Decoder ExpirationPolicy
+decodeExpirationPolicy { zone } =
+    field "expirationPolicy" string
+        |> andThen (parseExpirationPolicy zone)
+
+
+parseExpirationPolicy : Zone -> String -> Decoder ExpirationPolicy
+parseExpirationPolicy zone str =
+    case str of
+        "never" ->
+            succeed NeverExpire
+
+        "datetime" ->
+            field "expirationDate" string
+                |> andThen
+                    (\s ->
+                        case parseDateTimeAsPosix zone s of
+                            Ok posix ->
+                                succeed (ExpireAtDate posix)
+
+                            Err err ->
+                                fail ("Expiration date invalid : " ++ err)
+                    )
+
+        _ ->
+            fail "Unrecognized \"expirationPolicy\" field, expected \"never\" or \"datetime\""
+
+
+parseToken : String -> ( Token )
+parseToken str =
+  case str of
+    "2" -> Token.Hashed
+    "1" -> Token.ClearText
+    _   -> Token.New str
+
+
+decodeToken : Decoder Token
+decodeToken =
+  andThen (\s -> succeed (parseToken s)) string
+
+parseTokenState: String -> TokenState
+parseTokenState str =
+  case str of
+    "generatedv1" -> TokenState.GeneratedV1
+    "generatedv2" -> TokenState.GeneratedV2
+    _             -> TokenState.Undef
+
+decodeTokenState : Decoder TokenState
+decodeTokenState =
+  andThen (\s -> succeed (parseTokenState s)) string
+
+
+-- the string for a tenant mode is '*', '-', or a comma separated list of non-empty string
 
 parseTenants : String -> ( TenantMode, Maybe (List String) )
 parseTenants str =
@@ -94,8 +171,6 @@ toTenantList str =
 decodeResult : DatePickerInfo -> Decoder ApiResult
 decodeResult datePickerInfo =
     succeed ApiResult
-        |> required "aclPluginEnabled" bool
-        |> required "tenantsPluginEnabled" bool
         |> required "accounts" (list (decodeAccount datePickerInfo))
 
 
@@ -115,7 +190,7 @@ decodeErrorDetails json =
                 Ok s ->
                     s
 
-                Err e ->
+                Err _ ->
                     "fail to process errorDetails"
 
         errors =
@@ -130,3 +205,18 @@ decodeErrorDetails json =
 
         Just s ->
             ( s, join " \n " (drop 1 (List.map (\err -> "\t ‣ " ++ err) errors)) )
+
+
+{-| Format is ISO8601 String : YYYY-MM-ddTHH:mm:ssZ
+
+To account for the specified datepicker timezone and its date representation,
+we need to translate the date to POSIX,
+and we need to adjust the parsed offset of the date time string.
+
+-}
+parseDateTimeAsPosix : Zone -> String -> Result String Posix
+parseDateTimeAsPosix zone str =
+    Time.Iso8601.toDateTime str
+        |> Result.map (\d -> Time.DateTime.toPosix d)
+        |> Result.map (\p -> Time.Extra.partsToPosix zone (Time.Extra.Parts (Time.toYear zone p) (Time.toMonth zone p) (Time.toDay zone p) (Time.toHour zone p) (Time.toMinute zone p) (Time.toSecond zone p) (Time.toMillis zone p)))
+        |> Result.mapError (List.map (Time.Iso8601ErrorMsg.renderText "Invalid ISO string date") >> String.join "\n")

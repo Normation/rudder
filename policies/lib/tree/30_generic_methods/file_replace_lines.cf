@@ -1,0 +1,98 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File replace lines
+# @action If the regex matches the replacement, then the line will be replaced every time
+# @description Ensure that a line in a file is replaced by another one
+# @documentation You can replace lines in a files, based on regular expression and captured pattern
+#
+# #### Syntax
+#
+# The content to match in the file is a PCRE regular expression, unanchored
+# that you can replace with the content of replacement.
+#
+# Content can be captured in regular expression, and be reused with the notation `${match.1}` (for first matched
+# content), `${match.2}` for second, etc, and the special captured group `${match.0}` for the whole text.
+#
+# **This regular expression must not match the string used as a replacement.** 
+# For example, to set `kernel.shmmax=5678`, the regular expression would be `kernel.shmmax=(?!5678$).*`
+# and the string used as replacement `kernel.shmmax=5678`
+# Note that if you want to replace a key-value line, method `File key-value present` is more suited.
+#
+# #### Example
+#
+# Here is an example to remove enclosing specific tags
+#
+# ```
+# file_replace_lines("/PATH_TO_MY_FILE/file", "<my>(.*)<pattern>", "my ${match.1} pattern")
+# ```
+#
+# @parameter path File name to edit (absolute path on the target node)
+# @parameter line Line to match in the file
+# @parameter replacement Line to add in the file as a replacement
+#
+#
+# @parameter_rename file path
+# @class_prefix file_replace_lines
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_replace_lines(path, line, replacement)
+{
+  vars:
+    pass1::
+      "old_class_prefix"  string => canonify("file_replace_lines_${path}");
+
+    # If replacement contains ${match.x}, it would not evaluate to anything outside of file promises, so we
+    # need to exclude it from class prefix
+    pass1.replacement_non_eval::
+      "args"               slist => { "${path}", "${line}" };
+
+    pass1.!replacement_non_eval::
+      "args"               slist => { "${path}", "${line}", "${replacement}" };
+
+    pass1::
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_replace_lines_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+      "replacement_defined"           not => strcmp("${replacement}", "");
+      "no_replacement_defined" expression => strcmp("${replacement}", "");
+
+      # if both classes are undefined then there is most likely a "match.x" in it, that is not evaluated
+      # by the agent (see https://issues.rudder.io/issues/15029 and https://issues.rudder.io/issues/14286
+      "replacement_non_eval"   expression => "!replacement_defined.!no_replacement_defined";
+
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  files:
+    pass2::
+      "${path}"
+        create        => "false",
+        edit_line     => regex_replace("${line}", "${replacement}"),
+        edit_defaults => ncf_empty_select("false"),
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+    pass2::
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
+      "report"   usebundle => _log_v3("Replace lines with replacement into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

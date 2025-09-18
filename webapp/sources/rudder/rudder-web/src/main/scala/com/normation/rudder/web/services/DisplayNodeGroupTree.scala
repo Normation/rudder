@@ -50,7 +50,6 @@ import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common.Loggable
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.*
-import net.liftweb.util.Helpers
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
 
@@ -154,12 +153,10 @@ object DisplayNodeGroupTree extends Loggable {
 
         val editButton = {
           if (!targetActions.isEmpty && !targetInfo.isSystem) {
-            val tooltipId = Helpers.nextFuncName
-            <span class="treeActions">
-              <span class="fa fa-pencil" tooltipid={tooltipId} title=""
+            <span class="treeActions ms-2">
+              <span class="fa fa-pencil"
                 onclick={linkUtil.redirectToGroupLink(NodeGroupId(NodeGroupUid(groupId))).toJsCmd}
               ></span>
-              <div class="tooltipContent" id={tooltipId}><div>Configure this group.</div></div>
             </span>
           } else {
             NodeSeq.Empty
@@ -198,8 +195,8 @@ object DisplayNodeGroupTree extends Loggable {
           val tooltipContent = s"<h4>${targetInfo.name}</h4>\n<div class='tooltip-content'>${targetInfo.description}</div>"
           <span class="treeGroupName" data-bs-toggle="tooltip" title={tooltipContent}>
             {targetInfo.name}
-            {if (targetInfo.isSystem) <small class="greyscala"> - System</small>}
-            <small class="greyscala">{
+            {if (targetInfo.isSystem) <small class="text-secondary"> - System</small>}
+            <small class="text-secondary">{
             targetInfo.target match {
               case g: FullGroupTarget => s" - ${if (g.nodeGroup.isDynamic) "Dynamic" else "Static"}"
               case _ => ""

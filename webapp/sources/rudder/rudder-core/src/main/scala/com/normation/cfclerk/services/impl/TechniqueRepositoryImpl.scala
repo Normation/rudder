@@ -45,7 +45,6 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.logger.TechniqueReaderLoggerPure
 import com.normation.utils.Control
 import com.normation.utils.StringUuidGenerator
-import java.io.File
 import java.io.InputStream
 import net.liftweb.common.*
 import scala.collection.SortedSet
@@ -285,13 +284,6 @@ class TechniqueRepositoryImpl(
   }
 
   //////////////////////////////////// categories /////////////////////////////
-
-  private def fileBreadCrump(target: File, current: File, stack: List[File]): List[File] = {
-
-    if (current.getParentFile == target) target :: stack
-    else fileBreadCrump(target, current.getParentFile, current :: stack)
-
-  }
 
   override def getTechniqueLibrary: RootTechniqueCategory = techniqueInfosCache.rootCategory
 

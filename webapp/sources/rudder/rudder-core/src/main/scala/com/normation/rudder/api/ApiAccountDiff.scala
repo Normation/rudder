@@ -55,10 +55,11 @@ final case class ModifyApiAccountDiff(
     modToken:               Option[SimpleDiff[String]] = None,
     modDescription:         Option[SimpleDiff[String]] = None,
     modIsEnabled:           Option[SimpleDiff[Boolean]] = None,
-    modTokenGenerationDate: Option[SimpleDiff[DateTime]] = None,
+    modCreationDate:        Option[SimpleDiff[DateTime]] = None,
     modExpirationDate:      Option[SimpleDiff[Option[DateTime]]] = None,
     modAPIKind:             Option[SimpleDiff[String]] = None,
     modAccountKind:         Option[SimpleDiff[String]] = None,
+    modTokenGenerationDate: Option[SimpleDiff[DateTime]] = None,
     modAccountAcl:          Option[SimpleDiff[List[ApiAclElement]]] = None,
     modAPITenants:          Option[SimpleDiff[String]] = None
 ) extends ApiAccountDiff

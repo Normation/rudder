@@ -1,0 +1,60 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File from local source
+# @description Ensure that a file or directory is copied from a local source
+# @documentation Ensure that a file or directory is copied from a local source on and from the target node.
+# The copy is not recursive if the target is a directory. To copy recursively a folder from a local
+# source, use the *File from local source recursion* method.
+#
+# @parameter source      Source file (absolute path on the target node)
+# @parameter path        Destination file (absolute path on the target node)
+#
+#
+# @parameter_rename destination path
+# @class_prefix file_from_local_source
+# @class_parameter path
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent file_from_local_source(source, path)
+{
+  vars:
+      "old_class_prefix"  string => canonify("file_from_local_source_${path}");
+
+      "args"               slist => { "${source}", "${path}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_from_local_source_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      "full_inner_class_prefix" string => canonify("file_from_local_source_${report_param}_0");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
+  methods:
+      "disable_reporting_${class_prefix}"
+                               usebundle => disable_reporting;
+      "copy without recursion" usebundle => file_from_local_source_recursion("${source}", "${path}", "0");
+      "reenable_reporting_${class_prefix}"
+                               usebundle => enable_reporting,
+                              ifvarclass => "should_report";
+      "new result classes"     usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+
+      "report"                 usebundle => _log_v3("Copying ${path} from local ${source}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

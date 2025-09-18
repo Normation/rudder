@@ -36,9 +36,11 @@
  */
 package com.normation.rudder.domain.policies
 
-import com.normation.rudder.repository.json.DataExtractor.CompleteJson
-import com.normation.rudder.repository.json.JsonExtractorUtils
-import net.liftweb.common.*
+import com.normation.errors.PureResult
+import com.normation.errors.Unexpected
+import io.scalaland.chimney.*
+import io.scalaland.chimney.syntax.*
+import zio.json.*
 
 /**
  * Tags that apply on Rules and Directives
@@ -64,52 +66,38 @@ final case class Tags(tags: Set[Tag]) extends AnyVal {
 }
 
 object Tags {
+  private case class JsonTag(key: String, value: String)
+  implicit private val transformTag:     Transformer[Tag, JsonTag] = { case Tag(name, value) => JsonTag(name.value, value.value) }
+  implicit private val transformJsonTag: Transformer[JsonTag, Tag] = {
+    case JsonTag(name, value) => Tag(TagName(name), TagValue(value))
+  }
+
+  implicit private val transformTags:        Transformer[Tags, List[JsonTag]] = {
+    case Tags(tags) => tags.toList.sortBy(_.name.value).map(_.transformInto[JsonTag])
+  }
+  implicit private val transformListJsonTag: Transformer[List[JsonTag], Tags] = {
+    case list => Tags(list.map(_.transformInto[Tag]).toSet)
+  }
+
+  implicit private val codecJsonTag: JsonCodec[JsonTag] = DeriveJsonCodec.gen
+  implicit val encoderTags:          JsonEncoder[Tags]  = JsonEncoder.list[JsonTag].contramap(_.transformInto[List[JsonTag]])
+  implicit val decoderTags:          JsonDecoder[Tags]  = JsonDecoder.list[JsonTag].map(_.transformInto[Tags])
+
   // get tags from a list of key/value embodied by a Map with one elements (but
   // also works with several elements in map)
   def fromMaps(tags: List[Map[String, String]]): Tags = {
     Tags(tags.flatMap(_.map { case (k, v) => Tag(TagName(k), TagValue(v)) }).toSet)
   }
-}
 
-object JsonTagSerialisation {
+  val empty: Tags = Tags(Set())
 
-  import net.liftweb.json.*
-  import net.liftweb.json.JsonDSL.*
-
-  def serializeTags(tags: Tags): JValue = {
-
-    // sort all the tags by name
-    val m: JValue = JArray(
-      tags.tags.toList.sortBy(_.name.value).map(t => ("key" -> t.name.value) ~ ("value" -> t.value.value): JObject)
-    )
-
-    m
-  }
-
-}
-
-trait JsonTagExtractor[M[_]] extends JsonExtractorUtils[M] {
-  import net.liftweb.json.*
-
-  def unserializeTags(value: String): Box[M[Tags]] = {
-    parseOpt(value) match {
-      case Some(json) => extractTags(json)
-      case _          => Failure(s"Invalid JSON serialization for Tags ${value}")
+  // we have a lot of cases where we parse an `Option[String]` into a `PureResult[Tags]` with
+  // default value `Tags.empty`. The string format is:
+  // [{"key":"k1","value":"v1"},{"key":"k2","value":"v2"}]
+  def parse(opt: Option[String]): PureResult[Tags] = {
+    opt match {
+      case Some(v) => v.fromJson[Tags].left.map(Unexpected.apply)
+      case None    => Right(Tags.empty)
     }
-  }
-
-  def convertToTag(jsonTag: JValue): Box[Tag] = {
-    for {
-      tagName  <- CompleteJson.extractJsonString(jsonTag, "key", s => Full(TagName(s)))
-      tagValue <- CompleteJson.extractJsonString(jsonTag, "value", s => Full(TagValue(s)))
-    } yield {
-      Tag(tagName, tagValue)
-    }
-  }
-
-  def extractTags(value: JValue): Box[M[Tags]] = {
-    extractJsonArray(value, "")(convertToTag).map(k =>
-      monad.map(k)(tags => Tags(tags.toSet))
-    ) ?~! s"Invalid JSON serialization for Tags ${value}"
   }
 }

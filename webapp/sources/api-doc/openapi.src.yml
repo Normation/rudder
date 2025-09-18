@@ -3,11 +3,11 @@
 openapi: 3.1.0
 info:
   title: Rudder API
-  version: "20"
+  version: "21"
   # Will be substituted by content of the file at build
   description: "introduction.md"
   x-logo:
-    url: "assets/rudder.svg"
+    url: "assets/rudder-logo-rect-black.svg"
   contact:
     email: dev@rudder.io
     name: Rudder developers
@@ -59,6 +59,8 @@ tags:
     description: Internal components and administration
   - name: User management
     description: Manage user information and configuration file
+  - name: API account management
+    description: Manage API accounts
   - name: Plugins
     description: Information about installed plugins
   - name: "🧩 Change requests"
@@ -97,7 +99,7 @@ tags:
 
 
       Manage web interface customization.
-  - name: "🧩 Secret Management"
+  - name: "🧩 Secret management"
     description: >-
       **Requires that the `secret-management` plugin is installed on the server.**
 
@@ -144,6 +146,12 @@ paths:
     $ref: paths/usermanagement/disable.yml
   "/usermanagement/coverage/{username}":
     $ref: paths/usermanagement/coverage.yml
+  "/apiaccounts":
+    $ref: paths/api-accounts/all.yml
+  "/apiaccounts/${apiAccountId}":
+    $ref: paths/api-accounts/id.yml
+  "/apiaccounts/${apiAccountId}/regenerate":
+    $ref: paths/api-accounts/regenerate-token.yml
   "/scaleoutrelay/promote/{nodeId}":
     $ref: paths/scale-out-relay/promote.yml
   "/scaleoutrelay/demote/{nodeId}":
@@ -305,6 +313,8 @@ paths:
     $ref: paths/directives/id.yml
   "/directives/{directiveId}/check":
     $ref: paths/directives/id-check.yml
+  "/directives/tree":
+    $ref: paths/directives/tree.yml
   "/rules":
     $ref: paths/rules/all.yml
   "/rules/{ruleId}":
@@ -355,6 +365,10 @@ paths:
     $ref: paths/systemUpdate/detailedResult.yml
   "/systemUpdate/events/{id}/result":
     $ref: paths/systemUpdate/eventResult.yml
+  "/systemUpdate/events/{id}/report":
+    $ref: paths/systemUpdate/report.yml
+  "/systemUpdate/events/{id}/summaryReport":
+    $ref: paths/systemUpdate/summaryReport.yml
   "/systemUpdate/campaign/{id}/history":
     $ref: paths/systemUpdate/campaignHistory.yml
   "/openscap/report/{nodeId}":

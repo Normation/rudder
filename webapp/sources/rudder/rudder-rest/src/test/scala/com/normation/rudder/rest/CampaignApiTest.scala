@@ -97,15 +97,16 @@ class CampaignApiTest extends Specification with AfterAll with Loggable with Jso
 //  org.slf4j.LoggerFactory.getLogger("campaign").asInstanceOf[ch.qos.logback.classic.Logger].setLevel(ch.qos.logback.classic.Level.TRACE)
 
   val c0json: String = {
-    """{"info":{
+    """{
+      |"campaignType":"dumb-campaign",
+      |"info":{
       |"id":"c0",
       |"name":"first campaign",
       |"description":"a test campaign present when rudder boot",
       |"status":{"value":"enabled"},
-      |"schedule":{"start":{"day":1,"hour":3,"minute":42},"end":{"day":1,"hour":4,"minute":42},"type":"weekly"}
+      |"schedule":{"type":"weekly","start":{"day":1,"hour":3,"minute":42},"end":{"day":1,"hour":4,"minute":42}}
       |},
       |"details":{"name":"campaign #0"},
-      |"campaignType":"dumb-campaign",
       |"version":1
       |}""".stripMargin.replaceAll("""\n""", "")
   }

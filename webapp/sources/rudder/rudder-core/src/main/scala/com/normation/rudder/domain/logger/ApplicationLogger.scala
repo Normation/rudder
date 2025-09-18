@@ -233,6 +233,10 @@ object GitArchiveLoggerPure extends NamedZioLogger {
   override def loggerName: String = "git-policy-archive"
 }
 
+object EventLogsLoggerPure extends NamedZioLogger {
+  def loggerName = "eventlogs"
+}
+
 object ConfigurationLoggerPure extends NamedZioLogger {
   def loggerName = "configuration"
 

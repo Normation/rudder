@@ -10,7 +10,7 @@ use crate::package_manager::PackageManager;
 use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
-    package_manager::{rpm::RpmPackageManager, LinuxPackageManager, PackageList, PackageSpec},
+    package_manager::{LinuxPackageManager, PackageList, PackageSpec, rpm::RpmPackageManager},
 };
 #[cfg(not(debug_assertions))]
 use rudder_module_type::ensure_root_user;

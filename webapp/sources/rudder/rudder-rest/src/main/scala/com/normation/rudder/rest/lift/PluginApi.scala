@@ -38,40 +38,35 @@
 package com.normation.rudder.rest.lift
 
 import com.normation.errors.IOResult
-import com.normation.plugins.JsonPluginsDetails
-import com.normation.plugins.JsonPluginsDetails.encoderJsonPluginsDetails
-import com.normation.plugins.PluginSettings
-import com.normation.plugins.PluginSettingsService
+import com.normation.plugins.PluginService
+import com.normation.plugins.settings.PluginSettings
+import com.normation.plugins.settings.PluginSettingsService
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.PluginApi as API
-import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RudderJsonRequest.ReqToJson
+import com.normation.rudder.rest.data.JsonPluginsDetails
+import com.normation.rudder.rest.data.JsonPluginSettings
 import com.normation.rudder.rest.implicits.*
+import io.scalaland.chimney.syntax.*
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
-import zio.json.DeriveJsonDecoder
-import zio.json.DeriveJsonEncoder
-import zio.json.JsonDecoder
-import zio.json.JsonEncoder
 
 class PluginApi(
-    restExtractorService:  RestExtractorService,
     pluginSettingsService: PluginSettingsService,
+    pluginService:         PluginService,
     getPluginDetails:      IOResult[JsonPluginsDetails]
 ) extends LiftApiModuleProvider[API] {
 
   def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints.map { e =>
-      e match {
-        case API.GetPluginsInfo        => GetPluginInfo
-        case API.GetPluginsSettings    => GetPluginSettings
-        case API.UpdatePluginsSettings => UpdatePluginSettings
-      }
+    API.endpoints.map {
+      case API.GetPluginsInfo        => GetPluginInfo
+      case API.GetPluginsSettings    => GetPluginSettings
+      case API.UpdatePluginsSettings => UpdatePluginSettings
     }
   }
 
@@ -82,34 +77,29 @@ class PluginApi(
     }
   }
 
-  implicit val encoder: JsonEncoder[PluginSettings] = DeriveJsonEncoder.gen[PluginSettings]
-  implicit val decoder: JsonDecoder[PluginSettings] = DeriveJsonDecoder.gen[PluginSettings]
-
   object GetPluginSettings extends LiftApiModule0 {
-    val schema: API.GetPluginsSettings.type = API.GetPluginsSettings
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.GetPluginsSettings.type = API.GetPluginsSettings
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                = {
       (for {
         conf <- pluginSettingsService.readPluginSettings()
       } yield {
-        conf.copy(password = None, proxyPassword = None)
+        conf.transformInto[JsonPluginSettings]
       }).toLiftResponseOne(params, schema, None)
     }
 
   }
 
   object UpdatePluginSettings extends LiftApiModule0 {
-    val schema: API.UpdatePluginsSettings.type = API.UpdatePluginsSettings
-    val restExtractor = restExtractorService
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+    val schema:                                                                                                API.UpdatePluginsSettings.type = API.UpdatePluginsSettings
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse                   = {
       import com.normation.errors.*
       ({
         for {
-          json <- req.fromJson[PluginSettings].toIO
-          _    <- pluginSettingsService.writePluginSettings(json)
-
+          json <- req.fromJson[JsonPluginSettings].toIO
+          _    <- pluginSettingsService.writePluginSettings(json.transformInto[PluginSettings])
+          _    <- pluginService.updateIndex()
         } yield {
-          json.copy(password = None, proxyPassword = None)
+          json
 
         }
       }).toLiftResponseOne(params, schema, None)

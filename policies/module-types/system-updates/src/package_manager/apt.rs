@@ -9,27 +9,28 @@ use crate::{
     campaign::FullCampaignType,
     output::ResultOutput,
     package_manager::{
+        LinuxPackageManager, PackageId, PackageInfo, PackageList, PackageManager, PackageSpec,
         apt::{
             filter::{Distribution, PackageFileFilter},
             progress::RudderAptAcquireProgress,
         },
-        LinuxPackageManager, PackageId, PackageInfo, PackageList, PackageManager, PackageSpec,
     },
 };
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use gag::Gag;
+use log::debug;
 use memfile::MemFile;
 use regex::Regex;
 #[cfg(not(debug_assertions))]
 use rudder_module_type::ensure_root_user;
 use rudder_module_type::os_release::OsRelease;
 use rust_apt::{
+    Cache, PackageSort,
     cache::Upgrade,
     config::Config,
     error::AptErrors,
     new_cache,
     progress::{AcquireProgress, InstallProgress},
-    Cache, PackageSort,
 };
 use std::{collections::HashMap, env, os::fd::AsRawFd, path::Path, process::Command};
 
@@ -64,12 +65,15 @@ impl AptPackageManager {
         #[cfg(not(debug_assertions))]
         ensure_root_user()?;
 
-        env::set_var("DEBIAN_FRONTEND", "noninteractive");
-        // TODO: do we really want to disable list changes?
-        // It will be switched to non-interactive mode automatically.
-        env::set_var("APT_LISTCHANGES_FRONTEND", "none");
-        // We will do this by calling `needrestart` ourselves, turn off the APT hook.
-        env::set_var("NEEDRESTART_SUSPEND", "y");
+        // SAFETY: single-threaded
+        unsafe {
+            env::set_var("DEBIAN_FRONTEND", "noninteractive");
+            // TODO: do we really want to disable list changes?
+            // It will be switched to non-interactive mode automatically.
+            env::set_var("APT_LISTCHANGES_FRONTEND", "none");
+            // We will do this by calling `needrestart` ourselves, turn off the APT hook.
+            env::set_var("NEEDRESTART_SUSPEND", "y");
+        }
 
         let cache = new_cache!()?;
 
@@ -147,8 +151,10 @@ impl AptPackageManager {
         for p in cache.packages(&Self::all_installed()) {
             if p.is_upgradable() {
                 for v in p.versions() {
-                    if PackageFileFilter::is_in_allowed_origin(&v, &security_origins) {
+                    debug!("Considering version: {:?}", &v);
+                    if PackageFileFilter::is_in_allowed_origins(&v, &security_origins) {
                         if v > p.installed().unwrap() {
+                            debug!("Marking version for upgrade");
                             v.set_candidate();
                             p.mark_install(true, !p.is_auto_installed());
                             break;
@@ -271,6 +277,7 @@ impl LinuxPackageManager for AptPackageManager {
                         // Fail loudly if not supported
                         Err(e) => return ResultOutput::new(Err(e)),
                     };
+                    debug!("Allowed origins: {:?}", security_origins);
                     self.mark_security_upgrades(&mut c, &security_origins)
                 }
                 FullCampaignType::SoftwareUpdate(p) => self.mark_package_upgrades(p, &mut c),

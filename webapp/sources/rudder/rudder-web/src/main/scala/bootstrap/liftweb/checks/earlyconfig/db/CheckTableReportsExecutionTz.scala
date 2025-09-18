@@ -77,7 +77,9 @@ class CheckTableReportsExecutionTz(
     // Actually run the migration async to avoid blocking for that.
     // There is no need to have it sync.
     migrationProg(reportsExecution)
-      .catchAll(err => BootstrapLogger.error(s"Error when trying to add time zone to ReportsExecution table: ${err.fullMsg}"))
+      .catchAll(err =>
+        BootstrapLogger.Early.DB.error(s"Error when trying to add time zone to ReportsExecution table: ${err.fullMsg}")
+      )
       .forkDaemon
       .runNow
   }

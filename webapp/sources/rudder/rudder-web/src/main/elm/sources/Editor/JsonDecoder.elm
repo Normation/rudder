@@ -5,7 +5,7 @@ import Json.Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
 import List exposing (drop, head)
 import String exposing (join, split)
-
+import Dict
 import Editor.AgentValueParser exposing (..)
 import Editor.DataTypes exposing (..)
 import Editor.MethodConditions exposing (..)
@@ -96,6 +96,8 @@ decodeBlock =
     |> required "reportingLogic" decodeCompositionRule
     |> required "calls" (list  (lazy (\_ -> decodeMethodElem Nothing)))
     |> optional "policyMode" (maybe decodePolicyMode) Nothing
+    |> optional "foreachName" (maybe string) Nothing
+    |> optional "foreach" (maybe (list (dict string))) Nothing
     >> map (\block ->  { block | calls = List.map (\x ->
                                                                case x of
                                                                  Block _ b -> Block (Just block.id) b
@@ -113,6 +115,8 @@ decodeMethodCall =
     |> optional "component"  string ""
     |> optional "disabledReporting" bool False
     |> optional "policyMode" (maybe decodePolicyMode) Nothing
+    |> optional "foreachName" (maybe string) Nothing
+    |> optional "foreach" (maybe (list (dict string))) Nothing
 
 decodeTechniqueMaybe : Decoder (Maybe Technique)
 decodeTechniqueMaybe =

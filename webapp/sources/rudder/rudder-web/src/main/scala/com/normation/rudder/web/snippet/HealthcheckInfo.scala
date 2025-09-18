@@ -88,7 +88,7 @@ class HealthcheckInfo(
       data-bs-placement="bottom"
       title={tooltipContent}
       >
-        <a href="/secure/utilities/healthcheck"><span class="fa fa-heart"></span></a>
+        <a href="/secure/administration/maintenance"><span class="fa fa-heart"></span></a>
       </li>
     }
 

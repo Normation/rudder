@@ -66,7 +66,7 @@ final case class Controller(
 ) extends PhysicalElement
 
 final case class MemorySlot(
-    slotNumber: String, // string, because sometime it looks like: RAM slot #0
+    slotNumber: String, // string, because sometimes it looks like: RAM slot #0
 
     name:                                               Option[String] = None,
     description:                                        Option[String] = None,

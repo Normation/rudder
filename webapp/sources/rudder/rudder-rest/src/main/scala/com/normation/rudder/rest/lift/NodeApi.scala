@@ -57,6 +57,8 @@ import com.normation.rudder.apidata.RenderInheritedProperties
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.apidata.implicits.*
+import com.normation.rudder.config.ReasonBehavior
+import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.logger.NodeLogger
 import com.normation.rudder.domain.logger.NodeLoggerPure
@@ -86,14 +88,12 @@ import com.normation.rudder.properties.PropertiesRepository
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
-import com.normation.rudder.repository.json.DataExtractor.OptionnalJson
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.rest.ApiModuleProvider
 import com.normation.rudder.rest.ApiPath
 import com.normation.rudder.rest.AuthzToken
 import com.normation.rudder.rest.NodeApi as API
 import com.normation.rudder.rest.OneParam
-import com.normation.rudder.rest.RestExtractorService
 import com.normation.rudder.rest.RudderJsonResponse
 import com.normation.rudder.rest.data.*
 import com.normation.rudder.rest.data.Creation.CreationError
@@ -118,8 +118,6 @@ import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.services.servers.NewNodeManager
 import com.normation.rudder.services.servers.RemoveNodeService
-import com.normation.rudder.web.services.ReasonBehavior
-import com.normation.rudder.web.services.UserPropertyService
 import com.normation.utils.StringUuidGenerator
 import com.normation.zio.*
 import io.scalaland.chimney.syntax.*
@@ -165,34 +163,33 @@ class NodeApi(
     deleteDefaultMode:     DeleteMode
 ) extends LiftApiModuleProvider[API] {
 
+  implicit def reasonBehavior: ReasonBehavior = userPropertyService.reasonsFieldBehavior
+
   def schemas: ApiModuleProvider[API] = API
 
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints.map(e => {
-
-      e match {
-        case API.ListPendingNodes               => ListPendingNodes
-        case API.NodeDetails                    => NodeDetails
-        case API.NodeInheritedProperties        => NodeInheritedProperties
-        case API.NodeDisplayInheritedProperties => NodeDisplayInheritedProperties
-        case API.PendingNodeDetails             => PendingNodeDetails
-        case API.DeleteNode                     => DeleteNode
-        case API.ChangePendingNodeStatus        => ChangePendingNodeStatus
-        case API.ChangePendingNodeStatus2       => ChangePendingNodeStatus2
-        case API.ApplyPolicyAllNodes            => ApplyPolicyAllNodes
-        case API.UpdateNode                     => UpdateNode
-        case API.ListAcceptedNodes              => ListAcceptedNodes
-        case API.ApplyPolicy                    => ApplyPolicy
-        case API.GetNodesStatus                 => GetNodesStatus
-        case API.NodeDetailsTable               => NodeDetailsTable
-        case API.NodeDetailsSoftware            => NodeDetailsSoftware
-        case API.NodeDetailsProperty            => NodeDetailsProperty
-        case API.CreateNodes                    => CreateNodes
-        case API.NodeGlobalScore                => GetNodeGlobalScore
-        case API.NodeScoreDetails               => GetNodeScoreDetails
-        case API.NodeScoreDetail                => GetNodeScoreDetail
-      }
-    })
+    API.endpoints.map {
+      case API.ListPendingNodes               => ListPendingNodes
+      case API.NodeDetails                    => NodeDetails
+      case API.NodeInheritedProperties        => NodeInheritedProperties
+      case API.NodeDisplayInheritedProperties => NodeDisplayInheritedProperties
+      case API.PendingNodeDetails             => PendingNodeDetails
+      case API.DeleteNode                     => DeleteNode
+      case API.ChangePendingNodeStatus        => ChangePendingNodeStatus
+      case API.ChangePendingNodeStatus2       => ChangePendingNodeStatus2
+      case API.ApplyPolicyAllNodes            => ApplyPolicyAllNodes
+      case API.UpdateNode                     => UpdateNode
+      case API.ListAcceptedNodes              => ListAcceptedNodes
+      case API.ApplyPolicy                    => ApplyPolicy
+      case API.GetNodesStatus                 => GetNodesStatus
+      case API.NodeDetailsTable               => NodeDetailsTable
+      case API.NodeDetailsSoftware            => NodeDetailsSoftware
+      case API.NodeDetailsProperty            => NodeDetailsProperty
+      case API.CreateNodes                    => CreateNodes
+      case API.NodeGlobalScore                => GetNodeGlobalScore
+      case API.NodeScoreDetails               => GetNodeScoreDetails
+      case API.NodeScoreDetail                => GetNodeScoreDetail
+    }
   }
 
   /*
@@ -544,17 +541,16 @@ class NodeApi(
         optNode <- nodeApiService.nodeFactRepository.get(NodeId(id))
       } yield {
         optNode match {
-          case Some(node)
-              if (node.rudderAgent.agentType == AgentType.CfeCommunity || node.rudderAgent.agentType == AgentType.CfeEnterprise) =>
+          case Some(node) if (node.rudderAgent.agentType == AgentType.CfeCommunity) =>
             OutputStreamResponse(nodeApiService.runNode(node.id, classes))
-          case Some(node) =>
+          case Some(node)                                                           =>
             RudderJsonResponse
               .internalError(
                 None,
                 RudderJsonResponse.ResponseSchema.fromSchema(schema),
                 s"Node with id '${id}' has an agent type (${node.rudderAgent.agentType.displayName}) which doesn't support remote run"
               )
-          case None       =>
+          case None                                                                 =>
             RudderJsonResponse
               .internalError(
                 None,
@@ -723,7 +719,7 @@ class NodeApi(
       implicit val qc       = authzToken.qc
 
       val result = (for {
-        inheritedProperty <- req.json.flatMap(j => OptionnalJson.extractJsonBoolean(j, "inherited")).toIO
+        inheritedProperty <- zioJsonExtractor.extractNodeInherited(req).toIO
         response          <- nodeApiService.property(req, property, inheritedProperty.getOrElse(false))
       } yield {
         response
@@ -747,7 +743,7 @@ class NodeApi(
   }
 
   private def extractReason(restNode: JQUpdateNode): IOResult[Option[String]] = {
-    import ReasonBehavior.*
+    import com.normation.rudder.config.ReasonBehavior.*
     (userPropertyService.reasonsFieldBehavior match {
       case Disabled => ZIO.none
       case mode     =>
@@ -760,7 +756,7 @@ class NodeApi(
                 case s if s.lengthIs < 5 => Inconsistency("Reason field should be at least 5 characters long")
               }
               .map(Some(_))
-          case Optionnal => reason.succeed
+          case Optional  => reason.succeed
         }
     }).chainError("There was an error while extracting reason message")
   }
@@ -820,7 +816,7 @@ class NodeApiService(
     acceptedDit:                InventoryDit,
     newNodeManager:             NewNodeManager,
     removeNodeService:          RemoveNodeService,
-    restExtractor:              RestExtractorService,
+    restExtractor:              ZioJsonExtractor,
     reportingService:           ReportingService,
     acceptedNodeQueryProcessor: QueryProcessor,
     pendingNodeQueryProcessor:  QueryChecker,
@@ -1100,7 +1096,7 @@ class NodeApiService(
   def software(req: Req, software: String)(implicit qc: QueryContext): IOResult[Map[String, Version]] = {
 
     for {
-      optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson).toIO
+      optNodeIds <- restExtractor.extractNodeIdChunk(req).toIO
       nodes      <- optNodeIds match {
                       case None          => nodeFactRepository.getAll()
                       case Some(nodeIds) => nodeFactRepository.getAll().map(_.filterKeys(id => nodeIds.contains(id.value)))
@@ -1116,7 +1112,7 @@ class NodeApiService(
   ): IOResult[Map[String, JRProperty]] = {
 
     for {
-      optNodeIds <- req.json.flatMap(restExtractor.extractNodeIdsFromJson).toIO
+      optNodeIds <- restExtractor.extractNodeIdChunk(req).toIO
       nodes      <- optNodeIds match {
                       case None          => nodeFactRepository.getAll()
                       case Some(nodeIds) => nodeFactRepository.getAll().map(_.filterKeys(id => nodeIds.contains(id.value)))
@@ -1283,7 +1279,7 @@ class NodeApiService(
     for {
       nodeIds <- state match {
                    case PendingInventory  => pendingNodeQueryProcessor.check(query, None)
-                   case AcceptedInventory => acceptedNodeQueryProcessor.processOnlyId(query).toIO
+                   case AcceptedInventory => acceptedNodeQueryProcessor.process(query).toIO
                    case _                 =>
                      Inconsistency(
                        s"Invalid branch used for nodes query, expected either AcceptedInventory or PendingInventory, got ${state}"
@@ -1298,15 +1294,21 @@ class NodeApiService(
   def updateRestNode(nodeId: NodeId, update: JQUpdateNode)(implicit cc: ChangeContext): IOResult[CoreNodeFact] = {
 
     def updateNode(
-        node:          CoreNodeFact,
-        update:        JQUpdateNode,
-        newProperties: List[NodeProperty],
-        newKey:        Option[SecurityToken],
-        newKeyStatus:  Option[KeyStatus]
+        node:             CoreNodeFact,
+        update:           JQUpdateNode,
+        newProperties:    List[NodeProperty],
+        newKey:           Option[SecurityToken],
+        newKeyStatus:     Option[KeyStatus],
+        newDocumentation: Option[String]
     ): CoreNodeFact = {
       import com.softwaremill.quicklens.*
 
       val propNames: Set[String] = newProperties.map(_.name).toSet
+      val documentation = newDocumentation match {
+        case Some("") => Some(None)
+        case Some(x)  => Some(Some(x))
+        case None     => None
+      }
 
       node
         .modify(_.properties)
@@ -1323,6 +1325,8 @@ class NodeApiService(
         .setToIfDefined(newKey)
         .modify(_.rudderSettings.keyStatus)
         .setToIfDefined(newKeyStatus)
+        .modify(_.documentation)
+        .setToIfDefined(documentation)
     }
 
     implicit val qc: QueryContext = cc.toQuery
@@ -1330,7 +1334,7 @@ class NodeApiService(
     for {
       nodeFact      <- nodeFactRepository.get(nodeId).notOptional(s"node with id '${nodeId.value}' was not found")
       newProperties <- CompareProperties.updateProperties(nodeFact.properties.toList, update.properties).toIO
-      updated        = updateNode(nodeFact, update, newProperties, update.keyInfo._1, update.keyInfo._2)
+      updated        = updateNode(nodeFact, update, newProperties, update.keyInfo._1, update.keyInfo._2, update.documentation)
       _             <- if (CoreNodeFact.same(updated, nodeFact)) ZIO.unit
                        else nodeFactRepository.save(updated).unit
     } yield {
@@ -1471,7 +1475,7 @@ class NodeApiService(
         } yield {
           // remote run only works for CFEngine based agent
           val commandResult = {
-            if (node.rudderAgent.agentType == AgentType.CfeEnterprise || node.rudderAgent.agentType == AgentType.CfeCommunity) {
+            if (node.rudderAgent.agentType == AgentType.CfeCommunity) {
               val request = remoteRunRequest(node.id, classes, keepOutput = false, asynchronous = true)
               try {
                 val result = request.asString

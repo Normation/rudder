@@ -36,15 +36,11 @@
  */
 package com.normation.rudder.domain.policies
 
-import com.normation.rudder.repository.json.DataExtractor.CompleteJson
 import net.liftweb.common.*
-import net.liftweb.json.JsonAST.JArray
-import net.liftweb.json.JsonAST.JField
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.JsonAST.JString
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.*
+import zio.json.*
 
 @RunWith(classOf[JUnitRunner])
 class TagsTest extends Specification with Loggable {
@@ -60,14 +56,7 @@ class TagsTest extends Specification with Loggable {
   val simpleTags: Tags = Tags(Set[Tag](tag1, tag2, tag3))
   val simpleSerialization =
     """[{"key":"tag1","value":"tag1-value"},{"key":"tag2","value":"tag2-value"},{"key":"tag3","value":"tag3-value"}]"""
-  val jsonSimple: JArray = {
-    JArray(
-      JObject(JField("key", JString("tag1")), JField("value", JString("tag1-value"))) ::
-      JObject(JField("key", JString("tag2")), JField("value", JString("tag2-value"))) ::
-      JObject(JField("key", JString("tag3")), JField("value", JString("tag3-value"))) ::
-      Nil
-    )
-  }
+
   val invalidSerialization = """[{"key" :"tag1"},{"key" :"tag2", "value":"tag2-value"},{"key" :"tag3", "value":"tag3-value"}]"""
 
   val duplicatedSerialization =
@@ -75,22 +64,19 @@ class TagsTest extends Specification with Loggable {
 
   "Serializing and unserializing" should {
     "serialize in correct JSON" in {
-      JsonTagSerialisation.serializeTags(simpleTags) must
-      equalTo(jsonSimple)
+      simpleTags.toJson must equalTo(simpleSerialization)
     }
 
     "unserialize correct JSON" in {
-      CompleteJson.unserializeTags(simpleSerialization) must
-      equalTo(simpleTags)
+      simpleSerialization.fromJson[Tags] must beRight(simpleTags)
     }
 
     "fail to unserialize incorrect JSON" in {
-      CompleteJson.unserializeTags(invalidSerialization) must haveClass[Failure]
+      invalidSerialization.fromJson[Tags] must beLeft
     }
 
     "unserialize duplicated entries in JSON into uniques" in {
-      CompleteJson.unserializeTags(duplicatedSerialization) must
-      equalTo(simpleTags)
+      duplicatedSerialization.fromJson[Tags] must beRight(simpleTags)
     }
   }
 

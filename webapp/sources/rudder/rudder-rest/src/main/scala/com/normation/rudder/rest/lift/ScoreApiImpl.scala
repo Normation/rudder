@@ -16,7 +16,7 @@ class ScoreApiImpl(restExtractorService: RestExtractorService, scoreService: Sco
   def schemas: ApiModuleProvider[API] = API
 
   override def getLiftEndpoints(): List[LiftApiModule] = {
-    GetScoreList :: Nil
+    API.endpoints.map { case ScoreApi.GetScoreList => GetScoreList }
   }
 
   object GetScoreList extends LiftApiModule0 {

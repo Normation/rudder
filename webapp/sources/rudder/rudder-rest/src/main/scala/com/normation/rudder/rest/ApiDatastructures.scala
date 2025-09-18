@@ -40,6 +40,7 @@ package com.normation.rudder.rest
 import cats.data.*
 import cats.implicits.*
 import com.normation.rudder.AuthorizationType
+import com.normation.rudder.api.ApiAclElement
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.api.HttpAction
 
@@ -226,8 +227,13 @@ trait EndpointSchema {
   // data container name: the expected object key in answer
   def dataContainer: Option[String]
 
-  // any authorization that allows to access that API - by default, admin.write
-  def authz: List[AuthorizationType] = List(AuthorizationType.Administration.Write)
+  // any authorization that allows to access that API (with a "OR" semantic)
+  // Nil means special `any_righs`, ie special admin role, is needed, so
+  // that removing the last right effectively remove all permissions
+  def authz: List[AuthorizationType]
+
+  // specific mapping of ACL that has access to some part of this endpoint
+  def otherAcls: Map[AuthorizationType, List[ApiAclElement]] = Map.empty
 }
 
 trait EndpointSchema0 extends EndpointSchema {
@@ -266,7 +272,8 @@ trait StartsAtVersion16 extends EndpointSchema { val versions: ApiV.From = ApiV.
 trait StartsAtVersion17 extends EndpointSchema { val versions: ApiV.From = ApiV.From(17) } // Rudder 7.3
 trait StartsAtVersion18 extends EndpointSchema { val versions: ApiV.From = ApiV.From(18) } // Rudder 8.0
 trait StartsAtVersion19 extends EndpointSchema { val versions: ApiV.From = ApiV.From(19) } // Rudder 8.1
-trait StartsAtVersion20 extends EndpointSchema { val versions: ApiV.From = ApiV.From(20) }
+trait StartsAtVersion20 extends EndpointSchema { val versions: ApiV.From = ApiV.From(20) } // Rudder 8.2
+trait StartsAtVersion21 extends EndpointSchema { val versions: ApiV.From = ApiV.From(21) } // Rudder 8.3
 
 // utility extension trait to define the kind of API
 trait PublicApi   extends EndpointSchema { val kind: ApiKind.Public.type = ApiKind.Public     }

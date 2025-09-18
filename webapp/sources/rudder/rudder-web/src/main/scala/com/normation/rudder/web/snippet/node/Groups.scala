@@ -92,11 +92,13 @@ class Groups extends StatefulSnippet with DefaultExtendableSnippet[Groups] with 
   private var boxGroupLib = getFullGroupLibrary().toBox
 
   val mainDispatch: Map[String, NodeSeq => NodeSeq] = {
+    implicit val qc: QueryContext = CurrentUser.queryContext // bug https://issues.rudder.io/issues/26605
+
     Map(
       "head"           -> head _,
       "detailsPopup"   -> { (_: NodeSeq) => NodeGroupForm.staticBody },
-      "initRightPanel" -> { (_: NodeSeq) => initRightPanel()(CurrentUser.queryContext) },
-      "groupHierarchy" -> groupHierarchy(boxGroupLib)(CurrentUser.queryContext)
+      "initRightPanel" -> { (_: NodeSeq) => initRightPanel() },
+      "groupHierarchy" -> groupHierarchy(boxGroupLib)
     )
   }
 

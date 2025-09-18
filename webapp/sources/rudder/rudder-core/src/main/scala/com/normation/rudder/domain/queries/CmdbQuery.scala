@@ -49,15 +49,17 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.properties.NodeProperty
 import com.normation.rudder.services.queries.*
+import com.normation.rudder.services.servers.InstanceId
 import com.unboundid.ldap.sdk.*
 import enumeratum.Enum
 import enumeratum.EnumEntry
+import io.scalaland.chimney.*
+import io.scalaland.chimney.syntax.*
 import java.util.regex.PatternSyntaxException
-import net.liftweb.json.*
-import net.liftweb.json.JsonDSL.*
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.format.DateTimeFormatter
+import zio.json.*
 
 sealed trait CriterionComparator {
   val id: String
@@ -473,7 +475,7 @@ case object StringComparator extends TStringComparator {
   override val comparators = BaseComparators.comparators
 
   override def buildFilter(attributeName: String, comparator: CriterionComparator, value: String): Filter = comparator match {
-    // for equals and not equals, check value for jocker
+    // for equals and not equals, check value for joker
     case Equals    => escapedFilter(attributeName, value)
     case NotEquals => NOT(escapedFilter(attributeName, value))
     case NotExists => NOT(HAS(attributeName))
@@ -665,9 +667,9 @@ case object VmTypeComparator extends LDAPCriterionType {
 
 /*
  * Agent comparator is kind of scpecial, because it needs to accomodate to the following cases:
- * - historically, agent names were only "Nova" and "Community" (understood "cfengine", of course)
- * - then, we changed in 4.2 to normalized "cfengine-community" and "cfengine-nova" (plus "dsc")
- *   (but old agent are still "Nova" and "Community"
+ * - historically, agent names were only "Community" (understood "cfengine", of course)
+ * - then, we changed in 4.2 to normalized "cfengine-community" (plus "dsc")
+ *   (but old agent are still "Community"
  * - and we want a subcase "anything cfengine based" (because it is important for generation, for
  *   group "haspolicyserver-*" and rule "inventory-all")
  *
@@ -677,7 +679,7 @@ case object AgentComparator extends LDAPCriterionType {
 
   val ANY_CFENGINE          = "cfengine"
   val (cfeTypes, cfeAgents) =
-    ((ANY_CFENGINE, "Any CFEngine based agent"), (ANY_CFENGINE, AgentType.CfeCommunity :: AgentType.CfeEnterprise :: Nil))
+    ((ANY_CFENGINE, "Any CFEngine based agent"), (ANY_CFENGINE, AgentType.CfeCommunity :: Nil))
   private val allAgents     = AgentType.values.toList
 
   val agentTypes: List[(String, String)]       = (cfeTypes :: allAgents.map(a => (a.oldShortName, (a.displayName)))).sortBy(_._2)
@@ -696,9 +698,9 @@ case object AgentComparator extends LDAPCriterionType {
    * <4.1: AGENTS_NAME only contains the name of the agent (but a value that is different form the id, oldShortName)
    */
   private def filterAgent(agent: AgentType) = {
-    SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.id}""""), null) ::           // 4.2+
-    SUB(A_AGENTS_NAME, null, Array(s""""agentType":"${agent.oldShortName}""""), null) :: // 4.1
-    EQ(A_AGENTS_NAME, agent.oldShortName) ::                                             // 3.1 ( < 4.1 in fact)
+    SUB(A_AGENT_NAME, null, Array(s""""agentType":"${agent.id}""""), null) ::           // 4.2+
+    SUB(A_AGENT_NAME, null, Array(s""""agentType":"${agent.oldShortName}""""), null) :: // 4.1
+    EQ(A_AGENT_NAME, agent.oldShortName) ::                                             // 3.1 ( < 4.1 in fact)
     Nil
   }
 
@@ -728,6 +730,22 @@ case object EditorComparator extends LDAPCriterionType {
     if (editors.contains(v)) Right(v) else Left(Inconsistency(s"Invalide editor : '${v}'"))
 
   override def toLDAP(value: String): PureResult[String] = Right(value)
+}
+
+/**
+ * A type for comparators that do not require the value to be encoded into LDAP
+ */
+sealed trait NonLdapCriterionType extends CriterionType
+
+case class InstanceIdComparator(instanceId: InstanceId) extends NonLdapCriterionType with TStringComparator {
+  override def comparators:                                    Seq[BaseComparator] = Equals :: NotEquals :: Nil
+  def matches(value: String, comparator: CriterionComparator): PureResult[Boolean] = {
+    comparator match {
+      case Equals    => Right(value.equalsIgnoreCase(instanceId.value))
+      case NotEquals => Right(!value.equalsIgnoreCase(instanceId.value))
+      case _         => Left(Unexpected(s"Instance ID comparator only supports : ${comparators.map(_.id).mkString(",")}"))
+    }
+  }
 }
 
 /*
@@ -893,10 +911,36 @@ final case class CriterionLine(
     value:      String = ""
 )
 
+object CriterionLine {
+  implicit val transformCriterionLine: Transformer[CriterionLine, JsonCriterionLine] = {
+    Transformer
+      .define[CriterionLine, JsonCriterionLine]
+      .withFieldComputed(_.objectType, _.objectType.objectType)
+      .withFieldComputed(_.attribute, _.attribute.name)
+      .withFieldComputed(_.comparator, _.comparator.id)
+      .buildTransformer
+  }
+
+}
+
+final case class JsonCriterionLine(
+    objectType: String,
+    attribute:  String,
+    comparator: String,
+    value:      String
+)
+
+object JsonCriterionLine {
+  implicit val encoderJsonCriterionLine: JsonEncoder[JsonCriterionLine] = DeriveJsonEncoder.gen
+}
+
 sealed abstract class CriterionComposition { def value: String }
-case object And extends CriterionComposition { val value = "and" }
-case object Or  extends CriterionComposition { val value = "or"  }
+
 object CriterionComposition {
+
+  case object And extends CriterionComposition { val value = "and" }
+  case object Or  extends CriterionComposition { val value = "or"  }
+
   def parse(s: String): Option[CriterionComposition] = {
     s.toLowerCase match {
       case "and" => Some(And)
@@ -904,13 +948,22 @@ object CriterionComposition {
       case _     => None
     }
   }
+
+  implicit val encoderCriterionComposition: JsonEncoder[CriterionComposition] = JsonEncoder.string.contramap(_.value)
 }
 
 sealed trait QueryReturnType {
   def value: String
 }
 
-case object QueryReturnType {
+object QueryReturnType {
+  case object NodeReturnType              extends QueryReturnType {
+    override val value = "node"
+  }
+  case object NodeAndRootServerReturnType extends QueryReturnType {
+    override val value = "nodeAndPolicyServer"
+  }
+
   def apply(value: String): Either[Inconsistency, QueryReturnType] = {
     value match {
       case NodeReturnType.value              => Right(NodeReturnType)
@@ -918,12 +971,8 @@ case object QueryReturnType {
       case _                                 => Left(Inconsistency(s"Query return type '${value}' is not valid"))
     }
   }
-}
-case object NodeReturnType extends QueryReturnType {
-  override val value = "node"
-}
-case object NodeAndRootServerReturnType extends QueryReturnType {
-  override val value = "nodeAndPolicyServer"
+
+  implicit val encoderQueryReturnType: JsonEncoder[QueryReturnType] = JsonEncoder.string.contramap(_.value)
 }
 
 sealed trait ResultTransformation extends EnumEntry {
@@ -950,6 +999,19 @@ object ResultTransformation extends Enum[ResultTransformation] {
         )
     }
   }
+
+  implicit val encoderResultTransformation: JsonEncoder[ResultTransformation] = JsonEncoder.string.contramap(_.value)
+}
+
+final case class JsonQuery(
+    select:      QueryReturnType,
+    composition: CriterionComposition,
+    transform:   Option[ResultTransformation],
+    where:       List[JsonCriterionLine]
+)
+
+object JsonQuery {
+  implicit val encoderJsonQuery: JsonEncoder[JsonQuery] = DeriveJsonEncoder.gen
 }
 
 object Query {
@@ -965,6 +1027,31 @@ object Query {
     q1.criteria.size == q2.criteria.size &&
     q1.criteria.forall(c1 => q2.criteria.exists(c2 => c1 == c2))
   }
+
+  implicit val transformQuery: Transformer[Query, JsonQuery] = {
+    Transformer
+      .define[Query, JsonQuery]
+      .withFieldComputed(
+        _.transform,
+        _.transform match {
+          case ResultTransformation.Identity => None
+          case x                             => Some(x)
+        }
+      )
+      .withFieldRenamed(_.returnType, _.select)
+      .withFieldRenamed(_.criteria, _.where)
+      .buildTransformer
+  }
+
+  /*
+   *  { "select":"...", "composition":"...", "where": [
+   *      { "objectType":"...", "attribute":"...", "comparator":"..", "value":"..." }
+   *      ...
+   *    ]}
+   *
+   * Make "transform" optional: don't display it if it's identity
+   */
+  implicit val encoderQuery: JsonEncoder[Query] = JsonEncoder[JsonQuery].contramap(_.transformInto[JsonQuery])
 }
 
 final case class Query(
@@ -980,29 +1067,4 @@ final case class Query(
       }.mkString(" ; ")}] }"
   }
 
-  /*
-   *  { "select":"...", "composition":"...", "where": [
-   *      { "objectType":"...", "attribute":"...", "comparator":"..", "value":"..." }
-   *      ...
-   *    ]}
-   *
-   * Make "transform" optional: don't display it if it's identity
-   */
-  lazy val toJSON: JObject = {
-    val t = transform match {
-      case ResultTransformation.Identity => None
-      case x                             => Some(x.value)
-    }
-    ("select" -> returnType.value) ~
-    ("composition" -> composition.toString) ~
-    ("transform"   -> t) ~
-    ("where"       -> criteria.map(c => {
-      ("objectType" -> c.objectType.objectType) ~
-      ("attribute"  -> c.attribute.name) ~
-      ("comparator" -> c.comparator.id) ~
-      ("value"      -> c.value)
-    }))
-  }
-
-  lazy val toJSONString: String = compactRender(toJSON)
 }

@@ -3,7 +3,7 @@
   <MULTIINSTANCE>true</MULTIINSTANCE>
   <DESCRIPTION>A technique with some parameters</DESCRIPTION>
   <USEMETHODREPORTING>true</USEMETHODREPORTING>
-  <AGENT type="cfengine-community,cfengine-nova">
+  <AGENT type="cfengine-community">
     <BUNDLES>
       <NAME>technique_with_parameters</NAME>
     </BUNDLES>

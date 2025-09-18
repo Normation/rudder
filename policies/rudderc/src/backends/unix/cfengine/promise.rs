@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2019-2022 Normation SAS
 
+use crate::backends::unix::cfengine::quoted;
 use std::{collections::HashMap, fmt};
-
-use crate::backends::unix::cfengine::{bundle::UNIQUE_ID, quoted};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum PromiseType {
@@ -33,12 +32,14 @@ pub enum AttributeType {
     If,
     String,
     Slist,
+    Int,
     Expression,
 }
 
-const ATTRIBUTES_ORDERING: [AttributeType; 6] = [
+const ATTRIBUTES_ORDERING: [AttributeType; 7] = [
     AttributeType::UseBundle,
     AttributeType::String,
+    AttributeType::Int,
     AttributeType::Expression,
     AttributeType::Slist,
     AttributeType::Unless,
@@ -56,6 +57,7 @@ impl PromiseType {
                 AttributeType::If,
                 AttributeType::String,
                 AttributeType::Slist,
+                AttributeType::Int,
             ],
             PromiseType::Classes => vec![
                 AttributeType::Unless,
@@ -84,6 +86,7 @@ impl fmt::Display for AttributeType {
                 AttributeType::If => "if",
                 AttributeType::String => "string",
                 AttributeType::Slist => "slist",
+                AttributeType::Int => "int",
                 AttributeType::Expression => "expression",
             }
         )
@@ -96,7 +99,6 @@ pub struct Promise {
     comments: Option<String>,
     /// Module/state the promise calls
     component: Option<String>,
-    id: Option<String>,
     /// Type of the promise
     pub promise_type: PromiseType,
     /// Target of the promise
@@ -110,13 +112,11 @@ impl Promise {
     pub fn new<T: Into<String>>(
         promise_type: PromiseType,
         component: Option<String>,
-        id: Option<String>,
         promiser: T,
     ) -> Self {
         Self {
             promise_type,
             component,
-            id,
             promiser: promiser.into(),
             attributes: HashMap::new(),
             comments: None,
@@ -139,13 +139,17 @@ impl Promise {
 
     /// Shortcut for building a string variable with a raw value
     pub fn string_raw<T: Into<String>, S: AsRef<str>>(name: T, value: S) -> Self {
-        Promise::new(PromiseType::Vars, None, None, name)
-            .attribute(AttributeType::String, value.as_ref())
+        Promise::new(PromiseType::Vars, None, name).attribute(AttributeType::String, value.as_ref())
     }
 
-    /// Shortcut for building a slist variable with a list of values to be quoted
+    /// Shortcut for building an int variable with a raw value
+    pub fn int<T: Into<String>, S: AsRef<str>>(name: T, value: S) -> Self {
+        Promise::new(PromiseType::Vars, None, name).attribute(AttributeType::Int, value.as_ref())
+    }
+
+    /// Shortcut for building an slist variable with a list of values to be quoted
     pub fn slist<T: Into<String>, S: AsRef<str>>(name: T, values: Vec<S>) -> Self {
-        Promise::new(PromiseType::Vars, None, None, name).attribute(
+        Promise::new(PromiseType::Vars, None, name).attribute(
             AttributeType::Slist,
             format!(
                 "{{{}}}",
@@ -160,22 +164,22 @@ impl Promise {
 
     /// Shortcut for building a class expression
     pub fn class_expression<T: Into<String>, S: AsRef<str>>(name: T, value: S) -> Self {
-        Promise::new(PromiseType::Classes, None, None, name)
+        Promise::new(PromiseType::Classes, None, name)
             .attribute(AttributeType::Expression, quoted(value.as_ref()))
     }
 
     /// Shortcut for calling a bundle with parameters
+    ///
+    /// The promiser is automatically set to a unique value.
     pub fn usebundle<T: AsRef<str>>(
         bundle: T,
         component: Option<&str>,
-        id: Option<&str>,
         parameters: Vec<String>,
     ) -> Self {
         Promise::new(
             PromiseType::Methods,
             component.map(String::from),
-            id.map(String::from),
-            "${report_data.method_id}",
+            "placeholder",
         )
         .attribute(
             AttributeType::UseBundle,
@@ -192,8 +196,10 @@ impl Promise {
 
     /// Shortcut for adding a condition expression
     pub fn unless_condition<T: AsRef<str>>(mut self, condition: T) -> Self {
-        self.attributes
-            .insert(AttributeType::Unless, format!("\"{}\"", condition.as_ref()));
+        self.attributes.insert(
+            AttributeType::Unless,
+            quoted(condition.as_ref()).to_string(),
+        );
         self
     }
 
@@ -210,24 +216,21 @@ impl Promise {
         self
     }
 
+    pub fn unique_id(index: usize) -> String {
+        format!("index_${{local_index}}_{}", index)
+    }
+
     /// Index is used to make methods promises unique
     /// It is ignored in other cases
     //
     // padding for arrows is promiser len + max attribute name
     pub fn format(&self, index: usize, padding: usize) -> String {
-        let promiser = match self.id.clone() {
-            Some(id) if !id.is_empty() => id,
-            _ => {
-                if self.promise_type == PromiseType::Methods {
-                    // Methods need to be unique
-                    match self.component.clone() {
-                        Some(method) => format!("{}_{}_{}", method, UNIQUE_ID, index),
-                        None => format!("{}_{}", UNIQUE_ID, index),
-                    }
-                } else {
-                    self.promiser.clone()
-                }
-            }
+        let promiser = if self.promise_type == PromiseType::Methods {
+            // Always override the promiser for methods
+            // It is not used by CFEngine
+            quoted(&Self::unique_id(index))
+        } else {
+            quoted(&self.promiser)
         };
 
         let mut first = true;
@@ -242,7 +245,7 @@ impl Promise {
         };
 
         if self.attributes.is_empty() {
-            format!("{}\"{}\";", comment, self.promiser)
+            format!("{}{};", comment, promiser)
         } else {
             format!(
                 "{}{};",
@@ -255,7 +258,7 @@ impl Promise {
                             first = false;
                             format!(
                                 "    {:<promiser_width$} {:>width$} => {}",
-                                quoted(&promiser),
+                                promiser,
                                 k,
                                 v,
                                 promiser_width = padding - LONGEST_ATTRIBUTE_LEN - 1,
@@ -277,32 +280,37 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     use super::*;
-    use crate::backends::unix::cfengine::bundle::UNIQUE_ID_LEN;
 
     #[test]
     fn format_promise() {
+        let len = Promise::unique_id(0).len();
+
         assert_eq!(
-            Promise::new(PromiseType::Vars, None, None, "test")
-                .format(0, LONGEST_ATTRIBUTE_LEN + 3 + UNIQUE_ID_LEN),
+            Promise::new(PromiseType::Vars, None, "test")
+                .format(0, LONGEST_ATTRIBUTE_LEN + 3 + len),
             "\"test\";"
         );
         assert_eq!(
-            Promise::new(PromiseType::Vars, None, None, "test")
+            Promise::new(PromiseType::Vars, None, "test")
                 .comment("test")
-                .format(0, LONGEST_ATTRIBUTE_LEN + 3 + UNIQUE_ID_LEN),
+                .format(0, LONGEST_ATTRIBUTE_LEN + 3 + len),
             "    # test\n\"test\";"
         );
         assert_eq!(
             Promise::string("test", "plop")
                 .if_condition("debian")
-                .format(0, LONGEST_ATTRIBUTE_LEN + 3 + UNIQUE_ID_LEN),
-            "    \"test\"                            string => \"plop\",\n                                             if => \"debian\";"
+                .format(0, LONGEST_ATTRIBUTE_LEN + 3 + len),
+            "    \"test\"                   string => \"plop\",\n                                    if => \"debian\";"
         );
         assert_eq!(
             Promise::string("test", "plop")
                 .if_condition("debian.${my.var}")
-                .format(0, LONGEST_ATTRIBUTE_LEN + 3 + UNIQUE_ID_LEN),
-            "    \"test\"                            string => \"plop\",\n                                             if => \"debian.${my.var}\";"
+                .format(0, LONGEST_ATTRIBUTE_LEN + 3 + len),
+            "    \"test\"                   string => \"plop\",\n                                    if => \"debian.${my.var}\";"
+        );
+        assert_eq!(
+            Promise::int("test", "24").format(0, LONGEST_ATTRIBUTE_LEN + 3 + len),
+            "    \"test\"                   int => 24;"
         );
     }
 }

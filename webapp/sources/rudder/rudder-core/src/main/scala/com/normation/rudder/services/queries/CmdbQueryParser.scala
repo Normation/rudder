@@ -40,6 +40,7 @@ package com.normation.rudder.services.queries
 import cats.implicits.*
 import com.normation.box.*
 import com.normation.rudder.domain.queries.*
+import com.normation.rudder.domain.queries.QueryReturnType.*
 import com.normation.rudder.services.queries.CmdbQueryParser.*
 import com.normation.utils.Control.traverse
 import net.liftweb.common.*
@@ -122,7 +123,7 @@ sealed trait CmdbQueryParser extends StringQueryParser with QueryLexer {
 trait DefaultStringQueryParser extends StringQueryParser {
 
   protected def needValidation:        Boolean              = true
-  protected def defaultComposition:    CriterionComposition = And
+  protected def defaultComposition:    CriterionComposition = CriterionComposition.And
   protected def defaultTransformation: ResultTransformation = ResultTransformation.Identity
 
   def criterionObjects: Map[String, ObjectCriterion]

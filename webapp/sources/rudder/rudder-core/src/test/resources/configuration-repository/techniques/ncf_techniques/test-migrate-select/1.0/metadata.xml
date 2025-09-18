@@ -1,0 +1,51 @@
+<TECHNIQUE name="test-migrate-select">
+  <DESCRIPTION>test</DESCRIPTION>
+  <USEMETHODREPORTING>true</USEMETHODREPORTING>
+  <MULTIINSTANCE>true</MULTIINSTANCE>
+  <POLICYGENERATION>separated-with-parameters</POLICYGENERATION>
+  <AGENT type="cfengine-community">
+    <BUNDLES>
+      <NAME>test</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.cf">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <AGENT type="dsc">
+    <BUNDLES>
+      <NAME>Technique-Test</NAME>
+    </BUNDLES>
+    <FILES>
+      <FILE name="technique.ps1">
+        <INCLUDED>true</INCLUDED>
+      </FILE>
+    </FILES>
+  </AGENT>
+  <SECTIONS>
+    <SECTION name="Technique parameters">
+      <SELECT1>
+        <NAME>8BECA52F-7D5A-4C55-B5AE-FB56B7E50DDF</NAME>
+        <VARIABLENAME>test</VARIABLENAME>
+        <DESCRIPTION>Mode</DESCRIPTION>
+        <ITEM>
+          <LABEL>Enfore</LABEL>
+          <VALUE>enforce</VALUE>
+        </ITEM>
+        <ITEM>
+          <LABEL>Audit</LABEL>
+          <VALUE>audit</VALUE>
+        </ITEM>
+        <CONSTRAINT>
+          <TYPE>textarea</TYPE>
+        </CONSTRAINT>
+      </SELECT1>
+    </SECTION>
+    <SECTION name="Command execution" id="c7b5c43e-3bd2-492f-b926-de6ceb200a94" component="true" multivalued="true">
+      <REPORTKEYS>
+        <VALUE id="c7b5c43e-3bd2-492f-b926-de6ceb200a94">/bin/echo &quot;toto&quot;</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

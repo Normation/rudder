@@ -1,0 +1,108 @@
+/*
+*************************************************************************************
+* Copyright 2024 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
+
+// Modules
+@use 'rudder-variables' as *;
+
+
+.rudder-template > .one-col{
+  flex: 1;
+}
+.template-main{
+  flex-basis : initial !important;
+  flex: auto !important;
+}
+pre.technical-details{
+  white-space: pre-wrap;
+  border: 1px solid #D6DEEF;
+  border-radius: 4px;
+  background-color: #F8F9FC;
+  padding: 4px;
+}
+#filterLogs {
+  margin-top: 10px;
+  color: #738195;
+}
+.btn.showParameters{
+  margin-bottom: 10px;
+  min-width: 195px;
+}
+.dataTables_filter label input{
+  margin-left: 8px;
+}
+#filterLogs button{
+  width: auto;
+  outline:none;
+}
+#filterLogs .form-control.input-xs{
+  display:inline;
+  height: 25px;
+  margin: 0 5px;
+  width: 140px !important;
+}
+#filterLogs .form-control.input-xs:focus {
+  border-color: #c1c1c1;
+  outline: 0;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgba(208, 208, 208, 0.6);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgb(208, 208, 208);
+}
+.rollbackFieldSet {
+  max-width : 520px;
+  text-align : center;
+  flex: 1;
+}
+.evlogviewpad {
+  padding:5px;
+}
+.evlogviewpad li{
+  list-style-type: disc;
+}
+.evloglmargin{
+  margin: 7px 0;
+}
+li.eventLogUpdatePolicy {
+  list-style-position: inside;
+  list-style-type: none;
+}
+table.eventLogUpdatePolicy {
+  width: 50%;
+  margin-top: 0px;
+  margin-left: 0px;
+}
+.diffOldValue {
+  text-decoration:line-through;
+}

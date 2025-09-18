@@ -42,12 +42,13 @@ import com.normation.box.*
 import com.normation.cfclerk.domain.*
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.errors.*
-import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.api.ApiVersion
 import com.normation.rudder.apidata.JsonResponseObjects.*
 import com.normation.rudder.apidata.RestDataSerializer
 import com.normation.rudder.apidata.implicits.*
+import com.normation.rudder.config.ReasonBehavior
+import com.normation.rudder.config.UserPropertyService
 import com.normation.rudder.domain.logger.ApiLoggerPure
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.ncf.*
@@ -56,7 +57,6 @@ import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rest.{TechniqueApi as API, *}
-import com.normation.rudder.rest.RestUtils.ActionType
 import com.normation.rudder.rest.RestUtils.response
 import com.normation.rudder.rest.implicits.*
 import com.normation.rudder.rest.lift.TechniqueApi.QueryFormat
@@ -92,13 +92,13 @@ object TechniqueApi {
 
 class TechniqueApi(
     restExtractorService: RestExtractorService,
-    apiV6:                TechniqueAPIService6,
-    serviceV14:           TechniqueAPIService14,
+    service:              TechniqueAPIService14,
     techniqueWriter:      TechniqueWriter,
     techniqueReader:      EditorTechniqueReader,
     techniqueRepository:  TechniqueRepository,
     techniqueSerializer:  TechniqueSerializer,
     uuidGen:              StringUuidGenerator,
+    userPropertyService:  UserPropertyService,
     resourceFileService:  ResourceFileService,
     configRepoPath:       String
 ) extends LiftApiModuleProvider[API] {
@@ -106,66 +106,40 @@ class TechniqueApi(
   import TechniqueApi.*
   import zio.json.*
   import zio.json.yaml.*
+
+  implicit def reasonBehavior: ReasonBehavior = userPropertyService.reasonsFieldBehavior
+
   def schemas: ApiModuleProvider[API] = API
 
   val dataName = "techniques"
-  def resp(function: Box[JValue], req: Req, errorMessage: String)(action: String)(implicit dataName: String): LiftResponse = {
+  def resp(function: Box[JValue], req: Req, errorMessage: String)(
+      action: String
+  )(implicit dataName: String, prettify: Boolean): LiftResponse = {
     response(restExtractorService, dataName, None)(function, req, errorMessage)
   }
 
-  def actionResp(function: Box[ActionType], req: Req, errorMessage: String, actor: EventActor)(implicit
-      action: String
-  ): LiftResponse = {
-    // implementation copied from RestUtils#actionResponse2
-    // but changed to never fail on reason message extraction
-    implicit val prettify = restExtractorService.extractPrettify(req.params)
-    import net.liftweb.json.JsonDSL.*
-    import net.liftweb.common.EmptyBox
-
-    (
-      for {
-        reason <- restExtractorService.extractReason(req).or(Full(Some("Technique updated via technique editor API")))
-        modId   = ModificationId(uuidGen.newUuid)
-        result <- function.flatMap(_(actor, modId, reason))
-      } yield {
-        result
-      }
-    ) match {
-      case Full(result: JValue) =>
-        RestUtils.toJsonResponse(None, (dataName -> result))
-      case eb: EmptyBox =>
-        val message = (eb ?~! errorMessage).messageChain
-        RestUtils.toJsonError(None, message)
-    }
-
-  }
-
   def getLiftEndpoints(): List[LiftApiModule] = {
-    API.endpoints
-      .map(e => {
-        e match {
-          case API.GetTechniques             => ChooseApi0(ListTechniques, GetTechniques)
-          case API.ListTechniques            => ListTechniquesV14
-          case API.ListTechniquesDirectives  => ChooseApiN(ListTechniquesDirectives, ListTechniquesDirectivesV14)
-          case API.ListTechniqueDirectives   => ChooseApiN(ListTechniqueDirectives, ListTechniqueDirectivesV14)
-          case API.TechniqueRevisions        => TechniqueRevisions
-          case API.UpdateTechnique           => UpdateTechnique
-          case API.CreateTechnique           => CreateTechnique
-          case API.GetResources              => new GetResources[API.GetResources.type](newTechnique = false, schema = API.GetResources)
-          case API.GetNewResources           =>
-            new GetResources[API.GetNewResources.type](newTechnique = true, schema = API.GetNewResources)
-          case API.DeleteTechnique           => DeleteTechnique
-          case API.GetMethods                => GetMethods
-          case API.UpdateMethods             => UpdateMethods
-          case API.UpdateTechniques          => UpdateTechniques
-          case API.GetAllTechniqueCategories => GetAllTechniqueCategories
-          case API.GetTechniqueAllVersion    => GetTechniqueDetailsAllVersion
-          case API.GetTechnique              => GetTechnique
-          case API.CheckTechnique            => CheckTechnique
-          case API.CopyResourcesWhenCloning  => CopyResourcesWhenCloning
-        }
-      })
-      .toList
+    API.endpoints.map {
+      case API.GetTechniques             => GetTechniques
+      case API.ListTechniques            => ListTechniques
+      case API.ListTechniquesDirectives  => ListTechniquesDirectives
+      case API.ListTechniqueDirectives   => ListTechniqueDirectives
+      case API.TechniqueRevisions        => TechniqueRevisions
+      case API.UpdateTechnique           => UpdateTechnique
+      case API.CreateTechnique           => CreateTechnique
+      case API.GetResources              => new GetResources[API.GetResources.type](newTechnique = false, schema = API.GetResources)
+      case API.GetNewResources           =>
+        new GetResources[API.GetNewResources.type](newTechnique = true, schema = API.GetNewResources)
+      case API.DeleteTechnique           => DeleteTechnique
+      case API.GetMethods                => GetMethods
+      case API.UpdateMethods             => UpdateMethods
+      case API.UpdateTechniques          => UpdateTechniques
+      case API.GetAllTechniqueCategories => GetAllTechniqueCategories
+      case API.GetTechniqueAllVersion    => GetTechniqueDetailsAllVersion
+      case API.GetTechnique              => GetTechnique
+      case API.CheckTechnique            => CheckTechnique
+      case API.CopyResourcesWhenCloning  => CopyResourcesWhenCloning
+    }
   }
 
   class GetResources[T <: TwoParam](newTechnique: Boolean, val schema: T) extends LiftApiModule {
@@ -183,6 +157,8 @@ class TechniqueApi(
 
       import net.liftweb.json.JsonDSL.*
       import zio.syntax.*
+
+      implicit val prettify: Boolean = params.prettify
 
       def serializeResourceWithState(resource: ResourceFile) = {
         (("path" -> resource.path) ~ ("state" -> resource.state.value))
@@ -251,6 +227,7 @@ class TechniqueApi(
         params:        DefaultParams,
         authzToken:    AuthzToken
     ): LiftResponse = {
+      implicit val prettify: Boolean = params.prettify
 
       val modId = ModificationId(uuidGen.newUuid)
 
@@ -294,7 +271,7 @@ class TechniqueApi(
             }
           methodMap        <- techniqueReader.getMethodsMetadata
           updatedTechnique <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor)
-          json             <- serviceV14.getTechniqueJson(updatedTechnique)
+          json             <- service.getTechniqueJson(updatedTechnique)
         } yield {
           json
         }
@@ -308,7 +285,7 @@ class TechniqueApi(
     implicit val dataName: String                 = "techniques"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.getTechniquesWithData().toLiftResponseList(params, schema)
+      service.getTechniquesWithData().toLiftResponseList(params, schema)
     }
 
   }
@@ -320,6 +297,7 @@ class TechniqueApi(
     implicit val dataName: String = "methods"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val prettify: Boolean = params.prettify
       val response = for {
         methods <- techniqueReader.getMethodsMetadata
         sorted   = methods.toList.sortBy(_._1.value)
@@ -338,6 +316,7 @@ class TechniqueApi(
     implicit val dataName: String = "methods"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val prettify: Boolean = params.prettify
       val response = for {
         _       <- techniqueReader.updateMethodsMetadataFile
         methods <- techniqueReader.getMethodsMetadata
@@ -385,6 +364,7 @@ class TechniqueApi(
     implicit val dataName: String = "techniqueCategories"
 
     def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      implicit val prettify: Boolean = params.prettify
       val response = {
         val categories = techniqueRepository.getAllCategories
         def serializeTechniqueCategory(t: TechniqueCategory): JObject = {
@@ -483,29 +463,12 @@ class TechniqueApi(
           // If no internalId (used to manage temporary folder for resources), ignore resources, this can happen when importing techniques through the api
           resoucesMoved <- technique.internalId.map(internalId => moveRessources(technique, internalId)).getOrElse("Ok".succeed)
           updatedTech   <- techniqueWriter.writeTechniqueAndUpdateLib(technique, modId, authzToken.qc.actor)
-          json          <- serviceV14.getTechniqueJson(updatedTech)
+          json          <- service.getTechniqueJson(updatedTech)
         } yield {
           json
         }
       }
       response.toLiftResponseOne(params, schema, _ => None)
-    }
-  }
-
-  object ListTechniques extends LiftApiModule0 {
-    val schema: API.ListTechniques.type = API.ListTechniques
-    val restExtractor = restExtractorService
-
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      response(
-        restExtractor,
-        "techniques",
-        None
-      )(
-        apiV6.listTechniques,
-        req,
-        s"Could not find list of techniques"
-      )("listTechniques")
     }
   }
 
@@ -555,9 +518,16 @@ class TechniqueApi(
     }
   }
 
+  object ListTechniques extends LiftApiModule0 {
+    val schema: API.ListTechniques.type = API.ListTechniques
+
+    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
+      service.listTechniques.toLiftResponseList(params, schema)
+    }
+  }
+
   object ListTechniquesDirectives extends LiftApiModuleString {
     val schema: API.ListTechniquesDirectives.type = API.ListTechniquesDirectives
-    val restExtractor = restExtractorService
 
     def process(
         version:    ApiVersion,
@@ -568,77 +538,11 @@ class TechniqueApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       val techniqueName = TechniqueName(name)
-      response(
-        restExtractor,
-        "directives",
-        Some(name)
-      )(
-        apiV6.listDirectives(techniqueName, None),
-        req,
-        s"Could not find list of directives based on '${techniqueName.value}' Technique"
-      )("listTechniquesDirectives")
+      service.listDirectives(techniqueName, None).toLiftResponseList(params, schema)
     }
   }
 
   object ListTechniqueDirectives extends LiftApiModuleString2 {
-    val schema: API.ListTechniqueDirectives.type = API.ListTechniqueDirectives
-    val restExtractor = restExtractorService
-
-    def process(
-        version:    ApiVersion,
-        path:       ApiPath,
-        nv:         (String, String),
-        req:        Req,
-        params:     DefaultParams,
-        authzToken: AuthzToken
-    ): LiftResponse = {
-
-      val (techniqueName, version) = (TechniqueName(nv._1), nv._2)
-      val directives               = TechniqueVersion.parse(version) match {
-        case Right(techniqueVersion) =>
-          apiV6.listDirectives(techniqueName, Some(techniqueVersion :: Nil))
-        case Left(err)               =>
-          Failure(
-            s"Could not find list of directives based on '${techniqueName.value}' Technique, because we could not parse '${version}' as a valid technique version"
-          )
-      }
-      response(
-        restExtractor,
-        "directives",
-        Some(s"${techniqueName.value}/${version}")
-      )(
-        directives,
-        req,
-        s"Could not find list of directives based on version '${version}' of '${techniqueName.value}' Technique"
-      )("listTechniqueDirectives")
-    }
-  }
-
-  object ListTechniquesV14 extends LiftApiModule0 {
-    val schema: API.ListTechniques.type = API.ListTechniques
-
-    def process0(version: ApiVersion, path: ApiPath, req: Req, params: DefaultParams, authzToken: AuthzToken): LiftResponse = {
-      serviceV14.listTechniques.toLiftResponseList(params, schema)
-    }
-  }
-
-  object ListTechniquesDirectivesV14 extends LiftApiModuleString {
-    val schema: API.ListTechniquesDirectives.type = API.ListTechniquesDirectives
-
-    def process(
-        version:    ApiVersion,
-        path:       ApiPath,
-        name:       String,
-        req:        Req,
-        params:     DefaultParams,
-        authzToken: AuthzToken
-    ): LiftResponse = {
-      val techniqueName = TechniqueName(name)
-      serviceV14.listDirectives(techniqueName, None).toLiftResponseList(params, schema)
-    }
-  }
-
-  object ListTechniqueDirectivesV14 extends LiftApiModuleString2 {
     val schema: API.ListTechniqueDirectives.type = API.ListTechniqueDirectives
 
     def process(
@@ -653,7 +557,7 @@ class TechniqueApi(
 
       val directives = TechniqueVersion.parse(version) match {
         case Right(techniqueVersion) =>
-          serviceV14.listDirectives(techniqueName, Some(techniqueVersion :: Nil))
+          service.listDirectives(techniqueName, Some(techniqueVersion :: Nil))
         case Left(error)             =>
           Inconsistency(
             s"Could not find list of directives based on '${techniqueName.value}' technique, because we could not parse '${version}' as a valid technique version"
@@ -675,7 +579,7 @@ class TechniqueApi(
         authzToken: AuthzToken
     ): LiftResponse = {
       val techniqueName = TechniqueName(name)
-      serviceV14.getTechniqueWithData(techniqueName, None, QueryFormat.Json).toLiftResponseList(params, schema)
+      service.getTechniqueWithData(techniqueName, None, QueryFormat.Json).toLiftResponseList(params, schema)
     }
   }
 
@@ -696,7 +600,7 @@ class TechniqueApi(
         req.params.get("format").flatMap(_.map(QueryFormat.parse).headOption).getOrElse(QueryFormat.Json)
       val json = TechniqueVersion.parse(version) match {
         case Right(techniqueVersion) =>
-          serviceV14.getTechniqueWithData(techniqueName, Some(techniqueVersion), format)
+          service.getTechniqueWithData(techniqueName, Some(techniqueVersion), format)
         case Left(error)             =>
           Inconsistency(
             s"Could not find technique '${techniqueName.value}' details, because we could not parse '${version}' as a valid technique version"
@@ -721,7 +625,7 @@ class TechniqueApi(
 
       val revisions = ParseVersion.parse(version) match {
         case Right(v)    =>
-          serviceV14.techniqueRevisions(techniqueName, v)
+          service.techniqueRevisions(techniqueName, v)
         case Left(error) =>
           Inconsistency(
             s"Could not find list of directives based on '${techniqueName.value}' technique, because we could not parse '${version}' as a valid technique version: ${error}"
@@ -730,82 +634,6 @@ class TechniqueApi(
       revisions.toLiftResponseList(params, schema)
     }
   }
-}
-
-class TechniqueAPIService6(
-    readDirective:      RoDirectiveRepository,
-    restDataSerializer: RestDataSerializer
-) extends Loggable {
-
-  def serialize(technique: Technique, directive: Directive): JValue =
-    restDataSerializer.serializeDirective(technique, directive, None)
-
-  def listTechniques: Box[JValue] = {
-    (for {
-      lib             <- readDirective.getFullDirectiveLibrary()
-      activeTechniques = lib.allActiveTechniques.values.toSeq
-      serialized       = activeTechniques.map(restDataSerializer.serializeTechnique)
-    } yield {
-      serialized
-    }).toBox.map(v => JArray(v.toList))
-  }
-
-  def listDirectives(techniqueName: TechniqueName, wantedVersions: Option[List[TechniqueVersion]]): Box[JValue] = {
-    def serializeDirectives(
-        directives:     Seq[Directive],
-        techniques:     SortedMap[TechniqueVersion, Technique],
-        wantedVersions: Option[List[TechniqueVersion]]
-    ) = {
-      val filter = (d: Directive) => {
-        wantedVersions match {
-          case None           => true
-          case Some(versions) => versions.contains(d.techniqueVersion)
-        }
-      }
-
-      ZIO.foreach(directives.filter(filter)) { directive =>
-        techniques.get(directive.techniqueVersion) match {
-          case None            =>
-            Inconsistency(
-              s"Version '${directive.techniqueVersion.serialize}' of Technique '${techniqueName.value}' does not exist, but is used by Directive '${directive.id.uid.value}'"
-            ).fail
-          case Some(technique) =>
-            serialize(technique, directive).succeed
-        }
-      }
-    }
-
-    def checkWantedVersions(
-        techniques:     SortedMap[TechniqueVersion, Technique],
-        wantedVersions: Option[List[TechniqueVersion]]
-    ) = {
-      wantedVersions match {
-        case Some(versions) =>
-          ZIO.foreach(versions) { version =>
-            ZIO.when(!techniques.keySet.contains(version)) {
-              Inconsistency(s"Version '${version.serialize}' of Technique '${techniqueName.value}' does not exist").fail
-            }
-          }
-        case None           => ZIO.unit
-      }
-    }
-
-    (for {
-      lib                  <- readDirective.getFullDirectiveLibrary()
-      activeTech           <- lib.allActiveTechniques.values
-                                .find(_.techniqueName == techniqueName)
-                                .notOptional(
-                                  s"Technique '${techniqueName.value}' does not exist"
-                                )
-
-      // Check if version we want exists in technique library, We don't need the result
-      _                    <- checkWantedVersions(activeTech.techniques, wantedVersions)
-      serializedDirectives <- serializeDirectives(activeTech.directives, activeTech.techniques, wantedVersions)
-    } yield {
-      serializedDirectives.toList
-    }).toBox.map(v => JArray(v.toList))
-  }
-
 }
 
 class TechniqueAPIService14(

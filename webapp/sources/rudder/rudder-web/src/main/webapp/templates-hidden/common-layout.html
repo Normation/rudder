@@ -15,9 +15,6 @@
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/fontawesome-5-15-1/css/v4-shims.min.css"/>
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/ionicons-2.0.1/css/ionicons.min.css">
 
-
-    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder.css" media="screen" />
-
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-bootstrap.css" media="screen" />
 
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-compliance.css" media="screen" />
@@ -30,6 +27,7 @@
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-menu.css"/>
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-template.css"/>
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-datatable.css" media="screen" />
+    <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-jstree.css" media="screen" />
     <link type="text/css" rel="stylesheet" data-lift="with-cached-resource" href="/style/rudder/rudder-tags.css" media="screen" />
 
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/utils/WeakMap.js"></script>
@@ -42,6 +40,8 @@
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/jquery.dataTables.min.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/dataTables.rowGroup.min.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/dataTables.fixedHeader.min.js"></script>
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/dataTables.buttons.min.js"></script>
+    <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/buttons.html5.min.js"></script>
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/natural.js"></script>
 
     <script type="text/javascript" data-lift="with-cached-resource" src="/javascript/libs/jquery-ui.min.js"></script>
@@ -108,8 +108,8 @@
     <div class="wrapper">
       <header class="main-header">
         <a href="/secure/" class="logo fixed">
-          <span class="logo-mini"><img alt="Rudder" data-lift="with-cached-resource" src="/images/logo-rudder-sm.svg"></span>
-          <span class="logo-lg"><img alt="Rudder" data-lift="with-cached-resource" src="/images/logo-rudder-white.svg"></span>
+          <span class="logo-mini"><img alt="Rudder" data-lift="with-cached-resource" src="/images/logo/rudder-logo-notext.svg"></span>
+          <span class="logo-lg"><img alt="Rudder" data-lift="with-cached-resource" src="/images/logo/rudder-logo-rect-white.svg"></span>
         </a>
 
         <nav class="navbar navbar-expand">
@@ -165,8 +165,7 @@
           <!-- Navigation Menu -->
           <ul class="sidebar-menu">
             <span class="lift:BootstrapMenu?linkToSelf=true;"></span>
-            <li class="plugin-info">
-            </li>
+            <li class="plugin-info"></li>
             <li class="treeview footer">
               <span>Rudder ${version}</span>
               <a href="https://www.rudder.io/" target="_blank">© Rudder ${current-year}</a>
@@ -197,7 +196,7 @@
                     We highly value your privacy, as we do our own, so we will never share individual submissions (only globally compiled statistics).</p>
                     <p>If you want to check the information that is sent, just run "/opt/rudder/bin/rudder-metrics-reporting -v" on your Rudder server. This won't send any information without your consent.</p>
                     <p>This information is very valuable to the development team, as it helps us focus on the features that matter most and better understand what our users care about.<br/>
-                    Please consider participating in the survey! You can choose to opt-out again anytime, in the <a href="/secure/administration/policyServerManagement#sendMetrics">global settings</a>.</p>
+                    Please consider participating in the survey! You can choose to opt-out again anytime, in the <a href="/secure/administration/settings#sendMetrics">global settings</a>.</p>
                 </div>
                 <div class="modal-footer" style="text-align:center">
                     <button type="button" id="noSendMetrics" class="btn btn-default pull-left">No</button>

@@ -43,15 +43,16 @@ import com.normation.appconfig.ConfigRepository
 import com.normation.appconfig.GenericConfigService
 import com.normation.appconfig.ModifyGlobalPropertyInfo
 import com.normation.cfclerk.domain.TechniqueVersionHelper
-import com.normation.errors
-import com.normation.errors.IOResult
-import com.normation.errors.IOStream
+import com.normation.errors.*
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.InventoryStatus
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.Software
+import com.normation.rudder.api.*
+import com.normation.rudder.api.ApiAccountKind.PublicApi
+import com.normation.rudder.api.HttpAction
 import com.normation.rudder.batch.AsyncWorkflowInfo
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.appconfig.RudderWebProperty
@@ -62,48 +63,11 @@ import com.normation.rudder.domain.nodes.NodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.NodeGroupUid
-import com.normation.rudder.domain.policies.AddRuleDiff
-import com.normation.rudder.domain.policies.DeleteRuleDiff
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.FullGroupTarget
-import com.normation.rudder.domain.policies.FullRuleTargetInfo
-import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.GroupTarget
-import com.normation.rudder.domain.policies.ModifyRuleDiff
-import com.normation.rudder.domain.policies.PolicyMode
-import com.normation.rudder.domain.policies.PolicyModeOverrides
-import com.normation.rudder.domain.policies.PolicyTypeName
-import com.normation.rudder.domain.policies.PolicyTypes
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.RuleUid
-import com.normation.rudder.domain.policies.TargetExclusion
-import com.normation.rudder.domain.policies.TargetIntersection
-import com.normation.rudder.domain.reports.ComplianceLevel
-import com.normation.rudder.domain.reports.ComponentValueStatusReport
-import com.normation.rudder.domain.reports.DirectiveStatusReport
-import com.normation.rudder.domain.reports.MessageStatusReport
-import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.domain.reports.NodeExpectedReports
-import com.normation.rudder.domain.reports.NodeModeConfig
-import com.normation.rudder.domain.reports.NodeStatusReport
+import com.normation.rudder.domain.policies.*
+import com.normation.rudder.domain.reports.*
 import com.normation.rudder.domain.reports.NodeStatusReport.*
-import com.normation.rudder.domain.reports.OverriddenPolicy
-import com.normation.rudder.domain.reports.ReportType
-import com.normation.rudder.domain.reports.RuleNodeStatusReport
-import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.domain.reports.ValueStatusReport
-import com.normation.rudder.facts.nodes.ChangeContext
-import com.normation.rudder.facts.nodes.CoreNodeFact
-import com.normation.rudder.facts.nodes.MinimalNodeFactInterface
-import com.normation.rudder.facts.nodes.NodeFact
-import com.normation.rudder.facts.nodes.NodeFactChangeEventCallback
-import com.normation.rudder.facts.nodes.NodeFactChangeEventCC
-import com.normation.rudder.facts.nodes.NodeFactRepository
-import com.normation.rudder.facts.nodes.QueryContext
-import com.normation.rudder.facts.nodes.SecurityTag
-import com.normation.rudder.facts.nodes.SelectFacts
-import com.normation.rudder.facts.nodes.SelectNodeStatus
+import com.normation.rudder.facts.nodes.*
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -112,9 +76,13 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.WoRuleRepository
-import com.normation.rudder.rest.AuthorizationApiMapping
+import com.normation.rudder.rest.ExtensibleAuthorizationApiMapping
 import com.normation.rudder.rest.ProviderRoleExtension
 import com.normation.rudder.rest.RoleApiMapping
+import com.normation.rudder.rest.data.ApiAccountMapping
+import com.normation.rudder.rest.data.ClearTextSecret
+import com.normation.rudder.rest.lift.ApiAccountApiService
+import com.normation.rudder.rest.lift.ApiAccountApiServiceV1
 import com.normation.rudder.rest.lift.ComplianceAPIService
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.policies.NodeConfigData
@@ -140,8 +108,11 @@ import com.normation.rudder.users.UserManagementService
 import com.normation.rudder.users.UserRepository
 import com.normation.rudder.users.UserSession
 import com.normation.rudder.users.UserStatus
+import com.normation.utils.DateFormaterService
+import com.normation.utils.StringUuidGenerator
 import com.normation.zio.UnsafeRun
 import com.typesafe.config.ConfigFactory
+import io.scalaland.chimney.syntax.*
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import org.apache.commons.io.IOUtils
@@ -268,7 +239,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
     def getAllNonSystemCategories(): IOResult[Seq[NodeGroupCategory]] = ???
   }
 
-  private object nodeFactRepo extends NodeFactRepository {
+  object nodeFactRepo extends NodeFactRepository {
     override def getAll()(implicit qc: QueryContext, status: SelectNodeStatus): IOResult[MapView[NodeId, CoreNodeFact]] = {
       val _                                           = (qc, status) // ignore "unused" warning
       def build(id: String, mode: Option[PolicyMode]) = {
@@ -287,6 +258,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       ).map(n => (n.id, n)).toMap.view.succeed
     }
 
+    override def getNumberOfManagedNodes(): IOResult[RuntimeFlags] = 8.succeed
     def registerChangeCallbackAction(callback: NodeFactChangeEventCallback): IOResult[Unit] = ???
     def getStatus(id:                          NodeId)(implicit qc:   QueryContext): IOResult[InventoryStatus] = ???
     def get(nodeId:                            NodeId)(implicit qc:   QueryContext, status:    SelectNodeStatus): IOResult[Option[CoreNodeFact]]  = ???
@@ -294,7 +266,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
         nodeId: NodeId
     )(implicit qc: QueryContext, status: SelectNodeStatus, attrs: SelectFacts): IOResult[Option[NodeFact]] = ???
     def getNodesBySoftwareName(softName:       String): IOResult[List[(NodeId, Software)]] = ???
-    def slowGetAll()(implicit qc:              QueryContext, status:  SelectNodeStatus, attrs: SelectFacts):      errors.IOStream[NodeFact]       = ???
+    def slowGetAll()(implicit qc:              QueryContext, status:  SelectNodeStatus, attrs: SelectFacts):      IOStream[NodeFact]              = ???
     def save(nodeFact:                         NodeFact)(implicit cc: ChangeContext, attrs:    SelectFacts):      IOResult[NodeFactChangeEventCC] = ???
     def setSecurityTag(nodeId: NodeId, tag: Option[SecurityTag])(implicit cc: ChangeContext): IOResult[NodeFactChangeEventCC] =
       ???
@@ -389,7 +361,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
     )
   }
 
-  private object simpleExample {
+  object simpleExample {
 
     /*
     Nodes N1 and N2,
@@ -404,7 +376,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       nodeId(1) -> simpleNodeStatusReport(
         nodeId(1),
         Set(
-          simpleRuleNodeStatusReport(nodeId(1), ruleId(1), directives.fileTemplateDirecive1.id, ReportType.EnforceSuccess),
+          simpleRuleNodeStatusReport(nodeId(1), ruleId(1), directives.techniqueWithBlocksDirective.id, ReportType.EnforceSuccess),
           simpleRuleNodeStatusReport(nodeId(1), ruleId(2), directives.fileTemplateVariables2.id, ReportType.EnforceRepaired),
           simpleRuleNodeStatusReport(nodeId(1), ruleId(3), directives.rpmDirective.id, ReportType.EnforceError)
         )
@@ -413,7 +385,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       nodeId(2) -> simpleNodeStatusReport(
         nodeId(2),
         Set(
-          simpleRuleNodeStatusReport(nodeId(2), ruleId(1), directives.fileTemplateDirecive1.id, ReportType.EnforceSuccess),
+          simpleRuleNodeStatusReport(nodeId(2), ruleId(1), directives.techniqueWithBlocksDirective.id, ReportType.EnforceSuccess),
           simpleRuleNodeStatusReport(nodeId(2), ruleId(3), directives.rpmDirective.id, ReportType.EnforceError)
         )
       )
@@ -457,7 +429,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
       "R1",
       RuleCategoryId("rulecat1"),
       Set(GroupTarget(g1.id)),
-      Set(directives.fileTemplateDirecive1.id)
+      Set(directives.techniqueWithBlocksDirective.id)
     )
 
     val r2: Rule = Rule(
@@ -466,16 +438,16 @@ class MockCompliance(mockDirectives: MockDirectives) {
       RuleCategoryId("rulecat1"),
       Set(
         TargetExclusion(TargetIntersection(Set(GroupTarget(g1.id))), TargetIntersection(Set(GroupTarget(g2.id))))
-      ), // include G1 but not G2
-      Set(directives.fileTemplateDirecive1.id)
+      ), // include G1 but not G2, ie only node1
+      Set(directives.fileTemplateVariables2.id)
     )
 
     val r3: Rule = Rule(
       ruleId(3),
       "R3",
       RuleCategoryId("rulecat1"),
-      Set(GroupTarget(g2.id), GroupTarget(g3.id)),
-      Set(directives.fileTemplateDirecive1.id)
+      Set(GroupTarget(g1.id), GroupTarget(g3.id)),
+      Set(directives.rpmDirective.id)
     )
 
     val simpleCustomRules: List[Rule] = List(r1, r2, r3)
@@ -487,7 +459,7 @@ class MockCompliance(mockDirectives: MockDirectives) {
     private def nodeGroupId(id: Int): NodeGroupId = NodeGroupId(NodeGroupUid("g" + id))
   }
 
-  private object complexExample {
+  object complexExample {
 
     /*
     Nodes N1, N2, N3, N4, N5
@@ -904,7 +876,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
   val userService: FileUserDetailListProvider = {
     val usersFile = UserFile(usersConfigFile.pathAsString, usersInputStream)
 
-    val roleApiMapping = new RoleApiMapping(AuthorizationApiMapping.Core)
+    val roleApiMapping = new RoleApiMapping(new ExtensibleAuthorizationApiMapping(Nil))
 
     val res = new FileUserDetailListProvider(roleApiMapping, usersFile, passwordEncoderDispatcher)
     res.reload()
@@ -942,7 +914,7 @@ class MockUserManagement(userInfos: List[UserInfo], userSessions: List[UserSessi
         existing:         CoreNodeFact,
         cc:               ChangeContext,
         availableTenants: Set[TenantId]
-    ): Either[errors.RudderError, CoreNodeFact] = ???
+    ): Either[RudderError, CoreNodeFact] = ???
   }
 }
 
@@ -1023,4 +995,125 @@ object MockUserManagement {
     .map(IOUtils.toString(_, StandardCharsets.UTF_8))
     .map(File(tmpDir, resourceFile).writeText(_))
     .getOrElse(throw new Exception(s"Cannot find ${resourceFile} in test resources"))
+}
+
+class MockApiAccountService(userService: com.normation.rudder.users.UserService) {
+  // Our API accounts
+  val apiAccounts: Map[ApiAccountId, ApiAccount] = {
+    val accountCreationDate: DateTime = DateTime.parse("2025-02-12T10:55:00Z")
+    val accountExpireDate:   DateTime = DateTime.parse("2025-08-12T00:00:00Z")
+    List(
+      ApiAccount(
+        ApiAccountId("system-token"),
+        ApiAccountKind.System, // must be filtered out
+        ApiAccountName("system"),
+        Some(ApiTokenHash.fromHashValue("v2:system-hashed-token")),
+        "system",
+        isEnabled = true,
+        creationDate = accountCreationDate,
+        tokenGenerationDate = accountCreationDate,
+        NodeSecurityContext.All
+      ),
+      // a standard admin account with v1 token: as of 8.3, it is disabled in entry2ApiAccount whatever ldap content says
+      ApiAccount(
+        ApiAccountId("old1"),
+        ApiAccountKind.PublicApi(ApiAuthorization.RW, None),
+        ApiAccountName("old account"),
+        Some(ApiTokenHash.fromHashValue("some-clear-token")),
+        "old account",
+        isEnabled = false,     // done when reading account
+        creationDate = accountCreationDate,
+        tokenGenerationDate = accountCreationDate,
+        NodeSecurityContext.All
+      ),
+      // a standard admin account with rights on everything/all tenants
+      ApiAccount(
+        ApiAccountId("user1"),
+        ApiAccountKind.PublicApi(ApiAuthorization.RW, None),
+        ApiAccountName("user one"),
+        Some(ApiTokenHash.fromHashValue("v2:some-hashed-token")),
+        "number one user",
+        isEnabled = true,
+        creationDate = accountCreationDate,
+        tokenGenerationDate = accountCreationDate,
+        NodeSecurityContext.All
+      ),
+      // limited account
+      ApiAccount(
+        ApiAccountId("user2"),
+        ApiAccountKind.PublicApi(
+          ApiAuthorization.ACL(ApiAclElement(AclPath.parse("/some/endpoint/*").toOption.get, Set(HttpAction.GET)) :: Nil),
+          Some(accountExpireDate)
+        ),
+        ApiAccountName("user2"),
+        Some(ApiTokenHash.fromHashValue("v2:some-hashed-token")),
+        "number one user",
+        isEnabled = true,
+        creationDate = accountCreationDate,
+        tokenGenerationDate = accountCreationDate,
+        NodeSecurityContext.ByTenants(Chunk(TenantId("zone1")))
+      )
+    ).map(a => (a.id, a)).toMap
+  }
+
+  val repository = new RoApiAccountRepository with WoApiAccountRepository {
+    private val accounts = Ref.Synchronized
+      .make(apiAccounts)
+      .runNow
+
+    override def getAllStandardAccounts: IOResult[Seq[ApiAccount]] = {
+      accounts.get.map(_.values.toList.filter(_.kind.isInstanceOf[PublicApi]))
+    }
+
+    override def getByToken(hashedToken: ApiTokenHash): IOResult[Option[ApiAccount]] = {
+      accounts.get.map(_.collectFirst { case (_, a) if a.token.contains(hashedToken) => a })
+    }
+
+    override def getById(id: ApiAccountId): IOResult[Option[ApiAccount]] = {
+      accounts.get.map(_.get(id))
+    }
+
+    override def getSystemAccount: ApiAccount = {
+      // don't use the account map so that if it get deleted by tests, we track that
+      getById(ApiAccountId("system-token")).notOptional(s"Missing system account").runNow
+    }
+
+    override def save(principal: ApiAccount, modId: ModificationId, actor: EventActor): IOResult[ApiAccount] = {
+      accounts.update(_ + ((principal.id, principal))).map(_ => principal)
+    }
+
+    override def delete(id: ApiAccountId, modId: ModificationId, actor: EventActor): IOResult[ApiAccountId] = {
+      accounts.update(_.removed(id)).map(_ => id)
+    }
+  }
+
+  val service: ApiAccountApiService = {
+
+    // mapping from/to rest data
+    val mapper = {
+      val knownIds     = Ref.make(List("144ce2af-57d6-4e92-bdc1-1fdf2d88c2b1", "e16114be-94ee-497f-8d17-7b258c8e5624")).runNow
+      val knownTokens  = Ref.make(List("t1-ca5a50899d25cd3ff148350843a9d435", "t2-29d5c3cdca39bd7ba81e7e0f88084689")).runNow
+      val creationDate = DateFormaterService.parseDate("2025-02-10T16:37:19Z").toIO
+      // we have two known IDs, then just random stuff
+
+      val generateId     = knownIds.modify {
+        case Nil    => (ApiAccountId(scala.util.Random.nextString(5)), Nil)
+        case h :: t => (ApiAccountId(h), t)
+      }
+      // same than ids for tokens
+      val generateSecret = knownTokens.modify {
+        case Nil    => (ClearTextSecret(scala.util.Random.nextString(10)), Nil)
+        case h :: t => (ClearTextSecret(h), t)
+      }
+
+      def generateToken(secret: ClearTextSecret): IOResult[ApiTokenHash] =
+        ApiTokenHash.fromSecret(secret.transformInto[ApiTokenSecret]).succeed
+
+      new ApiAccountMapping(creationDate, generateId, generateSecret, generateToken)
+    }
+
+    val uuidGen = new StringUuidGenerator { override def newUuid: String = "not used" }
+    new ApiAccountApiServiceV1(repository, repository, mapper, uuidGen, userService)
+
+  }
 }

@@ -1,0 +1,31 @@
+# Databases bodies
+
+body database_server local_mysql(username, password)
+# @brief Defines a MySQL server running on localhost
+# @param username The username for the server connection
+# @param password The password for the server connection
+#
+# **See also:** `db_server_owner`, `db_server_password`
+{
+      db_server_owner => "$(username)";
+      db_server_password => "$(password)";
+      db_server_host => "localhost";
+      db_server_type => "mysql";
+      db_server_connection_db => "mysql";
+}
+
+##
+
+body database_server local_postgresql(username, password)
+# @brief Defines a PostgreSQL server running on localhost
+# @param username The username for the server connection
+# @param password The password for the server connection
+#
+# **See also:** `db_server_owner`, `db_server_password`
+{
+      db_server_owner => "$(username)";
+      db_server_password => "$(password)";
+      db_server_host => "localhost";
+      db_server_type => "postgres";
+      db_server_connection_db => "postgres";
+}

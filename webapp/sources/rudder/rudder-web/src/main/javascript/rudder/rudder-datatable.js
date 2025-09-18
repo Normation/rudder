@@ -41,7 +41,6 @@ var recentChanges = {};
 var recentChangesCount = {};
 var inventories = {};
 var recentGraphs = {};
-var nodeIds = undefined;
 
 
 /* Create an array with the values of all the checkboxes in a column */
@@ -56,6 +55,27 @@ $.fn.dataTable.ext.order['dom-checkbox'] = function  ( settings, col )
 const equalsCheck = (a, b) =>
     a.length === b.length &&
     a.every((v, i) => v === b[i]);
+
+// Shared config for DataTables Button CSV
+const csvButtonConfig = (filename) => ({
+  extend: 'csv',
+  className: 'btn btn-primary btn-export',
+  filename: filename,
+  text: 'Export',
+  exportOptions: {
+    customizeData: function (data) {
+      // export compliance percent
+      const complianceColumnIdx = data.header.findIndex(s => s.toLowerCase() === "compliance")
+      if (complianceColumnIdx >= 0) {
+        data.body.forEach((row, idx) => {
+          data.body[idx][complianceColumnIdx] = computeCompliancePercentFromString(row[complianceColumnIdx]).toString() + "%"
+        })
+      }
+      return data
+    }
+  }
+})
+
 
 /*
  * This function is used to resort a table after its sorting data were changed ( like sorting function below)
@@ -276,7 +296,7 @@ function recentChangesText(id) {
 
 
   // Elem Content
-  graphElem.text(count).addClass("center")
+  graphElem.text(count).addClass("text-center")
   initBsTooltips();
 }
 
@@ -593,7 +613,7 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
         editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement/rule/'+oData.id);
         editLink.click(function(e) {e.stopPropagation();});
         editLink.append(editIcon);
-        editLink.addClass("reportIcon");
+        editLink.addClass("ps-1");
         $(nTd).append(editLink);
         $(nTd).prepend(createBadgeAgentPolicyMode('rule', oData.policyMode, oData.explanation));
       }
@@ -707,7 +727,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
             editIcon.addClass("fa fa-pencil");
             editLink.click(function(e) {e.stopPropagation();});
             editLink.append(editIcon);
-            editLink.addClass("reportIcon");
+            editLink.addClass("ps-1");
             var policyMode = oData.policyMode ? oData.policyMode : "";
             $(nTd).prepend(createBadgeAgentPolicyMode('directive', policyMode, oData.explanation));
             $(nTd).append(editLink);
@@ -740,7 +760,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
         editIcon.addClass("fa fa-pencil");
         editLink.click(function(e) {e.stopPropagation();});
         editLink.append(editIcon);
-        editLink.addClass("reportIcon");
+        editLink.addClass("ps-1");
         $(nTd).append(editLink);
         $(nTd).prepend(createBadgeAgentPolicyMode('rule', oData.policyMode, oData.explanation));
       }
@@ -805,7 +825,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
           editIcon.addClass("fa fa-pencil");
           editLink.click(function(e) {e.stopPropagation();});
           editLink.append(editIcon);
-          editLink.addClass("reportIcon");
+          editLink.addClass("ps-1");
           $(nTd).append(editLink);
           var policyMode = oData.policyMode ? oData.policyMode : policyMode ;
           $(nTd).prepend(createBadgeAgentPolicyMode('directive', policyMode, oData.explanation));
@@ -877,7 +897,7 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
         editIcon.addClass("fa fa-search node-details");
         editLink.click(function(e) {e.stopPropagation();});
         editLink.append(editIcon);
-        editLink.addClass("reportIcon");
+        editLink.addClass("ps-1");
         $(nTd).append(editLink);
         $(nTd).prepend(createBadgeAgentPolicyMode('node', oData.policyMode, oData.explanation));
       }
@@ -1160,24 +1180,25 @@ function propertyFunction(value, inherited) { return function (nTd, sData, oData
 function callbackElement(oData, displayCompliance) {
   var elem = $("<a></a>");
   if("callback" in oData) {
-      elem.click(function(e) {
-        oData.callback(displayCompliance);
-        e.stopPropagation();
-      });
-      elem.attr("href","javascript://");
+    elem.click(function(e) {
+      oData.callback(displayCompliance);
+      e.stopPropagation();
+    });
   } else {
-      elem.attr("href",contextPath+'/secure/nodeManager/node/'+oData.id+'?displayCompliance='+displayCompliance);
+    let complianceTab = displayCompliance ? "#node_reports" : "";
+    elem.attr("href", contextPath + '/secure/nodeManager/node/' + oData.id + complianceTab);
   }
   return elem;
 }
 
-function reloadTable(gridId, scores) {
+function reloadTable(gridId, nodeIds, scores) {
   var table = $('#'+gridId).DataTable();
   table.destroy();
-  createNodeTable(gridId, function(){reloadTable(gridId, scores)}, scores)
+  createNodeTable(gridId, nodeIds, function(){reloadTable(gridId, nodeIds, scores)}, scores)
 }
 
-function createNodeTable(gridId, refresh, scores) {
+function createNodeTable(gridId, nodeIds, refresh, scores) {
+  var tableWrapper = "#" + gridId + "_wrapper"
   var allColumns = {
       "Node ID" :
       { "data": "id"
@@ -1507,12 +1528,12 @@ function createNodeTable(gridId, refresh, scores) {
     , "drawCallback": function( oSettings ) {
         initBsTooltips();
       }
-    , "dom": ' <"dataTables_wrapper_top newFilter "<"#first_line_header" f <"dataTables_refresh"> <"#edit-columns">> <"#select-columns"> >rt<"dataTables_wrapper_bottom"lip>'
+    , "dom": ` <"dataTables_wrapper_top newFilter "<"#first_line_header.d-flex" <"d-flex flex-fill" <"me-2" f> <"#edit-columns">> <"d-flex ms-auto my-auto" <"me-2" B> <"dataTables_refresh">>> <"#select-columns"> >rt<"dataTables_wrapper_bottom"lip>`
   };
 
 
   createTable(gridId, [] , columns, params, contextPath, refresh, "nodes");
-  $("#first_line_header input").addClass("form-control")
+  $(tableWrapper + " #first_line_header input").addClass("form-control")
 
 
   function resetColumns()  {
@@ -1527,7 +1548,7 @@ function createNodeTable(gridId, refresh, scores) {
     columns = Array.from(defaultColumns);
     localStorage.setItem(cacheId, JSON.stringify(columns))
     createTable(gridId,data2, columns, params, contextPath, refresh, "nodes");
-    $("#first_line_header input").addClass("form-control")
+    $(tableWrapper + " #first_line_header input").addClass("form-control")
     columnSelect(true);
   }
 
@@ -1580,7 +1601,7 @@ function createNodeTable(gridId, refresh, scores) {
       delete params["ajax"];
       createTable(gridId,data2, columns, params, contextPath, refresh, "nodes");
     }
-    $("#first_line_header input").addClass("form-control")
+    $(tableWrapper + " #first_line_header input").addClass("form-control")
     columnSelect(true);
   }
 
@@ -1600,7 +1621,7 @@ function createNodeTable(gridId, refresh, scores) {
     localStorage.setItem(cacheId, JSON.stringify(columns))
     delete params["ajax"];
     createTable(gridId,data2, columns, params, contextPath, refresh, "nodes");
-    $("#first_line_header input").addClass("form-control")
+    $(tableWrapper + " #first_line_header input").addClass("form-control")
     columnSelect(true);
   }
 
@@ -1616,10 +1637,10 @@ function createNodeTable(gridId, refresh, scores) {
     var textBtn    = editOpen ? confirmTxt : editTxt;
     var classBtn   = editOpen ? "btn-success" : "btn-default";
     var editColBtn = $("<button class='btn btn-icon " + classBtn + "' id='edit-col-btn'>" + textBtn + "</button>").click(function(){
-      $("#select-columns").toggle();
+      $(tableWrapper + " #select-columns").toggle();
       $(this).toggleClass("btn-success").toggleClass("btn-default").toggleHtml(confirmTxt, editTxt)
     });
-    $("#edit-columns").append(editColBtn)
+    $(tableWrapper + " #edit-columns").append(editColBtn)
     var select = "<div class='form-inline-flex'> <div> <select id='column-select' placeholder='Select column to add' class='form-select'>"
     for (var key in dynColumns) {
       value = dynColumns[key]
@@ -1631,8 +1652,8 @@ function createNodeTable(gridId, refresh, scores) {
       }
     }
     select += "</select></div><div><select id='selectScoreDetails' class='form-select'></select></div><div><input class='form-control' id='colValue' type='text'></div><label for='colCheckbox' class='input-group'><span class='input-group-text'><input id='colCheckbox' type='checkbox'></span><div class='form-control'>Show inherited properties</div></label><button id='add-column' class='btn btn-default btn-icon flex-shrink-0'>Add column <i class='fa fa-plus-circle'></i></button><button id='reset-columns' class='btn btn-default btn-icon flex-shrink-0'>Reset columns <i class='fa fa-rotate-left'></i></button></div>"
-    editOpen ? $("#select-columns").show() : $("#select-columns").hide()
-    $("#select-columns").html(select)
+    editOpen ? $(tableWrapper + " #select-columns").show() : $(tableWrapper + " #select-columns").hide()
+    $(tableWrapper + " #select-columns").html(select)
     var selectedColumns =""
     var colsContainer = $("<div class='column-tags-container'></div>")
     for (var key in columns) {
@@ -1642,44 +1663,44 @@ function createNodeTable(gridId, refresh, scores) {
       }
       colsContainer.append(elem)
     }
-    $("#select-columns").append(colsContainer)
+    $(tableWrapper + " #select-columns").append(colsContainer)
     if (dynColumns[0] != "Property" && dynColumns[0] !="Software" && dynColumns[0] !="Score details" ) {
-      $("#select-columns input").parent().hide()
-      $("#select-columns select#selectScoreDetails").hide()
-      $("#colCheckbox").parent().parent().hide()
+      $(tableWrapper + " #select-columns input").parent().hide()
+      $(tableWrapper + " #select-columns select#selectScoreDetails").hide()
+      $(tableWrapper + " #colCheckbox").parent().parent().hide()
     }
-    $("#select-columns select#column-select").change(function(e) {
+    $(tableWrapper + " #select-columns select#column-select").change(function(e) {
       if (this.value =="Property" || this.value =="Software"  ) {
-        $("#select-columns input").parent().show()
-        $("#select-columns select#selectScoreDetails").hide()
-        $("#select-columns input").attr('placeholder', this.value + " name" )
+        $(tableWrapper + " #select-columns input").parent().show()
+        $(tableWrapper + " #select-columns select#selectScoreDetails").hide()
+        $(tableWrapper + " #select-columns input").attr('placeholder', this.value + " name" )
         if (this.value == "Property" ) {
-          $("#colCheckbox").parent().parent().show()
+          $(tableWrapper + " #colCheckbox").parent().parent().show()
         } else {
-          $("#colCheckbox").parent().parent().hide()
+          $(tableWrapper + " #colCheckbox").parent().parent().hide()
         }
       } else if ( this.value =="Score details"){
-          $("#select-columns input").parent().hide()
+          $(tableWrapper + " #select-columns input").parent().hide()
           // Only add score that are not in table yet (first filter)
           var options = scores.filter((elem) => ! addedScore.includes(elem.id) ).map((elem) => "<option value='"+elem.id+"'>"+elem.name+"</option>")
-          $("#select-columns select#selectScoreDetails").html(options.join(''))
-          $("#select-columns select#selectScoreDetails").show()
-          $("#colCheckbox").parent().parent().hide()
+          $(tableWrapper + " #select-columns select#selectScoreDetails").html(options.join(''))
+          $(tableWrapper + " #select-columns select#selectScoreDetails").show()
+          $(tableWrapper + " #colCheckbox").parent().parent().hide()
         } else {
-        $("#select-columns input").parent().hide()
-        $("#select-columns select#selectScoreDetails").hide()
-        $("#colCheckbox").parent().parent().hide()
+        $(tableWrapper + " #select-columns input").parent().hide()
+        $(tableWrapper + " #select-columns select#selectScoreDetails").hide()
+        $(tableWrapper + " #colCheckbox").parent().parent().hide()
       }
     })
-    $("#select-columns div button#add-column").click(function(e) {
-      var column = $("#select-columns select").val()
-      var value = $("#select-columns input#colValue").val()
+    $(tableWrapper + " #select-columns div button#add-column").click(function(e) {
+      var column = $(tableWrapper + " #select-columns select").val()
+      var value = $(tableWrapper + " #select-columns input#colValue").val()
       if ( column =="Score details") {
-        value = $("#select-columns select#selectScoreDetails").val()
+        value = $(tableWrapper + " #select-columns select#selectScoreDetails").val()
       }
-      addColumn(column, value, $("#colCheckbox").prop("checked"))
+      addColumn(column, value, $(tableWrapper + " #colCheckbox").prop("checked"))
     })
-    $("#select-columns div button#reset-columns").click(function(e) {
+    $(tableWrapper + " #select-columns div button#reset-columns").click(function(e) {
       resetColumns()
     })
   }
@@ -2274,7 +2295,7 @@ function compliancePercentValue(compliances) {
   decomposedValues.sort(function(a,b){return b.dec - a.dec;});
   total = decomposedValues.reduce(function(a, b) {;return {val : (a.val + b.val)}; }, {val:0}).val;
 
-  //we can have total = 0 in the case of overriden directives. We don't want to loop until 100.
+  //we can have total = 0 in the case of overridden directives. We don't want to loop until 100.
   //in fact, that loop can't be ok if (100 - total) > decomposedValue.length
   diff = 100 - total;
 
@@ -2439,6 +2460,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
     , "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ]
     , "pageLength": 25
     , "retrieve" : true
+    , "buttons": [ csvButtonConfig(gridId) ]
   };
   if (storageId !== undefined) {
     var storageParams = {

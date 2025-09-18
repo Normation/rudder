@@ -1,0 +1,119 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File ensure keys -> values present
+# @rename file_keys_values_present
+# @deprecated Use [file_keys_values_present](#_file_keys_values_present) instead.
+# @description Ensure that the file contains all pairs of "key separator value", with arbitrary separator between each key and its value
+# @documentation This method ensures key-value pairs are present in a file.
+# 
+# #### Usage
+#
+# This method will iterate over the key-value pairs in the dict, and:
+#
+# * If the key is not defined in the destination, add the *key* + *separator* + *value* line.
+# * If the key is already present in the file, replace the *key* + *separator* + anything by *key* + *separator* + *value*
+#
+# This method always ignores spaces and tabs when replacing (which means for example that `key = value` will match the `=` separator).
+#
+# Keys are considered unique (to allow replacing the value), so you should use [file_ensure_lines_present](#_file_ensure_lines_present)
+# if you want to have multiple lines with the same key.
+#
+# #### Example
+#
+# If you have an initial file (`/etc/myfile.conf`) containing:
+#
+# ```
+# key1 = something
+# key3 = value3
+# ```
+#
+# To define key-value pairs, use the [variable_dict](#_variable_dict) or
+# [variable_dict_from_file](#_variable_dict_from_file) methods.
+#
+# For example, if you use the following content (stored in `/tmp/data.json`):
+#
+# ```json
+# {
+#    "key1": "value1",
+#    "key2": "value2"
+# }
+# ```
+#
+# With the following policy:
+#
+# ```
+# # Define the `content` variable in the `configuration` prefix from the json file
+# variable_dict_from_file("configuration", "content", "/tmp/data.json")
+# # Enforce the presence of the key-value pairs
+# file_ensure_keys_values("/etc/myfile.conf", "configuration.content", " = ")
+#
+# ```
+#
+# The destination file (`/etc/myfile.conf`) will contain:
+#
+# ```
+# key1 = value1
+# key3 = value3
+# key2 = value2
+# ```
+#
+# @parameter path File name to edit (absolute path on the target node)
+# @parameter keys Name of the dict structure (without "${}") containing the keys (keys of the dict), and values to define (values of the dict)
+# @parameter separator Separator between key and value, for example "=" or " " (without the quotes)
+# @parameter_constraint separator "allow_whitespace_string" : true 
+#
+#
+# @parameter_rename file path
+# @class_prefix file_ensure_keys_values
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_ensure_keys_values(path, keys, separator)
+{
+  vars:
+      "old_class_prefix"         string => canonify("file_ensure_keys_values_${path}");
+
+      "args"                      slist => { "${path}", "${keys}", "${separator}" };
+      "report_param"             string => join("_", args);
+      "full_class_prefix"        string => canonify("file_ensure_keys_values_${report_param}");
+      "class_prefix"             string => string_head("${full_class_prefix}", "1000");
+
+      "full_inner_class_prefix"  string => canonify("file_keys_values_present_${report_param}");
+      "inner_class_prefix"       string => string_head("${full_inner_class_prefix}", "1000");
+
+
+      "canonified_path"          string => canonify("${path}");
+
+
+  classes:
+      "should_report"        expression => "${report_data.should_report}";
+
+  methods:
+      "disable_reporting_${class_prefix}"
+                              usebundle => disable_reporting;
+      "action"                usebundle => file_keys_values_present("${path}", "${keys}", "${separator}");
+      "reenable_reporting_${class_prefix}"
+                              usebundle => enable_reporting,
+                             ifvarclass => "should_report";
+      "class copy"            usebundle => _classes_copy("file_keys_values_present_${canonified_path}", "${old_class_prefix}"),
+                             ifvarclass => "file_keys_values_present_${canonified_path}_reached";
+      "new result classes"    usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}"),
+                             ifvarclass => "${inner_class_prefix}_reached";
+      "report"                usebundle => _log_v3("Ensure lines in format key${separator}values into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

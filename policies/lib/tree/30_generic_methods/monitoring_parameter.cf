@@ -1,0 +1,64 @@
+#####################################################################################
+# Copyright 2018 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Monitoring parameter
+# @description Add a monitoring parameter to a node (requires a monitoring plugin)
+#
+# @documentation
+# This method adds monitoring parameters to rudder nodes. The monitoring parameters are used to
+# pass configuration to the monitoring plugins running with Rudder. Expected keys and parameters
+# are specific to each plugin and can be found in their respective documentation.
+# 
+#
+# @parameter key Name of the parameter
+# @parameter value Value of the parameter
+#
+# @class_prefix monitoring_parameter
+# @class_parameter key
+# @agent_support = ["cfengine-community"]
+
+bundle agent monitoring_parameter(key, value)
+{
+  vars:
+
+      "monitoring_file"   string => "/var/rudder/tmp/rudder_monitoring.csv";
+
+      "inner_old_class_prefix"  string => canonify("inner_monitoring_parameter_${key}_${value}");
+      "old_class_prefix"  string => canonify("monitoring_parameter_${key}");
+
+      "args"               slist => {"${key}", "${value}"};
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("monitoring_parameter_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  classes:
+      "should_report" expression => "${report_data.should_report}";
+
+  files:
+      "${monitoring_file}"
+        create        => "true",
+        edit_line     => insert_lines("param,${key},${value}"),
+        edit_defaults => no_backup,
+        classes       => classes_generic("${inner_old_class_prefix}");
+
+  methods:
+      "result classes"      usebundle => _classes_copy_invert_kept_repaired("${inner_old_class_prefix}", "${old_class_prefix}");
+      "new result classes"  usebundle => _classes_copy_invert_kept_repaired("${inner_class_prefix}", "${class_prefix}");
+
+      "report"              usebundle => _log("Monitoring parameter ${key} set to ${value}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

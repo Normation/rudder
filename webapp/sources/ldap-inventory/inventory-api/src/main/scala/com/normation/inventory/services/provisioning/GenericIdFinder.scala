@@ -39,7 +39,6 @@ package com.normation.inventory.services.provisioning
 
 import com.normation.errors.*
 import com.normation.inventory.domain.*
-import net.liftweb.common.*
 import zio.*
 import zio.syntax.*
 
@@ -79,7 +78,7 @@ class NodeInventoryDNFinderService(actions: Seq[NamedNodeInventoryDNFinderAction
  */
 sealed case class NamedMachineDNFinderAction(val name: String, val action: MachineDNFinderAction)
 
-class MachineDNFinderService(actions: Seq[NamedMachineDNFinderAction]) extends MachineDNFinderAction with Loggable {
+class MachineDNFinderService(actions: Seq[NamedMachineDNFinderAction]) extends MachineDNFinderAction {
 
   override def tryWith(entity: MachineInventory): IOResult[Option[(MachineUuid, InventoryStatus)]] = {
     ZIO

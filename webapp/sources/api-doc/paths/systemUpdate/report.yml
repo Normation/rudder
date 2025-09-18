@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2025 Normation SAS
+get:
+  summary: Get report of campaign
+  description: Get a detailed CSV report of a system update result
+  operationId: getSystemUpdateResultReport
+  parameters:
+    - $ref: ../../components/parameters/campaign-event-id-path.yml
+  responses:
+    "200":
+      description: CSV report for campaign detailed result
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: |
+            "Node Name","Campaign Name","Campaign Result","Execution date","Updated package","Package update status","Previous version","Current version"
+            "node1.localhost","campaign1","Success","2024-12-30T10:00:00.000Z","vim","Updated","9.1.0765","9.1.0787"
+  tags:
+    - 🧩 System update campaigns
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/systemUpdate/report.sh

@@ -48,27 +48,11 @@ import scala.xml.*
  */
 class Index {
 
-  def utilities(xhtml: NodeSeq): NodeSeq = {
-    if (CurrentUser.checkRights(AuthorizationType.Administration.Read)) {
-      S.redirectTo("eventLogs")
-    } else {
-      if (CurrentUser.checkRights(AuthorizationType.Technique.Read)) {
-        S.redirectTo("techniqueEditor")
-      } else {
-        S.redirectTo("/secure/index")
-      }
-    }
-  }
-
   def administration(xhtml: NodeSeq): NodeSeq = {
     if (CurrentUser.checkRights(AuthorizationType.Administration.Read)) {
-      S.redirectTo("policyServerManagement")
+      S.redirectTo("/secure/administration/settings")
     } else {
-      if (CurrentUser.checkRights(AuthorizationType.Technique.Read)) {
-        S.redirectTo("techniqueLibraryManagement")
-      } else {
-        S.redirectTo("/secure/index")
-      }
+      S.redirectTo("/secure/index")
     }
   }
 
@@ -82,4 +66,9 @@ class Index {
   def plugins(xhtml: NodeSeq): NodeSeq = {
     S.redirectTo("pluginInformation")
   }
+
+  def access(xhtml: NodeSeq): NodeSeq = {
+    S.redirectTo("userManagement")
+  }
+
 }

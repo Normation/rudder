@@ -13,7 +13,7 @@ class Login extends DispatchSnippet with DefaultExtendableSnippet[Login] {
       if (userListProvider.authConfig.users.isEmpty) {
         <div>
           <div class="logo-container">
-            <img src="/images/logo-rudder.svg" data-lift="with-cached-resource" alt="Rudder"/>
+            <img src="/images/logo/rudder-logo-rect-black.svg" data-lift="with-cached-resource" alt="Rudder"/>
           </div>
           <div class="plugin-info"></div>
           <form id="login-form">

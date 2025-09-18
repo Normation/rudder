@@ -12,8 +12,8 @@
 
 // Test file specifications. Do we want several test cases in one file?
 
-use anyhow::{bail, Context, Result};
-use rudder_commons::{logs::ok_output, PolicyMode, Target};
+use anyhow::{Context, Result, bail};
+use rudder_commons::{PolicyMode, Target, logs::ok_output};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{HashMap, HashSet},
@@ -92,12 +92,12 @@ pub struct TestCase {
     pub policy_mode: PolicyMode,
     /// Test setup steps
     #[serde(default)]
-    setup: Vec<Step>,
+    pub setup: Vec<Step>,
     /// Check test after
-    check: Vec<Step>,
+    pub check: Vec<Step>,
     /// Cleanup steps
     #[serde(default)]
-    cleanup: Vec<Step>,
+    pub cleanup: Vec<Step>,
 }
 
 impl TestCase {

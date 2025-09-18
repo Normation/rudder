@@ -42,6 +42,7 @@ import net.liftweb.common.Loggable
 import net.liftweb.http.js.JE.JsArray
 import net.liftweb.http.js.JsExp
 import net.liftweb.http.js.JsObj
+import net.liftweb.util.Helpers.*
 import org.apache.commons.text.StringEscapeUtils
 
 /*
@@ -49,7 +50,7 @@ import org.apache.commons.text.StringEscapeUtils
  */
 trait JsTableLine extends Loggable {
 
-  def json: JsObj
+  def json(freshName: () => String): JsObj
 
   // this is needed because DataTable doesn't escape HTML element when using table.rows.add
   def escapeHTML(s: String): JsExp = JsExp.strToJsExp(StringEscapeUtils.escapeHtml4(s))
@@ -65,6 +66,7 @@ trait JsTableLine extends Loggable {
  */
 final case class JsTableData[T <: JsTableLine](lines: List[T]) {
 
-  def json: JsArray = JsArray(lines.map(_.json))
+  def json(freshName: () => String): JsArray = JsArray(lines.map(_.json(freshName)))
 
+  def toJson: JsArray = json(() => nextFuncName)
 }

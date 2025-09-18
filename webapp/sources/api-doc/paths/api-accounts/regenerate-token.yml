@@ -1,0 +1,50 @@
+# SPDX-License-Identifier: CC-BY-SA-2.0
+# SPDX-FileCopyrightText: 2013-2025 Normation SAS
+post:
+  summary: Regenerate the token of an API account
+  description: Create a new token and destroy the old one (if exists).
+  operationId: regenerateToken
+  parameters:
+    - $ref: ../../components/parameters/api-account-id.yml
+  responses:
+    "200":
+      description: API account information
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - result
+              - id
+              - action
+              - data
+            properties:
+              result:
+                type: string
+                description: Result of the request
+                enum:
+                  - success
+                  - error
+              id:
+                type: string
+                description: Id of the API account
+              action:
+                type: string
+                description: The id of the action
+                enum:
+                  - updateDirective
+              data:
+                type: object
+                required:
+                  - accounts
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: ../../components/schemas/api-account.yml
+  tags:
+    - API account management
+  x-codeSamples:
+    - lang: curl
+      source:
+        $ref: ../../code_samples/curl/api-accounts/regenerate.sh

@@ -103,7 +103,10 @@ class CreateTableNodeFacts(
 
     // Actually run the migration async to avoid blocking for that.
     // There is no need to have it sync.
-    prog.catchAll(err => BootstrapLogger.error(s"Error when trying to create table NodeFacts: ${err.fullMsg}")).forkDaemon.runNow
+    prog
+      .catchAll(err => BootstrapLogger.Early.DB.error(s"Error when trying to create table NodeFacts: ${err.fullMsg}"))
+      .forkDaemon
+      .runNow
   }
 
 }

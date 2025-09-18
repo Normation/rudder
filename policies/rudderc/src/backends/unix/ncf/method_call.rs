@@ -5,11 +5,12 @@
 //! "ncf/cfengine" model, different on Windows.
 //!
 //! It trusts its input (which should have already validated the method
-//! signature, type, and constraints).
+//! signature, type and constraints).
 
-use anyhow::{bail, Result};
+use anyhow::{Context, Result, bail};
 use rudder_commons::{canonify, methods::method::Agent};
 
+use crate::ir::technique::ForeachResolvedState;
 use crate::{
     backends::unix::{
         cfengine::{
@@ -40,14 +41,11 @@ pub fn method_call(
 ) -> Result<(Promise, Option<Bundle>)> {
     assert!(!m.name.is_empty());
 
-    let info = m.info.unwrap();
+    let info = m.info.context(format!(
+        "Could not find any 'MethodInfo' for method {}",
+        m.method
+    ))?;
     let id = m.id.as_ref();
-    // Uniqueness for re-execution.
-    // method_id is not enough due to iterators.
-    // It also needs to be evaluated at run time to get the maximal variability.
-    // WARN: this may be non-evaluated if the resulting string is too long.
-    let unique = &format!("{}_${{report_data.directive_id}}", m.id.as_ref());
-    let very_unique = &format!("{}_${{report_data.directive_id}}_${{c_key}}", m.id.as_ref());
     let c_id = canonify(id);
 
     let condition = condition.and(&m.condition);
@@ -76,96 +74,76 @@ pub fn method_call(
         })
     }
 
-    let enable_report = Promise::usebundle(
-        "enable_reporting",
-        Some(&report_component),
-        Some(very_unique),
-        vec![],
-    );
-    let disable_report = Promise::usebundle(
-        "disable_reporting",
-        Some(&report_component),
-        Some(very_unique),
-        vec![],
-    );
+    let enable_report = Promise::usebundle("enable_reporting", Some(&report_component), vec![]);
+    let disable_report = Promise::usebundle("disable_reporting", Some(&report_component), vec![]);
 
     let reporting_context = Promise::usebundle(
         "_method_reporting_context_v4",
         Some(&report_component),
-        Some(very_unique),
         vec![expanded("c_name"), expanded("c_key"), expanded("report_id")],
+    );
+    let define_noop = Promise::usebundle(
+        "_classes_noop",
+        Some(&report_component),
+        vec![quoted("${report_data.method_id}")],
     );
 
     // Actual method call
     let method = Promise::usebundle(
         &info.bundle_name,
         Some(&report_component),
-        Some(very_unique),
         parameters_names
             .iter()
             .map(|p| expanded(p.as_str()))
             .collect(),
     );
-    let na_condition = format!(
-        "canonify(\"${{class_prefix}}_{}_${{c_key}}\")",
-        info.bundle_name
-    );
 
-    let push_policy_mode =
-        dry_run_mode::push_policy_mode(m.policy_mode_override, very_unique.clone());
-    let pop_policy_mode =
-        dry_run_mode::pop_policy_mode(m.policy_mode_override, very_unique.clone());
+    let push_policy_mode = dry_run_mode::push_policy_mode(m.policy_mode_override);
+    let pop_policy_mode = dry_run_mode::pop_policy_mode(m.policy_mode_override);
     let incall_condition = "${method_call_condition}".to_string();
 
     let mut promises = match (&condition, is_supported) {
-            (Condition::Expression(_), true) => vec![
-                    Some(reporting_context),
-                    push_policy_mode,
-                    Some(method.if_condition(incall_condition.clone())),
-                    pop_policy_mode,
-                    Some(Promise::usebundle("_classes_noop", Some(&report_component), Some(very_unique), vec![na_condition.clone()]).unless_condition(incall_condition.clone())),
-                    Some(Promise::usebundle("log_rudder", Some(&report_component),  Some(very_unique), vec![
-                        quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, condition)),
-                        quoted(&report_parameter),
-                        na_condition.clone(),
-                        na_condition,
-                        "@{args}".to_string()
-                    ]).unless_condition(incall_condition))
-            ].into_iter().flatten().collect(),
-            (Condition::NotDefined, true) => vec![
-                reporting_context,
-                Promise::usebundle("_classes_noop", Some(&report_component), Some(very_unique), vec![na_condition.clone()]),
-                Promise::usebundle("log_rudder", Some(&report_component),  Some(very_unique), vec![
-                    quoted(&format!("Skipping method '{}' with key parameter '{}' since condition '{}' is not reached", &method_name, &report_parameter, condition)),
-                    quoted(&report_parameter),
-                    na_condition.clone(),
-                    na_condition,
-                    "@{args}".to_string()
-                ])
-            ],
-            (Condition::Defined, true) => vec![
-                Some(reporting_context),
-                push_policy_mode,
-                Some(method),
-                pop_policy_mode,
-            ].into_iter().flatten().collect(),
-            (_, false) => vec![
-                reporting_context,
-                Promise::usebundle(
-                    "log_na_rudder",
-                    Some(&report_component), Some(very_unique),
-                    vec![
-                        quoted(&format!(
-                            "'{}' method is not available on classic Rudder agent, skip",
-                            report_parameter,
-                        )),
-                        quoted(&report_parameter),
-                        quoted(very_unique),
-                        "@{args}".to_string(),
-                    ],
-                )
-            ],
-        };
+        (Condition::Expression(_), true) => vec![
+            Some(reporting_context),
+            push_policy_mode,
+            Some(method.if_condition(incall_condition.clone())),
+            pop_policy_mode,
+            Some(define_noop.unless_condition(incall_condition.clone())),
+            Some(Promise::usebundle("log_rudder_v4", Some(&report_component), vec![
+                quoted("${c_key}"),
+                quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", &method_name, incall_condition)),
+                quoted(""),
+            ]).unless_condition(incall_condition))
+        ].into_iter().flatten().collect(),
+        (Condition::NotDefined, true) => vec![
+            reporting_context,
+            define_noop,
+            Promise::usebundle("log_rudder_v4", Some(&report_component),  vec![
+                quoted("${c_key}"),
+                quoted(&format!("Skipping method '{}' with key parameter '${{c_key}}' since condition '{}' is not reached", &method_name, condition)),
+                quoted("")
+            ])
+        ],
+        (Condition::Defined, true) => vec![
+            Some(reporting_context),
+            push_policy_mode,
+            Some(method),
+            pop_policy_mode,
+        ].into_iter().flatten().collect(),
+        (_, false) => vec![
+            reporting_context,
+            define_noop,
+            Promise::usebundle("log_rudder_v4", Some(&report_component),  vec![
+                quoted("${c_key}"),
+                quoted(&format!(
+                    "'{}' method is not available on classic Rudder agent, skip",
+                    m.name,
+                )),
+                quoted("")
+            ])
+        ],
+    };
+
     let bundle_content = match m.reporting.mode {
         LeafReportingMode::Disabled => {
             let mut res = vec![disable_report];
@@ -194,22 +172,35 @@ pub fn method_call(
     ];
     if let Condition::Expression(_) = condition {
         call_parameters.push(cfengine_canonify_condition(condition.as_ref()));
-        method_parameters.push("method_call_condition".to_string())
+        method_parameters.push("method_call_condition".to_string());
     }
 
     call_parameters.append(&mut parameters);
-    let bundle_call = Promise::usebundle(bundle_name.clone(), None, Some(unique), call_parameters)
-        .if_condition("pass3");
+    let bundle_call =
+        Promise::usebundle(bundle_name.clone(), None, call_parameters).if_condition("pass3");
 
     // Get everything together
     let mut specific_parameters = parameters_names;
     method_parameters.append(&mut specific_parameters);
     Ok((
         bundle_call,
-        Some(
-            Bundle::agent(bundle_name)
-                .parameters(method_parameters)
-                .promise_group(bundle_content),
-        ),
+        match m.resolved_foreach_state {
+            //Some(ForeachResolvedState::Virtual) => None,
+            Some(ForeachResolvedState::Virtual) => Some(
+                Bundle::agent(bundle_name)
+                    .parameters(method_parameters)
+                    .promise_group(bundle_content),
+            ),
+            Some(ForeachResolvedState::Main) => Some(
+                Bundle::agent(bundle_name)
+                    .parameters(method_parameters)
+                    .promise_group(bundle_content),
+            ),
+            None => Some(
+                Bundle::agent(bundle_name)
+                    .parameters(method_parameters)
+                    .promise_group(bundle_content),
+            ),
+        },
     ))
 }

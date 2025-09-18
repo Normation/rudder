@@ -4,8 +4,8 @@
 // Minimal module type
 
 use rudder_module_type::{
-    parameters::Parameters, run_module, CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome,
-    PolicyMode,
+    CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, parameters::Parameters,
+    run_module,
 };
 
 struct Test {}

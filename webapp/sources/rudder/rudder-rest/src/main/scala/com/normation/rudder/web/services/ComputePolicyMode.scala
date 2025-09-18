@@ -177,14 +177,14 @@ object ComputePolicyMode {
       case (Some(Audit), Some(Enforce))   =>
         ComputedPolicyMode(
           Audit,
-          "The <i><b>Directive</b></i> is configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by this <i><b>Node</b></i>. "
+          """The <i><b>Directive</b></i> is configured to <b class="text-Enforce">enforce</b> but is overridden to <b>audit</b> by this <i><b>Node</b></i>. """
         )
       case (None, Some(Audit))            =>
         ComputedPolicyMode(Audit, "<b>Audit</b> is forced by this <i><b>Directive</b></i> mode")
       case (Some(Enforce), Some(Audit))   =>
         ComputedPolicyMode(
           Audit,
-          "The <i><b>Node</b></i> is configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by this <i><b>Directive</b></i>. "
+          """The <i><b>Node</b></i> is configured to <b class="text-Enforce">enforce</b> but is overridden to <b>audit</b> by this <i><b>Directive</b></i>. """
         )
     }
   }
@@ -251,7 +251,7 @@ object ComputePolicyMode {
                       case Some(Enforce) =>
                         ComputedPolicyMode(
                           Audit,
-                          s"The <i><b>${uniqueKind}</b></i> is configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by all <i><b>${multipleKind}</b></i>. "
+                          s"""The <i><b>${uniqueKind}</b></i> is configured to <b class="text-Enforce">enforce</b> but is overridden to <b>audit</b> by all <i><b>${multipleKind}</b></i>. """
                         )
                       // Audit is treated above ... maybe we should not treat it in that sense and always provide a more precise message
                       case Some(Audit)   =>
@@ -269,7 +269,7 @@ object ComputePolicyMode {
                         // Audit is treated above ... maybe we should not treat it in that sense and always provide a more precise message
                         ComputedPolicyMode(
                           Audit,
-                          s"All <i><b>${multipleKind}</b></i> are configured to <b class='text-Enforce'>enforce</b> but is overriden to <b>audit</b> by the <i><b>${uniqueKind}</b></i>. "
+                          s"""All <i><b>${multipleKind}</b></i> are configured to <b class="text-Enforce">enforce</b> but is overridden to <b>audit</b> by the <i><b>${uniqueKind}</b></i>. """
                         )
                       case Some(Enforce) =>
                         ComputedPolicyMode(

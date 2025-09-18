@@ -385,20 +385,6 @@ bundle agent check_clock_configuration
         classes => cf2_if_else("ntp_hwclock_synced", "ntp_hwclock_sync_error"),
         comment => "synchronizing hardware clock";
 
-&if(NOVA)&
-  databases:
-
-    windows::
-
-      "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\W32Time\Parameters"
-
-        database_operation => "create",
-        database_rows => { "Type,REG_SZ,NTP", "NtpServer,REG_SZ,${serverskey}"},
-        database_type => "ms_registry",
-        comment => "Editing the windows registry to set the required NTP entries",
-        classes => kept_if_else("ntp_regkept", "ntp_regset", "ntp_regfail");
-&endif&
-
 }
 
 

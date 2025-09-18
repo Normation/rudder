@@ -51,6 +51,11 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
 
   private val varSpecs: Seq[SystemVariableSpec] = Seq(
     SystemVariableSpec(
+      "INSTANCE_ID",
+      "Identifier of the server with which nodes are managed",
+      multivalued = false
+    ),
+    SystemVariableSpec(
       "ALLOWCONNECT",
       "List of ip allowed to connect to the node (policyserver + children if any)",
       multivalued = true
@@ -99,12 +104,6 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
     ),
     SystemVariableSpec("INPUTLIST", "Input list", multivalued = false),
     SystemVariableSpec("BUNDLELIST", "Bundle list", multivalued = false),
-    SystemVariableSpec(
-      "NOVA",
-      "The Cfengine Nova agent",
-      multivalued = false,
-      constraint = Constraint(mayBeEmpty = true)
-    ),
     SystemVariableSpec(
       "COMMUNITY",
       "The Cfengine Community agent",

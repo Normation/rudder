@@ -1,0 +1,319 @@
+#####################################################################################
+# Copyright 2016 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File from a jinja2 template
+# @description Build a file from a jinja2 template
+# @documentation See [file_from_template_type](#_file_from_template_type) for general documentation about
+# templates usage.
+#
+# This generic method will build a file from a jinja2 template
+# using data (conditions and variables) found in the execution context.
+#
+#
+# #### Setup
+#
+# It requires to have the jinja2 python module installed on the node, it can usually be done in ncf with
+# `package_present("python-jinja2", "", "", "")`.
+#
+# WARNING: If you are using a jinja2 version older than 2.7
+#          trailing newlines will not be preserved in the destination file.
+#
+# #### Syntax
+#
+# Jinja2 is a powerful templating language, running in Python.
+# The Jinja2 syntax reference documentation is [http://jinja.pocoo.org/docs/dev/templates/](http://jinja.pocoo.org/docs/dev/templates/)
+# which will likely be useful, as Jinja2 is very rich and allows a lot more
+# that what is explained here.
+#
+# This section presents some simple cases that cover what can be done with mustache templating,
+# and the way the agent data is provided to the templating engine.
+#
+# The main specificity of jinja2 templating is the use of two root containers:
+#
+# * `classes` to access currently defined conditions
+# * `vars` to access all currently defined variables
+#
+# Note: You can add comments in the template, that will not be rendered in the output file with
+# `{# ... #}`.
+#
+# You can extend the Jinja2 templating engine by adding custom FILTERS and TESTS in the script
+# `/var/rudder/configuration-repository/ncf/10_ncf_internals/modules/extensions/jinja2_custom.py`
+#
+# For instance, to add a filter to uppercase a string and a test if a number is odd, you can create
+# the file `/var/rudder/configuration-repository/ncf/10_ncf_internals/modules/extensions/jinja2_custom.py`
+# on your Rudder server with the following content:
+#
+# ```
+# def uppercase(input):
+#     return input.upper()
+#
+# def odd(value):
+#     return True if (value % 2) else False
+#
+# FILTERS = {'uppercase': uppercase}
+# TESTS = {'odd': odd}
+# ```
+#
+# These filters and tests will be usable in your jinja2 templates automatically.
+#
+# ##### Conditions
+#
+# To display content based on conditions definition:
+#
+# ```jinja2
+# {% if classes.my_condition is defined  %}
+#    display this if defined
+# {% endif %}
+# {% if not classes.my_condition is defined %}
+#    display this if not defined
+# {% endif %}
+# ```
+#
+# Note: You cannot use condition expressions here.
+#
+# You can also use other tests, for example other built-in ones or
+# those defined in `jinja2_custom.py`:
+#
+# ```jinja2
+# {% if vars.variable_prefix.my_number is odd  %}
+#    display if my_number is odd
+# {% endif %}
+# ```
+#
+# ##### Scalar variables
+#
+# Here is how to display a scalar variable value (integer, string, ...),
+# if you have defined `variable_string("variable_prefix", "my_variable", "my_value")`:
+#
+# ```jinja2
+# {{ vars.variable_prefix.my_variable }}
+# ```
+#
+# You can also modify what is displayed by using filters. The built-in filters
+# can be extended in `jinja2_custom.py`:
+#
+# ```jinja2
+# {{ vars.variable_prefix.my_variable | uppercase }}
+# ```
+#
+# Will display the variable in uppercase.
+#
+# ##### Iteration
+#
+# To iterate over a list, for example defined with:
+#
+# ```
+# variable_iterator("variable_prefix", "iterator_name", "a,b,c", ",")
+# ```
+#
+# Use the following file:
+#
+# ```jinja2
+# {% for item in vars.variable_prefix.iterator_name %}
+# {{ item }} is the current iterator_name value
+# {% endfor %}
+# ```
+#
+# Which will be expanded as:
+#
+# ```
+# a is the current iterator_name value
+# b is the current iterator_name value
+# c is the current iterator_name value
+# ```
+#
+# To iterate over a container defined by the following json file, loaded with
+# `variable_dict_from_file("variable_prefix", "dict_name", "path")`:
+#
+# ```json
+# {
+#    "hosts": [
+#        "host1",
+#        "host2"
+#    ],
+#    "files": [
+#        {"name": "file1", "path": "/path1", "users": [ "user1", "user11" ] },
+#        {"name": "file2", "path": "/path2", "users": [ "user2" ] }
+#    ],
+#    "properties": {
+#        "prop1": "value1",
+#        "prop2": "value2"
+#    }
+# }
+# ```
+#
+# Use the following template:
+#
+# ```jinja2
+# {% for item in vars.variable_prefix.dict_name.hosts %}
+# {{ item }} is the current hosts value
+# {% endfor %}
+#
+# # will display the name and path of the current file
+# {% for file in vars.variable_prefix.dict_name.files %}
+# {{ file.name }}: {{ file.path }}
+# {% endfor %}
+#
+# # will display the users list of each file
+# {% for file in vars.variable_prefix.dict_name.files %}
+# {{ file.name }}: {{ file.users|join(' ') }}
+# {% endfor %}
+#
+#
+# # will display the current properties key/value pair
+# {% for key, value in vars.variable_prefix.dict_name.properties.items() %}
+# {{ key }} -> {{ value }}
+# {% endfor %}
+#
+# ```
+#
+# Which will be expanded as:
+#
+# ```
+# host1 is the current hosts value
+# host2 is the current hosts value
+#
+# # will display the name and path of the current file
+# file1: /path1
+# file2: /path2
+#
+# # will display the users list of each file
+# file1: user1 user11
+# file2: user2
+#
+# # will display the current properties key/value pair
+# prop1 -> value1
+# prop2 -> value2
+# ```
+#
+# ##### System variables
+#
+# Some `sys` dict variables (like `sys.ipv4`) are also accessible as string, for example:
+#
+# * `${sys.ipv4}` gives `54.32.12.4`
+# * `$[sys.ipv4[ethO]}` gives `54.32.12.4`
+# * `$[sys.ipv4[eth1]}` gives `10.45.3.2`
+#
+# These variables are not accessible as dict in the templating data, but are represented as
+# string:
+#
+# * `ipv4` is a string variable in the `sys` dict with value `54.32.12.4`
+# * `ipv4[ethO]` is a string variable in the `sys` dict with value `54.32.12.4`
+# * `ipv4` is not accessible as a dict in the template
+#
+# To access these value, use the following syntax in your jinja2 templates:
+#
+# ```
+# vars.sys['ipv4[eth0]']
+# ```
+#
+# @parameter source_template Source file containing a template to be expanded (absolute path on the target node)
+# @parameter path            Destination file (absolute path on the target node)
+#
+#
+# @parameter_rename destination path
+# @class_prefix file_from_template
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_from_template_jinja2(source_template, path)
+{
+
+  vars:
+
+      "old_class_prefix"  string => canonify("file_from_template_${path}");
+
+      "args"              slist  => { "${source_template}", "${path}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_from_template_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      "jinja2_script"     string => "${sys.workdir}/modules/templates/jinja2-templating.py";
+      "datastate_tpl"     string => "${sys.workdir}/modules/templates/datastate.json.tpl";
+      "datastate_file"    string => "${source_template}.datastate.${this.promiser_pid}.json";
+      "destination_canon" string => canonify("${path}");
+      "destination_tmp"   string => "${source_template}.${this.promiser_pid}.new";
+
+
+      "full_inner_class_prefix" string => canonify("file_copy_from_local_source_${destination_tmp}_${path}");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+
+      # Here we put the output into the errors variable. As the stdout is sent to a file, the output is only stderr,
+      # and can be used to check for errors.
+      "errors" string => execresult("${jinja2_script} --strict \"${source_template}\" \"${datastate_file}\" > \"${destination_tmp}\"", "useshell"),
+                   if => "state_dumped_${destination_canon}_ok._have_python";
+
+      # If no python is available, it is an error
+      "errors" string => "There are no Python available on this system",
+                   if => "!_have_python";
+
+  classes:
+      # If the stderr of the python templating command was empty, we consider that the templating succeeded.
+      "templating_ok" expression => strcmp("${errors}", "");
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+      "should_report"    expression => "${report_data.should_report}";
+
+  files:
+    _have_python::
+      # We can't use the generic method here because we want to avoid file backups
+      "${datastate_file}"
+        template_method => "mustache",
+        create          => "true",
+        edit_template   => "${datastate_tpl}",
+        edit_defaults   => no_backup,
+        classes         => classes_generic("state_dumped_${destination_canon}");
+
+  methods:
+      "disable_reporting_${class_prefix}"     usebundle => disable_reporting;
+      # Use a file copy to avoid any file size limitations of CFEngine variables.
+    pass2.templating_ok::
+      "copy file_${class_prefix}"    usebundle => file_copy_from_local_source("${destination_tmp}", "${path}");
+
+      "copy classes"        usebundle => _classes_copy("file_copy_from_local_source_${destination_canon}", "${old_class_prefix}");
+      "copy new classes"    usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+
+    pass3._have_python::
+      # In non audit mode, we need to force enforce mode to remove the temp files.
+      "remove_dry_run_mode_${class_prefix}" usebundle => push_dry_run_mode("false");
+      "clean data file_${class_prefix}"     usebundle => file_absent("${datastate_file}");
+      "clean template file_${class_prefix}" usebundle => file_absent("${destination_tmp}");
+      "restore dry-run_${class_prefix}"     usebundle => pop_dry_run_mode();
+
+    pass3::
+      "failure" usebundle  => _classes_failure("${old_class_prefix}"),
+                ifvarclass => "!${old_class_prefix}_reached|!_have_python";
+      "failure" usebundle  => _classes_failure("${class_prefix}"),
+                ifvarclass => "!${class_prefix}_reached|!_have_python";
+
+      "reenable_reporting_${class_prefix}" usebundle => enable_reporting,
+                                                  if => "should_report";
+      "report"              usebundle => _log_v3("Build file ${path} from jinja2 template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args}),
+                                   if => "_have_python";
+
+      "report"              usebundle => _log_v3("No Python available. Build file ${path} from jinja2 template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args}),
+                                   if => "!_have_python";
+
+      # Report errors
+      "report" usebundle => log_rudder_mode("log_warn", "Jinja templating failed with the following error:${const.endl}${errors}", "${path}", "${class_prefix}"),
+                      if => "state_dumped_${destination_canon}_ok.!templating_ok";
+}
+

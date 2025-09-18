@@ -13,7 +13,7 @@ use crate::{
     ir::Technique,
     test::TestCase,
 };
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use askama::Template;
 use rudder_commons::{
     logs::ok_output,

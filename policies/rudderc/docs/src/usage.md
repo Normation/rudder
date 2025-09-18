@@ -8,7 +8,7 @@ It is especially important as techniques are not run as YAML, but compiled into
 an executable policy file depending on the target platform.
 There are currently two possible targets, which are the platforms Rudder has agents for:
 
-* Linux/AIX
+* Linux
 * Windows
 
 These platforms use different agent technology, but the YAML policies

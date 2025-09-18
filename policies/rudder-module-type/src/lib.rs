@@ -15,6 +15,7 @@ use crate::{cfengine::CfengineRunner, parameters::Parameters};
 pub mod cfengine;
 pub mod os_release;
 pub mod parameters;
+pub mod runner;
 
 /// Information about the module type to pass to the library
 ///
@@ -165,7 +166,9 @@ pub enum ProtocolResult {
     Error(String),
 }
 
-/// Represents a connector able to run the given module_type implementation
+/// Represents a connector able to run the given module_type implementation.
+///
+/// Version 0 is for CFEngine custom promise types.
 pub trait Runner0 {
     fn run<T: ModuleType0>(&self, module_type: T) -> Result<(), Error>;
 }
@@ -201,7 +204,11 @@ pub fn run_module<T: ModuleType0>(module_type: T) -> Result<(), Error> {
     }
 
     #[cfg(target_family = "unix")]
-    CfengineRunner::new().run(module_type)
+    CfengineRunner::new().run(module_type)?;
+    #[cfg(not(target_family = "unix"))]
+    unimplemented!("Only Unix-like systems are supported")?;
+
+    Ok(())
 }
 
 #[derive(Debug, Options)]
@@ -226,7 +233,7 @@ pub struct CliConfiguration {
 ///
 /// Some of these are also provided by the agent, but we need to be able to run in standalone mode.
 pub mod inventory {
-    use anyhow::{bail, Result};
+    use anyhow::{Result, bail};
     use rudder_commons::NODE_ID_PATH;
     use std::fs;
     use std::path::Path;
@@ -264,13 +271,13 @@ pub mod backup {
     //!
     //! Dates are all localtime.
 
+    use chrono::Locale;
+    use chrono::prelude::*;
+    use rudder_commons::canonify;
     use std::{
         fmt,
         path::{Path, PathBuf},
     };
-
-    use chrono::prelude::*;
-    use rudder_commons::canonify;
 
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]
     pub enum Backup {
@@ -304,9 +311,9 @@ pub mod backup {
                 "{}_{}_{}_{}",
                 source.to_string_lossy(),
                 now.timestamp(),
-                now.to_rfc3339(),
+                //now.to_rfc3339(),
                 // ctime as used by CFEngine, but it is locale-dependant
-                //now.format("%c"),
+                now.format_localized("%c", Locale::POSIX),
                 self
             );
             PathBuf::from(canonify(&file))
@@ -324,8 +331,12 @@ pub mod backup {
             let backup = Backup::BeforeEdit
                 .backup_file_timestamp(Path::new("/opt/rudder/etc/relayd/main.conf"), 1653943305);
             // CFEngine format
-            //assert_eq!(backup.to_string_lossy(), "_opt_rudder_etc_relayd_main_conf_1653943305_Mon_May_30_22_41_59_2022_cf_before_edit");
-            assert_eq!(backup.to_string_lossy(), "_opt_rudder_etc_relayd_main_conf_1653943305_2022_05_30T20_41_45_00_00_cf_before_edit");
+            assert_eq!(
+                backup.to_string_lossy(),
+                "_opt_rudder_etc_relayd_main_conf_1653943305_Mon_May_30_20_41_45_2022_cf_before_edit"
+            );
+            // RFC3339 format
+            //assert_eq!(backup.to_string_lossy(), "_opt_rudder_etc_relayd_main_conf_1653943305_2022_05_30T20_41_45_00_00_cf_before_edit");
         }
     }
 }

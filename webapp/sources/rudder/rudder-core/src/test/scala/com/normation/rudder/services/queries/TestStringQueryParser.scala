@@ -38,6 +38,8 @@
 package com.normation.rudder.services.queries
 
 import com.normation.rudder.domain.queries.*
+import com.normation.rudder.domain.queries.CriterionComposition.*
+import com.normation.rudder.domain.queries.QueryReturnType.*
 import com.normation.rudder.domain.queries.ResultTransformation.*
 import net.liftweb.common.*
 import org.junit.*

@@ -271,6 +271,7 @@
       "content": {
         "files.txz": "/opt/rudder/share/plugins"
       },
+      "requires-license": true,
       "files": [
         "/opt/rudder/share/plugins/",
         "/opt/rudder/share/plugins/aix/",

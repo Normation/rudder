@@ -38,8 +38,7 @@
 package bootstrap.liftweb.checks.endconfig.action
 
 import better.files.File
-import bootstrap.liftweb.checks.endconfig.action.CreateSystemToken
-import com.normation.rudder.api.ApiToken
+import com.normation.rudder.api.ApiTokenSecret
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
@@ -48,7 +47,7 @@ import org.specs2.runner.JUnitRunner
 class TestCreateSystemToken extends Specification {
 
   private val token    = "ohhcRCnPiRP67CuuxKDVMuig0AQqjKVo-system"
-  private val apiToken = ApiToken(token)
+  private val apiToken = ApiTokenSecret(token)
 
   "When writing the system tokens, we" should {
     "generate proper header and token files" in File.temporaryDirectory("rudder-test-system-token-") { tmpDir =>

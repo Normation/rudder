@@ -1,0 +1,116 @@
+#####################################################################################
+# Copyright 2018 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File from local source with check
+# @description Ensure that a file or directory is copied from a local source if a check command succeeds
+# @documentation This method is a conditional file copy.
+#
+# It allows comparing the source and destination, and if they are different, call a command
+# with the source file path as argument, and only update the destination if the commands succeeds
+# (i.e. returns a code included in rc_ok).
+#
+# #### Examples
+# 
+# ```
+# # To copy a configuration file only if it passes a config test:
+# file_from_local_source_with_check("/tmp/program.conf", "/etc/program.conf", "program --config-test", "0");
+# ```
+#
+# This will:
+#
+# * Compare `/tmp/program.conf` and `/etc/program.conf`, and return `kept` if files are the same
+# * If not, it will execute `program --config-test "/tmp/program.conf"` and check the return code
+# * If it is one of the `rc_ok` codes, it will copy `/tmp/program.conf` into `/etc/program.conf` and return a repaired
+# * If not, it will return an error
+#
+# @parameter source      Source file (absolute path on the target node)
+# @parameter path         Destination file (absolute path on the target node)
+# @parameter check_command   Command to run, it will get the source path as argument
+# @parameter rc_ok       Return codes to be considered as valid, separated by a comma (default is 0)
+# @parameter_constraint  rc_ok "allow_empty_string" : true
+#
+# 
+# @parameter_rename destination path
+# @class_prefix file_from_local_source_with_check
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_from_local_source_with_check(source, path, check_command, rc_ok)
+{
+  vars:
+      "class_prefix"         string => canonify("file_from_local_source_with_check_${path}");
+      "inner_trigger_prefix" string => canonify("${report_data.method_id}_check");
+      "inner_copy_prefix"    string => canonify("${report_data.method_id}_copy");
+
+  defaults:
+      "rc_ok"                string => "0", if_match_regex => "";
+
+  classes:
+    agent::
+      "destination_exists" expression => fileexists("${path}");
+      # We might need to copy if destination file exists and diff is not 0, or there's no destination file
+      "copy_needed"               not => returnszero("${paths.path[diff]} \"${source}\" \"${path}\"", "useshell"),
+                                   if => "destination_exists";
+      "copy_needed"               not => "destination_exists";
+    any::
+      # We need pass, as rc_ok may be defined after the vars
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  files:
+    pass3.copy_needed::
+      "${path}"
+        copy_from => ncf_local_cp_method("${source}", "digest"),
+        classes   => classes_generic("${inner_copy_prefix}"),
+               if => "${inner_trigger_prefix}_true";
+
+  methods:
+    pass2.!copy_needed::
+      # Success if the copy is already correct
+      "result" usebundle => _classes_success("${report_data.method_id}");
+      "result" usebundle => _classes_success("${class_prefix}");
+
+    pass1.!pass2.copy_needed::
+      # Run the trigger command if the file differs
+      "${report_data.method_id}" usebundle => call_method("condition_from_command");
+      "${report_data.method_id}" usebundle => condition_from_command("${inner_trigger_prefix}", "${check_command} \"${source}\"", "${rc_ok}", "999");
+      "${report_data.method_id}" usebundle => call_method_end("condition_from_command");
+
+    pass3.copy_needed::
+      # here we are not using file_from_local_source_with_check_${path}_check_false as we want to allow any return code
+      # which is different from rc_ok as failure.
+      # If the check passed, the result conditions are exactly the one from the copy
+      "failure"  usebundle => _classes_failure("${report_data.method_id}"),
+                      if => or(not("${inner_trigger_prefix}_true"),
+                               "${inner_copy_prefix}_error");
+      "repaired" usebundle => _classes_repaired("${report_data.method_id}"),
+                      if => and("${inner_copy_prefix}_repaired",
+                                not("${inner_copy_prefix}_error"));
+      "success"  usebundle => _classes_success("${report_data.method_id}"),
+                      if => and("${inner_copy_prefix}_kept",
+                                not("${inner_copy_prefix}_repaired"),
+                                not("${inner_copy_prefix}_error"));
+      "result" usebundle => _classes_copy("${report_data.method_id}", "${class_prefix}");
+
+    pass3::
+      "report" usebundle => log_rudder_v4("${path}", "Copying ${path} from local ${source} failed at check command", ""),
+                      if => "copy_needed.!${inner_trigger_prefix}_true";
+      "report" usebundle => log_rudder_v4("${path}", "Copying ${path} from local ${source} with check", ""),
+                      if => not("copy_needed.!${inner_trigger_prefix}_true");
+}

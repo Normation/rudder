@@ -9,16 +9,16 @@ use std::{
     path::PathBuf,
 };
 
-use anyhow::{anyhow, bail, Context, Ok, Result};
+use anyhow::{Context, Ok, Result, anyhow, bail};
 use ar::Archive;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
 use crate::{
+    DONT_RUN_POSTINST_ENV_VAR, PACKAGE_SCRIPTS_ARCHIVE, PACKAGES_FOLDER,
     database::{Database, InstalledPlugin},
     plugin::Metadata,
     webapp::Webapp,
-    DONT_RUN_POSTINST_ENV_VAR, PACKAGES_FOLDER, PACKAGE_SCRIPTS_ARCHIVE,
 };
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug, Clone, Copy)]
@@ -90,7 +90,7 @@ impl Rpkg {
         if txz_name == PACKAGE_SCRIPTS_ARCHIVE {
             return PathBuf::from(PACKAGES_FOLDER).join(self.metadata.name.clone());
         }
-        return PathBuf::from(self.metadata.content.get(txz_name).unwrap().to_string());
+        PathBuf::from(self.metadata.content.get(txz_name).unwrap().to_string())
     }
 
     fn get_archive_installed_files(&self) -> Result<Vec<String>> {
@@ -193,12 +193,18 @@ impl Rpkg {
         let is_upgrade = self.is_installed(db);
         // Verify webapp compatibility
         if !webapp.version.is_compatible(&self.metadata.version) && !force {
-            bail!("This plugin was built for a Rudder '{}', it is incompatible with your current webapp version '{}'.", self.metadata.version.rudder_version, webapp.version)
+            bail!(
+                "This plugin was built for a Rudder '{}', it is incompatible with your current webapp version '{}'.",
+                self.metadata.version.rudder_version,
+                webapp.version
+            )
         }
         // Verify that dependencies are installed
         if let Some(d) = &self.metadata.depends {
             if !(force || d.are_installed()) {
-                bail!("Some dependencies are missing, install them before trying to install the plugin.")
+                bail!(
+                    "Some dependencies are missing, install them before trying to install the plugin."
+                )
             }
         }
 
@@ -364,8 +370,9 @@ mod tests {
     #[test]
     fn test_extract_broken_archive() {
         let r = Rpkg::from_path("./tests/archive/broken-archive.rpkg").unwrap();
-        assert!(r
-            .unpack_embedded_txz("files.txz", tempdir().unwrap().into_path())
-            .is_err());
+        assert!(
+            r.unpack_embedded_txz("files.txz", tempdir().unwrap().into_path())
+                .is_err()
+        );
     }
 }

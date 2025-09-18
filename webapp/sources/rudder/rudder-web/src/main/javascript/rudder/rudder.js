@@ -375,6 +375,8 @@ $(document).ready(function() {
   sidebarControl();
   // Init tooltips
   initBsTooltips();
+  // Init and check tab states
+  initAndCheckTabs();
 
   // Hide any open tooltips when the anywhere else in the body is clicked
   $('body').on('click', function (e) {
@@ -429,17 +431,17 @@ function parseSearchHash(queryCallback) {
 }
 
 function updateHashString(key, value) {
-  var hash = parseURLHash();
+  const hash = parseURLHash();
   hash[key] = value;
-  var baseUrl = window.location.href.split('#')[0];
+  const baseUrl = window.location.href.split('#')[0];
   window.location.replace(baseUrl + '#' + JSON.stringify(hash));
 }
 
-function directiveOverridenTooltip(explanation){
+function directiveOverriddenTooltip(explanation){
   var tooltip = "" +
     "<h4>Directive Skipped</h4>" +
-    "<div class='tooltip-content policy-mode overriden'>"+
-    "<p>This directive is skipped because it is overriden by an other one here.</p>"+
+    "<div class='tooltip-content policy-mode overridden'>"+
+    "<p>This directive is skipped because it is overridden by an other one here.</p>"+
     "<p>"+ explanation +"</p>"+
     "</div>";
   return tooltip;
@@ -472,8 +474,8 @@ function createBadgeAgentPolicyMode(elmnt, currentPolicyMode, explanation){
   var span = "<span class='rudder-label label-sm "+ labelType +"' data-bs-toggle='tooltip' data-bs-placement='top' title=''></span>";
   var badge = $(span).get(0);
   var tooltip = null;
-  if(currentPolicyMode == "overriden") {
-    tooltip = directiveOverridenTooltip(explanation);
+  if(currentPolicyMode == "overridden") {
+    tooltip = directiveOverriddenTooltip(explanation);
   } else {
     tooltip = policyModeTooltip(elmnt, policyMode, explanation);
   }
@@ -633,7 +635,7 @@ function callRemoteRun(nodeId, refreshCompliance) {
     url: contextPath + "/secure/api/nodes/" + nodeId + "/applyPolicy" ,
     contentType: "application/json; charset=utf-8",
     success: function (response, status, jqXHR) {
-        $("#visibilityOutput").addClass("btn-default").html("Show output").append('&nbsp;<i class="fa fa-check fa-lg fa-check-custom"></i>');
+        $("#visibilityOutput").addClass("btn-default").html("Show output").append('&nbsp;<i class="fa fa-check fa-check-custom"></i>');
         $("#report").html('<pre>' + escapeHTML(response) + '</pre>');
         $("#report").addClass("border-success");
         $("#visibilityOutput").show();
@@ -659,7 +661,7 @@ function callRemoteRun(nodeId, refreshCompliance) {
         $iconButton.addClass("fa fa-play");
         $( "#triggerBtn" ).prop('disabled', null).blur();
         $textAction.html("Trigger agent");
-        $("#visibilityOutput").addClass("btn-default").html("Show error").append('&nbsp;<i class="fa fa-times fa-lg fa-times-custom"></i>');
+        $("#visibilityOutput").addClass("btn-default").html("Show error").append('&nbsp;<i class="fa fa-times fa-times-custom"></i>');
         $("#report").remove("pre").html('<div class="alert alert-danger error-trigger" role="alert">' + '<b>' +jqXHR.status + ' - ' + errorThrown +'</b>' +'<br>' + jqXHR.responseText  + '</div>');
         $("#report").addClass("border-fail");
         $("#visibilityOutput").show();
@@ -782,14 +784,14 @@ function setupMarkdown(initialValue, id) {
 }
 
 function togglePreview(target, id) {
-  $("#"+ id + "MarkdownPreviewContainer").toggleClass("visually-hidden");
+  $("#"+ id + "MarkdownPreviewContainer").toggleClass("d-none");
   $(target).toggleClass('fa-eye-slash fa-eye');
   $('#'+ id).toggleClass('col-xs-6 col-xs-12');
 }
 
 function toggleMarkdownEditor(id) {
-  $("#"+ id + "Container").toggleClass("visually-hidden");
-  $("#"+ id + "MarkdownContainer").toggleClass("visually-hidden");
+  $("#"+ id + "Container").toggleClass("d-none");
+  $("#"+ id + "MarkdownContainer").toggleClass("d-none");
 }
 
 function toggleOpacity(target) {
@@ -800,7 +802,7 @@ function navScroll(event, target, container){
   if(event) event.preventDefault();
   var container       = $(container);
   var target          = $(target);
-  var paddingTop      = 10; // Substract padding-top of the container
+  var paddingTop      = 20; // Substract padding-top of the container
   var anchorDiff      = 20; // Used to trigger the scrollSpy feature
   var containerOffset = container.offset().top;
   var targetOffset    = target.offset().top - paddingTop;
@@ -812,11 +814,12 @@ function navScroll(event, target, container){
   return false;
 }
 
-function buildScrollSpyNav(){
-    $("#navbar-scrollspy > ul").html("");
+function buildScrollSpyNav(navbarId, containerId){
+    const navbarUl = "#" + navbarId + " > ul";
+    $(navbarUl).html("");
     var linkText, tmp, link, listItem;
     var regex = /[^a-z0-9]/gmi
-    $(".page-title, .page-subtitle").each(function(){
+    $("#"+containerId).find(".page-title, .page-subtitle").each(function(){
       linkText = $(this).text();
       tmp      = linkText.replace(regex, "-");
       $(this).attr('id', tmp);
@@ -824,9 +827,9 @@ function buildScrollSpyNav(){
       listItem = $("<li>");
       var targetLink = '#'+tmp;
       var subClass = $(this).hasClass("page-subtitle") ? "subtitle" : ""
-      link.attr("href","#"+tmp).text(linkText).addClass(subClass).on('click',function(event){navScroll(event, targetLink, '.main-details')});
+      link.attr("href","#"+tmp).text(linkText).addClass(subClass).on('click',function(event){navScroll(event, targetLink, ".main-details[data-bs-spy='scroll']")});
       listItem.addClass("nav-item").append(link);
-      $("#navbar-scrollspy > ul").append(listItem);
+      $(navbarUl).append(listItem);
     });
 }
 
@@ -909,15 +912,67 @@ function hideBsModal(modalName){
   if(modal === null || modal === undefined) return false;
   modal.hide();
 }
-function initBsTabs(){
-  var triggerTabList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tab"]'));
+function initBsTabs(isJsonHash = false, adjustNodeTables = false){
+  const triggerTabList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tab"]'));
   triggerTabList.forEach(function (triggerEl) {
-    var tabTrigger = new bootstrap.Tab(triggerEl);
+    const tabTrigger = new bootstrap.Tab(triggerEl);
+
     triggerEl.addEventListener('click', function (event) {
-      event.preventDefault()
-      tabTrigger.show()
+      event.preventDefault();
+      tabTrigger.show();
+      const newHash = this.getAttribute("data-bs-target");
+
+      if (isJsonHash) {
+        updateHashString("tab",newHash);
+      }else{
+        history.replaceState(undefined, undefined, newHash);
+      }
+
+      if (adjustNodeTables) {
+        $("#nodes, #serverGrid").DataTable({"retrieve": true}).columns.adjust().draw();
+      }
+      return false;
     });
-});
+  });
+}
+
+function waitForElement(selector) {
+  return new Promise((resolve) => {
+    const observer = new MutationObserver((mutations, observer) => {
+      const element = document.querySelector(selector);
+      if (element) {
+        observer.disconnect();
+        resolve(element);
+      }
+    });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+  });
+}
+
+function initAndCheckTabs(){
+  const isNodePage = window.location.pathname.includes("nodeManager/nodes");
+
+  initBsTabs(isNodePage, isNodePage);
+  let hash = window.location.hash;
+
+  // If the anchor corresponds to a tab ID then this tab is opened automatically,
+  // else nothing happens
+  if (hash === "") return false;
+
+  // An exception is made for the for the Nodes page,
+  // which uses the anchor to store the search query AND the tab ID in a json object.
+  if (isNodePage) {
+    let tab = parseURLHash().tab;
+    if (tab === undefined) return false;
+    hash = tab;
+  }
+  const tabSelector = '[data-bs-target="' + hash + '"]';
+  waitForElement(tabSelector).then((tab) => {
+    bootstrap.Tab.getInstance(tab).show();
+  });
 }
 
 function copy(value) {

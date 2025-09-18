@@ -1,0 +1,57 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File block in section
+# @description Ensure that a section contains exactly a text block
+# @documentation Ensure that a section contains exactly a text block.
+# A section is delimited by a header and a footer.
+# * If the section exists, its content will be replaced if needed
+# * Otherwise it will be created at the end of the file
+#
+# @parameter path File name to edit (absolute path on the target node)
+# @parameter section_start Start of the section
+# @parameter section_end End of the section
+# @parameter block Block representing the content of the section
+#
+#
+# @parameter_rename file path
+# @class_prefix file_block_present_in_section
+# @class_parameter path
+# @agent_support = ["cfengine-community"]
+
+bundle agent file_block_present_in_section(path, section_start, section_end, block)
+{
+  vars:
+      "old_class_prefix" string => canonify("file_block_present_in_section_${path}");
+      "args"              slist => { "${path}", "${section_start}", "${section_end}", "${block}" };
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_block_present_in_section_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+  files:
+      "${path}"
+        create        => "true",
+        edit_line     => ncf_ensure_section_content_type("${section_start}", "${section_end}", "${block}", "preserve_block"),
+        edit_defaults => ncf_empty_select("false"),
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+
+  methods:
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
+      "report"   usebundle => _log_v3("Insert text block into ${path}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

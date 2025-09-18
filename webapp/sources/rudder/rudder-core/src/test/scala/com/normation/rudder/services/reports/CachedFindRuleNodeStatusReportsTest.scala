@@ -49,8 +49,6 @@ import com.normation.rudder.domain.reports.RunComplianceInfo
 import com.normation.rudder.facts.nodes.CoreNodeFact
 import com.normation.rudder.facts.nodes.CoreNodeFactRepository
 import com.normation.rudder.facts.nodes.NodeFact
-import com.normation.rudder.facts.nodes.NoopFactStorage
-import com.normation.rudder.facts.nodes.NoopGetNodesBySoftwareName
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -59,7 +57,6 @@ import com.normation.rudder.services.reports.CacheComplianceQueueAction.Expected
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.ExpiredCompliance
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.UpdateCompliance
 import com.normation.rudder.services.reports.CacheExpectedReportAction.InsertNodeInCache
-import com.normation.rudder.tenants.DefaultTenantService
 import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import org.joda.time.DateTime
@@ -148,9 +145,8 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     val testSavePrechecks = Chunk.empty[NodeFact => IOResult[Unit]]
 
     (for {
-      t <- DefaultTenantService.make(Nil)
       r <- CoreNodeFactRepository
-             .make(NoopFactStorage, NoopGetNodesBySoftwareName, t, Map(), accepted, Chunk.empty, testSavePrechecks)
+             .makeNoop(accepted, savePreChecks = testSavePrechecks)
       x <- Ref.make(Map[NodeId, NodeStatusReport]())
       s  = new InMemoryNodeStatusReportStorage(x)
     } yield (r, new NodeStatusReportRepositoryImpl(s, x))).runNow
@@ -244,10 +240,10 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     // these one are not expired (but false)
     val okId = finder.reports.keySet
 
-    (n1 must beEqualTo(Map())) and
-    (n2 must beEqualTo(finder.reports.filter(x => okId.contains(x._1)))) and
+    n1 must beEqualTo(Map())
+    n2 must beEqualTo(finder.reports.filter(x => okId.contains(x._1)))
     // second time, only the node with changing status (pending and compute) are invalidated
-    (finder.updated.size must beEqualTo(9 + 2))
+    finder.updated.size must beEqualTo(9 + 2)
   }
 
   "When run are expired but we keep compliance, we keep compliance in repo" >> {
@@ -313,9 +309,9 @@ class CachedFindRuleNodeStatusReportsTest extends Specification {
     // let a chance for zio to exec again to find back expired
     Thread.sleep(1000)
 
-    (n1 must beEqualTo(Map())) and
-    (n2 must beEqualTo(finder.reports)) and
-    (finder.updated.size must beEqualTo(9)) // second time, only expired are invalidate: none here
+    n1 must beEqualTo(Map())
+    n2 must beEqualTo(finder.reports)
+    finder.updated.size must beEqualTo(9) // second time, only expired are invalidate: none here
   }
 
   "Ensure that actions are grouped by type name " >> {

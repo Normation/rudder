@@ -1,0 +1,290 @@
+#####################################################################################
+# Copyright 2016 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# The dry-run lib is based on classes, so you need to control the environment of promises to
+# set the dry-run mode.
+# To enable the dry-run mode after some point in the execution flow, call set_dry_run_mode("true")
+# and to reset the dry-run mode to the default (which is disabled), call
+# set_dry_run_mode("false"). This is best used within a methods section,
+# because you can control execution flow easily.
+#
+# A real example should look like:
+#
+# ```
+# methods:
+#   "enable dry-run"  usebundle => set_dry_run_mode("true");
+#   "dry-run part"    usebundle => package_present("htop");
+#   "disable dry-run" usebundle => set_dry_run_mode("false");
+# ```
+#
+# When trying to enable dry-run on systems that do not support the dry-run lib,
+# the agent will abort execution to avoid making unwanted changes.
+#
+# There is a push/pop mechanism for dry-run mode.
+# This mechanism is meant to be used in generic methods when a specific mode is required temporarily
+# but the original mode must be restored afterwards.
+#
+# A real example should look like:
+#
+# ```
+# methods:
+#   "enable dry-run"  usebundle => push_dry_run_mode("true");
+#   "dry-run part"    usebundle => package_present("htop");
+#   "restore dry-run" usebundle => pop_dry_run_mode();
+# ```
+#
+# Be careful that modes must be popped as many times as pushed.
+# If a pop without push is detected, the agent will abort execution to avoid making unwanted changes.
+#
+# There are alternate ways to control the dry-run mode, but they are less safe
+# and should be used with caution.
+#  - set the global_dry_run class (this one is never set by ncf)
+# If you use one of those and not call the set_dry_run_mode bundle,
+# the dry-run mode will be ignore on incompatible systems and will lead to enforce
+# policies supposed to only be in dry-run mode.
+#
+# WARNING:
+# WARNING: Be careful to have a different promiser content for each call to this method!
+# WARNING:
+# WARNING: The bodies defined here are used when no action body is specified in a promise.
+# WARNING: All ncf action bodies check the two global dry-run classes and prevent any modification
+# WARNING: when one of them if defined. This also means that:
+# WARNING:
+# WARNING: * You need to check for them in all of your custom bodies
+# WARNING: * promise type specific dry-run is NOT considered by action bodies, and will be overridden
+# WARNING:   when using any action body.
+# WARNING:
+#
+# @parameter mode   The dry-run mode, "true" to enable dry-run-mode and "false" to disable it
+# 
+
+bundle agent set_dry_run_mode(mode)
+{
+  vars:
+    # this is a way to remove the class without side effect
+    pass2.unset_mode::
+      "ignored" string        => "",
+                      classes => if_ok_cancel("dry_run");
+
+  classes:
+      # double negation, so that the default is dry_run (in case of error)
+      "unset_mode" expression => strcmp("${mode}", "false");
+      "pass2" expression      => "pass1";
+      "pass1" expression      => "any";
+
+    pass2.!unset_mode::
+      "dry_run" expression    => "any", scope => "namespace";
+  
+  reports:
+    pass2.debug.unset_mode::
+      "${configuration.debug} Disabling dry-run mode";
+    pass2.debug.!unset_mode::
+      "${configuration.debug} Enabling dry-run mode";
+}
+
+bundle agent set_dry_run_mode_true 
+{
+  methods:
+    "set dry run mode true" usebundle => set_dry_run_mode("true");
+}
+
+bundle agent set_dry_run_mode_false
+{
+  methods:
+    "set dry run mode false" usebundle => set_dry_run_mode("false");
+}
+
+# Storage bundle for push/pop is named `dry_run_unique`
+#
+# It must never be called directly as it would trigger an error or reset
+# content based on CFEngine version.
+
+# This bundle initializes the context for push/pop
+# It is called in 10_ncf_internals/initialization.cf
+bundle agent dry_run_initialization
+{
+  vars:
+      # designed to be incremented when a global unique ID is needed
+      "dry_run_unique.value" string => "1";
+      # stack of dry_run modes
+      "dry_run_unique.stack" slist  => {};
+}
+
+# Push current dry-run mode to the stack and set a new mode instead.
+# You must call pop_dry_run_mode later to retrieve it.
+bundle agent push_dry_run_mode(mode)
+{
+  vars:
+    dry_run::
+      "last_mode" string => "true";
+    !dry_run::
+      "last_mode" string => "false";
+    # pass3 because this must be evaluated exactly only once
+    pass3::
+      # this value is used as a unique value in the set_dry_run_mode promiser
+      "dry_run_unique.value" string => eval("${dry_run_unique.value}+1", "math", "infix");
+      # copy the full slist but disable convergence detection
+      "stack" slist => sublist("dry_run_unique.stack", "head", "99999");
+      # push the old value to the stack
+      "dry_run_unique.stack" slist => { "${last_mode}", @{stack}};
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass3::
+      "set_mode_to ${dry_run_unique.value}" usebundle => set_dry_run_mode("${mode}");
+}
+
+# Pop dry-run mode from the stack to current dry-run mode.
+# Warning: push and pop must match otherwise bad things may happen
+#          if a pop occurs when the stack is empty, an abort class will be raised.
+bundle agent pop_dry_run_mode()
+{
+  vars:
+    # pass3 because this must be evaluated exactly only once
+    pass3::
+      # this value is used as a unique value in the set_dry_run_mode promiser
+      "dry_run_unique.value" string => eval("${dry_run_unique.value}+1", "math", "infix");
+      # get first value in the stack
+      "mode" string => nth("dry_run_unique.stack", 0);
+      # compute stack length minus 1
+      "stack_len" int => length("dry_run_unique.stack");
+      "new_len_float" string => eval("${stack_len}-1", "math", "infix");
+      "new_len" string => format("%d", "${new_len_float}");
+      # remove first value
+      "dry_run_unique.stack" slist => sublist("dry_run_unique.stack", "tail", "${new_len}");
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+      # initial stack length must have at least one element
+      "empty_stack" expression => islessthan("${stack_len}", "1");
+
+  methods:
+    empty_stack::
+      "abort" usebundle => _abort("BUG in dry-run stack", "pop_dry_run_mode was called more times than push_dry_run_mode. Stopping immediately to prevent any unwanted behaviour."),
+                action  => immediate_ignore_dry_run;
+    pass3::
+      "set_mode_to ${dry_run_unique.value}" usebundle => set_dry_run_mode("${mode}");
+}
+
+###############################################################################
+# Body that can enable dry-run with a promise type granularity.
+# We don't put some promise type here because they should not be dry run.
+# They are:
+#  - meta
+#  - vars
+#  - defaults
+#  - classes
+#  - methods
+#  - reports
+#  - edit_line, as the files already does the dry-run (see 18451)
+#  - ... and all promise types that are not for the agent
+###############################################################################
+
+body file control
+{
+   namespace => "bodydefault";
+}
+
+# Actions that can be dry run
+# (for some reason, we cannot inherit_from a default body)
+
+# in bundle agent
+
+body action users_action
+{
+  dry_run|global_dry_run::  
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action files_action
+{
+  dry_run|global_dry_run::  
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action packages_action
+{
+  dry_run|global_dry_run::  
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action guest_environments_action
+{
+  dry_run|global_dry_run::  
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action processes_action
+{
+  dry_run|global_dry_run::  
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action services_action
+{
+  dry_run|global_dry_run::  
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action commands_action
+{
+  dry_run|global_dry_run::  
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action storage_action
+{
+  dry_run|global_dry_run::  
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action databases_action
+{
+  dry_run|global_dry_run::  
+    action_policy => "warn";
+  !(dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body file control
+{
+    namespace => "default";
+}

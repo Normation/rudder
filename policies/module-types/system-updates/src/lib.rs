@@ -13,19 +13,19 @@ pub mod state;
 pub mod system;
 
 use crate::{
-    campaign::{RunnerParameters, RETENTION_DAYS},
+    campaign::{RETENTION_DAYS, RunnerParameters},
     cli::Cli,
     db::PackageDatabase,
     package_manager::PackageManager,
     runner::Runner,
     system::{System, Systemd},
 };
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use chrono::{DateTime, Duration, Utc};
 use package_manager::PackageSpec;
 use rudder_module_type::{
-    cfengine::called_from_agent, parameters::Parameters, rudder_debug, run_module,
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, PolicyMode, ValidateResult,
+    cfengine::called_from_agent, parameters::Parameters, rudder_debug, run_module,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -181,7 +181,10 @@ impl ModuleType0 for SystemUpdateModule {
 
 /// Start runner
 pub fn entry() -> Result<(), anyhow::Error> {
-    env::set_var("LC_ALL", "C");
+    // SAFETY: The module is single-threaded.
+    unsafe {
+        env::set_var("LC_ALL", "C");
+    }
 
     if called_from_agent() {
         run_module(SystemUpdateModule::new())

@@ -2,6 +2,8 @@ module Accounts exposing (..)
 
 import Accounts.ApiCalls exposing (..)
 import Accounts.DataTypes as TenantMode exposing (..)
+import Accounts.DataTypes as Token exposing (..)
+import Accounts.DataTypes as TokenState exposing (..)
 import Accounts.DatePickerUtils exposing (..)
 import Accounts.Init exposing (..)
 import Accounts.JsonDecoder exposing (decodeErrorDetails)
@@ -9,19 +11,13 @@ import Accounts.JsonEncoder exposing (encodeAccountTenants, encodeTokenAcl)
 import Accounts.View exposing (view)
 import Accounts.ViewUtils exposing (..)
 import Browser
-import Dict
-import Dict.Extra
-import Http exposing (..)
 import Http.Detailed as Detailed
-import Json.Encode exposing (..)
-import List.Extra
 import Random
 import Result
 import SingleDatePicker exposing (Settings, TimePickerVisibility(..), defaultSettings, defaultTimePickerSettings)
-import Task
-import Time exposing (Month(..), Posix, Zone)
 import Time.Extra as Time exposing (Interval(..), add)
 import UUID
+import Maybe.Extra
 
 
 
@@ -87,7 +83,7 @@ update msg model =
                 editAccount =
                     case modalState of
                         NewAccount ->
-                            Just (Account "" "" "" "rw" "" True "" "" "" True (Just expDate) Nothing TenantMode.AllAccess Nothing)
+                            Just (Account "" "" "" "rw" "" True "" TokenState.GeneratedV2 (Just Token.Hashed) Nothing (ExpireAtDate expDate) Nothing TenantMode.AllAccess Nothing)
 
                         EditAccount a ->
                             Just a
@@ -124,28 +120,10 @@ update msg model =
                         accounts =
                             apiResult.accounts
 
-                        aclPluginEnabled =
-                            apiResult.aclPluginEnabled
 
-                        tenantsPluginEnabled =
-                            apiResult.tenantsPluginEnabled
-
-                        initAclPlugin =
-                            if aclPluginEnabled && not modelUi.pluginAclInit then
-                                initAcl ""
-
-                            else
-                                Cmd.none
-
-                        initTenantsPlugin =
-                            if apiResult.tenantsPluginEnabled && not modelUi.pluginTenantsInit then
-                                initTenants ""
-
-                            else
-                                Cmd.none
                     in
-                    ( { model | accounts = accounts, aclPluginEnabled = aclPluginEnabled, tenantsPluginEnabled = tenantsPluginEnabled, ui = { modelUi | loadingAccounts = False, pluginAclInit = True, pluginTenantsInit = True } }
-                    , Cmd.batch [ initTooltips "", initAclPlugin, initTenantsPlugin ]
+                    ( { model | accounts = accounts, ui = { modelUi | loadingAccounts = False, pluginAclInit = True, pluginTenantsInit = True } }
+                    , Cmd.batch [ initTooltips "" ]
                     )
 
                 Err err ->
@@ -162,7 +140,7 @@ update msg model =
                 (modalState, action) =
                     case ui.modalState of
                         NewAccount ->
-                            ( CopyToken account.token
+                            ( CopyToken (exposeToken account.token)
                             , "created"
                             )
 
@@ -192,7 +170,7 @@ update msg model =
                             )
 
                         Regenerate ->
-                            ( CopyToken account.token
+                            ( CopyToken (exposeToken account.token)
                             , "regenerated token of"
                             )
 
@@ -292,18 +270,16 @@ update msg model =
 
                         Just a ->
                             let
-                                newTime =
-                                    case maybeNewTime of
-                                        Just t ->
-                                            Just t
-
-                                        Nothing ->
-                                            a.expirationDate
-
                                 newAccount =
-                                    Just { a | expirationDate = newTime }
+                                    maybeNewTime
+                                        |> Maybe.map (setIfExpireAtDate >> updateExpirationPolicy)
+                                        |> Maybe.Extra.unpack (\_ -> a) (\f -> f a)
+
+                                newTime =
+                                        expirationDate newAccount.expirationPolicy
+
                             in
-                            { model | ui = { ui | datePickerInfo = { datePicker | picker = newPicker, pickedTime = newTime } }, editAccount = newAccount }
+                            { model | ui = { ui | datePickerInfo = { datePicker | picker = newPicker, pickedTime = newTime } }, editAccount = Just newAccount }
             in
             ( newModel, Cmd.none )
 

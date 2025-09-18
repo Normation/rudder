@@ -68,8 +68,7 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
   private val userCache = {
     Ref
       .make(Map.empty[String, Int])
-      .map(ref => {
-
+      .map { ref =>
         userDetailListProvider.registerCallback(
           RudderAuthorizationFileReloadCallback(
             "user-session-invalidation",
@@ -80,7 +79,7 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
         )
 
         ref
-      })
+      }
       .runNow
   }
 
@@ -94,45 +93,49 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
         val userDetails = auth.getPrincipal
         userDetails match { // we should only do session invalidation in specific cases : status is disabled/deleted, user is unknown
           case user: RudderUserDetail =>
-            val username   = user.getUsername
-            val cachedUser = userCache.get.map(_.get(username)).runNow
+            val username = user.getUsername
             implicit val userDetail: RudderUserDetail = user
-
-            (cachedUser match {
-              case checkUser(reason) =>
-                val endSessionReason = s"Session invalidated because ${reason}"
-                IOResult.attempt {
-                  session.invalidate()
-                  response.sendRedirect(request.getContextPath)
-                }
-                  .foldZIO(
-                    {
-                      case SystemError(_, _: IllegalStateException) =>
+            (userCache.get
+              .map(_.get(username))
+              .flatMap {
+                case checkUser(reason) =>
+                  val endSessionReason = s"Session invalidated because ${reason}"
+                  IOResult.attempt {
+                    session.invalidate()
+                    response.sendRedirect(request.getContextPath)
+                  }
+                    .foldZIO(
+                      {
+                        case SystemError(_, _: IllegalStateException) =>
+                          ApplicationLoggerPure.info(
+                            s"User session for user '${username}' is already invalidated because : ${reason}"
+                          )
+                        case err                                      =>
+                          err
+                            .copy(msg = {
+                              s"User session for user '${username}' could not be invalidated for reason : ${reason}. " +
+                              s"Please contact Rudder developers with the following explanation : ${err.fullMsg}"
+                            })
+                            .fail
+                      },
+                      _ => {
+                        userRepository.logCloseSession(
+                          user.getUsername,
+                          DateTime.now,
+                          endSessionReason
+                        ) *>
                         ApplicationLoggerPure.info(
-                          s"User session for user '${username}' is already invalidated because : ${reason}"
+                          s"User session for user '${username}' is invalidated because : ${reason}"
                         )
-                      case err                                      =>
-                        err
-                          .copy(msg = {
-                            s"User session for user '${username}' could not be invalidated for reason : ${reason}. " +
-                            s"Please contact Rudder developers with the following explanation : ${err.fullMsg}"
-                          })
-                          .fail
-                    },
-                    _ => {
-                      userRepository.logCloseSession(
-                        user.getUsername,
-                        DateTime.now,
-                        endSessionReason
-                      ) *>
-                      ApplicationLoggerPure.info(
-                        s"User session for user '${username}' is invalidated because : ${reason}"
-                      )
-                    }
-                  )
-              case _                 =>
-                IOResult.attempt(filterChain.doFilter(request, response))
-            }).runNow
+                      }
+                    )
+                case _                 =>
+                  // here, we absolutely need nonBlocking, else the with a blocking IO, we yield a new thread and
+                  // at least in ZIO 2.1.12, the thread local context is lost.
+                  IOResult.nonBlocking(filterChain.doFilter(request, response))
+
+              })
+              .runNow
           case _ => ()
         }
       } else {
@@ -168,8 +171,8 @@ class UserSessionInvalidationFilter(userRepository: UserRepository, userDetailLi
   }
 
   /**
-    * New user that is logging in from an external provider (other than file) needs 
-    * to be added or updated in the cache independently from the cache refresh workflow :
+    * New user that is logging in from an external provider (other than file) needs
+    * to be added or updated in the cache independently of the cache refresh workflow :
     * the user roles are not known yet and need to be updated.
     */
   def updateUser(user: RudderUserDetail): UIO[Unit] = {
@@ -240,7 +243,7 @@ private[liftweb] object UserSessionInvalidationFilter {
     if (status.isInvalid) {
       HASH_USER_INVALID_STATUS
     } else {
-      // an user with empty roles is a safe fallback regarding security
+      // a user with empty roles is a safe fallback regarding security
       simpleHash(username, "", Set.empty)
     }
   }
@@ -248,7 +251,7 @@ private[liftweb] object UserSessionInvalidationFilter {
   /**
    * User status have to be updated from the database.
    * This also adds new users to the Ref, since their password is known.
-   * Externally provided users may be updated independently in the cache since 
+   * Externally provided users may be updated independently in the cache since
    * their password and roles are to be resolved at a specific time.
    */
   def updateUsers(

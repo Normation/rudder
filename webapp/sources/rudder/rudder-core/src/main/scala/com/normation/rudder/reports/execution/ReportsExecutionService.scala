@@ -44,7 +44,6 @@ import com.normation.rudder.batch.FindNewReportsExecution
 import com.normation.rudder.db.DB
 import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.ReportLoggerPure
-import com.normation.rudder.repository.ComplianceRepository
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.services.reports.CacheComplianceQueueAction.UpdateCompliance
 import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
@@ -66,8 +65,7 @@ class ReportsExecutionService(
     statusUpdateRepository:         LastProcessedReportRepository,
     cachedChanges:                  CachedNodeChangesServiceImpl,
     computeNodeStatusReportService: ComputeNodeStatusReportService,
-    findNewNodeStatusReports:       FindNewNodeStatusReports,
-    complianceRepos:                ComplianceRepository
+    findNewNodeStatusReports:       FindNewNodeStatusReports
 ) {
 
   val logger = ReportLogger
@@ -156,9 +154,6 @@ class ReportsExecutionService(
       _                   <- ReportLoggerPure.Cache.debug(
                                s"Invalidated and updated compliance for nodes: [${nodeWithCompliances.map(_._1.value).mkString(", ")}]"
                              )
-      _                   <- complianceRepos.saveRunCompliance(
-                               nodeWithCompliances.values.toList
-                             ) // for reporting plugin - unsure if here or in the queue
       _                   <- computeNodeStatusReportService.outDatedCompliance(new DateTime(startCompliance), nodeWithCompliances.keySet)
       _                   <-
         ReportLoggerPure.Cache.debug(

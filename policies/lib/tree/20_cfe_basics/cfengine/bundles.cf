@@ -1,0 +1,500 @@
+# Bundles
+
+bundle common bundles_common
+# @brief Enumerate policy files used by this policy file for inclusion to inputs
+{
+  vars:
+      "inputs" slist => { "$(this.promise_dirname)/paths.cf",
+                          "$(this.promise_dirname)/files.cf",
+                          "$(this.promise_dirname)/commands.cf" };
+}
+
+body file control
+# @brief Include policy files used by this policy file as part of inputs
+{
+      inputs => { @(bundles_common.inputs) };
+}
+
+###################################################
+# agent bundles
+###################################################
+
+bundle agent cronjob(commands,user,hours,mins)
+# @brief Defines a cron job for `user`
+#
+# Adds a line to crontab, if necessary.
+#
+# @param commands The commands that should be run
+# @param user The owner of crontab
+# @param hours The hours at which the job should run
+# @param mins The minutes at which the job should run
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#  "cron" usebundle => cronjob("/bin/ls","mark","*","5,10");
+# ```
+{
+  vars:
+    suse|sles::
+      "crontab" string => "/var/spool/cron/tabs";
+    redhat|fedora::
+      "crontab" string => "/var/spool/cron";
+    freebsd::
+      "crontab" string => "/var/cron/tabs";
+    !(suse|sles|redhat|fedora|freebsd)::
+      "crontab" string => "/var/spool/cron/crontabs";
+
+    any::
+      # We escape the user supplied values so that we can search to see if the
+      # entry already exists with slightly different spacing.
+      "e_mins" string => escape("$(mins)");
+      "e_hours" string => escape("$(hours)");
+      "e_commands" string => escape("$(commands)");
+
+  classes:
+    !windows::
+
+      # We tolerate existing entries that differ only in whitespace and avoid
+      # entering duplicate entries.
+
+      "present_with_potentially_different_spacing"
+        expression => regline( "^$(e_mins)\s+$(e_hours)\s+\*\s+\*\s+\*\s+$(e_commands)", "$(crontab)/$(user)");
+
+  files:
+
+    !windows.!present_with_potentially_different_spacing::
+      "$(crontab)/$(user)"
+
+      comment => "A user's regular batch jobs are added to this file",
+      create => "true",
+      edit_line => append_if_no_line("$(mins) $(hours) * * * $(commands)"),
+      perms => mo("600","$(user)"),
+      classes => if_repaired("changed_crontab");
+
+  processes:
+
+    changed_crontab::
+      "cron"
+      comment => "Most crons need to be huped after file changes",
+      signals => { "hup" };
+
+}
+
+bundle agent rm_rf(name)
+# @brief recursively remove `name` to any depth, including base
+# @depends rm_rf_depth
+# @param name the file or directory name
+#
+# This bundle will remove `name` to any depth, including `name` itself.
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#     "bye" usebundle => rm_rf("/var/tmp/oldstuff");
+# ```
+{
+  methods:
+      "rm" usebundle => rm_rf_depth($(name),"inf");
+
+}
+
+bundle agent rm_rf_depth(name,depth)
+# @brief recursively remove `name` to depth `depth`, including base
+# @depends recurse_with_base tidy all
+# @param name the file or directory name
+# @param depth how far to descend
+#
+# This bundle will remove `name` to depth `depth`, including `name` itself.
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#     "bye" usebundle => rm_rf_depth("/var/tmp/oldstuff", "100");
+# ```
+{
+  classes:
+      "isdir" expression => isdir($(name));
+  files:
+    isdir::
+      "$(name)"
+      file_select => all,
+      depth_search => recurse_with_base($(depth)),
+      delete => tidy;
+
+      "$(name)/."
+        delete => tidy;
+
+    !isdir::
+      "$(name)" delete => tidy;
+}
+
+bundle agent fileinfo(f)
+# @brief provide access to file stat fields from the bundle caller and report
+# file stat info for file "f" if "verbose_mode" class is defined
+# @param f file or files to stat
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example
+# {
+#   vars:
+#     "files" slist => { "/tmp/example1", "/tmp/example2" };
+#
+#   files:
+#     "$(files)"
+#       create => "true",
+#       classes => if_ok("verbose_mode"),
+#       comment => "verbose_mode is defined because the fileinfo bundle restricts the report of the file info to verbose mode";
+#
+#     "/tmp/example3"
+#       create => "true",
+#       classes => if_ok("verbose_mode"),
+#       comment => "verbose_mode is defined because the fileinfo bundle restricts the report of the file info to verbose mode";
+#
+#
+#   methods:
+#     "fileinfo" usebundle => fileinfo( @(files) );
+#     "fileinfo" usebundle => fileinfo( "/tmp/example3" );
+#
+#   reports:
+#     "$(this.bundle): $(files): $(fileinfo.fields) = '$(fileinfo.stat[$(files)][$(fileinfo.fields)])'";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][size])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][gid])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][uid])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][ino])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][nlink])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][ctime])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][atime])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][mtime])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][mode])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][modeoct])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][permstr])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][permoct])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][type])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][devno])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][dev_minor])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][dev_major])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][basename])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][dirname])";
+# }
+# ```
+{
+  vars:
+      "fields" slist => splitstring("size,gid,uid,ino,nlink,ctime,atime,mtime,mode,modeoct,permstr,permoct,type,devno,dev_minor,dev_major,basename,dirname,linktarget,linktarget_shallow", ",", 999);
+
+      "stat[$(f)][$(fields)]" string => filestat($(f), $(fields));
+
+  reports:
+    verbose_mode::
+      "$(this.bundle): file $(f) has $(fields) = $(stat[$(f)][$(fields)])";
+}
+
+bundle agent logrotate(log_files, max_size, rotate_levels)
+# @brief rotate specified "log_files" larger than "max_size". Keep
+# "rotate_levels" versions of the files before overwriting the oldest one
+# @depends rotate
+# @depends bigger_than
+# @param log_files single file or list of files to evaluate for rotation
+# @param max_size minimum size in bytes that the file will grow to before being rotated
+# @param rotate_levels number of rotations to keep before overwriting the oldest one
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example
+# {
+#   vars:
+#     "logdirs" slist => { "/var/log/syslog", "/var/log/maillog"};
+#
+#   methods:
+#     "logrotate" usebundle => logrotate( @(logdirs), "1M", "2" );
+#     "logrotate" usebundle => logrotate( "/var/log/mylog, "1", "5" );
+#     "logrotate" usebundle => logrotate( "/var/log/alog, "500k", "7" );
+# }
+# ```
+{
+  files:
+      "$(log_files)"
+      comment     => "Rotate file if above specified size",
+      rename      => rotate("$(rotate_levels)"),
+      file_select => bigger_than("$(max_size)"),
+      if => fileexists( $(log_files) );
+}
+
+bundle agent prunedir(dir, max_days)
+# @brief delete plain files inside "dir" older than "max_days" (not recursively).
+# @depends tidy
+# @depends recurse
+# @depends filetype_older_than
+# @param dir directory to examine for files
+# @param max_days maximum number of days old a files mtime is allowed to before deletion
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example
+# {
+#   vars:
+#     "dirs" slist => { "/tmp/logs", "/tmp/logs2" };
+#
+#   methods:
+#     "prunedir" usebundle => prunedir( @(dirs), "1" );
+# }
+# ```
+{
+  files:
+      "$(dir)"
+      comment       => "Delete plain files inside directory older than max_days",
+      delete        => tidy,
+      file_select   => filetype_older_than("plain", "$(max_days)"),
+      depth_search  => recurse("1");
+}
+
+bundle agent prunetree(dir, depth, max_days)
+# @brief Delete files and directories inside "dir" up to "depth" older than "max_days".
+# @depends delete tidy
+# @depends depth_search recurse_with_base
+# @depends file_select days_old
+# @param dir directory to examine for files
+# @param depth How many levels to descend
+# @param max_days maximum number of days old a files mtime is allowed to before deletion
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example
+# {
+#   vars:
+#     "dirs" slist => { "/tmp/logs", "/tmp/logs2" };
+#
+#   methods:
+#     "prunetree" usebundle => prunetree( @(dirs), inf, "1" );
+# }
+# ```
+{
+  files:
+      "$(dir)"
+      comment => "Delete files and directories under $(dir) up to $(depth)
+                    depth older than $(max_days)",
+
+      delete        => tidy,
+      file_select   => days_old( $(max_days) ),
+      depth_search  => recurse_with_base( $(depth) );
+
+}
+
+bundle agent url_ping(host, method, port, uri)
+# @brief ping HOST:PORT/URI using METHOD
+# @param host the host name
+# @param method the HTTP method (HEAD or GET)
+# @param port the port number, e.g. 80
+# @param uri the URI, e.g. /path/to/resource
+#
+# This bundle will send a simple HTTP request and read 20 bytes back,
+# then compare them to `200 OK.*` (ignoring leading spaces).
+#
+# If the data matches, the global class "url_ok_HOST" will be set, where
+# HOST is the canonified host name, i.e. `canonify($(host))`
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#     "check" usebundle => url_ping("cfengine.com", "HEAD", "80", "/bill/was/here");
+# reports:
+#   url_ok_cfengine_com::
+#     "CFEngine's web site is up";
+#   url_not_ok_cfengine_com::
+#     "CFEngine's web site *may* be down.  Or you're offline.";
+# ```
+{
+  vars:
+      "url_check" string => readtcp($(host),
+                                    $(port),
+                                    "$(method) $(uri) HTTP/1.1$(const.r)$(const.n)Host:$(host)$(const.r)$(const.n)$(const.r)$(const.n)",
+                                    20);
+
+      "chost" string => canonify($(host));
+
+  classes:
+      "url_ok_$(chost)"
+      scope => "namespace",
+      expression => regcmp("[^\n]*200 OK.*\n.*",
+                           $(url_check));
+
+      "url_not_ok_$(chost)"
+      scope => "namespace",
+      not => regcmp("[^\n]*200 OK.*\n.*",
+                           $(url_check));
+
+  reports:
+    verbose_mode::
+      "$(this.bundle): $(method) $(host):$(port)/$(uri) got 200 OK"
+      if => "url_ok_$(chost)";
+      "$(this.bundle): $(method) $(host):$(port)/$(uri) did *not* get 200 OK"
+      if => "url_not_ok_$(chost)";
+}
+
+bundle agent cmerge(name, varlist)
+# @brief bundle to merge many data containers into one
+# @param name the variable name to create
+# @param varlist a list of variable names (**MUST** be a list)
+#
+# The result will be in `cmerge.$(name)`.  You can also use
+# `cmerge.$(name)_str` for a string version of the merged containers.
+#
+# The name is variable so you can call this bundle for more than one
+# merge.
+#
+# If you merge a key-value map into an array or vice versa, the map
+# always wins.  So this example will result in a key-value map even
+# though `cmerge.$(name)` starts as an array.
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent run
+# {
+#   vars:
+#       # the "mymerge" tag is user-defined
+#       "a"       data  => parsejson('{ "mark": "b" }'), meta => { "mymerge" };
+#       "b"       data  => parsejson('{ "volker": "h" }'), meta => { "mymerge" };
+#
+#       # you can list them explicitly: "default:run.a" through "default:run.d"
+#       "todo"    slist => variablesmatching(".*", "mymerge");
+#
+#       # you can use cmerge.all_str instead of accessing the merged data directly
+#       "merged_str" string => format("%S", "cmerge.all");
+#
+#   methods:
+#       "go" usebundle => cmerge("all", @(todo)); # merge a, b into container cmerge.all
+#
+#   reports:
+#       "merged = $(cmerge.all_str)"; # will print a map with keys "mark" and "volker"
+# }
+# ```
+{
+  vars:
+      "$(name)" data => parsejson('[]'),            policy => "free";
+      "$(name)" data => mergedata($(name), $(varlist)), policy => "free"; # iterates!
+      "$(name)_str" string => format("%S", $(name)),    policy => "free";
+}
+
+bundle agent collect_vars(name, tag, flatten)
+# @brief bundle to collect tagged variables into a data container
+# @param name the variable name to create inside `collect_vars`
+# @param tag the tag regex string to match e.g. "beta,gamma=.*"
+# @param flatten to flatten variable values, set to "any" or "true" or "1"
+#
+# The result will be a map in `collect.$(name)`. You can also use
+# `cmerge.$(name)_str` for a string version of the merged containers
+# (if it fits in a CFEngine string).
+#
+# The name is variable so you can call this bundle for more than one
+# collection.
+#
+# Every found variable will be a key in the map, unless you specify
+# `flatten`, in which case they'll be flattened into a top-level array
+# of data.
+#
+# The `flatten` parameter can be "any" or "true" or "1" to be true.
+#
+# **Example:**
+#
+# ```cf3
+# body common control
+# {
+#       inputs => { "$(sys.libdir)/stdlib.cf" };
+# }
+#
+# bundle agent main
+# {
+#   vars:
+#       # the "mymerge" tag is user-defined
+#       "a" data  => parsejson('{ "mark": "burgess" }'), meta => { "mymerge" };
+#       "b" data  => parsejson('{ "volker": "hilsheimer" }'), meta => { "mymerge" };
+#
+#   methods:
+#       # merge a, b into container collect_vars.all
+#       "go" usebundle => collect_vars("all", "mymerge", "");
+#       # flatten a, b into container collect_vars.flattened
+#       "go_flatten" usebundle => collect_vars("flattened", "mymerge", "true");
+#
+#   reports:
+#       # merged = {"default:main.a":{"mark":"burgess"},"default:main.b":{"volker":"hilsheimer"}}
+#       "merged = $(collect_vars.all_str)";
+#       # flattened = {"mark":"burgess","volker":"hilsheimer"}
+#       "flattened = $(collect_vars.flattened_str)";
+# }
+# ```
+{
+  classes:
+      "flatten" expression => strcmp($(flatten), "any");
+      "flatten" expression => strcmp($(flatten), "1");
+      "flatten" expression => strcmp($(flatten), "true");
+
+  vars:
+      "todo_$(name)"    slist => variablesmatching(".*", $(tag));
+
+    !flatten::
+      "$(name)"
+        data => parsejson('{}'),
+        policy => "free";
+
+      # this iterates!
+      "$(name)"
+        data => mergedata($(name), '{ "$(todo_$(name))": $(todo_$(name)) }'),
+        policy => "free";
+
+    flatten::
+      "$(name)"
+        data => parsejson('[]'),
+        policy => "free";
+
+      # this iterates!
+      "$(name)"
+        data => mergedata($(name), "$(todo_$(name))"),
+        policy => "free";
+
+    any::
+      "$(name)_str"
+        string => format("%S", $(name)),
+        policy => "free";
+}
+
+bundle agent run_ifdefined(namespace, mybundle)
+# @brief bundle to maybe run another bundle dynamically
+# @param namespace the namespace, usually `$(this.namespace)`
+# @param mybundle the bundle to maybe run
+#
+# This bundle simply is a way to run another bundle only if it's defined.
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent run
+# {
+#   methods:
+#       # does nothing if bundle "runthis" is not defined
+#       "go" usebundle => run_ifdefined($(this.namespace), runthis);
+# }
+# ```
+{
+  vars:
+      "bundlesfound" slist => bundlesmatching("^$(namespace):$(mybundle)$");
+      "count" int => length(bundlesfound);
+
+  methods:
+      "any"
+      usebundle => $(bundlesfound),
+      if        => strcmp(1, $(count));
+
+  reports:
+    verbose_mode::
+      "$(this.bundle): found matching bundles $(bundlesfound) for namespace '$(namespace)' and bundle '$(mybundle)'";
+}

@@ -46,7 +46,8 @@ import com.normation.inventory.domain.FullInventory
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.MigrationLoggerPure
 import com.normation.rudder.facts.nodes.NodeFact
-import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.facts.nodes.NodeFactRepository
+import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.services.nodes.history.HistoryLogRepository
 import com.normation.rudder.services.nodes.history.impl.FactLog
 import com.normation.rudder.services.nodes.history.impl.FactLogData
@@ -60,7 +61,7 @@ import zio.*
 /*
  * Before Rudder 8.0, we used to save the state of node when accepted in an LDIF file under
  *   /var/rudder/inventories/historical/${nodeid}/${iso-date-time-of-acceptation}
- * Since 8.0, we store them in the nodefacts tables, which is create in the process.
+ * Since 8.0, we store them in the nodefacts tables, which is created in the process.
  * Ths migration is convergent and asynchronous:
  * - it does not block boot
  * - it can be interrupted and restarted afterward
@@ -73,7 +74,7 @@ import zio.*
  * - delete the directory
  */
 class MigrateNodeAcceptationInventories(
-    nodeInfoService:   NodeInfoService,
+    nodeFactRepo:      NodeFactRepository,
     fileLogRepository: InventoryHistoryLogRepository,
     jdbcLogRepository: HistoryLogRepository[NodeId, DateTime, FactLogData, FactLog] with InventoryHistoryDelete,
     MAX_KEEP_REFUSED:  Duration
@@ -130,7 +131,7 @@ class MigrateNodeAcceptationInventories(
             case None    => ZIO.unit
             case Some(l) =>
               for {
-                opt <- nodeInfoService.getNodeInfo(nodeId)
+                opt <- nodeFactRepo.get(nodeId)(QueryContext.systemQC)
                 _   <- ZIO.when(opt.isDefined || l.datetime.plus(MAX_KEEP_REFUSED.toMillis).isAfter(now)) {
                          saveInDB(nodeId, l.datetime, l.data, !opt.isDefined)
                        }

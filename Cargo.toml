@@ -6,14 +6,14 @@ members = ["policies/rudderc",
            "policies/rudder-commons-test",
            "policies/rudder-report",
            "policies/module-types/*",
-           "policies/minifusion",
+           "policies/lib",
            "relay/sources/relayd",
            "relay/sources/rudder-package"]
 resolver = "2"
 
 [workspace.package]
 authors = ["Rudder developers <dev@rudder.io>"]
-edition = "2021"
+edition = "2024"
 homepage = "https://www.rudder.io"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/Normation/rudder"

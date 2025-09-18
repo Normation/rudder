@@ -3,7 +3,6 @@ module Accounts.ApiCalls exposing (..)
 import Http exposing (..)
 import Url.Builder exposing (QueryParameter)
 import Http.Detailed as Detailed
-
 import Accounts.DataTypes exposing (..)
 import Accounts.JsonDecoder exposing (..)
 import Accounts.JsonEncoder exposing (..)
@@ -15,7 +14,7 @@ import Accounts.JsonEncoder exposing (..)
 
 getUrl: Model -> List String -> List QueryParameter -> String
 getUrl m url p=
-  Url.Builder.relative (m.contextPath :: "secure" :: url) p
+  Url.Builder.relative (m.contextPath :: "secure" :: "api" :: url) p
 
 getAccounts : Model -> Cmd Msg
 getAccounts model =
@@ -37,7 +36,7 @@ saveAccount : Account -> Model -> Cmd Msg
 saveAccount account model =
   let
     (method, url) = case model.ui.modalState of
-      NewAccount -> ("PUT",["apiaccounts"])
+      NewAccount -> ("POST",["apiaccounts"])
       _ -> ("POST", ["apiaccounts", account.id])
     req =
       request
@@ -75,7 +74,7 @@ regenerateToken account model =
       request
         { method  = "POST"
         , headers = [header "X-Requested-With" "XMLHttpRequest"]
-        , url     = getUrl model ["apiaccounts", account.id, "regenerate"] []
+        , url     = getUrl model ["apiaccounts", account.id, "token", "regenerate"] []
         , body    = emptyBody
         , expect  = Detailed.expectJson (ConfirmActionAccount Regenerate) (decodePostAccount model.ui.datePickerInfo)
         , timeout = Nothing

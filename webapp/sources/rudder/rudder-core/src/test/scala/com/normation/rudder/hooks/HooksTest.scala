@@ -133,8 +133,8 @@ class HooksTest() extends Specification with AfterAll {
       1.second,
       500.millis
     )
-
-    (timeout must beEqualTo(HookTimeout(Some(6.seconds), Some(10.seconds)))) and (res must beEqualTo(Ok("", "")))
+    timeout must beEqualTo(HookTimeout(Some(6.seconds), Some(10.seconds)))
+    res must beEqualTo(Ok("", ""))
   }
 
 // This one is more for testing performance. I don't want to make it a test, because in

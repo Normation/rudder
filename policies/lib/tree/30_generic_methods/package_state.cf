@@ -1,0 +1,197 @@
+#####################################################################################
+# Copyright 2016 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Package state
+# @description Enforce the state of a package
+# @documentation These methods manage packages using a package manager on the system.
+#
+# `package_present` and `package_absent` use a new package implementation, different from `package_install_*`,
+# `package_remove_*` and `package_verify_*`. It should be more reliable, and handle upgrades better.
+# It is compatible though, and you can call generic methods from both implementations on the same host.
+# The only drawback is that the agent will have to maintain double caches for package lists, which
+# may cause a little unneeded overhead.
+# These methods will update the corresponding package if updates are available
+# New updates may not be detected even if there are some available,
+# this is due to the update cache that is refresh every 4 hours by default,
+# you can modify this behaviour called `updates_cache_expire` in `rudder` global parameter
+#
+# #### Package parameters
+# 
+# There is only one mandatory parameter, which is the package name to install.
+# When it should be installed from a local package, you need to specify the full path to the package as name.
+# 
+# The version parameter allows specifying a version you want installed (not supported with snap).
+# It should be the complete versions string as used by the used package manager.
+# This parameter allows two special values:
+# 
+# * *any* which is the default value, and is satisfied by any version of the given package
+# * *latest* which will ensure, at each run, that the package is at the latest available version.
+# 
+# The last parameter is the provider, which is documented in the next section.
+#
+# You can use [package_state_options](#_package_state_options) to pass options to the underlying package manager
+# (currently only with *apt* package manager).
+#
+# Note: On RPM-based systems, to get the precise version to use in the `version` parameter, you can use the following commands:
+#
+# ```
+# sudo rpm --qf "%|EPOCH?{%{epoch}:}:{}|%{version}-%{release}\n" -q PACKAGE_NAME
+#
+## Examples
+# sudo rpm --qf "%|EPOCH?{%{epoch}:}:{}|%{version}-%{release}\n" -q htop
+## also works with different versions expressions
+# sudo rpm --qf "%|EPOCH?{%{epoch}:}:{}|%{version}-%{release}\n" -q htop-3.3.0
+# sudo rpm --qf "%|EPOCH?{%{epoch}:}:{}|%{version}-%{release}\n" -q htop-3.3.0-1.fc39
+# ```
+#
+# #### Package providers
+# 
+# This method supports several package managers. You can specify the package manager
+# you want to use or let the method choose the default for the local system.
+# 
+# The package providers include a caching system for package information.
+# The package lists (installed, available and available updates) are only updated
+# when the cache expires, or when an operation is made by the agent on packages.
+#
+# *Note*: The implementation of package operations is done in scripts called modules,
+# which you can find in `${sys.workdir}/modules/packages/`.
+# 
+# ##### apt
+# 
+# This package provider uses *apt*/*dpkg* to manage packages on the system.
+# *dpkg* will be used for all local actions, and *apt* is only needed to manage update and
+# installation from a repository.
+# 
+# ##### rpm
+# 
+# This package provider uses *yum*/*rpm* to manage packages on the system. *rpm* will 
+# be used for all local actions, and *yum* is only needed to manage update and
+# installation from a repository.
+# 
+# It is able to downgrade packages when specifying an older version.
+#
+# ##### zypper
+# 
+# This package provider uses *zypper*/*rpm* to manage packages on the system.
+# *rpm* will be used for all local actions, and *zypper* is only needed to manage update and
+# installation from a repository.
+#
+# Note: If the package version you want to install contains an epoch, you have to specify it
+# in the version in the `epoch:version` form, like reported by `zypper info`.
+#
+# ##### zypper_pattern
+#
+# This package provider uses zypper with the `-t pattern` option to manage zypper patterns or
+# meta-packages on the system.
+#
+# Since a zypper pattern can be named differently than the rpm package name providing it, please
+# always use the exact pattern name (as listed in the output of `zypper patterns`)
+# when using this provider.
+#
+# Note: When installing a pattern from a local rpm file, Rudder assumes that the pattern is built
+# following the 
+# [official zypper documentation](https://doc.opensuse.org/projects/libzypp/HEAD/zypp-pattern-packages.html).
+#
+# Older implementations of zypper patterns may not be supported by this module.
+#
+# This provider doesn't support installation from a file.
+#
+# ##### slackpkg
+#
+# This package provider uses Slackware's `installpkg` and `upgradepkg` tools to manage 
+# packages on the system
+#
+# ##### pkg
+# 
+# This package provider uses FreeBSD's *pkg* to manage packages on the system.
+# This provider doesn't support installation from a file.
+#
+# #### ips
+#
+# This package provider uses Solaris's pkg command to manage packages from IPS repositories on the system.
+# This provider doesn't support installation from a file.
+#
+# #### nimclient
+#
+# This package provider uses AIX's nim client to manage packages from nim
+# This provider doesn't support installation from a file.
+#
+# #### snap
+#
+# This package provider uses Ubuntu's *snap* to manage packages on the system
+# This provider doesn't support installation from a file.
+# 
+# #### Examples
+# 
+# ```
+# # To install postgresql in version 9.1 for x86_64 architecture
+# package_present("postgresql", "9.1", "x86_64", "");
+# # To ensure postgresql is always in the latest available version
+# package_present("postgresql", "latest", "", "");
+# # To ensure installing postgresql in any version
+# package_present("postgresql", "", "", "");
+# # To ensure installing postgresql in any version, forcing the yum provider
+# package_present("postgresql", "", "", "yum");
+# # To ensure installing postgresql from a local package
+# package_present("/tmp/postgresql-9.1-1.x86_64.rpm", "", "", "");
+# # To remove postgresql
+# package_absent("postgresql", "", "", "");
+# ```
+# 
+# See also : [package_present](#_package_present), [package_absent](#_package_absent), [package_state_options](#_package_state_options)
+# @parameter name Name of the package, or path to a local package if state is present
+# @parameter version Version of the package, can be "latest" for latest version or "any" for any version (defaults to "any")
+# @parameter_constraint version "allow_empty_string" : true
+# @parameter architecture Architecture of the package, can be an architecture name  or "default" (defaults to "default")
+# @parameter_constraint architecture "allow_empty_string" : true
+# @parameter provider Package provider to use, can be "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips", "nimclient", "snap" or "default" for system default package manager (defaults to "default")
+# @parameter_constraint provider "allow_empty_string" : true
+# @parameter_constraint provider "select" : [ "", "default", "yum", "apt", "zypper", "zypper_pattern", "slackpkg", "pkg", "ips", "nimclient", "snap" ]
+# @parameter state State of the package, can be "present" or "absent" (defaults to "present")
+# @parameter_constraint state "allow_empty_string" : true
+# @parameter_constraint state "select" : [ "", "present", "absent" ]
+# 
+# @class_prefix package_state
+# @class_parameter name
+# @agent_support = ["cfengine-community"]
+
+bundle agent package_state(name, version, architecture, provider, state)
+{
+  vars:
+      "class_prefix"                string => "package_state_${name}";
+
+  defaults:
+      "state"                       string => "present", if_match_regex => "";
+
+  classes:
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";   
+
+  methods:
+    pass3::
+      "${report_data.method_id}" usebundle => call_method("ncf_package");
+      "${report_data.method_id}" usebundle => ncf_package("${name}", "${version}", "${architecture}", "${provider}", "${state}", "");
+      "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
+      # For compatibility with previous version of the generic method
+      "${report_data.method_id}" usebundle => call_method_classes("package_${canonified_state}_${canonified_name}");
+      "${report_data.method_id}" usebundle => call_method_classes_caller;
+      "${report_data.method_id}" usebundle => call_method_end("ncf_package");
+
+      "${report_data.method_id}" usebundle => log_rudder_v4( "${name}", "${ncf_package.message}", "");
+}

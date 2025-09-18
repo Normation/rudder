@@ -1,0 +1,226 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File from a mustache template
+# @description Build a file from a mustache template
+# @documentation See [file_from_template_type](#_file_from_template_type) for general documentation about
+# templates usage.
+#
+# #### Syntax
+#
+# Mustache is a logic-less templating language, available in a lot of languages, and
+# used for file templating in Rudder.
+# The mustache syntax reference is [https://mustache.github.io/mustache.5.html](https://mustache.github.io/mustache.5.html).
+# The Windows implementation follows the standard, the Unix one is a bit richer as describe below.
+#
+# We will here describe the way to get agent data into a template. Ass explained in the general templating
+# documentation, we can access various data in a mustache template.
+#
+# The main specificity compared to standard mustache syntax of prefixes in all expanded values:
+#
+# * `classes` to access conditions
+# * `vars` to access all variables
+#
+# ##### Classes
+#
+# Here is how to display content depending on conditions definition:
+#
+# ```mustache
+# {{#classes.my_condition}}
+#    content when my_condition is defined
+# {{/classes.my_condition}}
+#
+# {{^classes.my_condition}}
+#    content when my_condition is *not* defined
+# {{/classes.my_condition}}
+# ```
+#
+# Note: You cannot use condition expressions here.
+#
+# ##### Scalar variable
+#
+# Here is how to display a scalar variable value (integer, string, ...),
+# if you have defined `variable_string("variable_prefix", "my_variable", "my_value")`:
+#
+# ```
+# {{{vars.variable_prefix.my_variable}}}
+# ```
+#
+# We use the triple `{{{ }}}` to avoid escaping html entities.
+#
+# ##### Iteration
+#
+# Iteration is done using a syntax similar to scalar variables, but applied
+# on container variables.
+#
+# * Use `{{#vars.container}} content {{/vars.container}}` to iterate
+# * Use `{{{.}}}` for the current element value in iteration
+# * Use `{{{key}}}` for the `key` value in current element
+# * Use `{{{.key}}}` for the `key` value in current element (Linux only)
+# * Use `{{{@}}}` for the current element key in iteration (Linux only)
+#
+# To iterate over a list, for example defined with:
+#
+# ```
+# variable_iterator("variable_prefix", "iterator_name", "a,b,c", ",")
+# ```
+#
+# Use the following file:
+#
+# ```mustache
+# {{#vars.variable_prefix.iterator_name}}
+# {{{.}}} is the current iterator_name value
+# {{/vars.variable_prefix.iterator_name}}
+# ```
+#
+# Which will be expanded as:
+#
+# ```
+# a is the current iterator_name value
+# b is the current iterator_name value
+# c is the current iterator_name value
+# ```
+#
+# To iterate over a container defined by the following json file, loaded with
+# `variable_dict_from_file("variable_prefix", "dict_name", "path")`:
+#
+# ```json
+# {
+#    "hosts": [
+#        "host1",
+#        "host2"
+#    ],
+#    "files": [
+#        {"name": "file1", "path": "/path1", "users": [ "user1", "user11" ] },
+#        {"name": "file2", "path": "/path2", "users": [ "user2" ] }
+#    ],
+#    "properties": {
+#        "prop1": "value1",
+#        "prop2": "value2"
+#    }
+# }
+# ```
+#
+# Use the following template:
+#
+# ```mustache
+# {{#vars.variable_prefix.dict_name.hosts}}
+# {{{.}}} is the current hosts value
+# {{/vars.variable_prefix.dict_name.hosts}}
+#
+# # will display the name and path of the current file
+# {{#vars.variable_prefix.dict_name.files}}
+# {{{name}}}: {{{path}}}
+# {{/vars.variable_prefix.dict_name.files}}
+# # Lines below will only be properly rendered in unix Nodes
+# # will display the users list of each file
+# {{#vars.variable_prefix.dict_name.files}}
+# {{{name}}}:{{#users}} {{{.}}}{{/users}}
+# {{/vars.variable_prefix.dict_name.files}}
+#
+#
+# # will display the current properties key/value pair
+# {{#vars.variable_prefix.dict_name.properties}}
+# {{{@}}} -> {{{.}}}
+# {{/vars.variable_prefix.dict_name.properties}}
+#
+# ```
+#
+# Which will be expanded as:
+#
+# ```
+# host1 is the current hosts value
+# host2 is the current hosts value
+#
+# # will display the name and path of the current file
+# file1: /path1
+# file2: /path2
+#
+# # Lines below will only be properly rendered in unix Nodes
+# # will display the users list of each file
+# file1: user1 user11
+# file2: user2
+#
+# # will display the current properties key/value pair
+# prop1 -> value1
+# prop2 -> value2
+# ```
+#
+# Note: You can use `{{#-top-}} ... {{/-top-}}`
+# to iterate over the top level container.
+#
+# ##### System variables
+#
+# Some `sys` dict variables (like `sys.ipv4`) are also accessible as string, for example:
+#
+# * `${sys.ipv4}` gives `54.32.12.4`
+# * `$[sys.ipv4[ethO]}` gives `54.32.12.4`
+# * `$[sys.ipv4[eth1]}` gives `10.45.3.2`
+#
+# These variables are not accessible as dict in the templating data, but are represented as
+# string:
+#
+# * `ipv4` is a string variable in the `sys` dict with value `54.32.12.4`
+# * `ipv4[ethO]` is a string variable in the `sys` dict with value `54.32.12.4`
+# * `ipv4` is not accessible as a dict in the template
+#
+# To access these value, use the following syntax in your mustache templates:
+#
+# ```
+# {{{vars.sys.ipv4[eth0]}}}
+# ```
+#
+# @parameter source_template Source file containing a template to be expanded (absolute path on the target node)
+# @parameter path            Destination file (absolute path on the target node)
+#
+#
+# @parameter_rename destination path
+# @class_prefix file_from_template
+# @class_parameter path
+# @agent_support = ["cfengine-community", "dsc"]
+
+bundle agent file_from_template_mustache(source_template, path)
+{
+  vars:
+      "old_class_prefix"  string => canonify("file_from_template_${path}");
+
+      "args"              slist  => { "${source_template}", "${path}" };
+
+      "report_param"      string => join("_", args);
+      "full_class_prefix" string => canonify("file_from_template_${report_param}");
+      "class_prefix"      string => string_head("${full_class_prefix}", "1000");
+
+      # file_from_template_type is called with mustache parameter
+      "full_inner_class_prefix" string => canonify("file_from_template_${source_template}_${path}_mustache");
+      "inner_class_prefix"      string => string_head("${full_inner_class_prefix}", "1000");
+
+
+  classes:
+      "should_report"    expression => "${report_data.should_report}";
+
+  methods:
+      "disable_reporting_${class_prefix}"
+                                     usebundle => disable_reporting;
+      "file template mustache type"  usebundle => file_from_template_type("${source_template}", "${path}", "mustache");
+      "reenable_reporting_${class_prefix}"
+                                     usebundle => enable_reporting,
+                                    ifvarclass => "should_report";
+      "new result classes"           usebundle => _classes_copy("${inner_class_prefix}", "${class_prefix}");
+
+      "report"                       usebundle => _log_v3("Build file ${path} from mustache template ${source_template}", "${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+}

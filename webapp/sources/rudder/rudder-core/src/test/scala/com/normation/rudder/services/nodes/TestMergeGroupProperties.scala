@@ -58,6 +58,8 @@ import com.normation.rudder.domain.properties.PropertyProvider
 import com.normation.rudder.domain.properties.SuccessNodePropertyHierarchy
 import com.normation.rudder.domain.properties.Visibility
 import com.normation.rudder.domain.queries.*
+import com.normation.rudder.domain.queries.CriterionComposition.*
+import com.normation.rudder.domain.queries.QueryReturnType.*
 import com.normation.rudder.domain.queries.ResultTransformation.*
 import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.properties.GroupProp
@@ -76,12 +78,6 @@ import org.specs2.runner.*
 import scala.reflect.ClassTag
 import zio.Chunk
 import zio.NonEmptyChunk
-
-/*
- * This class test the JsEngine. 6.0
- * It must works identically on Java 7 and Java 8.
- *
- */
 
 @RunWith(classOf[JUnitRunner])
 class TestMergeGroupProperties extends Specification {
