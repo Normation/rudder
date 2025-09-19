@@ -166,6 +166,16 @@ if [ "${SELINUX}" = "true" ]; then
 fi
 
 systemctl start rudder-relayd.service rudder-package.timer >> ${LOG_FILE}
+
+# Initialize apache config if needed
+A2_CONF="/opt/rudder/etc/rudder-apache-relay-ssl.conf"
+TMP_DATA="/var/rudder/tmp/empty-classes.json"
+if [ ! -f "${A2_CONF}" ]; then
+  echo "Generating initial ${A2_CONF} file" >> ${LOG_FILE}
+  echo '{ "classes": {} }' > "${TMP_DATA}"
+  /opt/rudder/bin/rudder-module-template -t "${A2_CONF}.j2" -d "${TMP_DATA}" -o "${A2_CONF}"
+  rm -f "${TMP_DATA}"
+fi
 systemctl start "${APACHE}" >> ${LOG_FILE}
 
 echo "$(date) - Ending rudder-relay post installation script" >> ${LOG_FILE}
