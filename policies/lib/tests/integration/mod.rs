@@ -5,6 +5,7 @@
 mod audit_from_command_test;
 #[cfg(test)]
 mod audit_from_osquery_test;
+mod command_execution_options_test;
 #[cfg(test)]
 mod command_execution_test;
 #[cfg(test)]

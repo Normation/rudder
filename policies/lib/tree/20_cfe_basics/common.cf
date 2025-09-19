@@ -332,7 +332,7 @@ bundle agent ncf_classes_copy(source_prefix, destination_prefix)
   vars:
     !pass1::
       "prefix" slist => { "promise_kept", "promise_repaired", "repair_failed", "repair_denied", "repair_timeout" };
-      "suffix" slist => { "repaired", "ok", "reached", "failed", "not_ok", "not_kept", "not_repaired", "denied", "timeout", "kept", "error" };
+      "suffix" slist => { "repaired", "ok", "reached", "failed", "not_ok", "not_kept", "not_repaired", "denied", "timeout", "kept", "error", "noop" };
 
     !pass2.destination_exists::
       # Copy result classes prefixes
