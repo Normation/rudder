@@ -1,17 +1,18 @@
 mod cli;
 use crate::cli::Cli;
 use anyhow::{Context, Result, bail};
+use indexmap::IndexMap;
 use rudder_module_type::rudder_info;
 use rudder_module_type::{
     CheckApplyResult, ModuleType0, ModuleTypeMetadata, Outcome, PolicyMode, ValidateResult,
     cfengine::called_from_agent, parameters::Parameters, run_module,
 };
 use rustix::{fs::Mode, process::umask};
+use serde::de::Error;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Value, json};
 use std::io::ErrorKind;
 use std::{
-    collections::HashMap,
     fs::{self, File},
     io::Write,
     os::unix::{fs::PermissionsExt, process::CommandExt},
@@ -29,11 +30,8 @@ pub struct CommandsParameters {
     command: String,
 
     /// Arguments to the command
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        deserialize_with = "Commands::deserialize_option_string"
-    )]
-    args: Option<String>,
+    #[serde(deserialize_with = "Commands::deserialize_args")]
+    args: Vec<String>,
 
     /// Controls the running mode of the command
     #[serde(default)] // Default to false
@@ -113,8 +111,8 @@ pub struct CommandsParameters {
     umask: Option<String>,
 
     /// Environment variables used by the executed command
-    #[serde(skip_serializing_if = "Option::is_none")]
-    env_vars: Option<String>,
+    #[serde(deserialize_with = "Commands::deserialize_env_vars")]
+    env_vars: IndexMap<String, String>,
 
     /// Controls output of diffs in the report
     #[serde(default = "Commands::default_as_true")]
@@ -136,6 +134,77 @@ impl Commands {
                 Some(p)
             }
         }))
+    }
+
+    fn parse_env_vars_value(value: Value) -> Result<IndexMap<String, String>> {
+        match value {
+            Value::String(s) if s.is_empty() => Ok(IndexMap::new()),
+            Value::String(s) => {
+                if let Ok(parsed_value) = serde_json::from_str::<Value>(&s) {
+                    Self::parse_env_vars_value(parsed_value)
+                } else {
+                    bail!("Env vars must be a JSON map of strings, got {}", s);
+                }
+            }
+            Value::Object(map) => {
+                let mut result = IndexMap::new();
+                for (k, v) in map {
+                    match v {
+                        Value::String(s) => {
+                            result.insert(k, s);
+                        }
+                        _ => bail!("Env vars must be a JSON map of strings, got {} => {}", k, v),
+                    }
+                }
+                Ok(result)
+            }
+            Value::Null => Ok(IndexMap::new()),
+            _ => bail!("Env vars must be a JSON map of strings, got {}", value),
+        }
+    }
+    fn deserialize_env_vars<'de, D>(deserializer: D) -> Result<IndexMap<String, String>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = Value::deserialize(deserializer)?;
+        Self::parse_env_vars_value(value).map_err(serde::de::Error::custom)
+    }
+
+    // Can handle both JSON or serialized JSON inputs
+    // IE:
+    // "{"foo":"bar"}" or "{\"foo\":\"bar\"}" to ensure potential future raw
+    // YAML inputs to the module
+    fn parse_args_value(value: Value) -> Result<Vec<String>> {
+        match value {
+            Value::String(s) if s.is_empty() => Ok(Vec::new()),
+            Value::String(s) => {
+                if let Ok(parsed_value) = serde_json::from_str::<Value>(&s) {
+                    Self::parse_args_value(parsed_value)
+                } else {
+                    bail!("Args must be a JSON array of strings, got {}", s);
+                }
+            }
+            Value::Array(arr) => {
+                let args: Result<Vec<String>, _> = arr
+                    .into_iter()
+                    .map(|v| match v {
+                        Value::String(s) => Ok(s),
+                        _ => bail!("The args parameter must be:\n- be empty\n- a string without whitespaces\n- a JSON array of strings"),
+                    }).collect();
+                Ok(args?)
+            }
+            Value::Null => Ok(Vec::new()),
+            _ => bail!(
+                "The args parameter must be:\n- be empty\n- a string without whitespaces\n- a JSON array of strings"
+            ),
+        }
+    }
+    fn deserialize_args<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = Value::deserialize(deserializer)?;
+        Self::parse_args_value(value).map_err(D::Error::custom)
     }
 
     fn deserialize_option_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
@@ -174,10 +243,13 @@ impl Commands {
             command.arg(&p.command);
         }
 
-        if let Some(args) = &p.args
-            && !args.is_empty()
-        {
-            command.args(args.split_whitespace());
+        if !p.args.is_empty() {
+            if p.in_shell {
+                bail!("The parameters 'in_shell' and 'args' should not be used at the same time")
+            }
+            p.args.iter().for_each(|a| {
+                command.arg(a);
+            });
         }
 
         if let Some(chdir) = &p.chdir
@@ -211,24 +283,8 @@ impl Commands {
             umask(Mode::from(mask));
         }
 
-        if let Some(env) = &p.env_vars
-            && !env.is_empty()
-        {
-            let env_map: HashMap<String, String> = env
-                .lines()
-                .filter_map(|line| {
-                    let mut tokens = line.splitn(2, '=');
-                    match (tokens.next(), tokens.next()) {
-                        (Some(key), Some(value)) => Some((key.to_string(), value.to_string())),
-                        _ => {
-                            println!("Invalid env variable: '{line}'");
-                            None
-                        }
-                    }
-                })
-                .collect();
-
-            command.envs(env_map);
+        if !p.env_vars.is_empty() {
+            command.envs(&p.env_vars);
         }
 
         command.stdout(Stdio::piped());
@@ -332,6 +388,7 @@ impl Commands {
 
         let elapsed = start_time.elapsed();
         let report = json!({
+            "command": format!("{:?}", command),
             "exit_code": exit_code,
             "status": status,
             "stdout": stdout,
@@ -414,10 +471,7 @@ pub fn entry() -> Result<(), anyhow::Error> {
 
 pub fn get_used_cmd(p: &CommandsParameters) -> String {
     let command = &p.command;
-    let cmd_args = match &p.args {
-        Some(args) => format!("{command} {args}"),
-        None => command.clone(),
-    };
+    let cmd_args = format!("{command} {}", p.args.join(" "));
 
     if p.in_shell {
         format!("{} -c '{}'", p.shell_path, cmd_args)
@@ -433,7 +487,79 @@ fn strip_trailing_newline(input: &str) -> &str {
         .unwrap_or(input)
 }
 
+#[cfg(test)]
 mod tests {
+    use crate::Commands;
+    use indexmap::indexmap;
+    use serde_json::Value;
+
+    #[test]
+    fn test_env_vars_deserialization_of_json_inputs() {
+        let value: Value =
+            serde_json::from_str(r#"{"USER": "admin", "SHELL": "/bin/bash"}"#).unwrap();
+        let result = Commands::parse_env_vars_value(value).unwrap();
+        assert_eq!(result.get("USER"), Some(&"admin".to_string()));
+        assert_eq!(result.get("SHELL"), Some(&"/bin/bash".to_string()));
+
+        // Order should be preserved
+        let keys: Vec<String> = result.into_keys().collect();
+        assert_eq!(keys, vec!["USER".to_string(), "SHELL".to_string()]);
+
+        let value: Value = Value::Null;
+        let result = Commands::parse_env_vars_value(value).unwrap();
+        assert!(result.is_empty());
+
+        let value: Value = serde_json::from_str(r#""plouf""#).unwrap();
+        let result = Commands::parse_env_vars_value(value);
+        assert!(result.is_err());
+    }
+    #[test]
+    fn test_env_vars_deserialization_of_escaped_json_inputs() {
+        let value: Value =
+            serde_json::from_str(r#""{\"USER\": \"admin\", \"SHELL\": \"/bin/bash\"}""#).unwrap();
+        let result = Commands::parse_env_vars_value(value).unwrap();
+        assert_eq!(result.get("USER"), Some(&"admin".to_string()));
+        assert_eq!(result.get("SHELL"), Some(&"/bin/bash".to_string()));
+
+        // Order should be preserved
+        let keys: Vec<String> = result.into_keys().collect();
+        assert_eq!(keys, vec!["USER".to_string(), "SHELL".to_string()]);
+
+        let value: Value = Value::Null;
+        let result = Commands::parse_env_vars_value(value).unwrap();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_args_deserialization_of_json_inputs() {
+        let value: Value = serde_json::from_str(r#"["-ns", "/foo/bar.txt"]"#).unwrap();
+        let result = Commands::parse_args_value(value).unwrap();
+        assert_eq!(result[0], "-ns".to_string());
+        assert_eq!(result[1], "/foo/bar.txt".to_string());
+        assert_eq!(result.len(), 2);
+
+        let value: Value = serde_json::from_str(r#""plouf""#).unwrap();
+        let result = Commands::parse_args_value(value);
+        assert!(result.is_err());
+
+        let value: Value = serde_json::from_str(r#""""#).unwrap();
+        let result = Commands::parse_args_value(value).unwrap();
+        assert_eq!(result.len(), 0);
+
+        let value: Value = Value::Null;
+        let result = Commands::parse_args_value(value).unwrap();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_args_deserialization_of_escaped_json_inputs() {
+        let value: Value = serde_json::from_str(r#""[\"-ns\", \"/foo/bar.txt\"]""#).unwrap();
+        let result = Commands::parse_args_value(value).unwrap();
+        assert_eq!(result[0], "-ns".to_string());
+        assert_eq!(result[1], "/foo/bar.txt".to_string());
+        assert_eq!(result.len(), 2);
+    }
+
     #[test]
     #[cfg(target_family = "unix")]
     fn test_get_used_cmd_echo_ok() {
@@ -441,7 +567,7 @@ mod tests {
 
         let cmd = CommandsParameters {
             command: "echo".to_string(),
-            args: Some("OK".to_string()),
+            args: vec!["OK".to_string()],
             run_in_audit_mode: false,
             in_shell: false,
             shell_path: "/bin/sh".to_string(),
@@ -456,7 +582,7 @@ mod tests {
             uid: None,
             gid: None,
             umask: None,
-            env_vars: None,
+            env_vars: IndexMap::default(),
             show_content: true,
         };
 
@@ -471,7 +597,7 @@ mod tests {
 
         let cmd = CommandsParameters {
             command: "/bin/eho".to_string(),
-            args: Some("OK".to_string()),
+            args: vec!["OK".to_string()],
             run_in_audit_mode: false,
             in_shell: false,
             shell_path: "/bin/sh".to_string(),
@@ -486,7 +612,7 @@ mod tests {
             uid: None,
             gid: None,
             umask: None,
-            env_vars: None,
+            env_vars: IndexMap::default(),
             show_content: true,
         };
 
@@ -501,9 +627,9 @@ mod tests {
 
         let cmd = CommandsParameters {
             command: "eho".to_string(),
-            args: Some("OK".to_string()),
+            args: vec!["OK".to_string()],
             run_in_audit_mode: false,
-            in_shell: true,
+            in_shell: false,
             shell_path: "/bin/sh".to_string(),
             chdir: None,
             timeout: "30".to_string(),
@@ -516,17 +642,12 @@ mod tests {
             uid: None,
             gid: None,
             umask: None,
-            env_vars: None,
+            env_vars: IndexMap::default(),
             show_content: true,
         };
 
         let s = Commands::run(&cmd, false);
-        assert!(s.is_ok());
-
-        let out = s.unwrap();
-
-        let exit_code = out.get("exit_code").unwrap().to_string();
-        assert_eq!(exit_code, "127");
+        assert!(s.is_err());
     }
 
     #[test]
@@ -536,7 +657,7 @@ mod tests {
 
         let cmd = CommandsParameters {
             command: "echo".to_string(),
-            args: Some("OK".to_string()),
+            args: vec!["OK".to_string()],
             run_in_audit_mode: false,
             in_shell: true,
             shell_path: "/bin/sh".to_string(),
@@ -551,7 +672,7 @@ mod tests {
             uid: None,
             gid: None,
             umask: None,
-            env_vars: None,
+            env_vars: IndexMap::default(),
             show_content: true,
         };
 
@@ -584,7 +705,7 @@ mod tests {
 
         let cmd = CommandsParameters {
             command: "cd /tmp && pwd".to_string(),
-            args: None,
+            args: Vec::new(),
             run_in_audit_mode: false,
             in_shell: true,
             shell_path: "/bin/sh".to_string(),
@@ -599,7 +720,7 @@ mod tests {
             uid: None,
             gid: None,
             umask: None,
-            env_vars: None,
+            env_vars: IndexMap::default(),
             show_content: true,
         };
 
@@ -622,7 +743,13 @@ mod tests {
 
         let cmd = CommandsParameters {
             command: "echo".to_string(),
-            args: Some("OK1 -- OK2 -- OK3".to_string()),
+            args: vec![
+                "OK1".to_string(),
+                "--".to_string(),
+                "OK2".to_string(),
+                "--".to_string(),
+                "OK3".to_string(),
+            ],
             run_in_audit_mode: false,
             in_shell: false,
             shell_path: "/bin/sh".to_string(),
@@ -637,7 +764,7 @@ mod tests {
             uid: None,
             gid: None,
             umask: None,
-            env_vars: None,
+            env_vars: IndexMap::default(),
             show_content: true,
         };
 
@@ -660,7 +787,7 @@ mod tests {
 
         let cmd = CommandsParameters {
             command: "ls".to_string(),
-            args: Some("/".to_string()),
+            args: vec!["/".to_string()],
             run_in_audit_mode: false,
             in_shell: false,
             shell_path: "/bin/sh".to_string(),
@@ -675,7 +802,7 @@ mod tests {
             uid: None,
             gid: None,
             umask: None,
-            env_vars: None,
+            env_vars: IndexMap::default(),
             show_content: true,
         };
 
@@ -698,7 +825,7 @@ mod tests {
 
         let cmd = CommandsParameters {
             command: "sleep 3".to_string(),
-            args: None,
+            args: Vec::new(),
             run_in_audit_mode: false,
             in_shell: true,
             shell_path: "/bin/sh".to_string(),
@@ -713,7 +840,7 @@ mod tests {
             uid: None,
             gid: None,
             umask: None,
-            env_vars: None,
+            env_vars: IndexMap::default(),
             show_content: true,
         };
 
@@ -736,7 +863,7 @@ mod tests {
 
         let cmd = CommandsParameters {
             command: "sleep 3".to_string(),
-            args: None,
+            args: Vec::new(),
             run_in_audit_mode: false,
             in_shell: true,
             shell_path: "/bin/sh".to_string(),
@@ -751,7 +878,7 @@ mod tests {
             uid: None,
             gid: None,
             umask: None,
-            env_vars: None,
+            env_vars: IndexMap::default(),
             show_content: true,
         };
 
@@ -766,7 +893,7 @@ mod tests {
 
         let cmd = CommandsParameters {
             command: "cat".to_string(),
-            args: Some("--".to_string()),
+            args: vec!["--".to_string()],
             run_in_audit_mode: false,
             in_shell: false,
             shell_path: "/bin/sh".to_string(),
@@ -781,7 +908,7 @@ mod tests {
             uid: None,
             gid: None,
             umask: None,
-            env_vars: None,
+            env_vars: IndexMap::default(),
             show_content: true,
         };
 
@@ -804,7 +931,7 @@ mod tests {
 
         let cmd = CommandsParameters {
             command: "pwd".to_string(),
-            args: None,
+            args: Vec::new(),
             run_in_audit_mode: false,
             in_shell: false,
             shell_path: "/bin/sh".to_string(),
@@ -819,7 +946,7 @@ mod tests {
             uid: None,
             gid: None,
             umask: None,
-            env_vars: None,
+            env_vars: IndexMap::default(),
             show_content: true,
         };
 
@@ -842,7 +969,7 @@ mod tests {
 
         let cmd = CommandsParameters {
             command: "echo".to_string(),
-            args: Some("OK".to_string()),
+            args: vec!["OK".to_string()],
             run_in_audit_mode: false,
             in_shell: false,
             shell_path: "/bin/sh".to_string(),
@@ -857,7 +984,7 @@ mod tests {
             uid: None,
             gid: None,
             umask: None,
-            env_vars: None,
+            env_vars: IndexMap::default(),
             show_content: true,
         };
 
@@ -880,7 +1007,7 @@ mod tests {
 
         let cmd = CommandsParameters {
             command: "echo".to_string(),
-            args: Some("OK".to_string()),
+            args: vec!["OK".to_string()],
             run_in_audit_mode: false,
             in_shell: false,
             shell_path: "/bin/sh".to_string(),
@@ -895,7 +1022,7 @@ mod tests {
             uid: None,
             gid: None,
             umask: None,
-            env_vars: None,
+            env_vars: IndexMap::default(),
             show_content: true,
         };
 
@@ -918,7 +1045,7 @@ mod tests {
 
         let cmd = CommandsParameters {
             command: "env".to_string(),
-            args: None,
+            args: Vec::new(),
             run_in_audit_mode: false,
             in_shell: false,
             shell_path: "/bin/sh".to_string(),
@@ -933,7 +1060,10 @@ mod tests {
             uid: None,
             gid: None,
             umask: None,
-            env_vars: Some("SUPER_ENV_TEST=MY_VAR\nMY_SECOND_VAR=MY_SECOND_VALUE".to_string()),
+            env_vars: indexmap! {
+                "SUPER_ENV_TEST".to_string() => "MY_VAR".to_string(),
+                "MY_SECOND_VAR".to_string() => "MY_SECOND_VALUE".to_string(),
+            },
             show_content: true,
         };
 
@@ -957,7 +1087,7 @@ mod tests {
 
         let cmd = CommandsParameters {
             command: "env".to_string(),
-            args: None,
+            args: Vec::new(),
             run_in_audit_mode: false,
             in_shell: true,
             shell_path: "/bin/sh".to_string(),
@@ -972,9 +1102,11 @@ mod tests {
             uid: None,
             gid: None,
             umask: None,
-            env_vars: Some(
-                "SUPER_ENV_TEST=MY_VAR\nMY_SECOND_VAR=MY_SECOND_VALUE\nBOUM3=PAF3".to_string(),
-            ),
+            env_vars: indexmap! {
+               "SUPER_ENV_TEST".to_string() => "MY_VAR".to_string(),
+               "MY_SECOND_VAR".to_string() => "MY_SECOND_VALUE".to_string(),
+               "BOUM3".to_string() => "PAF3".to_string(),
+            },
             show_content: true,
         };
 

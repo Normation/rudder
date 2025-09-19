@@ -1,9 +1,9 @@
 use crate::{Commands, CommandsParameters, get_used_cmd};
 use anyhow::{Context, Result};
 use clap::Parser;
-
-use itertools::Itertools;
-use std::{env, path::PathBuf};
+use indexmap::IndexMap;
+use serde_json::Value;
+use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -16,7 +16,7 @@ pub struct Cli {
     audit: bool,
 
     /// Arguments to the command
-    args: Option<Vec<String>>,
+    args: Option<String>,
 
     /// Simulate the command execution without making any changes
     #[arg(short, long)]
@@ -93,18 +93,13 @@ impl Cli {
     }
 
     fn get_parameters(cli: Cli) -> CommandsParameters {
-        let args = if let Some(args) = &cli.args {
-            Some(args.join(" "))
-        } else {
-            None
-        };
-        let env = if cli.share_env {
-            let serialized_env = env::vars().map(|(k, v)| format!("{k}={v}")).join("\n");
+        let env_as_value: Value = serde_json::to_value(cli.share_env).unwrap();
+        let env_vars: IndexMap<String, String> =
+            Commands::parse_env_vars_value(env_as_value).unwrap_or_default();
 
-            Some(serialized_env)
-        } else {
-            None
-        };
+        let args_as_value: Value =
+            serde_json::to_value(&cli.command).expect("The args parameter must be a string");
+        let args: Vec<String> = Commands::parse_args_value(args_as_value).unwrap_or_default();
         CommandsParameters {
             command: cli.command,
             args,
@@ -122,7 +117,7 @@ impl Cli {
             uid: cli.uid,
             gid: cli.gid,
             umask: cli.umask,
-            env_vars: env,
+            env_vars,
             show_content: true,
         }
     }
