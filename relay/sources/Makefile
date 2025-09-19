@@ -125,7 +125,6 @@ install: build
 	install -m 644 apache/rudder-vhost.conf $(DESTDIR)/etc/$(APACHE_VHOSTDIR)/rudder.conf
 	install -m 644 apache/rudder-vhost.conf $(DESTDIR)/opt/rudder/share/apache.conf
 	install -m 644 apache/rudder-apache-relay-common.conf $(DESTDIR)/opt/rudder/etc/rudder-apache-relay-common.conf
-	install -m 644 apache/rudder-apache-relay-ssl.conf $(DESTDIR)/opt/rudder/etc/rudder-apache-relay-ssl.conf
 	install -m 644 apache/rudder-apache-relay-ssl.conf.j2 $(DESTDIR)/opt/rudder/etc/rudder-apache-relay-ssl.conf.j2
 	install -m 644 apache/rudder-apache-relay-nossl.conf $(DESTDIR)/opt/rudder/etc/rudder-apache-relay-nossl.conf
 
