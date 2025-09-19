@@ -489,9 +489,9 @@ fn strip_trailing_newline(input: &str) -> &str {
 
 #[cfg(test)]
 mod tests {
+    use crate::Commands;
     use indexmap::indexmap;
     use serde_json::Value;
-    use crate::Commands;
 
     #[test]
     fn test_env_vars_deserialization_of_json_inputs() {
