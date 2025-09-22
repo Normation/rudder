@@ -23,3 +23,4 @@ Hooks parameters are passed by environment variable:
 - CAMPAIGN_TYPE: campaign type, ie `system-update`, `software-update`, etc
 - CAMPAIGN_EVENT_ID: id of current event triggering that hook
 - CAMPAIGN_EVENT_NAME: human readable name of the event
+- CAMPAIGN_NEXT_STATE: only defined for post-hooks. [failure,finished]. Did we come here because pre-hooks failed?

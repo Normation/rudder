@@ -114,34 +114,41 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
    * We need some specific case classes to map from SQL to business objects
    */
   // the simple jsonb data - no sealed hierarchy else zio-json absolutely wants to add one more field
-  private case class ReasonData(reason: String) derives JsonCodec                  {
+  private case class ReasonData(reason: String) derives JsonCodec                                               {
     def toSkipped = CampaignEventState.Skipped(reason)
     def toDeleted = CampaignEventState.Deleted(reason)
   }
-  private case class FailureData(cause: String, message: String) derives JsonCodec {
+  private case class FailureData(cause: String, message: String) derives JsonCodec                              {
     def toFailure = CampaignEventState.Failure(cause, message)
   }
-  private case class HooksData(hooks: Seq[HookResult]) derives JsonCodec           {
-    def toPreHooks  = CampaignEventState.PreHooks(HookResults(hooks))
-    def toPostHooks = CampaignEventState.PostHooks(HookResults(hooks))
+  private case class PreHooksData(hooks: Seq[HookResult]) derives JsonCodec                                     {
+    def toPreHooks = CampaignEventState.PreHooks(HookResults(hooks))
+  }
+  private case class PostHooksData(nextState: CampaignEventStateType, hooks: Seq[HookResult]) derives JsonCodec {
+    def toPostHooks = CampaignEventState.PostHooks(nextState, HookResults(hooks))
   }
 
-  private type DATA = ReasonData | FailureData | HooksData
+  private type DATA = ReasonData | FailureData | PostHooksData | PreHooksData
 
   // some boilerplate for the union encoder, because not supported automatically.
   implicit private val encoderDATA: JsonEncoder[DATA] = (a: DATA, indent: Option[RuntimeFlags], out: Write) => {
     a match {
-      case x: ReasonData  => JsonEncoder[ReasonData].unsafeEncode(x, indent, out)
-      case x: FailureData => JsonEncoder[FailureData].unsafeEncode(x, indent, out)
-      case x: HooksData   => JsonEncoder[HooksData].unsafeEncode(x, indent, out)
+      case x: ReasonData    => JsonEncoder[ReasonData].unsafeEncode(x, indent, out)
+      case x: FailureData   => JsonEncoder[FailureData].unsafeEncode(x, indent, out)
+      case x: PreHooksData  => JsonEncoder[PreHooksData].unsafeEncode(x, indent, out)
+      case x: PostHooksData => JsonEncoder[PostHooksData].unsafeEncode(x, indent, out)
     }
   }
 
   // some boilerplate for the union decoder, because not supported automatically.
   // Note: it test sequentially each decoder, which is inefficient, so perhaps we
   // should keep the type as a member after all.
-  implicit private val decoderDATA: JsonDecoder[DATA] =
-    JsonDecoder[ReasonData].widen[DATA] <> JsonDecoder[HooksData].widen[DATA] <> JsonDecoder[FailureData].widen[DATA]
+  implicit private val decoderDATA: JsonDecoder[DATA] = {
+    JsonDecoder[ReasonData].widen[DATA] <>
+    JsonDecoder[PostHooksData].widen[DATA] <>
+    JsonDecoder[PreHooksData].widen[DATA] <>
+    JsonDecoder[FailureData].widen[DATA]
+  }
 
   implicit private val putDATA: Put[DATA] = pgEncoderPut
   implicit private val getDATA: Get[DATA] = pgDecoderGet
@@ -153,20 +160,16 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
     import com.normation.rudder.campaigns.CampaignEventStateType.*
 
     data match {
-      case None                 => Right(CampaignEventState.getDefault(s))
-      case Some(x: ReasonData)  =>
+      case None                   => Right(CampaignEventState.getDefault(s))
+      case Some(x: ReasonData)    =>
         s match {
           case SkippedType => Right(x.toSkipped)
           case DeletedType => Right(x.toDeleted)
           case r           => Left(s"Error: data of type 'reason' is incompatible with state '${r.entryName}'")
         }
-      case Some(x: FailureData) => Right(x.toFailure)
-      case Some(x: HooksData)   =>
-        s match {
-          case PreHooksType  => Right(x.toPreHooks)
-          case PostHooksType => Right(x.toPostHooks)
-          case r             => Left(s"Error: data of type 'hooks' is incompatible with state '${r.entryName}'")
-        }
+      case Some(x: FailureData)   => Right(x.toFailure)
+      case Some(x: PreHooksData)  => Right(x.toPreHooks)
+      case Some(x: PostHooksData) => Right(x.toPostHooks)
     }
   }
 
@@ -242,8 +245,8 @@ class CampaignEventRepositoryImpl(doobie: Doobie, campaignSerializer: CampaignSe
             case Scheduled | Running | Finished => None
             case Skipped(reason)                => Some(ReasonData(reason))
             case Deleted(reason)                => Some(ReasonData(reason))
-            case PreHooks(hooks)                => Some(HooksData(hooks.results))
-            case PostHooks(hooks)               => Some(HooksData(hooks.results))
+            case PreHooks(hooks)                => Some(PreHooksData(hooks.results))
+            case PostHooks(state, hooks)        => Some(PostHooksData(state, hooks.results))
             case Failure(cause, message)        => Some(FailureData(cause, message))
           }
         )

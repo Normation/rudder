@@ -86,8 +86,32 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
 
   private val e0: CampaignEvent = eb0.event
 
+  // a failing campaign
+  private val failingCampaign: TestCampaign = TestCampaign(
+    CampaignInfo(
+      CampaignId("c1"),
+      "failure in pre-hooks",
+      "a test campaign that fails",
+      Enabled,
+      WeeklySchedule(DayTime(Monday, 3, 42), DayTime(Monday, 4, 42), None)
+    ),
+    TestCampaignDetails("test campaign")
+  )
+
+  private val eb1 = CampaignOrchestrationLogic
+    .bootstrapEvent(
+      failingCampaign,
+      failingCampaign.info.id.serialize + "_event0",
+      runWindow(now)._1,
+      runWindow(now)._2,
+      0
+    )
+
+  private val e1: CampaignEvent = eb1.event
+
   // for hooks, we just log the run hooks
-  private def hookResult(e: CampaignEvent, out: String) = HookResults(Seq(HookResult(e.id.value, 0, out, "", "")))
+  private def successHookResult(e: CampaignEvent, out: String) = HookResults(Seq(HookResult(e.id.value, 0, out, "", "")))
+  private def failureHookResult(e: CampaignEvent, out: String) = HookResults(Seq(HookResult(e.id.value, 1, out, "", "")))
   private val preHooksLog  = Ref.make(List.empty[CampaignEvent]).runNow
   private val postHooksLog = Ref.make(List.empty[CampaignEvent]).runNow
 
@@ -104,8 +128,8 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
 
     override val campaignHandlers: Ref[List[CampaignHandler]] = Ref.make(List.empty[CampaignHandler]).runNow
 
-    def reset: UIO[Unit] = {
-      eventTrail.set(Nil) *> eventStore.set(Map()) *> nextEvent.set((eb0, 0)) *> campaignHandlers.set(Nil)
+    def reset(boot: EventOrchestration.SaveAndQueue): UIO[Unit] = {
+      eventTrail.set(Nil) *> eventStore.set(Map()) *> nextEvent.set((boot, 0)) *> campaignHandlers.set(Nil)
     }
 
     override def createNextScheduledCampaignEvent(campaign: Campaign, date: DateTime): IOResult[EventOrchestration] = {
@@ -116,7 +140,7 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
         _      <- nextEvent.set(
                     (
                       CampaignOrchestrationLogic
-                        .bootstrapEvent(c0, UUID.randomUUID().toString, d.minusMinutes(5), d.plusMinutes(5), i + 1),
+                        .bootstrapEvent(campaign, UUID.randomUUID().toString, d.minusMinutes(5), d.plusMinutes(5), i + 1),
                       i + 1
                     )
                   )
@@ -124,15 +148,30 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
     }
 
     override def getEventInfo(eventId: CampaignEventId): IOResult[(Campaign, CampaignEvent)] = {
-      eventStore.get.map(_.get(eventId)).notOptional(s"missing event '${eventId.value}' in tests").map(e => (c0, e))
+      eventStore.get
+        .map(_.get(eventId))
+        .notOptional(s"missing event '${eventId.value}' in tests")
+        .map { e =>
+          e.campaignId match {
+            case c0.info.id              => (c0, e)
+            case failingCampaign.info.id => (failingCampaign, e)
+            case x                       => throw new RuntimeException(s"TEST: missing campaign ID case for event: ${x}")
+          }
+        }
     }
 
+    // For testing, the run pre-hook fails when the campaign name contains "failure".
     override def runPreHooks(c: Campaign, e: CampaignEvent): IOResult[HookResults] = {
-      preHooksLog.update(e :: _).map(_ => hookResult(e, "pre-hooks"))
+      preHooksLog
+        .update(e :: _)
+        .map(_ => {
+          if (c.info.name.toLowerCase.contains("failure")) failureHookResult(e, "pre-hooks")
+          else successHookResult(e, "pre-hooks")
+        })
     }
 
     override def runPostHooks(c: Campaign, e: CampaignEvent): IOResult[HookResults] = {
-      postHooksLog.update(e :: _).map(_ => hookResult(e, "post-hooks"))
+      postHooksLog.update(e :: _).map(_ => successHookResult(e, "post-hooks"))
     }
 
     // this is the main logic. The enqueue just call back orchestration handle with the new event
@@ -219,7 +258,7 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
     suite("all orchestration tests")(
       test("When there is no handler, a campaign even should stop immediately") {
         for {
-          _ <- Effects.reset
+          _ <- Effects.reset(eb0)
           _ <- TestClock.setTime(DateFormaterService.toInstant(now))
           n <- Effects.createNextScheduledCampaignEvent(c0, now)
           _ <- Effects.saveAndQueueEvent(n)
@@ -230,7 +269,7 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
       },
       test("if before date-1h then stop at schedule") {
         for {
-          _ <- Effects.reset
+          _ <- Effects.reset(eb0)
           _ <- TestClock.setTime(DateFormaterService.toInstant(now.minusDays(1)))
           n <- Effects.createNextScheduledCampaignEvent(c0, now)
           _ <- Effects.saveAndQueueEvent(n)
@@ -239,9 +278,9 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
           assert(e.state.value)(equalTo(CampaignEventStateType.ScheduledType))
         }
       },
-      suite("When we have a campaign handler") {
+      suite("When we have a campaign handler")(
         for {
-          _ <- Effects.reset
+          _ <- Effects.reset(eb0)
           _ <- Effects.campaignHandlers.set(List(TestCampaignHandler))
           _ <- TestClock.setTime(DateFormaterService.toInstant(now))
           n <- Effects.createNextScheduledCampaignEvent(c0, now)
@@ -262,8 +301,8 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
                   PreHooks(HookResults(Nil)),
                   PreHooks(HookResults(HookResult(e.id.value, 0, "pre-hooks", "", "") :: Nil)),
                   Running,
-                  PostHooks(HookResults(Nil)),
-                  PostHooks(HookResults(HookResult(e.id.value, 0, "post-hooks", "", "") :: Nil)),
+                  PostHooks(FinishedType, HookResults(Nil)),
+                  PostHooks(FinishedType, HookResults(HookResult(e.id.value, 0, "post-hooks", "", "") :: Nil)),
                   Finished,
                   Scheduled
                 )
@@ -271,7 +310,39 @@ class CampaignOrchestrationLogicTest extends ZIOSpecDefault {
             )
           }
         )
-      } @@ TestAspect.diagnose(Duration(1, TimeUnit.SECONDS))
+      ) @@ TestAspect.diagnose(Duration(1, TimeUnit.SECONDS)),
+      suite("When an pre-hook is in error, switch to failure state but do exec post-hooks")(
+        for {
+          _ <- Effects.reset(eb1)
+          _ <- Effects.campaignHandlers.set(List(TestCampaignHandler))
+          _ <- TestClock.setTime(DateFormaterService.toInstant(now))
+          n <- Effects.createNextScheduledCampaignEvent(failingCampaign, now)
+          _ <- Effects.saveAndQueueEvent(n)
+          e <- Effects.eventStore.get.map(_.get(e1.id)).notOptional("missing event in store")
+          t <- Effects.eventTrail.get
+        } yield Chunk(
+          test("progress to the end in a failure state") {
+            assert(e.state.value)(equalTo(CampaignEventStateType.FailureType))
+          },
+          test("all state must have been saved, and we skip from pre-hook to post-hook") {
+            import com.normation.rudder.campaigns.CampaignEventState.*
+
+            assert(t.reverse.map(_.state))(
+              equalTo(
+                List(
+                  Scheduled,
+                  PreHooks(HookResults(Nil)),
+                  PreHooks(HookResults(HookResult(e.id.value, 1, "pre-hooks", "", "") :: Nil)),
+                  PostHooks(FailureType, HookResults(Nil)),
+                  PostHooks(FailureType, HookResults(HookResult(e.id.value, 0, "post-hooks", "", "") :: Nil)),
+                  Failure("pre-hooks were in error and post-hooks completed successfully", ""),
+                  Scheduled
+                )
+              )
+            )
+          }
+        )
+      ) @@ TestAspect.diagnose(Duration(1, TimeUnit.SECONDS))
     ) @@ TestAspect.sequential @@ TestAspect.timeout(Duration(2, TimeUnit.SECONDS))
   }
 

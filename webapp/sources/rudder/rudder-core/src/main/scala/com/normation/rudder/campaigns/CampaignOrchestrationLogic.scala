@@ -41,8 +41,10 @@ import cats.implicits.*
 import com.normation.errors.*
 import com.normation.rudder.campaigns.CampaignEventState.*
 import com.normation.rudder.campaigns.CampaignEventStateType.*
+import com.normation.rudder.hooks.HookReturnCode
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
+import com.softwaremill.quicklens.*
 import org.joda.time.{Duration as JTDuration, *}
 import zio.*
 import zio.syntax.*
@@ -230,8 +232,13 @@ class CampaignOrchestrationLogic(effects: CampaignOrchestrationEffects) {
           res <- effects.runPreHooks(campaign, event)
         } yield {
           // hooks are special: we don't call per-campaign type handler and we need to first save before change state/update
-          val nextState =
-            res.results.collectFirst { case r if isError(r) => Failure("pre-hooks were in error", r.stderr) }.getOrElse(Running)
+          val nextState = {
+            res.results.collectFirst {
+              case r if isError(r) =>
+                // specify that the next step is error. User can access the "why" by looking at the history of states
+                PostHooksInit.modify(_.nextState).setTo(FailureType)
+            }.getOrElse(Running)
+          }
           EventOrchestration.SaveThenUpdateAndQueue(event.copy(state = PreHooks(res)), nextState)
         }
 
@@ -265,18 +272,26 @@ class CampaignOrchestrationLogic(effects: CampaignOrchestrationEffects) {
         }
 
       case PostHooksType =>
+        val state = event.state.asInstanceOf[PostHooks]
         for {
           res <- effects.runPostHooks(campaign, event)
         } yield {
           // hooks are special: we don't call per-campaign type handler and we need to first save before change state/update
-          val nextState =
-            res.results.collectFirst { case r if isError(r) => Failure("post-hooks were in error", r.stderr) }.getOrElse(Finished)
-          EventOrchestration.SaveThenUpdateAndQueue(event.copy(state = PostHooks(res)), nextState)
+          val nextState = {
+            val optError = res.results.collectFirst { case r if isError(r) => Failure("post-hooks were in error", r.stderr) }
+            (optError, state.nextState) match {
+              case (None, FailureType)     => Failure("pre-hooks were in error and post-hooks completed successfully", "")
+              case (None, s)               => getDefault(s)
+              case (Some(f1), FailureType) => Failure("pre-hooks and post-hooks were in error. Last error:", f1.cause)
+              case (Some(f1), _)           => f1
+            }
+          }
+          EventOrchestration.SaveThenUpdateAndQueue(event.copy(state = state.modify(_.hookResults).setTo(res)), nextState)
         }
     }
   }
 
-  private def isError(r: HookResult) = r.code > 0 && r.code < 32
+  private def isError(r: HookResult) = HookReturnCode.isError(r.code)
 
   /*
    * Once the main loop is checked, we find the service-handler and use it.
@@ -420,8 +435,8 @@ class DefaultCampaignOrchestrationEffects(
     uuidGen:                       StringUuidGenerator
 ) extends CampaignOrchestrationEffects {
 
-  // hooks
   export hooksService.runPostHooks
+  // hooks
   export hooksService.runPreHooks
 
   /*
