@@ -43,6 +43,7 @@ import com.normation.rudder.campaigns.CampaignEventState.*
 import com.normation.rudder.campaigns.CampaignEventStateType.*
 import com.normation.utils.DateFormaterService
 import com.normation.utils.StringUuidGenerator
+import com.softwaremill.quicklens.*
 import org.joda.time.{Duration as JTDuration, *}
 import zio.*
 import zio.syntax.*
@@ -230,8 +231,12 @@ class CampaignOrchestrationLogic(effects: CampaignOrchestrationEffects) {
           res <- effects.runPreHooks(campaign, event)
         } yield {
           // hooks are special: we don't call per-campaign type handler and we need to first save before change state/update
-          val nextState =
-            res.results.collectFirst { case r if isError(r) => Failure("pre-hooks were in error", r.stderr) }.getOrElse(Running)
+          val nextState = {
+            res.results.collectFirst {
+              case r if isError(r) =>
+                PostHooksInit.modify(nextState).setTo(Failure("pre-hooks were in error", r.stderr))
+            }.getOrElse(Running)
+          }
           EventOrchestration.SaveThenUpdateAndQueue(event.copy(state = PreHooks(res)), nextState)
         }
 
@@ -265,13 +270,21 @@ class CampaignOrchestrationLogic(effects: CampaignOrchestrationEffects) {
         }
 
       case PostHooksType =>
+        val state = event.state.asInstanceOf[PostHooks]
         for {
           res <- effects.runPostHooks(campaign, event)
         } yield {
           // hooks are special: we don't call per-campaign type handler and we need to first save before change state/update
-          val nextState =
-            res.results.collectFirst { case r if isError(r) => Failure("post-hooks were in error", r.stderr) }.getOrElse(Finished)
-          EventOrchestration.SaveThenUpdateAndQueue(event.copy(state = PostHooks(res)), nextState)
+          val nextState = {
+            val optError = res.results.collectFirst { case r if isError(r) => Failure("post-hooks were in error", r.stderr) }
+            (optError, state.nextState) match {
+              case (None, FailureType)     => Failure("pre-hooks were in error and post-hooks completed successfully", "")
+              case (None, s)               => getDefault(s)
+              case (Some(f1), FailureType) => Failure("pre-hooks and post-hooks were in error. Last error:", f1.cause)
+              case (Some(f1), _)           => f1
+            }
+          }
+          EventOrchestration.SaveThenUpdateAndQueue(event.copy(state = state.modify(_.hookResults).setTo(res)), nextState)
         }
     }
   }
@@ -394,7 +407,7 @@ trait CampaignOrchestrationEffects {
    * Run hooks that are configured to run before the campaign time slot is reached.
    * Hooks results are collected to for trace.
    */
-  def runPostHooks(c: Campaign, e: CampaignEvent): IOResult[HookResults]
+  def runPostHooks(c: Campaign, e: CampaignEvent, preHooksStatus: Cam): IOResult[HookResults]
 
   /*
    * IO necessary to persist and advance in the campaign workflow
