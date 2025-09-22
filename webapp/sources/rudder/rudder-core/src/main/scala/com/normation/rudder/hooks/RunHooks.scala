@@ -91,10 +91,17 @@ final case class HookEnvPairs(values: List[HookEnvPair]) extends AnyVal {
 
   def add(other: HookEnvPairs): HookEnvPairs = HookEnvPairs(this.values ::: other.values)
 
+  def optAdd(key: String, value: Option[String]): HookEnvPairs = {
+    value match {
+      case None    => this
+      case Some(v) => HookEnvPairs(values :+ HookEnvPair(key, v))
+    }
+  }
+
   /**
-   * Formatted string
-   * [key1:val1][key2:val2]...
-   */
+     * Formatted string
+     * [key1:val1][key2:val2]...
+     */
   def debugString: String = values.map(_.show).mkString(" ")
 }
 
@@ -141,6 +148,10 @@ sealed trait HookReturnCode {
 }
 
 object HookReturnCode {
+
+  def isError(code:   Int): Boolean = code < 0 || code > 0 && code < 32
+  def isWarning(code: Int): Boolean = code >= 32 && code < 64
+
   sealed trait Success extends HookReturnCode
   sealed trait Error   extends HookReturnCode
 
@@ -273,7 +284,7 @@ object RunHooks {
       globalWarnAfter: Duration = 1.minutes,
       unitWarnAfter:   Duration = 30.seconds,
       unitKillAfter:   Duration = 5.minutes
-  ): IOResult[(HookReturnCode, List[HookReturnCode], Long)] = {
+  ): IOResult[(HookReturnCode, List[(String, HookReturnCode)], Long)] = {
     import HookReturnCode.*
 
     def logReturnCode(result: HookReturnCode): IOResult[Unit] = {
@@ -283,7 +294,7 @@ object RunHooks {
                PureHooksLogger.For(logIdentifier).trace(s"  -> stdout : ${result.stdout}") *>
                PureHooksLogger.For(logIdentifier).trace(s"  -> stderr : ${result.stderr}")
              }
-        _ <- ZIO.when(result.code >= 32 && result.code <= 64) { // warning
+        _ <- ZIO.when(HookReturnCode.isWarning(result.code)) { // warning
                for {
                  _ <- PureHooksLogger.For(logIdentifier).warn(result.msg)
                  _ <- ZIO.when(result.stdout.nonEmpty)(PureHooksLogger.For(logIdentifier).warn(s"  -> stdout : ${result.stdout}"))
@@ -306,9 +317,9 @@ object RunHooks {
         // using script error because we do have an error code and it can help in some case
 
         ScriptError(path, result.code, result.stdout, result.stderr, msg)
-      } else if (result.code >= 1 && result.code <= 31) { // error
+      } else if (HookReturnCode.isError(result.code)) { // error
         ScriptError(path, result.code, result.stdout, result.stderr, msg)
-      } else if (result.code >= 32 && result.code <= 64) { // warning
+      } else if (HookReturnCode.isWarning(result.code)) { // warning
         Warning(path, result.code, result.stdout, result.stderr, msg)
       } else if (result.code == Interrupt.code) {
         Interrupt(path, msg, result.stdout, result.stderr)
@@ -323,44 +334,48 @@ object RunHooks {
      * is executed script one after the other, combining at each
      * step.
      * But we still want the whole operation to be non-blocking.
+     * Return the global exec code, and the list of all executed script in reverse order with
+     * their return code. The last executed script is head.
      */
-    val runAllSeq = ZIO.foldLeft(hooks.hooksFile)((Noop: HookReturnCode, List.empty[HookReturnCode])) {
-      case ((previousCode, historyList), (nextHookName, timeouts)) =>
-        val killTimeout = timeouts.kill.getOrElse(unitKillAfter)
-        val warnTimeout = timeouts.warn.getOrElse(unitWarnAfter)
-        previousCode match {
-          case x: Error   => (x, historyList).succeed
-          case x: Success => // run the next hook
-            val path    = hooks.basePath + File.separator + nextHookName
-            val env     = envVariables.add(hookParameters)
-            val cmdInfo = s"'${path}' with environment parameters: [${hookParameters.debugString}]"
+    val runAllSeq: IOResult[(HookReturnCode, List[(String, HookReturnCode)])] = {
+      ZIO.foldLeft(hooks.hooksFile)((Noop: HookReturnCode, List.empty[(String, HookReturnCode)])) {
+        case ((previousCode, historyList), (nextHookName, timeouts)) =>
+          val killTimeout = timeouts.kill.getOrElse(unitKillAfter)
+          val warnTimeout = timeouts.warn.getOrElse(unitWarnAfter)
+          previousCode match {
+            case x: Error   => (x, historyList).succeed
+            case x: Success => // run the next hook
+              val path    = hooks.basePath + File.separator + nextHookName
+              val env     = envVariables.add(hookParameters)
+              val cmdInfo = s"'${path}' with environment parameters: [${hookParameters.debugString}]"
 
-            for {
-              _ <- PureHooksLogger.For(logIdentifier).debug(s"Run hook: ${cmdInfo}")
-              _ <- PureHooksLogger.For(logIdentifier).trace(s"System environment variables: ${envVariables.debugString}")
-              f <- PureHooksLogger.LongExecLogger
-                     .warn(s"Hook is taking more than ${warnTimeout.render} to finish: ${cmdInfo}")
-                     .delay(warnTimeout)
-                     .fork
-              p <- RunNuCommand.run(Cmd(path, Nil, env.toMap, Some(hooks.basePath)))
-              r <- p.await.timeout(killTimeout).flatMap {
-                     case Some(ok) =>
-                       ok.succeed
-                     case None     =>
-                       val msg = s"Hook ${cmdInfo} timed out after ${killTimeout.render}"
-                       PureHooksLogger.LongExecLogger.error(msg) *> Unexpected(msg).fail
-                   }
-              _ <- f.interrupt
-              c  = translateReturnCode(path, r)
-              _ <- logReturnCode(c)
-            } yield {
-              history match {
-                case HookExecutionHistory.DoNotKeep => (c, Nil)
-                // Noop are not real hook execution, just filter them out from the result
-                case HookExecutionHistory.Keep      => (c, (x :: historyList).filterNot(_ == Noop))
+              for {
+                _ <- PureHooksLogger.For(logIdentifier).debug(s"Run hook: ${cmdInfo}")
+                _ <- PureHooksLogger.For(logIdentifier).trace(s"System environment variables: ${envVariables.debugString}")
+                f <- PureHooksLogger.LongExecLogger
+                       .warn(s"Hook is taking more than ${warnTimeout.render} to finish: ${cmdInfo}")
+                       .delay(warnTimeout)
+                       .fork
+                p <- RunNuCommand.run(Cmd(path, Nil, env.toMap, Some(hooks.basePath)))
+                r <- p.await.timeout(killTimeout).flatMap {
+                       case Some(ok) =>
+                         ok.succeed
+                       case None     =>
+                         val msg = s"Hook ${cmdInfo} timed out after ${killTimeout.render}"
+                         PureHooksLogger.LongExecLogger.error(msg) *> Unexpected(msg).fail
+                     }
+                _ <- f.interrupt
+                c  = translateReturnCode(path, r)
+                _ <- logReturnCode(c)
+              } yield {
+                history match {
+                  case HookExecutionHistory.DoNotKeep => (c, Nil)
+                  // Noop are not real hook execution, just filter them out from the result
+                  case HookExecutionHistory.Keep      => (c, ((nextHookName, c) :: historyList).filterNot(_._2 == Noop))
+                }
               }
-            }
-        }
+          }
+      }
     }
 
     val cmdInfo = s"'${hooks.basePath}' with environment parameters: [${hookParameters.debugString}]"
