@@ -23,6 +23,7 @@ allow = [
     "MIT",
     "Apache-2.0",
     "GPL-3.0",
+    "GPL-3.0-or-later",
     "Unicode-DFS-2016",
     "BSD-3-Clause",
     "BSL-1.0",
