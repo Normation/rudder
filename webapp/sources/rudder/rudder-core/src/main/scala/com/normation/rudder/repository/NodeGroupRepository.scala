@@ -104,7 +104,7 @@ final case class FullNodeGroupCategory(
 
   /**
    * Get the list of categories, starting by that one,
-   * and with chlidren sorted with the given ordering.
+   * and with children sorted with the given ordering.
    * So we get:
    * cat1
    *  - cat1.1
@@ -115,7 +115,7 @@ final case class FullNodeGroupCategory(
    *     etc.
    *
    * Some categories AND ALL THERE SUBCATEGORIES can be
-   * exclude with the "exclude" predicat is true.
+   * excluded with the "exclude" predicate is true.
    */
   def getSortedCategories(
       ordering: (FullNodeGroupCategory, FullNodeGroupCategory) => Boolean,
@@ -168,7 +168,7 @@ final case class FullNodeGroupCategory(
   /**
    * Return all node ids that match the set of target.
    */
-  def getNodeIds(targets: Set[RuleTarget], arePolicyServers: MapView[NodeId, Boolean]): Set[NodeId] = {
+  def getNodeIds(targets: Set[RuleTarget], arePolicyServers: Map[NodeId, Boolean]): Set[NodeId] = {
     val groups = allGroups.view.mapValues(_.nodeGroup.serverList.toSet)
 
     RuleTarget.getNodeIds(targets, arePolicyServers, groups.toMap)
@@ -187,7 +187,7 @@ final case class FullNodeGroupCategory(
             // here, we don't need all node info, just the current node
             // It's because we only do set analysis on node info, not things like "find all
             // the node with that policy server" in target.
-            getNodeIds(Set(t), MapView(node.id -> node.rudderSettings.isPolicyServer)).contains(node.id)
+            getNodeIds(Set(t), Map(node.id -> node.rudderSettings.isPolicyServer)).contains(node.id)
           case FullOtherTarget(t)             =>
             t match {
               case AllTarget                    => true
@@ -369,7 +369,7 @@ object RoNodeGroupRepository {
       targets:      Set[RuleTarget],
       allNodeFacts: MapView[NodeId, CoreNodeFact]
   ): Set[NodeId] = {
-    val allNodes = allNodeFacts.mapValues(x => (x.rudderSettings.isPolicyServer))
+    val allNodes = allNodeFacts.mapValues(x => (x.rudderSettings.isPolicyServer)).toMap
     RuleTarget.getNodeIds(targets, allNodes, allGroups)
   }
 

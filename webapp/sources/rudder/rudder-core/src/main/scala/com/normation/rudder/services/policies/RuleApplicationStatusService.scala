@@ -41,14 +41,13 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.*
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
-import scala.collection.MapView
 
 trait RuleApplicationStatusService {
   def isApplied(
       rule:             Rule,
       groupLib:         FullNodeGroupCategory,
       directiveLib:     FullActiveTechniqueCategory,
-      arePolicyServers: MapView[NodeId, Boolean],  // we need both all nodes and if they are policy server
+      arePolicyServers: Map[NodeId, Boolean],      // we need both all nodes and if they are policy server
       appliedOnNodes:   Option[Set[NodeId]] = None // Optional parameter: list of node target of this rule
       // exists because it is already computed in the API call
   ): ApplicationStatus
@@ -65,7 +64,7 @@ class RuleApplicationStatusServiceImpl extends RuleApplicationStatusService {
       rule:             Rule,
       groupLib:         FullNodeGroupCategory,
       directiveLib:     FullActiveTechniqueCategory,
-      arePolicyServers: MapView[NodeId, Boolean],
+      arePolicyServers: Map[NodeId, Boolean],
       appliedOnNodes:   Option[Set[NodeId]] = None // Optional parameter: list of node target of this rule
       // exists because it is already computed in the API call
   ): ApplicationStatus = {

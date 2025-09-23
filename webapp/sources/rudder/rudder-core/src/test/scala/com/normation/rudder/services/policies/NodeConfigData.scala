@@ -89,7 +89,6 @@ import java.nio.file.attribute.BasicFileAttributes
 import net.liftweb.common.Full
 import org.apache.commons.io.FileUtils
 import org.joda.time.DateTime
-import scala.collection.MapView
 import scala.collection.SortedMap
 import zio.Chunk
 import zio.syntax.*
@@ -804,10 +803,10 @@ class TestNodeConfiguration(
   val factCfe: CoreNodeFact = fact1.modify(_.id).setTo(nodeId)
   val cfeNode = factCfe.toNodeInfo
 
-  val allNodeFacts_rootOnly: MapView[NodeId, CoreNodeFact] = MapView(root.id -> factRoot)
-  val allNodesInfo_rootOnly: Map[NodeId, NodeInfo]         = allNodeFacts_rootOnly.mapValues(_.toNodeInfo).toMap
-  val allNodeFacts_cfeNode:  MapView[NodeId, CoreNodeFact] = MapView(root.id -> factRoot, cfeNode.id -> factCfe)
-  val allNodesInfo_cfeNode:  Map[NodeId, NodeInfo]         = allNodeFacts_cfeNode.mapValues(_.toNodeInfo).toMap
+  val allNodeFacts_rootOnly: Map[NodeId, CoreNodeFact] = Map(root.id -> factRoot)
+  val allNodesInfo_rootOnly: Map[NodeId, NodeInfo]     = allNodeFacts_rootOnly.view.mapValues(_.toNodeInfo).toMap
+  val allNodeFacts_cfeNode:  Map[NodeId, CoreNodeFact] = Map(root.id -> factRoot, cfeNode.id -> factCfe)
+  val allNodesInfo_cfeNode:  Map[NodeId, NodeInfo]     = allNodeFacts_cfeNode.view.mapValues(_.toNodeInfo).toMap
 
   // the group lib
   val emptyGroupLib: FullNodeGroupCategory = FullNodeGroupCategory(

@@ -364,7 +364,7 @@ class RuleApiService14(
   ): RuleApplicationStatus = {
     val directives               =
       rule.directiveIds.flatMap(directiveLib.allDirectives.get(_)).map { case (a, d) => (a.toActiveTechnique(), d) }
-    val arePolicyServers         = nodesLib.mapValues(_.rudderSettings.isPolicyServer)
+    val arePolicyServers         = nodesLib.mapValues(_.rudderSettings.isPolicyServer).toMap
     val nodesIds                 = groupLib.getNodeIds(rule.targets, arePolicyServers)
     // for performance reason, it's necessary to keep the .view.filterKeys, as it is 10 times
     // faster than traditional groupLib.getNodeIds(rule.targets, nodesLib).flatMap(nodesLib.get)
