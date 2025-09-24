@@ -25,7 +25,9 @@
 # [Rudder command execution module](https://github.com/Normation/rudder/blob/master/policies/rudderc/docs/src/modules/commands.md),
 # providing simplified parameterization and safe defaults.
 #
-# ## Result status
+# ---
+#
+# ### Result status
 #
 # The method’s result depends on the execution mode:
 #
@@ -40,7 +42,7 @@
 #
 # ---
 #
-# ## Notes
+# ### Notes
 #
 # - When `in_shell=true`, the `command` is passed directly to the shell. Pipes, subshells, and compound commands are supported.
 # - When `in_shell=false`, you must use `args` (JSON array of strings). **No shell expansion happens**: variables like `$HOME`, wildcards (`*`), or redirections (`>`/`|`) are treated literally.
@@ -48,16 +50,18 @@
 # - `stdin_add_newline` ensures input ends with a newline, useful when using interactive inputs via `stdin`
 # - `env_vars` must be a JSON object where **keys and values are strings**.
 #
-# ## Examples
+# ### Examples
 #
-# ### Minimal usage (required `command`)
+# #### Minimal usage (required `command`)
+#
 # ```yaml
 # method: command_execution_options
 # params:
 #   command: "echo Hello"
 # ```
 #
-# ### With arguments (JSON array, no shell)
+# #### With arguments (JSON array, no shell)
+#
 # ```yaml
 # method: command_execution_options
 # params:
@@ -66,7 +70,8 @@
 #   in_shell: "false"
 # ```
 #
-# ### Using a shell with pipes
+# #### Using a shell with pipes
+#
 # ```yaml
 # method: command_execution_options
 # params:
@@ -74,7 +79,8 @@
 #   in_shell: "true"
 # ```
 #
-# ### Running as specific user and group
+# #### Running as specific user and group
+#
 # ```yaml
 # method: command_execution_options
 # params:
@@ -83,7 +89,8 @@
 #   gid:: "1001"
 # ```
 #
-# ### Setting environment variables (JSON object)
+# #### Setting environment variables (JSON object)
+#
 # ```yaml
 # method: command_execution_options
 # params:
