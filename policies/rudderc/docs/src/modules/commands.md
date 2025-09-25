@@ -9,7 +9,7 @@ The module takes the following arguments:
 | Name | Description | Possible values | Required |
 | ---- | ----------- | --------------- | -------- |
 | `command` | Command to be executed | A path on the filesystem or a complete command (if `in_shell` is set to `true, `args` is ignored`) | Yes |
-| `args` | Arguments to the command | A String containing a list of arguments or empty (if `in_shell` is set to `true`, `args` is ignored)  | No |
+| `args` | Arguments to the command | Array of strings in JSON format (e.g., ["-u", "bob"]). If `in_shell` is set to `true`, `args` is ignored  | No |
 | `run_in_audit_mode` | Controls the running mode of the command | `true`/`false` (default: `false`) | No
 | `in_shell` | Controls if the command is executed inside a shell | `true`/`false` (default: `false`) | No |
 | `shell_path` | Shell path (used only in shell mode) | A path to a shell binary (default: `/bin/sh`) | No |
@@ -24,7 +24,7 @@ The module takes the following arguments:
 | `uid` | UID used by the executed command | A valid UID (example: `0`) | No |
 | `gid` | GID used by the executed command | A valid GID (example: `0`) | No |
 | `umask` | Umask used by the executed command | A valid umask (example: `0022`) | No |
-| `env_vars` | Environment variables used by the executed command | A list of variables separated by a new line: `MY_VAR_1=VALUE1` | No |
+| `env_vars` | Environment variables used by the executed command | Dictionary of string key-value pairs in JSON format (e.g., {"LANG": "en_US.UTF-8"}). | No |
 | `show_content` | Controls output in the report | `true`/`false` (default: `true`) | No |
 
 ## CLI

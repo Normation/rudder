@@ -18,12 +18,91 @@
 
 # @name Command execution options
 # @description command execution
-# @documentation Coming soon.
+# @documentation
+# The `command_execution_options` method executes a command on the system with configurable execution
+# parameters such as timeout, user/group, environment, and shell options.
+# This function is a wrapper around
+# [Rudder command execution module](https://github.com/Normation/rudder/blob/master/policies/rudderc/docs/src/modules/commands.md),
+# providing simplified parameterization and safe defaults.
+#
+# ---
+#
+# ### Result status
+#
+# The method’s result depends on the execution mode:
+#
+# - **Enforce mode**
+#   - If the command exit code is contained in **`repaired_codes`**, the status is `repaired`.
+#   - If the exit code is contained in **`compliant_codes`**, the status is `success`.
+#   - Any other exit code produces an `error` report.
+#
+# - **Audit mode**
+#   - By default, the status is always `not_applicable`.
+#   - If **`run_in_audit_mode`** is set to `"true"`, the same logic as in enforce mode is applied (`repaired` / `success` / `error` depending on exit codes).
+#
+# ---
+#
+# ### Notes
+#
+# - When `in_shell=true`, the `command` is passed directly to the shell. Pipes, subshells, and compound commands are supported.
+# - When `in_shell=false`, you must use `args` (JSON array of strings). **No shell expansion happens**: variables like `$HOME`, wildcards (`*`), or redirections (`>`/`|`) are treated literally.
+# - **`args` and `in_shell` are mutually exclusive**: they cannot be used at the same time.
+# - `stdin_add_newline` ensures input ends with a newline, useful when using interactive inputs via `stdin`
+# - `env_vars` must be a JSON object where **keys and values are strings**.
+#
+# ### Examples
+#
+# #### Minimal usage (required `command`)
+#
+# ```yaml
+# method: command_execution_options
+# params:
+#   command: "echo Hello"
+# ```
+#
+# #### With arguments (JSON array, no shell)
+#
+# ```yaml
+# method: command_execution_options
+# params:
+#   command: "/usr/bin/echo"
+#   args: ["Hello", "World"]
+#   in_shell: "false"
+# ```
+#
+# #### Using a shell with pipes
+#
+# ```yaml
+# method: command_execution_options
+# params:
+#   command: "cat /etc/os-release | grep NAME"
+#   in_shell: "true"
+# ```
+#
+# #### Running as specific user and group
+#
+# ```yaml
+# method: command_execution_options
+# params:
+#   command: "id"
+#   uid:: "1001"
+#   gid:: "1001"
+# ```
+#
+# #### Setting environment variables (JSON object)
+#
+# ```yaml
+# method: command_execution_options
+# params:
+#   command: "env"
+#   env_vars:: { "MY_VAR": "Hello World" }
+# ```
 #
 # @parameter            command Command to be executed
 # @parameter_constraint command "allow_empty_string" : false
 # @parameter            args Arguments to the command
 # @parameter_constraint args "allow_empty_string" : true
+# @parameter_constraint args "valid_format" : "json"
 # @parameter            run_in_audit_mode Specify if command must be run in audit mode
 # @parameter_constraint run_in_audit_mode "allow_empty_string" : true
 # @parameter_constraint run_in_audit_mode "select" : [ "", "true", "false" ]
@@ -58,6 +137,7 @@
 # @parameter_constraint umask "allow_empty_string" : true
 # @parameter            env_vars The variables to pass to the environment of the executed command
 # @parameter_constraint env_vars "allow_empty_string" : true
+# @parameter_constraint env_vars "valid_format" : "json"
 # @parameter            show_content Controls output of the report
 # @parameter_constraint show_content "allow_empty_string" : true
 # @parameter_constraint show_content "select" : [ "", "true", "false" ]
