@@ -109,9 +109,8 @@ bundle agent sysctl_value(key, value, filename, option) {
       "can_edit"          expression => "sysctl_d_exists.!(debian_3|debian_4|debian_5|debian_6|redhat_3|redhat_4|redhat_5|redhat_6|sles_9|sles_10|sles_11|ubuntu_12|ubuntu_10|aix|solaris)";
       "check_smaller"     expression => strcmp(string_downcase("${option}"), "min");
       "check_larger"      expression => strcmp(string_downcase("${option}"), "max");
-      "check_equality"           not => "check_larger|check_smaller";
 
-    pass1::
+    pass1.!pass2::
       "correct_value"     expression => strcmp("${sysctl_var.${getKey}}", "${value}"),
                              comment => "${report_data.method_id}";
 
@@ -174,11 +173,11 @@ bundle agent sysctl_value(key, value, filename, option) {
                                         if => "${inner_class_prefix_sysctl_reload}_repaired";
       "${report_data.method_id}" usebundle => call_method_end("variable_string_from_command");
 
-   pass3.correct_value::
+    pass3.correct_value::
       "${report_data.method_id}" usebundle => _classes_success("${report_data.method_id}");
-   pass3.correct_value_post_modif::
+    pass3.!correct_value.correct_value_post_modif::
       "${report_data.method_id}" usebundle => _classes_repaired("${report_data.method_id}");
-   pass3.!correct_value::
+    pass3.!correct_value::
       "${report_data.method_id}" usebundle => _classes_failure("${report_data.method_id}"),
                                         if => or( "!correct_value_post_modif",
                                                   "${inner_class_prefix_variable_get}_error",
@@ -188,11 +187,10 @@ bundle agent sysctl_value(key, value, filename, option) {
                                                   "!can_edit"
                                                 );
 
-  pass3.can_edit::
+    pass3.can_edit::
       "${report_data.method_id}" usebundle => log_rudder_v4("${key}", "Set sysctl value for key ${key}, using file ${filename} with option ${option}", "");
-  pass3.!sysctl_d_exists::
+    pass3.!sysctl_d_exists::
       "${report_data.method_id}" usebundle => log_rudder_v4("${key}", "Set sysctl value for key ${key} is not supported on this system as /etc/sysctl.d doesn't exist", "");
-  pass3.sysctl_d_exists.!can_edit::
+    pass3.sysctl_d_exists.!can_edit::
       "${report_data.method_id}" usebundle => log_rudder_v4("${key}", "Set sysctl value for key ${key} is not supported on this platform (even though /etc/sysctl.d exists)", "");
-
 }
