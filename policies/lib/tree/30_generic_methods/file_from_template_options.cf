@@ -49,7 +49,7 @@ bundle agent file_from_template_options(destination, engine, data, template_stri
       "class_prefix" string => canonify("file_from_template_options_${destination}");
 
   defaults:
-      "engine" string => "minijinja", if_match_regex => "";
+      "engine"       string => "minijinja", if_match_regex => "";
       "show_content" string => "true", if_match_regex => "";
 
   classes:
@@ -74,21 +74,29 @@ bundle agent file_from_template_options(destination, engine, data, template_stri
       "${report_data.method_id}" usebundle => log_rudder_v4("${destination}", "Template module is not supported on this agent", "");
 }
 
+bundle agent template_module_serializer(r_destination, r_engine, r_data, r_template_string, r_template_path, r_datastate_path) {
+  vars:
+    "path"            string => "${r_destination}";
+    "engine"          string => "${r_engine}";
+    "data"            string => "${r_data}";
+    "template_string" string => "${r_template_string}";
+    "template_path"   string => "${r_template_path}";
+    "datastate_path"  string => "${r_datastate_path}";
+}
+
 bundle agent rudder_actual_file_from_template_options(destination, engine, data, template_string, template_path, show_content) {
   vars:
-   # "datastate" string => string_mustache("{{%-top-}}"),
-   #                    unless => isvariable($(this.promiser));
-   # When passing custom data to fill the template, the data variable comes as a non escaped Json string.
-   # To avoid escaping issues we need to deserialize it, build the global module input and re-serialize it
-   "datastate_file"        string => "/var/rudder/tmp/datastate-${this.promiser_pid}.json";
-   "data_without_data"     data => parsejson('{ "path": "${destination}", "template_src": "${template_string}", "template_path": "${template_path}", engine: "${engine}", "show_content": ${show_content}, "datastate_path": "${datastate_file}" }');
-   pass1.!data_is_empty::
-     "data_as_data"          data => parsejson("${data}");
-     "module_inputs_as_data" data => mergedata("data_without_data", '{ "data": data_as_data }');
    pass1.data_is_empty::
-     "module_inputs_as_data" data => mergedata("data_without_data", '{ "data": "" }');
+     "datastate_path"  string => "/var/rudder/tmp/datastate-${this.promiser_pid}.json";
+   pass1.!data_is_empty::
+     "datastate_path"  string => "";
    pass1::
-     "module_inputs"       string => storejson("module_inputs_as_data");
+     "string_params"     data => bundlestate("template_module_serializer");
+     "bool_params"       data => '---
+show_content: ${show_content}
+';
+     "inputs_as_data"    data => mergedata('string_params', 'bool_params');
+     "module_inputs"   string => storejson('inputs_as_data');
 
   classes:
       "pass3"         expression => "pass2";
@@ -97,24 +105,43 @@ bundle agent rudder_actual_file_from_template_options(destination, engine, data,
       "data_is_empty" expression => strcmp("${data}", "");
 
   files:
-      "${datastate_file}"
-        template_method => "inline_mustache",
-        create          => "true",
-        edit_defaults   => no_backup,
+    pass1.!pass2.data_is_empty::
+      "${datastate_path}"
+        template_method      => "inline_mustache",
+        create               => "true",
+        edit_defaults        => no_backup,
         edit_template_string => "{{%-top-}}";
 
   methods:
-     pass3::
+     pass1.!pass2::
+       "serialize"               usebundle => template_module_serializer("${destination}",
+                                                                         "${engine}",
+                                                                         "${data}",
+                                                                         "${template_string}",
+                                                                         "${template_path}",
+                                                                         "${datastate_path}");
+     pass3.data_is_empty::
       # In non audit mode, we need to force enforce mode to remove the temp files.
       "${report_data.method_id}" usebundle => push_dry_run_mode("false");
       "${report_data.method_id}" usebundle => call_method("file_absent");
-      "${report_data.method_id}" usebundle => file_absent("${datastate_file}");
+      "${report_data.method_id}" usebundle => file_absent("${datastate_path}");
       "${report_data.method_id}" usebundle => call_method_end("file_absent");
       "${report_data.method_id}" usebundle => pop_dry_run_mode();
 
   template:
-    pass2.!pass3::
+    pass2.!pass3.!(global_dry_run|dry_run)::
       "module_call"
+        rudder_module_protocol  => "0",
+        state_dir               => "/var/rudder/tmp/",
+        backup_dir              => "/var/rudder/modified-files/",
+        node_id                 => "${g.uuid}",
+        agent_frequency_minutes => "${g.agent_run_interval}",
+        classes                 => classes_generic("${report_data.method_id}"),
+        data                    => "${module_inputs}";
+
+    pass2.!pass3.(global_dry_run|dry_run)::
+      "module_call"
+        action_policy           => "warn",
         rudder_module_protocol  => "0",
         state_dir               => "/var/rudder/tmp/",
         backup_dir              => "/var/rudder/modified-files/",
