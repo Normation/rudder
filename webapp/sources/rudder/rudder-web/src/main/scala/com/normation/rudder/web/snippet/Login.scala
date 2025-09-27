@@ -3,15 +3,13 @@ package com.normation.rudder.web.snippet
 import bootstrap.liftweb.RudderConfig
 import com.normation.plugins.DefaultExtendableSnippet
 import net.liftweb.http.DispatchSnippet
-import scala.annotation.unused
 import scala.xml.NodeSeq
 
 class Login extends DispatchSnippet with DefaultExtendableSnippet[Login] {
 
-  val userListProvider = RudderConfig.rudderUserListProvider
-  @unused
-  private val script   = {
-    """window.setTimeout('location.reload()', 10000);
+  private val userListProvider = RudderConfig.rudderUserListProvider
+  private val script           = {
+    """window.setTimeout(function(){location.reload()}, 10000);
       |$('.btn-clipboard').click(function(){
       |  navigator.clipboard.writeText("rudder server create-user -u " ).then(function(){
       |    $('.btn-clipboard').attr("title","Copied to clipboard!");
@@ -47,9 +45,7 @@ class Login extends DispatchSnippet with DefaultExtendableSnippet[Login] {
                 </button>
               </div>
               <script type="text/javascript" data-lift="with-nonce">
-                // <![CDATA[
                 {script}
-                // ]]>
               </script>
             </div>
           </form>
