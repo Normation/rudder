@@ -29,7 +29,7 @@ fn it_renders_minijinja_inlined() {
     unix::test(
         Path::new(BIN),
         &format!(
-            r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_src": "Hello {{{{ name }}}}!", "data": {{ "name": "ximou" }} }}"#,
+            r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_string": "Hello {{{{ name }}}}!", "data": {{ "name": "ximou" }} }}"#,
             test_path.display(),
             "minijinja"
         ),
@@ -49,7 +49,7 @@ fn it_fails_on_undefined_values() {
     unix::test(
         Path::new(BIN),
         &format!(
-            r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_src": "Hello {{{{ doesnotexist }}}}!", "data": {{ "name": "ximou" }} }}"#,
+            r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_string": "Hello {{{{ doesnotexist }}}}!", "data": {{ "name": "ximou" }} }}"#,
             test_path.display(),
             "minijinja"
         ),
@@ -68,7 +68,7 @@ fn it_renders_minijinja_from_file() {
     unix::test(
         Path::new(BIN),
         &format!(
-            r#"{{"path": "{}", "engine": "{}", "template_src": "", "datastate_path": "", "template_path": "./tests/template.j2", "data": {{ "name": "you" }} }}"#,
+            r#"{{"path": "{}", "engine": "{}", "template_string": "", "datastate_path": "", "template_path": "./tests/template.j2", "data": {{ "name": "you" }} }}"#,
             test_path.display(),
             "minijinja"
         ),
@@ -88,7 +88,7 @@ fn it_checks_minijinja() {
     unix::test(
         Path::new(BIN),
         &format!(
-            r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_src": "Hello {{{{ name }}}}!", "data": {{ "name": "ximou" }} }}"#,
+            r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_string": "Hello {{{{ name }}}}!", "data": {{ "name": "ximou" }} }}"#,
             test_path.display(),
             "minijinja"
         ),
@@ -108,7 +108,7 @@ fn it_checks_correct_minijinja() {
     unix::test(
         Path::new(BIN),
         &format!(
-            r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_src": "Hello {{{{ name }}}}!", "data": {{ "name": "World" }} }}"#,
+            r#"{{"path": "{}", "engine": "{}", "template_path": "", "datastate_path": "", "template_string": "Hello {{{{ name }}}}!", "data": {{ "name": "World" }} }}"#,
             test_path.display(),
             "minijinja"
         ),

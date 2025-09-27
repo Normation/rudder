@@ -182,12 +182,12 @@ pub struct TemplateParameters {
         skip_serializing_if = "Option::is_none",
         deserialize_with = "deserialize_option_string"
     )]
-    template_src: Option<String>,
+    template_string: Option<String>,
     /// Templating engine
     #[serde(default)]
     engine: Engine,
     /// Data to use for templating
-    #[serde(default)]
+    #[serde(deserialize_with = "deserialize_data", default)]
     data: Value,
     /// Datastate file path
     #[serde(
@@ -202,6 +202,17 @@ pub struct TemplateParameters {
 
 fn default_as_true() -> bool {
     true
+}
+
+fn deserialize_data<'de, D>(deserializer: D) -> Result<Value, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Value::deserialize(deserializer)?;
+    match value {
+        Value::String(s) => serde_json::from_str(&s).map_err(serde::de::Error::custom),
+        _ => Ok(value),
+    }
 }
 
 fn deserialize_option_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
@@ -252,11 +263,11 @@ impl ModuleType0 for Template {
 
         match (
             parameters.template_path.is_some(),
-            parameters.template_src.is_some(),
+            parameters.template_string.is_some(),
         ) {
             (true, true) => bail!(
                 "Only one of 'template_path' and 'template_src' can be provided '{}' and '{}'",
-                parameters.template_src.unwrap(),
+                parameters.template_string.unwrap(),
                 parameters.template_path.unwrap().display()
             ),
             (false, false) => {
@@ -292,9 +303,11 @@ impl ModuleType0 for Template {
         };
 
         let output = match p.engine {
-            Engine::Mustache => Engine::mustache(p.template_path.as_deref(), p.template_src, data)?,
+            Engine::Mustache => {
+                Engine::mustache(p.template_path.as_deref(), p.template_string, data)?
+            }
             Engine::Minijinja => {
-                Engine::minijinja(p.template_path.as_deref(), p.template_src, data)?
+                Engine::minijinja(p.template_path.as_deref(), p.template_string, data)?
             }
             Engine::Jinja2 => {
                 // Only detect if necessary
@@ -309,7 +322,7 @@ impl ModuleType0 for Template {
                 };
                 Engine::jinja2(
                     p.template_path.as_deref(),
-                    p.template_src,
+                    p.template_string,
                     data,
                     parameters.temporary_dir.as_path(),
                     python_bin,
@@ -442,4 +455,41 @@ fn get_python_version() -> Result<String> {
         "Failed to locate a Python interpreter with Jinja2 installed. Tried the following commands:\n{}",
         used_cmd.join("\n")
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_deserialize_data_from_json() {
+        #[derive(Deserialize)]
+        struct DataTest {
+            #[serde(deserialize_with = "deserialize_data", default)]
+            data: Value,
+        }
+
+        // Using raw data
+        let json = r#"
+{
+    "data": {
+        "name": "Bob",
+        "age": 30
+    }
+}
+"#;
+        let r: DataTest = serde_json::from_str(&json).unwrap();
+        assert_eq!(r.data["name"], "Bob");
+        assert_eq!(r.data["age"], 30);
+
+        // Using inline JSON
+        let json2 = r#"
+{
+    "data": "{\"name\": \"Bob\", \"age\": 30}"
+}
+"#;
+        let r2: DataTest = serde_json::from_str(&json2).unwrap();
+        assert_eq!(r2.data["name"], "Bob");
+        assert_eq!(r2.data["age"], 30);
+    }
 }
