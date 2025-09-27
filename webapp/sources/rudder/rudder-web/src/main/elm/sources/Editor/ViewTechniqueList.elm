@@ -88,8 +88,8 @@ techniqueList model techniques =
   in
     div [ class "template-sidebar sidebar-left col-techniques", onClick OpenTechniques ] [
       div [ class "sidebar-header"] [
-        div [ class "header-title" ] [
-          h1 [] [
+        div [ class "header-title flex-wrap" ] [
+          h1 [class "d-flex align-items-center"] [
             text "Techniques"
           , span [ id "nb-techniques", class "badge badge-secondary badge-resources" ] [
               span [] [ text (String.fromInt (List.length techniques)) ]
