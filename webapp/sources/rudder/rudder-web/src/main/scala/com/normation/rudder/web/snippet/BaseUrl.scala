@@ -37,7 +37,7 @@
 
 package com.normation.rudder.web.snippet
 
-import bootstrap.liftweb.StaticResourceRewrite
+import bootstrap.liftweb.RudderConfig
 import net.liftweb.http.*
 import net.liftweb.http.js.JE.*
 import net.liftweb.http.js.JsCmds.*
@@ -51,13 +51,15 @@ import scala.xml.NodeSeq
  */
 class BaseUrl {
 
+  private val staticResourceRewrite = RudderConfig.staticResourceRewrite
+
   /*
    * We still need to have a base url for some javascript
    * But now we use it as a javascript variable
    */
   def display: NodeSeq = WithNonce.scriptWithNonce(
     Script(
-      JsRaw(s"""var contextPath = '${S.contextPath}'; var resourcesPath = '${S.contextPath}/${StaticResourceRewrite.prefix}'""")
+      JsRaw(s"""var contextPath = '${S.contextPath}'; var resourcesPath = '${staticResourceRewrite.resourceRoot}'""")
     ) // JsRaw ok, no user inputs
   )
 
