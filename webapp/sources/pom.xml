@@ -150,7 +150,7 @@ limitations under the License.
         <executions>
           <execution>
             <id>scala-compile-first</id>
-            <phase>process-resources</phase>
+            <phase>compile</phase>
             <goals>
               <goal>add-source</goal>
               <goal>compile</goal>
@@ -158,7 +158,7 @@ limitations under the License.
           </execution>
           <execution>
             <id>scala-test-compile</id>
-            <phase>process-test-resources</phase>
+            <phase>test-compile</phase>
             <goals>
               <goal>testCompile</goal>
             </goals>
