@@ -103,6 +103,11 @@ Run `sudo apt install virtualbox` in a terminal.
 ### Vagrant installation
 
 Follow the Vagrant install tutorial https://developer.hashicorp.com/vagrant/install.
+In `~/<workspace>/rudder-tests` update `Vagrantfile` and replace the values of `DOWNLOAD_USER` and `DOWNLOAD_PASSWORD`
+```
+$DOWNLOAD_USER="xxx"
+$DOWNLOAD_PASSWORD="xxx"
+```
 
 ### Intellij Idea Community installation
 
@@ -166,10 +171,10 @@ Follow these instructions to  [rudder-api-client](https://github.com/Normation/r
 ln -s <rudder-api-client directory's path>
 ```
 Run `./rtf` will validate `virtualbox` and `vagrant` are running properly.
-Pick an existing platorm in `rudder-tests/platforms` for instance `debian13` (drop the extension file) and run:
+Pick an existing platform in `rudder-tests/platforms` for instance `debian13` (choose the latest version and drop the extension file) and run:
 ```
 cd ~/Workspace/rudder-tests
-./rtf platorm setup debian13
+./rtf platorm setup debian<latest>
 ```
 
 <div class="pitfall">
