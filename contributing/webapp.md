@@ -1,3 +1,34 @@
+<style>
+    .pitfall {
+        border-radius: 5px; 
+        margin: 0 0 1em; 
+        padding: 0.5em 1em; 
+        border: 3px solid #ffb46e; 
+        background-color: #ff7b00; 
+        font-style: italic; 
+        color:white;
+    }
+    .code-format {
+        color:white;
+    }
+    code .pitfall {
+        color:white;
+    }
+
+    .success {
+        border-radius: 5px; 
+        margin: 0 0 1em; 
+        padding: 0.5em 1em; 
+        border: 3px solid #488759; 
+        background-color: #0a521d; 
+        font-style: italic;
+    }   
+    code .success {
+        color: white;
+    }
+
+</style>
+
 # How to setup your development's environment for Rudder's web application
 
 ## Synopsis
@@ -9,7 +40,7 @@ This is a **straightforward guide** aims to setup all tools and settings on a Li
 - Vagrant
 - Virtual Box and Oracle VM VirutalBox Extension pack
 - IntelliJ
-- OpenJDK 8 at least
+- OpenJDK latest LTS
 - git
 - netstat
 
@@ -51,62 +82,80 @@ This is a **straightforward guide** aims to setup all tools and settings on a Li
 
 ### Needed packages
 If you are starting with a clean machine, you might want to take it all, should be needed at some point
-`apt update && apt install -y git openssh-server python3 python3-pip python python-pip openjdk-11-jdk net-tools ldap-utils nodejs npm maven`
-`pip install docopt requests pexpect urllib3` (or `pip3`)
+
+```bash
+`apt update && apt install -y git openssh-server python3 python3-pip python python-pip net-tools ldap-utils nodejs npm maven`
+```
+
+Install with pip or pip3
+```bash
+`pip install docopt requests pexpect urllib3` 
+```
+```bash
+`pip3 install docopt requests pexpect urllib3` 
+```
+
 
 ### VirtualBox installation
-```bash
-add-apt-repository "deb http://download.virtualbox.org/virtualbox/debian bionic contrib"
-wget -qO- https://www.virtualbox.org/download/oracle_vbox_2016.asc | sudo apt-key add -
-apt update
-vboxlatest=$(wget -qO- https://download.virtualbox.org/virtualbox/LATEST.TXT)
-vboxversion=$(echo $vboxlatest | cut -c1-3)
-apt install -y virtualbox-${vboxversion}
-wget https://download.virtualbox.org/virtualbox/${vboxlatest}/Oracle_VM_VirtualBox_Extension_Pack-${vboxlatest}.vbox-extpack
-echo y | sudo vboxmanage extpack install --replace Oracle_VM_VirtualBox_Extension_Pack-${vboxlatest}.vbox-extpack
-rm -rf Oracle_VM_VirtualBox_Extension_Pack-${vboxlatest}.vbox-extpack
-mkdir -p /etc/vbox
-echo '* 10.0.0.0/8 192.168.0.0/16' >> /etc/vbox/networks.conf
-```
+
+Run `sudo apt install virtualbox` in a terminal.
 
 ### Vagrant installation
-```bash
-vagrantversion=$(wget -qO- https://raw.githubusercontent.com/hashicorp/vagrant/stable-website/version.txt) 
-wget https://releases.hashicorp.com/vagrant/${vagrantversion}/vagrant_${vagrantversion}_x86_64.deb
-apt install -y ./vagrant_${vagrantversion}_x86_64.deb
-rm -rf vagrant_${vagrantversion}_x86_64.deb
-```
+
+Follow the Vagrant install tutorial https://developer.hashicorp.com/vagrant/install.
 
 ### Intellij Idea Community installation
-```bash
-wget https://download.jetbrains.com/idea/ideaIC-2019.3.3.tar.gz
-sudo tar -xzf ideaIC-2019.3.3.tar.gz -C /opt
-rm -rf ideaIC-2019.3.3.tar.gz
+
+- Download intellij idea community edition (not the ultimate edition) https://www.jetbrains.com/idea/download/?section=linux
+- Install intellij in `/usr/local/bin`
+- Run `/usr/local/bin/<intellij path>/bin/idea.sh`
+- Create a command line launcher by going running `Create a command line launcher...` from the `Tools` menu
+- Edit `~/.bashrc` and add Intellij bin path to `$PATH`, save and close `.bashrc`
+
+> Note: this is an example of path to add in the .bashrc file `export $PATH="/usr/local/bin/idea-IC-252.25557.131/bin:$PATH"`
+- Source `.bashrc` to update `$PATH` running `source ~/.bashrc` in your terminal
+- Check if the `$PATH` is properly updated by running `echo $PATH` you should the idea path. For instance:
 ```
-> For later use: `/opt/idea-IC-193.6494.35/bin/idea.sh` to start intellij
+pauline@ThinkPad-T14s-Gen-6$ echo $PATH
+/usr/local/bin/idea-IC-252.25557.131/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin
+```
+
+<div class="success">
+<span style="font-weight: bold;">Congrats!</span> You can start intellij in command line from anywhere by executing <code>idea</code> in a terminal.
+</div>
+
+
+- Create a Desktop entry by running `Create a desktop entry...` from the `Tools` menu, see https://youtrack.jetbrains.com/articles/SUPPORT-A-56/How-to-handle-Switch-to-a-native-launcher-notification
+
+<div class="success">
+<span style="font-weight: bold;">Congrats!</span> Now you can exit IDEA and start it from the system menu. If a new menu entry is not shown, restart your login session.
+</div>
+
+### Install a jre
+
+Install a recent jre, the latest LTS version should be fine.
+
+Run `java -version` to validate
 
 ### ldap apache directory studio installation
-```bash
-wget "http://apache.mirrors.ovh.net/ftp.apache.org/dist/directory/studio/2.0.0.v20180908-M14/ApacheDirectoryStudio-2.0.0.v20180908-M14-linux.gtk.x86_64.tar.gz"
-sudo tar -xzf ApacheDirectoryStudio-2.0.0.v20180908-M14-linux.gtk.x86_64.tar.gz -C /opt
-rm -rf ApacheDirectoryStudio-2.0.0.v20180908-M14-linux.gtk.x86_64.tar.gz
-```
-> For later use: `/opt/ApacheDirectoryStudio/ApacheDirectoryStudio` to start Apache Directory Studio
+
+> Note: a jre is required
+
+Download and install `ApacheDirectoryStudio`. https://directory.apache.org/studio/download/download-linux.html#verifyIntegrity in `/usr/local/bin`.
+Add `/usr/local/bin/ApacheDirectoryStudio` path in the `$PATH` variable of the `~/.barshrc` file.
+
+Run `ApacheDirectoryStudio`
+
+![img_2.png](img_2.png)
+
+<div class="success">
+<span style="font-weight: bold;">Congrats!</span> You succeed to run <code class="code-format">ApachDirectoryStudio</code>
+</div>
+
 
 ### Elm installation
-```bash
-wget -qO elm.gz https://github.com/elm/compiler/releases/download/0.19.0/binary-for-linux-64-bit.gz
-gzip -d elm.gz
-chmod +x elm
-mv elm /usr/local/bin/
-```
 
-```bash
-wget -qO elm-0.19.1.gz https://github.com/elm/compiler/releases/download/0.19.1/binary-for-linux-64-bit.gz
-gzip -d elm-0.19.1.gz
-chmod +x elm-0.19.1
-mv elm-0.19.1 /usr/local/bin/
-```
+Follow the elm installer tutorial https://github.com/elm/compiler/blob/master/installers/linux/README.md
 
 ### Rudder Test framework (RTF) installation
 Please follow these [steps](https://github.com/Normation/rudder-tests#rudder-tests) to install Rudder Test framework
@@ -116,13 +165,63 @@ Follow these instructions to  [rudder-api-client](https://github.com/Normation/r
 ```
 ln -s <rudder-api-client directory's path>
 ```
+Run `./rtf` will validate `virtualbox` and `vagrant` are running properly.
+Pick an existing platorm in `rudder-tests/platforms` for instance `debian13` (drop the extension file) and run:
+```
+cd ~/Workspace/rudder-tests
+./rtf platorm setup debian13
+```
 
+<div class="pitfall">
+<span style="font-weight: bold;">Pitfall</span>: maybe you will need to disable the secure boot in the bios
+</div>
 
-## Part 1 : Setup the local environment and the dev box
+<div class="pitfall">
+<span style="font-weight: bold;">Pitfall</span>: maybe you will need to update the address used to be within the allowed
+ranges and run the command again if the IP address configured for the host-only network is not within the
+allowed ranges. </br> 
+Valid ranges can be modified in the <code class="code-format">/etc/vbox/networks.conf</code> file. </br>
+For more information including valid format see:</br>
+
+https://www.virtualbox.org/manual/ch06.html#network_hostonly
+
+</div>
+
+<div class="pitfall">
+<span style="font-weight: bold;">Pitfall</span>: When running ./rtf
+
+<code style="color:white;">Stderr: Warning: program compiled against libxml 212 using older 209</code>
+<br />
+If you have this error the version of ubuntu and virtualbox are probably incompatible. Maybe you download a .deb file from the website.<br/>
+
+If so remove the .deb: <br />
+<code style="color: white;">ps aux | grep -i vbox</code><br/>
+<code style="color: white;">sudo apt purge virtualbox-<version></code><br/>
+<code style="color: white;">sudo apt install virtualbox</code><br/>
+
+Otherwise, you can also update your system.
+
+</div>
+
+<div class="pitfall">
+<span style="font-weight: bold;">Pitfall</span>: When running ./rtf
+
+<span style="font-family: Courier New;">Stderr: VBoxManage: error: VirtualBox can't enable the AMD-V extension. Please disable the KVM kernel extension, recompile your kernel and reboot (VERR_SVM_IN_USE)</span>
+</div>
+
+![img.png](img.png)
+
+Run <code>VirtualBox</code>, you should see 3 virtual machines running.
+<div class="success">
+<span style="font-weight: bold;">Congrats!</span> You succeed to run <code class="code-format">./rtf</code> which validates <code class="code-format">virtualbox</code> and <code class="code-format">vagrant</code>. Now let's go further and see how to configure <code class="code-format">rudder-tests</code> for your needs.
+
+</div>
+
+## Part 1 : Setup rudder-tests local environment
 
 ### Create a platform description file
-`cd` into the directory of the previously installed RTF. We'll name it: `rudder-test` here.
-`./platform/` contains examples of platform configurations.
+`cd` into the directory of the previously installed RTF. We'll name it: `rudder-tests` here.
+The directory `rudder-tests/platforms/` contains examples of platform configurations.
 Please read https://github.com/Normation/rudder-tests#adding-a-platform-or-an-os for further information.
 
 Create a `<dev_env_name>.json` file in `./platform/` and put your platform's configuration in it.
@@ -155,7 +254,8 @@ When your file is ready, you will have to create and prepare the box by running 
 - `./rtf platform setup <env's name>` from the `rudder-tests` folder, or
 - `vagrant up <VM_id>`. The `<VM_id>` can be found by doing `vagrant global-status` as the user that created the VM in the first place
 
-Now you can test that the environment is working by typing:
+Some test environment run a postgresql database. The default port of postgresql is `5432` and the default port forwarded is `15432`.
+Now you can test that the environment is working by netstat shows some connection on the port `15432`:
 ```
 sudo netstat -laputn | grep 15432
 ```
@@ -169,6 +269,10 @@ You can find the port number back in the Vagrantfile.
 ```
 vagrant ssh <env's name>_server
 ```
+<div class="success">
+<span style="font-weight: bold;">Congrats!</span> You succeed to start your own test environment.
+</div>
+
 
 ### Setup the local environnement
 Meaning following steps are to be executed on your machine, not on the created VM
@@ -179,10 +283,10 @@ unless specified otherwise, the place repos are cloned is not important. Maybe k
 1. Create necessary groups
 
 ```
-groupadd rudder
-groupadd rudder-policy-reder
-usermod -a -G rudder <username>
-usermod -a -G rudder-policy-reader <username>
+sudo groupadd rudder
+sudo groupadd rudder-policy-reader
+sudo usermod -a -G rudder <username>
+sudo usermod -a -G rudder-policy-reader <username>
 ```
 
 Please note that this change will need to start a new shell or session to be taken into account
@@ -203,21 +307,38 @@ sudo chmod -R 770 /var/rudder/share
 ```
 
 #### Synchronize techniques
+
+One of `rudder` use cases is about making changes in yaml configurations, by using a user interface or by editing the yaml file.
+In order to keep track of the changes made in the configuration files and to keep a history, a local git repository is needs to be set up to be accessed by the `rudder` application : `/var/rudder/configuration-repository/`
+
+
+
 1. Clone rudder-techniques repo by :
 ```
 git clone https://github.com/Normation/rudder-techniques.git
 ```
 2. Move technique's directory to `/var/rudder/configuration-repository/`
 ```
-cp -r rudder-techniques/techniques /var/rudder/configuration-repository/
+sudo mkdir -p /var/rudder/configuration-repository/
+sudo cp -r rudder-techniques/techniques /var/rudder/configuration-repository/
+git init /var/rudder/configuration-repository/
 ```
 
 These steps get you the base techniques. To sync it:
 3. git add and commit techniques directory in `/var/rudder/configuration-repository/`
 ```
 git add techniques/
-git commit -m "what ever you want"
+git commit -m "techniques first commit"
 ```
+
+4. Synch /var/rudder/configuration-repository/techniques with remote directory rudder-techniques/techniques
+
+In case a change would happen in the git repository
+```
+git pull ~/<workspace>/rudder-techniques/techniques
+rsync -r ~/<workspace>/rudder-techniques/techniques /var/rudder/configuration-repository
+```
+But in practice, you'll probably never have to do this, because `~/<workspace>/rudder-techniques/techniques` almost never change
 
 ### Setup you vagrant box environment
 Meaning following steps are to be executed on the newly created VM machine. But first, you need to establish a connection (1.)
@@ -227,6 +348,7 @@ Meaning following steps are to be executed on the newly created VM machine. But 
 vagrant ssh <env's name>_server
 ```
 
+TODO: move rudder setup before this point.
 2. In vagrant box, find in `/opt/rudder/etc/openldap/slapd.conf` the two lines starting with `rootdn` and `rootpw` and keep them for the next section
 rootdn should look like that :
 `rootdn   "cn=Manager,cn=rudder-configuration"`
@@ -399,8 +521,6 @@ This script should be copied anywhere on your machine and simply executed.
 > Important note: This script does not setup Intellij ([Setup workspace development with IntelliJ and Maven](#part-2---setup-workspace-development-with-intellij-and-maven)) 
  and Apache Directory Studio ([LDAP connection](#test-ldap-connection)). These still have to be set manually.
 
-> To start intellij, run: `/opt/idea-IC-193.6494.35/bin/idea.sh`
-
 > To start Apache Directory Studio: `/opt/ApacheDirectoryStudio/ApacheDirectoryStudio`
 
 > Important note: this script should only be ran once. Every other startup, only do the following command: `./rtf platform setup debian9_dev`
@@ -414,7 +534,7 @@ This script should be copied anywhere on your machine and simply executed.
 If you want to learn how to use Rudder and its web interface, consult the documentation here : https://docs.rudder.io/reference/5.0/usage/web_interface.html :shipit:
 
 #### Contribution
-If you want to submit your code, please feel to contribute by following the [code submit process](https://github.com/Normation/rudder/blob/master/CONTRIBUTING.adoc), we would be happy to review your code and and see new contributors join the boat! :heart:
+If you want to submit your code, please feel to contribute by following the [code submit process](https://github.com/Normation/rudder/blob/master/CONTRIBUTING.adoc), we would be happy to review your code and see new contributors join the boat! :heart:
 
 #### Bug reports
 If you detect any bugs in the application please feel free to report it by signing up here if you don't have already an account: https://issues.rudder.io/ :bug:
