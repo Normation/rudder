@@ -103,7 +103,8 @@ Run `sudo apt install virtualbox` in a terminal.
 ### Vagrant installation
 
 Follow the Vagrant install tutorial https://developer.hashicorp.com/vagrant/install.
-In `~/<workspace>/rudder-tests` update `Vagrantfile` and replace the values of `DOWNLOAD_USER` and `DOWNLOAD_PASSWORD`
+
+Edit `~/<workspace>/rudder-tests/Vagrantfile` and replace the values of `DOWNLOAD_USER` and `DOWNLOAD_PASSWORD`.
 ```
 $DOWNLOAD_USER="xxx"
 $DOWNLOAD_PASSWORD="xxx"
@@ -338,7 +339,7 @@ git commit -m "techniques first commit"
 
 4. Synch /var/rudder/configuration-repository/techniques with remote directory rudder-techniques/techniques
 
-In case a change would happen in the git repository
+If in case a change would happen in `rudder-techniques` remote repository
 ```
 git pull ~/<workspace>/rudder-techniques/techniques
 rsync -r ~/<workspace>/rudder-techniques/techniques /var/rudder/configuration-repository
@@ -354,9 +355,11 @@ vagrant ssh <env's name>_server
 ```
 
 TODO: move rudder setup before this point.
-2. In vagrant box, find in `/opt/rudder/etc/openldap/slapd.conf` the two lines starting with `rootdn` and `rootpw` and keep them for the next section
+2. In vagrant box, find in `/opt/rudder/etc/openldap/slapd.conf` the two lines starting with `rootdn` and `rootpw` and keep them for the next section, those value are gonna be useful to configure the ldap connection.
 rootdn should look like that :
 `rootdn   "cn=Manager,cn=rudder-configuration"`
+
+> Note: You have to open the file with a root user, or you will see an empty file which is totally confusing.
 
 ### Test LDAP connection
 1. Run Apache Directory Studio (installed in Part 0)
