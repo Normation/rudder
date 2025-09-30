@@ -413,6 +413,9 @@ impl Commands {
         };
 
         let status = match (audit, exit_code, repaired_codes, compliant_codes) {
+            // The first case is to report a compliant status in audit when a repaired
+            // would be logical, as a repaired status in audit would break the agent run
+            (true, e, r, _) if r.contains(&e) => "compliant",
             (false, e, r, _) if r.contains(&e) => "repaired",
             (_, e, _, Some(c)) if c.contains(&e) => "compliant",
             _ => "failed",
@@ -535,10 +538,9 @@ fn strip_trailing_newline(input: &str) -> &str {
 mod tests {
     use super::*;
     use indexmap::indexmap;
-    use std::str::FromStr;
 
     #[test]
-    fn test_env_vars_deserialization_of_JSON_inputs() {
+    fn test_env_vars_deserialization_of_json_inputs() {
         let value: Value =
             serde_json::from_str(r#"{"USER": "admin", "SHELL": "/bin/bash"}"#).unwrap();
         let result = Commands::parse_env_vars_value(value).unwrap();

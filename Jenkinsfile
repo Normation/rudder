@@ -37,6 +37,18 @@ pipeline {
                     }
                     steps {
                         sh script: './qa-test --methods', label: 'methods tests'
+                        dir("policies/module-types") {
+                            dir("template") {
+                                sh script: 'cargo build'
+                            }
+                            dir("augeas") {
+                                sh script: 'cargo build'
+                            }
+                            dir("commands") {
+                                sh script: 'cargo build'
+                            }
+                        }
+                        sh script: 'cp target/debug/rudder-module-* /opt/rudder/bin/'
                         dir("policies/lib") {
                             sh script: 'cargo nextest run --retries 2', label: 'methods tests'
                         }

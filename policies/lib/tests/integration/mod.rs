@@ -39,6 +39,8 @@ mod file_from_local_source_recursion_test;
 #[cfg(test)]
 mod file_from_string_mustache_test;
 #[cfg(test)]
+mod file_from_template_options_test;
+#[cfg(test)]
 mod file_from_template_type_test;
 #[cfg(test)]
 mod file_key_value_parameter_present_in_list_test;
