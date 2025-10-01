@@ -590,7 +590,7 @@ rudder.batch.storeAgentRunTimes.updateInterval=5
 # * A built-in mode using self-signed certificates, TOFU and public key pinning.
 #   This works without any specific configuration.
 #   This mode uses two different protocols be default, but it can be configured to
-    use HTTPS only.
+#   use HTTPS only.
 # * A configurable mode using standard certificate validation. In this case the whole PKI
 #   is handled by the user. This mode requires the HTTPS only.
 #
