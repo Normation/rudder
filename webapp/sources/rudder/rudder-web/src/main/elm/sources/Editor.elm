@@ -667,12 +667,12 @@ update msg model =
       let
         newMode =
           case model.mode of
-           TechniqueDetails t o ui editInfo->
-             let
-               newUi = {ui | callsUI = Dict.update callId.value (Maybe.map (always newMethodUi )) ui.callsUI }
-             in
-              TechniqueDetails t o newUi editInfo
-           m -> m
+            TechniqueDetails t o ui editInfo->
+              let
+                newUi = {ui | callsUI = Dict.update callId.value (Maybe.map (always newMethodUi )) ui.callsUI }
+              in
+                TechniqueDetails t o newUi editInfo
+            m -> m
       in
         ({ model | mode = newMode}, initInputs "" )
 
@@ -697,9 +697,8 @@ update msg model =
            TechniqueDetails t o ui editInfo ->
             let
               technique = { t |  elems = removeElem (getId >> (==) callId) t.elems }
-              newUi = {ui | callsUI = Dict.remove callId.value  ui.callsUI, blockUI = Dict.remove callId.value  ui.blockUI }
             in
-            TechniqueDetails technique o newUi editInfo
+            TechniqueDetails technique o ui editInfo
            m -> m
         newModel = { model | mode = newMode}
       in
