@@ -24,6 +24,10 @@ use regex::Regex;
 #[cfg(not(debug_assertions))]
 use rudder_module_type::ensure_root_user;
 use rudder_module_type::os_release::OsRelease;
+
+#[cfg(feature = "apt-compat")]
+use rust_apt_compat as rust_apt;
+
 use rust_apt::{
     Cache, PackageSort,
     cache::Upgrade,
