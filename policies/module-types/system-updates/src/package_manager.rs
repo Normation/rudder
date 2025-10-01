@@ -7,7 +7,7 @@ use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[cfg(feature = "apt")]
+#[cfg(any(feature = "apt", feature = "apt-compat"))]
 use crate::package_manager::apt::AptPackageManager;
 use crate::{
     campaign::FullCampaignType,
@@ -17,7 +17,7 @@ use crate::{
 use rudder_module_type::os_release::OsRelease;
 use std::str::FromStr;
 
-#[cfg(feature = "apt")]
+#[cfg(any(feature = "apt", feature = "apt-compat"))]
 mod apt;
 mod rpm;
 mod yum;
@@ -175,12 +175,12 @@ impl PackageManager {
     pub fn get(self) -> Result<Box<dyn LinuxPackageManager>> {
         Ok(match self {
             PackageManager::Yum => Box::new(YumPackageManager::new()?),
-            #[cfg(feature = "apt")]
+            #[cfg(any(feature = "apt", feature = "apt-compat"))]
             PackageManager::Apt => {
                 let os_release = OsRelease::new()?;
                 Box::new(AptPackageManager::new(&os_release)?)
             }
-            #[cfg(not(feature = "apt"))]
+            #[cfg(not(any(feature = "apt", feature = "apt-compat")))]
             PackageManager::Apt => bail!("This module was not build with APT support"),
             PackageManager::Zypper => Box::new(ZypperPackageManager::new()?),
             _ => bail!("This package manager does not provide patch management features"),

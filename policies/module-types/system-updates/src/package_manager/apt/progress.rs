@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+#[cfg(feature = "apt-compat")]
+use rust_apt_compat as rust_apt;
+
 use memfile::MemFile;
 use rust_apt::{
     error::pending_error,
