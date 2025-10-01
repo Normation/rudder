@@ -22,7 +22,9 @@ The module takes the following arguments:
 | `output_to_file` | File to store the output of the command | A valid file path | No |
 | `strip_output` | Controls the strip of the content inside the output file | `true`/`false` (default: `true`) | No |
 | `uid` | UID used by the executed command | A valid UID (example: `0`) | No |
+| `user` | User used to run the command (mutually exclusive with the `uid` argument) | A valid username (example: `root`) | No |
 | `gid` | GID used by the executed command | A valid GID (example: `0`) | No |
+| `group` | Group used to run the command | A valid group name (mutually exclusive with the `gid` argument) | No |
 | `umask` | Umask used by the executed command | A valid umask (example: `0022`) | No |
 | `env_vars` | Environment variables used by the executed command | Dictionary of string key-value pairs in JSON format (e.g., {"LANG": "en_US.UTF-8"}). | No |
 | `show_content` | Controls output in the report | `true`/`false` (default: `true`) | No |
@@ -62,8 +64,12 @@ Options:
           Controls if the EOL is strip from the output
       --uid <UID>
           Specify the user ID (UID) under which the command will be executed
+      --user <USER>
+          Specify the user under which the command will be executed
       --gid <GID>
           Specify the group ID (GID) under which the command will be executed
+      --group <GROUP>
+          Specify the group under which the command will be executed
       --umask <UMASK>
           Set the umask value for the executed command
       --share-env

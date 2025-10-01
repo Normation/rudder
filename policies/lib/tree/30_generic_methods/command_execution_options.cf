@@ -133,6 +133,10 @@
 # @parameter_constraint uid "allow_empty_string" : true
 # @parameter            gid Specify the group ID (GID) under which the command will be executed
 # @parameter_constraint gid "allow_empty_string" : true
+# @parameter            user Specify the user under which the command will be executed
+# @parameter_constraint user "allow_empty_string" : true
+# @parameter            group Specify the group under which the command will be executed
+# @parameter_constraint group "allow_empty_string" : true
 # @parameter            umask Set the umask value for the executed command
 # @parameter_constraint umask "allow_empty_string" : true
 # @parameter            env_vars The variables to pass to the environment of the executed command
@@ -150,7 +154,7 @@ promise agent ruddercommands {
   path => "/opt/rudder/bin/rudder-module-commands";
 }
 
-bundle agent command_execution_options(command, args, run_in_audit_mode, in_shell, shell_path, chdir, timeout, stdin, stdin_add_newline, compliant_codes, repaired_codes, output_to_file, strip_output, uid, gid, umask, env_vars, show_content) {
+bundle agent command_execution_options(command, args, run_in_audit_mode, in_shell, shell_path, chdir, timeout, stdin, stdin_add_newline, compliant_codes, repaired_codes, output_to_file, strip_output, uid, gid, user, group, umask, env_vars, show_content) {
   vars:
       "module_file"  string => "/opt/rudder/bin/rudder-module-commands";
       "class_prefix" string => canonify("command_execution_options_${command}");
@@ -162,8 +166,6 @@ bundle agent command_execution_options(command, args, run_in_audit_mode, in_shel
       "stdin_add_newline" string => "true",    if_match_regex => "";
       "strip_output"      string => "false",   if_match_regex => "";
       "show_content"      string => "true",    if_match_regex => "";
-      "uid"               string => "0",       if_match_regex => "";
-      "gid"               string => "0",       if_match_regex => "";
       "umask"             string => "0022",    if_match_regex => "";
       "timeout"           string => "30",      if_match_regex => "";
       "repaired_codes"    string => "0",       if_match_regex => "";
@@ -178,7 +180,7 @@ bundle agent command_execution_options(command, args, run_in_audit_mode, in_shel
   methods:
     pass3.has_module::
       "${report_data.method_id}" usebundle => call_method("rudder_actual_command_execution_options");
-      "${report_data.method_id}" usebundle => rudder_actual_command_execution_options("${command}", "${args}", "${run_in_audit_mode}", "${in_shell}", "${shell_path}", "${chdir}", "${timeout}", "${stdin}", "${stdin_add_newline}", "${compliant_codes}", "${repaired_codes}", "${output_to_file}", "${strip_output}", "${uid}", "${gid}", "${umask}", "${env_vars}", "${show_content}");
+      "${report_data.method_id}" usebundle => rudder_actual_command_execution_options("${command}", "${args}", "${run_in_audit_mode}", "${in_shell}", "${shell_path}", "${chdir}", "${timeout}", "${stdin}", "${stdin_add_newline}", "${compliant_codes}", "${repaired_codes}", "${output_to_file}", "${strip_output}", "${uid}", "${gid}", "${user}", "${group}", "${umask}", "${env_vars}", "${show_content}");
       "${report_data.method_id}" usebundle => call_method_classes("${class_prefix}");
       "${report_data.method_id}" usebundle => call_method_classes_caller;
       "${report_data.method_id}" usebundle => call_method_end("rudder_actual_command_execution_options");
@@ -190,7 +192,7 @@ bundle agent command_execution_options(command, args, run_in_audit_mode, in_shel
       "${report_data.method_id}" usebundle => log_rudder_v4("${command}", "Commands module is not supported on this agent", "");
 }
 
-bundle agent command_module_serializer(r_command, r_args, r_shell_path, r_chdir, r_timeout, r_stdin, r_compliant_codes, r_repaired_codes, r_output_to_file, r_uid, r_gid, r_umask, r_env_vars) {
+bundle agent command_module_serializer(r_command, r_args, r_shell_path, r_chdir, r_timeout, r_stdin, r_compliant_codes, r_repaired_codes, r_output_to_file, r_uid, r_gid, r_user, r_group, r_umask, r_env_vars) {
   vars:
     "command"         string => "${r_command}";
     "args"            string => "${r_args}";
@@ -203,11 +205,13 @@ bundle agent command_module_serializer(r_command, r_args, r_shell_path, r_chdir,
     "output_to_file"  string => "${r_output_to_file}";
     "uid"             string => "${r_uid}";
     "gid"             string => "${r_gid}";
+    "user"            string => "${r_user}";
+    "group"           string => "${r_group}";
     "umask"           string => "${r_umask}";
     "env_vars"        string => "${r_env_vars}";
 }
 
-bundle agent rudder_actual_command_execution_options(command, args, run_in_audit_mode, in_shell, shell_path, chdir, timeout, stdin, stdin_add_newline, compliant_codes, repaired_codes, output_to_file, strip_output, uid, gid, umask, env_vars, show_content) {
+bundle agent rudder_actual_command_execution_options(command, args, run_in_audit_mode, in_shell, shell_path, chdir, timeout, stdin, stdin_add_newline, compliant_codes, repaired_codes, output_to_file, strip_output, uid, gid, user, group, umask, env_vars, show_content) {
   vars:
     # The best serializer provided by cfengine is the 'bundlestate' function. As I could not find how to merge partial data containers,
     # we need to define a "serializer" bundle used to serialize every string type args expected by the module.
@@ -244,6 +248,8 @@ show_content: ${show_content}
                                                          "${output_to_file}",
                                                          "${uid}",
                                                          "${gid}",
+                                                         "${user}",
+                                                         "${group}",
                                                          "${umask}",
                                                          "${env_vars}");
     pass3.(global_dry_run|dry_run)::
