@@ -413,7 +413,7 @@ class ReportDisplayer(
                        */
                       def triggerAgent(node: CoreNodeFact): NodeSeq = if (tableId == "reportsGrid") {
                         if (node.rudderAgent.agentType == AgentType.CfeCommunity) {
-                          <div id="triggerAgent">
+                          <div id="triggerAgent" class="mb-3">
             <button id="triggerBtn" class="btn btn-primary btn-trigger"  onclick={
                             s"callRemoteRun('${node.id.value}', ${refreshReportDetail(node, tableId, getReports, defaultRunInterval).toJsCmd});"
                           }>
@@ -429,11 +429,11 @@ class ReportDisplayer(
               <span style="color:#b1bbcb;"></span>
             </div>
             <div id="report" style="margin-top:10px;" class="collapse">
-              <pre></pre>
+              <pre class="p-2"></pre>
             </div>
           </div>
                         } else {
-                          <div id="triggerAgent">
+                          <div id="triggerAgent" class="mb-3">
             <button id="triggerBtn" class="btn btn-primary btn-trigger" disabled="disabled" title="This action is not supported for Windows node">
               <span>Trigger Agent</span>
               &nbsp;
