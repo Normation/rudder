@@ -18,3 +18,4 @@ wait-timeout = "0.2.1"
 rustix = { version = "1.0.8", features = ["process", "fs"] }
 itertools = "0.14.0"
 indexmap = { version = "2.11.3", features = ["serde"] }
+uzers = "0.12.1"

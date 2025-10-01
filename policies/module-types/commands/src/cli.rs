@@ -55,12 +55,20 @@ pub struct Cli {
     strip_output: bool, // Default to false
 
     /// Specify the user ID (UID) under which the command will be executed
-    #[arg(long)]
+    #[arg(long, conflicts_with = "user")]
     uid: Option<String>,
 
-    /// Specify the group ID (GID) under which the command will be executed
+    /// Specify the user under which the command will be executed
     #[arg(long)]
+    user: Option<String>,
+
+    /// Specify the group ID (GID) under which the command will be executed
+    #[arg(long, conflicts_with = "group")]
     gid: Option<String>,
+
+    /// Specify the group under which the command will be executed
+    #[arg(long)]
+    group: Option<String>,
 
     /// Set the umask value for the executed command
     #[arg(long)]
@@ -115,7 +123,9 @@ impl Cli {
             output_to_file: cli.output_to_file,
             strip_output: cli.strip_output,
             uid: cli.uid,
+            user: cli.user,
             gid: cli.gid,
+            group: cli.group,
             umask: cli.umask,
             env_vars,
             show_content: true,

@@ -21,6 +21,7 @@ use std::{
     str::from_utf8,
     time::{Duration, Instant},
 };
+use uzers::{get_group_by_name, get_user_by_name};
 use wait_timeout::ChildExt;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -95,6 +96,20 @@ pub struct CommandsParameters {
         deserialize_with = "Commands::deserialize_option_string"
     )]
     uid: Option<String>,
+
+    /// User used for running the command
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "Commands::deserialize_option_string"
+    )]
+    user: Option<String>,
+
+    /// Group used for running the command
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "Commands::deserialize_option_string"
+    )]
+    group: Option<String>,
 
     /// GID used by the executed command
     #[serde(
@@ -261,12 +276,30 @@ impl Commands {
             command.current_dir(chdir);
         }
 
+        if let Some(user) = &p.user {
+            let uid = match get_user_by_name(user) {
+                Some(user) => user.uid(),
+                None => bail!("User '{user}' not found"),
+            };
+
+            command.uid(uid);
+        }
+
         if let Some(uid) = &p.uid {
             let uid = uid
                 .parse::<u32>()
                 .with_context(|| format!("'{uid}' is not a valid uid"))?;
 
             command.uid(uid);
+        }
+
+        if let Some(group) = &p.group {
+            let gid = match get_group_by_name(group) {
+                Some(group) => group.gid(),
+                None => bail!("Group '{group}' not found"),
+            };
+
+            command.gid(gid);
         }
 
         if let Some(gid) = &p.gid {
@@ -425,6 +458,18 @@ impl ModuleType0 for Commands {
             bail!("the command provided is empty!");
         }
 
+        if p.uid.is_some() && p.user.is_some() {
+            bail!(
+                "Mutually exclusive argument provided: the argument 'uid' cannot be used with 'user'"
+            );
+        }
+
+        if p.gid.is_some() && p.group.is_some() {
+            bail!(
+                "Mutually exclusive argument provided: the argument 'gid' cannot be used with 'group'"
+            );
+        }
+
         Ok(())
     }
 
@@ -581,6 +626,8 @@ mod tests {
             strip_output: false,
             uid: None,
             gid: None,
+            user: None,
+            group: None,
             umask: None,
             env_vars: IndexMap::default(),
             show_content: true,
@@ -611,6 +658,8 @@ mod tests {
             strip_output: false,
             uid: None,
             gid: None,
+            user: None,
+            group: None,
             umask: None,
             env_vars: IndexMap::default(),
             show_content: true,
@@ -641,6 +690,8 @@ mod tests {
             strip_output: false,
             uid: None,
             gid: None,
+            user: None,
+            group: None,
             umask: None,
             env_vars: IndexMap::default(),
             show_content: true,
@@ -671,6 +722,8 @@ mod tests {
             strip_output: false,
             uid: None,
             gid: None,
+            user: None,
+            group: None,
             umask: None,
             env_vars: IndexMap::default(),
             show_content: true,
@@ -719,6 +772,8 @@ mod tests {
             strip_output: true,
             uid: None,
             gid: None,
+            user: None,
+            group: None,
             umask: None,
             env_vars: IndexMap::default(),
             show_content: true,
@@ -763,6 +818,8 @@ mod tests {
             strip_output: true,
             uid: None,
             gid: None,
+            user: None,
+            group: None,
             umask: None,
             env_vars: IndexMap::default(),
             show_content: true,
@@ -801,6 +858,8 @@ mod tests {
             strip_output: true,
             uid: None,
             gid: None,
+            user: None,
+            group: None,
             umask: None,
             env_vars: IndexMap::default(),
             show_content: true,
@@ -839,6 +898,8 @@ mod tests {
             strip_output: true,
             uid: None,
             gid: None,
+            user: None,
+            group: None,
             umask: None,
             env_vars: IndexMap::default(),
             show_content: true,
@@ -877,6 +938,8 @@ mod tests {
             strip_output: true,
             uid: None,
             gid: None,
+            user: None,
+            group: None,
             umask: None,
             env_vars: IndexMap::default(),
             show_content: true,
@@ -907,6 +970,8 @@ mod tests {
             strip_output: true,
             uid: None,
             gid: None,
+            user: None,
+            group: None,
             umask: None,
             env_vars: IndexMap::default(),
             show_content: true,
@@ -945,6 +1010,8 @@ mod tests {
             strip_output: true,
             uid: None,
             gid: None,
+            user: None,
+            group: None,
             umask: None,
             env_vars: IndexMap::default(),
             show_content: true,
@@ -983,6 +1050,8 @@ mod tests {
             strip_output: false,
             uid: None,
             gid: None,
+            user: None,
+            group: None,
             umask: None,
             env_vars: IndexMap::default(),
             show_content: true,
@@ -1021,6 +1090,8 @@ mod tests {
             strip_output: false,
             uid: None,
             gid: None,
+            user: None,
+            group: None,
             umask: None,
             env_vars: IndexMap::default(),
             show_content: true,
@@ -1059,6 +1130,8 @@ mod tests {
             strip_output: false,
             uid: None,
             gid: None,
+            user: None,
+            group: None,
             umask: None,
             env_vars: indexmap! {
                 "SUPER_ENV_TEST".to_string() => "MY_VAR".to_string(),
@@ -1101,6 +1174,8 @@ mod tests {
             strip_output: false,
             uid: None,
             gid: None,
+            user: None,
+            group: None,
             umask: None,
             env_vars: indexmap! {
                "SUPER_ENV_TEST".to_string() => "MY_VAR".to_string(),
