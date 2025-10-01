@@ -489,12 +489,12 @@ fn strip_trailing_newline(input: &str) -> &str {
 
 #[cfg(test)]
 mod tests {
-    use crate::Commands;
+    use super::*;
     use indexmap::indexmap;
-    use serde_json::Value;
+    use std::str::FromStr;
 
     #[test]
-    fn test_env_vars_deserialization_of_json_inputs() {
+    fn test_env_vars_deserialization_of_JSON_inputs() {
         let value: Value =
             serde_json::from_str(r#"{"USER": "admin", "SHELL": "/bin/bash"}"#).unwrap();
         let result = Commands::parse_env_vars_value(value).unwrap();
