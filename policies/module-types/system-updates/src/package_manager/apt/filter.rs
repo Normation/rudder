@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2024 Normation SAS
 
+#[cfg(feature = "apt-compat")]
+use rust_apt_compat as rust_apt;
+
 use anyhow::{Result, bail};
 use rudder_module_type::os_release::OsRelease;
 use rust_apt::{PackageFile, Version};
