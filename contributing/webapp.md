@@ -44,57 +44,7 @@ This is a **straightforward guide** aims to setup all tools and settings on a Li
 - git
 - netstat
 
-## Table of Contents
-- [Synopsis](#synopsis)
-- [Requirements for your machine](#requirements-for-your-machine)
-- [Part 0: Installation of required packages and software](#part-0-installation-of-required-packages-and-software)
-  - [Needed packages](#needed-packages)
-  - [VirtualBox installation](#virtualbox-installation)
-  - [Vagrant installation](#vagrant-installation)
-  - [IntelliJ Idea Community installation](#intellij-idea-community-installation)
-  - [LDAP Apache Directory Studio installation](#ldap-apache-directory-studio-installation)
-  - [Elm installation](#elm-installation)
-  - [Rudder Test Framework (RTF) installation](#rudder-test-framework-rtf-installation)
-- [Part 1: Setup the local environment and the dev box](#part-1-setup-the-local-environment-and-the-dev-box)
-  - [Create a platform description file](#create-a-platform-description-file)
-  - [Setup the local environment](#setup-the-local-environment)
-    - [Create potentially missing files and add permission](#create-potentially-missing-files-and-add-permission)
-    - [Synchronize techniques](#synchronize-techniques)
-  - [Setup your Vagrant box environment](#setup-your-vagrant-box-environment)
-  - [Test LDAP connection](#test-ldap-connection)
-- [Part 2: Setup workspace development with IntelliJ and Maven](#part-2-setup-workspace-development-with-intellij-and-maven)
-  - [Install plugin from marketplace](#install-plugin-from-marketplace)
-  - [Import Rudder project](#import-rudder-project)
-  - [Setup Run configuration](#setup-run-configuration)
-  - [Setup Module and sources](#setup-module-and-sources)
-  - [Install Maven dependencies](#install-maven-dependencies)
-  - [Setup File Watchers (Highly recommended)](#setup-file-watchers-highly-recommended)
-- [Now what?](#now-what)
-  - [NCF API and Technique Editor](#ncf-api-and-technique-editor)
-  - [Entire Script](#entire-script)
-  - [Documentations](#documentations)
-  - [Contribution](#contribution)
-  - [Bug reports](#bug-reports)
-  - [Community](#community)
-
-
 ## Part 0 : Installation of required packages and softwares
-
-### Needed packages
-If you are starting with a clean machine, you might want to take it all, should be needed at some point
-
-```bash
-`apt update && apt install -y git openssh-server python3 python3-pip python python-pip net-tools ldap-utils nodejs npm maven`
-```
-
-Install with pip or pip3
-```bash
-`pip install docopt requests pexpect urllib3` 
-```
-```bash
-`pip3 install docopt requests pexpect urllib3` 
-```
-
 
 ### VirtualBox installation
 
@@ -104,10 +54,10 @@ Run `sudo apt install virtualbox` in a terminal.
 
 Follow the Vagrant install tutorial https://developer.hashicorp.com/vagrant/install.
 
-Edit `~/<workspace>/rudder-tests/Vagrantfile` and replace the values of `DOWNLOAD_USER` and `DOWNLOAD_PASSWORD`.
+Edit `~/<workspace>/rudder-tests/Vagrantfile` and replace the values of `DOWNLOAD_USER` and `DOWNLOAD_PASSWORD` with proper values.
 ```
-$DOWNLOAD_USER="xxx"
-$DOWNLOAD_PASSWORD="xxx"
+$DOWNLOAD_USER="<user>"
+$DOWNLOAD_PASSWORD="<password>"
 ```
 
 ### Intellij Idea Community installation
@@ -141,6 +91,10 @@ pauline@ThinkPad-T14s-Gen-6$ echo $PATH
 
 Install a recent jre, the latest LTS version should be fine.
 
+> Note: avoid using `apt` to install an open jdk, the jdk packaged by ubuntu do not work (strange behaviors compiling rudder webapp). 
+
+> Suggestion: see `jdkman` for a handy open source java installer.
+
 Run `java -version` to validate
 
 ### ldap apache directory studio installation
@@ -164,6 +118,9 @@ Run `ApacheDirectoryStudio`
 Follow the elm installer tutorial https://github.com/elm/compiler/blob/master/installers/linux/README.md
 
 ### Rudder Test framework (RTF) installation
+
+The rudder test framework is mainly used to start virtual machines in order to test rudder in real life conditions or to test the rudder running on your own machine (dev mode).</br>
+
 Please follow these [steps](https://github.com/Normation/rudder-tests#rudder-tests) to install Rudder Test framework
 
 Follow these instructions to  [rudder-api-client](https://github.com/Normation/rudder-api-client) then create a symlink in `rudder-tests` :
@@ -198,14 +155,14 @@ https://www.virtualbox.org/manual/ch06.html#network_hostonly
 
 <code style="color:white;">Stderr: Warning: program compiled against libxml 212 using older 209</code>
 <br />
-If you have this error the version of ubuntu and virtualbox are probably incompatible. Maybe you download a .deb file from the website.<br/>
+If you have this error the version of ubuntu and virtualbox are probably incompatible. Maybe you downloaded a .deb file from the website not compatible with your system.<br/>
 
 If so remove the .deb: <br />
 <code style="color: white;">ps aux | grep -i vbox</code><br/>
 <code style="color: white;">sudo apt purge virtualbox-<version></code><br/>
 <code style="color: white;">sudo apt install virtualbox</code><br/>
 
-Otherwise, you can also update your system.
+You can also update your system.
 
 </div>
 
@@ -223,15 +180,20 @@ Run <code>VirtualBox</code>, you should see 3 virtual machines running.
 
 </div>
 
-## Part 1 : Setup rudder-tests local environment
+## Part 1 : Setup `rudder-tests` and `rudder` local environment
 
-### Create a platform description file
-`cd` into the directory of the previously installed RTF. We'll name it: `rudder-tests` here.
-The directory `rudder-tests/platforms/` contains examples of platform configurations.
+### Setup virtual machines for testing
+
+#### Platform description file
+
+The platform description file is the input to `rtf setup` command so `rtf` can start virtual machines with server, agents, os and rudder version described. </br>
+
+Go into the cloned `rudder-tests` github repository. The directory `rudder-tests/platforms/` contains examples of platform configurations.
 Please read https://github.com/Normation/rudder-tests#adding-a-platform-or-an-os for further information.
 
 Create a `<dev_env_name>.json` file in `./platform/` and put your platform's configuration in it.
 Here is the most minimalistic example of a functional configuration:
+
 ```json
 {
   "default":{ "run-with": "vagrant", "rudder-version": "6.0",
@@ -279,8 +241,44 @@ vagrant ssh <env's name>_server
 <span style="font-weight: bold;">Congrats!</span> You succeed to start your own test environment.
 </div>
 
+#### Test LDAP connection
 
-### Setup the local environnement
+> Goal: connect `ApacheDirectoryStudio` to the ldap running in the virtual machine started with `rtf`
+
+1. Connect to your vagrant box env, in `rudder-tests` directory :
+```
+vagrant ssh <env's name>_server
+```
+
+2. In vagrant box, find in `/opt/rudder/etc/openldap/slapd.conf` the two lines starting with `rootdn` and `rootpw` and keep them for the next section, those value are gonna be useful to configure the ldap connection.
+   rootdn should look like that :
+   `rootdn   "cn=Manager,cn=rudder-configuration"`
+
+> Note: You have to open the file with a root user, or you will see an empty file which is totally confusing.
+
+3. Run Apache Directory Studio (installed in Part 0)
+4. in _LDAP -> New Connection_
+- define a connection's name
+- Hostname : localhost
+- Port : 1389
+
+Click on _Check Network Parameter_, a windows should appear and tell you that the connection was established successfully
+if so click on next
+
+![LDAP connection](LDAP_connection.png)
+
+3. Complete with following parameters :
+- Bind DN or user : `cn=Manager,cn=rudder-configuration` (`rootdn` parameter from previous step)
+- Bind password : the `rootpw` value
+  click on Check the Authentication, it should be a success, click on apply and close if so
+  ![LDAP Authentification](LDAP_auth.png)
+
+Your LDAP connection is now working!
+
+
+
+### Setup the rudder webapp local environnement (on your own machine)
+
 Meaning following steps are to be executed on your machine, not on the created VM
 unless specified otherwise, the place repos are cloned is not important. Maybe keep them together in `~/rudder/<repos>`.
 
@@ -345,41 +343,6 @@ git pull ~/<workspace>/rudder-techniques/techniques
 rsync -r ~/<workspace>/rudder-techniques/techniques /var/rudder/configuration-repository
 ```
 But in practice, you'll probably never have to do this, because `~/<workspace>/rudder-techniques/techniques` almost never change
-
-### Setup you vagrant box environment
-Meaning following steps are to be executed on the newly created VM machine. But first, you need to establish a connection (1.)
-
-1. Connect to your vagrant box env, in `rudder-tests` directory :
-```
-vagrant ssh <env's name>_server
-```
-
-TODO: move rudder setup before this point.
-2. In vagrant box, find in `/opt/rudder/etc/openldap/slapd.conf` the two lines starting with `rootdn` and `rootpw` and keep them for the next section, those value are gonna be useful to configure the ldap connection.
-rootdn should look like that :
-`rootdn   "cn=Manager,cn=rudder-configuration"`
-
-> Note: You have to open the file with a root user, or you will see an empty file which is totally confusing.
-
-### Test LDAP connection
-1. Run Apache Directory Studio (installed in Part 0)
-2. in _LDAP -> New Connection_
-- define a connection's name
-- Hostname : localhost
-- Port : 1389
-
-Click on _Check Network Parameter_, a windows should appear and tell you that the connection was established successfully
-if so click on next
-
-![LDAP connection](LDAP_connection.png)
-
-3. Complete with following parameters :
-- Bind DN or user : `cn=Manager,cn=rudder-configuration` (`rootdn` parameter from previous step)
-- Bind password : the `rootpw` value
-click on Check the Authentication, it should be a success, click on apply and close if so
-![LDAP Authentification](LDAP_auth.png)
-
-Your LDAP connection is now working!
 
 ## Part 2 : Setup workspace development with IntelliJ and Maven
 ### Install plugin from marketplace
