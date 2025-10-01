@@ -18,15 +18,90 @@
 
 # @name File from template
 # @description Build a file from a template (MiniJinja, Jinja2, Mustache)
-# @documentation Coming soon.
+# @documentation The `file_from_template` method renders a template into a destination file using one of the supported template engines.
+#
+# ### Template Rendering:
+#   Renders a template using the specified `engine` (`minijinja`, `mustache`, or `jinja2`) into the file given in `destination`.
+#
+# ### Data Sources:
+#   - If `data` is provided, the template will only use those data to render the template. The agent datastate will not be passed to the templating engine.
+#   - If `data` is not provided, the **agent datastate** is used instead (containing the existing variables and classes of the current agent run).
+#
+# ### Template Source:
+#   - `template_string`: Inline template string.
+#   - `template_path`: Path to an external template file.
+#   - These two options are **mutually exclusive** — exactly one must be used.
+#
+# ### Show Content:
+#   - If `show_content: true`, the rendered file’s content will be dumped to the report.
+#
+#  ### Engines:
+#   - `minijinja`
+#     - Aborts rendering if undefined variables are used. Custom filters can not be added but the agent comes with a great variety of builtin usable filters.
+#   - `mustache`
+#     - Ignores undefined variables gracefully.
+#   - `jinja2`
+#     - Aborts rendering if undefined variables are used.
+#     - Requires `python3-jinja2` to be installed.
+#     - Not supported on Windows agents
+#
+# Complete documentation for the different supported engines can be found [here](https://docs.rudder.io/techniques/9.0/modules/template.html#minijinja).
+#
+# ### Examples
+#
+# ####  Inline template string
+# ```yaml
+# name: render_simple
+# method: file_from_template_options
+# params:
+#   destination: /tmp/render.txt
+#   engine: minijinja
+#   template_string: "{{foo}}"
+#   data: "{\"foo\": \"bar\"}"
+#   show_content: true
+# ```
+#
+# This renders the string `bar` into `/tmp/render.txt` and also outputs the content.
+#
+# ---
+#
+# #### Template file with Mustache
+# ```yaml
+# name: render_from_file
+# method: file_from_template_options
+# params:
+#   destination: /tmp/result.txt
+#   engine: mustache
+#   template_path: ${resources_dir}/template.mustache
+#   data: "{\"user\": \"Alice\", \"role\": \"admin\"}"
+#   show_content: false
+# ```
+#
+# This renders the `template.mustache` template with provided JSON data and writes it to `/tmp/result.txt`.
+#
+# ---
+#
+# #### Jinja2 with missing variables (will fail)
+# ```yaml
+# name: render_fail
+# method: file_from_template_options
+# params:
+#   destination: /tmp/fail.txt
+#   engine: jinja2
+#   template_string: "{{unknown}}"
+#   show_content: true
+# ```
+#
+# This will return an **error** since `unknown` is not defined in `data` or the agent context.
 #
 # @parameter            destination Destination file (absolute path on the target node)
 # @parameter_constraint destination "allow_empty_string" : false
 # @parameter            engine Template engine (defaults to minijinja)
 # @parameter_constraint engine "allow_empty_string" : true
 # @parameter_constraint engine "select" : [ "", "minijinja", "jinja2", "mustache" ]
-# @parameter            data Data provided to the template, defaults to the global context if empty
+# @parameter            data Data provided to the template as JSON, defaults to the global context if empty
 # @parameter_constraint data "allow_empty_string" : true
+# @parameter_constraint data "valid_format" : "json"
 # @parameter            template_string String containing the template to be rendered
 # @parameter_constraint template_string "allow_empty_string" : true
 # @parameter            template_path  Source file containing a template to be rendered (absolute path on the target node)
