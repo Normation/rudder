@@ -235,7 +235,16 @@ class TechniqueApi(
           force <- extractBoolean("force")(req).map(_.getOrElse(false)).toIO
           _     <- techniqueWriter.deleteTechnique(techniqueInfo._1, techniqueInfo._2, force, modId, authzToken.qc)
         } yield {
-          Json.Obj(("id", Json.Str(techniqueInfo._1)), ("version" -> Json.Str(techniqueInfo._2)))
+          // here, up to 8.3 we used to just return: `"data": { "techniques": { "id":...}}`
+          // in place of the normalized `"data": { "techniques": [ {"id":...}]}
+          // so we need to correct before API version 21
+          // see https://issues.rudder.io/issues/27644
+          val res     = Json.Obj(("id", Json.Str(techniqueInfo._1)), ("version" -> Json.Str(techniqueInfo._2)))
+          val content = {
+            if (version.value < 22) res
+            else Json.Arr(Chunk(res))
+          }
+          Json.Obj(("techniques", content))
         }
       }
 

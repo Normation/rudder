@@ -884,7 +884,8 @@ object TechniqueApi extends Enum[TechniqueApi] with ApiModuleProvider[TechniqueA
     val z: Int = implicitly[Line].value
     val description    = "Delete a technique from technique editor"
     val (action, path) = DELETE / "techniques" / "{techniqueId}" / "{techniqueVersion}"
-    val authz: List[AuthorizationType] = AuthorizationType.Technique.Write :: Nil
+    val authz:                  List[AuthorizationType] = AuthorizationType.Technique.Write :: Nil
+    override def dataContainer: Option[String]          = None
   }
   case object GetResources             extends TechniqueApiPub with TwoParam with StartsAtVersion14 with SortIndex  {
     val z: Int = implicitly[Line].value
