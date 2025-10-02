@@ -96,7 +96,7 @@
 #
 # @parameter            destination Destination file (absolute path on the target node)
 # @parameter_constraint destination "allow_empty_string" : false
-# @parameter            engine Template engine (defaults to minijinja)
+# @parameter            engine Template engine: "minijinja", "jinja2" or "mustache" (defaults to "minijinja")
 # @parameter_constraint engine "allow_empty_string" : true
 # @parameter_constraint engine "select" : [ "", "minijinja", "jinja2", "mustache" ]
 # @parameter            data Data provided to the template as JSON, defaults to the global context if empty
@@ -106,7 +106,7 @@
 # @parameter_constraint template_string "allow_empty_string" : true
 # @parameter            template_path  Source file containing a template to be rendered (absolute path on the target node)
 # @parameter_constraint template_path "allow_empty_string" : true
-# @parameter            show_content Show the file content in the report (defaults to true)
+# @parameter            show_content Show the file content in the report, "true" or "false" (defaults to "true")
 # @parameter_constraint show_content "allow_empty_string" : true
 # @parameter_constraint show_content "select" : [ "", "true", "false" ]
 #
