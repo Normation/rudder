@@ -30,13 +30,13 @@ SSLSessionTickets       off
 SSLCertificateFile     /opt/rudder/etc/ssl/server.cert
 </IfFile>
 <IfFile !/opt/rudder/etc/ssl/server.cert>
-SSLCertificateFile     /opt/rudder/etc/ssl/agent.cert
+SSLCertificateFile     /opt/rudder/etc/ssl/agent-http.cert
 </IfFile>
 <IfFile  /opt/rudder/etc/ssl/server.key>
 SSLCertificateKeyFile  /opt/rudder/etc/ssl/server.key
 </IfFile>
 <IfFile !/opt/rudder/etc/ssl/server.key>
-SSLCertificateKeyFile  /var/rudder/cfengine-community/ppkeys/localhost.priv
+SSLCertificateKeyFile  /opt/rudder/etc/ssl/agent-http.key
 </IfFile>
 {% else %}
 SSLCertificateFile     /opt/rudder/etc/ssl/agent.cert
