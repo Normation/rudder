@@ -660,9 +660,9 @@ class DirectiveEditForm(
 
       override def className = "form-select"
 
-      override def labelClassName = "col-sm-12 text-bold"
+      override def labelClassName = "col-sm-12"
 
-      override def subContainerClassName = "version-group"
+      override def subContainerClassName = "version-group w-auto"
     }
   }
 
