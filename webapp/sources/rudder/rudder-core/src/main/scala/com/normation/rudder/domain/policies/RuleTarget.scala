@@ -103,7 +103,7 @@ case object AllPolicyServers extends NonGroupRuleTarget {
  * This target is rendered as Json
  */
 sealed trait CompositeRuleTarget extends RuleTarget {
-  final def target: String = compactRender(toJson)
+  final override def target: String = compactRender(toJson)
 
   /**
    * Removing a target is the action of erasing that target in each place where
@@ -244,7 +244,7 @@ object RuleTarget extends Loggable {
    */
   def getNodeIds(
       targets:          Set[RuleTarget],
-      allNodes:         MapView[NodeId, Boolean /* isPolicyServer */ ],
+      allNodes:         Map[NodeId, Boolean /* isPolicyServer */ ],
       groups:           Map[NodeGroupId, Set[NodeId]],
       allNodesAreThere: Boolean = true // if we are working on a subset of node, set to false
   ): Set[NodeId] = {
