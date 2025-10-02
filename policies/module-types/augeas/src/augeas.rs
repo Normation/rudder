@@ -330,16 +330,19 @@ impl Augeas {
             fs::write(r, &report)?;
         }
 
+        // Error cases
+        if modified && PolicyMode::Audit == PolicyMode::Audit {
+            bail!(
+                "File {} does not match the expected content",
+                p.path.display()
+            );
+        }
         if is_err {
             // The full error is in the report.
             bail!("Script failed");
         }
-        Ok(if modified && PolicyMode::Audit == PolicyMode::Audit {
-            bail!(
-                "File {} does not match the expected content",
-                p.path.display()
-            )
-        } else if modified {
+        //Kept cases
+        Ok(if modified {
             Outcome::Repaired(format!("File {} modified", p.path.display()))
         } else {
             Outcome::Success(Some(format!("File {} already correct", p.path.display())))
