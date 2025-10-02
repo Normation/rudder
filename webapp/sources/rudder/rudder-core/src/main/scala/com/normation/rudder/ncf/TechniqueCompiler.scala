@@ -414,7 +414,9 @@ class RuddercTechniqueCompiler(
                    }
       // clean-up generated files
       _         <- ZIO.foreach(TechniqueFiles.Generated.all) { name =>
-                     IOResult.attempt((gitDir / getTechniqueRelativePath(technique) / name).delete(true))
+                     IOResult.attempt {
+                       (gitDir / getTechniqueRelativePath(technique) / name).delete(swallowIOExceptions = true)
+                     }
                    }
       res       <- compileTechniqueInternal(technique, config)
       _         <- ZIO.when(res.isError) {

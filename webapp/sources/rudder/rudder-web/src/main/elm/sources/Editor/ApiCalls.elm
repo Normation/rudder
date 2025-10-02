@@ -152,7 +152,7 @@ deleteTechnique  technique model =
         , headers = [header "X-Requested-With" "XMLHttpRequest"]
         , url     = getUrl model "techniques/" ++ technique.id.value ++ "/" ++ technique.version
         , body    = emptyBody
-        , expect  = Detailed.expectJson DeleteTechnique ( Json.Decode.at ["data", "techniques" ] ( decodeDeleteTechniqueResponse ))
+        , expect  = Detailed.expectJson DeleteTechnique ( Json.Decode.at ["data", "techniques" ] (list decodeDeleteTechniqueResponse ) |> headList)
         , timeout = Nothing
         , tracker = Nothing
         }

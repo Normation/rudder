@@ -327,7 +327,7 @@ object TechniqueFiles {
     // `rudder_reporting.cf` is only used when the generation is done by webapp, it does not exist with rudderc
     val cfengineReporting = "rudder_reporting.cf"
     val cfengineRudderc: Chunk[String] = Chunk("technique.cf")
-    val cfengineAll:     Chunk[String] = Chunk(cfengineReporting, "technique.cf")
+    val cfengineAll:     Chunk[String] = Chunk(cfengineReporting) ++ cfengineRudderc
 
     val dsc: Chunk[String] = Chunk("technique.ps1")
 

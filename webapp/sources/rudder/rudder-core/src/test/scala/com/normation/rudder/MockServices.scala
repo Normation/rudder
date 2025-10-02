@@ -81,11 +81,27 @@ import com.normation.rudder.git.GitFindUtils
 import com.normation.rudder.git.GitRepositoryProviderImpl
 import com.normation.rudder.git.GitRevisionProvider
 import com.normation.rudder.git.SimpleGitRevisionProvider
+import com.normation.rudder.hooks.CmdResult
 import com.normation.rudder.hooks.HookEnvPairs
-import com.normation.rudder.ncf.EditorTechnique
-import com.normation.rudder.ncf.TechniqueCompilationOutput
-import com.normation.rudder.ncf.TechniqueCompiler
-import com.normation.rudder.ncf.TechniqueCompilerApp
+import com.normation.rudder.ncf.DeleteEditorTechnique
+import com.normation.rudder.ncf.EditorTechniqueCompilationResult
+import com.normation.rudder.ncf.EditorTechniqueReader
+import com.normation.rudder.ncf.EditorTechniqueReaderImpl
+import com.normation.rudder.ncf.GenericMethod
+import com.normation.rudder.ncf.GitResourceFileService
+import com.normation.rudder.ncf.ReadEditorTechniqueActiveStatus
+import com.normation.rudder.ncf.ReadEditorTechniqueCompilationResult
+import com.normation.rudder.ncf.ResourceFile
+import com.normation.rudder.ncf.ResourceFileState
+import com.normation.rudder.ncf.RuddercOptions
+import com.normation.rudder.ncf.RuddercResult
+import com.normation.rudder.ncf.RuddercService
+import com.normation.rudder.ncf.RuddercTechniqueCompiler
+import com.normation.rudder.ncf.TechniqueActiveStatus
+import com.normation.rudder.ncf.TechniqueCompilationStatusService
+import com.normation.rudder.ncf.TechniqueCompilationStatusSyncService
+import com.normation.rudder.ncf.TechniqueWriterImpl
+import com.normation.rudder.ncf.yaml.YamlTechniqueSerializer
 import com.normation.rudder.properties.InMemoryPropertiesRepository
 import com.normation.rudder.properties.NodePropertiesServiceImpl
 import com.normation.rudder.properties.PropertiesRepository
@@ -96,6 +112,7 @@ import com.normation.rudder.repository.xml.GitParseRules
 import com.normation.rudder.repository.xml.GitParseTechniqueLibrary
 import com.normation.rudder.repository.xml.RudderPrettyPrinter
 import com.normation.rudder.repository.xml.TechniqueArchiverImpl
+import com.normation.rudder.repository.xml.TechniqueFiles
 import com.normation.rudder.repository.xml.TechniqueRevisionRepository
 import com.normation.rudder.rule.category.*
 import com.normation.rudder.score.*
@@ -331,25 +348,79 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     .getGlobalSystemVariables(globalAgentRun)
     .openOrThrowException("I should get global system variable in test!")
 
-  // a false technique compiler that just error
-  val techniqueCompiler: TechniqueCompiler = new TechniqueCompiler {
-    override def compileTechnique(technique: EditorTechnique): IOResult[TechniqueCompilationOutput] = {
-      TechniqueCompilationOutput(
-        TechniqueCompilerApp.Rudderc,
-        1,
-        Chunk.empty,
-        s"error: test compiler for ${technique.id.value}",
-        "",
-        ""
-      ).succeed
+  // a false technique compiler that return a value depending of the name of the
+  // technique in parameter (known by the name of the parent path in technique.path)
+  // - if it contains "technique_with_error", then return 42 + error message
+  // - else returns 0
+  // ALSO: it saves the metadata of techniques before write in `gitMock.abstractRoot / ${technique_name}_metadata_save`
+  // for investigation like in TestMigrateJsonTechniquesToYaml
+  val rudderc: RuddercService = new RuddercService {
+    override def compile(techniqueDir: File, options: RuddercOptions): IOResult[RuddercResult] = {
+      // test implementation that just create the files with the technique name in them safe for
+      val techniqueId = techniqueDir.parent.name
+      if (techniqueId == "technique_with_error") {
+        RuddercResult.Fail(42, Chunk(ResourceFile("foo", ResourceFileState.Deleted)), "error", "", "error stderr").succeed
+      } else {
+        // replace content to be sure we get there
+        IOResult.attempt(s"Error when writing test metadata file for ${techniqueId} in mock rudderc service") {
+          // we need to keep metadata.xml, it's parsed in technique writer for technique registration
+          val metadata                = (techniqueDir / TechniqueFiles.Generated.metadata)
+          val testMetadataContentFile = mockGit.abstractRoot / s"${techniqueId}_metadata_save"
+          val metadataContent         = if (testMetadataContentFile.exists) {
+
+            testMetadataContentFile
+              .contentAsString()
+              .replace("<DESCRIPTION></DESCRIPTION>", "<DESCRIPTION>regenerated</DESCRIPTION>")
+          } else {
+            s"""<TECHNIQUE name="${techniqueId}"></TECHNIQUE>"""
+          }
+
+          metadata.write(metadataContent)
+          // we can replace other
+          (TechniqueFiles.Generated.dsc ++ TechniqueFiles.Generated.cfengineRudderc).foreach { n =>
+            (techniqueDir / n).write("regenerated")
+          }
+          RuddercResult.Ok(Chunk.empty, "", "", "")
+        }
+      }
     }
-    override def getCompilationOutputFile(technique: EditorTechnique): File = File("compilation-config.yml")
-    override def getCompilationConfigFile(technique: EditorTechnique): File = File("compilation-output.yml")
   }
+
+  val techniqueCompiler = new RuddercTechniqueCompiler(
+    rudderc,
+    _.path,
+    mockGit.configurationRepositoryRoot.pathAsString
+  )
+
+  val editorTechniqueReader: EditorTechniqueReader = new EditorTechniqueReaderImpl(
+    null,
+    null,
+    mockGit.gitRepo,
+    null,
+    null,
+    "UTF-8",
+    "test",
+    new YamlTechniqueSerializer(new GitResourceFileService(mockGit.gitRepo)),
+    null,
+    "no-cmd",
+    "no-methods",
+    "no-methods"
+  ) {
+    import com.normation.rudder.ncf.BundleName as BN
+    override def getMethodsMetadata:        IOResult[Map[BN, GenericMethod]] = Map.empty.succeed
+    override def updateMethodsMetadataFile: IOResult[CmdResult]              = Inconsistency("this should not be called").fail
+  }
+
+  val compilationStatusService: ReadEditorTechniqueCompilationResult = new TechniqueCompilationStatusService(
+    editorTechniqueReader,
+    techniqueCompiler
+  )
+
+  val xmlPrettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
 
   val techniqueArchiver: TechniqueArchiverImpl = new TechniqueArchiverImpl(
     mockGit.gitRepo,
-    new RudderPrettyPrinter(Int.MaxValue, 2),
+    xmlPrettyPrinter,
     mockGit.gitModificationRepository,
     new PersonIdentService {
       override def getPersonIdentOrDefault(username: String): IOResult[PersonIdent] = {
@@ -359,6 +430,38 @@ class MockTechniques(configurationRepositoryRoot: File, mockGit: MockGitConfigRe
     techniqueParser,
     techniqueCompiler,
     System.getProperty("user.name")
+  )
+
+  val deleteEditorTechnique: DeleteEditorTechnique = new DeleteEditorTechnique {
+    override def deleteTechnique(
+        techniqueName:    String,
+        techniqueVersion: String,
+        deleteDirective:  Boolean,
+        modId:            ModificationId,
+        committer:        QueryContext
+    ): IOResult[Unit] = ZIO.unit
+  }
+
+  val techniqueActiveStatusService: ReadEditorTechniqueActiveStatus = new ReadEditorTechniqueActiveStatus {
+    import com.normation.rudder.ncf.BundleName as BN
+    override def getActiveStatus(id: BN): IOResult[Option[TechniqueActiveStatus]] = None.succeed
+    override def getActiveStatuses(): IOResult[Map[BN, TechniqueActiveStatus]] = Map.empty.succeed
+  }
+
+  val techniqueCompilationCache: TechniqueCompilationStatusSyncService = new TechniqueCompilationStatusSyncService {
+    override def syncOne(result:                       EditorTechniqueCompilationResult):               IOResult[Unit] = ZIO.unit
+    override def syncTechniqueActiveStatus(bundleName: ncf.BundleName):                                 IOResult[Unit] = ZIO.unit
+    override def unsyncOne(id:                         (ncf.BundleName, Version)):                      IOResult[Unit] = ZIO.unit
+    override def getUpdateAndSync(results:             Option[List[EditorTechniqueCompilationResult]]): IOResult[Unit] = ZIO.unit
+  }
+
+  val techniqueWriter = new TechniqueWriterImpl(
+    techniqueArchiver,
+    techniqueRepo,
+    deleteEditorTechnique,
+    techniqueCompiler,
+    techniqueCompilationCache,
+    mockGit.configurationRepositoryRoot.pathAsString
   )
 }
 

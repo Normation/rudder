@@ -91,19 +91,21 @@ delete:
                   - resources
                 properties:
                   techniques:
-                    type: object
-                    required:
-                      - id
-                      - version
-                    properties:
-                      id:
-                        type: string
-                        description: Deleted technique ID
-                        example: foo
-                      version:
-                        type: string
-                        description: Deleted technique version
-                        example: 1.0
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - id
+                        - version
+                      properties:
+                        id:
+                          type: string
+                          description: Deleted technique ID
+                          example: foo
+                        version:
+                          type: string
+                          description: Deleted technique version
+                          example: 1.0
 
   tags:
     - Techniques
