@@ -34,7 +34,7 @@
 ## Synopsis
 This is a **straightforward guide** aims to setup all tools and settings on a Linux OS, to be able to modify Rudder source code and to test it locally. Please follow this guide step by step. If you want to learn more about the tools feel free to read the document link to it !
 
->Note that the NCF Api and the Technique Editor are not part of the webapp and will require further steps to setup. (Link and explanations provided below in the relative section)
+> Note: the documentation is written for linux ubuntu, with `apt`, of course you are free to use another os and his own package manager.
 
 ## Requirements for your machine
 - Vagrant
@@ -111,11 +111,6 @@ Run `ApacheDirectoryStudio`
 <div class="success">
 <span style="font-weight: bold;">Congrats!</span> You succeed to run <code class="code-format">ApachDirectoryStudio</code>
 </div>
-
-
-### Elm installation
-
-Follow the elm installer tutorial https://github.com/elm/compiler/blob/master/installers/linux/README.md
 
 ### Rudder Test framework (RTF) installation
 
@@ -277,7 +272,7 @@ Your LDAP connection is now working!
 
 
 
-### Setup the rudder webapp local environnement (on your own machine)
+### Setup the rudder webapp local environment (on your own machine)
 
 Meaning following steps are to be executed on your machine, not on the created VM
 unless specified otherwise, the place repos are cloned is not important. Maybe keep them together in `~/rudder/<repos>`.
@@ -349,6 +344,12 @@ But in practice, you'll probably never have to do this, because `~/<workspace>/r
 1. In IntelliJ install plugins : Scala, Elm, Jetty Runner and File watcher (recommended)
 
 ### Import Rudder project
+
+
+Rudder project is composed of an `elm` frontend and a `scala` backend made of a webapp and other modules. 
+The `elm` framework dependencies are managed by `npm`, see the `package.json` file while backend dependencies are managed with `maven`. So there is no need to install `elm` and `scala` because this will be done at the build.
+The application runs on `jetty` a web server.
+
 1. Import your own forked rudder repository (for example):
 ```
 git clone git@github.com:<gituser>/rudder.git
@@ -360,7 +361,8 @@ Then select "Import Module from external model" and go for Maven
 ![Import all the Rudder's modules](select_modules.png)
 
 ### Setup Run configuration
-1. In _Run -> Edit Configuration_ add a new configuration and choose Jetty Runner
+
+In _Run -> Edit Configuration_ add a new configuration and choose Jetty Runner
 - Jetty Runner Folder : _downloaded jar of jetty-runner with version BELOW 11 from https://repo1.maven.org/maven2/org/eclipse/jetty/jetty-runner/
 (jetty 11 is not supported yet because of the lack of support for the servlet version used by rudder)_
 - Module : <all modules>
@@ -414,7 +416,7 @@ To import dependencies that Rudder use you will have to run :
 mvn clean install
 ```
 Inside `rudder/webapp/sources/`.
-> Note:  (rudder-code, rudder-web, rudder-rest, rudder-templates, rudder-templates-cli)
+> Note:  rudder-code, rudder-web, rudder-rest, rudder-templates, rudder-templates-cli
 
 > Note: It can take several minutes to download all necessary dependencies.
 
