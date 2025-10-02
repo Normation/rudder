@@ -789,26 +789,9 @@ bundle agent rudder_actual_file_augeas(path, script, if_script, lens, show_conte
       "error" usebundle => _classes_failure("${report_data.method_id}");
 
   augeas:
-    pass2.!pass3.!(global_dry_run|dry_run)::
+    pass2.!pass3::
       "module_call"
-        rudder_module_protocol  => "0",
-        state_dir               => "/var/rudder/tmp/",
-        backup_dir              => "/var/rudder/modified-files/",
-        node_id                 => "${g.uuid}",
-        agent_frequency_minutes => "${g.agent_run_interval}",
-        classes                 => classes_generic("${report_data.method_id}"),
-        data                    => parsejson('{
-          "path": "${path}",
-          "script": "${script}",
-          "show_file_content": ${show_content},
-          "lens": "${lens}",
-          "if_script": "${if_script}",
-          "max_file_size": "10MB",
-          "report_file": "${report_file}"
-        }');
-    pass2.!pass3.(global_dry_run|dry_run)::
-      "module_call"
-        action_policy           => "warn",
+        action_policy           => rudder_module,
         rudder_module_protocol  => "0",
         state_dir               => "/var/rudder/tmp/",
         backup_dir              => "/var/rudder/modified-files/",
