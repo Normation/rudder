@@ -142,11 +142,19 @@ class FsCampaignHooksService(
 ) extends CampaignHooksService {
 
   override def runPreHooks(c: Campaign, e: CampaignEvent): IOResult[HookResults] = {
-    runHooks(HOOKS_D, HOOKS_IGNORE_SUFFIXES, c, e, CampaignHookTypes.CampaignPreHooks)
+    runHooks(HOOKS_D, HOOKS_IGNORE_SUFFIXES, c, e, CampaignHookTypes.CampaignPreHooks, None)
   }
 
   override def runPostHooks(c: Campaign, e: CampaignEvent): IOResult[HookResults] = {
-    runHooks(HOOKS_D, HOOKS_IGNORE_SUFFIXES, c, e, CampaignHookTypes.CampaignPostHooks)
+    // we should have a post-hook state, use it
+    e.state match {
+      case CampaignEventState.PostHooks(nextState, _) =>
+        runHooks(HOOKS_D, HOOKS_IGNORE_SUFFIXES, c, e, CampaignHookTypes.CampaignPostHooks, Some(nextState))
+      case _                                          =>
+        Inconsistency(
+          s"Can not run post-hooks for campaign event '${e.id.value}' which has state '${e.state.value.entryName}'"
+        ).fail
+    }
   }
 
   /*
@@ -160,7 +168,8 @@ class FsCampaignHooksService(
       ignoreSuffixes: List[String],
       c:              Campaign,
       e:              CampaignEvent,
-      hookType:       CampaignHookTypes // pre or post
+      hookType:       CampaignHookTypes, // pre or post
+      nextState:      Option[CampaignEventStateType]
   ): IOResult[HookResults] = {
 
     val loggerName = FsCampaignHooksRepository.CampaignDirName + "." + c.info.id.serialize + "." + hookType.entryName
@@ -176,22 +185,42 @@ class FsCampaignHooksService(
                        res        <- RunHooks.asyncRunHistory(
                                        loggerName,
                                        hooks,
-                                       HookEnvPairs.build(
-                                         ("CAMPAIGN_ID", c.info.id.serialize),
-                                         ("CAMPAIGN_NAME", c.info.name),
-                                         ("CAMPAIGN_TYPE", c.campaignType.value),
-                                         ("CAMPAIGN_EVENT_ID", e.id.value),
-                                         ("CAMPAIGN_EVENT_NAME", e.name)
-                                       ),
+                                       HookEnvPairs
+                                         .build(
+                                           ("CAMPAIGN_ID", c.info.id.serialize),
+                                           ("CAMPAIGN_NAME", c.info.name),
+                                           ("CAMPAIGN_TYPE", c.campaignType.value),
+                                           ("CAMPAIGN_EVENT_ID", e.id.value),
+                                           ("CAMPAIGN_EVENT_NAME", e.name)
+                                         )
+                                         .optAdd("CAMPAIGN_NEXT_STATE", nextState.map(_.entryName)),
                                        systemEnv,
                                        HookExecutionHistory.Keep,
                                        1.minutes // warn if a hook took more than a minute
                                      )
                        timeHooks1 <- currentTimeMillis
                        _          <-
-                         PureHooksLogger.For(loggerName).trace(s"Campaign pre-hooks ran in ${timeHooks1 - timeHooks0} ms")
+                         PureHooksLogger.For(loggerName).trace(s"Campaign ${hookType.entryName} ran in ${timeHooks1 - timeHooks0} ms")
+                       _          <- ZIO.foreachDiscard(res._2) { // log at the corresponding level campaign hook that did a warning/error.
+                                       case (hookName, code) =>
+                                         (code match {
+                                           case _: HookReturnCode.Warning =>
+                                             PureHooksLogger
+                                               .For(loggerName)
+                                               .warn(
+                                                 s"Campaign '${c.info.name}' ${hookType.entryName} returned code '${code.code}' in '${hookName}'"
+                                               )
+                                           case _: HookReturnCode.Error   =>
+                                             PureHooksLogger
+                                               .For(loggerName)
+                                               .error(
+                                                 s"Campaign '${c.info.name}' ${hookType.entryName} returned code '${code.code}' in '${hookName}'"
+                                               )
+                                           case _ => ZIO.unit
+                                         })
+                                     }
                      } yield res
-      } yield HookResults((res._1 :: res._2).map(HookResult.fromCode))
+      } yield HookResults((res._1 :: res._2.map(_._2)).map(HookResult.fromCode))
     ).catchAll { err =>
       PureHooksLogger.For(loggerName).error(err.fullMsg) *>
       HookResults(List(HookResult(loggerName, 1, "", err.fullMsg, "System error when executing hook"))).succeed
