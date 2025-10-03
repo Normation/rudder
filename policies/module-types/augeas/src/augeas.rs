@@ -331,7 +331,7 @@ impl Augeas {
         }
 
         // Error cases
-        if modified && PolicyMode::Audit == PolicyMode::Audit {
+        if modified && policy_mode == PolicyMode::Audit {
             bail!(
                 "File {} does not match the expected content",
                 p.path.display()
