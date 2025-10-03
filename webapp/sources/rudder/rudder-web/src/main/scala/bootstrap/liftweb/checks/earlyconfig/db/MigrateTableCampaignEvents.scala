@@ -121,7 +121,7 @@ object MigrateTableCampaignEvents {
   val sql1 = {
     sql"""DO $$$$ BEGIN
                     CREATE TYPE campaignEventState AS enum (
-                      'scheduled', 'prehooks', 'running', 'posthooks', 'finished', 'skipped', 'deleted', 'failure'
+                      'scheduled', 'pre-hooks', 'running', 'post-hooks', 'finished', 'skipped', 'deleted', 'failure'
                     );
                   EXCEPTION
                     WHEN duplicate_object THEN null;
