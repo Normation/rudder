@@ -266,9 +266,10 @@ showTechnique model technique origin ui editInfo =
       |> appendChild
            ( element "li"
              |> addAttribute (class "no-methods")
+             |> addAction ("click", OpenMethods)
              |> appendChildList
                 [ element "i"
-                  |> addClass "fas fa-sign-in-alt"
+                  |> addClass "fas fa-sign-in-alt me-1"
                   |> addStyle ("transform", "rotate(90deg)")
                 , element "span"
                   |> appendText " Drag and drop generic methods here from the list on the right to build target configuration for this technique."
