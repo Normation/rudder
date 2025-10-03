@@ -117,6 +117,7 @@ import com.normation.rudder.ncf.ResourceFileState
 import com.normation.rudder.ncf.TechniqueParameter
 import com.normation.rudder.ncf.TechniqueSerializer
 import com.normation.rudder.ncf.TechniqueWriter
+import com.normation.rudder.ncf.TechniqueWriterImpl
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -1003,10 +1004,18 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     mockTechniques.techniqueRevisionRepo,
     ncfTechniqueReader,
     techniqueSerializer,
-    null
+    mockTechniques.techniqueCompiler
   )
 
-  val ncfTechniqueWriter:  TechniqueWriter     = null
+  val ncfTechniqueWriter: TechniqueWriter = new TechniqueWriterImpl(
+    mockTechniques.techniqueArchiver,
+    fakeUpdatePTLibService,
+    mockTechniques.deleteEditorTechnique,
+    mockTechniques.techniqueCompiler,
+    mockTechniques.techniqueCompilationCache,
+    mockGitRepo.configurationRepositoryRoot.pathAsString
+  )
+
   val resourceFileService: ResourceFileService = null
   val settingsService = new MockSettings(workflowLevelService, new AsyncWorkflowInfo())
 
