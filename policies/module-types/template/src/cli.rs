@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2021 Normation SAS
 
-use crate::{Engine, get_python_version};
+use crate::{Engine, compute_diff_or_warning, get_python_version};
 
 use anyhow::{Context, Result, bail};
 use clap::Parser;
@@ -44,6 +44,10 @@ pub struct Cli {
     /// Audit mode
     #[arg(short, long)]
     audit: bool,
+
+    /// Controls output of diffs
+    #[arg(short, long)]
+    show_content: bool,
 }
 
 impl Cli {
@@ -80,8 +84,14 @@ impl Cli {
 
             if output != audited_content {
                 bail!(
-                    "The content in the audited template file ({}) does not match with the rendered template.",
-                    cli.out.display()
+                    "The content in the audited template file ({}) does not match with the rendered template.\ndiff:\n{}",
+                    cli.out.display(),
+                    compute_diff_or_warning(
+                        &audited_content,
+                        &output,
+                        cli.out.to_string_lossy().as_ref(),
+                        cli.show_content
+                    ),
                 )
             }
         } else {
