@@ -203,7 +203,6 @@ class FsCampaignHooksService(
                          PureHooksLogger.For(loggerName).trace(s"Campaign ${hookType.entryName} ran in ${timeHooks1 - timeHooks0} ms")
                        _          <- ZIO.foreachDiscard(res._2) { // log at the corresponding level campaign hook that did a warning/error.
                                        case (hookName, code) =>
-                                         effectUioUnit(println(s"xxxxxxxxxx cheching log for ${hookName} ${code}")) *>
                                          (code match {
                                            case _: HookReturnCode.Warning =>
                                              PureHooksLogger
