@@ -125,7 +125,7 @@ impl Repository {
         Ok(res.error_for_status()?)
     }
 
-    // Path is relative to the confiured server
+    // Path is relative to the configured server
     pub fn download_unsafe(&self, file: &str, dest: &Path) -> Result<()> {
         debug!(
             "Downloading file from {} to '{}'",
