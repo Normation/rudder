@@ -89,7 +89,7 @@ impl Cli {
                     compute_diff_or_warning(
                         &audited_content,
                         &output,
-                        &cli.out.to_string_lossy().to_string(),
+                        cli.out.to_string_lossy().as_ref(),
                         cli.show_content
                     ),
                 )

@@ -415,7 +415,7 @@ fn compute_diff_or_warning(
     output_file_d: &str,
     show_content: bool,
 ) -> String {
-    let reported_diff = if show_content {
+    if show_content {
         let reported_diff = diff(content.to_string(), output.to_string());
         let max_reported_diff = 10_000;
 
@@ -428,9 +428,7 @@ fn compute_diff_or_warning(
         }
     } else {
         format!("Changes to {output_file_d} could not be reported. The diff output is disabled.")
-    };
-
-    reported_diff
+    }
 }
 
 fn backup_file(output_file: &Path, backup_dir: &Path) -> Result<(), anyhow::Error> {
