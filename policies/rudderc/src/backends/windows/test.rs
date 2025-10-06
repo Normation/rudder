@@ -119,7 +119,7 @@ pub fn win_agent(
         .lines()
         .map(|l| if l.contains("R: ") { &l[26..] } else { l })
         .collect();
-    // Ensure empty line at the end to allow pasring last report
+    // Ensure empty line at the end to allow parsing last report
     clean_reports.push("");
 
     let run_log = Report::parse(&clean_reports.join("\n"))?;
