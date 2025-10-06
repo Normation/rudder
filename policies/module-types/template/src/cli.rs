@@ -46,7 +46,14 @@ pub struct Cli {
     audit: bool,
 
     /// Controls output of diffs
-    #[arg(short, long)]
+    #[arg(
+        short,
+        long,
+        num_args(0..=1),
+        action = clap::builder::ArgAction::Set,
+        default_value = "true",
+        default_missing_value = "true",
+    )]
     show_content: bool,
 }
 
@@ -77,28 +84,59 @@ impl Cli {
             }
         };
 
-        if cli.audit {
-            let audited_content = fs::read_to_string(&cli.out).with_context(|| {
-                format!("Failed to read audited template {}", cli.out.display())
-            })?;
+        let already_present = cli.out.exists();
 
-            if output != audited_content {
-                bail!(
-                    "The content in the audited template file ({}) does not match with the rendered template.\ndiff:\n{}",
-                    cli.out.display(),
-                    compute_diff_or_warning(
-                        &audited_content,
-                        &output,
-                        cli.out.to_string_lossy().as_ref(),
-                        cli.show_content
-                    ),
-                )
+        let mut content = String::new();
+        let already_correct = if already_present {
+            content = read_to_string(&cli.out)
+                .with_context(|| format!("Failed to read file {}", cli.out.display()))?;
+            if content == output {
+                true
+            } else {
+                println!(
+                    "Output file '{}' exists but has outdated content",
+                    cli.out.display()
+                );
+                false
             }
         } else {
-            fs::write(&cli.out, output)
-                .with_context(|| format!("Failed to write file {}", cli.out.display()))?;
-        }
+            false
+        };
 
+        let reported_diff = compute_diff_or_warning(
+            &content,
+            &output,
+            cli.out.to_string_lossy().as_ref(),
+            cli.show_content,
+        );
+
+        match (already_correct, already_present, cli.audit) {
+            (true, _, _) => {
+                println!("Output file '{}' already correct", cli.out.display());
+                return Ok(());
+            }
+            (false, true, true) => {
+                println!(
+                    "Output file '{}' is present but content is not up to date.\ndiff:\n{reported_diff}",
+                    cli.out.display()
+                )
+            }
+            (false, false, true) => {
+                println!("Output file '{}' does not exist", cli.out.display());
+            }
+            (false, ap, false) => {
+                fs::write(&cli.out, output)
+                    .with_context(|| format!("Failed to write file '{}'", cli.out.display()))?;
+
+                let action = if ap { "Replaced" } else { "Written new" };
+
+                println!(
+                    "{action} '{}' content from template '{}'\ndiff:\n{reported_diff}",
+                    cli.out.display(),
+                    cli.template.display()
+                )
+            }
+        }
         Ok(())
     }
 }
