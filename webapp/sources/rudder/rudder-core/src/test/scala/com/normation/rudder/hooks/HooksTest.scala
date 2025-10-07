@@ -73,7 +73,7 @@ class HooksTest() extends Specification with AfterAll {
     f.setPermissions(PosixFilePermissions.fromString("rwxr--r--").asScala.toSet)
   }
 
-  def runHooks(hooks: List[String], params: List[HookEnvPair]):       HookReturnCode       = {
+  def runHooks(hooks: List[String], params: List[HookEnvPair]): HookReturnCode = {
     RunHooks.syncRun(
       "test.hooks",
       Hooks(tmp.pathAsString, hooks.map(f => (f, HookTimeout(None, None)))),
@@ -84,6 +84,7 @@ class HooksTest() extends Specification with AfterAll {
       5.seconds
     )
   }
+
   def runHookHistory(hooks: List[String], params: List[HookEnvPair]): List[HookReturnCode] = {
     ZioRuntime.runNow(
       RunHooks
@@ -97,7 +98,7 @@ class HooksTest() extends Specification with AfterAll {
           500.millis,
           5.seconds
         )
-        .map(c => c._1 :: c._2)
+        .map(_._2.map(_._2))
     )
   }
 

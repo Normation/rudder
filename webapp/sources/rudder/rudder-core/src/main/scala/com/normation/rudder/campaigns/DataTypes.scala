@@ -343,19 +343,25 @@ object CampaignEventState {
   @jsonHint(ScheduledType.entryName) case object Scheduled                            extends CampaignEventState(ScheduledType)
   @jsonHint(PreHooksType.entryName) case class PreHooks(hookResults: HookResults)     extends CampaignEventState(PreHooksType)
   @jsonHint(RunningType.entryName) case object Running                                extends CampaignEventState(RunningType)
-  @jsonHint(PostHooksType.entryName) case class PostHooks(hookResults: HookResults)   extends CampaignEventState(PostHooksType)
+  // post hook are given a potential "goto failure/skipped/etc" choice
+  @jsonHint(PostHooksType.entryName) case class PostHooks(nextState: CampaignEventStateType, hookResults: HookResults)
+      extends CampaignEventState(PostHooksType)
   @jsonHint(FinishedType.entryName) case object Finished                              extends CampaignEventState(FinishedType)
   @jsonHint(SkippedType.entryName) case class Skipped(reason: String)                 extends CampaignEventState(SkippedType)
   @jsonHint(DeletedType.entryName) case class Deleted(reason: String)                 extends CampaignEventState(DeletedType)
   @jsonHint(FailureType.entryName) case class Failure(cause: String, message: String) extends CampaignEventState(FailureType)
 
+  // initial value for pre and post hooks
+  val PreHooksInit:  PreHooks  = PreHooks(HookResults(Nil))
+  val PostHooksInit: PostHooks = PostHooks(FinishedType, HookResults(Nil))
+
   // when we don't have data for a state that could/should
   def getDefault(s: CampaignEventStateType): CampaignEventState = {
     s match {
       case ScheduledType => CampaignEventState.Scheduled
-      case PreHooksType  => CampaignEventState.PreHooks(HookResults(Nil))
+      case PreHooksType  => PreHooksInit
       case RunningType   => CampaignEventState.Running
-      case PostHooksType => CampaignEventState.PostHooks(HookResults(Nil))
+      case PostHooksType => PostHooksInit
       case FinishedType  => CampaignEventState.Finished
       case SkippedType   => CampaignEventState.Skipped("")
       case DeletedType   => CampaignEventState.Deleted("")
