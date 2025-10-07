@@ -414,8 +414,7 @@ impl Commands {
 
         let status = match (audit, exit_code, repaired_codes, compliant_codes) {
             (false, e, r, _) if r.contains(&e) => "repaired",
-            (true, e, _, Some(c)) if c.contains(&e) => "compliant",
-            (true, _, _, None) => "compliant",
+            (_, e, _, Some(c)) if c.contains(&e) => "compliant",
             _ => "failed",
         };
 
