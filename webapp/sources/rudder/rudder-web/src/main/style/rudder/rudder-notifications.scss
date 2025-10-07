@@ -1,0 +1,138 @@
+/*
+*************************************************************************************
+* Copyright 2025 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
+// Modules
+@use 'rudder-variables' as *;
+
+.rudder-notification{
+    position: fixed;
+    top: 60px;
+    right: 15px;
+    width : 100%;
+    max-width: 400px;
+    list-style-type : none;
+    padding : 0;
+    margin : 0;
+    z-index:999999;
+    word-break: break-word;
+
+    & > li{
+        max-height : unset !important;
+        box-shadow: 5px 5px 5px 0px rgba(0, 0, 0, .3);
+        cursor: pointer;
+
+        .callout-fade{
+            &.callout-success{
+              border-color: $rudder-success;
+            }
+            &.callout-info{
+              border-color: $rudder-info;
+            }
+            &.callout-warning{
+              border-color: $rudder-warning;
+            }
+            &.callout-danger{
+              border-color: $rudder-danger;
+            }
+            & > p{
+              white-space: pre-line;
+            }
+        }
+    }
+
+    .animated {
+        animation-duration: 1s;
+        animation-fill-mode: both;
+
+        &.bounceInRight {
+            animation-name: bounceInRight;
+        }
+        &.fadeOutRightBig {
+            animation-name: fadeOutRightBig;
+        }
+    }
+
+}
+// --- Redefine the top position of notifications so that they do not hide the main buttons on the page
+body:has(.template-main .main-header:not(.no-header)  .header-buttons) .rudder-notification{
+  top: 115px;
+}
+// Branding bar enabled
+body:has(#headerBar){
+    .rudder-notification{
+      top: 90px;
+    }
+    &:has(.template-main .main-header:not(.no-header) .header-buttons){
+      top: 145px;
+    }
+}
+
+@keyframes bounceInRight {
+    0%,
+    60%,
+    75%,
+    90%,
+    to {
+        animation-timing-function: cubic-bezier(.215, .61, .355, 1)
+    }
+    0% {
+        opacity: 0;
+        transform: translate3d(3000px, 0, 0)
+    }
+    60% {
+        opacity: 1;
+        transform: translate3d(-25px, 0, 0)
+    }
+    75% {
+        transform: translate3d(10px, 0, 0)
+    }
+    90% {
+        transform: translate3d(-5px, 0, 0)
+    }
+    to {
+        transform: none
+    }
+}
+
+@keyframes fadeOutRightBig {
+    0% {
+        opacity: 1
+    }
+    to {
+        opacity: 0;
+        transform: translate3d(2000px, 0, 0)
+    }
+}
