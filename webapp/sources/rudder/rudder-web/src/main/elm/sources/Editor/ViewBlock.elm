@@ -598,9 +598,10 @@ showChildren model block ui techniqueUi parentId =
      |> appendChildConditional
         ( element "li"
           |> addAttribute (class "no-methods")
+          |> addActionStopAndPrevent ("click", OpenMethods)
           |> appendChildList
              [ element "i"
-               |> addClass "fas fa-sign-in-alt"
+               |> addClass "fas fa-sign-in-alt me-1"
                |> addStyle ("transform", "rotate(90deg)")
              , element "span"
                |> appendText " Drag and drop generic methods here to fill this component"
@@ -614,11 +615,6 @@ showChildren model block ui techniqueUi parentId =
           |> addClass"no-methods drop-zone"
           |> addStyle ("text-align", "center")
           |> addClassConditional "drop-target" (DragDrop.isCurrentDropTarget model.dnd (InBlock block))
-          |> appendChild
-             ( element "i"
-               |> addClass "fas fa-sign-in-alt"
-               |> addStyle ("transform", "rotate(90deg)")
-             )
           |> DragDrop.makeDroppable model.dnd (InBlock block) dragDropMessages
         ) ( case (List.isEmpty block.calls , DragDrop.currentlyDraggedObject model.dnd) of
             ( True , _    ) -> False
