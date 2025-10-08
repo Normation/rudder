@@ -25,7 +25,7 @@ else
       # The archive is created in /var/rudder/${RUDDER_NODEID}/rules/${ARCHIVE_NAME} directly. It must
       # be in `/rules/`, because it's what ensure Rudder that the archive content is synchronized with the files under
       # `../rules/cfengine-community/`
-      /usr/bin/tar -cjf --mode go=-rwx --owner=0 --group=0 --transform "s|^cfengine-community|policies_next|" cfengine-community
+      /usr/bin/tar -cjf ${ARCHIVE_PATH}/${ARCHIVE_NAME}.part --mode=go=-rwx --owner=0 --group=0 --transform "s|^cfengine-community|policies_next|" cfengine-community
       mv ${ARCHIVE_PATH}/${ARCHIVE_NAME}.part ${ARCHIVE_PATH}/${ARCHIVE_NAME}
 
       # enforce permissions
