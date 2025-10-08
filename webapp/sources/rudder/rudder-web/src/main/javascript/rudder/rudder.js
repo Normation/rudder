@@ -626,7 +626,7 @@ function callRemoteRun(nodeId, refreshCompliance) {
   $("#visibilityOutput").hide();
   $("#report").removeClass("border-success");
   $("#report").removeClass("border-fail");
-  $("pre").remove();
+  $panelContent.remove();
   $(".alert-danger").remove();
   $("#countDown").find("span").empty();
 
