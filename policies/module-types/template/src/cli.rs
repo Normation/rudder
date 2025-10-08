@@ -116,13 +116,13 @@ impl Cli {
                 return Ok(());
             }
             (false, true, true) => {
-                println!(
+                bail!(
                     "Output file '{}' is present but content is not up to date.\ndiff:\n{reported_diff}",
                     cli.out.display()
                 )
             }
             (false, false, true) => {
-                println!("Output file '{}' does not exist", cli.out.display());
+                bail!("Output file '{}' does not exist", cli.out.display());
             }
             (false, ap, false) => {
                 fs::write(&cli.out, output)
