@@ -176,12 +176,11 @@
 #grid_rules_grid_zone tr.head th {
     padding: 4px 6px;
 }
-.version-group{
-  float:left;
-  padding:0 0 0 15px;
-}
-.version-group select.form-select{
-  margin-right:5px;
+#version{
+  flex-wrap : wrap;
+  input[type=submit]{
+    width: 100px;
+  }
 }
 .btn.new-icon.no-icon:after{
   content: "";
