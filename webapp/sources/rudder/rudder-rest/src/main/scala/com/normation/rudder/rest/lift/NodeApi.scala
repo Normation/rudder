@@ -1248,7 +1248,7 @@ class NodeApiService(
     for {
       nodeIds <- state match {
                    case PendingInventory  => pendingNodeQueryProcessor.check(query, None)
-                   case AcceptedInventory => acceptedNodeQueryProcessor.processOnlyId(query).toIO
+                   case AcceptedInventory => acceptedNodeQueryProcessor.process(query).toIO
                    case _                 =>
                      Inconsistency(
                        s"Invalid branch used for nodes query, expected either AcceptedInventory or PendingInventory, got ${state}"

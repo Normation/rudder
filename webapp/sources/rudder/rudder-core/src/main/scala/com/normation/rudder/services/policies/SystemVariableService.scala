@@ -71,14 +71,13 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import scala.collection.MapView
 
 trait SystemVariableService {
   def getGlobalSystemVariables(globalAgentRun: AgentRunInterval): Box[Map[String, Variable]]
 
   def getSystemVariables(
       nodeInfo:              CoreNodeFact,
-      allNodeInfos:          MapView[NodeId, CoreNodeFact],
+      allNodeInfos:          Map[NodeId, CoreNodeFact],
       nodeTargets:           List[FullRuleTargetInfo],
       globalSystemVariables: Map[String, Variable],
       globalAgentRun:        AgentRunInterval,
@@ -235,7 +234,7 @@ class SystemVariableServiceImpl(
   // policy servers)
   def getSystemVariables(
       nodeInfo:              CoreNodeFact,
-      allNodeInfos:          MapView[NodeId, CoreNodeFact],
+      allNodeInfos:          Map[NodeId, CoreNodeFact],
       nodeTargets:           List[FullRuleTargetInfo],
       globalSystemVariables: Map[String, Variable],
       globalAgentRun:        AgentRunInterval,
@@ -394,13 +393,13 @@ class SystemVariableServiceImpl(
           nodes.flatMap(n => {
             n :: {
               childrenByPolicyServer.get(n.id) match {
-                case None           => Nil
-                case Some(children) =>
-                  // If the node 'n' is the same node of the policy server we are generating variables, do not go to childs level, they will be treated by the upper level call
+                case None    => Nil
+                case Some(c) =>
+                  // If the node 'n' is the same node of the policy server we are generating variables, do not go to children level, they will be treated by the upper level call
                   if (n.id == nodeInfo.id) {
                     Nil
                   } else {
-                    addWithSubChildren(children)
+                    addWithSubChildren(c)
                   }
               }
             }

@@ -476,7 +476,7 @@ class RuleGrid(
       globalMode:    GlobalPolicyMode
   ): List[Line] = {
 
-    val arePolicyServers = nodeFacts.mapValues(_.rudderSettings.isPolicyServer)
+    val arePolicyServers = nodeFacts.mapValues(_.rudderSettings.isPolicyServer).toMap
 
     // we compute beforehand the compliance, so that we have a single big query
     // to the database
