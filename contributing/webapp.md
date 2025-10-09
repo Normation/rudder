@@ -293,8 +293,18 @@ Please note that this change will need to start a new shell or session to be tak
 
 2. Create some file for the webapp:
 ```
-mkdir -p /var/rudder/inventories/incoming /var/rudder/share /var/rudder/inventories/accepted-nodes-updates /var/rudder/inventories/received /var/rudder/inventories/failed /var/log/rudder/core /var/log/rudder/compliance/ /var/rudder/run/
-touch /var/log/rudder/core/rudder-webapp.log /var/log/rudder/compliance/non-compliant-reports.log /var/rudder/run/api-token
+mkdir -p /var/rudder/inventories/incoming \
+    /var/rudder/share \
+    /var/rudder/inventories/accepted-nodes-updates \
+    /var/rudder/inventories/received \
+    /var/rudder/inventories/failed \
+    /var/log/rudder/core \
+    /var/log/rudder/compliance/ \
+    /var/rudder/run/ 
+    
+touch /var/log/rudder/core/rudder-webapp.log \ 
+    /var/log/rudder/compliance/non-compliant-reports.log \
+    /var/rudder/run/api-token 
 ```
 
 3. Add permissions
@@ -380,6 +390,15 @@ In _Run -> Edit Configuration_ add a new configuration and choose Jetty Runner
 ```
 -DrjrDisableannotation=true -Drun.mode=production -XX:MaxMetaspaceSize=360m -Xms256m -Xmx2048m -XX:-UseLoopPredicate -XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:+UseStringDeduplication -Drudder.configFile=/home/<user>/rudder-tests/dev/configuration.properties
 ```
+> Note: `-Drun.mode` values : `production`, `development`
+
+When the jetty runner starts, there is an error about the relay because in development mode there is no relay nor agent. So please ignore the following error log: 
+```
+[2025-10-07T15:45:31+0200] WARNING Failed to execute shell command from Rudder: error=2, No such file or directory
+2025-10-07 15:45:31+0200 ERROR com.normation.rudder.services.policies.WriteNodeCertificatesPemImpl - Unexpected: Error when executing reload command '/opt/rudder/bin/rudder relay reload -p' after writing node certificates file. Command output: code: -2147483648
+
+``` 
+
 > Beware, replace `<user>`
 
 If you are using JRebel add these following arguments :
@@ -471,37 +490,32 @@ You can access the application by running it from IntelliJ. The url is:
 ##### http://localhost/rudder
 > Warning : make sure your development's environment is running before running Rudder. `./rtf platform setup <env's name>` in rudder-test directory. Otherwise you will get errors in IntelliJ's console.
 
-Let's code ! :rocket:
+#### Local configuration for rudder in dev mode
 
+> Note: Not working in rudder development mode
+> - plugins :
+>   - you can clone a plugin then run `make generate-pom` to generate the pom.xml then import the generated pom in intellij. Once the plugin is imported and jetty runner restarted the plugin will be available in the local rudder webapp.
+>   - the plugin management page can be stubbed using the property rudder.package.cmd=/opt/rudder/bin/rudder-package (create a fake binary rudder-package)
+> - agents (compliance and policy generation)
 
+user configuration > 
 
-## Now what ?
+> Note: the first time you run rudder locally with jetty, you will need to setup a user in the local user configuration.
 
-#### Entire Script
-All the previous steps are summed up in the following script: [setup_dev_env.sh](https://github.com/Normation/rudder/blob/master/contributing/setup_dev_env.sh).\
+```
+<authentication hash="argon2id" case-sensitivity="true">
+    <!-- this is a bcrypt password but you can use an argon2id password starting from 9.0 -->
+    <!-- user-name=admin, password=admin -->
+    <user name="admin" password="$2a$12$bW.RsmvUn8nCUsh2bfwAe.ZntUVVNBv0siVDoG94Q7rpQlO46wjiS" permissions="administrator" />
+</authentication>
 
-Do not run this script as sudo! Though some commands require sudo privileges, you may be prompted to type sudo password
-
-> Important: as a requirement, if not done yet you need to fork the following repo: `https://github.com/Normation/rudder`.
-
-The first param is your local user 
-The second is your gitusername (used to clone your `Normation/rudder` fork)
-This script should be copied anywhere on your machine and simply executed.
-```bash
-./setup_dev_env.sh <user> <gituser>
 ```
 
-> Important note: This script does not setup Intellij ([Setup workspace development with IntelliJ and Maven](#part-2---setup-workspace-development-with-intellij-and-maven)) 
- and Apache Directory Studio ([LDAP connection](#test-ldap-connection)). These still have to be set manually.
+> Important: as a requirement, if not done yet you need to fork the following repo: `https://github.com/Normation/rudder`. <br/>
+The first param is your local user. <br />
+The second is your gitusername (used to clone your `Normation/rudder` fork). <br />
 
-> To start Apache Directory Studio: `/opt/ApacheDirectoryStudio/ApacheDirectoryStudio`
-
-> Important note: this script should only be ran once. Every other startup, only do the following command: `./rtf platform setup debian9_dev`
-
-> All rudder repos will be cloned (including rtf and ncf) in `/home/<user>/rudder/`
-
-> Disclaimer: this script might not work on your machine. If it does not, it still is a good guideline when trying to setup a dev environment since it traces every single step of this readme + rtf setup readme
-
+Let's code ! :rocket:
 
 #### Documentations
 If you want to learn how to use Rudder and its web interface, consult the documentation here : https://docs.rudder.io/reference/5.0/usage/web_interface.html :shipit:
