@@ -18,7 +18,7 @@ jobs:
       run: cd policies\module-types\template && cargo test --locked
 
     - name: Install pkg-config
-      run: choco install pkg-config
+      run: choco install pkgconfiglite
 
     - name: Run tests for augeas module
       run: cd policies\module-types\augeas && cargo test --locked
