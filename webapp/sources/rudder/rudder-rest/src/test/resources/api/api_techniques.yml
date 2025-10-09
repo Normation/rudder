@@ -765,3 +765,99 @@ response:
         }
       }
     }
+---
+description: Can create a technique
+method: PUT
+url: /api/latest/techniques
+body: >-
+  {
+    "internalId":"e3e8a24f-9a64-4351-9cbb-eb5289a970e6",
+    "id":"test_delete",
+    "version":"1.0",
+    "name":"test_delete",
+    "description":"",
+    "category":"ncf_techniques",
+    "parameters":[],
+    "calls":[
+      {
+        "id":"d8dd2f63-3077-47c1-8673-c8d9171fa2cc",
+        "component":"",
+        "method":"command_execution",
+        "condition":"",
+        "parameters":{"command":"/bin/true"},
+        "disabledReporting":false,
+        "type":"call",
+        "foreachName":null,
+        "foreach":null
+      }
+    ],
+    "resources":[],
+    "documentation":"",
+    "tags":{}
+  }
+response:
+  code: 200
+  content: >-
+    {
+      "action":"createTechnique",
+      "result":"success",
+      "data": {
+        "techniques":[
+          {
+            "id":"test_delete",
+            "version":"1.0",
+            "name":"test_delete",
+            "category":"ncf_techniques",
+            "calls":[
+              {
+                "type":"call",
+                "method":"command_execution",
+                "id":"d8dd2f63-3077-47c1-8673-c8d9171fa2cc",
+                "parameters":{"command":"/bin/true"},
+                "condition":"",
+                "component":"",
+                "disabledReporting":false
+              }
+              ],
+            "description":"",
+            "documentation":"",
+            "parameters":[],
+            "resources":[],
+            "tags":{},
+            "internalId":"e3e8a24f-9a64-4351-9cbb-eb5289a970e6",
+            "source":"editor"
+          }
+        ]
+      }
+    }
+---
+description: Delete a technique (api version up to 21)
+method: DELETE
+url: /api/21/techniques/test_delete/1.0
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteTechnique",
+      "id" : "test_delete",
+      "result":"success",
+      "data":{
+        "techniques":{"id":"test_delete","version":"1.0" }
+       }
+    }
+---
+description: Delete a technique (api version from 22 - rudder 9.0)
+method: DELETE
+url: /api/latest/techniques/test_delete/1.0
+response:
+  code: 200
+  content: >-
+    {
+      "action":"deleteTechnique",
+      "id" : "test_delete",
+      "result":"success",
+      "data":{
+        "techniques":[ {"id":"test_delete","version":"1.0" } ]
+      }
+    }
+ 
