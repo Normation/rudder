@@ -122,7 +122,7 @@ class ExpectedPolicyPopup(
       val pendingNode = Map((nodeSrv.id, nodeSrv.isPolicyServer))
       val groups      = groupTargets.map(x => (x, Set(nodeSrv.id))).toMap
 
-      rules.filter(r => RuleTarget.getNodeIds(r.targets, pendingNode.view, groups, allNodesAreThere = false).nonEmpty)
+      rules.filter(r => RuleTarget.getNodeIds(r.targets, pendingNode, groups, allNodesAreThere = false).nonEmpty)
     }
   }
 

@@ -19,7 +19,6 @@ import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.*
 import org.specs2.runner.*
-import scala.collection.MapView
 
 @RunWith(classOf[JUnitRunner])
 class RuleTargetTest extends Specification with Loggable {
@@ -68,7 +67,7 @@ class RuleTargetTest extends Specification with Loggable {
     )
   }.toMap
 
-  val nodeArePolicyServers: MapView[NodeId, Boolean] = nodes.map { case (id, n) => (id, n.isPolicyServer) }.view
+  val nodeArePolicyServers: Map[NodeId, Boolean] = nodes.map { case (id, n) => (id, n.isPolicyServer) }
 
   val g1: NodeGroup = NodeGroup(
     NodeGroupId(NodeGroupUid("1")),

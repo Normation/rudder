@@ -537,7 +537,7 @@ class GroupApiService14(
         group.query match {
           case Some(query) =>
             queryProcessor
-              .processOnlyId(query)
+              .process(query)
               .toIO
               .flatMap { nodeIds =>
                 val updatedGroup    = group.copy(serverList = nodeIds.toSet)
