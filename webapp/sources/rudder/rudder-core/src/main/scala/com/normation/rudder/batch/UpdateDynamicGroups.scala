@@ -75,13 +75,13 @@ object GroupUpdateMessage {
 }
 
 //a container to hold the list of dynamic group to update
-final case class GroupsToUpdate(idsWithoutDependencies: Seq[NodeGroupId], idsWithDependencies: Seq[NodeGroupId])
+final private case class GroupsToUpdate(idsWithoutDependencies: Seq[NodeGroupId], idsWithDependencies: Seq[NodeGroupId])
 
-sealed trait DynamicGroupUpdaterStates //states into wich the updater process can be
+sealed private trait DynamicGroupUpdaterStates //states into wich the updater process can be
 //the process is idle
-case object IdleGroupUpdater extends DynamicGroupUpdaterStates
+private case object IdleGroupUpdater extends DynamicGroupUpdaterStates
 //an update is currently running for the given nodes
-final case class StartDynamicUpdate(id: Long, modId: ModificationId, started: DateTime, groupIds: GroupsToUpdate)
+final private case class StartDynamicUpdate(id: Long, modId: ModificationId, started: DateTime, groupIds: GroupsToUpdate)
     extends DynamicGroupUpdaterStates
 
 /**
@@ -358,10 +358,6 @@ class UpdateDynamicGroups(
                 DynamicGroupLoggerPure.Timing.debug(
                   s"Computing dynamic groups with dependencies finished in ${System.currentTimeMillis - preComputeDependantGroups} ms"
                 )
-              // sync properties status
-              _                            <- propertiesSyncService
-                                                .syncProperties()(QueryContext.systemQC)
-                                                .chainError("Properties cannot be updated when computing new dynamic groups")
             } yield {
               results ++ results2
             }).onError(_.failureOrCause match {
