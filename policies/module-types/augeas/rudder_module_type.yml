@@ -2,7 +2,7 @@
 name: Augeas
 description: Ensure the of a file using augeas
 version: "0.0.1"
-supported_targets: ["unix", "windows"]
+supported_targets: ["unix"]
 parameters:
   path:
     description: "Directory to manage"
