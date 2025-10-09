@@ -187,6 +187,9 @@ Go into the cloned `rudder-tests` github repository. The directory `rudder-tests
 Please read https://github.com/Normation/rudder-tests#adding-a-platform-or-an-os for further information.
 
 Create a `<dev_env_name>.json` file in `./platform/` and put your platform's configuration in it.
+
+> Note: no `.` are allowed in the name of the file except for the extension `.json` or it doesn't work properly.
+
 Here is the most minimalistic example of a functional configuration:
 
 ```json
@@ -293,8 +296,18 @@ Please note that this change will need to start a new shell or session to be tak
 
 2. Create some file for the webapp:
 ```
-mkdir -p /var/rudder/inventories/incoming /var/rudder/share /var/rudder/inventories/accepted-nodes-updates /var/rudder/inventories/received /var/rudder/inventories/failed /var/log/rudder/core /var/log/rudder/compliance/ /var/rudder/run/
-touch /var/log/rudder/core/rudder-webapp.log /var/log/rudder/compliance/non-compliant-reports.log /var/rudder/run/api-token
+mkdir -p /var/rudder/inventories/incoming \
+    /var/rudder/share \
+    /var/rudder/inventories/accepted-nodes-updates \
+    /var/rudder/inventories/received \
+    /var/rudder/inventories/failed \
+    /var/log/rudder/core \
+    /var/log/rudder/compliance/ \
+    /var/rudder/run/ 
+    
+touch /var/log/rudder/core/rudder-webapp.log \ 
+    /var/log/rudder/compliance/non-compliant-reports.log \
+    /var/rudder/run/api-token 
 ```
 
 3. Add permissions
@@ -380,7 +393,18 @@ In _Run -> Edit Configuration_ add a new configuration and choose Jetty Runner
 ```
 -DrjrDisableannotation=true -Drun.mode=production -XX:MaxMetaspaceSize=360m -Xms256m -Xmx2048m -XX:-UseLoopPredicate -XX:+UseG1GC -XX:+UnlockExperimentalVMOptions -XX:+UseStringDeduplication -Drudder.configFile=/home/<user>/rudder-tests/dev/configuration.properties
 ```
+> Note: `-Drun.mode` values : `production`, `development`
+
 > Beware, replace `<user>`
+
+
+When the jetty runner starts, there is an error about the relay because in development mode there is no relay nor agent. So please ignore the following error log: 
+```
+[2025-10-07T15:45:31+0200] WARNING Failed to execute shell command from Rudder: error=2, No such file or directory
+2025-10-07 15:45:31+0200 ERROR com.normation.rudder.services.policies.WriteNodeCertificatesPemImpl - Unexpected: Error when executing reload command '/opt/rudder/bin/rudder relay reload -p' after writing node certificates file. Command output: code: -2147483648
+
+``` 
+> Note: see jetty configuration in production mode (for rudder 8.3) : https://docs.rudder.io/reference/8.3/reference/jetty_server_configuration.html
 
 If you are using JRebel add these following arguments :
 ```
@@ -471,37 +495,102 @@ You can access the application by running it from IntelliJ. The url is:
 ##### http://localhost/rudder
 > Warning : make sure your development's environment is running before running Rudder. `./rtf platform setup <env's name>` in rudder-test directory. Otherwise you will get errors in IntelliJ's console.
 
-Let's code ! :rocket:
+#### Local configuration for rudder in dev mode
 
+> Note: Some features will not work in this development environment 
+> - plugins
+> - agents (compliance and policy generation)
 
+user configuration > 
 
-## Now what ?
+> Note: the first time you run rudder locally with jetty, you will need to setup a user in the local user configuration.
 
-#### Entire Script
-All the previous steps are summed up in the following script: [setup_dev_env.sh](https://github.com/Normation/rudder/blob/master/contributing/setup_dev_env.sh).\
+```
+<authentication hash="argon2id" case-sensitivity="true">
+    <!-- this is a bcrypt password but you can use an argon2id password starting from 9.0 -->
+    <!-- user-name=admin, password=admin -->
+    <user name="admin" password="$2a$12$bW.RsmvUn8nCUsh2bfwAe.ZntUVVNBv0siVDoG94Q7rpQlO46wjiS" permissions="administrator" />
+</authentication>
 
-Do not run this script as sudo! Though some commands require sudo privileges, you may be prompted to type sudo password
-
-> Important: as a requirement, if not done yet you need to fork the following repo: `https://github.com/Normation/rudder`.
-
-The first param is your local user 
-The second is your gitusername (used to clone your `Normation/rudder` fork)
-This script should be copied anywhere on your machine and simply executed.
-```bash
-./setup_dev_env.sh <user> <gituser>
 ```
 
-> Important note: This script does not setup Intellij ([Setup workspace development with IntelliJ and Maven](#part-2---setup-workspace-development-with-intellij-and-maven)) 
- and Apache Directory Studio ([LDAP connection](#test-ldap-connection)). These still have to be set manually.
 
-> To start Apache Directory Studio: `/opt/ApacheDirectoryStudio/ApacheDirectoryStudio`
+Let's code ! :rocket:
 
-> Important note: this script should only be ran once. Every other startup, only do the following command: `./rtf platform setup debian9_dev`
+#### Running rudder in production mode
 
-> All rudder repos will be cloned (including rtf and ncf) in `/home/<user>/rudder/`
+Some use cases need an environment close to the production. For instance, if you test a feature that need an intercation with agent it won't be possible in dev mode. There are no communication possible between the dev server and any agents.
+The way to test in such case is to setup a vm in production mode, implement locally your changes, build a war and upload the war on the server you just setup.
 
-> Disclaimer: this script might not work on your machine. If it does not, it still is a good guideline when trying to setup a dev environment since it traces every single step of this readme + rtf setup readme
 
+Build the war with
+```
+mvn clean package
+```
+Then see the target directory
+```
+pauline@ThinkPad-T14s-Gen-6:~/Workspace/rudder/webapp/sources/rudder/rudder-web/target$ ls
+classes                       rudder-web-8.3.5-SNAPSHOT              surefire-reports
+classes.-287291424.timestamp  rudder-web-8.3.5-SNAPSHOT-classes.jar  test-classes
+generated-sources             rudder-web-8.3.5-SNAPSHOT-tests.jar    test-classes.64873501.timestamp
+generated-test-sources        rudder-web-8.3.5-SNAPSHOT.war
+maven-status                  specs2-reports
+```
+The war generated is named `rudder-web-8.3.5-SNAPSHOT.war` in this example.
+
+Copy the war in the vbox server
+```
+cd <workspace>/rudder-tests
+vagrant upload <workspace>/rudder/webapp/sources/rudder/rudder-web/target/rudder-web-8.3.5-SNAPSHOT.war
+```
+
+Connect to the vbox and put the war in the share directory and restart the service `rudder-jetty`
+```
+vagrant ssh myvmtest_server
+sudo su
+mv rudder-web-8.3.5-SNAPSHOT.war /opt/rudder/share/webapps/
+mv rudder.war rudder.war.save
+mv rudder-web-8.3.5-SNAPSHOT.war rudder.war
+systemctl restart rudder-jetty
+```
+Get the ip of the server by running `ip a` and check the change in the browser for instance: `http://192.168.49.2` (user admin/admin)
+
+#### Using rudder plugins in dev mode
+
+You can clone a plugin then run `make generate-pom` to generate the pom.xml then import the generated pom in intellij. Once the plugin is imported and jetty runner restarted the plugin will be available in the local rudder webapp.
+
+The plugin management page can be stubbed using the property `rudder.package.cmd=/opt/rudder/bin/rudder-package` in order to use a fake binary rudder-package.
+
+
+#### Testing rudder in production mode
+
+Some use cases require an environment in production mode, like ticket validation for instance. Run an environment matching the ticket. Validating ticket require to install a vm with rudder in the same version required in the ticket. 
+
+If a pull request is merged recently, then you need to test on a SNAPSHOT version, and you need to wait the next nightly build after the merge. Make sure you're using the last nightly build. You can check the date of the last logs `/var/log/rudder/webapp/webapp.log` and if you need to update to the last version you can run `apt update && apt install rudder-server` from the vbox server.
+Example of configuration using nightly versions :
+```
+{
+"default": { "rudder-version": "8.3-nightly", "system": "debian12", "inventory-os": "debian" },
+"server":  { "rudder-setup": "server" }
+}
+```
+
+See the versions of rudder here https://repository.rudder.io/
+
+#### Testing rudder api
+
+- setup the environment with the right rudder version
+- you need to use a system token, there is dedicated cURL header file : -H @/var/rudder/run/api-token-header with full admin access
+- import the required plugins in intellij
+- execute some `curl` command
+
+Example of curl command :
+```
+curl -k https://localhost:<port>/rudder/api/latest/systemUpdate/targets \
+        -H @/var/rudder/run/api-token-header
+        -H 'Content-Type:application/json' \
+        -d '[]'
+```
 
 #### Documentations
 If you want to learn how to use Rudder and its web interface, consult the documentation here : https://docs.rudder.io/reference/5.0/usage/web_interface.html :shipit:
