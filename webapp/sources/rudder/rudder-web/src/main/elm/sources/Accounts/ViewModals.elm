@@ -25,7 +25,7 @@ buildModal modalTitle modalBody modalBtn =
                 [ modalBody
                 ]
             , div [ class "modal-footer" ]
-                [ button [ type_ "button", class "btn btn-success", onClick (ToggleEditPopup NoModal) ] [ text "Close" ]
+                [ button [ type_ "button", class "btn btn-default", onClick (ToggleEditPopup NoModal) ] [ text "Close" ]
                 , modalBtn
                 ]
             ]
