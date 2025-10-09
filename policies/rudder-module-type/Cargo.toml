@@ -17,6 +17,8 @@ serde-aux = "4.5.0"
 gumdrop = "0.8"
 rudder_commons = { path = "../rudder-commons" }
 chrono = { version = "0.4", optional = true, default-features = false, features = ["clock", "std", "unstable-locales"] }
+log = "0.4.27"
+fern = "0.7.1"
 
 [dev-dependencies]
 pretty_assertions = "1"
