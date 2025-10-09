@@ -89,7 +89,6 @@ import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
 import org.specs2.text.LinesContent
-import scala.collection.MapView
 import zio.Chunk
 import zio.syntax.*
 
@@ -169,7 +168,7 @@ class TestSystemData {
 
   def getSystemVars(
       nodeInfo:     CoreNodeFact,
-      allNodeInfos: MapView[NodeId, CoreNodeFact],
+      allNodeInfos: Map[NodeId, CoreNodeFact],
       allGroups:    FullNodeGroupCategory,
       altConfig:    Boolean = false
   ): Map[String, Variable] = {
@@ -204,7 +203,7 @@ class TestSystemData {
     rootNodeConfig.copy(
       nodeInfo = fr,
       policies = policies(fr, baseRootDrafts),
-      nodeContext = getSystemVars(fr, MapView(fr.id -> fr), groupLib),
+      nodeContext = getSystemVars(fr, Map(fr.id -> fr), groupLib),
       parameters = Set(ParameterForConfiguration("rudder_file_edit_header", "### Managed by Rudder, edit with care ###"))
     )
   }

@@ -79,7 +79,7 @@ object GroupUpdateMessage {
 //a container to hold the list of dynamic group to update
 final case class GroupsToUpdate(idsWithoutDependencies: Seq[NodeGroupId], idsWithDependencies: Seq[NodeGroupId])
 
-sealed trait DynamicGroupUpdaterStates //states into wich the updater process can be
+sealed trait DynamicGroupUpdaterStates //states into which the updater process can be
 //the process is idle
 case object IdleGroupUpdater extends DynamicGroupUpdaterStates
 //an update is currently running for the given nodes

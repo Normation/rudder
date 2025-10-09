@@ -83,6 +83,7 @@ import com.normation.rudder.domain.properties.ResolvedNodePropertyHierarchy
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.rudder.domain.reports.NodeModeConfig
+import com.normation.rudder.domain.reports.NodeStatusReport
 import com.normation.rudder.domain.secret.Secret
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.facts.nodes.ChangeContext
@@ -418,7 +419,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
     override def getMaxParallelism:            () => Box[String]           = ???
     override def getJsTimeout:                 () => Box[Int]              = ???
     override def getGenerationContinueOnError: () => Box[Boolean]          = ???
-    override def writeCertificatesPem(allNodeInfos: MapView[NodeId, CoreNodeFact]): Unit = ???
+    override def writeCertificatesPem(allNodeInfos: Map[NodeId, CoreNodeFact]): Unit = ???
     override def triggerNodeGroupUpdate(): Box[Unit] = ???
     override def beforeDeploymentSync(generationTime: DateTime): Box[Unit] = ???
     override def HOOKS_D:                     String                                               = ???
@@ -429,7 +430,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         rules:        Seq[Rule],
         groupLib:     FullNodeGroupCategory,
         directiveLib: FullActiveTechniqueCategory,
-        allNodeInfos: MapView[NodeId, Boolean]
+        allNodeInfos: Map[NodeId, Boolean]
     ): Set[RuleId] = ???
     override def findDependantRules():        Box[Seq[Rule]]                                       = ???
     override def buildRuleVals(
@@ -437,14 +438,14 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         rules:        Seq[Rule],
         directiveLib: FullActiveTechniqueCategory,
         groupLib:     FullNodeGroupCategory,
-        allNodeInfos: MapView[NodeId, Boolean]
+        allNodeInfos: Map[NodeId, Boolean]
     ): Box[Seq[RuleVal]] = ???
     override def getNodeProperties:           IOResult[Map[NodeId, ResolvedNodePropertyHierarchy]] = {
       ???
     }
     override def getNodeContexts(
         nodeIds:              Set[NodeId],
-        allNodeInfos:         MapView[NodeId, CoreNodeFact],
+        allNodeInfos:         Map[NodeId, CoreNodeFact],
         inheritedProps:       Map[NodeId, ResolvedNodePropertyHierarchy],
         allGroups:            FullNodeGroupCategory,
         globalParameters:     List[GlobalParameter],
@@ -864,7 +865,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
         mockNodes.newNodeManager,
         mockNodes.removeNodeService,
         zioJsonExtractor,
-        mockCompliance.reportingService(Map.empty),
+        mockCompliance.reportingService(Map.empty[NodeId, NodeStatusReport].toMap),
         mockNodes.queryProcessor,
         null,
         () => Full(GlobalPolicyMode(Audit, PolicyModeOverrides.Always)),
@@ -1095,7 +1096,7 @@ class RestTestSetUp(val apiVersions: List[ApiVersion] = SupportedApiVersion.apiV
             ZonedDateTime.parse("2025-01-10T20:53:20Z"),
             ZonedDateTime.parse("2025-01-10T20:53:20Z"),
             MaxNodes(Some(1_000_000)),
-            Map.empty
+            Map.empty[String, String].toMap
           )
         )
       ) ::
@@ -1377,7 +1378,7 @@ class RestTest(liftRules: LiftRules) {
     mockReq.headers = Map(
       "Content-Type"   -> List(parts.getContentType),
       "Content-Length" -> List(parts.getContentLength.toString)
-    )
+    ).toMap
     mockReq.contentType = parts.getContentType
     mockReq.body = out.toByteArray
     mockReq
