@@ -511,6 +511,10 @@ user configuration >
 
 ```
 
+> Important: as a requirement, if not done yet you need to fork the following repo: `https://github.com/Normation/rudder`. <br/>
+The first param is your local user. <br />
+The second is your gitusername (used to clone your `Normation/rudder` fork). <br />
+
 Let's code ! :rocket:
 
 #### Documentations
