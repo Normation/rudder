@@ -11,6 +11,7 @@ check:
 	cd module-types/system-updates && make check
 	cd module-types/augeas && make check
 	cd module-types/template && make check
+	cd module-types/commands && make check
 	cd module-types/inventory && make check
 
 install:
