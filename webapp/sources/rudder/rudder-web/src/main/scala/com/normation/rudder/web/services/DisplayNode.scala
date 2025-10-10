@@ -56,6 +56,7 @@ import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SecurityTag
 import com.normation.rudder.facts.nodes.SelectFacts
+import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.services.servers.DeleteMode
 import com.normation.rudder.users.CurrentUser
 import com.normation.rudder.web.model.JsNodeId
@@ -386,6 +387,7 @@ object DisplayNode extends Loggable {
    * Should be used with jsInit(dn:String, softIds:Seq[SoftwareUuid], salt:String="")
    */
   def showPannedContent(
+      agentRun:   Option[AgentRunWithNodeConfig],
       nodeFact:   NodeFact,
       globalMode: GlobalPolicyMode,
       salt:       String = ""
@@ -416,7 +418,7 @@ object DisplayNode extends Loggable {
         <div class="tab-content">
           <div id={htmlId(jsId, "node_summary_")} class="tab-pane active show">
             <div class="d-flex px-3 py-2">
-              {showNodeDetails(nodeFact, globalMode, None, salt)}
+              {showNodeDetails(agentRun, nodeFact, globalMode, None, salt)}
             </div>
           </div>
           <div id={htmlId(jsId, "node_inventory_")} class="tab-pane p-3">
@@ -525,6 +527,7 @@ object DisplayNode extends Loggable {
 
   // mimic the content of server_details/ShowNodeDetailsFromNode
   def showNodeDetails(
+      agentRun:            Option[AgentRunWithNodeConfig],
       nodeFact:            NodeFact,
       globalMode:          GlobalPolicyMode,
       creationDate:        Option[DateTime],
@@ -633,6 +636,14 @@ object DisplayNode extends Loggable {
       DateFormaterService.getDisplayDate(nodeFact.factProcessedDate)
     }
           </div>
+          <div><label>Agent last run:</label>
+            {
+      agentRun
+        .map(agentRunWithNodeConfig => { DateFormaterService.getDisplayDate(agentRunWithNodeConfig.agentRunId.date) })
+        .getOrElse("none available")
+    }
+          </div>
+          
         </div>
         <div class="rudder-info">
           <h3>Documentation</h3>
