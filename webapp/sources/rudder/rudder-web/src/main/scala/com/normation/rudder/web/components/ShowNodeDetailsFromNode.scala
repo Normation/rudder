@@ -52,6 +52,7 @@ import com.normation.rudder.facts.nodes.NodeFact
 import com.normation.rudder.facts.nodes.QueryContext
 import com.normation.rudder.facts.nodes.SelectFacts
 import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.score.ComplianceScore
 import com.normation.rudder.score.GlobalScore
@@ -62,6 +63,7 @@ import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.rudder.web.services.DisplayNode.showDeleteButton
 import com.normation.rudder.web.services.DisplayNodeGroupTree
+import com.normation.rudder.web.snippet.WithNonce
 import com.softwaremill.quicklens.*
 import net.liftweb.common.*
 import net.liftweb.http.DispatchSnippet
@@ -95,13 +97,14 @@ class ShowNodeDetailsFromNode(
 ) extends DispatchSnippet with DefaultExtendableSnippet[ShowNodeDetailsFromNode] with Loggable {
   import ShowNodeDetailsFromNode.*
 
-  private val nodeFactRepo         = RudderConfig.nodeFactRepository
-  private val reportDisplayer      = RudderConfig.reportDisplayer
-  private val logDisplayer         = RudderConfig.logDisplayer
-  private val uuidGen              = RudderConfig.stringUuidGenerator
-  private val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
-  private val configService        = RudderConfig.configService
-  private val scoreService         = RudderConfig.rci.scoreService
+  private val roAgentRunsRepository = RudderConfig.roAgentRunsRepository
+  private val nodeFactRepo          = RudderConfig.nodeFactRepository
+  private val reportDisplayer       = RudderConfig.reportDisplayer
+  private val logDisplayer          = RudderConfig.logDisplayer
+  private val uuidGen               = RudderConfig.stringUuidGenerator
+  private val asyncDeploymentAgent  = RudderConfig.asyncDeploymentAgent
+  private val configService         = RudderConfig.configService
+  private val scoreService          = RudderConfig.rci.scoreService
 
   def agentPolicyModeEditForm = new AgentPolicyModeEditForm()
 
@@ -229,16 +232,26 @@ class ShowNodeDetailsFromNode(
             val globalScore = scoreService.getGlobalScore(nodeId).toBox.getOrElse(GlobalScore(NoScore, "", Nil))
             configService.rudder_global_policy_mode().toBox match {
               case Full(globalMode) =>
-                bindNode(nf, withinPopup, globalMode, globalScore) ++ Script(
-                  DisplayNode.jsInit(node.id, "") &
-                  JsRaw(s"""
-                    var nodeTabs = $$("#${detailsId} .main-navbar > .nav > li ");
-                    var activeTabBtn = nodeTabs.get(${tab}).querySelector("button");
-                    activeTabBtn.classList.add('active');
-                    var activeTab = document.querySelector("#"+activeTabBtn.getAttribute("aria-controls")).classList.add('active', 'show')
-                    """) & // JsRaw ok, escaped
-                  buildJsTree(groupTreeId)
-                )
+                roAgentRunsRepository.getNodesLastRun(Set(nf.id)).toBox match {
+                  case Full(agentRunsByNodeId) =>
+                    bindNode(agentRunsByNodeId.get(nf.id).flatten, nf, withinPopup, globalMode, globalScore) ++ WithNonce
+                      .scriptWithNonce(
+                        Script(
+                          DisplayNode.jsInit(node.id, "") &
+                          JsRaw(s"""
+                        var nodeTabs = $$("#${detailsId} .main-navbar > .nav > li ");
+                        var activeTabBtn = nodeTabs.get(${tab}).querySelector("button");
+                        activeTabBtn.classList.add('active');
+                        var activeTab = document.querySelector("#"+activeTabBtn.getAttribute("aria-controls")).classList.add('active', 'show')
+                        """) & // JsRaw ok, escaped
+                          buildJsTree(groupTreeId)
+                        )
+                      )
+                  case e: EmptyBox =>
+                    val msg = e ?~! s"Could not get node last run for node of id '${node.id.value}'"
+                    logger.error(msg, e)
+                    <div class="error">{msg}</div>
+                }
               case e: EmptyBox =>
                 val msg = e ?~! s"Could not get global policy mode when getting node '${node.id.value}' details"
                 logger.error(msg, e)
@@ -262,6 +275,7 @@ class ShowNodeDetailsFromNode(
    */
 
   private def bindNode(
+      agentRun:    Option[AgentRunWithNodeConfig],
       nodeFact:    NodeFact,
       withinPopup: Boolean,
       globalMode:  GlobalPolicyMode,
@@ -279,6 +293,7 @@ class ShowNodeDetailsFromNode(
           <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node, None, None, Map(("info", _ => Noop)))}</ul>
         </div> &
     "#nodeDetails" #> DisplayNode.showNodeDetails(
+      agentRun,
       nodeFact,
       globalMode,
       Some(node.creationDate),
