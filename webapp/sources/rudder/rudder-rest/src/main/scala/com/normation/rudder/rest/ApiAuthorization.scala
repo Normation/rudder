@@ -39,6 +39,7 @@ package com.normation.rudder.rest
 
 import cats.data.*
 import cats.implicits.*
+import com.normation.rudder.ActionType
 import com.normation.rudder.api.AclPath
 import com.normation.rudder.api.AclPathSegment
 import com.normation.rudder.api.ApiAccount
@@ -106,8 +107,13 @@ class AclApiAuthorization(logger: Log, userService: UserService, aclEnabled: () 
 
   def checkAuthz(endpoint: Endpoint, requestPath: ApiPath): Either[ApiError, AuthzToken] = {
     def checkRO(action: HttpAction): Option[String] = {
-      if (action == HttpAction.GET || action == HttpAction.HEAD) Some("ok")
-      else None
+      Some(action)
+        .filter(
+          _.in(HttpAction.GET, HttpAction.HEAD) ||
+          (endpoint.schema.authz.nonEmpty && endpoint.schema.authz
+            .forall(_.action == ActionType.VALUE.READ.name))
+        )
+        .as("ok")
     }
 
     def checkACL(acl: List[ApiAclElement], path: ApiPath, action: HttpAction): Option[String] = {
