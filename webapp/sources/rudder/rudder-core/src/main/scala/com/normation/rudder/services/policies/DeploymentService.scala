@@ -45,6 +45,7 @@ import com.normation.cfclerk.domain.ReportingLogic.FocusReport
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.errors.*
+import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.MemorySize
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.batch.UpdateDynamicGroups
@@ -843,7 +844,11 @@ object GetConsistentNodesAndGroups {
             PolicyServerConfigurationObjects.extractPolicyServerIdFromHasGroupName(nodeGroup.id) match {
               // retrieve from the list of NodeFact
               case Some(policyServerId) =>
-                nodeFacts.collect { case (id, nf) if (nf.rudderSettings.policyServerId == policyServerId) => id }.toSet
+                nodeFacts.collect {
+                  case (id, nf)
+                      if (nf.rudderSettings.policyServerId == policyServerId && nf.rudderAgent.agentType == AgentType.CfeCommunity) =>
+                    id
+                }.toSet
               case None                 =>
                 nodeGroup.serverList
             }
