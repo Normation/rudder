@@ -37,6 +37,7 @@
 
 package com.normation.rudder.services.policies
 
+import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
@@ -85,9 +86,14 @@ class TestGetConsistentNodesAndGroups extends Specification {
 
   private val node3Id = NodeId("node3")
   private val fact4   = fact1.modify(_.id).setTo(NodeId("node4")).modify(_.rudderSettings.state).setTo(NodeState.Ignored)
+  private val fact5   = fact1
+    .modify(_.id)
+    .setTo(NodeId("node5"))
+    .modify(_.rudderAgent)
+    .setTo(fact1.rudderAgent.modify(_.agentType).setTo(AgentType.Dsc))
 
   // our map of currently known nodes
-  private val allNodes = List(factRoot, fact1, fact2, fact4).map(n => n.id -> n).toMap.view
+  private val allNodes = List(factRoot, fact1, fact2, fact4, fact5).map(n => n.id -> n).toMap.view
 
   // for a user group, we can't know that there is an inconsistency without recomputing the dynamic group,
   // so for this one, we don't know if it should have node2 or not.
