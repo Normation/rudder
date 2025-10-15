@@ -37,21 +37,21 @@
 
 package com.normation.rudder.domain.logger
 
+import better.files.*
+import com.normation.RudderLogger
+import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.policies.NodeConfiguration
-import com.normation.utils.Control.traverse
-import java.io.File
+import com.normation.utils.DateFormaterService
 import java.io.PrintWriter
-import net.liftweb.common.*
-import net.liftweb.json.Serialization.writePretty
-import org.joda.time.DateTime
-import org.joda.time.DateTimeZone
-import org.slf4j
-import org.slf4j.LoggerFactory
+import java.time.ZonedDateTime
+import zio.*
+import zio.json.*
+import zio.syntax.*
 
 trait NodeConfigurationLogger {
 
-  def log(nodeConfiguration: Seq[NodeConfiguration]): Box[Set[NodeId]]
+  def log(nodeConfiguration: Seq[NodeConfiguration]): IOResult[Set[NodeId]]
 
   def isDebugEnabled: Boolean
 }
@@ -62,60 +62,81 @@ trait NodeConfigurationLogger {
  *
  * Writing node configuration in the FS may be rather long.
  */
-class NodeConfigurationLoggerImpl(
+class NodeConfigurationLoggerImpl private (
     // where to write node config logs
-    path: String
+    dirPath: File,
+    logger:  RudderLogger
 ) extends NodeConfigurationLogger {
 
-  val logger:         slf4j.Logger = LoggerFactory.getLogger("rudder.debug.nodeconfiguration")
-  def isDebugEnabled: Boolean      = logger.isDebugEnabled
+  def isDebugEnabled: Boolean = logger.isDebugEnabled()
 
-  {
-    val p = new File(path)
-    p.mkdirs()
-    if (p.exists() && p.canWrite()) {
-      // ok
-    } else {
-      logger.error(
-        s"Error when trying to create the directory where node configurations are saved: '${path}'. Please check that that file is a directory with write permission for Rudder."
-      )
-    }
-  }
-
-  def log(nodeConfiguration: Seq[NodeConfiguration]): Box[Set[NodeId]] = {
-    import net.liftweb.json.*
-    implicit val formats                                 = DefaultFormats
-    def writeIn[T](path: File)(f: PrintWriter => Box[T]) = {
-      val printWriter = new java.io.PrintWriter(path)
-      try {
-        f(printWriter)
-      } catch {
-        case e: Exception => Failure(s"Error when writing in ${path.getAbsolutePath}", Full(e), Empty)
-      } finally {
-        printWriter.close()
-      }
+  def log(nodeConfiguration: Seq[NodeConfiguration]): IOResult[Set[NodeId]] = {
+    def writeIn[T](path: File)(f: PrintWriter => IOResult[T]) = {
+      ZIO
+        .scoped(
+          for {
+            printer <- IOResult.attempt(java.io.PrintWriter(path.pathAsString))
+            p       <- ZIO.fromAutoCloseable(printer.succeed)
+            t       <- f(p).mapError(e => Chained(s"Error when writing in ${path.pathAsString}", e))
+          } yield {
+            t
+          }
+        )
     }
 
-    if (logger.isDebugEnabled) {
+    if (isDebugEnabled) {
       for {
-        logTime <- writeIn(new File(path, "lastWritenTime"))(printWriter =>
-                     Full(printWriter.write(DateTime.now(DateTimeZone.UTC).toString()))
-                   )
-        configs <- (traverse(nodeConfiguration) { config =>
-                     val logFile = new File(path, config.nodeInfo.fqdn + "_" + config.nodeInfo.id.value)
+        date    <- DateFormaterService.serializeZDT(ZonedDateTime.now()).succeed
+        logTime <-
+          writeIn(dirPath / "lastWritenTime")(printWriter => printWriter.write(date).succeed)
+        configs <- ZIO.foreach(nodeConfiguration) { config =>
+                     val logFile = dirPath / (config.nodeInfo.fqdn + "_" + config.nodeInfo.id.value)
 
                      writeIn(logFile) { printWriter =>
-                       val logText = writePretty(config)
-                       printWriter.write(logText)
-                       Full(config.nodeInfo.id)
+                       printWriter
+                         .write(config.toJson(using NodeConfiguration.debugFullEncoder))
+                         .succeed
+                         .as(
+                           config.nodeInfo.id
+                         )
                      }
-                   }).map(_.toSet)
+                   }
       } yield {
-        configs
+        configs.toSet
       }
     } else {
-      Full(Set())
+      Set.empty.succeed
     }
   }
 
+}
+
+object NodeConfigurationLoggerImpl {
+
+  def make(path: String): UIO[NodeConfigurationLoggerImpl] = {
+    val logger = RudderLogger("rudder.debug.nodeconfiguration")
+    val p      = File(path)
+    (for {
+      _ <- IOResult.attempt(p.createDirectoryIfNotExists())
+
+      exists   <- IOResult.attempt(p.exists())
+      canWrite <- IOResult.attempt(p.isWritable)
+      _        <- ZIO.unless(exists && canWrite) {
+                    logger.error(
+                      s"Error when trying to create the directory where node configurations are saved: '${path}'. Please check that that file is a directory with write permission for Rudder."
+                    )
+                  }
+    } yield {
+      NodeConfigurationLoggerImpl(p, logger)
+    })
+      // still fallback to the logger
+      .catchAll(err => {
+        logger
+          .warn(
+            s"Error when checking access to directory '${path}' for rudder.debug.nodeconfiguration logging. " +
+            s"Please ensure it exists and is writable."
+          )
+          .as(NodeConfigurationLoggerImpl(p, logger))
+      })
+  }
 }
