@@ -295,64 +295,64 @@ final case class NodeConfiguration(
 }
 object NodeConfiguration {
   private object DebugEncoders {
+    import com.normation.inventory.domain.JsonSerializers.implicits.*
     // derive the whole trees of encoders that do not exist yet, with closest structure as possible to intitial case
     // please give a second though about reusing the one derived here as it has may not be the one you want,
     // if you are sure you can move it from here and just import it here
     import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.*
-    import com.normation.utils.DateFormaterService.json.*
-    implicit val complianceModeEncoder: JsonEncoder[ComplianceMode] = DeriveJsonEncoder.gen[ComplianceMode]
-
-    import com.normation.inventory.domain.JsonSerializers.implicits.*
-    implicit val techniqueVersionEncoder:             JsonEncoder[TechniqueVersion]             = JsonEncoder[String].contramap(_.serialize)
-    implicit val techniqueIdEncoder:                  JsonEncoder[TechniqueId]                  = JsonEncoder[String].contramap(_.serialize)
-    implicit val policyIdEncoder:                     JsonEncoder[PolicyId]                     = DeriveJsonEncoder.gen[PolicyId]
-    implicit val agentTypeEncoder:                    JsonEncoder[AgentType]                    = JsonEncoder[String].contramap(_.id)
-    implicit val revisionEncoder:                     JsonEncoder[GitVersion.Revision]          = JsonEncoder[String].contramap(_.value)
-    implicit val techniqueResourceIdEncoder:          JsonEncoder[TechniqueResourceId]          = DeriveJsonEncoder.gen[TechniqueResourceId]
-    implicit val techniqueTemplateEncoder:            JsonEncoder[TechniqueTemplate]            = DeriveJsonEncoder.gen[TechniqueTemplate]
-    implicit val techniqueFileEncoder:                JsonEncoder[TechniqueFile]                = DeriveJsonEncoder.gen[TechniqueFile]
-    implicit val bundleNameEncoder:                   JsonEncoder[BundleName]                   = JsonEncoder[String].contramap(_.value)
-    implicit val runHookReportEncoder:                JsonEncoder[RunHook.Report]               = DeriveJsonEncoder.gen[RunHook.Report]
-    implicit val runHookKindEncoder:                  JsonEncoder[RunHook.Kind]                 = DeriveJsonEncoder.gen[RunHook.Kind]
-    implicit val runHookParameterEncoder:             JsonEncoder[RunHook.Parameter]            = DeriveJsonEncoder.gen[RunHook.Parameter]
-    implicit val runHookEncoder:                      JsonEncoder[RunHook]                      = DeriveJsonEncoder.gen[RunHook]
-    implicit val agentConfigEncoder:                  JsonEncoder[AgentConfig]                  = DeriveJsonEncoder.gen[AgentConfig]
-    implicit val trackerVariableSpec:                 JsonEncoder[TrackerVariableSpec]          = DeriveJsonEncoder.gen[TrackerVariableSpec]
-    implicit val displayPriorityEncoder:              JsonEncoder[DisplayPriority]              = JsonEncoder[String].contramap(_.priority)
-    implicit val vTypeConstraintEncoder:              JsonEncoder[VTypeConstraint]              = JsonEncoder[String].contramap(_.name)
-    implicit val constraintEncoder:                   JsonEncoder[Constraint]                   = DeriveJsonEncoder.gen[Constraint]
-    implicit val valueLabelEncoder:                   JsonEncoder[ValueLabel]                   = DeriveJsonEncoder.gen[ValueLabel]
-    implicit lazy val sectionVariableSpecEncoder:     JsonEncoder[SectionVariableSpec]          = DeriveJsonEncoder.gen[SectionVariableSpec]
-    implicit lazy val sectionSpecEncoder:             JsonEncoder[SectionSpec]                  = DeriveJsonEncoder.gen[SectionSpec]
-    implicit lazy val sectionChildSpecEncoder:        JsonEncoder[SectionChildSpec]             = DeriveJsonEncoder.gen[SectionChildSpec]
-    implicit val systemVariableSpecEncoder:           JsonEncoder[SystemVariableSpec]           = DeriveJsonEncoder.gen[SystemVariableSpec]
-    implicit val techniqueGenerationModeEncoder:      JsonEncoder[TechniqueGenerationMode]      = JsonEncoder[String].contramap(_.name)
-    implicit val policyTechniqueEncoder:              JsonEncoder[PolicyTechnique]              = DeriveJsonEncoder.gen[PolicyTechnique]
-    implicit val componentIdEncoder:                  JsonEncoder[ComponentId]                  = DeriveJsonEncoder.gen[ComponentId]
-    implicit val componentIdFieldEncoder:             JsonFieldEncoder[ComponentId]             = JsonFieldEncoder.string.contramap(_.toJson)
-    implicit val inputVariableSpecEncoder:            JsonEncoder[InputVariableSpec]            = DeriveJsonEncoder.gen[InputVariableSpec]
-    implicit val predefinedValuesVariableSpecEncoder: JsonEncoder[PredefinedValuesVariableSpec] =
-      DeriveJsonEncoder.gen[PredefinedValuesVariableSpec]
-    implicit val selectOneVariableSpecEncoder:        JsonEncoder[SelectOneVariableSpec]        = DeriveJsonEncoder.gen[SelectOneVariableSpec]
-    implicit val selectVariableSpecEncoder:           JsonEncoder[SelectVariableSpec]           = DeriveJsonEncoder.gen[SelectVariableSpec]
-    implicit val trackerVariableEncoder:              JsonEncoder[TrackerVariable]              = DeriveJsonEncoder.gen[TrackerVariable]
-    implicit val variableEncoder:                     JsonEncoder[Variable]                     = DeriveJsonEncoder.gen[Variable]
-    implicit val policyVarsEncoder:                   JsonEncoder[PolicyVars]                   = DeriveJsonEncoder.gen[PolicyVars]
-    implicit val bundleOrderEncoder:                  JsonEncoder[BundleOrder]                  = JsonEncoder[String].contramap(_.value)
-    implicit val nelPolicyVarsEncoder:                JsonEncoder[NonEmptyList[PolicyVars]]     =
-      JsonEncoder[Chunk[PolicyVars]].contramap(n => Chunk.from(n.toList))
-    implicit val policyEncoder:                       JsonEncoder[Policy]                       = DeriveJsonEncoder.gen[Policy]
-
     import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
-    implicit val coreNodeFactEncoder: JsonEncoder[CoreNodeFact]   = DeriveJsonEncoder.gen[CoreNodeFact]
-    implicit val modeConfigEncoder:   JsonEncoder[NodeModeConfig] = DeriveJsonEncoder.gen[NodeModeConfig]
+    import com.normation.utils.DateFormaterService.json.*
 
-    implicit val nodeRunHookReportOnEncoder:       JsonEncoder[NodeRunHook.ReportOn]      = DeriveJsonEncoder.gen[NodeRunHook.ReportOn]
-    implicit val nodeRunHookEncoder:               JsonEncoder[NodeRunHook]               = DeriveJsonEncoder.gen[NodeRunHook]
-    implicit val parameterForConfigurationEncoder: JsonEncoder[ParameterForConfiguration] =
+    given JsonEncoder[ComplianceMode]               = DeriveJsonEncoder.gen[ComplianceMode]
+    given JsonEncoder[TechniqueVersion]             = JsonEncoder[String].contramap(_.serialize)
+    given JsonEncoder[TechniqueId]                  = JsonEncoder[String].contramap(_.serialize)
+    given JsonEncoder[PolicyId]                     = DeriveJsonEncoder.gen[PolicyId]
+    given JsonEncoder[AgentType]                    = JsonEncoder[String].contramap(_.id)
+    given JsonEncoder[GitVersion.Revision]          = JsonEncoder[String].contramap(_.value)
+    given JsonEncoder[TechniqueResourceId]          = DeriveJsonEncoder.gen[TechniqueResourceId]
+    given JsonEncoder[TechniqueTemplate]            = DeriveJsonEncoder.gen[TechniqueTemplate]
+    given JsonEncoder[TechniqueFile]                = DeriveJsonEncoder.gen[TechniqueFile]
+    given JsonEncoder[BundleName]                   = JsonEncoder[String].contramap(_.value)
+    given JsonEncoder[RunHook.Report]               = DeriveJsonEncoder.gen[RunHook.Report]
+    given JsonEncoder[RunHook.Kind]                 = DeriveJsonEncoder.gen[RunHook.Kind]
+    given JsonEncoder[RunHook.Parameter]            = DeriveJsonEncoder.gen[RunHook.Parameter]
+    given JsonEncoder[RunHook]                      = DeriveJsonEncoder.gen[RunHook]
+    given JsonEncoder[AgentConfig]                  = DeriveJsonEncoder.gen[AgentConfig]
+    given JsonEncoder[TrackerVariableSpec]          = DeriveJsonEncoder.gen[TrackerVariableSpec]
+    given JsonEncoder[DisplayPriority]              = JsonEncoder[String].contramap(_.priority)
+    given JsonEncoder[VTypeConstraint]              = JsonEncoder[String].contramap(_.name)
+    given JsonEncoder[Constraint]                   = DeriveJsonEncoder.gen[Constraint]
+    given JsonEncoder[ValueLabel]                   = DeriveJsonEncoder.gen[ValueLabel]
+    given JsonEncoder[SectionVariableSpec]          = DeriveJsonEncoder.gen[SectionVariableSpec]
+    given JsonEncoder[SectionSpec]                  = DeriveJsonEncoder.gen[SectionSpec]
+    given JsonEncoder[SectionChildSpec]             = DeriveJsonEncoder.gen[SectionChildSpec]
+    given JsonEncoder[SystemVariableSpec]           = DeriveJsonEncoder.gen[SystemVariableSpec]
+    given JsonEncoder[TechniqueGenerationMode]      = JsonEncoder[String].contramap(_.name)
+    given JsonEncoder[PolicyTechnique]              = DeriveJsonEncoder.gen[PolicyTechnique]
+    given JsonEncoder[ComponentId]                  = DeriveJsonEncoder.gen[ComponentId]
+    given JsonFieldEncoder[ComponentId]             = JsonFieldEncoder.string.contramap(_.toJson)
+    given JsonEncoder[InputVariableSpec]            = DeriveJsonEncoder.gen[InputVariableSpec]
+    given JsonEncoder[PredefinedValuesVariableSpec] =
+      DeriveJsonEncoder.gen[PredefinedValuesVariableSpec]
+    given JsonEncoder[SelectOneVariableSpec]        = DeriveJsonEncoder.gen[SelectOneVariableSpec]
+    given JsonEncoder[SelectVariableSpec]           = DeriveJsonEncoder.gen[SelectVariableSpec]
+    given JsonEncoder[TrackerVariable]              = DeriveJsonEncoder.gen[TrackerVariable]
+    given JsonEncoder[Variable]                     = DeriveJsonEncoder.gen[Variable]
+    given JsonEncoder[PolicyVars]                   = DeriveJsonEncoder.gen[PolicyVars]
+    given JsonEncoder[BundleOrder]                  = JsonEncoder[String].contramap(_.value)
+    given JsonEncoder[NonEmptyList[PolicyVars]]     =
+      JsonEncoder[Chunk[PolicyVars]].contramap(n => Chunk.from(n.toList))
+    given JsonEncoder[Policy]                       = DeriveJsonEncoder.gen[Policy]
+
+    given JsonEncoder[CoreNodeFact]   = DeriveJsonEncoder.gen[CoreNodeFact]
+    given JsonEncoder[NodeModeConfig] = DeriveJsonEncoder.gen[NodeModeConfig]
+
+    given JsonEncoder[NodeRunHook.ReportOn]      = DeriveJsonEncoder.gen[NodeRunHook.ReportOn]
+    given JsonEncoder[NodeRunHook]               = DeriveJsonEncoder.gen[NodeRunHook]
+    given JsonEncoder[ParameterForConfiguration] =
       DeriveJsonEncoder.gen[ParameterForConfiguration]
   }
-  import DebugEncoders.*
+  import DebugEncoders.given
 
   // generate the whole tree of encoders, for debug use only !
   val debugFullEncoder: JsonEncoder[NodeConfiguration] = DeriveJsonEncoder.gen[NodeConfiguration]
