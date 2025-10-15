@@ -38,19 +38,33 @@
 package com.normation.rudder.services.policies
 
 import cats.data.NonEmptyList
+import com.normation.GitVersion
 import com.normation.cfclerk.domain.AgentConfig
+import com.normation.cfclerk.domain.BundleName
+import com.normation.cfclerk.domain.Constraint
+import com.normation.cfclerk.domain.DisplayPriority
+import com.normation.cfclerk.domain.InputVariableSpec
+import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
 import com.normation.cfclerk.domain.RunHook
+import com.normation.cfclerk.domain.SectionChildSpec
 import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.SectionVariableSpec
+import com.normation.cfclerk.domain.SelectOneVariableSpec
+import com.normation.cfclerk.domain.SelectVariableSpec
 import com.normation.cfclerk.domain.SystemVariableSpec
 import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueFile
 import com.normation.cfclerk.domain.TechniqueGenerationMode
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueResourceId
+import com.normation.cfclerk.domain.TechniqueTemplate
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.cfclerk.domain.TrackerVariableSpec
+import com.normation.cfclerk.domain.ValueLabel
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.domain.VariableSpec
+import com.normation.cfclerk.domain.VTypeConstraint
 import com.normation.errors.*
 import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
@@ -64,9 +78,12 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.properties.GlobalParameter
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.facts.nodes.CoreNodeFact
+import com.normation.rudder.reports.ComplianceMode
 import com.typesafe.config.ConfigValue
 import org.joda.time.DateTime
 import scala.collection.immutable.TreeMap
+import zio.Chunk
+import zio.json.*
 
 /*
  * This file contains all the specific data structures used during policy generation.
@@ -275,6 +292,70 @@ final case class NodeConfiguration(
   def getTechniqueIds(): Set[TechniqueId] = {
     policies.map(_.technique.id).toSet
   }
+}
+object NodeConfiguration {
+  private object DebugEncoders {
+    import com.normation.inventory.domain.JsonSerializers.implicits.*
+    // derive the whole trees of encoders that do not exist yet, with closest structure as possible to intitial case
+    // please give a second though about reusing the one derived here as it has may not be the one you want,
+    // if you are sure you can move it from here and just import it here
+    import com.normation.rudder.domain.reports.ExpectedReportsSerialisation.*
+    import com.normation.rudder.facts.nodes.NodeFactSerialisation.SimpleCodec.*
+    import com.normation.utils.DateFormaterService.json.*
+
+    given JsonEncoder[ComplianceMode]               = DeriveJsonEncoder.gen[ComplianceMode]
+    given JsonEncoder[TechniqueVersion]             = JsonEncoder[String].contramap(_.serialize)
+    given JsonEncoder[TechniqueId]                  = JsonEncoder[String].contramap(_.serialize)
+    given JsonEncoder[PolicyId]                     = DeriveJsonEncoder.gen[PolicyId]
+    given JsonEncoder[AgentType]                    = JsonEncoder[String].contramap(_.id)
+    given JsonEncoder[GitVersion.Revision]          = JsonEncoder[String].contramap(_.value)
+    given JsonEncoder[TechniqueResourceId]          = DeriveJsonEncoder.gen[TechniqueResourceId]
+    given JsonEncoder[TechniqueTemplate]            = DeriveJsonEncoder.gen[TechniqueTemplate]
+    given JsonEncoder[TechniqueFile]                = DeriveJsonEncoder.gen[TechniqueFile]
+    given JsonEncoder[BundleName]                   = JsonEncoder[String].contramap(_.value)
+    given JsonEncoder[RunHook.Report]               = DeriveJsonEncoder.gen[RunHook.Report]
+    given JsonEncoder[RunHook.Kind]                 = DeriveJsonEncoder.gen[RunHook.Kind]
+    given JsonEncoder[RunHook.Parameter]            = DeriveJsonEncoder.gen[RunHook.Parameter]
+    given JsonEncoder[RunHook]                      = DeriveJsonEncoder.gen[RunHook]
+    given JsonEncoder[AgentConfig]                  = DeriveJsonEncoder.gen[AgentConfig]
+    given JsonEncoder[TrackerVariableSpec]          = DeriveJsonEncoder.gen[TrackerVariableSpec]
+    given JsonEncoder[DisplayPriority]              = JsonEncoder[String].contramap(_.priority)
+    given JsonEncoder[VTypeConstraint]              = JsonEncoder[String].contramap(_.name)
+    given JsonEncoder[Constraint]                   = DeriveJsonEncoder.gen[Constraint]
+    given JsonEncoder[ValueLabel]                   = DeriveJsonEncoder.gen[ValueLabel]
+    given JsonEncoder[SectionVariableSpec]          = DeriveJsonEncoder.gen[SectionVariableSpec]
+    given JsonEncoder[SectionSpec]                  = DeriveJsonEncoder.gen[SectionSpec]
+    given JsonEncoder[SectionChildSpec]             = DeriveJsonEncoder.gen[SectionChildSpec]
+    given JsonEncoder[SystemVariableSpec]           = DeriveJsonEncoder.gen[SystemVariableSpec]
+    given JsonEncoder[TechniqueGenerationMode]      = JsonEncoder[String].contramap(_.name)
+    given JsonEncoder[PolicyTechnique]              = DeriveJsonEncoder.gen[PolicyTechnique]
+    given JsonEncoder[ComponentId]                  = DeriveJsonEncoder.gen[ComponentId]
+    given JsonFieldEncoder[ComponentId]             = JsonFieldEncoder.string.contramap(_.toJson)
+    given JsonEncoder[InputVariableSpec]            = DeriveJsonEncoder.gen[InputVariableSpec]
+    given JsonEncoder[PredefinedValuesVariableSpec] =
+      DeriveJsonEncoder.gen[PredefinedValuesVariableSpec]
+    given JsonEncoder[SelectOneVariableSpec]        = DeriveJsonEncoder.gen[SelectOneVariableSpec]
+    given JsonEncoder[SelectVariableSpec]           = DeriveJsonEncoder.gen[SelectVariableSpec]
+    given JsonEncoder[TrackerVariable]              = DeriveJsonEncoder.gen[TrackerVariable]
+    given JsonEncoder[Variable]                     = DeriveJsonEncoder.gen[Variable]
+    given JsonEncoder[PolicyVars]                   = DeriveJsonEncoder.gen[PolicyVars]
+    given JsonEncoder[BundleOrder]                  = JsonEncoder[String].contramap(_.value)
+    given JsonEncoder[NonEmptyList[PolicyVars]]     =
+      JsonEncoder[Chunk[PolicyVars]].contramap(n => Chunk.from(n.toList))
+    given JsonEncoder[Policy]                       = DeriveJsonEncoder.gen[Policy]
+
+    given JsonEncoder[CoreNodeFact]   = DeriveJsonEncoder.gen[CoreNodeFact]
+    given JsonEncoder[NodeModeConfig] = DeriveJsonEncoder.gen[NodeModeConfig]
+
+    given JsonEncoder[NodeRunHook.ReportOn]      = DeriveJsonEncoder.gen[NodeRunHook.ReportOn]
+    given JsonEncoder[NodeRunHook]               = DeriveJsonEncoder.gen[NodeRunHook]
+    given JsonEncoder[ParameterForConfiguration] =
+      DeriveJsonEncoder.gen[ParameterForConfiguration]
+  }
+  import DebugEncoders.given
+
+  // generate the whole tree of encoders, for debug use only !
+  val debugFullEncoder: JsonEncoder[NodeConfiguration] = DeriveJsonEncoder.gen[NodeConfiguration]
 }
 
 /**

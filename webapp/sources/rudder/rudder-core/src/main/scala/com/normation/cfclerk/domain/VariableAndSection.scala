@@ -257,7 +257,7 @@ final case class TrackerVariable(
   }
 }
 
-trait SectionVariable extends Variable with SectionChild
+sealed trait SectionVariable extends Variable with SectionChild
 
 final case class InputVariable(
     override val spec:   InputVariableSpec,

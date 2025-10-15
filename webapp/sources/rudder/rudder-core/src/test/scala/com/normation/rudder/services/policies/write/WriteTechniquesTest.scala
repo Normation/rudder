@@ -37,16 +37,18 @@
 
 package com.normation.rudder.services.policies.write
 
+import ch.qos.logback.classic.Level
 import com.normation.BoxMatchers
 import com.normation.BoxSpecMatcher
 import com.normation.GitVersion.Revision
+import com.normation.JsonSpecMatcher
 import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.TechniqueResourceIdByName
 import com.normation.cfclerk.domain.TechniqueResourceIdByPath
 import com.normation.cfclerk.domain.TechniqueTemplate
 import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.logger.NodeConfigurationLoggerImpl
+import com.normation.rudder.domain.logger.NodeConfigurationLogger
 import com.normation.rudder.domain.logger.PolicyGenerationLogger
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyMode
@@ -73,6 +75,7 @@ import com.normation.zio.*
 import com.softwaremill.quicklens.*
 import java.io.File
 import java.nio.charset.StandardCharsets
+import java.time.Instant
 import java.util.regex.Pattern
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -82,13 +85,16 @@ import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
 import org.junit.runner.RunWith
+import org.slf4j.LoggerFactory
 import org.specs2.io.FileLinesContent
 import org.specs2.matcher.ContentMatchers
 import org.specs2.matcher.MatchResult
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import org.specs2.specification.AfterAll
+import org.specs2.specification.core.AsExecution
 import org.specs2.text.LinesContent
+import scala.annotation.nowarn
 import zio.Chunk
 import zio.syntax.*
 
@@ -111,7 +117,7 @@ class TestSystemData {
   val data = new TestNodeConfiguration()
   import data.*
 
-  val logNodeConfig = new NodeConfigurationLoggerImpl(abstractRoot.getPath + "/lognodes")
+  val logNodeConfig = NodeConfigurationLogger.make(abstractRoot.getPath + "/lognodes").runNow
 
   lazy val agentRegister              = new AgentRegister()
   lazy val writeAllAgentSpecificFiles = new WriteAllAgentSpecificFiles(agentRegister)
@@ -767,4 +773,136 @@ class WriteSystemTechniqueWithRevisionTest extends TechniquesTest {
 
   }
 
+}
+
+@RunWith(classOf[JUnitRunner])
+class DebugNodeConfigurationLoggerTest extends Specification with JsonSpecMatcher {
+
+  @nowarn
+  private def withLogger[A: AsExecution](
+      dir: String
+  )(block: (NodeConfigurationLogger, better.files.File) => A): A = {
+    better.files.File.temporaryDirectory("rudder-tests-debugnodeconfiguration-") { d =>
+      val path = d / dir
+      (for {
+        logNodeConfig <- NodeConfigurationLogger.make(path.pathAsString)
+      } yield {
+        block(logNodeConfig, path)
+      }).runNow
+    }
+  }
+
+  "DebugNodeConfigurationLogger" should {
+    val logLevel: ch.qos.logback.classic.Logger = LoggerFactory.getLogger(NodeConfigurationLogger.loggerName).asInstanceOf
+    logLevel.setLevel(Level.DEBUG)
+
+    "create dir if not exists" in withLogger("newdir") { (logger, f) =>
+      f.exists().aka("the log directory is created") must beTrue // upon creation of the node logger
+
+      logger.log(List.empty).either.runNow must beRight
+      NodeConfigurationLogger.getDateFile(f).exists().aka("the date file is created") must beTrue
+    }
+
+    "write log date" in {
+      "without nodes" in withLogger("log-date-only") { (logger, f) =>
+        logger.log(List.empty).either.runNow must beRight
+        // only file in directory is the date file
+        f.children.toList must containTheSameElementsAs(List(NodeConfigurationLogger.getDateFile(f)))
+      }
+
+      "with nodes" in withLogger("log-debug") { (logger, f) =>
+        logger.log(List(NodeConfigData.rootNodeConfig, NodeConfigData.node1NodeConfig)).either.runNow must beRight
+        f.children.toList must containTheSameElementsAs(
+          List(
+            NodeConfigurationLogger.getDateFile(f),
+            NodeConfigurationLogger.getLogFile(f, NodeConfigData.rootNodeConfig.nodeInfo),
+            NodeConfigurationLogger.getLogFile(f, NodeConfigData.node1NodeConfig.nodeInfo)
+          )
+        )
+      }
+    }
+
+    "encode NodeConfiguration to JSON" in withLogger("log-debug") { (logger, f) =>
+      val date = "2025-10-27T13:29:49.974Z"
+      val node = NodeConfigData.rootNodeConfig.copy(nodeInfo =
+        NodeConfigData.rootNodeConfig.nodeInfo.copy(creationDate = Instant.parse(date), factProcessedDate = Instant.parse(date))
+      )
+      logger.log(List(node)).either.runNow must beRight
+      NodeConfigurationLogger.getLogFile(f, node.nodeInfo).contentAsString must equalsJsonSemantic(
+        s"""{
+            "nodeInfo": {
+              "id": "root",
+              "hostname": "server.rudder.local",
+              "os": {
+                "type": "Linux",
+                "name": "Debian",
+                "version": "7.0",
+                "fullName": "Jessie",
+                "kernelVersion": "3.2"
+              },
+              "machine": {
+                "id": "machine1",
+                "type": "Virtual",
+                "provider": "vbox"
+              },
+              "rudderSettings": {
+                "keyStatus": "undefined",
+                "reportingConfiguration": {},
+                "kind": "root",
+                "status": "accepted",
+                "state": "enabled",
+                "policyMode": "enforce",
+                "policyServerId": "root"
+              },
+              "rudderAgent": {
+                "type": "cfengine-community",
+                "user": "root",
+                "version": "7.0.0",
+                "securityToken": {
+                  "type": "certificate",
+                  "value": "-----BEGIN CERTIFICATE-----\\nMIIFgTCCA2mgAwIBAgIUXpY2lv7l+hkx4mVP324d9O1qJh0wDQYJKoZIhvcNAQEL\\nBQAwUDEYMBYGA1UEAwwPV0lOLUdOR0RIUFZIVlROMTQwMgYKCZImiZPyLGQBAQwk\\nYjczZWE0NTEtYzQyYS00MjBkLWE1NDAtNDdiNDQ1ZTU4MzEzMB4XDTE5MDcxMjE2\\nMTYxMloXDTI3MDkyODE2MTYxMlowUDEYMBYGA1UEAwwPV0lOLUdOR0RIUFZIVlRO\\nMTQwMgYKCZImiZPyLGQBAQwkYjczZWE0NTEtYzQyYS00MjBkLWE1NDAtNDdiNDQ1\\nZTU4MzEzMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEApW5up//FLSHr\\nJ14iIX7aSTGiVvJ5XTXHXxmx3O1MyFIrNoWoonmR7Wkii+FIcxk8LVajjMaBVP32\\nZbfEr1BqljV/XULTO4ivQoqJCfoq/2O5O2Apyh1XJmp8q82CZRz/ZzxKmFAeYgYE\\nKPbzr/SeLkNvo9zaYZLMGT1Zle8pu7gBWF8DPFg1r77Y1zfSSRTRMSXQk0BVN5uR\\n2Ru8A53ZI7yDOB73pNXbtV++XdBzbwzBDG24NY80o+bbGSCRgizeDqNBeVjzOzyf\\nwRp6KFuLrwfksnUcWcwMBz3af6d5uh5hrDII63t30u3eVdmGYUb9oi5JjCOtcJta\\nr3EhwoeEoeioAxpJebe0Q0OEbEICh4Z/oxGYaG/rn9UZ3Hhw9sdngihiTx/sQ8yg\\nCGURXr/tQSw1knrmU7Fe1TytfcEhaGhnfjRXhUHXP75ycp4mdp3uRsHSKT7VN95H\\nlCVxZGUMkE9w8CZQTH2RmL6E5r0VqilktViWmuf31h2DPzg9rvBj+rQpBvgQzUiv\\n1TzuFzsuLKBp3KMpxHrnIxEMS2ERj1Kr7mAxW3xZVt3dYrw8SdbfozJ4x/d8ciKu\\novN0BBrPIn0wS6v7hT2mMtneEG/xbXZFjL8XqVwIooRCDOhw4UfWb71CdpBNZ8ln\\ntje4Ri0/C7l5ZJGYJNOpZFBlpDXmMTkCAwEAAaNTMFEwHQYDVR0OBBYEFHJaeKBJ\\nFcPOMwPGxt8uNESLRJ2YMB8GA1UdIwQYMBaAFHJaeKBJFcPOMwPGxt8uNESLRJ2Y\\nMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggIBAAjUW4YmUjYz6K50\\nuuN/WT+vRtPAKjTcKPi397O0sa1EZDq7gJt2gbYBMyqDFyoivKeec2umXzm7n0o5\\nyDJ1jwgl0ORxqtCmjzPuwbY9EL8dBycACsr8KorXct2vseC+uxNWnsLbUVs3iTbI\\nAG5dtXpytZJXioVvR/Hi6DnJ8hP6wQLKJYw3E91jjIdfUBWT1GRzjTHo6VBxlvQd\\nKFS8JeHMaUJjWiXeI8ZYPjLCDL2Fxs6hlgySBaZSbGySraFwt9l4RDVnUxexMloc\\nZECALfJg4fISgZodHXRxVBKEUv71ebSqYfJt8f8LeyfLVK/MY9rmpdV8DGQieaaV\\nYdhslUYx6vTnk/0Q/LbeHXI2cm2qBP1oyPusydTWWc6TowCLhHqTJ+eAB2X/RjT/\\nMTe/B3GGKgn1lgB37qF2hVDWtrDvNzE4OGQCNBR/iJDHz5+8MV+4FDT0/7ruTP0B\\niMDtuT7Jrk9O/UhAZyG4uyUm+kpcPIevGy2ZVQUgk/zIqLH+R4QrRebXRLrNsKuP\\no07htJltXDGDSekSDgK3OnZwLOyTUrz1zMmGqGbqRCwOQAWcZBWLrIjUjM0k9vPy\\nqYUqf4FphVwX4JqDhm8JSS/et/0431MjMfQC/qauAhPBITgRjlDVEVvGB40aiNLk\\nootapja6lKOaIpqp0kmmYN7gFIhp\\n-----END CERTIFICATE-----"
+                },
+                "capabilities": []
+              },
+              "properties": [],
+              "creationDate": "${date}",
+              "factProcessedDate": "${date}",
+              "ipAddresses": [
+                "127.0.0.1",
+                "192.168.0.100"
+              ],
+              "timezone": {
+                "name": "UTC",
+                "offset": "+00"
+              },
+              "softwareUpdate": []
+            },
+            "modesConfig": {
+              "globalComplianceMode": {
+                "GlobalComplianceMode": {
+                  "mode": "full-compliance",
+                  "heartbeatPeriod": 30
+                }
+              },
+              "globalAgentRun": {
+                "interval": 5,
+                "startMinute": 0,
+                "startHour": 0,
+                "splaytime": 0
+              },
+              "globalPolicyMode": {
+                "mode": "enforce",
+                "overridable": true
+              },
+              "nodePolicyMode": "default"
+            },
+            "policies": [],
+            "runHooks": [],
+            "nodeContext": {},
+            "parameters": []
+          }"""
+      )
+
+    }
+  }
 }
