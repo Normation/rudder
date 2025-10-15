@@ -959,6 +959,12 @@ limitations under the License.
       <artifactId>zio-test_${scala-binary-version}</artifactId>
       <version>${dev-zio-version}</version>
       <scope>test</scope>
+    </dependency>    <!-- zio tests -->
+    <dependency>
+      <groupId>dev.zio</groupId>
+      <artifactId>zio-test-magnolia_${scala-binary-version}</artifactId>
+      <version>${dev-zio-version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>dev.zio</groupId>
