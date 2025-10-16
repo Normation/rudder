@@ -1,4 +1,4 @@
-Download OpenAPI specification: [openapi.yml](openapi.yml)
+  Download OpenAPI specification: [openapi.yml](openapi.yml)
 
 **Other documentation sources**:
 
