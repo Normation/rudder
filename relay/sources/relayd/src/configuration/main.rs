@@ -12,6 +12,8 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, Context, Error};
+use openssl::x509::store::{X509Store, X509StoreBuilder};
+use openssl::x509::X509;
 use secrecy::SecretString;
 use serde::{
     de::{Deserializer, Error as SerdeError, Unexpected, Visitor},
@@ -266,6 +268,29 @@ pub enum PeerAuthentication {
     CertPinning,
     CertValidation(Option<PemCertificate>),
     DangerousNone,
+}
+
+impl PeerAuthentication {
+    pub fn to_x509store(&self) -> Result<X509Store, Error> {
+        let mut ca_store = X509StoreBuilder::new()?;
+        match self {
+            PeerAuthentication::CertPinning => {}
+            PeerAuthentication::CertValidation(None) => ca_store.set_default_paths()?,
+            PeerAuthentication::CertValidation(Some(c)) => {
+                ca_store.add_cert(X509::from_pem(&c)?)?
+            }
+            PeerAuthentication::DangerousNone => {}
+        }
+        Ok(ca_store.build())
+    }
+
+    pub fn validate_certs(&self) -> bool {
+        match self {
+            Self::CertPinning => false,
+            Self::DangerousNone => false,
+            _ => true,
+        }
+    }
 }
 
 #[serde_inline_default]
