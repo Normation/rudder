@@ -556,7 +556,7 @@ case object DateComparator extends LDAPCriterionType {
           s"The date format was not recognized: '${value}' (expected 'yyyy-MM-dd') or an ISO8601 datetime"
         )
       )
-    val dateString = GeneralizedTime(date).toString
+    def dateString = GeneralizedTime(date).toString
     def date0000   = GeneralizedTime(date.withTimeAtStartOfDay).toString
     def date2359   = GeneralizedTime(date.withTime(23, 59, 59, 999)).toString
 
