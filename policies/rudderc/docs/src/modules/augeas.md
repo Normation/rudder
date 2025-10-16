@@ -48,13 +48,97 @@ of character classes.
 Example:
 
 ```augeas
-check /files/etc/config/pass tluds 8 1 1 1 1
+check /files/etc/config/pass password tluds 8 1 1 1 1
 ```
 
 #### `password score`
 
-The `password score` directive is used to check the strength of a password based on a scoring system.
+The `password score` directive is used to validate the strength of a password against a provided minimum security score.
 
 It uses the [zxcvbn](https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/wheeler)
-algorithm
-to compute the score, and outputs a value between 0 and 4.
+algorithm to compute the score, and outputs a value between 0 and 4.
+
+Example:
+
+```augeas
+check /files/etc/config/pass password score 4
+```
+
+### Length comparison
+
+The `len` directive is used to check the length of a value using an operator
+and a specified length.
+
+The following operators are provided:
+
+* ==
+* !=
+* <= 
+* \>= 
+* <
+* \>
+
+Example:
+
+```augeas
+check /files/etc/hosts/1/canonical len == 9
+```
+
+### Values comparison
+
+#### `values include`
+
+Example:
+
+```augeas
+check /files/etc/hosts/1/* values include "localhost"
+```
+#### `values not_include`
+
+Example:
+
+```augeas
+check /files/etc/hosts/1/* values not_include "rudder.io"
+```
+
+#### `values equal`
+
+Example:
+
+```augeas
+check /files/etc/hosts/1/* values == ["localhost", "127.0.0.1"]
+```
+
+#### `values equal ordered`
+
+Example:
+
+```augeas
+check /files/etc/hosts/1/* values === ["127.0.0.1", "localhost"]
+```
+
+#### `values in`
+
+Example:
+
+```augeas
+check /files/etc/hosts/1/canonical values in ["127.0.0.1", "localhost"]
+```
+
+#### `values len`
+
+Example:
+
+```augeas
+check /files/etc/hosts/1/* values len == 2
+```
+
+```augeas
+check /files/etc/hosts/1/canonical values len == 1
+```
+
+### in_ip_range
+
+```augeas
+check /files/etc/hosts/1/ipaddr in_ip_range ["127.0.0.0", "127.0.0.2"]
+```

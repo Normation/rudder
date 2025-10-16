@@ -168,6 +168,7 @@ fn parse_check_command(pair: Pair<Rule>) -> Result<CheckExpr> {
             let comparison = StrValidation { comparator, value };
             CheckExpr::Compare(Comparison::Str(comparison))
         }
+        Rule::in_ip_range => todo!(),
         _ => unreachable!("Unexpected check rule: {:?}", pair.as_rule()),
     })
 }
