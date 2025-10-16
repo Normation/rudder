@@ -79,8 +79,6 @@ import java.time.Instant
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
-import net.liftweb.json.JsonAST
-import net.liftweb.json.JsonAST.*
 import zio.*
 import zio.json.*
 import zio.json.ast.Json
@@ -1975,35 +1973,6 @@ object NodeFactSerialisation {
   }
 
   import SimpleCodec.*
-
-  def recJsonToJValue(json: Json):     JValue       = {
-    json match {
-      case Obj(fields)   => JObject(fields.toList.map { case (k, v) => JField(k, recJsonToJValue(v)) })
-      case Arr(elements) => JArray(elements.toList.map(recJsonToJValue))
-      case Bool(value)   => JBool(value)
-      case Str(value)    => JString(value)
-      case Num(value)    => JDouble(value.doubleValue()) // this what is done in json-lift
-      case Json.Null     => JNull
-    }
-  }
-  def recJValueToJson(jvalue: JValue): Option[Json] = {
-    jvalue match {
-      case JsonAST.JNothing => None
-      case JsonAST.JNull    => Some(Null)
-      case JString(s)       => Some(Str(s))
-      case JDouble(num)     => Some(Num(num))
-      case JInt(num)        => Some(Num(num.longValue))
-      case JBool(value)     => Some(Bool(value))
-      case JObject(obj)     => Some(Obj(Chunk.fromIterable(obj).flatMap { case JField(k, v) => recJValueToJson(v).map(x => (k, x)) }))
-      case JArray(arr)      => Some(Arr(Chunk.fromIterable(arr.flatMap(recJValueToJson(_)))))
-    }
-  }
-
-  implicit val decoderJValue: JsonDecoder[JValue] = JsonDecoder[Option[Json]].map {
-    case None    => JNothing
-    case Some(v) => recJsonToJValue(v)
-  }
-  implicit val encoderJValue: JsonEncoder[JValue] = JsonEncoder[Option[Json]].contramap(recJValueToJson(_))
 
   implicit val codecInputDevice:    JsonCodec[InputDevice]    = DeriveJsonCodec.gen
   implicit val codecLocalGroup:     JsonCodec[LocalGroup]     = DeriveJsonCodec.gen
