@@ -57,6 +57,7 @@ import com.normation.inventory.domain.Version as IVersion
 import com.normation.plugins.*
 import com.normation.rudder.*
 import com.normation.rudder.api.{ApiAuthorization as ApiAuthz, *}
+import com.normation.rudder.api.HttpAction.GET
 import com.normation.rudder.apidata.RestDataSerializerImpl
 import com.normation.rudder.apidata.ZioJsonExtractor
 import com.normation.rudder.batch.*
@@ -116,6 +117,7 @@ import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 import com.normation.rudder.reports.execution.AgentRunWithoutCompliance
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.repository.*
+import com.normation.rudder.rest.EndpointSchema.syntax.*
 import com.normation.rudder.rest.data.Creation
 import com.normation.rudder.rest.data.Creation.CreationError
 import com.normation.rudder.rest.data.NodeSetup
@@ -177,6 +179,7 @@ import com.normation.utils.ParseVersion
 import com.normation.utils.StringUuidGeneratorImpl
 import com.normation.zio.*
 import doobie.*
+import enumeratum.*
 import java.nio.charset.StandardCharsets
 import java.time.ZonedDateTime
 import net.liftweb.common.Box
@@ -209,6 +212,7 @@ import scala.reflect.ClassTag
 import scala.reflect.classTag
 import scala.xml.Elem
 import scala.xml.NodeSeq
+import sourcecode.Line
 import zio.*
 import zio.syntax.*
 import zio.test.*
@@ -993,6 +997,32 @@ class RestTestSetUp {
     val api        = new CampaignApi(repo, translator, dumbCampaignEventRepository, mainCampaignService, uuidGen)
   }
 
+  sealed trait RestTestEndpoints extends EnumEntry with EndpointSchema with GeneralApi with SortIndex      {
+    override def dataContainer: Option[String] = None
+  }
+  object RestTestEndpoints       extends Enum[RestTestEndpoints] with ApiModuleProvider[RestTestEndpoints] {
+
+    object TestEndpoint extends RestTestEndpoints with StartsAtVersion19 with ZeroParam with SortIndex {
+      val z: Int = implicitly[Line].value
+      val description    = "Just an endpoint for tests"
+      val (action, path) = GET / "test-endpoint"
+      val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+    }
+
+    object TestEndpointDuplicate extends RestTestEndpoints with StartsAtVersion19 with ZeroParam with SortIndex {
+      val z: Int = implicitly[Line].value
+      val description    = "Just an endpoint for tests : a duplicate which has the same name but another path"
+      val (action, path) = GET / "test-endpoint-duplicate"
+      val authz: List[AuthorizationType] = AuthorizationType.Administration.Read :: Nil
+
+      override val name: String = TestEndpoint.name
+    }
+
+    def endpoints: List[RestTestEndpoints] = values.toList.sortBy(_.z)
+
+    def values = findValues
+  }
+
   // name that one for version API
   val parameterApi         = new ParameterApi(zioJsonExtractor, parameterApiService14)
   // info is special and should be based on all api and version, but to avoid change at each tests/version, build
@@ -1001,7 +1031,7 @@ class RestTestSetUp {
     val infoVersion = ApiVersion(19, deprecated = true) ::
       ApiVersion(20, deprecated = false) ::
       Nil
-    val schemas     = parameterApi.schemas.endpoints ++ InfoApi.endpoints
+    val schemas     = parameterApi.schemas.endpoints ++ InfoApi.endpoints ++ RestTestEndpoints.endpoints
     val endpoints   = schemas.flatMap(new RudderEndpointDispatcher(LiftApiProcessingLogger).withVersion(_, infoVersion))
     new InfoApi(infoVersion, endpoints)
   }
