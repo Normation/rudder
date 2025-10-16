@@ -874,13 +874,18 @@ object SearchNodeComponent {
         new AsForm {
 
           // init a jquery datepicker
-          override def initForm(formId: String):    JsCmd = OnLoad(JsRaw("""var init = $.datepicker.regional['en'];
-       init['showOn'] = 'focus';
-       init['dateFormat'] = 'yy-mm-dd';
-       $('#%s').datepicker(init);
-       """.format(formId)))
+          // it can be a "datetime" picker : use a checkbox and change the options accordingly
+          override def initForm(formId: String):    JsCmd = OnLoad(JsRaw(s"""var init = $$.datepicker.regional['en'];
+       const baseOpts = { dateFormat:'yy-mm-dd', showOn:'focus' }
+       $$('#${formId}').datepicker(baseOpts);
+       $$('<label><input type="checkbox" id="include-time">Include time</label>').insertAfter('#${formId}');
+       $$('#include-time').on('change', function () {
+         const opts = this.checked ? { timeFormat:'HH:mm:ss', ...baseOpts } : baseOpts;
+         $$('#${formId}').datetimepicker('destroy').datetimepicker(opts);
+       });
+       """))
           override def destroyForm(formId: String): JsCmd = OnLoad(
-            JsRaw("""$('#%s').datepicker( "destroy" );""".format(formId))
+            JsRaw(s"""$$('#${formId}').datepicker( "destroy" );""")
           )
         }
       case MachineComparator                          =>
