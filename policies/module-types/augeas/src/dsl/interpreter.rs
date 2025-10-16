@@ -221,7 +221,7 @@ impl<'a> Interpreter<'a> {
         let mut res = vec![];
         res.extend(match expr {
             Expr::Get(path) => vec![InterpreterOut::from_out(
-                self.aug.get(path)?.unwrap_or_else(|| "None".to_string()),
+                self.aug.get(path)?.unwrap_or("None".to_string()),
             )?],
             Expr::Set(path, value) => {
                 vec![InterpreterOut::from_aug_res(self.aug.set(path, value))?]
