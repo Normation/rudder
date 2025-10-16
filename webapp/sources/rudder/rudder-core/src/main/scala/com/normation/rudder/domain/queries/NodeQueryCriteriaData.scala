@@ -254,7 +254,12 @@ class NodeQueryCriteriaData(groupRepo: () => SubGroupComparatorRepository, insta
         Criterion(A_ACCOUNT, StringComparator, UnsupportedByNodeMinimalApi),
         Criterion(A_LIST_OF_IP, NodeIpListComparator, NodeCriterionMatcherIpaddress),
         Criterion(A_ROOT_USER, StringComparator, NodeCriterionMatcherString(_.rudderAgent.user.wrap)),
-        Criterion(A_INVENTORY_DATE, DateComparator, NodeCriterionMatcherDate(_.lastInventoryDate.toChunk)),
+        Criterion(
+          A_INVENTORY_DATE,
+          DateComparator,
+          NodeCriterionMatcher
+            .combineBy(_.lastInventoryDate.toChunk, NodeCriterionMatcherDate(_), NodeCriterionMatcherDateTime(_))
+        ),
         Criterion(
           A_POLICY_SERVER_UUID,
           StringComparator,
@@ -435,11 +440,37 @@ object MatchHolder {
   }
 }
 
-trait NodeCriterionMatcher {
+sealed trait NodeCriterionMatcher {
   def matches(n: CoreNodeFact, comparator: CriterionComparator, value: String): IOResult[Boolean]
 }
+object NodeCriterionMatcher       {
+  private type Extractor[A] = CoreNodeFact => Chunk[A]
 
-trait FullNodeCriterionMatcher {
+  /**
+   * Combine two matchers by attempting to match one, then the other.
+   *
+   * It will parse the first, if the parsing fails, it attempts parsing the other.
+   * Each matcher still acts on its extracted values.
+   */
+  def combineBy[A](
+      extractor: Extractor[A],
+      first:     Extractor[A] => NodeCriterionOrderedValueMatcher[A],
+      second:    Extractor[A] => NodeCriterionOrderedValueMatcher[A]
+  ): NodeCriterionMatcher = {
+    Or(first(extractor), second(extractor))
+  }
+
+  private case class Or[A](
+      a: NodeCriterionOrderedValueMatcher[A],
+      b: NodeCriterionOrderedValueMatcher[A]
+  ) extends NodeCriterionMatcher {
+    override def matches(n: CoreNodeFact, comparator: CriterionComparator, value: String): IOResult[Boolean] = {
+      a.matches(n, comparator, value) || b.matches(n, comparator, value)
+    }
+  }
+}
+
+sealed trait FullNodeCriterionMatcher {
   def matches(n: NodeFact, comparator: CriterionComparator, value: String): IOResult[Boolean]
 }
 
@@ -463,14 +494,14 @@ case object UnsupportedByNodeMinimalApi extends NodeCriterionMatcher {
  * A generic matcher that matches anything that has an order and can be parsed/serialized
  * to one value. Typically, it can be String, numeric value, date, memories, etc.
  */
-trait NodeCriterionOrderedValueMatcher[A] extends NodeCriterionMatcher {
+sealed trait NodeCriterionOrderedValueMatcher[A] extends NodeCriterionMatcher {
   def extractor: CoreNodeFact => Chunk[A]
-  def parseNum(value: String): Option[A]
-  def serialise(a:    A):      String
+  def parse(value: String): Option[A]
+  def serialise(a: A):      String
   def order: Ordering[A]
 
-  def tryMatches(value: String, matches: A => MatchHolderZio[A]): IOResult[Boolean] = {
-    parseNum(value) match {
+  private def tryMatches(value: String, matches: A => MatchHolderZio[A]): IOResult[Boolean] = {
+    parse(value) match {
       case Some(a) => matches(a).matches
       case None    =>
         FactQueryProcessorLoggerPure.trace(s"    - '${value}' can not be parsed into correct type: false'") *>
@@ -483,9 +514,9 @@ trait NodeCriterionOrderedValueMatcher[A] extends NodeCriterionMatcher {
 
     comparator match {
       case Equals    =>
-        tryMatches(value, a => MatchHolder[A](DebugInfo(Equals.id, Some(value)), extractor(n), _.exists(_ == a)))
+        tryMatches(value, a => MatchHolder[A](DebugInfo(Equals.id, Some(value)), extractor(n), _.exists(order.equiv(_, a))))
       case NotEquals =>
-        tryMatches(value, a => MatchHolder[A](DebugInfo(NotEquals.id, Some(value)), extractor(n), _.forall(_ != a)))
+        tryMatches(value, a => MatchHolder[A](DebugInfo(NotEquals.id, Some(value)), extractor(n), _.forall(!order.equiv(_, a))))
       case Regex     =>
         for {
           m <- MatcherUtils.getRegex(value)
@@ -526,8 +557,8 @@ trait NodeCriterionOrderedValueMatcher[A] extends NodeCriterionMatcher {
 
 final case class NodeCriterionMatcherString(extractor: CoreNodeFact => Chunk[String])
     extends NodeCriterionOrderedValueMatcher[String] {
-  override def parseNum(value: String): Option[String] = Some(value)
-  override def serialise(a:    String): String         = a
+  override def parse(value: String): Option[String] = Some(value)
+  override def serialise(a: String): String         = a
   val order: Ordering[String] = Ordering.String
 }
 
@@ -619,33 +650,33 @@ case object VmTypeCriterionMatcherCaseIgnoreString extends NodeCriterionMatcher 
 }
 
 final case class NodeCriterionMatcherInt(extractor: CoreNodeFact => Chunk[Int]) extends NodeCriterionOrderedValueMatcher[Int] {
-  override def parseNum(value: String): Option[Int]   = try { Some(Integer.parseInt(value)) }
+  override def parse(value: String): Option[Int]   = try { Some(Integer.parseInt(value)) }
   catch { case ex: NumberFormatException => None }
   override def serialise(a: Int): String = a.toString
-  val order:                            Ordering[Int] = Ordering.Int
+  val order:                         Ordering[Int] = Ordering.Int
 }
 
 final case class NodeCriterionMatcherLong(extractor: CoreNodeFact => Chunk[Long]) extends NodeCriterionOrderedValueMatcher[Long] {
-  override def parseNum(value: String): Option[Long]   = try { Some(java.lang.Long.parseLong(value)) }
+  override def parse(value: String): Option[Long]   = try { Some(java.lang.Long.parseLong(value)) }
   catch { case ex: NumberFormatException => None }
   override def serialise(a: Long): String = a.toString
-  val order:                            Ordering[Long] = Ordering.Long
+  val order:                         Ordering[Long] = Ordering.Long
 }
 
 final case class NodeCriterionMatcherFloat(extractor: CoreNodeFact => Chunk[Float])
     extends NodeCriterionOrderedValueMatcher[Float] {
-  override def parseNum(value: String): Option[Float]   = try { Some(java.lang.Float.parseFloat(value)) }
+  override def parse(value: String): Option[Float]   = try { Some(java.lang.Float.parseFloat(value)) }
   catch { case ex: NumberFormatException => None }
   override def serialise(a: Float): String = a.toString
-  val order:                            Ordering[Float] = Ordering.Float.TotalOrdering
+  val order:                         Ordering[Float] = Ordering.Float.TotalOrdering
 }
 
 final case class NodeCriterionMatcherDouble(extractor: CoreNodeFact => Chunk[Double])
     extends NodeCriterionOrderedValueMatcher[Double] {
-  override def parseNum(value: String): Option[Double]   = try { Some(java.lang.Double.parseDouble(value)) }
+  override def parse(value: String): Option[Double]   = try { Some(java.lang.Double.parseDouble(value)) }
   catch { case ex: NumberFormatException => None }
   override def serialise(a: Double): String = a.toString
-  val order:                            Ordering[Double] = Ordering.Double.TotalOrdering
+  val order:                         Ordering[Double] = Ordering.Double.TotalOrdering
 }
 
 /*
@@ -653,7 +684,7 @@ final case class NodeCriterionMatcherDouble(extractor: CoreNodeFact => Chunk[Dou
  */
 final case class NodeCriterionMatcherMemory(extractor: CoreNodeFact => Chunk[MemorySize])
     extends NodeCriterionOrderedValueMatcher[MemorySize] {
-  override def parseNum(value: String): Option[MemorySize] = {
+  override def parse(value: String): Option[MemorySize] = {
     MemorySize.opt(value)
   }
 
@@ -664,18 +695,46 @@ final case class NodeCriterionMatcherMemory(extractor: CoreNodeFact => Chunk[Mem
   val order: Ordering[MemorySize] = Ordering.by(_.size)
 }
 
-final case class NodeCriterionMatcherDate(extractorNode: CoreNodeFact => Chunk[DateTime])
+final case class NodeCriterionMatcherDate(private val extractorNode: CoreNodeFact => Chunk[DateTime])
     extends NodeCriterionOrderedValueMatcher[DateTime] {
-  val parseDate: String => Option[DateTime] = (s: String) =>
-    DateFormaterService.parseDateOnly(s).toOption.orElse(Try(DateTimeFormat.forPattern("dd/MM/YYYY").parseDateTime(s)).toOption)
+  import NodeCriterionMatcherDate.*
 
-  // we need to accept both ISO format and old dd/MM/YYYY format for compatibility
-  // also, we discard the time, only keep date
+  override def extractor:            CoreNodeFact => Chunk[DateTime] = (n: CoreNodeFact) => {
+    extractorNode(n).map(_.toLocalDate.toDateTimeAtStartOfDay())
+  }
+  override def parse(value: String): Option[DateTime]                = {
+    parseDate(value).map(_.toLocalDate.toDateTimeAtStartOfDay())
+  }
+  override def serialise(a: DateTime): String = DateFormaterService.serialize(a)
 
-  override def extractor: CoreNodeFact => Chunk[DateTime] = (n: CoreNodeFact) => extractorNode(n).map(_.withTimeAtStartOfDay())
-  override def parseNum(value: String):   Option[DateTime] = parseDate(value).map(_.withTimeAtStartOfDay())
-  override def serialise(a:    DateTime): String           = DateFormaterService.serialize(a)
   val order: Ordering[DateTime] = Ordering.by(_.getMillis)
+
+}
+private object NodeCriterionMatcherDate {
+  // we accept both ISO date format and old dd/MM/YYYY format for compatibility (see also `DateComparator`)
+  private val compatPattern = DateTimeFormat.forPattern("dd/MM/YYYY")
+  val parseDate: String => Option[DateTime] = (s: String) =>
+    DateFormaterService.parseDateOnly(s).toOption.orElse(Try(compatPattern.parseDateTime(s)).toOption)
+}
+
+/**
+ * Comparator on exact datetime, except for the millis (since we don't need to compare on millis, which are not even parsed).
+ * We don't process further for reliability, so DateTime comparison should be mostly useful for >, >=, < and <=.
+ */
+final case class NodeCriterionMatcherDateTime(private val extractorNode: CoreNodeFact => Chunk[DateTime])
+    extends NodeCriterionOrderedValueMatcher[DateTime] {
+  import NodeCriterionMatcherDateTime.*
+
+  override def extractor:            CoreNodeFact => Chunk[DateTime] =
+    (n: CoreNodeFact) => extractorNode(n).map(_.withMillisOfSecond(0))
+  override def parse(value: String): Option[DateTime]                = {
+    parseDateTime(value).map(_.withMillisOfSecond(0))
+  }
+  override def serialise(a: DateTime): String = DateFormaterService.serialize(a)
+  val order: Ordering[DateTime] = Ordering.by(_.getMillis)
+}
+private object NodeCriterionMatcherDateTime            {
+  val parseDateTime: String => Option[DateTime] = (s: String) => DateFormaterService.parseDate(s).toOption
 }
 
 /*
@@ -716,7 +775,7 @@ object AgentMatcher extends NodeCriterionMatcher {
  * The serialise method is used for the debug representation and k=v matcher.
  * The getValue method is for the value part, used in jsonSelect.
  */
-trait NodeCriterionKeyValueMatcher[A] extends NodeCriterionMatcher {
+sealed trait NodeCriterionKeyValueMatcher[A] extends NodeCriterionMatcher {
   def extractor: CoreNodeFact => Chunk[A]
   def serialise(a: A): String
   def getKey(a:    A): String

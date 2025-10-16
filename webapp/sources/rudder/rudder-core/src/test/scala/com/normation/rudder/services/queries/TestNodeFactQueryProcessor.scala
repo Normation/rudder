@@ -1018,9 +1018,19 @@ class TestNodeFactQueryProcessor {
       expects
     )
 
+    def q_iso_time(name: String, comp: String, day: Int, expects: Seq[NodeId]) = TestQuery(
+      name,
+      parser(s"""
+          {  "select":"nodeAndPolicyServer", "where":[
+            { "objectType":"node", "attribute":"inventoryDate", "comparator":"${comp}", "value":"2013-05-${day}T12:34:56Z" }
+          ] }
+          """).openOrThrowException("For tests"),
+      expects
+    )
+
     // nodes are going year by year [root=2012-05-15, s0=2013-05-15 <- select date, s1=2014-05-15 etc]
     def query(name: String, comp: String, day: Int, nodes: Seq[NodeId]): List[TestQuery] = {
-      q_compat(name, comp, day, nodes) :: q_iso(name, comp, day, nodes) :: Nil
+      q_compat(name, comp, day, nodes) :: q_iso(name, comp, day, nodes) :: q_iso_time(name, comp, day, nodes) :: Nil
     }
 
     // root is not part of 's", no need to filter it out
