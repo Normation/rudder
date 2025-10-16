@@ -110,11 +110,12 @@ impl AptPackageManager {
     /// It conveniently exposes a stable parsing-friendly output.
     ///
     /// https://github.com/liske/needrestart/blob/master/README.batch.md
-    pub fn parse_services_to_restart(&self, output: &[String]) -> Result<Vec<String>> {
+    pub fn parse_services_to_restart(output: &[String]) -> Result<Vec<String>> {
         let svc_re = Regex::new(r"NEEDRESTART-SVC:\s*(\S+)\s*")?;
 
         Ok(output
             .iter()
+            .flat_map(|s| s.lines())
             .flat_map(|line| {
                 let service_name = svc_re
                     .captures(line)
@@ -351,7 +352,7 @@ impl LinuxPackageManager for AptPackageManager {
         );
         let (r, o, e) = (res.inner, res.stdout, res.stderr);
         let res = match r {
-            Ok(_) => self.parse_services_to_restart(&o),
+            Ok(_) => Self::parse_services_to_restart(&o),
             Err(e) => Err(e).context("Checking services to restart with the needrestart command"),
         };
         ResultOutput::new_output(res, o, e)
@@ -363,11 +364,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse_services_to_restart() {
-        let os_release = OsRelease::from_string("");
-        let apt = AptPackageManager::new(&os_release).unwrap();
-
-        let output1 = "NEEDRESTART-VER: 3.6
+    fn test_parse_services_to_restart_multi_string() {
+        let output = "NEEDRESTART-VER: 3.6
 NEEDRESTART-KCUR: 6.1.0-20-amd64
 NEEDRESTART-KEXP: 6.1.0-22-amd64
 NEEDRESTART-KSTA: 3
@@ -376,20 +374,42 @@ NEEDRESTART-SVC: cron.service
 NEEDRESTART-SVC: getty@tty1.service
 NEEDRESTART-SESS: amousset @ session #54207
 NEEDRESTART-SESS: amousset @ user manager service";
-        let expected1 = vec!["apache2.service", "cron.service", "getty@tty1.service"];
-        let lines1: Vec<String> = output1.lines().map(|s| s.to_string()).collect();
+        let expected = vec!["apache2.service", "cron.service", "getty@tty1.service"];
+        let lines: Vec<String> = output.lines().map(|s| s.to_string()).collect();
         assert_eq!(
-            apt.parse_services_to_restart(lines1.as_slice()).unwrap(),
-            expected1
+            AptPackageManager::parse_services_to_restart(lines.as_slice()).unwrap(),
+            expected
         );
+    }
 
-        // Test with an empty string
-        let output2 = "";
-        let expected2: Vec<String> = Vec::new();
-        let lines2: Vec<String> = output2.lines().map(|s| s.to_string()).collect();
+    #[test]
+    fn test_parse_services_to_restart_empty_string() {
+        let output = "";
+        let expected: Vec<String> = Vec::new();
+        let lines: Vec<String> = output.lines().map(|s| s.to_string()).collect();
         assert_eq!(
-            apt.parse_services_to_restart(lines2.as_slice()).unwrap(),
-            expected2
+            AptPackageManager::parse_services_to_restart(lines.as_slice()).unwrap(),
+            expected
+        );
+    }
+
+    #[test]
+    fn test_parse_services_to_restart_mono_string() {
+        // Single string output
+        let output = "NEEDRESTART-VER: 3.6
+NEEDRESTART-KCUR: 6.1.0-20-amd64
+NEEDRESTART-KEXP: 6.1.0-22-amd64
+NEEDRESTART-KSTA: 3
+NEEDRESTART-SVC: apache2.service
+NEEDRESTART-SVC: cron.service
+NEEDRESTART-SVC: getty@tty1.service
+NEEDRESTART-SESS: amousset @ session #54207
+NEEDRESTART-SESS: amousset @ user manager service";
+        let expected = vec!["apache2.service", "cron.service", "getty@tty1.service"];
+        let lines: Vec<String> = vec![output.to_string()];
+        assert_eq!(
+            AptPackageManager::parse_services_to_restart(lines.as_slice()).unwrap(),
+            expected
         );
     }
 }
