@@ -191,6 +191,13 @@ period of time to allow migration from previous versions.
         <li>More standard format for node details fields</li>
       </ul></td>
     </tr>
+    <tr>
+      <td class="code">21</td>
+      <td class="code">8.3</td>
+      <td><ul>
+        <li>API accounts management endpoints</li>
+      </ul></td>
+    </tr>
   </tbody>
 </table>
 
