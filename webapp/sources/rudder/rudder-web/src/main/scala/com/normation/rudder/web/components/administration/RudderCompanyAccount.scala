@@ -50,7 +50,7 @@ class RudderCompanyAccount()(implicit val ttag: ClassTag[Settings]) extends Snip
     ChooseTemplate("templates-hidden" :: "components" :: "administration" :: "setup" :: Nil, "component-body")
 
   override def compose(snippet: Settings): Map[String, NodeSeq => NodeSeq] = Map(
-    "body" -> Settings.addTab(tabId, "Licence", template)
+    "body" -> Settings.addTab(tabId, "License", template)
   )
 
 }
