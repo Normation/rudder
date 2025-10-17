@@ -14,7 +14,7 @@ The language provides a set of basic types:
 * `ipv4`: This type is specifically for IPv4 addresses.
 * `ipv6`: This type is specifically for IPv6 addresses.
 * `ip_range`: This type is for IP ranges, which can be either IPv4 or IPv6.
-* `iv4_range`: This type is specifically for IPv4 ranges.
+* `ipv4_range`: This type is specifically for IPv4 ranges.
 * `ipv6_range`: This type is specifically for IPv6 ranges.
 * `bytes`: This type is for size values, such as file sizes or memory sizes, and can be suffixed with `B`, `KB`, `MB`,
   `GB`, `KiB`, `MiB`, `GiB`, etc.
