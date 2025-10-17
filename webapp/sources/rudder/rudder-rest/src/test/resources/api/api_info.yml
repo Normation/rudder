@@ -54,6 +54,14 @@ response:
           {
             "apiSubInformations" : "Get information about Rudder public API starting with given path",
             "GET" : "[19,20] /info/{id}"
+          },
+          {
+            "testEndpoint" : "Just an endpoint for tests",
+            "GET" : "[19,20] /test-endpoint"
+          },
+          {
+            "testEndpoint" : "Just an endpoint for tests : a duplicate which has the same name but another path",
+            "GET" : "[19,20] /test-endpoint-duplicate"
           }
         ]
       }
