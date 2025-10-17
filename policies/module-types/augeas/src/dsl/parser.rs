@@ -44,6 +44,7 @@ pub enum CheckExpr<'a> {
     ValuesEqual(Vec<&'a str>),
     ValuesEqualOrdered(Vec<&'a str>),
     ValuesIn(Vec<&'a str>),
+    InIpRange(Vec<&'a str>),
 }
 
 /// A command of the extended Augeas language used in Rudder.
@@ -168,6 +169,7 @@ fn parse_check_command(pair: Pair<Rule>) -> Result<CheckExpr> {
             let comparison = StrValidation { comparator, value };
             CheckExpr::Compare(Comparison::Str(comparison))
         }
+        Rule::in_ip_range => CheckExpr::InIpRange(parse_array(pair.into_inner())),
         _ => unreachable!("Unexpected check rule: {:?}", pair.as_rule()),
     })
 }
