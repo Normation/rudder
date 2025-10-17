@@ -6,13 +6,9 @@ The module's DSL is an extension of the [Augeas DSL](https://augeas.net/docs/aug
 features.
 The specific features are audit-oriented, and implemented with a new `check` keyword.
 
-### Comparisons
+### Types
 
-The supported comparison types are:
-
-### Type checks
-
-The known types are:
+The language provides a set of basic types:
 
 * `ip`: This is a general type that can be used for both IPv4 and IPv6 addresses.
 * `ipv4`: This type is specifically for IPv4 addresses.
@@ -27,49 +23,19 @@ The known types are:
 * `float`: This type is for floating-point numbers, which can be either positive or negative.
 * `bool`: This type is for boolean values, which can be either `true` or `false`.
 
-### List comparisons
+### Comparisons
 
-### Password checks
-
-These checks allow checking for password strength and compliance with policies.
-They never output the password itself.
-
-#### `password tluds`
-
-The `password tluds` directive is used to define a password policy in Rudder, based on a minimal number
-of character classes.
-
-* total length
-* number of lowercase letters
-* number of uppercase letters
-* number of digits
-* number of special characters
+The language supports value comparison.
 
 Example:
 
 ```augeas
-check /files/etc/config/pass password tluds 8 1 1 1 1
+check /files/etc/hosts/1/canonical ~ localhost
 ```
 
-#### `password score`
+The supported comparison operators are:
 
-The `password score` directive is used to validate the strength of a password against a provided minimum security score.
-
-It uses the [zxcvbn](https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/wheeler)
-algorithm to compute the score, and outputs a value between 0 and 4.
-
-Example:
-
-```augeas
-check /files/etc/config/pass password score 4
-```
-
-### Length comparison
-
-The `len` directive is used to check the length of a value using an operator
-and a specified length.
-
-The following operators are provided:
+#### numeric comparison operators
 
 * ==
 * !=
@@ -78,13 +44,16 @@ The following operators are provided:
 * <
 * \>
 
-Example:
+#### regex comparison operators
 
-```augeas
-check /files/etc/hosts/1/canonical len == 9
-```
+* ~
+* !~
+* eq
+* neq
 
 ### Values comparison
+
+The `values` family of directives is used for comparison on multi-value data.
 
 #### `values include`
 
@@ -137,8 +106,71 @@ check /files/etc/hosts/1/* values len == 2
 check /files/etc/hosts/1/canonical values len == 1
 ```
 
-### in_ip_range
+### Length comparison
+
+The `len` directive is used to check the length of a value using an operator
+and a specified length.
+
+For supported types, refer to the [numeric comparison operators](#numeric-comparison-operators) section.
+
+Example:
 
 ```augeas
-check /files/etc/hosts/1/ipaddr in_ip_range ["127.0.0.1/8"]
+check /files/etc/hosts/1/canonical len == 9
+```
+
+### as_type
+
+The `is` directive checks the type of a value against a specified type.
+
+For supported types, refer to the [types](#types) section.
+
+```augeas
+check /files/etc/hosts/1/ipaddr is ipv4
+```
+
+### in_ip_range
+
+The `in_ip_range` directive checks whether an IP address or an IP range falls
+within one of the specified IP address ranges.
+
+It supports both IPv4 and IPv6 addresses in CIDR format.
+
+```augeas
+check /files/etc/hosts/1/ipaddr in_ip_range ["127.0.0.0/8"]
+```
+
+### Password checks
+
+The `password` family of directives allows checking for password strength and
+compliance with policies. They never output the password itself.
+
+#### `password tluds`
+
+The `password tluds` directive is used to define a password policy in Rudder, based on a minimal number
+of character classes.
+
+* total length
+* number of lowercase letters
+* number of uppercase letters
+* number of digits
+* number of special characters
+
+Example:
+
+```augeas
+check /files/etc/config/pass password tluds 8 1 1 1 1
+```
+
+#### `password score`
+
+The `password score` directive is used to validate the strength of a password against a provided minimum security score.
+
+It uses the [zxcvbn](https://www.usenix.org/conference/usenixsecurity16/technical-sessions/presentation/wheeler)
+algorithm to compute the score, and outputs a value between 0 and 4.
+
+Example:
+
+```augeas
+check /files/etc/config/pass password score 4
 ```
