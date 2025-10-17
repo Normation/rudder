@@ -4,6 +4,7 @@
 use crate::dsl::{
     comparator::{Comparison, Number},
     error::format_report_from_span,
+    ip::IpRangeChecker,
     parser::{CheckExpr, Expr},
     password::PasswordPolicy,
     script::{ExprType, Script},
@@ -463,6 +464,16 @@ impl<'a> Interpreter<'a> {
                                     "length of '{value}', {len} does not match {comparator} {size}"
                                 )
                             })?
+                        }
+                        CheckExpr::InIpRange(ip_ranges) => {
+                            let range_checker = IpRangeChecker::try_from(ip_ranges.clone())?;
+                            InterpreterOut::from_out(range_checker.check_range(&value).map(
+                                |_| {
+                                    format!(
+                                        "IP {value} is in the configured ranges ({ip_ranges:?})"
+                                    )
+                                },
+                            )?)?
                         }
                         _ => {
                             unreachable!()

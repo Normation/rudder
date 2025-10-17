@@ -140,5 +140,5 @@ check /files/etc/hosts/1/canonical values len == 1
 ### in_ip_range
 
 ```augeas
-check /files/etc/hosts/1/ipaddr in_ip_range ["127.0.0.0", "127.0.0.2"]
+check /files/etc/hosts/1/ipaddr in_ip_range ["127.0.0.1/8"]
 ```
