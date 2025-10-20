@@ -110,12 +110,10 @@ class CachedReportsExecutionRepository(
    * nodeid in map's keys.
    */
   private val cacheRef =
-    Ref.make(Map[NodeId, Option[AgentRunWithNodeConfig]]()).runNow // Map[NodeId, Option[AgentRunWithNodeConfig]]()
+    Ref.make(Map[NodeId, Option[AgentRunWithNodeConfig]]()).runNow
 
   override def clearCache(): Unit = semaphore
-    .withPermit(IOResult.attempt {
-      cacheRef.set(Map())
-    })
+    .withPermit(cacheRef.set(Map()))
     .runNow
 
   override def getNodesLastRun(nodeIds: Set[NodeId]): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = {
