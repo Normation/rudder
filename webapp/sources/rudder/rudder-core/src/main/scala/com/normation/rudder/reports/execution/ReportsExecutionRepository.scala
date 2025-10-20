@@ -40,7 +40,6 @@ package com.normation.rudder.reports.execution
 import com.normation.errors.*
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.ComplianceDebugLoggerPure
-import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.logger.TimingDebugLoggerPure
 import com.normation.rudder.repository.CachedRepository
 import com.normation.zio.*
@@ -86,9 +85,6 @@ class CachedReportsExecutionRepository(
     readBackend: RoReportsExecutionRepository
 ) extends RoReportsExecutionRepository with CachedRepository {
 
-  val logger = ReportLogger
-  val semaphore: Semaphore = Semaphore.make(1).runNow
-
   /*
    * We need to synchronise on cache to avoid the case:
    * - initial state: RUNS_0 in backend
@@ -110,29 +106,25 @@ class CachedReportsExecutionRepository(
    * nodeid in map's keys.
    */
   private val cacheRef =
-    Ref.make(Map[NodeId, Option[AgentRunWithNodeConfig]]()).runNow
+    Ref.Synchronized.make(Map[NodeId, Option[AgentRunWithNodeConfig]]()).runNow
 
-  override def clearCache(): Unit = semaphore
-    .withPermit(cacheRef.set(Map()))
-    .runNow
+  override def clearCache(): Unit = cacheRef.set(Map()).runNow
 
   override def getNodesLastRun(nodeIds: Set[NodeId]): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = {
-    semaphore
-      .withPermit(
-        for {
-          n1           <- currentTimeMillis
-          _            <- ComplianceDebugLoggerPure.trace(s"cache last run ; ${cacheRef}")
-          cache        <- cacheRef.get
-          _            <- ComplianceDebugLoggerPure.trace(s"node id diff last run ; ${nodeIds.diff(cache.keySet)}")
-          runs         <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
-          n2           <- currentTimeMillis
-          _            <- TimingDebugLoggerPure.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")
-          cacheUpdated <- cacheRef.updateAndGet(_ ++ runs)
-        } yield {
-          cacheUpdated.view.filterKeys(x => nodeIds.contains(x)).toMap
-        }
-      )
-      .chainError(s"Error when trying to update the cache of Agent Runs informations")
+    cacheRef.modifyZIO { cache =>
+      for {
+        n1          <- currentTimeMillis
+        _           <- ComplianceDebugLoggerPure.trace(s"cache last run ; ${cacheRef}")
+        _           <- ComplianceDebugLoggerPure.trace(s"node id diff last run ; ${nodeIds.diff(cache.keySet)}")
+        runs        <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
+        n2          <- currentTimeMillis
+        _           <- TimingDebugLoggerPure.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")
+        cacheUpdated = cache ++ runs
+      } yield {
+        (cacheUpdated.view.filterKeys(x => nodeIds.contains(x)).toMap, cacheUpdated)
+      }
+
+    }.chainError(s"Error when trying to update the cache of Agent Runs information")
   }
 
   def getUnprocessedRuns(): IOResult[Seq[AgentRunWithoutCompliance]] = readBackend.getUnprocessedRuns()
@@ -140,15 +132,7 @@ class CachedReportsExecutionRepository(
   /**
    * Retrieve all runs that were not processed - for the moment, there are no limitation nor ordering/grouping
    */
-  def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = semaphore
-    .withPermit(IOResult.attempt {
-      for {
-        runs         <- readBackend.getNodesAndUncomputedCompliance()
-        cacheUpdated <- cacheRef.updateAndGet(_ ++ runs)
-      } yield {
-        cacheUpdated.view.filterKeys(x => runs.contains(x)).toMap
-      }
-    })
-    .runNow
-
+  def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = {
+    cacheRef.modifyZIO(cache => readBackend.getNodesAndUncomputedCompliance().map(nodes => (cache, cache ++ nodes)))
+  }
 }
