@@ -227,7 +227,7 @@ class ShowNodeDetailsFromNode(
                           .rudder_global_policy_mode()
                           .chainError(s" Could not get global policy mode when getting node '${node.id.value}' details")
           agentRun   <- roAgentRunsRepository.getNodesLastRun(Set(node.id))
-          nodeFact   <- nodeFactRepo.slowGet(node.id)(CurrentUser.queryContext, attrs = SelectFacts.noSoftware)
+          nodeFact   <- nodeFactRepo.slowGet(node.id)(qr, attrs = SelectFacts.noSoftware)
           globalScore = scoreService.getGlobalScore(node.id).toBox.getOrElse(GlobalScore(NoScore, "", Nil))
         } yield (globalMode, agentRun, nodeFact, globalScore)).toBox match {
           case Failure(m, _, _)                                          =>

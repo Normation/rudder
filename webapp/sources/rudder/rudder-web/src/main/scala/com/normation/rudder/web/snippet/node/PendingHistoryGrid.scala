@@ -234,7 +234,7 @@ object PendingHistoryGrid extends Loggable {
         agentRun         = agentRunsByNode.get(id).flatten
       } yield (globalMode, agentRun, m)).toBox match {
         case Failure(m, _, _)                       => Alert("Error while trying to display node history. Error message:" + m)
-        case Empty | Full((_, _, None))                => Alert("No history was retrieved for the chosen date")
+        case Empty | Full((_, _, None))             => Alert("No history was retrieved for the chosen date")
         case Full((globalMode, agentRun, Some(sm))) =>
           SetHtml(
             jsuuid,

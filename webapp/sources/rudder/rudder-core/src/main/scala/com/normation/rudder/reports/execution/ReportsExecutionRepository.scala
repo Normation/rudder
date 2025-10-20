@@ -109,11 +109,12 @@ class CachedReportsExecutionRepository(
    * can be used for a given node) is given by the presence of the
    * nodeid in map's keys.
    */
-  private var cache = Map[NodeId, Option[AgentRunWithNodeConfig]]()
+  private val cacheRef =
+    Ref.make(Map[NodeId, Option[AgentRunWithNodeConfig]]()).runNow // Map[NodeId, Option[AgentRunWithNodeConfig]]()
 
   override def clearCache(): Unit = semaphore
     .withPermit(IOResult.attempt {
-      cache = Map()
+      cacheRef.set(Map())
     })
     .runNow
 
@@ -121,15 +122,16 @@ class CachedReportsExecutionRepository(
     semaphore
       .withPermit(
         for {
-          n1   <- currentTimeMillis
-          _    <- ComplianceDebugLoggerPure.trace(s"cache last run ; ${cache}")
-          _    <- ComplianceDebugLoggerPure.trace(s"node id diff last run ; ${nodeIds.diff(cache.keySet)}")
-          runs <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
-          n2   <- currentTimeMillis
-          _    <- TimingDebugLoggerPure.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")
+          n1           <- currentTimeMillis
+          _            <- ComplianceDebugLoggerPure.trace(s"cache last run ; ${cacheRef}")
+          cache        <- cacheRef.get
+          _            <- ComplianceDebugLoggerPure.trace(s"node id diff last run ; ${nodeIds.diff(cache.keySet)}")
+          runs         <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
+          n2           <- currentTimeMillis
+          _            <- TimingDebugLoggerPure.trace(s"CachedReportsExecutionRepository: get nodes last run in: ${n2 - n1}ms")
+          cacheUpdated <- cacheRef.updateAndGet(_ ++ runs)
         } yield {
-          cache = cache ++ runs
-          cache.view.filterKeys(x => nodeIds.contains(x)).toMap
+          cacheUpdated.view.filterKeys(x => nodeIds.contains(x)).toMap
         }
       )
       .chainError(s"Error when trying to update the cache of Agent Runs informations")
@@ -143,11 +145,10 @@ class CachedReportsExecutionRepository(
   def getNodesAndUncomputedCompliance(): IOResult[Map[NodeId, Option[AgentRunWithNodeConfig]]] = semaphore
     .withPermit(IOResult.attempt {
       for {
-        runs <- readBackend.getNodesAndUncomputedCompliance()
+        runs         <- readBackend.getNodesAndUncomputedCompliance()
+        cacheUpdated <- cacheRef.updateAndGet(_ ++ runs)
       } yield {
-        cache = cache ++ runs
-
-        cache.view.filterKeys(x => runs.contains(x)).toMap
+        cacheUpdated.view.filterKeys(x => runs.contains(x)).toMap
       }
     })
     .runNow

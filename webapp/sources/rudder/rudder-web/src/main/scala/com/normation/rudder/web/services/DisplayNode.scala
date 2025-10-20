@@ -636,13 +636,13 @@ object DisplayNode extends Loggable {
       DateFormaterService.getDisplayDate(nodeFact.factProcessedDate)
     }
           </div>
-          {
+          <div><label>Agent last run:</label>
+            {
       agentRun
-        .map(agentRunWithNodeConfig =>
-          <div><label>Agent last run:</label> {DateFormaterService.getDisplayDate(agentRunWithNodeConfig.agentRunId.date)}</div>
-        )
-        .getOrElse(NodeSeq.Empty)
+        .map(agentRunWithNodeConfig => { DateFormaterService.getDisplayDate(agentRunWithNodeConfig.agentRunId.date) })
+        .getOrElse("none available")
     }
+          </div>
           
         </div>
         <div class="rudder-info">
