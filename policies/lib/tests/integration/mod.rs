@@ -5,6 +5,7 @@
 mod audit_from_command_test;
 #[cfg(test)]
 mod audit_from_osquery_test;
+#[cfg(all(test, unix))]
 mod command_execution_options_test;
 #[cfg(test)]
 mod command_execution_test;
@@ -48,13 +49,13 @@ mod file_key_value_parameter_present_in_list_test;
 mod file_lines_absent_test;
 #[cfg(test)]
 mod file_replace_lines_test;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod permissions_acl_entry_test;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod permissions_group_acl_absent_test;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod permissions_group_acl_present_test;
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod permissions_other_acl_present_test;
 #[cfg(test)]
 mod user_methods_test;
@@ -82,7 +83,7 @@ pub fn get_lib() -> &'static Methods {
     })
 }
 fn get_lib_path() -> PathBuf {
-    PathBuf::from(LIBRARY_PATH)
+    std::path::absolute(PathBuf::from(LIBRARY_PATH)).expect("Could not get the absolute path of the library")
 }
 
 fn init_test() -> ManuallyDrop<TempDir> {
