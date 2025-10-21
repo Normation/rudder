@@ -461,7 +461,7 @@ displaySettingError contextPath message details =
     in
     div [ class "callout-fade callout-warning overflow-scroll" ]
         [ p [] [ i [ class "fa fa-warning" ] [], text message ]
-        , p [] [ a [ target "_blank", href (contextPath ++ "/secure/administration/settings#welcomeSetupTab") ] [ text "Open Rudder licence settings", i [ class "fa fa-external-link ms-1" ] [] ] ]
+        , p [] [ a [ target "_blank", href (contextPath ++ "/secure/administration/settings#welcomeSetupTab") ] [ text "Open Rudder license settings", i [ class "fa fa-external-link ms-1" ] [] ] ]
         , p []
             [ button [ class "btn btn-primary me-1", onClick (CallApi updateIndex) ] [ i [ class "fa fa-refresh me-1" ] [], text "Refresh plugins" ]
             , seeDetailsBtnHtml
