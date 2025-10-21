@@ -124,7 +124,7 @@ class SearchNodeComponent(
     <td class="first objectType"></td>
     <td class="attributeName"></td>
     <td class="comparator"></td>
-    <td class="inputValue"></td>
+    <td class="inputValue d-flex"></td>
     <td class="removeLine"></td>
     <td class="last addLine"></td>
   </tr>
@@ -873,19 +873,52 @@ object SearchNodeComponent {
       case DateComparator                             =>
         new AsForm {
 
-          // init a jquery datepicker
-          // it can be a "datetime" picker : use a checkbox and change the options accordingly
-          override def initForm(formId: String):    JsCmd = OnLoad(JsRaw(s"""var init = $$.datepicker.regional['en'];
-       const baseOpts = { dateFormat:'yy-mm-dd', showOn:'focus' }
-       $$('#${formId}').datepicker(baseOpts);
-       $$('<label><input type="checkbox" id="include-time">Include time</label>').insertAfter('#${formId}');
-       $$('#include-time').on('change', function () {
-         const opts = this.checked ? { timeFormat:'HH:mm:ss', ...baseOpts } : baseOpts;
-         $$('#${formId}').datetimepicker('destroy').datetimepicker(opts);
-       });
-       """))
+          // Init a jquery datepicker.
+          // It can be a "datetime" picker : use a checkbox, change the options accordingly
+          // (but we need to sync the datetime state with the checkbox).
+          // We assume the format has no millis, and as jquery picker seems to have no direct ISO8601 support,
+          // we append offset 'Z' for now (and fix the value with the offset when closing).
+          // Later, we could use the "input" browser tz
+          override def initForm(formId: String):    JsCmd = OnLoad(
+            JsRaw(
+              s"""|const init = $$.datepicker.regional['en'];
+                  |const formValue = () => $$('#${formId}').val();
+                  |const dateHasTime = (date) => date.split('T').length > 1;
+                  |const dateOpts = { dateFormat:'yy-mm-dd', showOn:'focus' };
+                  |const timeOpts = {
+                  |    ...dateOpts,
+                  |    dateFormat:'yy-mm-dd',
+                  |    showOn:'focus',
+                  |    timeFormat:'HH:mm:ss',
+                  |    separator: 'T',
+                  |    onSelect: (d, input) => { $$('#${formId}').val(d+'Z') },
+                  |    onClose: () => { if (dateHasTime(formValue()) && !formValue().endsWith('Z')) $$('#${formId}').val(formValue()+'Z'); },
+                  |};
+                  |
+                  |$$('<label class="d-flex text-nowrap align-items-center user-select-none mx-1"><input type="checkbox" class="mx-1" id="include-time-${formId}">Include time (in UTC)</label>').insertAfter('#${formId}');
+                  |const initValue = formValue();
+                  |if (initValue && dateHasTime(initValue)) {
+                  |  $$('#${formId}').datetimepicker(timeOpts);
+                  |  $$('#include-time-${formId}').prop("checked", "checked");
+                  } else {
+                  |  $$('#${formId}').datepicker(dateOpts);
+                  |}
+                  |
+                  |$$('#include-time-${formId}').on('change', function() {
+                  |  const check = this.checked;
+                  |  const date = formValue();
+                  |  if (check && date && !dateHasTime(date)) {
+                  |    $$('#${formId}').val(date+'T00:00:00Z');
+                  |  }
+                  |  if (!check && dateHasTime(date)) {
+                  |    $$('#${formId}').val(date.split('T')[0]);
+                  |  }
+                  |  $$('#${formId}').datetimepicker('destroy').datetimepicker(check ? timeOpts : dateOpts);
+                  |});""".stripMargin
+            )
+          )
           override def destroyForm(formId: String): JsCmd = OnLoad(
-            JsRaw(s"""$$('#${formId}').datepicker( "destroy" );""")
+            JsRaw(s"""$$('#${formId}').datepicker( "destroy" ); $$('#include-time-${formId}').remove();""")
           )
         }
       case MachineComparator                          =>
