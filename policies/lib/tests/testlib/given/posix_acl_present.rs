@@ -1,8 +1,9 @@
 use crate::testlib::given::setup_state::TestSetup;
 use crate::testlib::test_setup::TestSetupResult;
 use anyhow::Error;
-use log::debug;
+#[cfg(unix)]
 use posix_acl::{PosixACL, Qualifier};
+use tracing::debug;
 
 #[derive(Clone, Debug)]
 #[repr(u32)]
@@ -18,6 +19,7 @@ pub struct PosixAclPresentStruct {
     pub perm: Perms,
 }
 impl TestSetup for crate::testlib::given::posix_acl_present::PosixAclPresentStruct {
+    #[cfg(unix)]
     fn resolve(&self) -> anyhow::Result<TestSetupResult, Error> {
         debug!(
             "Set POSIX ACL {:?} {:?} to file {}",
@@ -27,5 +29,9 @@ impl TestSetup for crate::testlib::given::posix_acl_present::PosixAclPresentStru
         acl.set(self.qualifier, self.perm.clone() as u32);
         acl.write_acl(self.path.clone())?;
         Ok(TestSetupResult::default())
+    }
+    #[cfg(windows)]
+    fn resolve(&self) -> anyhow::Result<TestSetupResult, Error> {
+        bail!("Not supported on windows");
     }
 }

@@ -9,6 +9,7 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
+agent = { path = "../agent" }
 anyhow = "1"
 askama = "0.14"
 boon = "0.6.0"
@@ -32,6 +33,7 @@ tempfile = "3"
 rudder_commons = { path = "../rudder-commons" }
 rudder_cli = { path = "../rudder-cli" }
 zip = { version = "6.0.0", default-features = false, features = ["deflate", "time"] }
+indexmap = "2.12.0"
 
 [features]
 "embedded-lib" = []
