@@ -31,3 +31,9 @@ uzers = "0.12.1"
 
 [dev-dependencies]
 test-log = "*"
+
+[features]
+windows = []
+windows-on-unix = []
+unix = []
+default = ["unix"]

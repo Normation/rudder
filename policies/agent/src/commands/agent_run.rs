@@ -20,9 +20,8 @@ $errorActionPreference = "Stop"
 Add-Type -Path '{{ncf_folder}}/rudderLib/Library.dll'
 [Rudder.Logger]::StartLogger(' {{ log_file_path }}', '{{ verbosity }}')
 [Rudder.Logger]::Log.Debug("Loading the ncf library '{{ ncf_folder }}/ncf.ps1'")
+$script:rudderVariable = New-Object System.Collections.ArrayList
 .              '{{ncf_folder}}/ncf.ps1'
-$rudderVariable = @()
-
 #################
 # Load the ps1 files #
 #################
