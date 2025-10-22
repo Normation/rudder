@@ -41,6 +41,7 @@ function {{ id|technique_name }} {
             ReportId = $reportId
             DisableReporting = ${{ m.disable_reporting }}
             TechniqueName = $techniqueName
+            MethodId = '{{ m.id }}'
         }
       {%- if m.is_supported %}
         {% match m.condition %}
@@ -77,7 +78,7 @@ function {{ id|technique_name }} {
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }} -ReportId $reportId -DisableReporting:${{ m.disable_reporting }} -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }} -ReportId $reportId -DisableReporting:${{ m.disable_reporting }} -MethodId '{{ m.id }}' -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -86,7 +87,7 @@ function {{ id|technique_name }} {
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }} -ReportId $reportId -DisableReporting:${{ m.disable_reporting }} -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode {{ m.policy_mode_override|policy_mode_fmt }} -ReportId $reportId -DisableReporting:${{ m.disable_reporting }} -MethodId '{{ m.id }}' -MethodCall $failedCall
     }
 {% endfor %}
     EndTechniqueCall -Name $techniqueName

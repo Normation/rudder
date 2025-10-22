@@ -40,6 +40,7 @@ File content
             ReportId = $reportId
             DisableReporting = $false
             TechniqueName = $techniqueName
+            MethodId = 'd982a7e6-494a-40a5-aea1-7d9a185eed61'
         }
         
         $methodParams = @{
@@ -88,7 +89,7 @@ vars.node.properties.name.key
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'd982a7e6-494a-40a5-aea1-7d9a185eed61' -MethodCall $failedCall
     } catch {
         $failedCall = [Rudder.MethodResult]::Error(
             ([String]::Format(
@@ -97,7 +98,7 @@ vars.node.properties.name.key
             )),
             $techniqueName
         )
-        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodCall $failedCall
+        Compute-Method-Call @fallBackReportParams -PolicyMode $policyMode -ReportId $reportId -DisableReporting:$false -MethodId 'd982a7e6-494a-40a5-aea1-7d9a185eed61' -MethodCall $failedCall
     }
 
     EndTechniqueCall -Name $techniqueName
