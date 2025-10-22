@@ -12,7 +12,7 @@ use agent::FakeAgent;
 use anyhow::{Context, Result, bail};
 use askama::Template;
 use rudder_commons::report::{Report, RunLog};
-use log::debug;
+use tracing::debug;
 use crate::backends::unix::cfengine::CfAgentResult;
 
 #[derive(Template)]

@@ -5,7 +5,7 @@ use crate::testlib::given::Given;
 use crate::testlib::given::setup_state::TestSetup;
 use crate::testlib::method_to_test::MethodToTest;
 use crate::testlib::test_result::ExecutionResult;
-use log::debug;
+use tracing::debug;
 use rudder_commons::PolicyMode;
 use rudderc::backends::{Backend, Windows};
 use rudderc::backends::unix::Unix;

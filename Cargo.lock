@@ -40,6 +40,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "toml 0.9.8",
+ "tracing",
  "uuid",
 ]
 
@@ -2218,7 +2219,6 @@ dependencies = [
  "dyn-clone",
  "env_logger",
  "itertools 0.14.0",
- "log 0.4.28",
  "posix-acl",
  "regex",
  "rudder_commons",
@@ -2229,6 +2229,8 @@ dependencies = [
  "tempfile",
  "test-log",
  "tiny_http",
+ "tracing",
+ "tracing-subscriber",
  "uzers",
 ]
 

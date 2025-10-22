@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2025 Normation SAS
 
 use crate::testlib::method_to_test::{MethodStatus, MethodToTest};
-use log::debug;
+use tracing::debug;
 use rudder_commons::report::Report;
 
 #[derive(Debug, Clone)]

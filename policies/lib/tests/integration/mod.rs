@@ -66,7 +66,7 @@ mod variable_string_from_command_test;
 #[cfg(test)]
 mod variable_string_test;
 
-use log::debug;
+use tracing::debug;
 use rudder_commons::methods::Methods;
 use std::mem::ManuallyDrop;
 use std::path::PathBuf;
@@ -87,7 +87,7 @@ fn get_lib_path() -> PathBuf {
 }
 
 fn init_test() -> ManuallyDrop<TempDir> {
-    let _ = env_logger::try_init();
+    let _ = tracing_subscriber::fmt::init();
     let workdir = tempdir().unwrap();
     debug!("WORKDIR = {:?}", workdir.path());
     ManuallyDrop::new(workdir)

@@ -1,7 +1,7 @@
 use crate::{AgentConf, AgentState, AgentStatus, BuildInfo, PolicyParams};
 use anyhow::Context;
 use askama::Template;
-use log::debug;
+use tracing::debug;
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
