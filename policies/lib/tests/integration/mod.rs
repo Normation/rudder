@@ -32,6 +32,7 @@ mod file_block_present_in_section_test;
 #[cfg(feature = "unix")]
 mod file_block_present_test;
 #[cfg(test)]
+#[cfg(feature = "unix")]
 mod file_check_exists_test;
 #[cfg(test)]
 mod file_content_test;
@@ -42,6 +43,7 @@ mod file_copy_from_local_source_recursion_test;
 #[cfg(feature = "unix")]
 mod file_ensure_key_value_option_test;
 #[cfg(test)]
+#[cfg(feature = "unix")] // Todo windows support
 mod file_from_http_server_test;
 #[cfg(test)]
 #[cfg(feature = "unix")]
@@ -50,10 +52,13 @@ mod file_from_local_source_recursion_test;
 #[cfg(feature = "unix")]
 mod file_from_string_mustache_test;
 #[cfg(test)]
+#[cfg(feature = "unix")] // Todo windows support
 mod file_from_template_options_test;
 #[cfg(test)]
+#[cfg(feature = "unix")] // Todo windows support
 mod file_from_template_type_test;
 #[cfg(test)]
+#[cfg(feature = "unix")]
 mod file_key_value_parameter_present_in_list_test;
 #[cfg(test)]
 mod file_lines_absent_test;
@@ -79,16 +84,17 @@ mod user_methods_test;
 #[cfg(feature = "unix")]
 mod variable_string_default_test;
 #[cfg(test)]
+#[cfg(feature = "unix")] //Todo windows support
 mod variable_string_from_command_test;
 #[cfg(test)]
 mod variable_string_test;
 
-use tracing::debug;
 use rudder_commons::methods::Methods;
 use std::mem::ManuallyDrop;
 use std::path::PathBuf;
 use std::sync::OnceLock;
 use tempfile::{TempDir, tempdir};
+use tracing::debug;
 
 const LIBRARY_PATH: &str = "./tree";
 pub fn get_lib() -> &'static Methods {
@@ -100,11 +106,12 @@ pub fn get_lib() -> &'static Methods {
     })
 }
 fn get_lib_path() -> PathBuf {
-    std::path::absolute(PathBuf::from(LIBRARY_PATH)).expect("Could not get the absolute path of the library")
+    std::path::absolute(PathBuf::from(LIBRARY_PATH))
+        .expect("Could not get the absolute path of the library")
 }
 
 fn init_test() -> ManuallyDrop<TempDir> {
-    let _ = tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt::init();
     let workdir = tempdir().unwrap();
     debug!("WORKDIR = {:?}", workdir.path());
     ManuallyDrop::new(workdir)

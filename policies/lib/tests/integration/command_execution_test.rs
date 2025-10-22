@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SPDX-FileCopyrightText: 2025 Normation SAS
 
-use std::fs;
 use crate::integration::{end_test, get_lib_path, init_test};
 use crate::testlib::method_test_suite::MethodTestSuite;
 use crate::testlib::method_to_test::{MethodStatus, method};
@@ -42,7 +41,11 @@ fn it_repairs_in_enforced_mode_if_the_command_succeeds() {
     #[cfg(any(feature = "windows", feature = "windows-on-unix"))]
     {
         let script_path = workdir.path().join("touch.ps1");
-        fs::write(&script_path, format!("New-Item -Path '{}' -ItemType 'File'", file_path.display())).unwrap();
+        fs::write(
+            &script_path,
+            format!("New-Item -Path '{}' -ItemType 'File'", file_path.display()),
+        )
+        .unwrap();
         command = script_path.display().to_string();
     }
 

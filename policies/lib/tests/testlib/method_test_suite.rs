@@ -5,19 +5,18 @@ use crate::testlib::given::Given;
 use crate::testlib::given::setup_state::TestSetup;
 use crate::testlib::method_to_test::MethodToTest;
 use crate::testlib::test_result::ExecutionResult;
-use tracing::debug;
 use rudder_commons::PolicyMode;
-use rudderc::backends::{Backend, Windows};
 use rudderc::backends::unix::Unix;
 use rudderc::backends::unix::cfengine::cf_agent;
-use rudderc::backends::windows::test::{win_agent, win_agent_for_ncf};
+use rudderc::backends::windows::test::win_agent_for_ncf;
+use rudderc::backends::{Backend, Windows};
 use rudderc::ir::Technique;
 use rudderc::ir::technique::{ItemKind, TechniqueId};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::abort;
 use std::str::FromStr;
-use anyhow::{bail, Context};
+use tracing::debug;
 
 #[derive(Clone)]
 pub struct MethodTestSuite {
@@ -75,7 +74,7 @@ impl MethodTestSuite {
         }
     }
 
-    fn prepare_execution(self, library_path: &PathBuf, workdir: &PathBuf) -> (Technique, PathBuf) {
+    fn prepare_execution(self, _library_path: &Path, workdir: &Path) -> (Technique, PathBuf) {
         debug!("[Starting a new method test]");
         let mut conditions = vec![];
         let mut policy_mode: PolicyMode = Default::default();
@@ -138,7 +137,7 @@ impl MethodTestSuite {
                     workdir.join("datastate.json"),
                     serde_json::to_string(&result.datastate.clone()).unwrap(),
                 )
-                    .unwrap();
+                .unwrap();
                 ExecutionResult {
                     conditions: result.datastate.classes,
                     variables: result.datastate.vars,

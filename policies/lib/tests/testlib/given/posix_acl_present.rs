@@ -1,9 +1,9 @@
 use crate::testlib::given::setup_state::TestSetup;
 use crate::testlib::test_setup::TestSetupResult;
 use anyhow::Error;
-use tracing::debug;
 #[cfg(unix)]
 use posix_acl::{PosixACL, Qualifier};
+use tracing::debug;
 
 #[derive(Clone, Debug)]
 #[repr(u32)]

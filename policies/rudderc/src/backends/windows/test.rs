@@ -7,13 +7,13 @@ use std::{
 };
 
 use super::filters;
+use crate::backends::unix::cfengine::CfAgentResult;
 use crate::{backends::Windows, ir::Technique, test::TestCase};
 use agent::FakeAgent;
 use anyhow::{Context, Result, bail};
 use askama::Template;
 use rudder_commons::report::{Report, RunLog};
 use tracing::debug;
-use crate::backends::unix::cfengine::CfAgentResult;
 
 #[derive(Template)]
 #[template(path = "test-directive.ps1.askama", escape = "none")]
@@ -39,19 +39,22 @@ pub fn win_agent_for_ncf(
     // Assume that the directive policy mode will always be Enforce in the lib tests
     let policy_mode = rudder_commons::PolicyMode::Enforce;
     // Assume the extra conditions will always be empty in the lib tests
-    let conditions = vec!();
+    let conditions = vec![];
     let technique_test_directive = TechniqueTestDirectiveTemplate {
         bundle_name: &Windows::technique_name(&technique.id.to_string()),
         technique_name: &technique.name,
         policy_mode: &filters::camel_case(policy_mode)?,
-        params: &params,
-        conditions
+        params,
+        conditions,
     };
     let directive_path = work_dir.join("directive.ps1");
-    fs::write(&directive_path, technique_test_directive
-        .render()
-        .context("Compute the directive content")?
-    ).context("Writing the directive file")?;
+    fs::write(
+        &directive_path,
+        technique_test_directive
+            .render()
+            .context("Compute the directive content")?,
+    )
+    .context("Writing the directive file")?;
 
     // Render the standalone
     let log_path = work_dir.join("agent.log");
@@ -68,8 +71,10 @@ pub fn win_agent_for_ncf(
             "normal".to_string()
         },
         ncf_folder: if let Some(l) = library_path {
-           l.to_path_buf()
-        } else { agent_path.join("share/initial-policy/ncf") },
+            l.to_path_buf()
+        } else {
+            agent_path.join("share/initial-policy/ncf")
+        },
         technique_file_path: technique_path.to_path_buf(),
         report_file_path: report_path.clone(),
         datastate_file_path: datastate_path.clone(),
@@ -89,12 +94,10 @@ pub fn win_agent_for_ncf(
 
     // Take latest file from reports_dir
     // FIXME: find something more reliable
-    let reports = read_to_string(&report_path)
-        .context(
-            format!(
-                "Reading reports file from {}",
-                report_path.display()
-            ))?;
+    let reports = read_to_string(&report_path).context(format!(
+        "Reading reports file from {}",
+        report_path.display()
+    ))?;
 
     // Remove dates from output
     // Test parser does not expect it as it provides a simpler format...
